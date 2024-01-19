@@ -121,7 +121,7 @@ msgstr " za urejanje ali dodajanje stolpcev in mer."
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
 msgid " to mark a column as a time column"
-msgstr ""
+msgstr " za označitev stolpca kot časovni stolpec"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
@@ -272,7 +272,7 @@ msgstr "%s SSH TUNELSKI ZASEBNI KLJUC"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s SSH TUNEL GLAVNEGA KLJUČA ZASEBNOSTI"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:245
 #, python-format
@@ -427,7 +427,7 @@ msgstr "+ %s več"
 
 #: superset/views/database/forms.py:163
 msgid ","
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:652
 msgid ""
@@ -462,7 +462,7 @@ msgstr "dan"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr ""
+msgstr "1 dan nazaj"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -493,7 +493,7 @@ msgstr "1 mesec končna frekvenca"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
 msgid "1 month start frequency"
-msgstr ""
+msgstr "1 meseci začetna frekvenca"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:307
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:189
@@ -585,7 +585,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:509
 #: superset-frontend/src/explore/controlPanels/sections.tsx:235
 msgid "1D"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:356
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:238
@@ -703,7 +703,7 @@ msgstr "3D"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:64
 msgid "4 weeks (freq=4W-MON)"
-msgstr ""
+msgstr "4 tedne (pogostost=4W-PON)"
 
 #: superset/db_engine_specs/base.py:101
 msgid "5 minute"
@@ -734,7 +734,7 @@ msgstr "teden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:116
 msgid "52 weeks ago"
-msgstr ""
+msgstr "52 weeks ago"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:60
 #, fuzzy
@@ -754,7 +754,7 @@ msgstr "60 dni"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:166
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:239
 msgid "7 calendar day frequency"
-msgstr ""
+msgstr "7 koledarskih dni frekvenca"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:169
 #: superset-frontend/src/explore/controls.jsx:263
@@ -791,7 +791,7 @@ msgstr "<= (manjše ali enako)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1430
 msgid "<enter SQL expression here>"
-msgstr ""
+msgstr "<vnesite SQL izraz tukaj>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:500
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1427
@@ -852,7 +852,7 @@ msgstr "Podatkovna baza z enakim imenom že obstaja."
 msgid ""
 "A dictionary with column names and their data types if you need to change "
 "the defaults. Example: {\"user_id\":\"integer\"}"
-msgstr ""
+msgstr "Slovenian translation of the msgid"
 
 #: superset/views/dynamic_plugins.py:52
 msgid ""
@@ -1214,7 +1214,7 @@ msgstr "Dodaj filter"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "Add custom scoping"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
@@ -1238,6 +1238,11 @@ msgid ""
 "                    when you want to improve the query's performance by only scanning a subset\n"
 "                    of the underlying data or limit the available values displayed in the filter."
 msgstr ""
+"Dodajte klavzule filtra za nadzor nad izvorno poizvedbo filtra,\n"
+"                     vendar le v kontekstu samodejnega izpolnjevanja, tj. te pogoje\n"
+"                     ne vplivajo na to, kako se filter uporablja za nadzorno ploščo. To je koristno,\n"
+"                     ko želite izboljšati učinkovitost poizvedbe tako, da skenirate le podmnožico\n"
+"                     podatkov ali omejite razpoložljive vrednosti, prikazane v filtru."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
@@ -1353,11 +1358,11 @@ msgstr "Aditivno"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:85
 msgid "Adjust how this database will interact with SQL Lab."
-msgstr ""
+msgstr "Prilagodite, kako se bo ta podatkovna baza vključevala z SQL Lab."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:231
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "Nastavite nastavitve učinkovitosti te baze podatkov.\\n"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1633,7 +1638,7 @@ msgstr "Vsi grafikoni"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "Vsi grafikoni/globalno obseganje"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
@@ -2648,7 +2653,7 @@ msgstr "Nazaj"
 #: superset-frontend/src/pages/AnnotationList/index.tsx:264
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:181
 msgid "Back to all"
-msgstr ""
+msgstr "Nazaj na vse"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:311
 #: superset/views/database/mixins.py:200
@@ -3166,7 +3171,7 @@ msgstr "Podatkovne baze s povezanimi podatkovnimi viri ni mogoče izbrisati"
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:67
 msgid "Cannot have multiple credentials for the SSH Tunnel"
-msgstr ""
+msgstr "Ne morete imeti več poverilnic za SSH tunel"
 
 #: superset/views/core.py:734
 #, python-format
@@ -3249,7 +3254,7 @@ msgstr "Kategorija ciljnih vozlišč"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:100
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
 msgid "Category, Value and Percentage"
-msgstr ""
+msgstr "Kategorija, Vrednost in Delež"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:107
 msgid "Cell Padding"
@@ -3852,6 +3857,8 @@ msgstr "Počisti polja"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:209
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
 msgstr ""
+"Kliknite na gumb \"+Dodaj/Uredi filtre\" za ustvarjanje novih filtrov za "
+"nadzorno ploščo"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:286
 msgid ""
@@ -3887,7 +3894,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Table/index.tsx:217
 msgid "Click to cancel sorting"
-msgstr ""
+msgstr "Kliknite, da prekličete razvrščanje"
 
 #: superset-frontend/src/components/EditableTitle/index.tsx:211
 msgid "Click to edit"
@@ -4039,6 +4046,8 @@ msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given cell"
 " against the other cells in the selected range: "
 msgstr ""
+"Barva bo senčena glede na normalizirano (0% do 100%) vrednost določene "
+"celice v primerjavi z drugimi celicami v izbranem obsegu: "
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
 msgid "Colors"
@@ -4587,7 +4596,7 @@ msgstr "Kopirajte ime računa podatkovne baze, s katero se skušate povezati."
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:93
 msgid "Copy the name of the HTTP Path of your cluster."
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:115
 #, fuzzy
@@ -4648,7 +4657,7 @@ msgstr "Ni mogoče naložiti gonilnika podatkovne baze: {}"
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr ""
+msgstr "Could not resolve hostname: \"%(host)s\"."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 #, fuzzy
@@ -4670,7 +4679,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:194
 msgid "Count as Fraction of Total"
-msgstr ""
+msgstr "Kot delež celote"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:120
@@ -4719,6 +4728,8 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Ustvarite nabor podatkov, da začnete vizualizirati svoje podatke kot grafikon ali pojdite na\n"
+"          SQL Lab za poizvedbo vaših podatkov."
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:201
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:224
@@ -4822,6 +4833,7 @@ msgstr "Dimenzija"
 msgid ""
 "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
+"Cross-filter bo uporabljen na vseh grafih, ki uporabljajo ta nabor podatkov."
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 #, fuzzy
@@ -4942,7 +4954,7 @@ msgstr "Datum/Čas"
 #: superset/utils/encrypt.py:117
 #, python-format
 msgid "DB column %(col_name)s has unknown type: %(value_type)s"
-msgstr ""
+msgstr "DB stolpec %(col_name)s ima neznano vrsto: %(value_type)s"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:102
 msgid "DEC"
@@ -4969,7 +4981,7 @@ msgstr "Radar"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:43
 msgid "Dark Cyan"
-msgstr ""
+msgstr "Dark Cyan"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:31
 msgid "Dark mode"
@@ -5036,6 +5048,9 @@ msgid ""
 "          the filter section of each chart. Add temporal columns to the chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"Dashboard časovni razpon filtri veljajo za časovne stolpce, določene v \n"
+"          filter delu vsakega grafikona. Dodajte časovne stolpce v grafikone \n"
+"          filtri za ta filter nadzorne plošče vplivajo na te grafikone."
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:513
 msgid "Dashboard title"
@@ -5386,7 +5401,7 @@ msgstr "Parametri podatkovnega seta so neveljavni."
 #: superset/dashboards/api.py:415
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr ""
+msgstr "Podatkovna shema je neveljavna, napaka: %(error)s"
 
 #: superset/datasets/commands/exceptions.py:186
 msgid "Dataset(s) could not be bulk deleted."
@@ -5403,6 +5418,8 @@ msgid ""
 "Datasets can be created from database tables or SQL queries. Select a "
 "database table to the left or "
 msgstr ""
+"Datasets lahko ustvarite iz tabel v bazi ali SQL poizvedb. Izberite tabelo v"
+" bazi na levi strani ali "
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:847
 msgid "Datasets do not contain a temporal column"
@@ -5481,7 +5498,7 @@ msgstr "Dan"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:63
 msgid "Day (freq=D)"
-msgstr ""
+msgstr "Dan (freq=D)"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, python-format
@@ -5502,7 +5519,7 @@ msgstr "December"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:89
 msgid "Decides which column to sort the base axis by."
-msgstr ""
+msgstr "Odločite se, po kateri stolpci želite razvrstiti osno os."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:160
 msgid "Decides which measure to sort the base axis by."
@@ -5895,6 +5912,8 @@ msgid ""
 "Deleting a tab will remove all content within it. You may still reverse this"
 " action with the"
 msgstr ""
+"Brisanje zavihka bo odstranilo vsebino v njem. Lahko še vedno razveljavite "
+"to dejanje z"
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:184
 msgid "Delimited long & lat single column"

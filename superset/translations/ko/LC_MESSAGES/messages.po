@@ -61,7 +61,7 @@ msgstr "(제외됨)"
 msgid ""
 " Set the opacity to 0 if you do not want to override the color specified in "
 "the GeoJSON"
-msgstr ""
+msgstr " GeoJSON에서 지정된 색상을 덮어 쓰지 않으려면 불투명도를 0으로 설정하십시오."
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:399
 #, fuzzy
@@ -110,11 +110,11 @@ msgstr " 열과 측정 항목을 편집하거나 추가하려면."
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
 msgid " to mark a column as a time column"
-msgstr ""
+msgstr " 시간 열로 열을 표시하려면"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
-msgstr ""
+msgstr "SQL Lab을 열려면. 거기서 쿼리를 데이터 세트로 저장할 수 있습니다."
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
@@ -220,6 +220,9 @@ msgid ""
 "Please recheck your query.\n"
 "Exception: %(ex)s"
 msgstr ""
+"%(validator)s 쿼리를 확인할 수 없습니다.\n"
+"쿼리를 다시 확인해주세요.\n"
+"예외: %(ex)s"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:89
 #, python-format
@@ -248,7 +251,7 @@ msgstr "%s SSH 터널 개인 키"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s SSH 터널 개인 키 비밀번호"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:245
 #, python-format
@@ -268,7 +271,7 @@ msgstr "%s 선택됨 (물리적)"
 #: superset-frontend/src/pages/DatasetList/index.tsx:816
 #, python-format
 msgid "%s Selected (Virtual)"
-msgstr ""
+msgstr "%s 선택됨 (가상)"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:332
 #, python-format
@@ -286,7 +289,7 @@ msgstr "%s 열"
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:356
 #, python-format
 msgid "%s operator(s)"
-msgstr ""
+msgstr "연산자 %s개"
 
 #: superset-frontend/src/filters/components/GroupBy/GroupByFilterPlugin.tsx:87
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:226
@@ -333,7 +336,7 @@ msgstr "%s-%s 의 %s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:116
 msgid "(Removed)"
-msgstr ""
+msgstr "(Removed)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:101
 msgid "(deleted or invalid type)"
@@ -341,13 +344,13 @@ msgstr "(삭제 된 또는 잘못된 유형)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
-msgstr ""
+msgstr "(설명 없음, 스택 추적을 보려면 클릭하십시오)"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:168
 msgid ""
 "(optional) default value for the filter, when using the multiple option, you"
 " can use a semicolon-delimited list of options."
-msgstr ""
+msgstr "(선택 사항) 다중 옵션을 사용하는 경우, 필터의 기본값으로 세미콜론으로 구분된 옵션 목록을 사용할 수 있습니다."
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
 msgid "), and they become available in your SQL (example:"
@@ -364,6 +367,13 @@ msgid ""
 "\n"
 "%(table)s\n"
 msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"<%(url)s|Superset에서 탐색하기>\n"
+"\n"
+"%(table)s\n"
 
 #: superset/reports/notifications/slack.py:82
 #, python-format
@@ -388,13 +398,15 @@ msgstr "+ %s 더"
 
 #: superset/views/database/forms.py:163
 msgid ","
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:652
 msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n"
 "\n"
 msgstr ""
+"-- 참고: 쿠키를 지우거나 브라우저를 변경하면 이 탭들이 계속 유지되지 않습니다.\n"
+"\n"
 
 #: superset/views/database/forms.py:164
 msgid "."
@@ -421,7 +433,7 @@ msgstr "일"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr ""
+msgstr "1일 전"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -451,7 +463,7 @@ msgstr "1 개월 끝 주기"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
 msgid "1 month start frequency"
-msgstr ""
+msgstr "1개월 시작 빈도"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:307
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:189
@@ -493,7 +505,7 @@ msgstr "1년 끝 주기"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:242
 msgid "1 year start frequency"
-msgstr ""
+msgstr "1년 시작 빈도"
 
 #: superset/db_engine_specs/base.py:102
 msgid "10 minute"
@@ -539,7 +551,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:509
 #: superset-frontend/src/explore/controlPanels/sections.tsx:235
 msgid "1D"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:356
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:238
@@ -599,7 +611,7 @@ msgstr "28일 전"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:37
 msgid "2D"
-msgstr ""
+msgstr "2D"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:136
 msgid "3 letter code of the country"
@@ -623,7 +635,7 @@ msgstr "3년 전"
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
 msgid "30 days"
-msgstr ""
+msgstr "30 일"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:115
 msgid "30 days ago"
@@ -658,7 +670,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:64
 msgid "4 weeks (freq=4W-MON)"
-msgstr ""
+msgstr "4주 (주기=4W-월)"
 
 #: superset/db_engine_specs/base.py:101
 msgid "5 minute"
@@ -690,7 +702,7 @@ msgstr "주"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:116
 msgid "52 weeks ago"
-msgstr ""
+msgstr "52 weeks ago"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:60
 msgid "52 weeks starting Monday (freq=52W-MON)"
@@ -705,12 +717,12 @@ msgstr "6시간"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
 msgid "60 days"
-msgstr ""
+msgstr "60 일"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:166
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:239
 msgid "7 calendar day frequency"
-msgstr ""
+msgstr "7 달력 일 빈도수"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:169
 #: superset-frontend/src/explore/controls.jsx:263
@@ -731,23 +743,23 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
 msgid "90 days"
-msgstr ""
+msgstr "90일"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:49
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
 msgid "< (Smaller than)"
-msgstr ""
+msgstr "< (보다 작음)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
 msgid "<= (Smaller or equal)"
-msgstr ""
+msgstr "<= (작거나 같음)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1430
 msgid "<enter SQL expression here>"
-msgstr ""
+msgstr "<여기에 SQL 식을 입력하세요>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:500
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1427
@@ -771,15 +783,15 @@ msgstr "차트 유형"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
 msgid "== (Is equal)"
-msgstr ""
+msgstr "== (같다)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
 msgid "> (Larger than)"
-msgstr ""
+msgstr "> (더 큼)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
 msgid ">= (Larger or equal)"
-msgstr ""
+msgstr ">= (크거나 같음)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:34
 #, fuzzy
@@ -788,15 +800,15 @@ msgstr "테이블 명"
 
 #: superset/views/database/forms.py:194
 msgid "A comma separated list of columns that should be parsed as dates"
-msgstr ""
+msgstr "쉼표로 구분된 열의 목록으로 구분된 날짜로 구문 분석되어야하는 열입니다."
 
 #: superset/views/database/forms.py:377
 msgid "A comma separated list of columns that should be parsed as dates."
-msgstr ""
+msgstr "날짜로 구문 분석되어야 할 쉼표로 구분된 열의 목록."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:443
 msgid "A comma-separated list of schemas that files are allowed to upload to."
-msgstr ""
+msgstr "파일을 업로드 할 수있는 스키마의 쉼표로 구분 된 목록입니다."
 
 #: superset/databases/commands/exceptions.py:42
 #, fuzzy
@@ -817,11 +829,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/handlebarTemplate.tsx:61
 msgid "A handlebars template that is applied to the data"
-msgstr ""
+msgstr "데이터에 적용된 핸들바 템플릿"
 
 #: superset/views/dynamic_plugins.py:47
 msgid "A human-friendly name"
-msgstr ""
+msgstr "사람들을 위한 친근한 이름"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:195
 msgid ""
@@ -832,16 +844,16 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:752
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:445
 msgid "A list of tags that have been applied to this chart."
-msgstr ""
+msgstr "이 차트에 적용된 태그 목록."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:424
 msgid ""
 "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
+msgstr "이름 또는 사용자 이름으로 검색 가능한 차트 수정 가능한 사용자 목록."
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:29
 msgid "A map of the world, that can indicate values in different countries."
-msgstr ""
+msgstr "세계 지도에서 다른 나라의 가치를 나타낼 수 있습니다."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:27
 msgid ""
@@ -863,13 +875,13 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:697
 msgid "A readable URL for your dashboard"
-msgstr ""
+msgstr "대시 보드용 읽기 쉬운 URL"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:45
 #: superset-frontend/src/explore/controls.jsx:113
 msgid ""
 "A reference to the [Time] configuration, taking granularity into account"
-msgstr ""
+msgstr "[시간] 구성을 참조하여 정밀도를 고려합니다"
 
 #: superset/reports/commands/exceptions.py:186
 #, fuzzy, python-format
@@ -882,18 +894,18 @@ msgstr ""
 
 #: superset-frontend/src/components/ReportModal/index.tsx:308
 msgid "A screenshot of the dashboard will be sent to your email at"
-msgstr ""
+msgstr "대시 보드의 스크린 샷이 이메일로 보내집니다"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:963
 #: superset/connectors/sqla/views.py:365
 msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
-msgstr ""
+msgstr "Jinja 템플릿 문법을 사용하여 쿼리에서 사용 가능한 매개변수 집합"
 
 #: superset/common/query_context_processor.py:417
 msgid "A time column must be specified when using a Time Comparison."
-msgstr ""
+msgstr "시간 비교를 사용할 때 시간 열을 지정해야합니다."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:32
 msgid ""
@@ -903,7 +915,7 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:228
 msgid "A timeout occurred while executing the query."
-msgstr ""
+msgstr "쿼리 실행 중에 시간 초과가 발생했습니다."
 
 #: superset/reports/commands/exceptions.py:238
 #, fuzzy
@@ -917,11 +929,11 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #: superset/reports/commands/exceptions.py:233
 msgid "A timeout occurred while taking a screenshot."
-msgstr ""
+msgstr "스크린 샷 촬영하는 동안 시간 초과가 발생했습니다."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:296
 msgid "A valid color scheme is required"
-msgstr ""
+msgstr "A valid color scheme is required"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:338
 msgid "APPLY"
@@ -951,7 +963,7 @@ msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:492
 msgid "About"
-msgstr ""
+msgstr "프로그램 정보"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:476
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:519
@@ -961,15 +973,15 @@ msgstr ""
 
 #: superset/initialization/__init__.py:425
 msgid "Access requests"
-msgstr ""
+msgstr "\\n\\t\\t"
 
 #: superset-frontend/src/components/TableLoader/index.tsx:91
 msgid "Access to user activity data is restricted"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:175
 msgid "Access token"
-msgstr ""
+msgstr "\\t"
 
 #: superset/views/core.py:318
 msgid "Access was requested"
@@ -1031,7 +1043,7 @@ msgstr "원본 값"
 #: superset-frontend/src/explore/controls.jsx:78
 #: superset-frontend/src/explore/controls.jsx:101
 msgid "Adaptive formatting"
-msgstr ""
+msgstr "적응형 포맷팅"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
@@ -1081,7 +1093,7 @@ msgstr "메트릭 추가"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 msgid "Add Report"
-msgstr ""
+msgstr "보고서 추가"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
 #, fuzzy
@@ -1108,7 +1120,7 @@ msgstr "새 차트 생성"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:296
 msgid "Add a new tab to create SQL Query"
-msgstr ""
+msgstr "새 탭을 추가하여 SQL 쿼리 생성"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:220
 msgid "Add additional custom parameters"
@@ -1141,7 +1153,7 @@ msgstr "주석 레이어"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:306
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "\""
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:303
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
@@ -1154,11 +1166,11 @@ msgstr "테이블 추가"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "사용자 정의 범위 추가"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
-msgstr ""
+msgstr "배송 방법 추가하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:340
 #, fuzzy
@@ -1181,7 +1193,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
-msgstr ""
+msgstr "필터 및 구분선 추가"
 
 #: superset-frontend/src/components/Datasource/CollectionTable.tsx:458
 msgid "Add item"
@@ -1193,7 +1205,7 @@ msgstr "메트릭"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:401
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "데이터 소스 수정 모"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:176
 msgid "Add new color formatter"
@@ -1205,7 +1217,7 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add notification method"
-msgstr ""
+msgstr "알림 방법 추가"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:267
 msgid "Add required control values to preview chart"
@@ -1213,7 +1225,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:254
 msgid "Add required control values to save chart"
-msgstr ""
+msgstr "필수 제어값을 추가하여 차트 저장하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:107
 #, fuzzy
@@ -1299,11 +1311,11 @@ msgstr "테이블 추가"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:85
 msgid "Adjust how this database will interact with SQL Lab."
-msgstr ""
+msgstr "SQL 랩과 이 데이터베이스"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:231
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "이 데이터베이스의 성능 설정을 조정"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1331,12 +1343,12 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:291
 msgid "Advanced Data type"
-msgstr ""
+msgstr "고급 데이터 유형"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:25
 #: superset-frontend/src/explore/controlPanels/sections.tsx:117
 msgid "Advanced analytics"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:289
 msgid "Advanced analytics Query A"
@@ -1344,12 +1356,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:291
 msgid "Advanced analytics Query B"
-msgstr ""
+msgstr "고급 분석 쿼리 B"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:287
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:359
 msgid "Advanced data type"
-msgstr ""
+msgstr "고급 데이터 유형"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:45
@@ -1407,7 +1419,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:89
 msgid "Aggregate Sum"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:194
 msgid ""
@@ -1419,7 +1431,7 @@ msgstr ""
 msgid ""
 "Aggregate function to apply when pivoting and computing the total rows and "
 "columns"
-msgstr ""
+msgstr "피벗 및"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.js:27
 msgid ""
@@ -1443,7 +1455,7 @@ msgstr "경고"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:92
 msgid "Alert Triggered, In Grace Period"
-msgstr ""
+msgstr "경고가 발동되었습니다, 우대 기간 내에서"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 msgid "Alert condition"
@@ -1451,11 +1463,11 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
 msgid "Alert condition schedule"
-msgstr ""
+msgstr "시간 조건 스케줄"
 
 #: superset/reports/commands/exceptions.py:253
 msgid "Alert ended grace period."
-msgstr ""
+msgstr "경고가 우아한 기간을 종료했습니다."
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:82
 msgid "Alert failed"
@@ -1463,11 +1475,11 @@ msgstr "테이블 명"
 
 #: superset/reports/commands/exceptions.py:248
 msgid "Alert fired during grace period."
-msgstr ""
+msgstr "유예 기간 동안 경고가 발생했습니다."
 
 #: superset/reports/commands/exceptions.py:223
 msgid "Alert found an error while executing a query."
-msgstr ""
+msgstr "알림이 쿼리를 실행하는 동안 오류를 발견했습니다."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 msgid "Alert name"
@@ -1483,33 +1495,33 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:209
 msgid "Alert query returned more than one column."
-msgstr ""
+msgstr "알림 쿼리는 하나 이상의 열을 반환했습니다."
 
 #: superset/reports/commands/alert.py:109
 #, python-format
 msgid "Alert query returned more than one column. %s columns returned"
-msgstr ""
+msgstr "경고 쿼리가 하나 이상의 열을 반환했습니다. %s 열이 반환되었습니다"
 
 #: superset/reports/commands/exceptions.py:199
 msgid "Alert query returned more than one row."
-msgstr ""
+msgstr "알림 쿼리가 한 줄 이상을 반환했습니다."
 
 #: superset/reports/commands/alert.py:100
 #, python-format
 msgid "Alert query returned more than one row. %s rows returned"
-msgstr ""
+msgstr "알림 쿼리가 여러 줄을 반환했습니다. %s 줄이 반환되었습니다"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
-msgstr ""
+msgstr "알림 실행 중"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:68
 msgid "Alert triggered, notification sent"
-msgstr ""
+msgstr "알림이 발생되었고, 알림이 전송되었습니다."
 
 #: superset/reports/commands/exceptions.py:204
 msgid "Alert validator config error."
-msgstr ""
+msgstr "알림 검증기 구성 오류."
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:534
 msgid "Alerts"
@@ -1522,7 +1534,7 @@ msgstr "경고 및 리포트"
 #: superset-frontend/src/pages/AlertReportList/index.tsx:519
 #: superset-frontend/src/pages/AlertReportList/index.tsx:523
 msgid "Alerts & reports"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:116
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:442
@@ -1573,7 +1585,7 @@ msgstr "차트 추가"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "모든 차트/전역 스코핑"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
@@ -1582,15 +1594,15 @@ msgstr "필터"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:235
 #, python-format
 msgid "All filters (%(filterCount)d)"
-msgstr ""
+msgstr "모든 필터 (%(filterCount)d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/state.ts:36
 msgid "All panels"
-msgstr ""
+msgstr "모든 패널에 적용"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:138
 msgid "All panels with this column will be affected by this filter"
-msgstr ""
+msgstr "이 컬럼이 있는 모든 패널은 이 필터의 영향을 받습니다"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:117
 #: superset/views/database/mixins.py:184
@@ -1621,7 +1633,7 @@ msgstr "DML 허용"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:468
 msgid "Allow columns to be rearranged"
-msgstr ""
+msgstr "열을 재배치할 수 있게 하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:120
 msgid "Allow creation of new tables based on queries"
@@ -1629,11 +1641,11 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:134
 msgid "Allow creation of new views based on queries"
-msgstr ""
+msgstr "쿼리를 기반으로 새로운 뷰 생성 허용"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:340
 msgid "Allow data manipulation language"
-msgstr ""
+msgstr "데이터 조작 언어 허용하기"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:471
 msgid ""
@@ -1649,15 +1661,15 @@ msgstr ""
 msgid ""
 "Allow manipulation of the database using non-SELECT statements such as "
 "UPDATE, DELETE, CREATE, etc."
-msgstr ""
+msgstr "비-SELECT 문을 사용하여 데이터베이스 조작 허용 ("
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:216
 msgid "Allow multiple selections"
-msgstr ""
+msgstr "여러 선택 허용"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:190
 msgid "Allow node selections"
-msgstr ""
+msgstr "노드 선택 허용"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:176
 msgid "Allow sending multiple polygons as a filter event"
@@ -1665,27 +1677,27 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:196
 msgid "Allow this database to be explored"
-msgstr ""
+msgstr "이 데이터베이스를 탐색하도록 허용하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:101
 msgid "Allow this database to be queried in SQL Lab"
-msgstr ""
+msgstr "이 데이터베이스를 SQL Lab에서 쿼리하는 것을 허용합니다"
 
 #: superset/views/database/mixins.py:114
 msgid ""
 "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in "
 "SQL Lab"
-msgstr ""
+msgstr "SQL 랩에서 SELECT 문이 아닌 문 (UPDATE, DELETE, CREATE, ...)을 실행할 수 있도록 허용"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:193
 msgid "Allowed Domains (comma separated)"
-msgstr ""
+msgstr "허용되는 도메인 (쉼표로 구분)"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:737
 #: superset-frontend/src/pages/DashboardList/index.tsx:611
 #: superset-frontend/src/pages/Tags/index.tsx:217
 msgid "Alphabetical"
-msgstr ""
+msgstr "알파벳순"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:54
 msgid ""
@@ -1697,11 +1709,11 @@ msgstr ""
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:202
 msgid "Altered"
-msgstr ""
+msgstr "변경된"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:71
 msgid "An Error Occurred"
-msgstr ""
+msgstr "에러가 발생했습니다"
 
 #: superset/reports/commands/exceptions.py:188
 #, fuzzy, python-format
@@ -1718,7 +1730,7 @@ msgstr ""
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
-msgstr ""
+msgstr "개별 매개변수를 데이터베이스에 전달할 때"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:791
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:183
@@ -1728,17 +1740,17 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:38
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:92
 msgid "An error has occurred"
-msgstr ""
+msgstr "An error has occurred"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:76
 #: superset-frontend/src/components/TableLoader/index.tsx:55
 #: superset-frontend/src/utils/getClientErrorObject.ts:197
 msgid "An error occurred"
-msgstr ""
+msgstr "에러가 발생했습니다"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:323
 msgid "An error occurred saving dataset"
-msgstr ""
+msgstr "데이터셋을 저장하는 중 오류가 발생했습니다"
 
 #: superset/dashboards/permalink/exceptions.py:31
 #: superset/explore/permalink/exceptions.py:31
@@ -1752,7 +1764,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
 "administrator."
-msgstr ""
+msgstr "테이블 스키마 축소 중 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:308
 #, fuzzy, python-format
@@ -1762,7 +1774,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1530
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1552
 msgid "An error occurred while creating the data source"
-msgstr ""
+msgstr "데이터 소스를 만드는 동안 오류가 발생했습니다"
 
 #: superset/dashboards/permalink/exceptions.py:27
 #: superset/explore/permalink/exceptions.py:27
@@ -1782,7 +1794,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while expanding the table schema. Please contact your "
 "administrator."
-msgstr ""
+msgstr "테이블 스키마를 확장하는 중에 오류가 발생했습니다. 관리자에게 연락하십시오."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:106
 #, fuzzy, python-format
@@ -1803,12 +1815,12 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #: superset-frontend/src/pages/ChartList/index.tsx:641
 #, python-format
 msgid "An error occurred while fetching chart created by values: %s"
-msgstr ""
+msgstr "값으로 만든 차트를 가져오는 중 오류가 발생했습니다: %s"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:619
 #, python-format
 msgid "An error occurred while fetching chart owners values: %s"
-msgstr ""
+msgstr "%s의 차트 소유자 값 불러오는 동안 오류가 발생했습니다"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:479
 #, python-format
@@ -1818,7 +1830,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #: superset-frontend/src/pages/DashboardList/index.tsx:556
 #, python-format
 msgid "An error occurred while fetching dashboard created by values: %s"
-msgstr ""
+msgstr "대시 보드 생성 값으로 대시 보드를 가져오는 중 오류가 발생했습니다: %s"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:534
 #, python-format
@@ -1874,7 +1886,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #: superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx:120
 msgid "An error occurred while fetching function names."
-msgstr ""
+msgstr "함수 이름을 가져오는 중에 오류가 발생했습니다."
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:462
 #, fuzzy, python-format
@@ -1886,7 +1898,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:480
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
-msgstr ""
+msgstr "스키마 값 추출 중 오류가 발생했습니다: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:795
 msgid "An error occurred while fetching tab state"
@@ -1901,7 +1913,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
 "administrator."
-msgstr ""
+msgstr "테이블 메타데이터를 가져오는 동안 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/pages/Tags/index.tsx:193
 #, fuzzy, python-format
@@ -1917,7 +1929,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while hiding the left bar. Please contact your "
 "administrator."
-msgstr ""
+msgstr "왼쪽 표시줄을 숨기는 중 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:506
 #: superset-frontend/src/views/CRUD/hooks.ts:522
@@ -1946,23 +1958,23 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #: superset/reports/commands/exceptions.py:286
 msgid "An error occurred while pruning logs "
-msgstr ""
+msgstr "로그를 정리하는 동안 오류가 발생했습니다 "
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:888
 msgid ""
 "An error occurred while removing query. Please contact your administrator."
-msgstr ""
+msgstr "쿼리를 삭제하는 중에 오류가 발생했습니다. 관리자에게 문의하세요."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:853
 msgid ""
 "An error occurred while removing tab. Please contact your administrator."
-msgstr ""
+msgstr "탭을 제거하는 중에 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1388
 msgid ""
 "An error occurred while removing the table schema. Please contact your "
 "administrator."
-msgstr ""
+msgstr "테이블 스키마를 제거하는 동안 오류가 발생했습니다. 관리자에게 문의하세요."
 
 #: superset-frontend/src/components/Chart/chartReducer.ts:96
 #, fuzzy, python-format
@@ -1973,13 +1985,13 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
-msgstr ""
+msgstr "활성 탭을 설정하는 중에 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:967
 msgid ""
 "An error occurred while setting the tab autorun. Please contact your "
 "administrator."
-msgstr ""
+msgstr "탭 자동 실행을 설정하는 중에 오류가 발생했습니다. 관리자에게 문의하십시오."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:911
 msgid ""
@@ -1999,7 +2011,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid ""
 "An error occurred while setting the tab schema. Please contact your "
 "administrator."
-msgstr ""
+msgstr "탭 스키마를 설정하는 중 오류가 발생했습니다. 관리자에게 문의하세요."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1146
 msgid ""
@@ -2038,11 +2050,11 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #: superset/databases/commands/exceptions.py:162
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "An unexpected error occurred"
 
 #: superset/views/core.py:745
 msgid "An unknown error occurred. Please contact your Superset administrator"
-msgstr ""
+msgstr "An unknown error occurred. Please contact your Superset administrator"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:235
 msgid "Anchor to"
@@ -2050,11 +2062,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:117
 msgid "Angle at which to end progress axis"
-msgstr ""
+msgstr "진행 축이 끝나는 각도"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:107
 msgid "Angle at which to start progress axis"
-msgstr ""
+msgstr "진행축이 시작되는 각도"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:187
 #, fuzzy
@@ -2083,11 +2095,11 @@ msgstr ""
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
-msgstr ""
+msgstr "주석을 만들 수 없습니다."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
-msgstr ""
+msgstr "주석을 업데이트할 수 없습니다."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:72
 msgid "Annotation delete failed."
@@ -2101,15 +2113,15 @@ msgstr "주석 레이어"
 
 #: superset/annotation_layers/commands/exceptions.py:37
 msgid "Annotation layer could not be created."
-msgstr ""
+msgstr "어노테이션 레이어를 만들 수 없습니다."
 
 #: superset/annotation_layers/commands/exceptions.py:33
 msgid "Annotation layer could not be deleted."
-msgstr ""
+msgstr "주석 레이어를 삭제할 수 없습니다."
 
 #: superset/annotation_layers/commands/exceptions.py:41
 msgid "Annotation layer could not be updated."
-msgstr ""
+msgstr "주석 레이어를 업데이트할 수 없습니다."
 
 #: superset/annotation_layers/commands/exceptions.py:49
 msgid "Annotation layer delete failed."
@@ -2123,7 +2135,7 @@ msgstr "주석 레이어"
 #: superset/annotation_layers/commands/exceptions.py:53
 #: superset/annotation_layers/commands/exceptions.py:57
 msgid "Annotation layer has associated annotations."
-msgstr ""
+msgstr "주석 레이어에는 연결된 주석이 있습니다."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:557
 #, fuzzy
@@ -2145,7 +2157,7 @@ msgstr "주석 레이어"
 
 #: superset/annotation_layers/commands/exceptions.py:29
 msgid "Annotation layer parameters are invalid."
-msgstr ""
+msgstr "주석 레이어 매개변수가 잘못되었습니다."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:684
 #, fuzzy
@@ -2192,7 +2204,7 @@ msgstr "주석"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:60
 msgid "Annotation parameters are invalid."
-msgstr ""
+msgstr "주석 매개변수가 잘못되었습니다."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:825
 #, fuzzy
@@ -2226,7 +2238,7 @@ msgstr "주석 레이어"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:52
 msgid "Annotations could not be deleted."
-msgstr ""
+msgstr "주석을 삭제할 수 없습니다."
 
 #: superset-frontend/src/pages/ChartList/index.tsx:596
 #: superset-frontend/src/pages/ChartList/index.tsx:705
@@ -2241,13 +2253,13 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:726
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:393
 msgid "Any additional detail to show in the certification tooltip."
-msgstr ""
+msgstr "인증 툴팁에 표시할 추가 상세 정보입니다."
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 msgid ""
 "Any color palette selected here will override the colors applied to this "
 "dashboard's individual charts"
-msgstr ""
+msgstr "여기에서 선택한 모든 색상 팔레트는 이 대시보드의 개별 차트에 적용된 색상을 무시합니다"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1008
 msgid ""
@@ -2268,12 +2280,12 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:127
 #, python-format
 msgid "Applied cross-filters (%d)"
-msgstr ""
+msgstr "교차 필터 적용 (%d)"
 
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:149
 #, python-format
 msgid "Applied filters (%d)"
-msgstr ""
+msgstr "적용된 필터 (%d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:260
 #, fuzzy, python-format
@@ -2301,11 +2313,11 @@ msgstr "주석"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:386
 msgid "Apply conditional color formatting to metrics"
-msgstr ""
+msgstr "지표에 조건부 색상 포맷을 적용하다"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:505
 msgid "Apply conditional color formatting to numeric columns"
-msgstr ""
+msgstr "숫자 열에 조건부 색상 형식 적용하기"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 #, fuzzy
@@ -2319,11 +2331,11 @@ msgstr "메트릭"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:129
 msgid "Apply to all panels"
-msgstr ""
+msgstr "모든 패널에 적용"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:131
 msgid "Apply to specific panels"
-msgstr ""
+msgstr "특정 패널에 적용하기"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:69
 msgid "April"
@@ -2336,11 +2348,11 @@ msgstr "검색"
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:163
 msgid "Are you sure you intend to overwrite the following values?"
-msgstr ""
+msgstr "선택한 쿼리를 삭제하시겠습니까?"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer.tsx:49
 msgid "Are you sure you want to cancel?"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/charts/ChartCard.tsx:83
 #: superset-frontend/src/features/home/DashboardTable.tsx:229
@@ -2351,65 +2363,65 @@ msgstr ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:173
 #: superset-frontend/src/pages/Tags/index.tsx:144
 msgid "Are you sure you want to delete"
-msgstr ""
+msgstr "삭제하시겠습니까"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:282
 #, python-format
 msgid "Are you sure you want to delete %s?"
-msgstr ""
+msgstr "%s을(를) 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:584
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
-msgstr ""
+msgstr "선택한 %s를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:298
 msgid "Are you sure you want to delete the selected annotations?"
-msgstr ""
+msgstr "선택한 주석을 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:838
 msgid "Are you sure you want to delete the selected charts?"
-msgstr ""
+msgstr "선택한 차트를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:702
 msgid "Are you sure you want to delete the selected dashboards?"
-msgstr ""
+msgstr "선택한 대시보드를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:763
 msgid "Are you sure you want to delete the selected datasets?"
-msgstr ""
+msgstr "선택한 데이터셋을 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:358
 msgid "Are you sure you want to delete the selected layers?"
-msgstr ""
+msgstr "선택한 레이어를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:534
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "선택한 쿼리를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:305
 msgid "Are you sure you want to delete the selected rules?"
-msgstr ""
+msgstr "선택한 규칙을 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/Tags/index.tsx:282
 msgid "Are you sure you want to delete the selected tags?"
-msgstr ""
+msgstr "선택한 태그를 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:328
 msgid "Are you sure you want to delete the selected templates?"
-msgstr ""
+msgstr "선택한 템플릿을 삭제하시겠습니까?"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:434
 msgid "Are you sure you want to overwrite this dataset?"
-msgstr ""
+msgstr "이 데이터셋을 덮어씌우시겠습니까?"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:133
 msgid "Are you sure you want to proceed?"
-msgstr ""
+msgstr "진행하시겠습니까?"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:216
 msgid "Are you sure you want to save and apply changes?"
-msgstr ""
+msgstr "변경 사항을 저장하고 적용하시겠습니까?"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:75
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:97
@@ -2446,11 +2458,11 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:67
 msgid "Assign a set of parameters as"
-msgstr ""
+msgstr "파라미터 세트를 할당하다"
 
 #: superset/connectors/sqla/views.py:383
 msgid "Associated Charts"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset/views/database/mixins.py:196
 msgid "Async Execution"
@@ -2460,11 +2472,11 @@ msgstr ""
 #: superset-frontend/src/pages/DatabaseList/index.tsx:320
 #: superset-frontend/src/pages/DatabaseList/index.tsx:486
 msgid "Asynchronous query execution"
-msgstr ""
+msgstr "비동기 쿼리 실행"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:73
 msgid "August"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:127
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:146
@@ -2474,19 +2486,19 @@ msgstr "생성자"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:97
 msgid "Auto Zoom"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:524
 msgid "Autocomplete"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:880
 msgid "Autocomplete filters"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:887
 msgid "Autocomplete query predicate"
-msgstr ""
+msgstr "자동완성 쿼리 조건문"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:726
 msgid "Automatic Color"
@@ -2524,7 +2536,7 @@ msgstr "D3 포멧"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:67
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:98
 msgid "Axis Title"
-msgstr ""
+msgstr "<MISSING>"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:37
 msgid "Axis ascending"
@@ -2543,13 +2555,13 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1123
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1143
 msgid "Back"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:262
 #: superset-frontend/src/pages/AnnotationList/index.tsx:264
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:181
 msgid "Back to all"
-msgstr ""
+msgstr "모두로 돌아가기"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:311
 #: superset/views/database/mixins.py:200
@@ -2568,7 +2580,7 @@ msgstr "D3 포멧"
 
 #: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
-msgstr ""
+msgstr "잘못된 공간 키"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:46
@@ -2590,7 +2602,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:67
 msgid "Bar Charts are used to show metrics as a series of bars."
-msgstr ""
+msgstr "바 차트는 메트릭을 시리즈 형태의 바로"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:314
 msgid "Bar Values"
@@ -2618,7 +2630,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:56
 msgid "Based on granularity, number of time periods to compare against"
-msgstr ""
+msgstr "그루나리티를 바탕으로 비교할 시간 기간의 수"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:228
 msgid "Based on what should series be ordered on the chart and legend"
@@ -2635,12 +2647,12 @@ msgstr ""
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:287
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:235
 msgid "Basic information"
-msgstr ""
+msgstr "기본 정보"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:749
 #, python-format
 msgid "Batch editing %d filters:"
-msgstr ""
+msgstr "%d 필터를 일괄 수정:"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:36
 msgid "Battery level over time"
@@ -2648,7 +2660,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1341
 msgid "Be careful."
-msgstr ""
+msgstr "조심하세요."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:178
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:75
@@ -2663,12 +2675,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:28
 msgid "Big Number Font Size"
-msgstr ""
+msgstr "큰 수 글꼴 크기"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
 #: superset/viz.py:1150
 msgid "Big Number with Trendline"
-msgstr ""
+msgstr "트렌드라인이 있는 큰 숫자"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:86
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:355
@@ -2689,7 +2701,7 @@ msgstr "날짜/시간"
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:238
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:206
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "픽셀 단위 하단"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:186
 #, fuzzy
@@ -2738,7 +2750,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/BoxPlot/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:58
 msgid "Box Plot"
-msgstr ""
+msgstr "Box Plot"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:123
 #, fuzzy
@@ -2752,12 +2764,12 @@ msgstr "버블 차트"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:143
 msgid "Bubble Color"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:206
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:139
 msgid "Bubble Size"
-msgstr ""
+msgstr "버블 크기"
 
 #: superset-frontend/src/explore/controls.jsx:415
 msgid "Bubble size"
@@ -2765,11 +2777,11 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:149
 msgid "Bucket break points"
-msgstr ""
+msgstr "버킷 분리점"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:511
 msgid "Build"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:431
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:274
@@ -2782,12 +2794,12 @@ msgstr ""
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:177
 #: superset-frontend/src/pages/Tags/index.tsx:267
 msgid "Bulk select"
-msgstr ""
+msgstr "복수 선택"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
 #: superset/viz.py:1118
 msgid "Bullet Chart"
-msgstr ""
+msgstr "총알 차트"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:34
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:40
@@ -2816,7 +2828,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:337
 msgid "By key: use column names as sorting key"
-msgstr ""
+msgstr "키에 따라: 열 이름을 정렬 키로 사용"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:309
 msgid "By key: use row names as sorting key"
@@ -2825,12 +2837,12 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:310
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:338
 msgid "By value: use metric values as sorting key"
-msgstr ""
+msgstr "값에 따라: 메트릭 값을 정렬 키로 사용"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:232
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:328
 msgid "CANCEL"
-msgstr ""
+msgstr "취소"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1575
 #, fuzzy
@@ -2847,15 +2859,15 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:235
 msgid "CREATE VIEW statement"
-msgstr ""
+msgstr "CREATE VIEW statement"
 
 #: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:83
 msgid "CRON Schedule"
-msgstr ""
+msgstr "CRON 일정"
 
 #: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:94
 msgid "CRON expression"
-msgstr ""
+msgstr "CRON 표현식"
 
 #: superset-frontend/src/dashboard/components/CssEditor/index.jsx:105
 #: superset/views/dashboard/mixin.py:87
@@ -2864,7 +2876,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/style.tsx:75
 msgid "CSS Styles"
-msgstr ""
+msgstr "CSS Styles"
 
 #: superset/initialization/__init__.py:288 superset/views/css_templates.py:38
 msgid "CSS Templates"
@@ -2909,7 +2921,7 @@ msgstr ""
 
 #: superset/views/database/views.py:161
 msgid "CSV to Database configuration"
-msgstr ""
+msgstr "CSV를 데이터베이스 구성으로 변환"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:355
 msgid "CSV upload"
@@ -2939,11 +2951,11 @@ msgstr ""
 
 #: superset/errors.py:129
 msgid "CVAS (create view as select) query has more than one statement."
-msgstr ""
+msgstr "CVAS (create view as select) 쿼리에는 여러 개의 문이 있습니다."
 
 #: superset/errors.py:130
 msgid "CVAS (create view as select) query is not a SELECT statement."
-msgstr ""
+msgstr "CVAS (create view as select) query is not a SELECT statement."
 
 #: superset/connectors/sqla/views.py:393 superset/views/chart/mixin.py:76
 msgid "Cache Timeout"
@@ -2952,7 +2964,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:79
 #: superset-frontend/src/explore/controlPanels/sections.tsx:41
 msgid "Cache Timeout (seconds)"
-msgstr ""
+msgstr "캐시 제한 시간 (초)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:945
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:402
@@ -2966,7 +2978,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:351
 #, python-format
 msgid "Cached %s"
-msgstr ""
+msgstr "캐시됨 %s"
 
 #: superset/viz.py:578
 msgid "Cached value not found"
@@ -2974,12 +2986,12 @@ msgstr "캐시된 값을 찾을 수 없습니다."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:53
 msgid "Calculate contribution per series or row"
-msgstr ""
+msgstr "시리즈 또는 행별 기여 계산하기"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:835
 #, python-format
 msgid "Calculated column [%s] requires an expression"
-msgstr ""
+msgstr "계산된 열 [%s]에는 식이 필요합니다"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1409
 msgid "Calculated columns"
@@ -3000,16 +3012,16 @@ msgstr "달력 히트캡"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:213
 msgid "Can not move top level tab into nested tabs"
-msgstr ""
+msgstr "최상위 탭을 중첩된 탭으로 이동할 수 없습니다"
 
 #: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:59
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:77
 msgid "Can select multiple values"
-msgstr ""
+msgstr "여러 값을 선택할 수 있습니다"
 
 #: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
+msgstr "시리즈와 분해 사이에 중복이 있을 수 없습니다"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:205
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:753
@@ -3034,7 +3046,7 @@ msgstr "취소"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:324
 msgid "Cancel query on window unload event"
-msgstr ""
+msgstr "창 언로드 이벤트에서 쿼리 취소"
 
 #: superset/sqllab/commands/export.py:78
 msgid "Cannot access the query"
@@ -3042,7 +3054,7 @@ msgstr ""
 
 #: superset/databases/commands/exceptions.py:111
 msgid "Cannot delete a database that has datasets attached"
-msgstr ""
+msgstr "\\t"
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:67
 msgid "Cannot have multiple credentials for the SSH Tunnel"
@@ -3058,12 +3070,12 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue.tsx:302
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1228
 msgid "Cannot load filter"
-msgstr ""
+msgstr "필터를 불러올 수 없습니다"
 
 #: superset/charts/commands/exceptions.py:51
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
-msgstr ""
+msgstr "시간 문자열을 분석할 수 없습니다 [%(human_readable)s]"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:30
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:38
@@ -3073,7 +3085,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:63
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:42
 msgid "Categorical"
-msgstr ""
+msgstr "분류"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:105
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:142
@@ -3082,7 +3094,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:165
 msgid "Categories to group by on the x-axis."
-msgstr ""
+msgstr "x축에 따라 그룹화 할 카테고리."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/Scatter.jsx:46
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
@@ -3125,19 +3137,19 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:100
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
 msgid "Category, Value and Percentage"
-msgstr ""
+msgstr "카테고리, 값 및 비율"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:107
 msgid "Cell Padding"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:121
 msgid "Cell Radius"
-msgstr ""
+msgstr "셀 반경"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:95
 msgid "Cell Size"
-msgstr ""
+msgstr "셀 크기"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:428
 #, fuzzy
@@ -3155,12 +3167,12 @@ msgstr "구분자"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:101
 msgid "Center"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/Heatmap.tsx:32
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/Hex.jsx:33
 msgid "Centroid (Longitude and Latitude): "
-msgstr ""
+msgstr "중심점 (경도 및 위도):"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:706
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:376
@@ -3207,11 +3219,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:334
 msgid "Change order of columns."
-msgstr ""
+msgstr "열 순서 변경하기."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:306
 msgid "Change order of rows."
-msgstr ""
+msgstr "행의 순서 변경."
 
 #: superset/connectors/sqla/views.py:385
 msgid "Changed By"
@@ -3219,11 +3231,11 @@ msgstr ""
 
 #: superset/views/sql_lab/views.py:88
 msgid "Changed on"
-msgstr ""
+msgstr "변경 날짜"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:80
 msgid "Changes saved."
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:51
 msgid ""
@@ -3239,7 +3251,7 @@ msgstr ""
 
 #: superset/dashboards/commands/exceptions.py:78
 msgid "Changing this Dashboard is forbidden"
-msgstr ""
+msgstr "이 대시 보드 수정은 금지되어 있습니다"
 
 #: superset/charts/commands/exceptions.py:135
 msgid "Changing this chart is forbidden"
@@ -3258,16 +3270,16 @@ msgstr "이 차트를 변경하는 것은 불가능합니다"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:135
 #: superset-frontend/src/explore/components/ControlHeader.tsx:123
 msgid "Changing this control takes effect instantly"
-msgstr ""
+msgstr "이 컨트롤을 변경하면 즉시 적용됩니다"
 
 #: superset/datasets/commands/exceptions.py:198
 msgid "Changing this dataset is forbidden"
-msgstr ""
+msgstr "이 데이터 세트를 변경하는 것은 금지되어 있습니다"
 
 #: superset/datasets/columns/commands/exceptions.py:31
 #: superset/datasets/metrics/commands/exceptions.py:31
 msgid "Changing this dataset is forbidden."
-msgstr ""
+msgstr "이 데이터 세트를 변경하면 금지됩니다."
 
 #: superset/explore/exceptions.py:49
 #, fuzzy
@@ -3276,15 +3288,15 @@ msgstr "이 차트를 변경하는 것은 불가능합니다"
 
 #: superset/reports/commands/exceptions.py:282
 msgid "Changing this report is forbidden"
-msgstr ""
+msgstr "이 보고서를 변경하는 것은 금지되어 있습니다"
 
 #: superset/views/database/forms.py:206
 msgid "Character to interpret as decimal point"
-msgstr ""
+msgstr "소수점으로 해석할 문자."
 
 #: superset/views/database/forms.py:385
 msgid "Character to interpret as decimal point."
-msgstr ""
+msgstr "소수점으로 해석될 문자."
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
@@ -3301,11 +3313,11 @@ msgstr "차트"
 #: superset/views/core.py:1762
 #, python-format
 msgid "Chart %(id)s not found"
-msgstr ""
+msgstr "차트 %(id)s를 찾을 수 없습니다"
 
 #: superset/views/database/mixins.py:192
 msgid "Chart Cache Timeout"
-msgstr ""
+msgstr "Cache Timeout"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:442
 #, fuzzy, python-format
@@ -3315,7 +3327,7 @@ msgstr "차트"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:70
 #: superset-frontend/src/explore/controlPanels/sections.tsx:32
 msgid "Chart ID"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:81
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:53
@@ -3385,7 +3397,7 @@ msgstr "차트 유형"
 #: superset-frontend/src/explore/actions/saveModalActions.js:121
 #, python-format
 msgid "Chart [%s] has been overwritten"
-msgstr ""
+msgstr "차트 [{}]가 덮어쓰였습니다"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:118
 #, fuzzy, python-format
@@ -3395,19 +3407,19 @@ msgstr "주석 레이어"
 #: superset-frontend/src/explore/actions/saveModalActions.js:139
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
-msgstr ""
+msgstr "차트 [%s]가 대시보드 [%s]에 추가되었습니다"
 
 #: superset/views/core.py:1099
 msgid "Chart [{}] has been overwritten"
-msgstr ""
+msgstr "차트 [{}]가 덮어씌워졌습니다"
 
 #: superset/views/core.py:1095
 msgid "Chart [{}] has been saved"
-msgstr ""
+msgstr "차트 [{}]가 저장되었습니다"
 
 #: superset/views/core.py:1124
 msgid "Chart [{}] was added to dashboard [{}]"
-msgstr ""
+msgstr "차트 [{}]가 대시보드 [{}]에 추가되었습니다"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:238
 msgid "Chart cache timeout"
@@ -3442,7 +3454,7 @@ msgstr "차트가 존재하지 않습니다"
 
 #: superset/charts/data/api.py:130
 msgid "Chart has no query context saved. Please save the chart again."
-msgstr ""
+msgstr "차트에는 저장된 쿼리 컨텍스트가 없습니다. 차트를 다시 저장"
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:130
 #, fuzzy
@@ -3499,7 +3511,7 @@ msgstr "차트 유형"
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:314
 msgid "Chart type requires a dataset"
-msgstr ""
+msgstr "차트 유형에는 데이터 세트가 필요합니다"
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:139
 #, fuzzy
@@ -3531,7 +3543,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:206
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:68
 msgid "Check for sorting ascending"
-msgstr ""
+msgstr "오름차순으로 정렬 확인하기"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:105
 #: superset-frontend/src/explore/controlUtils/controlUtils.test.tsx:114
@@ -3547,25 +3559,25 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:474
 msgid "Check out this chart: "
-msgstr ""
+msgstr "이 차트를 확인하세요: "
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:235
 msgid "Check out this dashboard: "
-msgstr ""
+msgstr "Check out this dashboard: "
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:63
 msgid ""
 "Check to apply filters instantly as they change instead of displaying "
 "[Apply] button"
-msgstr ""
+msgstr "변경 사항이 있"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:212
 msgid "Check to force date partitions to have the same height"
-msgstr ""
+msgstr "날짜 분할의 높이를 동일하"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:87
 msgid "Check to include time column dropdown"
-msgstr ""
+msgstr "시간 열 드롭 다운 메뉴 포함 확인"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:76
 msgid "Check to include time grain dropdown"
@@ -3577,11 +3589,11 @@ msgstr ""
 
 #: superset/viz.py:2307
 msgid "Choice of [Label] must be present in [Group By]"
-msgstr ""
+msgstr "[라벨]의 선택은 [그룹별]에서 반드시 있어야 합니다."
 
 #: superset/viz.py:2315
 msgid "Choice of [Point Radius] must be present in [Group By]"
-msgstr ""
+msgstr "[Group By]에 [Point Radius] 선택사항이 있어야 합니다."
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:151
 #: superset/templates/superset/import_dashboards.html:47
@@ -3590,7 +3602,7 @@ msgstr "CSV 파일"
 
 #: superset/reports/commands/exceptions.py:84
 msgid "Choose a chart or dashboard not both"
-msgstr ""
+msgstr "차트 또는 대시보드를 선택하십시오. 둘 다 선택하지 마십시오"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:979
 #, fuzzy
@@ -3609,7 +3621,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:61
 msgid "Choose a number format"
-msgstr ""
+msgstr "오른쪽 축에 대한 숫자 형식 선택"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:67
 #, fuzzy
@@ -3634,7 +3646,7 @@ msgstr "차트 유형"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:739
 msgid "Choose one of the available databases from the panel on the left."
-msgstr ""
+msgstr "왼쪽 패널에서 사용 가능한 데이터베이스 중 하나를 선택하십시오."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:812
 msgid "Choose the annotation layer type"
@@ -3642,15 +3654,15 @@ msgstr "주석 레이어"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:163
 msgid "Choose the format for legend values"
-msgstr ""
+msgstr "오른쪽 축의 측정값을 선택하세요"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:177
 msgid "Choose the position of the legend"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:824
 msgid "Choose the source of your annotations"
-msgstr ""
+msgstr "주석의 원본을 선택하세요"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:122
 msgid ""
@@ -3664,7 +3676,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Range/RangeFilterPlugin.tsx:306
 msgid "Chosen non-numeric column"
-msgstr ""
+msgstr "선택한 비숫자 열"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:219
 #, fuzzy
@@ -3673,11 +3685,11 @@ msgstr "CSV 파일"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:131
 msgid "Circle -> Arrow"
-msgstr ""
+msgstr "원 -> 화살표"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:132
 msgid "Circle -> Circle"
-msgstr ""
+msgstr "원 -> 원"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:199
 msgid "Circle radar shape"
@@ -3689,11 +3701,11 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:42
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:71
 msgid "Circular"
-msgstr ""
+msgstr "원형"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:32
 msgid "Classic chart that visualizes how metrics change over time."
-msgstr ""
+msgstr "메트릭이 시간에 따라 어떻게 변하는지 시각화하는 클래식 차트."
 
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:41
 msgid ""
@@ -3704,7 +3716,7 @@ msgstr ""
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:454
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:144
 msgid "Clause"
-msgstr ""
+msgstr "Clause"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:53
 msgid "Clear"
@@ -3712,7 +3724,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:152
 msgid "Clear all"
-msgstr ""
+msgstr "모두 지우기"
 
 #: superset-frontend/src/components/Table/index.tsx:210
 #, fuzzy
@@ -3721,7 +3733,7 @@ msgstr "차트 추가"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:675
 msgid "Clear form"
-msgstr ""
+msgstr "폼 지우기"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:209
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
@@ -3735,11 +3747,11 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1018
 msgid "Click the lock to make changes."
-msgstr ""
+msgstr "변경 사항을 만들려면 잠금을 클릭하십시오."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1021
 msgid "Click the lock to prevent further changes."
-msgstr ""
+msgstr "더 이상의 변경을 방지하려면 잠금을 클릭하십시오."
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2012
 msgid ""
@@ -3755,7 +3767,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Table/index.tsx:217
 msgid "Click to cancel sorting"
-msgstr ""
+msgstr "정렬 취소를 누르세요"
 
 #: superset-frontend/src/components/EditableTitle/index.tsx:211
 msgid "Click to edit"
@@ -3779,15 +3791,15 @@ msgstr "클릭하여 제목 수정하기"
 
 #: superset-frontend/src/components/FaveStar/index.tsx:76
 msgid "Click to favorite/unfavorite"
-msgstr ""
+msgstr "클릭하여 즐겨찾기/즐겨찾기 해제"
 
 #: superset-frontend/src/components/CachedLabel/TooltipContent.tsx:39
 msgid "Click to force-refresh"
-msgstr ""
+msgstr "강제 새로 고침을 클릭하십시오"
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:201
 msgid "Click to see difference"
-msgstr ""
+msgstr "차이를 보려면 클릭하세요"
 
 #: superset-frontend/src/components/Table/index.tsx:216
 #, fuzzy
@@ -3796,7 +3808,7 @@ msgstr "클릭하여 제목 수정하기"
 
 #: superset-frontend/src/components/Table/index.tsx:215
 msgid "Click to sort descending"
-msgstr ""
+msgstr "내림차순으로 정렬하려면 클릭하세요"
 
 #: superset-frontend/src/components/Chart/DrillBy/DrillByModal.tsx:132
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailModal.tsx:52
@@ -3810,11 +3822,11 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/ViewQueryModalFooter.tsx:36
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1164
 msgid "Close"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:133
 msgid "Close all other tabs"
-msgstr ""
+msgstr "다른 모든 탭 닫기"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:103
 msgid "Close tab"
@@ -3822,7 +3834,7 @@ msgstr "탭 닫기"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:183
 msgid "Cluster label aggregator"
-msgstr ""
+msgstr "클러스터 라벨 집계기"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:84
 msgid "Clustering Radius"
@@ -3831,11 +3843,11 @@ msgstr ""
 #: superset-frontend/src/explore/controlPanels/Separator.js:25
 #: superset-frontend/src/explore/controlPanels/Separator.js:46
 msgid "Code"
-msgstr ""
+msgstr "코드"
 
 #: superset-frontend/src/dashboard/components/filterscope/treeIcons.jsx:39
 msgid "Collapse all"
-msgstr ""
+msgstr "모두 축소하기"
 
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:162
 #, fuzzy
@@ -3848,7 +3860,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:599
 msgid "Collapse tab content"
-msgstr ""
+msgstr "탭 내용 접기"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.tsx:194
 #, fuzzy
@@ -3857,7 +3869,7 @@ msgstr "데이터 미리보기"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:713
 msgid "Color"
-msgstr ""
+msgstr "색깔"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:126
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:454
@@ -3880,11 +3892,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:306
 msgid "Color bounds"
-msgstr ""
+msgstr "색 경계"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:116
 msgid "Color by"
-msgstr ""
+msgstr "색상별"
 
 #: superset-frontend/src/explore/controls.jsx:234
 msgid "Color metric"
@@ -3892,7 +3904,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:93
 msgid "Color of the target location"
-msgstr ""
+msgstr "대상 위치의 색상"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:87
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:217
@@ -3910,7 +3922,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
 msgid "Colors"
-msgstr ""
+msgstr "색상"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:358
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:367
@@ -3938,7 +3950,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:361
 msgid "Column Configuration"
-msgstr ""
+msgstr "열 구성 확인"
 
 #: superset/views/database/forms.py:144
 #, fuzzy
@@ -3953,7 +3965,7 @@ msgstr "주석"
 #: superset/views/database/forms.py:232 superset/views/database/forms.py:393
 #: superset/views/database/forms.py:484
 msgid "Column Label(s)"
-msgstr ""
+msgstr "열 라벨(들)"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:80
 msgid ""
@@ -3963,11 +3975,11 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:74
 msgid "Column containing latitude data"
-msgstr ""
+msgstr "위도 데이터가 포함된 열"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:64
 msgid "Column containing longitude data"
-msgstr ""
+msgstr "경도 데이터를 포함한 열"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:69
 #, fuzzy
@@ -3987,7 +3999,7 @@ msgstr "데이터소스"
 msgid ""
 "Column label for index column(s). If None is given and Dataframe Index is "
 "True, Index Names are used."
-msgstr ""
+msgstr "인덱스 열을 위한 열 라벨. None이 주어지고 Dataframe Index가 True 인 경우, 인덱스 이름이 사용됩니다."
 
 #: superset/views/database/forms.py:233
 msgid ""
@@ -4003,12 +4015,12 @@ msgstr "컬럼 추가"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:820
 #, python-format
 msgid "Column name [%s] is duplicated"
-msgstr ""
+msgstr "열 이름 [%s]이 중복되었습니다"
 
 #: superset/utils/pandas_postprocessing/utils.py:151
 #, python-format
 msgid "Column referenced by aggregate is undefined: %(column)s"
-msgstr ""
+msgstr "집계에 의해 참조되는 열이 정의되지 않았습니다: %(column)s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:123
 #, fuzzy
@@ -4041,7 +4053,7 @@ msgstr ""
 
 #: superset/views/database/views.py:443
 msgid "Columnar to Database configuration"
-msgstr ""
+msgstr "컬럼에서 데이터베이스로 구성"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:110
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:33
@@ -4080,11 +4092,11 @@ msgstr "데이터 소스의 컬럼이 없습니다 : %(invalid_columns)s"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:367
 msgid "Columns subtotal position"
-msgstr ""
+msgstr "열 부분합 위치"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:170
 msgid "Columns to calculate distribution across."
-msgstr ""
+msgstr "분포 계산에 사용할 열."
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:45
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:46
@@ -4094,15 +4106,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:103
 #: superset-frontend/src/explore/fixtures.tsx:99
 msgid "Columns to display"
-msgstr ""
+msgstr "표시할 열"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:42
 msgid "Columns to group by"
-msgstr ""
+msgstr "그룹화할 열"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:53
 msgid "Columns to group by on the columns"
-msgstr ""
+msgstr "열을 그룹으로 묶을 열"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:63
 msgid "Columns to group by on the rows"
@@ -4143,7 +4155,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:27
 msgid "Compare the same summarized metric across multiple groups."
-msgstr ""
+msgstr "동일한 요약 측정 항목을 여러 그룹 간에 비교합니다."
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:28
 msgid ""
@@ -4192,7 +4204,7 @@ msgstr "컬럼 수정"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:54
 msgid "Comparison Period Lag"
-msgstr ""
+msgstr "비교 기간 지연"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:67
 #, fuzzy
@@ -4201,7 +4213,7 @@ msgstr "컬럼 수정"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.js:27
 msgid "Compose multiple layers together to form complex visuals."
-msgstr ""
+msgstr "복잡한 시각 효과를 형성하기 위해 여러 레이어를 함께 구성합니다."
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:45
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:48
@@ -4211,7 +4223,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:377
 #: superset-frontend/src/explore/controlPanels/sections.tsx:109
 msgid "Compute the contribution to the total"
-msgstr ""
+msgstr "총계에 대한 기여도 계산"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 #, fuzzy
@@ -4236,35 +4248,35 @@ msgstr "새로고침 간격"
 
 #: superset/utils/pandas_postprocessing/prophet.py:129
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
-msgstr ""
+msgstr "신뢰 구간은 0과 1 사이여야 합니다 (제외)"
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:400
 msgid "Configuration"
-msgstr ""
+msgstr "구성"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/AdvancedFrame.tsx:58
 msgid "Configure Advanced Time Range "
-msgstr ""
+msgstr "고급 시간 범위 구성 "
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CommonFrame.tsx:46
 msgid "Configure Time Range: Last..."
-msgstr ""
+msgstr "시간 범위 구성: 마지막 ..."
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CalendarFrame.tsx:46
 msgid "Configure Time Range: Previous..."
-msgstr ""
+msgstr "이전 시간 범위 구성하기: ..."
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:125
 msgid "Configure custom time range"
-msgstr ""
+msgstr "사용자 정의 시간 범위 설정"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:763
 msgid "Configure filter scopes"
-msgstr ""
+msgstr "필터 범위 구성하기"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:785
 msgid "Configure the basics of your Annotation Layer."
-msgstr ""
+msgstr "주석 레이어의 기본 설정."
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:177
 msgid "Configure this dashboard to embed it into an external web application."
@@ -4272,15 +4284,15 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:681
 msgid "Configure your how you overlay is displayed here."
-msgstr ""
+msgstr "여기서 오버레이가 표시되는 방식을 구성하십시오."
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:132
 msgid "Confirm overwrite"
-msgstr ""
+msgstr "덮어쓰기 확인"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:222
 msgid "Confirm save"
-msgstr ""
+msgstr "저장 확인"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1114
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1152
@@ -4292,11 +4304,11 @@ msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:184
 msgid "Connect Google Sheet"
-msgstr ""
+msgstr "Google 시트 연결"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:40
 msgid "Connect Google Sheets as tables to this database"
-msgstr ""
+msgstr "구글 시트를 이 데이터베이스에 테이블로 연결하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1716
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1756
@@ -4312,11 +4324,11 @@ msgstr "데이터베이스 선택"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1824
 msgid "Connect this database using the dynamic form instead"
-msgstr ""
+msgstr "동적 양식을 사용하여이 데이터베이스에 연결하십시오"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2007
 msgid "Connect this database with a SQLAlchemy URI string instead"
-msgstr ""
+msgstr "이 데이터베이스를 SQLAlchemy URI 문자열 대신 연결하십시오."
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:227
 msgid "Connection"
@@ -4329,7 +4341,7 @@ msgstr "연결하는데 실패했습니다. 커넥션 "
 
 #: superset-frontend/src/views/CRUD/hooks.ts:701
 msgid "Connection looks good!"
-msgstr ""
+msgstr "연결이 좋아보입니다!"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:674
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:685
@@ -4350,7 +4362,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:72
 #: superset-frontend/src/explore/controlPanels/sections.tsx:107
 msgid "Contribution"
-msgstr ""
+msgstr "기고"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:46
 #, fuzzy
@@ -4364,11 +4376,11 @@ msgstr "컬럼 추가"
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:519
 msgid "Control labeled "
-msgstr ""
+msgstr "제어 레이블 "
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:519
 msgid "Controls labeled "
-msgstr ""
+msgstr "컨트롤 레이블이 지정된 "
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:64
@@ -4379,7 +4391,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/menu/ShareMenuItems/index.tsx:68
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:185
 msgid "Copied to clipboard!"
-msgstr ""
+msgstr "클립보드에 복사되었습니다!"
 
 #: superset-frontend/src/components/CopyToClipboard/index.jsx:40
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:84
@@ -4392,30 +4404,30 @@ msgstr "클립보드에 복사하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:105
 msgid "Copy and Paste JSON credentials"
-msgstr ""
+msgstr "JSON 자격증명 복사 및 붙여넣기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:125
 msgid "Copy and paste the entire service account .json file here"
-msgstr ""
+msgstr "서비스 계정의 전체 .json 파일을 여기에 복사하여 붙여넣기하십시오"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:108
 msgid "Copy link"
-msgstr ""
+msgstr "링크 복사"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:201
 msgid "Copy message"
-msgstr ""
+msgstr "\\nCopy message\\n"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:679
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1461
 #: superset-frontend/src/SqlLab/reducers/sqlLab.js:107
 #, python-format
 msgid "Copy of %s"
-msgstr ""
+msgstr "%s 의 사본"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:136
 msgid "Copy partition query to clipboard"
-msgstr ""
+msgstr "파티션 쿼리를 클립보드에 복사합니다"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:329
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:471
@@ -4426,7 +4438,7 @@ msgstr "클립보드에 복사하기"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:414
 msgid "Copy query URL"
-msgstr ""
+msgstr "쿼리 URL 복사하기"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:98
 msgid "Copy query link to your clipboard"
@@ -4434,19 +4446,19 @@ msgstr "클립보드에 복사하기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:26
 msgid "Copy the account name of that database you are trying to connect to."
-msgstr ""
+msgstr "접속을 시도하는 데이터베이스의 계정 이름을 복사하세요."
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:93
 msgid "Copy the name of the HTTP Path of your cluster."
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:115
 msgid "Copy the name of the database you are trying to connect to."
-msgstr ""
+msgstr "데이터베이스 이름을 복사하십시오."
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:271
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "클립보드에 복사"
 
 #: superset-frontend/src/components/CopyToClipboard/index.jsx:44
 #: superset-frontend/src/dashboard/components/URLShortLinkButton/index.tsx:89
@@ -4458,20 +4470,20 @@ msgstr "클립보드에 복사하기"
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:25
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:26
 msgid "Correlation"
-msgstr ""
+msgstr "상관관계"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx:104
 msgid "Cost estimate"
-msgstr ""
+msgstr "비용 추정"
 
 #: superset/db_engine_specs/ocient.py:259
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
-msgstr ""
+msgstr "데이터베이스에 연결할 수 없습니다: \"%(database)s\""
 
 #: superset/views/utils.py:496
 msgid "Could not determine datasource type"
-msgstr ""
+msgstr "데이터 소스 유형을 결정할 수 없습니다"
 
 #: superset-frontend/src/dashboard/actions/sliceEntities.ts:167
 #: superset-frontend/src/dashboard/reducers/sliceEntities.js:73
@@ -4480,7 +4492,7 @@ msgstr ""
 
 #: superset/views/utils.py:512
 msgid "Could not find viz object"
-msgstr ""
+msgstr "비즈 오브젝트를 찾을 수 없습니다"
 
 #: superset/databases/commands/exceptions.py:132
 msgid "Could not load database driver"
@@ -4489,11 +4501,11 @@ msgstr "데이터베이스 드라이버를 로드할 수 없습니다"
 #: superset/views/core.py:1454
 #, python-format
 msgid "Could not load database driver: %(driver_name)s"
-msgstr ""
+msgstr "데이터베이스 드라이버를 로드할 수 없습니다: %(driver_name)s"
 
 #: superset/databases/commands/test_connection.py:180
 msgid "Could not load database driver: {}"
-msgstr ""
+msgstr "데이터베이스 드라이버를 불러올 수 없습니다: {}"
 
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
@@ -4520,7 +4532,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:194
 msgid "Count as Fraction of Total"
-msgstr ""
+msgstr "전체 수의 일부로 계산"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:120
@@ -4545,7 +4557,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
 #: superset/viz.py:1969
 msgid "Country Map"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:761
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:770
@@ -4588,7 +4600,7 @@ msgstr "차트 보기"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:144
 msgid "Create chart with dataset"
-msgstr ""
+msgstr "데이터 세트로 차트 만들기"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:178
 #, fuzzy
@@ -4607,11 +4619,11 @@ msgstr "새 차트 생성"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/Footer.tsx:111
 msgid "Create new filter set"
-msgstr ""
+msgstr "새로운 필터 세트 만들기"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:145
 msgid "Create or select schema..."
-msgstr ""
+msgstr "스키마 생성 또는 선택..."
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:159
 msgid "Created"
@@ -4661,7 +4673,7 @@ msgstr "차트 불러오기는 알 수 없는 이유로 실패했습니다"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:70
 msgid "Creating a data source and creating a new tab"
-msgstr ""
+msgstr "데이터 소스를 만들고 새 탭을 만듭니다."
 
 #: superset/views/chart/mixin.py:77 superset/views/dashboard/mixin.py:84
 #: superset/views/dashboard/views.py:185 superset/views/database/mixins.py:189
@@ -4680,11 +4692,11 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 msgid "Cross-filtering is not enabled for this dashboard."
-msgstr ""
+msgstr "이 대시보드에서는 교차 필터링이 사용되지 않습니다."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:169
 msgid "Cross-filtering is not enabled in this dashboard"
-msgstr ""
+msgstr "\\n이 대시보드에서는 교차 필터링이 활성화되어 있지 않습니다."
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:414
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingModal.tsx:302
@@ -4705,7 +4717,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:131
 #, python-format
 msgid "Currently rendered: %s"
-msgstr ""
+msgstr "현재 렌더링됨: %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
 msgid "Custom"
@@ -4728,11 +4740,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:471
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
-msgstr ""
+msgstr "사용자 정의 SQL ad-hoc 메트릭은이 데이터 세트에 대해 활성화되지 않았습니다"
 
 #: superset/errors.py:145 superset/models/helpers.py:138
 msgid "Custom SQL fields cannot contain sub-queries."
-msgstr ""
+msgstr "사용자 정의 SQL 필드에는 하위 쿼리를 포함할 수 없습니다."
 
 #: superset-frontend/src/filters/components/Time/index.ts:28
 msgid "Custom time filter plugin"
@@ -4740,11 +4752,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:765
 msgid "Customize"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:165
 msgid "Customize Metrics"
-msgstr ""
+msgstr "메트릭스 사용자 정의"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:482
 #, fuzzy
@@ -4753,7 +4765,7 @@ msgstr "컬럼 목록"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:447
 msgid "Cyclic dependency detected"
-msgstr ""
+msgstr "순환 의존성이 감지되었습니다"
 
 #: superset/connectors/sqla/views.py:255
 msgid "D3 Format"
@@ -4768,7 +4780,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:27
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:146
 msgid "D3 format syntax: https://github.com/d3/d3-format"
-msgstr ""
+msgstr "D3 포맷 구문: https://github.com/d3/d3-format"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:150
 msgid ""
@@ -4779,11 +4791,11 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:285
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:392
 msgid "D3 time format for datetime columns"
-msgstr ""
+msgstr "D3 날짜/시간 열용 시간 형식"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:62
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
-msgstr ""
+msgstr "D3 시간 형식 구문: https://github.com/d3/d3-time-format"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:145
 #, fuzzy
@@ -4797,16 +4809,16 @@ msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:102
 msgid "DEC"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/components/DeleteModal/index.tsx:69
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:231
 msgid "DELETE"
-msgstr ""
+msgstr "삭제"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:343
 msgid "DML"
-msgstr ""
+msgstr "DML"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:123
 msgid "Daily seasonality"
@@ -4820,11 +4832,11 @@ msgstr "분기"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:43
 msgid "Dark Cyan"
-msgstr ""
+msgstr "Dark Cyan"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:31
 msgid "Dark mode"
-msgstr ""
+msgstr "어두운 모드"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
@@ -4837,11 +4849,11 @@ msgstr "대시보드"
 #: superset-frontend/src/explore/actions/saveModalActions.js:129
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
-msgstr ""
+msgstr "대시보드 [%s]가 만들어졌고 차트 [%s]가 추가되었습니다"
 
 #: superset/views/core.py:1144
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
-msgstr ""
+msgstr "대시보드 [{}]가 방금 생성되었고 차트 [{}]가 추가되었습니다"
 
 #: superset/dashboards/commands/exceptions.py:54
 msgid "Dashboard could not be created."
@@ -4942,7 +4954,7 @@ msgstr "테이블 수정"
 
 #: superset/datasets/commands/exceptions.py:214
 msgid "Data URI is not allowed."
-msgstr ""
+msgstr "데이터 URI는 허용되지 않습니다."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:306
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:174
@@ -4969,7 +4981,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/components/PlaySlider.jsx:182
 msgid "Data has no time steps"
-msgstr ""
+msgstr "데이터에는 시간 스텝이 없습니다"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:246
 msgid "Data preview"
@@ -4988,11 +5000,11 @@ msgstr "차트 유형"
 
 #: superset/utils/pandas_postprocessing/prophet.py:134
 msgid "DataFrame include at least one series"
-msgstr ""
+msgstr "DataFrame은 적어도 하나의 시리즈를 포함해야 합니다"
 
 #: superset/utils/pandas_postprocessing/prophet.py:132
 msgid "DataFrame must include temporal column"
-msgstr ""
+msgstr "데이터 프레임에는 시간 열이 포함되어야합니다"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:274
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
@@ -5069,7 +5081,7 @@ msgstr "데이터베이스를 업데이트할 수 없습니다."
 
 #: superset/errors.py:123
 msgid "Database does not allow data manipulation."
-msgstr ""
+msgstr "데이터베이스는 데이터 조작을 허용하지 않습니다."
 
 #: superset/charts/commands/exceptions.py:82
 #: superset/datasets/commands/exceptions.py:41
@@ -5079,7 +5091,7 @@ msgstr "데이터베이스가 존재하지 않습니다"
 
 #: superset/models/helpers.py:2063
 msgid "Database does not support subqueries"
-msgstr ""
+msgstr "데이터베이스는 서브 쿼리를 지원하지 않습니다."
 
 #: superset-frontend/src/components/ImportModal/ErrorAlert.tsx:51
 msgid ""
@@ -5098,7 +5110,7 @@ msgstr "데이터소스 명"
 
 #: superset/reports/commands/exceptions.py:66
 msgid "Database is required for alerts"
-msgstr ""
+msgstr "알림에는 데이터베이스가 필요합니다"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:113
 #: superset/db_engine_specs/base.py:1880
@@ -5108,7 +5120,7 @@ msgstr "데이터소스 명"
 
 #: superset/datasets/commands/exceptions.py:50
 msgid "Database not allowed to change"
-msgstr ""
+msgstr "데이터베이스는 변경할 수 없습니다"
 
 #: superset/databases/commands/exceptions.py:92
 msgid "Database not found."
@@ -5121,7 +5133,7 @@ msgstr "데이터베이스를 찾을 수 없습니다."
 
 #: superset/databases/commands/exceptions.py:32
 msgid "Database parameters are invalid."
-msgstr ""
+msgstr "데이터베이스 매개변수가 잘못되었습니다."
 
 #: superset-frontend/src/components/ImportModal/index.tsx:291
 #, fuzzy
@@ -5175,19 +5187,19 @@ msgstr "데이터소스 명"
 
 #: superset/datasets/columns/commands/exceptions.py:27
 msgid "Dataset column delete failed."
-msgstr ""
+msgstr "데이터 세트 열 삭제 실패."
 
 #: superset/datasets/columns/commands/exceptions.py:23
 msgid "Dataset column not found."
-msgstr ""
+msgstr "데이터 세트 열을 찾을 수 없습니다."
 
 #: superset/datasets/commands/exceptions.py:174
 msgid "Dataset could not be created."
-msgstr ""
+msgstr "데이터 집합을 만들 수 없습니다."
 
 #: superset/datasets/commands/exceptions.py:182
 msgid "Dataset could not be deleted."
-msgstr ""
+msgstr "데이터셋을 삭제할 수 없습니다."
 
 #: superset/datasets/commands/exceptions.py:210
 #, fuzzy
@@ -5197,7 +5209,7 @@ msgstr "데이터베이스를 업데이트할 수 없습니다."
 #: superset/datasets/commands/exceptions.py:178
 #: superset/datasets/commands/exceptions.py:190
 msgid "Dataset could not be updated."
-msgstr ""
+msgstr "데이터셋을 업데이트할 수 없었습니다."
 
 #: superset/datasets/commands/exceptions.py:166
 msgid "Dataset does not exist"
@@ -5215,11 +5227,11 @@ msgstr "데이터소스"
 
 #: superset/datasets/metrics/commands/exceptions.py:27
 msgid "Dataset metric delete failed."
-msgstr ""
+msgstr "데이터 세트 측정치 삭제 실패."
 
 #: superset/datasets/metrics/commands/exceptions.py:23
 msgid "Dataset metric not found."
-msgstr ""
+msgstr "데이터 세트 측정값을 찾을 수 없습니다."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1072
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1079
@@ -5228,7 +5240,7 @@ msgstr "데이터소스 명"
 
 #: superset/datasets/commands/exceptions.py:170
 msgid "Dataset parameters are invalid."
-msgstr ""
+msgstr "데이터 세트 매개 변수가 잘못되었습니다."
 
 #: superset/dashboards/api.py:415
 #, python-format
@@ -5237,7 +5249,7 @@ msgstr ""
 
 #: superset/datasets/commands/exceptions.py:186
 msgid "Dataset(s) could not be bulk deleted."
-msgstr ""
+msgstr "데이터셋을 대량으로 삭제할 수 없습니다."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:600
 #: superset-frontend/src/profile/components/Security.tsx:61
@@ -5253,7 +5265,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:847
 msgid "Datasets do not contain a temporal column"
-msgstr ""
+msgstr "데이터 세트에는 시간 열이 포함되어 있지 않습니다"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:110
 #: superset/views/access_requests.py:47 superset/views/chart/mixin.py:79
@@ -5272,16 +5284,16 @@ msgstr "데이터소스가 존재하지 않습니다"
 
 #: superset/commands/exceptions.py:127
 msgid "Datasource type is invalid"
-msgstr ""
+msgstr "데이터 소스 유형이 잘못되었습니다"
 
 #: superset/charts/commands/exceptions.py:101
 msgid "Datasource type is required when datasource_id is given"
-msgstr ""
+msgstr "datasource_id가 주어진 경우에는 데이터 소스 유형이 필요합니다"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:156
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:79
 msgid "Date Time Format"
-msgstr ""
+msgstr "날짜 시간 형식"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:49
 msgid "Date filter"
@@ -5311,17 +5323,17 @@ msgstr "시작 시간"
 
 #: superset/connectors/sqla/views.py:162
 msgid "Datetime Format"
-msgstr ""
+msgstr "날짜 및 시간 형식"
 
 #: superset/models/helpers.py:1502
 msgid ""
 "Datetime column not provided as part table configuration and is required by "
 "this type of chart"
-msgstr ""
+msgstr "시간 날짜 열이 테이블 구성의 일부로 제공되지 않았으며 이 그래프 유형에 필요합니다"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:300
 msgid "Datetime format"
-msgstr ""
+msgstr "Datetime format"
 
 #: superset/db_engine_specs/base.py:107
 msgid "Day"
@@ -5329,7 +5341,7 @@ msgstr "일"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:63
 msgid "Day (freq=D)"
-msgstr ""
+msgstr "하루 (freq=D)"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, fuzzy, python-format
@@ -5338,11 +5350,11 @@ msgstr "일"
 
 #: superset/connectors/sqla/models.py:1222 superset/models/helpers.py:1024
 msgid "Db engine did not return all queried columns"
-msgstr ""
+msgstr "데이터베이스 엔진이 모든 조회 된 열을 반환하지 않았습니다."
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:215
 msgid "Deactivate"
-msgstr ""
+msgstr "비활성화"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:77
 msgid "December"
@@ -5358,19 +5370,19 @@ msgstr ""
 
 #: superset/views/database/forms.py:204 superset/views/database/forms.py:383
 msgid "Decimal Character"
-msgstr ""
+msgstr "십진수 문자"
 
 #: superset/viz.py:2700
 msgid "Deck.gl - 3D Grid"
-msgstr ""
+msgstr "Deck.gl - 3D Grid"
 
 #: superset/viz.py:2825
 msgid "Deck.gl - 3D HEX"
-msgstr ""
+msgstr "Deck.gl - 3D HEX"
 
 #: superset/viz.py:2890
 msgid "Deck.gl - Arc"
-msgstr ""
+msgstr "Deck.gl - Arc"
 
 #: superset/viz.py:2869
 msgid "Deck.gl - GeoJSON"
@@ -5387,11 +5399,11 @@ msgstr ""
 
 #: superset/viz.py:2735
 msgid "Deck.gl - Paths"
-msgstr ""
+msgstr "Deck.gl - 경로"
 
 #: superset/viz.py:2789
 msgid "Deck.gl - Polygon"
-msgstr ""
+msgstr "Deck.gl - 다각형"
 
 #: superset/viz.py:2612
 msgid "Deck.gl - Scatter plot"
@@ -5399,11 +5411,11 @@ msgstr ""
 
 #: superset/viz.py:2668
 msgid "Deck.gl - Screen Grid"
-msgstr ""
+msgstr "Deck.gl - 스크린 그리드"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:167
 msgid "Default"
-msgstr ""
+msgstr "기본값"
 
 #: superset/connectors/sqla/views.py:391
 msgid "Default Endpoint"
@@ -5411,11 +5423,11 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:871
 msgid "Default URL"
-msgstr ""
+msgstr "기본 URL"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:872
 msgid "Default URL to redirect to when accessing from the dataset list page"
-msgstr ""
+msgstr "데이터셋 목록 페이지에서 접근할 때 리디렉션할 기본 URL"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1189
 msgid "Default Value"
@@ -5424,11 +5436,11 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:363
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:371
 msgid "Default datetime"
-msgstr ""
+msgstr "기본 날짜/시간"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:295
 msgid "Default latitude"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:281
 msgid "Default longitude"
@@ -5494,7 +5506,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:285
 msgid "Defines the grid size in pixels"
-msgstr ""
+msgstr "픽셀 단위로 그리드 크기를 정의합니다"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:119
 #: superset-frontend/src/explore/controls.jsx:383
@@ -5512,7 +5524,7 @@ msgstr ""
 msgid ""
 "Defines the size of the rolling window function, relative to the time "
 "granularity selected"
-msgstr ""
+msgstr "선택한 시간의 세분화에 대한 롤링 윈도우 기능의 크기를 정의합니다"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:79
 msgid ""
@@ -5560,7 +5572,7 @@ msgstr "데이터베이스 선택"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:745
 msgid "Delete Dataset?"
-msgstr ""
+msgstr "데이터셋을 삭제하시겠습니까?"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:353
 msgid "Delete Layer?"
@@ -5599,7 +5611,7 @@ msgstr "데이터베이스 선택"
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:246
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:270
 msgid "Delete email report"
-msgstr ""
+msgstr "이메일 보고서 삭제"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:428
 msgid "Delete query"
@@ -5612,7 +5624,7 @@ msgstr "템플릿 불러오기"
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:36
 msgid "Delete this container and save to remove this message."
-msgstr ""
+msgstr "이 컨테이너를 삭제하고 저장하여 이 메시지를 제거합니다."
 
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:108
 #, fuzzy
@@ -5701,7 +5713,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:184
 msgid "Delimited long & lat single column"
-msgstr ""
+msgstr "분리 된 경도 및 위도 단일 열"
 
 #: superset/views/database/forms.py:160
 msgid "Delimiter"

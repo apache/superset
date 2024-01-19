@@ -54,7 +54,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:130
 msgid " (excluded)"
-msgstr ""
+msgstr " (vylúčené)"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:222
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:235
@@ -106,7 +106,7 @@ msgstr "Pridať vypočítané stĺpce"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:421
 msgid " to add metrics"
-msgstr ""
+msgstr "Pridať metriky"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:382
 msgid " to edit or add columns and metrics."
@@ -115,7 +115,7 @@ msgstr " pre úpravu alebo pridanie stĺpcov a metrík."
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
 msgid " to mark a column as a time column"
-msgstr ""
+msgstr " pre označenie stĺpca ako časový stĺpec"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
@@ -258,7 +258,7 @@ msgstr "%s SSH TUNELLOVÝ SÚKROMNÝ KLÚC"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s HESLO PRIVÁTNEHO KLÚČA PRE SSH TUNEL"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:245
 #, python-format
@@ -278,7 +278,7 @@ msgstr "%s Vybrané (Fyzické)"
 #: superset-frontend/src/pages/DatasetList/index.tsx:816
 #, python-format
 msgid "%s Selected (Virtual)"
-msgstr ""
+msgstr "%s Vybrané (Virtuálne)"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:332
 #, python-format
@@ -296,7 +296,7 @@ msgstr "Stĺpce: %s"
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:356
 #, python-format
 msgid "%s operator(s)"
-msgstr ""
+msgstr "Počet operátorov: %s"
 
 #: superset-frontend/src/filters/components/GroupBy/GroupByFilterPlugin.tsx:87
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:226
@@ -347,7 +347,7 @@ msgstr "%s-%s od %s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:116
 msgid "(Removed)"
-msgstr ""
+msgstr "(Removed)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:101
 msgid "(deleted or invalid type)"
@@ -355,7 +355,7 @@ msgstr "(vymazané alebo neplatný typ)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
-msgstr ""
+msgstr "(bez popisu, kliknite pre zobrazenie záznamov o zásobách)"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:168
 msgid ""
@@ -411,7 +411,7 @@ msgstr "+ %s viac"
 
 #: superset/views/database/forms.py:163
 msgid ","
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:652
 msgid ""
@@ -445,7 +445,7 @@ msgstr "1 deň"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr ""
+msgstr "1 deň dozadu"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -475,7 +475,7 @@ msgstr "1 mesiac končná frekvencia"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
 msgid "1 month start frequency"
-msgstr ""
+msgstr "1 mesiac začiatočná frekvencia"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:307
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:189
@@ -515,7 +515,7 @@ msgstr "Frekvencia konca 1 rok"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:242
 msgid "1 year start frequency"
-msgstr ""
+msgstr "Frekvencia začatia 1 roka"
 
 #: superset/db_engine_specs/base.py:102
 msgid "10 minute"
@@ -559,7 +559,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:509
 #: superset-frontend/src/explore/controlPanels/sections.tsx:235
 msgid "1D"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:356
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:238
@@ -617,7 +617,7 @@ msgstr "28 dní dozadu"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:37
 msgid "2D"
-msgstr ""
+msgstr "2D"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:136
 msgid "3 letter code of the country"
@@ -640,7 +640,7 @@ msgstr "pred 3 rokmi"
 #: superset-frontend/src/explore/controlPanels/sections.tsx:187
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:132
 msgid "30 days"
-msgstr ""
+msgstr "30 dní"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:115
 msgid "30 days ago"
@@ -648,12 +648,12 @@ msgstr "30 dni"
 
 #: superset/db_engine_specs/base.py:104
 msgid "30 minute"
-msgstr ""
+msgstr "30 minút"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:165
 #: superset-frontend/src/explore/controls.jsx:259
 msgid "30 minutes"
-msgstr ""
+msgstr "30 minút"
 
 #: superset/db_engine_specs/base.py:99
 msgid "30 second"
@@ -662,7 +662,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:162
 #: superset-frontend/src/explore/controls.jsx:256
 msgid "30 seconds"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.js:33
@@ -673,36 +673,36 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:64
 msgid "4 weeks (freq=4W-MON)"
-msgstr ""
+msgstr "4 týždne (frekvencia=4W-PO)"
 
 #: superset/db_engine_specs/base.py:101
 msgid "5 minute"
-msgstr ""
+msgstr "5 minút"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:164
 #: superset-frontend/src/explore/controls.jsx:258
 msgid "5 minutes"
-msgstr ""
+msgstr "5 minút"
 
 #: superset/db_engine_specs/base.py:98
 msgid "5 second"
-msgstr ""
+msgstr "5 sekund"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:161
 #: superset-frontend/src/explore/controls.jsx:255
 msgid "5 seconds"
-msgstr ""
+msgstr "5 sekund"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:310
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:192
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:460
 #: superset-frontend/src/explore/controlPanels/sections.tsx:188
 msgid "52 weeks"
-msgstr ""
+msgstr "52 týždňov\"\""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:116
 msgid "52 weeks ago"
-msgstr ""
+msgstr "52 weeks ago"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:60
 msgid "52 weeks starting Monday (freq=52W-MON)"
@@ -712,7 +712,7 @@ msgstr ""
 #: superset-frontend/src/explore/controls.jsx:261
 #: superset/db_engine_specs/base.py:106
 msgid "6 hour"
-msgstr ""
+msgstr "6 hodín"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
 msgid "60 days"
@@ -721,12 +721,12 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:166
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:239
 msgid "7 calendar day frequency"
-msgstr ""
+msgstr "7 kalendárnych dní frekvencia"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:169
 #: superset-frontend/src/explore/controls.jsx:263
 msgid "7 days"
-msgstr ""
+msgstr "7 dní"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:358
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:240
@@ -741,23 +741,23 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:140
 msgid "90 days"
-msgstr ""
+msgstr "90 dni"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:49
 msgid ":"
-msgstr ""
+msgstr ":"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:97
 msgid "< (Smaller than)"
-msgstr ""
+msgstr "< (menšie ako)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:105
 msgid "<= (Smaller or equal)"
-msgstr ""
+msgstr "<= (menšie alebo rovné)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1430
 msgid "<enter SQL expression here>"
-msgstr ""
+msgstr "<zadajte SQL výraz tu>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:500
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1427
@@ -766,7 +766,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1265
 msgid "<new metric>"
-msgstr ""
+msgstr "Vyberte metriku"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:985
 msgid "<new spatial>"
@@ -778,81 +778,91 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:113
 msgid "== (Is equal)"
-msgstr ""
+msgstr "== (je enako)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:101
 msgid "> (Larger than)"
-msgstr ""
+msgstr "> (Väčší ako)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:109
 msgid ">= (Larger or equal)"
-msgstr ""
+msgstr ">= (väčší alebo rovný)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:34
 msgid "A Big Number"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset/views/database/forms.py:194
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
+"Zoznam stĺpcov oddelených čiarkou, ktoré by mali byť analyzované ako dátumy."
 
 #: superset/views/database/forms.py:377
 msgid "A comma separated list of columns that should be parsed as dates."
 msgstr ""
+"Zoznam stĺpcov oddelený čiarkami, ktoré by mali byť analyzované ako dátumy."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:443
 msgid "A comma-separated list of schemas that files are allowed to upload to."
-msgstr ""
+msgstr "Zoznam schém oddelených čiarkou, do ktorých je možné nahrať súbory."
 
 #: superset/databases/commands/exceptions.py:42
 msgid "A database with the same name already exists."
-msgstr ""
+msgstr "Databáza s rovnakým názvom už existuje."
 
 #: superset/views/database/forms.py:145
 msgid ""
 "A dictionary with column names and their data types if you need to change "
 "the defaults. Example: {\"user_id\":\"integer\"}"
-msgstr ""
+msgstr "Slovak translation of the msgid"
 
 #: superset/views/dynamic_plugins.py:52
 msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted on "
 "a CDN for example)"
 msgstr ""
+"Plný URL ukazujúci na umiestnenie postaveného pluginu (môže byť hostovaný "
+"napríklad na CDN)"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/handlebarTemplate.tsx:61
 msgid "A handlebars template that is applied to the data"
-msgstr ""
+msgstr "Handlebars šablóna, ktorá sa aplikuje na dáta"
 
 #: superset/views/dynamic_plugins.py:47
 msgid "A human-friendly name"
-msgstr ""
+msgstr "Človeku prijazno meno"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:195
 msgid ""
 "A list of domain names that can embed this dashboard. Leaving this field "
 "empty will allow embedding from any domain."
 msgstr ""
+"Zoznam doménových mien, ktoré môžu vložiť túto nástenku. Ak ponecháte toto "
+"pole prázdne, umožní to vkladanie z akéhokoľvek doménu."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:752
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:445
 msgid "A list of tags that have been applied to this chart."
-msgstr ""
+msgstr "Zoznam značiek, ktoré boli aplikované na tento graf."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:424
 msgid ""
 "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
+"Zoznam používateľov, ktorí môžu upravovať graf. Vyhľadateľné podľa mena "
+"alebo používateľského mena."
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:29
 msgid "A map of the world, that can indicate values in different countries."
-msgstr ""
+msgstr "Mapa sveta, ktorá môže zobrazovať hodnoty v rôznych krajinách."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:27
 msgid ""
 "A map that takes rendering circles with a variable radius at "
 "latitude/longitude coordinates"
 msgstr ""
+"Mapa, ktorý zobrazuje kruhy s premenným polomerom pri zemepisných "
+"súradniciach"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:230
 #: superset-frontend/src/explore/controls.jsx:237
@@ -865,21 +875,24 @@ msgid ""
 "angle, and the value represented by any wedge is illustrated by its area, "
 "rather than its radius or sweep angle."
 msgstr ""
+"Grafikon s polarnimi koordinatami, kjer je krog razdeljen na enakokotne "
+"izseke, vrednosti pa so ponazorjene s ploščino izseka (namesto polmera ali "
+"kota)."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:697
 msgid "A readable URL for your dashboard"
-msgstr ""
+msgstr "Čitateľná URL pre váš dashboard"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:45
 #: superset-frontend/src/explore/controls.jsx:113
 msgid ""
 "A reference to the [Time] configuration, taking granularity into account"
-msgstr ""
+msgstr "Odkaz na nastavenia pre [Čas], ktoré zohľadňujú granularitu"
 
 #: superset/reports/commands/exceptions.py:186
 #, python-format
 msgid "A report named \"%(name)s\" already exists"
-msgstr ""
+msgstr "Správa s názvom \"%(name)s\" už existuje"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:368
 msgid "A reusable dataset will be saved with your chart."
@@ -887,7 +900,7 @@ msgstr ""
 
 #: superset-frontend/src/components/ReportModal/index.tsx:308
 msgid "A screenshot of the dashboard will be sent to your email at"
-msgstr ""
+msgstr "Skrinshot nástenky bude odoslaný na váš e-mail na"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:963
 #: superset/connectors/sqla/views.py:365
@@ -895,36 +908,40 @@ msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
+"Sada parametrov, ktoré sú dostupné v dotazovaní pomocou Jinja templating "
+"syntax"
 
 #: superset/common/query_context_processor.py:417
 msgid "A time column must be specified when using a Time Comparison."
-msgstr ""
+msgstr "Musíte špecifikovať stĺpec času pri použití porovnania času."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:32
 msgid ""
 "A time series chart that visualizes how a related metric from multiple "
 "groups vary over time. Each group is visualized using a different color."
 msgstr ""
+"Graf, ktorý zobrazuje ako sa mení súvisiaca metrika z viacerých skupín v "
+"čase. Každá skupina je zobrazená inou farbou."
 
 #: superset/reports/commands/exceptions.py:228
 msgid "A timeout occurred while executing the query."
-msgstr ""
+msgstr "Pri vykonávaní dotazu došlo k časovému limitu."
 
 #: superset/reports/commands/exceptions.py:238
 msgid "A timeout occurred while generating a csv."
-msgstr ""
+msgstr "Chyba pri generovaní csv."
 
 #: superset/reports/commands/exceptions.py:243
 msgid "A timeout occurred while generating a dataframe."
-msgstr ""
+msgstr "Časový limit bol dosiahnutý počas generovania dataframe."
 
 #: superset/reports/commands/exceptions.py:233
 msgid "A timeout occurred while taking a screenshot."
-msgstr ""
+msgstr "Pri vytváraní snímky obrazovky došlo k časovému limitu."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:296
 msgid "A valid color scheme is required"
-msgstr ""
+msgstr "A valid color scheme is required"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:338
 msgid "APPLY"
@@ -954,7 +971,7 @@ msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:492
 msgid "About"
-msgstr ""
+msgstr "O programe"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:476
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:519
@@ -964,15 +981,15 @@ msgstr ""
 
 #: superset/initialization/__init__.py:425
 msgid "Access requests"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/src/components/TableLoader/index.tsx:91
 msgid "Access to user activity data is restricted"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:175
 msgid "Access token"
-msgstr ""
+msgstr "\\t"
 
 #: superset/views/core.py:318
 msgid "Access was requested"
@@ -980,11 +997,11 @@ msgstr ""
 
 #: superset/views/log/__init__.py:31
 msgid "Action"
-msgstr ""
+msgstr "Akcia"
 
 #: superset/initialization/__init__.py:387
 msgid "Action Log"
-msgstr ""
+msgstr "Denník aktivít"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:87
 #: superset-frontend/src/pages/AlertReportList/index.tsx:404
@@ -1000,7 +1017,7 @@ msgstr ""
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:437
 #: superset-frontend/src/pages/Tags/index.tsx:171
 msgid "Actions"
-msgstr ""
+msgstr "Akcie"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:387
 #: superset-frontend/src/pages/AlertReportList/index.tsx:355
@@ -1011,7 +1028,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:214
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:484
 msgid "Actual Values"
-msgstr ""
+msgstr "Skutočné hodnoty"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:310
 msgid "Actual time range"
@@ -1019,7 +1036,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:64
 msgid "Actual value"
-msgstr ""
+msgstr "Hodnota prekladu"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:140
 #: superset-frontend/src/explore/controlPanels/sections.tsx:210
@@ -1031,7 +1048,7 @@ msgstr ""
 #: superset-frontend/src/explore/controls.jsx:78
 #: superset-frontend/src/explore/controls.jsx:101
 msgid "Adaptive formatting"
-msgstr ""
+msgstr "Adaptívne formátovanie"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
@@ -1044,31 +1061,31 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 msgid "Add Alert"
-msgstr ""
+msgstr "Pridať upozornenie"
 
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
-msgstr ""
+msgstr "Pridaj CSS šablónu"
 
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:230
 msgid "Add CSS template"
-msgstr ""
+msgstr "Pridať CSS šablónu"
 
 #: superset/views/chart/mixin.py:27
 msgid "Add Chart"
-msgstr ""
+msgstr "Pridať graf"
 
 #: superset/connectors/sqla/views.py:73
 msgid "Add Column"
-msgstr ""
+msgstr "\\t"
 
 #: superset/views/dashboard/mixin.py:26
 msgid "Add Dashboard"
-msgstr ""
+msgstr "Pridať Dashboard"
 
 #: superset/views/database/mixins.py:35
 msgid "Add Database"
-msgstr ""
+msgstr "Pridať databázu"
 
 #: superset/views/log/__init__.py:23
 msgid "Add Log"
@@ -1076,11 +1093,11 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:208
 msgid "Add Metric"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 msgid "Add Report"
-msgstr ""
+msgstr "Pridať správu"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
 msgid "Add Rule"
@@ -1088,23 +1105,23 @@ msgstr ""
 
 #: superset/views/sql_lab/views.py:54
 msgid "Add Saved Query"
-msgstr ""
+msgstr "Pridať uložený dotaz"
 
 #: superset/views/dynamic_plugins.py:60
 msgid "Add a Plugin"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:351
 msgid "Add a dataset"
-msgstr ""
+msgstr "Pridať súbor"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:272
 msgid "Add a new tab"
-msgstr ""
+msgstr "Pridať nový panel"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:296
 msgid "Add a new tab to create SQL Query"
-msgstr ""
+msgstr "Pridajte novú kartu pre vytvorenie SQL dotazu"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:220
 msgid "Add additional custom parameters"
@@ -1113,45 +1130,46 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:119
 #, fuzzy
 msgid "Add an annotation layer"
-msgstr ""
+msgstr "Pridať vrstvu s anotáciami"
 
 #: superset-frontend/src/explore/components/controls/CollectionControl/index.jsx:63
 msgid "Add an item"
-msgstr ""
+msgstr "Pridať položku"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:583
 msgid "Add and edit filters"
-msgstr ""
+msgstr "Pridať a upraviť filtre"
 
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:282
 msgid "Add annotation"
-msgstr ""
+msgstr "Pridať poznámku"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:214
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:226
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:242
 msgid "Add annotation layer"
-msgstr ""
+msgstr "Pridať vrstvu s anotáciami"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:306
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
 msgstr ""
+"Pridať vypočítané stĺpce do dátového súboru v okne \"Upraviť dátový zdroj\""
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:303
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Pridať vypočítané časové stĺpce do dataseta v \"Upraviť zdroj\" okne"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:197
 msgid "Add cross-filter"
-msgstr ""
+msgstr "\\t\\t\\t"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "Add custom scoping"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
-msgstr ""
+msgstr "Pridať spôsob doručenia"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:340
 msgid "Add extra connection information."
@@ -1160,7 +1178,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:176
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl/index.jsx:372
 msgid "Add filter"
-msgstr ""
+msgstr "\\t\\t\\t\\t\\t\\t\\t\\t\\t"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:960
 msgid ""
@@ -1173,7 +1191,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
-msgstr ""
+msgstr "Pridaj filtre a oddelovače"
 
 #: superset-frontend/src/components/Datasource/CollectionTable.tsx:458
 msgid "Add item"
@@ -1181,11 +1199,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/MetricControl/MetricsControl.jsx:333
 msgid "Add metric"
-msgstr ""
+msgstr "Pridať metriku"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:401
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Pridať metriky do sady údajov v \"Upraviť zdroj údajov\" dialógovom okne"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:176
 msgid "Add new color formatter"
@@ -1197,7 +1215,7 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add notification method"
-msgstr ""
+msgstr "Pridať metódu upozornenia"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:267
 msgid "Add required control values to preview chart"
@@ -1213,20 +1231,20 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:219
 msgid "Add the name of the chart"
-msgstr ""
+msgstr "Pridajte názov grafu"
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:512
 msgid "Add the name of the dashboard"
-msgstr ""
+msgstr "Pridajte názov prehľadu"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:386
 msgid "Add to dashboard"
-msgstr ""
+msgstr "Pridať na dashboard"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:126
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Horizontal.tsx:146
 msgid "Add/Edit Filters"
-msgstr ""
+msgstr "Pridať/Upraviť filtre"
 
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:122
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:149
@@ -1279,15 +1297,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:47
 msgid "Additive"
-msgstr ""
+msgstr "Aditív"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:85
 msgid "Adjust how this database will interact with SQL Lab."
-msgstr ""
+msgstr "Nastavte, ako bude táto databáza interagovať s SQL Labom."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:231
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "Nastavte nastavenia výkonnosti tejto databázy.\\n"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1315,12 +1333,12 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:291
 msgid "Advanced Data type"
-msgstr ""
+msgstr "Pokročilý typ údajov"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:25
 #: superset-frontend/src/explore/controlPanels/sections.tsx:117
 msgid "Advanced analytics"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:289
 msgid "Advanced analytics Query A"
@@ -1328,12 +1346,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:291
 msgid "Advanced analytics Query B"
-msgstr ""
+msgstr "Poizvedba B za napredno analitiko"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:287
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:359
 msgid "Advanced data type"
-msgstr ""
+msgstr "Pokročilý typ údajov"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:45
@@ -1381,7 +1399,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:57
 msgid "Aggregate"
-msgstr ""
+msgstr "Aggregácia"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:84
 msgid "Aggregate Mean"
@@ -1389,29 +1407,35 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:89
 msgid "Aggregate Sum"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:194
 msgid ""
 "Aggregate function applied to the list of points in each cluster to produce "
 "the cluster label."
 msgstr ""
+"Agregačná funkcia použitá na zoznam bodov v každom zhluku na vytvorenie "
+"označenia zhluku."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:202
 msgid ""
 "Aggregate function to apply when pivoting and computing the total rows and "
 "columns"
 msgstr ""
+"Agregačná funkcia na použitie pri pivotovaní a výpočte celkových riadkov a "
+"stĺpcov"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.js:27
 msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated "
 "values to a dynamic color scale"
 msgstr ""
+"Agreguje dáta v rámci hraníc mriežkových buniek a mapuje agregované hodnoty "
+"do dynamického farebného spektra"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/controlPanel.ts:110
 msgid "Aggregation"
-msgstr ""
+msgstr "agregácia"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:176
 msgid "Aggregation function"
@@ -1423,7 +1447,7 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:92
 msgid "Alert Triggered, In Grace Period"
-msgstr ""
+msgstr "Výstraha spustená, v období mieru"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 msgid "Alert condition"
@@ -1435,7 +1459,7 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:253
 msgid "Alert ended grace period."
-msgstr ""
+msgstr "Alerta skončila dobu mieru."
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:82
 msgid "Alert failed"
@@ -1443,15 +1467,15 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:248
 msgid "Alert fired during grace period."
-msgstr ""
+msgstr "Upozornenie spustené počas doby odkladu."
 
 #: superset/reports/commands/exceptions.py:223
 msgid "Alert found an error while executing a query."
-msgstr ""
+msgstr "Alert nájdená chyba pri vykonávaní dotazu."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:384
 msgid "Alert name"
-msgstr ""
+msgstr "Názov upozornenia"
 
 #: superset/reports/commands/exceptions.py:258
 msgid "Alert on grace period"
@@ -1463,12 +1487,14 @@ msgstr ""
 
 #: superset/reports/commands/exceptions.py:209
 msgid "Alert query returned more than one column."
-msgstr ""
+msgstr "Alert query vrátil viac ako jeden stĺpec."
 
 #: superset/reports/commands/alert.py:109
 #, python-format
 msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
+"Požiadavka na upozornenie vrátila viac ako jeden stĺpec. %s vrátených "
+"stĺpcov"
 
 #: superset/reports/commands/exceptions.py:199
 msgid "Alert query returned more than one row."
@@ -1477,19 +1503,19 @@ msgstr ""
 #: superset/reports/commands/alert.py:100
 #, python-format
 msgid "Alert query returned more than one row. %s rows returned"
-msgstr ""
+msgstr "Alert query vrátil viac ako jednu riadok. %s vrátené riadky"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:75
 msgid "Alert running"
-msgstr ""
+msgstr "Upozornenie beží"
 
 #: superset-frontend/src/features/alerts/components/AlertStatusIcon.tsx:68
 msgid "Alert triggered, notification sent"
-msgstr ""
+msgstr "Upozornenie spustené, oznámenie odoslané"
 
 #: superset/reports/commands/exceptions.py:204
 msgid "Alert validator config error."
-msgstr ""
+msgstr "Chyba konfigurácie validátora upozornení."
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:534
 msgid "Alerts"
@@ -1502,7 +1528,7 @@ msgstr ""
 #: superset-frontend/src/pages/AlertReportList/index.tsx:519
 #: superset-frontend/src/pages/AlertReportList/index.tsx:523
 msgid "Alerts & reports"
-msgstr ""
+msgstr " \"\\t\""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:116
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:442
@@ -1533,7 +1559,7 @@ msgstr ""
 #: superset-frontend/src/pages/AllEntities/index.tsx:76
 #: superset/initialization/__init__.py:370
 msgid "All Entities"
-msgstr ""
+msgstr "Všetky entity"
 
 #: superset/annotation_layers/annotations/filters.py:28
 #: superset/annotation_layers/filters.py:30 superset/charts/filters.py:36
@@ -1548,28 +1574,31 @@ msgstr ""
 #: superset-frontend/src/dashboard/util/getFilterScopeNodesTree.js:85
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:127
 msgid "All charts"
-msgstr ""
+msgstr "Všetky grafy"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "Všetky grafy/globálne rozsiahnutie"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
 msgstr ""
+"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\n"
+"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\n"
+"\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:235
 #, python-format
 msgid "All filters (%(filterCount)d)"
-msgstr ""
+msgstr "Všetky filtre (%(filterCount)d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/state.ts:36
 msgid "All panels"
-msgstr ""
+msgstr "Všetky panely"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:138
 msgid "All panels with this column will be affected by this filter"
-msgstr ""
+msgstr "Všetky panely s týmto stĺpcom budú ovplyvnené týmto filtrom"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:117
 #: superset/views/database/mixins.py:184
@@ -1578,7 +1607,7 @@ msgstr ""
 
 #: superset/views/database/mixins.py:112
 msgid "Allow CREATE TABLE AS option in SQL Lab"
-msgstr ""
+msgstr "Dovoli opcijo CREATE TABLE AS v SQL laboratoriju"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:131
 #: superset/views/database/mixins.py:185
@@ -1596,11 +1625,11 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:164
 #: superset/views/database/mixins.py:186
 msgid "Allow DML"
-msgstr ""
+msgstr "Dovoli DML"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:468
 msgid "Allow columns to be rearranged"
-msgstr ""
+msgstr "Umožniť usporiadanie stĺpcov"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:120
 msgid "Allow creation of new tables based on queries"
@@ -1608,17 +1637,20 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:134
 msgid "Allow creation of new views based on queries"
-msgstr ""
+msgstr "Umožni vytvorenie nových pohľadov na základe dotazov"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:340
 msgid "Allow data manipulation language"
-msgstr ""
+msgstr "Dovoli jazyk pre manipuláciu údajov (DML)"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:471
 msgid ""
 "Allow end user to drag-and-drop column headers to rearrange them. Note their"
 " changes won't persist for the next time they open the chart."
 msgstr ""
+"Povoliť koncovému používateľovi presúvať hlavičky stĺpcov na "
+"preusporiadanie. Upozornenie: ich zmeny sa nebudú uchovávať pre ďalšie "
+"otvorenie grafu."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:421
 msgid "Allow file uploads to database"
@@ -1629,42 +1661,46 @@ msgid ""
 "Allow manipulation of the database using non-SELECT statements such as "
 "UPDATE, DELETE, CREATE, etc."
 msgstr ""
+"Povoliť manipuláciu s databázou pomocou ne-SELECT príkazov ako UPDATE, "
+"DELETE, CREATE, atď."
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:216
 msgid "Allow multiple selections"
-msgstr ""
+msgstr "Povoliť viacero výberov"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:190
 msgid "Allow node selections"
-msgstr ""
+msgstr "Dovoli izbiro vozlišča"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:176
 msgid "Allow sending multiple polygons as a filter event"
-msgstr ""
+msgstr "Dovolte posielanie viacerých polygónov ako udalosť filtra"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:196
 msgid "Allow this database to be explored"
-msgstr ""
+msgstr "Povoliť prehľadávanie tejto databázy"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:101
 msgid "Allow this database to be queried in SQL Lab"
-msgstr ""
+msgstr "Povoliť dopytovanie tejto databázy v SQL Lab"
 
 #: superset/views/database/mixins.py:114
 msgid ""
 "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in "
 "SQL Lab"
 msgstr ""
+"Povoliť používateľom spúšťať ne-SELECT príkazy (UPDATE, DELETE, CREATE, ...)"
+" v SQL Lab"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:193
 msgid "Allowed Domains (comma separated)"
-msgstr ""
+msgstr "Dovolené domény (oddelené čiarkami)"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:737
 #: superset-frontend/src/pages/DashboardList/index.tsx:611
 #: superset-frontend/src/pages/Tags/index.tsx:217
 msgid "Alphabetical"
-msgstr ""
+msgstr "V abecednom poradí"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:54
 msgid ""
@@ -1673,6 +1709,10 @@ msgid ""
 "middle emphasizes the mean, median, and inner 2 quartiles. The whiskers "
 "around each box visualize the min, max, range, and outer 2 quartiles."
 msgstr ""
+"Známy tiež ako graf škatuľka a fúzik, táto vizualizácia porovnáva rozdelenie"
+" súvisiacej metriky v rôznych skupinách. Škatuľka uprostred zdôrazňuje "
+"priemer, medián a vnútorné 2 kvartily. Fúzy okolo každej škatuľky "
+"vizualizujú minimum, maximum, rozsah a vonkajšie 2 kvartily."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:202
 msgid "Altered"
@@ -1680,24 +1720,28 @@ msgstr ""
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:71
 msgid "An Error Occurred"
-msgstr ""
+msgstr "Prišlo je do napake"
 
 #: superset/reports/commands/exceptions.py:188
 #, python-format
 msgid "An alert named \"%(name)s\" already exists"
-msgstr ""
+msgstr "Alert s názvom \"%(name)s\" už existuje"
 
 #: superset/common/query_context_processor.py:326 superset/viz.py:1352
 msgid ""
 "An enclosed time range (both start and end) must be specified when using a "
 "Time Comparison."
 msgstr ""
+"Musí být zadán uzavřený časový rozsah (začátek i konec) při použití časového"
+" srovnání."
 
 #: superset/databases/schemas.py:289
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
 msgstr ""
+"Musí byť špecifikovaný motor pri prechádzaní jednotlivých parametrov do "
+"databázy."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:791
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:183
@@ -1707,119 +1751,123 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:38
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:92
 msgid "An error has occurred"
-msgstr ""
+msgstr "An error has occurred"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:76
 #: superset-frontend/src/components/TableLoader/index.tsx:55
 #: superset-frontend/src/utils/getClientErrorObject.ts:197
 msgid "An error occurred"
-msgstr ""
+msgstr "Prišlo je do chyby"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:323
 msgid "An error occurred saving dataset"
-msgstr ""
+msgstr "Pri ukladaní datasetu nastala chyba"
 
 #: superset/dashboards/permalink/exceptions.py:31
 #: superset/explore/permalink/exceptions.py:31
 #: superset/key_value/exceptions.py:38
 #: superset/temporary_cache/commands/exceptions.py:33
 msgid "An error occurred while accessing the value."
-msgstr ""
+msgstr "Nastala chyba pri prístupe k hodnote."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1360
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
 "administrator."
 msgstr ""
+"Pri krčenju sheme tabule je prišlo do napake. Kontaktirajte administratorja."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:308
 #, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr ""
+msgstr "Chyba pri vytváraní %ss: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1530
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1552
 msgid "An error occurred while creating the data source"
-msgstr ""
+msgstr "Pri ustvarjanju podatkovnega vira je prišlo do težave"
 
 #: superset/dashboards/permalink/exceptions.py:27
 #: superset/explore/permalink/exceptions.py:27
 #: superset/key_value/exceptions.py:34
 #: superset/temporary_cache/commands/exceptions.py:29
 msgid "An error occurred while creating the value."
-msgstr ""
+msgstr "Pri vytváraní hodnoty sa vyskytla chyba."
 
 #: superset/key_value/exceptions.py:42
 #: superset/temporary_cache/commands/exceptions.py:37
 msgid "An error occurred while deleting the value."
-msgstr ""
+msgstr "Chyba sa vyskytla pri mazaní hodnoty."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1336
 msgid ""
 "An error occurred while expanding the table schema. Please contact your "
 "administrator."
 msgstr ""
+"Pri širitvi sheme tabele je prišlo do napake. Kontaktirajte administratorja."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:106
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr ""
+msgstr "Chyba pri načítaní informácií pre %s: %s"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:174
 #: superset-frontend/src/views/CRUD/hooks.ts:265
 #: superset-frontend/src/views/CRUD/hooks.ts:353
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
-msgstr ""
+msgstr "Pri načítavaní %ss sa vyskytla chyba: %s"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:130
 msgid "An error occurred while fetching available CSS templates"
-msgstr ""
+msgstr "Pocasie"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:641
 #, python-format
 msgid "An error occurred while fetching chart created by values: %s"
-msgstr ""
+msgstr "An error occurred while fetching chart created by values: %s"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:619
 #, python-format
 msgid "An error occurred while fetching chart owners values: %s"
-msgstr ""
+msgstr "Pri pridobivanju polja lastnik grafikona je prišlo do napake: %s"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:479
 #, python-format
 msgid "An error occurred while fetching created by values: %s"
-msgstr ""
+msgstr "Pri pridobivanju hodnoty \"Vytvoril\" došlo k chybe: %s"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:556
 #, python-format
 msgid "An error occurred while fetching dashboard created by values: %s"
 msgstr ""
+"Pri pridobivanju polja Nadzorno ploščo ustvaril je prišlo do napake: %s"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:534
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr ""
+"Pri pridobivanju polja lastnik nadzorne plošče je prišlo do napake: %s"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:299
 msgid "An error occurred while fetching dashboards"
-msgstr ""
+msgstr "Prišlo je do napake pri pridobivanju nadzornih plošč: %s"
 
 #: superset-frontend/src/features/home/DashboardTable.tsx:148
 #: superset-frontend/src/pages/DashboardList/index.tsx:232
 #, python-format
 msgid "An error occurred while fetching dashboards: %s"
-msgstr ""
+msgstr "Prišlo je do napake pri pridobivanju nadzornih plošč: %s"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:156
 #, python-format
 msgid "An error occurred while fetching database related data: %s"
-msgstr ""
+msgstr "Pôvodný text nebol nájdený"
 
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:360
 #, python-format
 msgid "An error occurred while fetching database values: %s"
-msgstr ""
+msgstr "Pri pridobivanju vrednosti podatkovne baze je prišlo do napake: %s"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:293
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:283
@@ -1827,20 +1875,22 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr ""
+"Pri pridobívaní hodnôt dátového zdroja sady údajov sa vyskytla chyba: %s"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:521
 #, python-format
 msgid "An error occurred while fetching dataset owner values: %s"
 msgstr ""
+"Pri pridobivanju polja lastnik podatkovnega seta je prišlo do napake: %s"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:233
 msgid "An error occurred while fetching dataset related data"
-msgstr ""
+msgstr "Chyba pri získavaní súvisiacich údajov s dátovým súborom"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:253
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
-msgstr ""
+msgstr "Chyba pri získavaní údajov súvisiacich s datasetom: %s"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:541
 #, python-format
@@ -1849,60 +1899,64 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/AceEditorWrapper/index.tsx:120
 msgid "An error occurred while fetching function names."
-msgstr ""
+msgstr "Vyskytla sa chyba pri získavaní názvov funkcií."
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:462
 #, python-format
 msgid "An error occurred while fetching owners values: %s"
-msgstr ""
+msgstr "Pri pridobivanju vlastníkov nastal problém: %s"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:557
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:378
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:480
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
-msgstr ""
+msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:795
 msgid "An error occurred while fetching tab state"
-msgstr ""
+msgstr "Pri pridobivanju stanja zavihka je prišlo do napake"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1191
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1216
 msgid "An error occurred while fetching table metadata"
-msgstr ""
+msgstr "Nastala chyba pri získavaní metadát tabuľky"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1288
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
 "administrator."
 msgstr ""
+"Pri pridobivanju metapodatkov tabele je prišlo do napake. Kontaktirajte "
+"administratorja."
 
 #: superset-frontend/src/pages/Tags/index.tsx:193
 #, python-format
 msgid "An error occurred while fetching tag created by values: %s"
-msgstr ""
+msgstr "Pri získavaní hodnôt pre vytvorené značky sa vyskytla chyba: %s"
 
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:396
 #, python-format
 msgid "An error occurred while fetching user values: %s"
-msgstr ""
+msgstr "Pri pridobivanju hodnoty užívateľa došlo k chybe: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:831
 msgid ""
 "An error occurred while hiding the left bar. Please contact your "
 "administrator."
 msgstr ""
+"Pri skrivanju leve vrstice je prišlo do napake. Kontaktirajte "
+"administratorja."
 
 #: superset-frontend/src/views/CRUD/hooks.ts:506
 #: superset-frontend/src/views/CRUD/hooks.ts:522
 #, python-format
 msgid "An error occurred while importing %s: %s"
-msgstr ""
+msgstr "Chyba pri importovaní %s: %s"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:135
 msgid "An error occurred while loading dashboard information."
-msgstr ""
+msgstr "Prišlo je do napake pri pridobivanju nadzornih plošč: %s"
 
 #: superset-frontend/src/components/Chart/chartAction.js:579
 msgid "An error occurred while loading the SQL"
@@ -1910,48 +1964,58 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/gridComponents/Chart.jsx:325
 msgid "An error occurred while opening Explore"
-msgstr ""
+msgstr "Pri otváraní Prehľadávača sa vyskytla chyba"
 
 #: superset/key_value/exceptions.py:30
 msgid "An error occurred while parsing the key."
-msgstr ""
+msgstr "Vyskytla sa chyba pri parsovaní kľúča."
 
 #: superset/reports/commands/exceptions.py:286
 msgid "An error occurred while pruning logs "
-msgstr ""
+msgstr "Pri krajšanju dnevnikov je prišlo do napake "
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:888
 msgid ""
 "An error occurred while removing query. Please contact your administrator."
 msgstr ""
+"Pri odstraňovaní dopytu sa vyskytla chyba. Prosím kontaktujte vášho "
+"administrátora."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:853
 msgid ""
 "An error occurred while removing tab. Please contact your administrator."
 msgstr ""
+"Pri odstránení panelu sa vyskytla chyba. Kontaktujte prosím svojho "
+"administrátora."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1388
 msgid ""
 "An error occurred while removing the table schema. Please contact your "
 "administrator."
 msgstr ""
+"Pri odstránení schémy tabuľky sa vyskytla chyba. Prosím, kontaktujte svojho "
+"administrátora."
 
 #: superset-frontend/src/components/Chart/chartReducer.ts:96
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
-msgstr ""
+msgstr "Vyskytla sa chyba pri vykresľovaní vizualizácie: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:706
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
 msgstr ""
+"An error occurred while setting the active tab. Please contact your "
+"administrator."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:967
 msgid ""
 "An error occurred while setting the tab autorun. Please contact your "
 "administrator."
 msgstr ""
+"Pri določanju samodejnega zagona zavihka je prišlo do napake. Kontaktirajte "
+"administratorja."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:911
 msgid ""
@@ -1965,22 +2029,28 @@ msgid ""
 "An error occurred while setting the tab name. Please contact your "
 "administrator."
 msgstr ""
+"An error occurred while setting the tab name. Please contact your "
+"administrator."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:942
 msgid ""
 "An error occurred while setting the tab schema. Please contact your "
 "administrator."
 msgstr ""
+"Pri določanju sheme zavihka je prišlo do napake. Kontaktirajte "
+"administratorja."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1146
 msgid ""
 "An error occurred while setting the tab template parameters. Please contact "
 "your administrator."
 msgstr ""
+"Pri določanju parametrov predloge zavihka je prišlo do napake. Kontaktirajte"
+" administratorja."
 
 #: superset-frontend/src/explore/actions/exploreActions.ts:89
 msgid "An error occurred while starring this chart"
-msgstr ""
+msgstr "Pri vytváraní zdroja údajov sa vyskytla chyba"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:255
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:301
@@ -1988,29 +2058,35 @@ msgid ""
 "An error occurred while storing the latest query id in the backend. Please "
 "contact your administrator if this problem persists."
 msgstr ""
+"Chyba pri ukladaní posledného ID dotazu v backend. Ak problém pretrváva, "
+"prosím, kontaktujte vášho administrátora."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1087
 msgid ""
 "An error occurred while storing your query in the backend. To avoid losing "
 "your changes, please save your query using the \"Save Query\" button."
 msgstr ""
+"Pri ukladaní vašej požiadavky v backendu sa vyskytla chyba. Pre zabránenie "
+"straty zmien uložte svoju požiadavku pomocou tlačidla \"Uložiť požiadavku\"."
 
 #: superset/key_value/exceptions.py:46
 #: superset/temporary_cache/commands/exceptions.py:41
 msgid "An error occurred while updating the value."
 msgstr ""
+"Pozrime sa na nasledujúci CSV vstup, vygenerovaný zo textu v mojich .po "
+"jazykových súboroch:"
 
 #: superset/key_value/exceptions.py:50
 msgid "An error occurred while upserting the value."
-msgstr ""
+msgstr "Chyba pri vkladaní hodnoty."
 
 #: superset/databases/commands/exceptions.py:162
 msgid "An unexpected error occurred"
-msgstr ""
+msgstr "An unexpected error occurred"
 
 #: superset/views/core.py:745
 msgid "An unknown error occurred. Please contact your Superset administrator"
-msgstr ""
+msgstr "An unknown error occurred. Please contact your Superset administrator"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:235
 msgid "Anchor to"
@@ -2018,11 +2094,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:117
 msgid "Angle at which to end progress axis"
-msgstr ""
+msgstr "Uhol, pri ktorom sa končí os oblasti"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:107
 msgid "Angle at which to start progress axis"
-msgstr ""
+msgstr "Uhol, pri ktorom sa začína os oblasti"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:187
 msgid "Animation"
@@ -2050,46 +2126,46 @@ msgstr ""
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:64
 msgid "Annotation could not be created."
-msgstr ""
+msgstr "Annotácia sa nedá vytvoriť."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:68
 msgid "Annotation could not be updated."
-msgstr ""
+msgstr "Annotácia nemohla byť aktualizovaná."
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:72
 msgid "Annotation delete failed."
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:446
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:262
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:319
 msgid "Annotation layer"
-msgstr ""
+msgstr "Sloj s anotáciami"
 
 #: superset/annotation_layers/commands/exceptions.py:37
 msgid "Annotation layer could not be created."
-msgstr ""
+msgstr "Sloj s anotáciami nemohol byť vytvorený."
 
 #: superset/annotation_layers/commands/exceptions.py:33
 msgid "Annotation layer could not be deleted."
-msgstr ""
+msgstr "Sloj s anotaciami sa nedá odstrániť."
 
 #: superset/annotation_layers/commands/exceptions.py:41
 msgid "Annotation layer could not be updated."
-msgstr ""
+msgstr "Nepodarilo sa aktualizovať vrstvu s anotáciami."
 
 #: superset/annotation_layers/commands/exceptions.py:49
 msgid "Annotation layer delete failed."
-msgstr ""
+msgstr "Vymazanie vrstvy s anotáciami zlyhalo."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:582
 msgid "Annotation layer description columns"
-msgstr ""
+msgstr "Stĺpce s opisom vrstiev s oznámeniami"
 
 #: superset/annotation_layers/commands/exceptions.py:53
 #: superset/annotation_layers/commands/exceptions.py:57
 msgid "Annotation layer has associated annotations."
-msgstr ""
+msgstr "Sloj s anotaciami má priradené anotácie."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:557
 #, fuzzy
@@ -2098,11 +2174,11 @@ msgstr "Anotačná vrstva"
 
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:251
 msgid "Annotation layer name"
-msgstr ""
+msgstr "\\t\\t\\t\\t\\t\\t\\t\\t\\t"
 
 #: superset/annotation_layers/commands/exceptions.py:45
 msgid "Annotation layer not found."
-msgstr ""
+msgstr "Vrstva s anotáciami nenájdená."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:699
 #, fuzzy
@@ -2111,7 +2187,7 @@ msgstr "Anotačná vrstva"
 
 #: superset/annotation_layers/commands/exceptions.py:29
 msgid "Annotation layer parameters are invalid."
-msgstr ""
+msgstr "Parametre vrstvy s anotáciami sú neplatné."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:684
 #, fuzzy
@@ -2131,7 +2207,7 @@ msgstr "Anotačná vrstva"
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:810
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:813
 msgid "Annotation layer type"
-msgstr ""
+msgstr "Tipy vrstvy s anotáciami"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:467
 #, fuzzy
@@ -2142,7 +2218,7 @@ msgstr "Anotačná vrstva"
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:71
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:335
 msgid "Annotation layers"
-msgstr ""
+msgstr "Sloji z oznakami"
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:55
 msgid "Annotation layers are still loading."
@@ -2150,7 +2226,7 @@ msgstr ""
 
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:291
 msgid "Annotation name"
-msgstr ""
+msgstr "\\t\\t\\t"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:56
 msgid "Annotation not found."
@@ -2158,7 +2234,7 @@ msgstr ""
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:60
 msgid "Annotation parameters are invalid."
-msgstr ""
+msgstr "Parametre anotácie sú neplatné."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:825
 #, fuzzy
@@ -2188,11 +2264,11 @@ msgstr "Anotačná vrstva"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:72
 msgid "Annotations and layers"
-msgstr ""
+msgstr "Oznake a vrstvy"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:52
 msgid "Annotations could not be deleted."
-msgstr ""
+msgstr "Anotácie sa nedajú odstrániť."
 
 #: superset-frontend/src/pages/ChartList/index.tsx:596
 #: superset-frontend/src/pages/ChartList/index.tsx:705
@@ -2207,24 +2283,30 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:726
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:393
 msgid "Any additional detail to show in the certification tooltip."
-msgstr ""
+msgstr "Akékoľvek ďalšie podrobnosti zobraziť v certifikačnom tooltip."
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 msgid ""
 "Any color palette selected here will override the colors applied to this "
 "dashboard's individual charts"
 msgstr ""
+"Akákoľvek vybraná farebná paleta tu prepíše farby aplikované na jednotlivé "
+"grafy tohto dashboardu"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1008
 msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 msgstr ""
+"Akékoľvek databázy, ktoré umožňujú pripojenia cez SQL Alchemy URI, možno "
+"pridať. "
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1022
 msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 "Learn about how to connect a database driver "
 msgstr ""
+"Akékoľvek databázy, ktoré umožňujú pripojenia pomocou SQL Alchemy URI, môžu "
+"byť pridané. Naučte sa, ako pripojiť ovládač databázy "
 
 #: superset/views/database/forms.py:179 superset/views/database/forms.py:336
 #: superset/views/database/forms.py:467
@@ -2234,23 +2316,25 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:127
 #, python-format
 msgid "Applied cross-filters (%d)"
-msgstr ""
+msgstr "Použité krížové filtre (%d)"
 
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:149
 #, python-format
 msgid "Applied filters (%d)"
-msgstr ""
+msgstr "Použité filtre (%d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:260
 #, python-format
 msgid "Applied filters: %s"
-msgstr ""
+msgstr "Použité filtre (%d)"
 
 #: superset/viz.py:250
 msgid ""
 "Applied rolling window did not return any data. Please make sure the source "
 "query satisfies the minimum periods defined in the rolling window."
 msgstr ""
+"Využité posuvné okno nevrátilo žiadne dáta. Uistite sa, že zdrojový dotaz "
+"vyhovuje minimálnym obdobiam definovaným v posuvnom okne."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:113
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
@@ -2262,15 +2346,15 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:100
 msgid "Apply conditional color formatting to metric"
-msgstr ""
+msgstr "Zásadné politiky farbeného formátovania pre metrické hodnoty"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:386
 msgid "Apply conditional color formatting to metrics"
-msgstr ""
+msgstr "Aplikovať podmienené farebné formátovanie na metriky"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:505
 msgid "Apply conditional color formatting to numeric columns"
-msgstr ""
+msgstr "Použiť podmienené farebné formátovanie pre numericke stĺpce"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 msgid "Apply filters"
@@ -2282,11 +2366,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:129
 msgid "Apply to all panels"
-msgstr ""
+msgstr "Aplikovať na všetky panely"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:131
 msgid "Apply to specific panels"
-msgstr ""
+msgstr "Aplikovať na konkrétne panely"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:69
 msgid "April"
@@ -2298,11 +2382,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:163
 msgid "Are you sure you intend to overwrite the following values?"
-msgstr ""
+msgstr "Ste si istí, že chcete prepísať tieto hodnoty?"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer.tsx:49
 msgid "Are you sure you want to cancel?"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/charts/ChartCard.tsx:83
 #: superset-frontend/src/features/home/DashboardTable.tsx:229
@@ -2313,65 +2397,65 @@ msgstr ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:173
 #: superset-frontend/src/pages/Tags/index.tsx:144
 msgid "Are you sure you want to delete"
-msgstr ""
+msgstr "Ste si istý, že chcete odstrániť"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:282
 #, python-format
 msgid "Are you sure you want to delete %s?"
-msgstr ""
+msgstr "Ste si istý, že chcete odstrániť %s?"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:584
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
-msgstr ""
+msgstr "Ste si istí, že chcete vymazať vybrané %s?"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:298
 msgid "Are you sure you want to delete the selected annotations?"
-msgstr ""
+msgstr "Ste si istí, že chcete odstrániť vybrané anotácie?"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:838
 msgid "Are you sure you want to delete the selected charts?"
-msgstr ""
+msgstr "Ste si istí že chcete vymazať vybrané grafy?"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:702
 msgid "Are you sure you want to delete the selected dashboards?"
-msgstr ""
+msgstr "Ste si istý, že chcete odstrániť vybrané nástenky?"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:763
 msgid "Are you sure you want to delete the selected datasets?"
-msgstr ""
+msgstr "Ste si istí, že chcete odstrániť vybrané datasety?"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:358
 msgid "Are you sure you want to delete the selected layers?"
-msgstr ""
+msgstr "Ste si istí, že chcete vymazať vybrané vrstvy?"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:534
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Ste si istí, že chcete odstrániť vybrané dotazy?"
 
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:305
 msgid "Are you sure you want to delete the selected rules?"
-msgstr ""
+msgstr "Ste si istý, že chcete vymazať vybrané pravidlá?"
 
 #: superset-frontend/src/pages/Tags/index.tsx:282
 msgid "Are you sure you want to delete the selected tags?"
-msgstr ""
+msgstr "Ste si istý, že chcete vymazať vybrané %s?"
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:328
 msgid "Are you sure you want to delete the selected templates?"
-msgstr ""
+msgstr "Ste si istý, že chcete odstrániť vybrané šablóny?"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:434
 msgid "Are you sure you want to overwrite this dataset?"
-msgstr ""
+msgstr "Ste si istý, že chcete prepísať tento dataset?"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:133
 msgid "Are you sure you want to proceed?"
-msgstr ""
+msgstr "Ste si istý, že chcete pokračovať?"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:216
 msgid "Are you sure you want to save and apply changes?"
-msgstr ""
+msgstr "Ste si istý, že chcete uložiť a aplikovať zmeny?"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:75
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:97
@@ -2385,7 +2469,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:170
 msgid "Area chart"
-msgstr ""
+msgstr "Plošinný graf"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:93
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:111
@@ -2398,6 +2482,8 @@ msgid ""
 "Area charts are similar to line charts in that they represent variables with"
 " the same scale, but area charts stack the metrics on top of each other."
 msgstr ""
+"Ploščinové grafy sú podobné čiarovým grafom v tom, že reprezentujú premenné "
+"s rovnakým meradlom, ale ploščinové grafy sa zaraďujú do metrík navzájom."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:239
 msgid "Arrow"
@@ -2405,11 +2491,11 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:67
 msgid "Assign a set of parameters as"
-msgstr ""
+msgstr "Priraďte súbor parametrov ako"
 
 #: superset/connectors/sqla/views.py:383
 msgid "Associated Charts"
-msgstr ""
+msgstr "Pridružené grafy"
 
 #: superset/views/database/mixins.py:196
 msgid "Async Execution"
@@ -2419,32 +2505,32 @@ msgstr ""
 #: superset-frontend/src/pages/DatabaseList/index.tsx:320
 #: superset-frontend/src/pages/DatabaseList/index.tsx:486
 msgid "Asynchronous query execution"
-msgstr ""
+msgstr "Asynchrónne vykonávanie dotazov"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:73
 msgid "August"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:127
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:146
 msgid "Auto"
-msgstr ""
+msgstr "Auto"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:97
 msgid "Auto Zoom"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:524
 msgid "Autocomplete"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:880
 msgid "Autocomplete filters"
-msgstr ""
+msgstr "Samodokon\\x9daj filtre"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:887
 msgid "Autocomplete query predicate"
-msgstr ""
+msgstr "Predikát pre automatické dopĺňanie dotazu"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:726
 msgid "Automatic Color"
@@ -2475,12 +2561,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:190
 msgid "Axis Format"
-msgstr ""
+msgstr "Oblika osi\" //No translation available for Slovak"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:67
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:98
 msgid "Axis Title"
-msgstr ""
+msgstr "<MISSING>"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:37
 msgid "Axis ascending"
@@ -2499,13 +2585,13 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1123
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1143
 msgid "Back"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:262
 #: superset-frontend/src/pages/AnnotationList/index.tsx:264
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:181
 msgid "Back to all"
-msgstr ""
+msgstr "Späť na všetky"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:311
 #: superset/views/database/mixins.py:200
@@ -2519,11 +2605,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:497
 msgid "Bad formula."
-msgstr ""
+msgstr "Chybná formula."
 
 #: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
-msgstr ""
+msgstr "Neplatný priestorový kľúč"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:46
@@ -2536,7 +2622,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:82
 msgid "Bar Chart"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:43
 msgid "Bar Chart (legacy)"
@@ -2545,6 +2631,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:67
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr ""
+"Stĺpcové diagramy sa používajú na zobrazenie metrík ako séria stĺpcov."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:314
 msgid "Bar Values"
@@ -2552,7 +2639,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:278
 msgid "Bar orientation"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/rls/constants.ts:28
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:263
@@ -2571,7 +2658,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:56
 msgid "Based on granularity, number of time periods to compare against"
-msgstr ""
+msgstr "Na základe granularity, počet časových období na porovnanie"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:228
 msgid "Based on what should series be ordered on the chart and legend"
@@ -2588,12 +2675,12 @@ msgstr ""
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:287
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:235
 msgid "Basic information"
-msgstr ""
+msgstr "Základné informácie"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:749
 #, python-format
 msgid "Batch editing %d filters:"
-msgstr ""
+msgstr "Skupinové úpravy %d filtrov:"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:36
 msgid "Battery level over time"
@@ -2601,12 +2688,12 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1341
 msgid "Be careful."
-msgstr ""
+msgstr "Buďte opatrní."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:178
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:75
 msgid "Before"
-msgstr ""
+msgstr "Pred"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
 #: superset/viz.py:1186
@@ -2615,7 +2702,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:28
 msgid "Big Number Font Size"
-msgstr ""
+msgstr "Veľkosť písma Veľkého čísla"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
 #: superset/viz.py:1150
@@ -2639,7 +2726,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:238
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:206
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "Spodný okraj, v pixeloch, ktorý umožňuje viac miesta pre popisky osi"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:186
 msgid "Bottom right"
@@ -2661,6 +2748,9 @@ msgid ""
 "based on the min/max of the data. Note that this feature will only expand "
 "the axis range. It won't narrow the data's extent."
 msgstr ""
+"Hranice pre os Y. Ak sa nevyplní, hranice sa dynamicky určia na základe "
+"min./max. hodnôt dát. Táto funkcia iba rozšíri rozsah osi. Neobmedzí rozsah "
+"dát."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:246
 msgid ""
@@ -2668,6 +2758,8 @@ msgid ""
 "based on the min/max of the data. Note that this feature will only expand "
 "the axis range. It won't narrow the data's extent."
 msgstr ""
+"Meje osi. Če je prazno, se meje nastavijo dinamično na podlagi min./max. "
+"vrednosti podatkov. Funkcija omeji le prikaz, obseg podatkov pa ostane enak."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:373
 msgid ""
@@ -2675,6 +2767,8 @@ msgid ""
 "defined based on the min/max of the data. Note that this feature will only "
 "expand the axis range. It won't narrow the data's extent."
 msgstr ""
+"Meje Y-osi. Če je prazno, se meje nastavijo dinamično na podlagi min./max. "
+"vrednosti podatkov. Funkcija omeji le prikaz, obseg podatkov pa ostane enak."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:411
 msgid ""
@@ -2683,11 +2777,13 @@ msgid ""
 "                based on the min/max of the data. Note that this feature will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"Meje Y-osi. Če je prazno, se meje nastavijo dinamično na podlagi min./max. "
+"vrednosti podatkov. Funkcija omeji le prikaz, obseg podatkov pa ostane enak."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/BoxPlot/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:58
 msgid "Box Plot"
-msgstr ""
+msgstr "Box Plot"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:123
 msgid "Breakdowns"
@@ -2696,16 +2792,16 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:32
 #: superset/viz.py:1065
 msgid "Bubble Chart"
-msgstr ""
+msgstr "Bublinkový diagram"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:143
 msgid "Bubble Color"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:206
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:139
 msgid "Bubble Size"
-msgstr ""
+msgstr "Veľkosť bubliny"
 
 #: superset-frontend/src/explore/controls.jsx:415
 msgid "Bubble size"
@@ -2717,7 +2813,7 @@ msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:511
 msgid "Build"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:431
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:274
@@ -2730,12 +2826,12 @@ msgstr ""
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:177
 #: superset-frontend/src/pages/Tags/index.tsx:267
 msgid "Bulk select"
-msgstr ""
+msgstr "Váš text"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:32
 #: superset/viz.py:1118
 msgid "Bullet Chart"
-msgstr ""
+msgstr "'Bullet' grafikon"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:34
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:40
@@ -2764,7 +2860,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:337
 msgid "By key: use column names as sorting key"
-msgstr ""
+msgstr "Po kľúču: použite názvy stĺpcov ako kľúč pre zoradenie"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:309
 msgid "By key: use row names as sorting key"
@@ -2773,16 +2869,16 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:310
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:338
 msgid "By value: use metric values as sorting key"
-msgstr ""
+msgstr "Podľa hodnoty: použite metrické hodnoty ako kľúč triedenia"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:232
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:328
 msgid "CANCEL"
-msgstr ""
+msgstr "ZRUŠIŤ"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1575
 msgid "CREATE DATASET"
-msgstr ""
+msgstr "Vytvorte súbor s údajmi"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:579
 msgid "CREATE TABLE AS"
@@ -2794,24 +2890,24 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:235
 msgid "CREATE VIEW statement"
-msgstr ""
+msgstr "CREATE VIEW statement"
 
 #: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:83
 msgid "CRON Schedule"
-msgstr ""
+msgstr "Rozvrh CRON-u"
 
 #: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:94
 msgid "CRON expression"
-msgstr ""
+msgstr "Výraz CRON"
 
 #: superset-frontend/src/dashboard/components/CssEditor/index.jsx:105
 #: superset/views/dashboard/mixin.py:87
 msgid "CSS"
-msgstr ""
+msgstr "CSS"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/style.tsx:75
 msgid "CSS Styles"
-msgstr ""
+msgstr "CSS slogi"
 
 #: superset/initialization/__init__.py:288 superset/views/css_templates.py:38
 msgid "CSS Templates"
@@ -2823,28 +2919,28 @@ msgstr ""
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:249
 msgid "CSS template"
-msgstr ""
+msgstr "CSS predloha"
 
 #: superset/css_templates/commands/exceptions.py:23
 msgid "CSS template could not be deleted."
-msgstr ""
+msgstr "CSS template sa nedá odstrániť."
 
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:239
 msgid "CSS template name"
-msgstr ""
+msgstr "Názov CSS šablóny"
 
 #: superset/css_templates/commands/exceptions.py:27
 msgid "CSS template not found."
-msgstr ""
+msgstr "CSS predloha nenájdená."
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:71
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:240
 msgid "CSS templates"
-msgstr ""
+msgstr "CSS šablóny"
 
 #: superset/views/database/forms.py:109
 msgid "CSV Upload"
-msgstr ""
+msgstr "Nahratie CSV"
 
 #: superset/views/database/views.py:290
 #, python-format
@@ -2852,14 +2948,16 @@ msgid ""
 "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in "
 "database \"%(db_name)s\""
 msgstr ""
+"CSV súbor \"%(csv_filename)s\" nahraný do tabuľky \"%(table_name)s\" v "
+"databáze \"%(db_name)s\""
 
 #: superset/views/database/views.py:161
 msgid "CSV to Database configuration"
-msgstr ""
+msgstr "Konfigurácia CSV na databázu"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:355
 msgid "CSV upload"
-msgstr ""
+msgstr "Nahrávanie CSV"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:140
 msgid "CTAS & CVAS SCHEMA"
@@ -2871,6 +2969,9 @@ msgid ""
 "statement is a SELECT. Please make sure your query has a SELECT as its last "
 "statement. Then, try running your query again."
 msgstr ""
+"CTAS (create table as select) môže byť spustený iba s dotazom, kde posledný "
+"príkaz je SELECT. Prosím uistite sa, že váš dotaz má SELECT ako posledný "
+"príkaz. Potom skúste spustiť váš dotaz znova."
 
 #: superset/views/database/mixins.py:187
 msgid "CTAS Schema"
@@ -2882,14 +2983,17 @@ msgid ""
 "SELECT statement. Please make sure your query has only a SELECT statement. "
 "Then, try running your query again."
 msgstr ""
+"CVAS (create view as select) môže byť spustený iba s dotazom obsahujúcim iba"
+" jednu SELECT príkaz. Prosím, uistite sa, že váš dotaz má iba jeden SELECT "
+"príkaz. Potom skúste spustiť dotaz znovu."
 
 #: superset/errors.py:129
 msgid "CVAS (create view as select) query has more than one statement."
-msgstr ""
+msgstr "CVAS (create view as select) dotaz obsahuje viac ako jednu príkaz."
 
 #: superset/errors.py:130
 msgid "CVAS (create view as select) query is not a SELECT statement."
-msgstr ""
+msgstr "CVAS (create view as select) query is not a SELECT statement."
 
 #: superset/connectors/sqla/views.py:393 superset/views/chart/mixin.py:76
 msgid "Cache Timeout"
@@ -2912,24 +3016,24 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:351
 #, python-format
 msgid "Cached %s"
-msgstr ""
+msgstr "Predpomnené %s"
 
 #: superset/viz.py:578
 msgid "Cached value not found"
-msgstr ""
+msgstr "Cached value not found"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:53
 msgid "Calculate contribution per series or row"
-msgstr ""
+msgstr "Vypočítať príspevok na sériu alebo riadok"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:835
 #, python-format
 msgid "Calculated column [%s] requires an expression"
-msgstr ""
+msgstr "Vypočítaný stĺpec [%s] vyžaduje výraz"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1409
 msgid "Calculated columns"
-msgstr ""
+msgstr "Vypočítané stĺpce"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:137
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:329
@@ -2942,20 +3046,20 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:32
 #: superset/viz.py:972
 msgid "Calendar Heatmap"
-msgstr ""
+msgstr "Koledarská teplotná mapa"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:213
 msgid "Can not move top level tab into nested tabs"
-msgstr ""
+msgstr "Nemôžete presunúť kartu najvyššej úrovne do vnorených kariet"
 
 #: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:59
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:77
 msgid "Can select multiple values"
-msgstr ""
+msgstr "Môže vybrať viacero hodnôt"
 
 #: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
+msgstr "Nemožno mať prekrytie medzi sériami a rozkladmi"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:205
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:753
@@ -2980,7 +3084,7 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:324
 msgid "Cancel query on window unload event"
-msgstr ""
+msgstr "Zrušiť dotaz pri udalosti vykladania okna"
 
 #: superset/sqllab/commands/export.py:78
 msgid "Cannot access the query"
@@ -2988,11 +3092,11 @@ msgstr ""
 
 #: superset/databases/commands/exceptions.py:111
 msgid "Cannot delete a database that has datasets attached"
-msgstr ""
+msgstr "\\t"
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:67
 msgid "Cannot have multiple credentials for the SSH Tunnel"
-msgstr ""
+msgstr "Nie je možné mať viacero poverení pre SSH tunel"
 
 #: superset/views/core.py:734
 #, python-format
@@ -3000,16 +3104,18 @@ msgid ""
 "Cannot import dashboard: %(db_error)s.\n"
 "Make sure to create the database before importing the dashboard."
 msgstr ""
+"Nemožno importovať panel: %(db_error)s.\n"
+"Pred importom uistite sa, že ste vytvorili databázu."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue.tsx:302
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1228
 msgid "Cannot load filter"
-msgstr ""
+msgstr "Nie je možné načítať filter"
 
 #: superset/charts/commands/exceptions.py:51
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
-msgstr ""
+msgstr "Nemožno analyzovať reťazec času [%(human_readable)s]"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:30
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:38
@@ -3019,7 +3125,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:63
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:42
 msgid "Categorical"
-msgstr ""
+msgstr "Categorický"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:105
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:142
@@ -3028,7 +3134,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:165
 msgid "Categories to group by on the x-axis."
-msgstr ""
+msgstr "Kategórie pre zoskupenie podľa osi x."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/Scatter.jsx:46
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
@@ -3040,7 +3146,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:103
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:116
 msgid "Category Name"
-msgstr ""
+msgstr "Názov kategórie"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:57
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:96
@@ -3070,15 +3176,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:100
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
 msgid "Category, Value and Percentage"
-msgstr ""
+msgstr "Kategória, Hodnota a Percento"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:107
 msgid "Cell Padding"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:121
 msgid "Cell Radius"
-msgstr ""
+msgstr "Celkový polomer"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:95
 msgid "Cell Size"
@@ -3086,7 +3192,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:428
 msgid "Cell bars"
-msgstr ""
+msgstr "Stĺpcové grafy v bunkách"
 
 #: superset-frontend/src/components/FilterableTable/index.tsx:303
 msgid "Cell content"
@@ -3098,17 +3204,17 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:101
 msgid "Center"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/Heatmap.tsx:32
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/Hex.jsx:33
 msgid "Centroid (Longitude and Latitude): "
-msgstr ""
+msgstr "Centroid (Dĺžka a Šírka):"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:706
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:376
 msgid "Certification"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:343
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:348
@@ -3147,11 +3253,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:334
 msgid "Change order of columns."
-msgstr ""
+msgstr "Zmeniť poradie stĺpcov."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:306
 msgid "Change order of rows."
-msgstr ""
+msgstr "Zmeniť poradie riadkov."
 
 #: superset/connectors/sqla/views.py:385
 msgid "Changed By"
@@ -3159,27 +3265,31 @@ msgstr ""
 
 #: superset/views/sql_lab/views.py:88
 msgid "Changed on"
-msgstr ""
+msgstr "Zmenené dňa"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:80
 msgid "Changes saved."
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:51
 msgid ""
 "Changing the dataset may break the chart if the chart relies on columns or "
 "metadata that does not exist in the target dataset"
 msgstr ""
+"Zmena sady údajov môže spôsobiť chybu v grafe, ak graf závisí na stĺpcoch "
+"alebo metadatách, ktoré neexistujú v cieľovej sade údajov"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1342
 msgid ""
 "Changing these settings will affect all charts using this dataset, including"
 " charts owned by other people."
 msgstr ""
+"Spremena týchto nastavení ovplyvní všetky grafy využívajúce tento dataset, "
+"vrátane grafov vlastnených inými ľuďmi."
 
 #: superset/dashboards/commands/exceptions.py:78
 msgid "Changing this Dashboard is forbidden"
-msgstr ""
+msgstr "Nesmie sa meniť tento Dashboard"
 
 #: superset/charts/commands/exceptions.py:135
 msgid "Changing this chart is forbidden"
@@ -3198,32 +3308,32 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:135
 #: superset-frontend/src/explore/components/ControlHeader.tsx:123
 msgid "Changing this control takes effect instantly"
-msgstr ""
+msgstr "Zmena tohto ovládača má okamžitý účinok"
 
 #: superset/datasets/commands/exceptions.py:198
 msgid "Changing this dataset is forbidden"
-msgstr ""
+msgstr "Zmena tohto datasetu je zakázaná"
 
 #: superset/datasets/columns/commands/exceptions.py:31
 #: superset/datasets/metrics/commands/exceptions.py:31
 msgid "Changing this dataset is forbidden."
-msgstr ""
+msgstr "Zmena tohto dátového súboru je zakázaná."
 
 #: superset/explore/exceptions.py:49
 msgid "Changing this datasource is forbidden"
-msgstr ""
+msgstr "Zmena tejto zdrojovej dátovej sady je zakázaná"
 
 #: superset/reports/commands/exceptions.py:282
 msgid "Changing this report is forbidden"
-msgstr ""
+msgstr "Zmena tohto správy je zakázaná"
 
 #: superset/views/database/forms.py:206
 msgid "Character to interpret as decimal point"
-msgstr ""
+msgstr "Znak, ktorý bude interpretovaný ako desatinný oddelovač."
 
 #: superset/views/database/forms.py:385
 msgid "Character to interpret as decimal point."
-msgstr ""
+msgstr "Znak, ktorý bude interpretovaný ako desatinné miesto."
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:51
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:449
@@ -3235,12 +3345,12 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:799
 #: superset/views/chart/mixin.py:84 superset/views/chart/views.py:96
 msgid "Chart"
-msgstr ""
+msgstr "Grafikon"
 
 #: superset/views/core.py:1762
 #, python-format
 msgid "Chart %(id)s not found"
-msgstr ""
+msgstr "Grafikon %(id)s nenájdený"
 
 #: superset/views/database/mixins.py:192
 msgid "Chart Cache Timeout"
@@ -3254,7 +3364,7 @@ msgstr "Grafy"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:70
 #: superset-frontend/src/explore/controlPanels/sections.tsx:32
 msgid "Chart ID"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:81
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:53
@@ -3299,7 +3409,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:269
 msgid "Chart Orientation"
-msgstr ""
+msgstr "Orientácia grafu"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:70
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:83
@@ -3323,29 +3433,29 @@ msgstr ""
 #: superset-frontend/src/explore/actions/saveModalActions.js:121
 #, python-format
 msgid "Chart [%s] has been overwritten"
-msgstr ""
+msgstr "Grafikon [{}] bol prepísan"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:118
 #, python-format
 msgid "Chart [%s] has been saved"
-msgstr ""
+msgstr "Graf [%s] bol uložený"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:139
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
-msgstr ""
+msgstr "Grafikon [{}] bol pridaný do dashboardu [{}]"
 
 #: superset/views/core.py:1099
 msgid "Chart [{}] has been overwritten"
-msgstr ""
+msgstr "Grafikon [{}] bol prepísan"
 
 #: superset/views/core.py:1095
 msgid "Chart [{}] has been saved"
-msgstr ""
+msgstr "Graf [{}] bol uložený"
 
 #: superset/views/core.py:1124
 msgid "Chart [{}] was added to dashboard [{}]"
-msgstr ""
+msgstr "Graf [{}] bol pridaný do dashboardu [{}]"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:238
 msgid "Chart cache timeout"
@@ -3361,18 +3471,21 @@ msgid ""
 "\n"
 "    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!"
 msgstr ""
+"Komponent grafu, ktorý vám umožňuje pridať vlastné rozhranie pre filtrovanie do vášho panelu. Po pridaní do panelu umožňuje filterovacia škatuľka používateľom špecifikovať konkrétne hodnoty alebo rozsahy pre filtrovanie grafov. Grafy, na ktoré sa aplikuje každá filterovacia škatuľka, je možné tiež jemne doladiť v zobrazení panelu.\n"
+"\n"
+"Pozrite si, že tento doplnok sa nahradí novou funkciou Filtre, k"
 
 #: superset/charts/commands/exceptions.py:115
 msgid "Chart could not be created."
-msgstr ""
+msgstr "Graf sa nepodarilo vytvoriť."
 
 #: superset/charts/commands/exceptions.py:123
 msgid "Chart could not be deleted."
-msgstr ""
+msgstr "Graf sa nedá odstrániť."
 
 #: superset/charts/commands/exceptions.py:119
 msgid "Chart could not be updated."
-msgstr ""
+msgstr "Tabuľka sa nedala aktualizovať."
 
 #: superset/reports/commands/exceptions.py:57
 msgid "Chart does not exist"
@@ -3380,7 +3493,7 @@ msgstr ""
 
 #: superset/charts/data/api.py:130
 msgid "Chart has no query context saved. Please save the chart again."
-msgstr ""
+msgstr "Graf nemá uložený kontext dotazu. Prosím uložte graf znova."
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:130
 msgid "Chart height"
@@ -3388,24 +3501,24 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:228
 msgid "Chart imported"
-msgstr ""
+msgstr "Grafík importovaný"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:90
 msgid "Chart last modified"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:99
 msgid "Chart last modified by"
-msgstr ""
+msgstr "Naposledy upravil %s"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:355
 msgid "Chart name"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:97
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:108
 msgid "Chart options"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:76
 #, fuzzy
@@ -3414,11 +3527,11 @@ msgstr "Grafy"
 
 #: superset/charts/commands/exceptions.py:111
 msgid "Chart parameters are invalid."
-msgstr ""
+msgstr "Parametre grafu sú neplatné."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:245
 msgid "Chart properties updated"
-msgstr ""
+msgstr "Aktualizované vlastnosti grafu"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:220
 msgid "Chart title"
@@ -3426,11 +3539,11 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:652
 msgid "Chart type"
-msgstr ""
+msgstr "Tip grafu"
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:314
 msgid "Chart type requires a dataset"
-msgstr ""
+msgstr "Typ grafu vyžaduje súbor údajov"
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:139
 msgid "Chart width"
@@ -3450,7 +3563,7 @@ msgstr "Grafy"
 
 #: superset/charts/commands/exceptions.py:139
 msgid "Charts could not be deleted."
-msgstr ""
+msgstr "Grafiky sa nedali odstrániť."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterValue.tsx:188
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:511
@@ -3461,7 +3574,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:206
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:68
 msgid "Check for sorting ascending"
-msgstr ""
+msgstr "Kontrola pre radenie vzostupne"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:105
 #: superset-frontend/src/explore/controlUtils/controlUtils.test.tsx:114
@@ -3470,6 +3583,8 @@ msgid ""
 "Check if the Rose Chart should use segment area instead of segment radius "
 "for proportioning"
 msgstr ""
+"Skontrolujte, či by mal graf Rose používať plochu segmentu namiesto polomeru"
+" segmentu pre proporcionálne výpočty"
 
 #: superset-frontend/src/dashboard/components/AnchorLink/index.tsx:73
 msgid "Check out this chart in dashboard:"
@@ -3477,25 +3592,27 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:474
 msgid "Check out this chart: "
-msgstr ""
+msgstr "Prezrite si tento graf: "
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:235
 msgid "Check out this dashboard: "
-msgstr ""
+msgstr "Check out this dashboard: "
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:63
 msgid ""
 "Check to apply filters instantly as they change instead of displaying "
 "[Apply] button"
 msgstr ""
+"Zaškrtnite pre okamžité použitie filtrov pri zmene namiesto zobrazenia "
+"tlačidla [Aplikovať]"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:212
 msgid "Check to force date partitions to have the same height"
-msgstr ""
+msgstr "Začiarknite pre vynútenie rovnakej výšky dátumu v partií"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:87
 msgid "Check to include time column dropdown"
-msgstr ""
+msgstr "Zaškrtnúť pre zahrnutie rozbaľovacieho menu stĺpca s časom"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:76
 msgid "Check to include time grain dropdown"
@@ -3507,29 +3624,29 @@ msgstr ""
 
 #: superset/viz.py:2307
 msgid "Choice of [Label] must be present in [Group By]"
-msgstr ""
+msgstr "Voľba [Označenie] musí byť prítomný v [Skupina podľa]"
 
 #: superset/viz.py:2315
 msgid "Choice of [Point Radius] must be present in [Group By]"
-msgstr ""
+msgstr "Výber polomeru bodu musí byť prítomný v [Skupina podľa]"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:151
 #: superset/templates/superset/import_dashboards.html:47
 msgid "Choose File"
-msgstr ""
+msgstr "Vyberte súbor"
 
 #: superset/reports/commands/exceptions.py:84
 msgid "Choose a chart or dashboard not both"
-msgstr ""
+msgstr "Vyberte graf alebo dashboard, nie oboje"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:979
 msgid "Choose a database..."
-msgstr ""
+msgstr "Vyberte databázu..."
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:384
 #: superset-frontend/src/pages/ChartCreation/index.tsx:395
 msgid "Choose a dataset"
-msgstr ""
+msgstr "Vyberte súbor údajov"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:183
 #: superset-frontend/src/explore/controls.jsx:216
@@ -3538,50 +3655,52 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:61
 msgid "Choose a number format"
-msgstr ""
+msgstr "Vyberte číselný formát"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:67
 msgid "Choose a source"
-msgstr ""
+msgstr "Vyberte zdroj"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey-loop/src/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:38
 msgid "Choose a source and a target"
-msgstr ""
+msgstr "Vyberte zdroj a cieľ"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:73
 msgid "Choose a target"
-msgstr ""
+msgstr "Vyberte cieľ"
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:404
 msgid "Choose chart type"
-msgstr ""
+msgstr "Vyberte typ grafu"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:739
 msgid "Choose one of the available databases from the panel on the left."
-msgstr ""
+msgstr "Vyberte jednu z dostupných databáz z panela na ľavej strane."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:812
 msgid "Choose the annotation layer type"
-msgstr ""
+msgstr "Vyberte typ vrstvy s anotáciami"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:163
 msgid "Choose the format for legend values"
-msgstr ""
+msgstr "Vyberte formát pre hodnoty legendy"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:177
 msgid "Choose the position of the legend"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:824
 msgid "Choose the source of your annotations"
-msgstr ""
+msgstr "Vyberte zdroj svojich anotácií"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:122
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a color"
 " based on a categorical color palette"
 msgstr ""
+"Vyberte, či má byť krajina zafarbená podľa metriky alebo priradená farba na "
+"základe kategorickej farebnej palety"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:34
 msgid "Chord Diagram"
@@ -3589,7 +3708,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Range/RangeFilterPlugin.tsx:306
 msgid "Chosen non-numeric column"
-msgstr ""
+msgstr "Vybraný ne-numerický stĺpec"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:219
 msgid "Circle"
@@ -3597,11 +3716,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:131
 msgid "Circle -> Arrow"
-msgstr ""
+msgstr "Kruh -> Šípka"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:132
 msgid "Circle -> Circle"
-msgstr ""
+msgstr "Kruh -> Kruh"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:199
 msgid "Circle radar shape"
@@ -3613,22 +3732,25 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:42
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:71
 msgid "Circular"
-msgstr ""
+msgstr "Kružnicový"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:32
 msgid "Classic chart that visualizes how metrics change over time."
-msgstr ""
+msgstr "Klasický graf, ktorý vizualizuje, ako sa metriky menia v čase."
 
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:41
 msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
 "showcase a view into the underlying data or to show aggregated metrics."
 msgstr ""
+"Klasický zobrazenie dátového setu v tvare riadkov a stĺpcov. Použite tabuľky"
+" na prezentáciu pohľadu na podkladové dáta alebo na zobrazenie agregovaných "
+"metrík."
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:454
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:144
 msgid "Clause"
-msgstr ""
+msgstr "Stavek"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:53
 msgid "Clear"
@@ -3636,7 +3758,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:152
 msgid "Clear all"
-msgstr ""
+msgstr "Vymazať všetko"
 
 #: superset-frontend/src/components/Table/index.tsx:210
 msgid "Clear all data"
@@ -3644,31 +3766,37 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:675
 msgid "Clear form"
-msgstr ""
+msgstr "Vymazať formulár"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:209
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
 msgstr ""
+"Kliknite na tlačidlo \"+Pridať/Upraviť filtre\" pre vytvorenie nových "
+"filtrov pre dashboard"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:286
 msgid ""
 "Click on \"Create chart\" button in the control panel on the left to preview"
 " a visualization or"
 msgstr ""
+"Kliknite na tlačidlo \"Vytvoriť graf\" v ovládacej ploche vľavo pre náhľad "
+"vizualizácie alebo"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1018
 msgid "Click the lock to make changes."
-msgstr ""
+msgstr "Kliknite zámok pre vykonanie zmien."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1021
 msgid "Click the lock to prevent further changes."
-msgstr ""
+msgstr "Kliknite zámok, aby ste zabránili ďalším zmenám."
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2012
 msgid ""
 "Click this link to switch to an alternate form that allows you to input the "
 "SQLAlchemy URL for this database manually."
 msgstr ""
+"Kliknite tento odkaz pre prepnutie na alternatívny formulár, ktorý vám "
+"umožní manuálne zadať SQLAlchemy URL pre túto databázu."
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1827
 msgid ""
@@ -3678,45 +3806,45 @@ msgstr ""
 
 #: superset-frontend/src/components/Table/index.tsx:217
 msgid "Click to cancel sorting"
-msgstr ""
+msgstr "Kliknite pre zrušenie triedenia"
 
 #: superset-frontend/src/components/EditableTitle/index.tsx:211
 msgid "Click to edit"
-msgstr ""
+msgstr "Kliknite pre úpravu"
 
 #: superset-frontend/src/dashboard/util/getSliceHeaderTooltip.tsx:27
 #, python-format
 msgid "Click to edit %s."
-msgstr ""
+msgstr "Kliknite pre úpravu %s."
 
 #: superset-frontend/src/dashboard/util/getSliceHeaderTooltip.tsx:28
 msgid "Click to edit chart."
-msgstr ""
+msgstr "Kliknite na editáciu grafu."
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndColumnSelectPopoverTitle.jsx:81
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle.tsx:105
 msgid "Click to edit label"
-msgstr ""
+msgstr "Kliknite pre úpravu nálepky"
 
 #: superset-frontend/src/components/FaveStar/index.tsx:76
 msgid "Click to favorite/unfavorite"
-msgstr ""
+msgstr "Kliknite pre obľúbené/neobľúbené"
 
 #: superset-frontend/src/components/CachedLabel/TooltipContent.tsx:39
 msgid "Click to force-refresh"
-msgstr ""
+msgstr "Kliknite pre nútené obnovenie"
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:201
 msgid "Click to see difference"
-msgstr ""
+msgstr "Kliknite pre zobrazenie rozdielu"
 
 #: superset-frontend/src/components/Table/index.tsx:216
 msgid "Click to sort ascending"
-msgstr ""
+msgstr "Kliknutím vyberte vzostupné triedenie"
 
 #: superset-frontend/src/components/Table/index.tsx:215
 msgid "Click to sort descending"
-msgstr ""
+msgstr "Kliknite pre zoradenie zostupne"
 
 #: superset-frontend/src/components/Chart/DrillBy/DrillByModal.tsx:132
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailModal.tsx:52
@@ -3730,19 +3858,19 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/ViewQueryModalFooter.tsx:36
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1164
 msgid "Close"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:133
 msgid "Close all other tabs"
-msgstr ""
+msgstr "Zavrieť všetky ostatné karty"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:103
 msgid "Close tab"
-msgstr ""
+msgstr "Zatvoriť kartu"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:183
 msgid "Cluster label aggregator"
-msgstr ""
+msgstr "Agregator pre značku zhluku"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:84
 msgid "Clustering Radius"
@@ -3751,15 +3879,15 @@ msgstr ""
 #: superset-frontend/src/explore/controlPanels/Separator.js:25
 #: superset-frontend/src/explore/controlPanels/Separator.js:46
 msgid "Code"
-msgstr ""
+msgstr "Kód"
 
 #: superset-frontend/src/dashboard/components/filterscope/treeIcons.jsx:39
 msgid "Collapse all"
-msgstr ""
+msgstr "Skrči všetko"
 
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:162
 msgid "Collapse data panel"
-msgstr ""
+msgstr "Zaberi data panel"
 
 #: superset-frontend/src/components/Table/index.tsx:214
 msgid "Collapse row"
@@ -3767,11 +3895,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:599
 msgid "Collapse tab content"
-msgstr ""
+msgstr "Zbalenie obsahu karty"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.tsx:194
 msgid "Collapse table preview"
-msgstr ""
+msgstr "Zbaliť náhľad tabuľky"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:713
 msgid "Color"
@@ -3784,7 +3912,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:227
 msgid "Color Metric"
-msgstr ""
+msgstr "Mera za farbu"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:111
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:337
@@ -3797,7 +3925,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:306
 msgid "Color bounds"
-msgstr ""
+msgstr "Farbové hranice"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:116
 msgid "Color by"
@@ -3809,7 +3937,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:93
 msgid "Color of the target location"
-msgstr ""
+msgstr "Farba cieľového miesta"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:87
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:217
@@ -3824,10 +3952,12 @@ msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given cell"
 " against the other cells in the selected range: "
 msgstr ""
+"Farba bude odtieňovaná na základe normalizovanej (0% až 100%) hodnoty danej "
+"bunky v porovnaní s ostatnými bunkami v zvolenom rozsahu: "
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:497
 msgid "Colors"
-msgstr ""
+msgstr "Farby"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:358
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:367
@@ -3844,22 +3974,22 @@ msgstr ""
 #: superset-frontend/src/filters/components/Time/controlPanel.ts:37
 #: superset/connectors/sqla/views.py:154
 msgid "Column"
-msgstr ""
+msgstr "Stĺpec"
 
 #: superset/utils/pandas_postprocessing/contribution.py:59
 #, python-format
 msgid ""
 "Column \"%(column)s\" is not numeric or does not exists in the query "
 "results."
-msgstr ""
+msgstr "Stĺpec \"%(column)s\" nie je numerický alebo neexistuje výsledok dopytu."
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:361
 msgid "Column Configuration"
-msgstr ""
+msgstr "Skontrolujte nastavenia"
 
 #: superset/views/database/forms.py:144
 msgid "Column Data Types"
-msgstr ""
+msgstr "Typy stĺpcov "
 
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:194
 msgid "Column Formatting"
@@ -3868,25 +3998,26 @@ msgstr ""
 #: superset/views/database/forms.py:232 superset/views/database/forms.py:393
 #: superset/views/database/forms.py:484
 msgid "Column Label(s)"
-msgstr ""
+msgstr "Stĺpcové označenie(y)"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:80
 msgid ""
 "Column containing ISO 3166-2 codes of region/province/department in your "
 "table."
 msgstr ""
+"Stĺpec obsahujúci ISO 3166-2 kódy regiónu/provincie/oddelenia v tabuľke."
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:74
 msgid "Column containing latitude data"
-msgstr ""
+msgstr "Stĺpec obsahujúci údaje o zemepisnej šírke"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:64
 msgid "Column containing longitude data"
-msgstr ""
+msgstr "Stĺpec obsahujúci dáta o zemepisnej dĺžke"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:69
 msgid "Column datatype"
-msgstr ""
+msgstr "Column datatype"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:206
 msgid "Column header tooltip"
@@ -3894,7 +4025,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/getControlItemsMap.tsx:118
 msgid "Column is required"
-msgstr ""
+msgstr "Stĺpec je povinný"
 
 #: superset/views/database/forms.py:394 superset/views/database/forms.py:485
 msgid ""
@@ -3907,40 +4038,46 @@ msgid ""
 "Column label for index column(s). If None is given and Dataframe Index is "
 "checked, Index Names are used"
 msgstr ""
+"Stĺpcový názov pre indexové stĺpce. Ak nie je uvedené a je zaškrtnutý "
+"Dataframe Index, použijú sa názvy indexov."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:90
 msgid "Column name"
-msgstr ""
+msgstr "Názov stĺpca"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:820
 #, python-format
 msgid "Column name [%s] is duplicated"
-msgstr ""
+msgstr "Názov stĺpca [%s] sa duplikuje"
 
 #: superset/utils/pandas_postprocessing/utils.py:151
 #, python-format
 msgid "Column referenced by aggregate is undefined: %(column)s"
-msgstr ""
+msgstr "Stĺpec referencovaný agregátom nie je definovaný: %(column)s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:123
 msgid "Column select"
-msgstr ""
+msgstr "Výber stĺpca"
 
 #: superset/views/database/forms.py:221
 msgid ""
 "Column to use as the row labels of the dataframe. Leave empty if no index "
 "column"
 msgstr ""
+"Stĺpec na použitie ako označenie riadku v dátovom rámci. Ak neexistuje "
+"indexový stĺpec, ponechajte prázdne."
 
 #: superset/views/database/forms.py:352
 msgid ""
 "Column to use as the row labels of the dataframe. Leave empty if no index "
 "column."
 msgstr ""
+"Stĺpec na použitie ako názvy riadkov v dataframe-u. Nechajte prázdne, ak "
+"neexistuje indexový stĺpec."
 
 #: superset/views/database/forms.py:424
 msgid "Columnar File"
-msgstr ""
+msgstr "Stoplčný súbor"
 
 #: superset/views/database/views.py:568
 #, python-format
@@ -3948,10 +4085,12 @@ msgid ""
 "Columnar file \"%(columnar_filename)s\" uploaded to table \"%(table_name)s\""
 " in database \"%(db_name)s\""
 msgstr ""
+"Columnar súbor \"%(columnar_filename)s\" nahratý do tabuľky "
+"\"%(table_name)s\" v databáze \"%(db_name)s\""
 
 #: superset/views/database/views.py:443
 msgid "Columnar to Database configuration"
-msgstr ""
+msgstr "Nastavenia prevedenia Stĺpce do Databázy"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:110
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:33
@@ -3967,7 +4106,7 @@ msgstr ""
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/index.tsx:53
 #: superset/connectors/sqla/views.py:71
 msgid "Columns"
-msgstr ""
+msgstr "Stĺpce"
 
 #: superset/views/database/forms.py:193
 msgid "Columns To Be Parsed as Dates"
@@ -3975,17 +4114,17 @@ msgstr ""
 
 #: superset/views/database/forms.py:241
 msgid "Columns To Read"
-msgstr ""
+msgstr "Zobrazte stĺpce na čítanie"
 
 #: superset/common/query_context_processor.py:132
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
-msgstr ""
+msgstr "Stĺpce chýbajú v súbore údajov: %(invalid_columns)s"
 
 #: superset/viz.py:593
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
-msgstr ""
+msgstr "Stĺpce chýbajú v zdroji údajov: %(invalid_columns)s"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:367
 msgid "Columns subtotal position"
@@ -3993,7 +4132,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:170
 msgid "Columns to calculate distribution across."
-msgstr ""
+msgstr "Slpľci pre výpočet distribúcie."
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:45
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:46
@@ -4003,15 +4142,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:103
 #: superset-frontend/src/explore/fixtures.tsx:99
 msgid "Columns to display"
-msgstr ""
+msgstr "Stĺpce na zobrazenie"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:42
 msgid "Columns to group by"
-msgstr ""
+msgstr "Stĺpce na zoskupenie"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:53
 msgid "Columns to group by on the columns"
-msgstr ""
+msgstr "Stĺpce na zoskupenie v stĺpcoch"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:63
 msgid "Columns to group by on the rows"
@@ -4019,7 +4158,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:42
 msgid "Columns to show"
-msgstr ""
+msgstr "Stĺpce na zobrazenie"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:250
 msgid "Combine metrics"
@@ -4031,12 +4170,17 @@ msgid ""
 "colors from the chosen color scheme and are 1-indexed. Length must be "
 "matching that of interval bounds."
 msgstr ""
+"Čiarkou oddelené výbery farieb pre intervaly, napríklad 1,2,4. Celé čísla "
+"označujú farby z vybranej farebnej schémy a sú indexované od 1. Dĺžka musí "
+"zodpovedať hraniciam intervalu."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:283
 msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and 4-5. "
 "Last number should match the value provided for MAX."
 msgstr ""
+"Čiarkou oddelené hranice intervalov, napríklad 2,4,5 pre intervaly 0-2, 2-4 "
+"a 4-5. Posledné číslo by malo zodpovedať hodnote MAX."
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:371
 msgid "Comparator option"
@@ -4047,10 +4191,12 @@ msgid ""
 "Compare multiple time series charts (as sparklines) and related metrics "
 "quickly."
 msgstr ""
+"Rýchle porovnanie viacerých časových radov (ako sparklines) a príslušných "
+"metrík."
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:27
 msgid "Compare the same summarized metric across multiple groups."
-msgstr ""
+msgstr "Porovnajte rovnakú zhrnutú metriku pre viacero skupín."
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:28
 msgid ""
@@ -4058,6 +4204,9 @@ msgid ""
 " is mapped to a row and change over time is visualized bar lengths and "
 "color."
 msgstr ""
+"Porovnáva, ako sa metrika mení v čase medzi rôznymi skupinami. Každá skupina"
+" je mapovaná na riadok a zmena v čase je vizualizovaná dĺžkami stĺpcov a "
+"farbami."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:35
 msgid ""
@@ -4065,12 +4214,17 @@ msgid ""
 "to indicate the magnitude of each value and color is used to differentiate "
 "groups."
 msgstr ""
+"Porovnáva metriky z rôznych kategórií pomocou stĺpcov. Dĺžky stĺpcov sa "
+"používajú na označenie veľkosti každej hodnoty a farba sa používa na "
+"rozlišenie skupín."
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/index.ts:27
 msgid ""
 "Compares the lengths of time different activities take in a shared timeline "
 "view."
 msgstr ""
+"Porovnáva dĺžku času potrebného pre rôzne aktivity v zdieľanom zobrazení "
+"časovej osi."
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:36
@@ -4116,11 +4270,11 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:377
 #: superset-frontend/src/explore/controlPanels/sections.tsx:109
 msgid "Compute the contribution to the total"
-msgstr ""
+msgstr "Vypočítajte príspevok k celkovému"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 msgid "Condition"
-msgstr ""
+msgstr "Podmienka"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:99
 msgid "Conditional Formatting"
@@ -4129,55 +4283,56 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:385
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:504
 msgid "Conditional formatting"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:70
 msgid "Confidence interval"
-msgstr ""
+msgstr "Interval dôveryhodnosti"
 
 #: superset/utils/pandas_postprocessing/prophet.py:129
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
-msgstr ""
+msgstr "Interval pre dôveru musí byť medzi 0 a 1 (vylúčené)"
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:400
 msgid "Configuration"
-msgstr ""
+msgstr "Nastavenia"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/AdvancedFrame.tsx:58
 msgid "Configure Advanced Time Range "
-msgstr ""
+msgstr "Nastavte pokročilý časový rozsah "
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CommonFrame.tsx:46
 msgid "Configure Time Range: Last..."
-msgstr ""
+msgstr "Nastavte časový rozsah: Posledný ..."
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CalendarFrame.tsx:46
 msgid "Configure Time Range: Previous..."
-msgstr ""
+msgstr "Nastavi časovno obdobje: Prejšnji ..."
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:125
 msgid "Configure custom time range"
-msgstr ""
+msgstr "Konfigurovať vlastné časové obdobie"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:763
 msgid "Configure filter scopes"
-msgstr ""
+msgstr "Nastavte rozsahy filtrov"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:785
 msgid "Configure the basics of your Annotation Layer."
-msgstr ""
+msgstr "Nastavte základy svojej vrstvy pre anotácie."
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:177
 msgid "Configure this dashboard to embed it into an external web application."
 msgstr ""
+"Konfigurujte tento dashboard pre vloženie do externého webového aplikácie."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:681
 msgid "Configure your how you overlay is displayed here."
-msgstr ""
+msgstr "Nastavte ako je tu zobrazená vaša prekrývajúca sa vrstva."
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:132
 msgid "Confirm overwrite"
-msgstr ""
+msgstr "Potvrdiť prepísanie"
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:222
 msgid "Confirm save"
@@ -4193,7 +4348,7 @@ msgstr ""
 
 #: superset-frontend/src/features/home/RightMenu.tsx:184
 msgid "Connect Google Sheet"
-msgstr ""
+msgstr "Pripojte Google tabuľku"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:40
 msgid "Connect Google Sheets as tables to this database"
@@ -4203,19 +4358,19 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1756
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1918
 msgid "Connect a database"
-msgstr ""
+msgstr "Pripojte sa k databáze"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:173
 msgid "Connect database"
-msgstr ""
+msgstr "Pripojenie k databáze"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1824
 msgid "Connect this database using the dynamic form instead"
-msgstr ""
+msgstr "Použite namiesto toho dynamický formulár na pripojenie tejto databázy"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2007
 msgid "Connect this database with a SQLAlchemy URI string instead"
-msgstr ""
+msgstr "Pripojte túto databázu pomocou SQLAlchemy URI reťazca namiesto toho"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:227
 msgid "Connection"
@@ -4224,11 +4379,11 @@ msgstr ""
 #: superset/databases/commands/exceptions.py:107
 #: superset/databases/commands/exceptions.py:124 superset/views/core.py:1471
 msgid "Connection failed, please check your connection settings"
-msgstr ""
+msgstr "Zlyhanie pripojenia, prosím skontrolujte svoje nastavenia pripojenia"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:701
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Pripojenie vyzerá dobre!"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:674
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:685
@@ -4248,11 +4403,11 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:72
 #: superset-frontend/src/explore/controlPanels/sections.tsx:107
 msgid "Contribution"
-msgstr ""
+msgstr "Príspevok"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:46
 msgid "Contribution Mode"
-msgstr ""
+msgstr "Režim príspevku"
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:174
 msgid "Control"
@@ -4260,11 +4415,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:519
 msgid "Control labeled "
-msgstr ""
+msgstr "Nastavenie "
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:519
 msgid "Controls labeled "
-msgstr ""
+msgstr "Kontroly označené "
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:64
@@ -4275,7 +4430,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/menu/ShareMenuItems/index.tsx:68
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:185
 msgid "Copied to clipboard!"
-msgstr ""
+msgstr "Skopírovať na schránku!"
 
 #: superset-frontend/src/components/CopyToClipboard/index.jsx:40
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:84
@@ -4284,89 +4439,89 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:222
 msgid "Copy SELECT statement to the clipboard"
-msgstr ""
+msgstr "Kopírujte príkaz SELECT do schránky"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:105
 msgid "Copy and Paste JSON credentials"
-msgstr ""
+msgstr "Kopírujte a vložte JSON prihlasovacie údaje"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:125
 msgid "Copy and paste the entire service account .json file here"
-msgstr ""
+msgstr "Skopírujte a vložte sem celý súbor .json servisného účtu"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:108
 msgid "Copy link"
-msgstr ""
+msgstr "Kopírovať odkaz"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:201
 msgid "Copy message"
-msgstr ""
+msgstr "Skopírovať správu"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:679
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1461
 #: superset-frontend/src/SqlLab/reducers/sqlLab.js:107
 #, python-format
 msgid "Copy of %s"
-msgstr ""
+msgstr "Kópia %s"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:136
 msgid "Copy partition query to clipboard"
-msgstr ""
+msgstr "Kopírovať dotaz na rozdelenie do schránky"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:329
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:471
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:340
 msgid "Copy permalink to clipboard"
-msgstr ""
+msgstr "Kopírovať permalinky do schránky"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:414
 msgid "Copy query URL"
-msgstr ""
+msgstr "Kopírovať URL dotazu"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:98
 msgid "Copy query link to your clipboard"
-msgstr ""
+msgstr "Kopírujte odkaz na dotaz do schránky"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:26
 msgid "Copy the account name of that database you are trying to connect to."
-msgstr ""
+msgstr "Kopírovať názov účtu databázy, s ktorou sa snažíte pripojiť."
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:93
 msgid "Copy the name of the HTTP Path of your cluster."
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:115
 msgid "Copy the name of the database you are trying to connect to."
-msgstr ""
+msgstr "Kopírovať názov databázy, s ktorou sa snažíte pripojiť."
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:271
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "Kopírovať do schránky"
 
 #: superset-frontend/src/components/CopyToClipboard/index.jsx:44
 #: superset-frontend/src/dashboard/components/URLShortLinkButton/index.tsx:89
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "Kopírovať do schránky"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:26
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:28
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:25
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:26
 msgid "Correlation"
-msgstr ""
+msgstr "Korelácia"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx:104
 msgid "Cost estimate"
-msgstr ""
+msgstr "Ocena nákladov"
 
 #: superset/db_engine_specs/ocient.py:259
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
-msgstr ""
+msgstr "Nepodarilo sa pripojiť k databáze: \"%(database)s\""
 
 #: superset/views/utils.py:496
 msgid "Could not determine datasource type"
-msgstr ""
+msgstr "Nemožno určiť typ zdroja údajov"
 
 #: superset-frontend/src/dashboard/actions/sliceEntities.ts:167
 #: superset-frontend/src/dashboard/reducers/sliceEntities.js:73
@@ -4375,33 +4530,33 @@ msgstr ""
 
 #: superset/views/utils.py:512
 msgid "Could not find viz object"
-msgstr ""
+msgstr "Nezdařilo se najít vizualizační objekt"
 
 #: superset/databases/commands/exceptions.py:132
 msgid "Could not load database driver"
-msgstr ""
+msgstr "Nemožno načítať ovládač databázy"
 
 #: superset/views/core.py:1454
 #, python-format
 msgid "Could not load database driver: %(driver_name)s"
-msgstr ""
+msgstr "Nepodarilo sa načítať ovládač databázy: %(driver_name)s"
 
 #: superset/databases/commands/test_connection.py:180
 msgid "Could not load database driver: {}"
-msgstr ""
+msgstr "Nepodarilo sa načítať ovládač databázy: {}"
 
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr ""
+msgstr "Could not resolve hostname: \"%(host)s\"."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 msgid "Count"
-msgstr ""
+msgstr "Počet"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:180
 msgid "Count Unique Values"
-msgstr ""
+msgstr "Rátaj unikátne hodnoty"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:198
 msgid "Count as Fraction of Columns"
@@ -4413,12 +4568,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:194
 msgid "Count as Fraction of Total"
-msgstr ""
+msgstr "Počítať ako zlomok celkového počtu"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:120
 msgid "Country"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:146
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:151
@@ -4436,7 +4591,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:33
 #: superset/viz.py:1969
 msgid "Country Map"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:761
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:770
@@ -4456,53 +4611,55 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:419
 #, fuzzy
 msgid "Create a dataset"
-msgstr ""
+msgstr "Vytvorte súbor dát"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ModalHeader.tsx:124
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Vytvorte dataset pre začatie vizualizácie vašich dát ako graf alebo prejdite do\n"
+"          SQL Lab pre dotazovanie vašich dát."
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:201
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:224
 #: superset-frontend/src/pages/ChartCreation/index.tsx:381
 msgid "Create a new chart"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/explore/components/RunQueryButton/index.tsx:54
 #: superset-frontend/src/utils/getChartRequiredFieldsMissingMessage.ts:22
 msgid "Create chart"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:144
 msgid "Create chart with dataset"
-msgstr ""
+msgstr "Vytvorte graf s dátovým setom"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:178
 msgid "Create dataset"
-msgstr ""
+msgstr "Vytvoriť súbor s údajmi"
 
 #: superset-frontend/src/features/datasets/AddDataset/Footer/index.tsx:109
 msgid "Create dataset and create chart"
-msgstr ""
+msgstr "vytvorte dataset a vytvorte graf"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:343
 #: superset-frontend/src/pages/ChartCreation/index.tsx:430
 msgid "Create new chart"
-msgstr ""
+msgstr "Vytvoriť nový graf"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/Footer.tsx:111
 msgid "Create new filter set"
-msgstr ""
+msgstr "Vytvorte nový set filtrov"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:145
 msgid "Create or select schema..."
-msgstr ""
+msgstr "Vytvoriť alebo vybrať schému..."
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:159
 msgid "Created"
-msgstr ""
+msgstr "Vytvorené"
 
 #: superset/views/access_requests.py:49
 msgid "Created On"
@@ -4523,58 +4680,59 @@ msgstr ""
 #: superset-frontend/src/pages/Tags/index.tsx:128
 #: superset-frontend/src/pages/Tags/index.tsx:183
 msgid "Created by"
-msgstr ""
+msgstr "Vytvoril"
 
 #: superset/charts/filters.py:119 superset/dashboards/filters.py:55
 msgid "Created by me"
-msgstr ""
+msgstr "Vytvoril som ja"
 
 #: superset-frontend/src/profile/components/App.tsx:62
 msgid "Created content"
-msgstr ""
+msgstr "Vytvorený obsah"
 
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:94
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:202
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:184
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:359
 msgid "Created on"
-msgstr ""
+msgstr "\\t   "
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:46
 msgid "Creating SSH Tunnel failed for an unknown reason"
-msgstr ""
+msgstr "Vytvorenie SSH tunela zlyhalo z neznámeho dôvodu"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:70
 msgid "Creating a data source and creating a new tab"
-msgstr ""
+msgstr "Vytváranie zdroja údajov a vytváranie nového panela"
 
 #: superset/views/chart/mixin.py:77 superset/views/dashboard/mixin.py:84
 #: superset/views/dashboard/views.py:185 superset/views/database/mixins.py:189
 msgid "Creator"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:47
 msgid "Crimson"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:152
 msgid ""
 "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
+"Cross-filter sa aplikuje na všetky grafy, ktoré používajú tento dataset."
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 msgid "Cross-filtering is not enabled for this dashboard."
-msgstr ""
+msgstr "Pre toto dashboard nie je povolené krížové filtrovanie."
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:169
 msgid "Cross-filtering is not enabled in this dashboard"
-msgstr ""
+msgstr "V tejto palubovke nie je povolené krížové filtrovanie."
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:414
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingModal.tsx:302
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:176
 msgid "Cross-filtering scoping"
-msgstr ""
+msgstr "Cross-filtering scoping"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/VerticalCollapse.tsx:82
 msgid "Cross-filters"
@@ -4587,7 +4745,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:131
 #, python-format
 msgid "Currently rendered: %s"
-msgstr ""
+msgstr "Trenutne vykreslené: %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
 msgid "Custom"
@@ -4614,7 +4772,7 @@ msgstr ""
 
 #: superset/errors.py:145 superset/models/helpers.py:138
 msgid "Custom SQL fields cannot contain sub-queries."
-msgstr ""
+msgstr "Vlastné SQL polia nemôžu obsahovať poddotazy."
 
 #: superset-frontend/src/filters/components/Time/index.ts:28
 msgid "Custom time filter plugin"
@@ -4622,11 +4780,11 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:765
 msgid "Customize"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:165
 msgid "Customize Metrics"
-msgstr ""
+msgstr "Prispôsobiť metriky"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:482
 msgid "Customize columns"
@@ -4634,11 +4792,11 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:447
 msgid "Cyclic dependency detected"
-msgstr ""
+msgstr "Cyklická závislosť zistená"
 
 #: superset/connectors/sqla/views.py:255
 msgid "D3 Format"
-msgstr ""
+msgstr "D3 zapis"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:47
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:58
@@ -4649,35 +4807,37 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:27
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:146
 msgid "D3 format syntax: https://github.com/d3/d3-format"
-msgstr ""
+msgstr "Sintaksa formátu D3: https://github.com/d3/d3-format"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:150
 msgid ""
 "D3 number format for numbers between -1.0 and 1.0, useful when you want to "
 "have different significant digits for small and large numbers"
 msgstr ""
+"D3 číselný formát pre čísla medzi -1.0 a 1.0, užitočné pri rôznych "
+"významných číslach pre malé a veľké čísla"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:285
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:392
 msgid "D3 time format for datetime columns"
-msgstr ""
+msgstr "D3 časový formát pre stĺpce s dátumom a časom"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:62
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
-msgstr ""
+msgstr "Sintaksa D3 časového formátu:: https://github.com/d3/d3-time-format"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:145
 msgid "DATETIME"
-msgstr ""
+msgstr "Dátum/Čas"
 
 #: superset/utils/encrypt.py:117
 #, python-format
 msgid "DB column %(col_name)s has unknown type: %(value_type)s"
-msgstr ""
+msgstr "DB stĺpec %(col_name)s má neznámy typ: %(value_type)s"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:102
 msgid "DEC"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/components/DeleteModal/index.tsx:69
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:231
@@ -4686,7 +4846,7 @@ msgstr ""
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:343
 msgid "DML"
-msgstr ""
+msgstr "DML"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:123
 msgid "Daily seasonality"
@@ -4699,7 +4859,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:43
 msgid "Dark Cyan"
-msgstr ""
+msgstr "Dark Cyan"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:31
 msgid "Dark mode"
@@ -4711,20 +4871,20 @@ msgstr ""
 #: superset-frontend/src/pages/DashboardList/index.tsx:672
 #: superset/views/dashboard/mixin.py:77 superset/views/dashboard/views.py:183
 msgid "Dashboard"
-msgstr ""
+msgstr "\\t\\t\\t"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:129
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
-msgstr ""
+msgstr "Dashboard [%s] práve vytvorený a graf [%s] bol pridaný na neho"
 
 #: superset/views/core.py:1144
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
-msgstr ""
+msgstr "Nadzorna plošča [{}] práve bola vytvorená a graf [{}] bol pridaný"
 
 #: superset/dashboards/commands/exceptions.py:54
 msgid "Dashboard could not be created."
-msgstr ""
+msgstr "Nemožno vytvoriť nástenku."
 
 #: superset/dashboards/commands/exceptions.py:70
 msgid "Dashboard could not be deleted."
@@ -4732,11 +4892,11 @@ msgstr ""
 
 #: superset/dashboards/commands/exceptions.py:66
 msgid "Dashboard could not be updated."
-msgstr ""
+msgstr "Nemožno aktualizovať nástrojovú lištu."
 
 #: superset/reports/commands/exceptions.py:48
 msgid "Dashboard does not exist"
-msgstr ""
+msgstr "Nadzorná plocha neexistuje"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:170
 #, fuzzy
@@ -4745,19 +4905,19 @@ msgstr "Importovať dashboard"
 
 #: superset/dashboards/commands/exceptions.py:43
 msgid "Dashboard parameters are invalid."
-msgstr ""
+msgstr "Parametre pre panel sú neplatné."
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:636
 msgid "Dashboard properties"
-msgstr ""
+msgstr "\\n\\n"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:444
 msgid "Dashboard properties updated"
-msgstr ""
+msgstr "Vlastnosti úvodnej obrazovky aktualizované"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:117
 msgid "Dashboard scheme"
-msgstr ""
+msgstr "[Názov prehľadu]"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:868
 msgid ""
@@ -4765,6 +4925,9 @@ msgid ""
 "          the filter section of each chart. Add temporal columns to the chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"Dashboardové filtrovanie časového rozsahu sa vzťahuje na časové stĺpce definované v \n"
+"          časti filtra každého grafu. Pridajte časové stľpce do filtrov grafu \n"
+"          pre vplyv tohto filtra na tieto grafy."
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:513
 #, fuzzy
@@ -4785,7 +4948,7 @@ msgstr "Importovať dashboard"
 #: superset/initialization/__init__.py:251 superset/views/chart/mixin.py:78
 #: superset/views/dashboard/mixin.py:24
 msgid "Dashboards"
-msgstr ""
+msgstr "Dashboards"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:282
 #: superset-frontend/src/pages/ChartList/index.tsx:411
@@ -4795,11 +4958,11 @@ msgstr "Importovať dashboard"
 
 #: superset/dashboards/commands/exceptions.py:58
 msgid "Dashboards could not be deleted."
-msgstr ""
+msgstr "Nemohli sa vymazať Dashboards."
 
 #: superset/charts/commands/exceptions.py:91
 msgid "Dashboards do not exist"
-msgstr ""
+msgstr "Dashboards neexistujú"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:690
 #, fuzzy
@@ -4836,12 +4999,17 @@ msgid ""
 "might have changed, rendering the old data stake. You need to re-run the "
 "original query."
 msgstr ""
+"Dáta nebolo možné deserializovať z výsledného backendu. Formát úložiska sa "
+"mohol zmeniť, čo spôsobilo straty starých dát. Musíte znova spustiť pôvodný "
+"dopyt."
 
 #: superset/sqllab/commands/results.py:75 superset/views/core.py:2184
 msgid ""
 "Data could not be retrieved from the results backend. You need to re-run the"
 " original query."
 msgstr ""
+"Data sa nepodarilo získať zo záložného systému výsledkov. Musíte znovu "
+"spustiť pôvodný dotaz."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/components/PlaySlider.jsx:182
 msgid "Data has no time steps"
@@ -4849,7 +5017,7 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:246
 msgid "Data preview"
-msgstr ""
+msgstr "Náhľad údajov"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:278
 msgid "Data refreshed"
@@ -4860,15 +5028,15 @@ msgstr ""
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:360
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:368
 msgid "Data type"
-msgstr ""
+msgstr "Typ údajov"
 
 #: superset/utils/pandas_postprocessing/prophet.py:134
 msgid "DataFrame include at least one series"
-msgstr ""
+msgstr "DataFrame musí obsahovať aspoň jednu radu"
 
 #: superset/utils/pandas_postprocessing/prophet.py:132
 msgid "DataFrame must include temporal column"
-msgstr ""
+msgstr "DataFrame musí obsahovať časový stĺpec"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:274
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
@@ -4886,7 +5054,7 @@ msgstr ""
 #: superset/views/database/forms.py:446 superset/views/database/mixins.py:188
 #: superset/views/sql_lab/views.py:83
 msgid "Database"
-msgstr ""
+msgstr "Databáza"
 
 #: superset/views/database/views.py:481
 #, python-format
@@ -4894,6 +5062,9 @@ msgid ""
 "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
 " columnar uploads. Please contact your Superset Admin."
 msgstr ""
+"Databáza \"%(database_name)s\" schéma \"%(schema_name)s\" nie je povolená "
+"pre stĺpcové nahrávania. Prosím, kontaktujte vášho administrátora v "
+"Supersete."
 
 #: superset/views/database/views.py:180
 #, python-format
@@ -4901,6 +5072,9 @@ msgid ""
 "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
 " csv uploads. Please contact your Superset Admin."
 msgstr ""
+"Databázová schéma \"%(schema_name)s\" v databáze \"%(database_name)s\" nie "
+"je povolená pre nahranie CSV súborov. Prosím, kontaktujte vášho Správcu "
+"Superset."
 
 #: superset/views/database/views.py:321
 #, python-format
@@ -4908,69 +5082,73 @@ msgid ""
 "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for"
 " excel uploads. Please contact your Superset Admin."
 msgstr ""
+"Databáza \"%(database_name)s\" schéma \"%(schema_name)s\" nie je povolená "
+"pre nahrávanie excelu. Prosím, kontaktujte vášho Superset Admina."
 
 #: superset/initialization/__init__.py:243
 msgid "Database Connections"
-msgstr ""
+msgstr "Prihlásenie do databázy"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1522
 msgid "Database Creation Error"
-msgstr ""
+msgstr "Chyba pri vytváraní databázy"
 
 #: superset/views/access_requests.py:46
 msgid "Database URL"
-msgstr ""
+msgstr "URL databázy"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ModalHeader.tsx:122
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:882
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:904
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1205
 msgid "Database connected"
-msgstr ""
+msgstr "Databáza pripojená"
 
 #: superset/databases/commands/exceptions.py:96
 msgid "Database could not be created."
-msgstr ""
+msgstr "Databázu sa nepodarilo vytvoriť."
 
 #: superset/databases/commands/exceptions.py:115
 msgid "Database could not be deleted."
-msgstr ""
+msgstr "Databázu sa nepodarilo odstrániť."
 
 #: superset/databases/commands/exceptions.py:100
 msgid "Database could not be updated."
-msgstr ""
+msgstr "Databáza sa nedala aktualizovať."
 
 #: superset/errors.py:123
 msgid "Database does not allow data manipulation."
-msgstr ""
+msgstr "Databáza neumožňuje manipuláciu s dátami."
 
 #: superset/charts/commands/exceptions.py:82
 #: superset/datasets/commands/exceptions.py:41
 #: superset/reports/commands/exceptions.py:39
 msgid "Database does not exist"
-msgstr ""
+msgstr "Databáza neexistuje"
 
 #: superset/models/helpers.py:2063
 msgid "Database does not support subqueries"
-msgstr ""
+msgstr "Databáza nepodporuje poddotazy"
 
 #: superset-frontend/src/components/ImportModal/ErrorAlert.tsx:51
 msgid ""
 "Database driver for importing maybe not installed. Visit the Superset "
 "documentation page for installation instructions: "
 msgstr ""
+"Database driver pre import možno nie je nainštalovaný. Navštívte stránku "
+"dokumentácie Superseta pre inštrukcie o inštalácii:"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:422
 msgid "Database error"
-msgstr ""
+msgstr "Chyba databázy"
 
 #: superset/databases/commands/validate.py:124
 msgid "Database is offline."
-msgstr ""
+msgstr "Databáza je offline."
 
 #: superset/reports/commands/exceptions.py:66
 msgid "Database is required for alerts"
-msgstr ""
+msgstr "Databáza je potrebná pre upozornenia"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:113
 #: superset/db_engine_specs/base.py:1880
@@ -4980,34 +5158,34 @@ msgstr ""
 
 #: superset/datasets/commands/exceptions.py:50
 msgid "Database not allowed to change"
-msgstr ""
+msgstr "Databáza nie je povolená na zmenu"
 
 #: superset/databases/commands/exceptions.py:92
 msgid "Database not found."
-msgstr ""
+msgstr "Databáza nenájdená."
 
 #: superset/views/core.py:1201
 #, python-format
 msgid "Database not found: %(id)s"
-msgstr ""
+msgstr "Databáza sa nenašla: %(id)s"
 
 #: superset/databases/commands/exceptions.py:32
 msgid "Database parameters are invalid."
-msgstr ""
+msgstr "Databázové parametre sú neplatné."
 
 #: superset-frontend/src/components/ImportModal/index.tsx:291
 msgid "Database passwords"
-msgstr ""
+msgstr "\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t"
 
 #: superset/db_engine_specs/base.py:1876
 #: superset/db_engine_specs/clickhouse.py:208
 #: superset/db_engine_specs/databricks.py:52
 msgid "Database port"
-msgstr ""
+msgstr "Databázový port"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:853
 msgid "Database settings updated"
-msgstr ""
+msgstr "Databázové nastavenia boli aktualizované"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:269
 #: superset-frontend/src/profile/components/Security.tsx:47
@@ -5030,12 +5208,12 @@ msgstr ""
 #: superset-frontend/src/pages/ChartList/index.tsx:678
 #: superset-frontend/src/pages/DatasetList/index.tsx:617
 msgid "Dataset"
-msgstr ""
+msgstr "\\t"
 
 #: superset/datasets/commands/exceptions.py:32
 #, python-format
 msgid "Dataset %(name)s already exists"
-msgstr ""
+msgstr "Dataset %(name)s už existuje"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:366
 #, fuzzy
@@ -5044,11 +5222,11 @@ msgstr "Datasety"
 
 #: superset/datasets/columns/commands/exceptions.py:27
 msgid "Dataset column delete failed."
-msgstr ""
+msgstr "Fallo en la eliminación de la columna del conjunto de datos."
 
 #: superset/datasets/columns/commands/exceptions.py:23
 msgid "Dataset column not found."
-msgstr ""
+msgstr "Stĺpec dátového setu sa nenašiel."
 
 #: superset/datasets/commands/exceptions.py:174
 msgid "Dataset could not be created."
@@ -5056,20 +5234,20 @@ msgstr ""
 
 #: superset/datasets/commands/exceptions.py:182
 msgid "Dataset could not be deleted."
-msgstr ""
+msgstr "Súbor nemožno odstrániť."
 
 #: superset/datasets/commands/exceptions.py:210
 msgid "Dataset could not be duplicated."
-msgstr ""
+msgstr "Dataset sa nedá duplikovať."
 
 #: superset/datasets/commands/exceptions.py:178
 #: superset/datasets/commands/exceptions.py:190
 msgid "Dataset could not be updated."
-msgstr ""
+msgstr "Nie je možné aktualizovať dataset."
 
 #: superset/datasets/commands/exceptions.py:166
 msgid "Dataset does not exist"
-msgstr ""
+msgstr "Dataset neexistuje"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:196
 msgid "Dataset imported"
@@ -5077,15 +5255,15 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:888
 msgid "Dataset is required"
-msgstr ""
+msgstr "Dataset je potrebný"
 
 #: superset/datasets/metrics/commands/exceptions.py:27
 msgid "Dataset metric delete failed."
-msgstr ""
+msgstr "Nepodarilo sa odstrániť metriku datasetu."
 
 #: superset/datasets/metrics/commands/exceptions.py:23
 msgid "Dataset metric not found."
-msgstr ""
+msgstr "Metrika sady údajov sa nenašla."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1072
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1079
@@ -5094,16 +5272,16 @@ msgstr ""
 
 #: superset/datasets/commands/exceptions.py:170
 msgid "Dataset parameters are invalid."
-msgstr ""
+msgstr "Parametre pre súbor údajov sú neplatné."
 
 #: superset/dashboards/api.py:415
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr ""
+msgstr "Schéma súboru je neplatná, spôsobená: %(error)s"
 
 #: superset/datasets/commands/exceptions.py:186
 msgid "Dataset(s) could not be bulk deleted."
-msgstr ""
+msgstr "Nie je možné hromadne odstrániť dataset(y)."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:600
 #: superset-frontend/src/profile/components/Security.tsx:61
@@ -5116,36 +5294,38 @@ msgid ""
 "Datasets can be created from database tables or SQL queries. Select a "
 "database table to the left or "
 msgstr ""
+"Datasety môžu byť vytvorené z tabuliek v databáze alebo SQL dopytov. Vyberte"
+" tabuľku v databáze na ľavej strane alebo "
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:847
 msgid "Datasets do not contain a temporal column"
-msgstr ""
+msgstr "Datasety neobsahujú časový stĺpec"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:110
 #: superset/views/access_requests.py:47 superset/views/chart/mixin.py:79
 msgid "Datasource"
-msgstr ""
+msgstr "Dátove zdroje"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:60
 msgid "Datasource & Chart Type"
-msgstr ""
+msgstr "Tip dátového zdroja a typu grafu"
 
 #: superset/commands/exceptions.py:135
 msgid "Datasource does not exist"
-msgstr ""
+msgstr "\\t"
 
 #: superset/commands/exceptions.py:127
 msgid "Datasource type is invalid"
-msgstr ""
+msgstr "Neplatný typ zdroja údajov"
 
 #: superset/charts/commands/exceptions.py:101
 msgid "Datasource type is required when datasource_id is given"
-msgstr ""
+msgstr "Datový zdroj typ je požadovaný, keď je zadané datasource_id"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:156
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:79
 msgid "Date Time Format"
-msgstr ""
+msgstr "Formát dátumu a času"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:49
 msgid "Date filter"
@@ -5161,7 +5341,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:281
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:328
 msgid "Date format"
-msgstr ""
+msgstr "Formát dátumu"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:334
 msgid "Date format string"
@@ -5169,17 +5349,19 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:247
 msgid "Date/Time"
-msgstr ""
+msgstr "Dátum/Čas"
 
 #: superset/connectors/sqla/views.py:162
 msgid "Datetime Format"
-msgstr ""
+msgstr "Formát dátumu a času"
 
 #: superset/models/helpers.py:1502
 msgid ""
 "Datetime column not provided as part table configuration and is required by "
 "this type of chart"
 msgstr ""
+"Stĺpec dátum-čas nie je poskytnutý ako súčasť konfigurácie tabuľky a je "
+"potrebný pre tento typ grafu"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:300
 msgid "Datetime format"
@@ -5191,7 +5373,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:63
 msgid "Day (freq=D)"
-msgstr ""
+msgstr "Deň (freq=D)"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, python-format
@@ -5200,11 +5382,11 @@ msgstr ""
 
 #: superset/connectors/sqla/models.py:1222 superset/models/helpers.py:1024
 msgid "Db engine did not return all queried columns"
-msgstr ""
+msgstr "Databázový engine nevrátil všetky požadované stĺpce"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:215
 msgid "Deactivate"
-msgstr ""
+msgstr "Deaktivovať"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:77
 msgid "December"
@@ -5212,7 +5394,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:89
 msgid "Decides which column to sort the base axis by."
-msgstr ""
+msgstr "Rozhoduje, ktorý stĺpec má byť usporiadaný podľa základnej osi."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:160
 msgid "Decides which measure to sort the base axis by."
@@ -5224,15 +5406,15 @@ msgstr ""
 
 #: superset/viz.py:2700
 msgid "Deck.gl - 3D Grid"
-msgstr ""
+msgstr "Deck.gl - 3D mreža"
 
 #: superset/viz.py:2825
 msgid "Deck.gl - 3D HEX"
-msgstr ""
+msgstr "Deck.gl - 3D HEX"
 
 #: superset/viz.py:2890
 msgid "Deck.gl - Arc"
-msgstr ""
+msgstr "Deck.gl - Arc"
 
 #: superset/viz.py:2869
 msgid "Deck.gl - GeoJSON"
@@ -5249,11 +5431,11 @@ msgstr ""
 
 #: superset/viz.py:2735
 msgid "Deck.gl - Paths"
-msgstr ""
+msgstr "Deck.gl - Cesty"
 
 #: superset/viz.py:2789
 msgid "Deck.gl - Polygon"
-msgstr ""
+msgstr "Deck.gl - Poligon"
 
 #: superset/viz.py:2612
 msgid "Deck.gl - Scatter plot"
@@ -5261,7 +5443,7 @@ msgstr ""
 
 #: superset/viz.py:2668
 msgid "Deck.gl - Screen Grid"
-msgstr ""
+msgstr "Deck.gl - Mreža"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:167
 msgid "Default"
@@ -5290,7 +5472,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:295
 msgid "Default latitude"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:281
 msgid "Default longitude"
@@ -5301,6 +5483,8 @@ msgid ""
 "Default minimal column width in pixels, actual width may still be larger "
 "than this if other columns don't need much space"
 msgstr ""
+"Predvolená minimálna šírka stĺpca v pixeloch, skutočná šírka môže byť stále "
+"väčšia, ak ostatné stĺpce nepotrebujú veľa miesta"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1218
 msgid "Default value is required"
@@ -5309,10 +5493,14 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:96
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
+"Výchozí hodnota musí být nastavena, když je zaškrtnuto \"Filter má výchozí "
+"hodnotu\""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:92
 msgid "Default value must be set when \"Filter value is required\" is checked"
 msgstr ""
+"Prednastavená hodnota musí byť nastavená, ak je začiarknutá možnosť "
+"\"Vyžaduje sa hodnota filtra\""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:88
 msgid ""
@@ -5324,7 +5512,7 @@ msgstr ""
 msgid ""
 "Define a function that receives the input and outputs the content for a "
 "tooltip"
-msgstr ""
+msgstr "Definujte funkciu, ktorá prijíma vstup a výstupný obsah pre tooltip"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:155
 msgid "Define a function that returns a URL to navigate to when user clicks"
@@ -5337,6 +5525,9 @@ msgid ""
 "This can be used to alter properties of the data, filter, or enrich the "
 "array."
 msgstr ""
+"Definujte javascriptovú funkciu, ktorá dostane použitý dátový zoznam v "
+"vizualizácii a má vrátiť modifikovanú verziu tohto zoznamu. Toto môže byť "
+"použité na úpravu vlastností dát, filtrovanie alebo obohatenie zoznamu."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:44
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:259
@@ -5348,6 +5539,8 @@ msgid ""
 "Defines a rolling window function to apply, works along with the [Periods] "
 "text box"
 msgstr ""
+"Definuje funkciu rolujúceho okna, ktorá sa aplikuje spolu s textovým poľom "
+"[Obdobia]"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:124
 msgid "Defines how each series is broken down"
@@ -5355,7 +5548,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:285
 msgid "Defines the grid size in pixels"
-msgstr ""
+msgstr "Definuje veľkosť mriežky v pixeloch"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:119
 #: superset-frontend/src/explore/controls.jsx:383
@@ -5363,6 +5556,8 @@ msgid ""
 "Defines the grouping of entities. Each series is shown as a specific color "
 "on the chart and has a legend toggle"
 msgstr ""
+"Definuje zoskupenie entít. Každá série je zobrazená ako konkrétna farba na "
+"grafe a má prepínač legendy"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:58
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:273
@@ -5374,12 +5569,16 @@ msgid ""
 "Defines the size of the rolling window function, relative to the time "
 "granularity selected"
 msgstr ""
+"Definuje veľkosť funkcie drážkového okna, vzhľadom na vybranú časovú "
+"granularitu"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:79
 msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
 msgstr ""
+"Definuje, či by sa mal krok zobraziť na začiatku, v strede alebo na konci "
+"medzi dvomi bodmi údajov"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FilterSetUnit.tsx:90
 #: superset-frontend/src/features/charts/ChartCard.tsx:106
@@ -5404,20 +5603,20 @@ msgstr ""
 #: superset-frontend/src/pages/Tags/index.tsx:153
 #: superset-frontend/src/pages/Tags/index.tsx:290 superset/views/base.py:664
 msgid "Delete"
-msgstr ""
+msgstr "Vymazať"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:579
 #, python-format
 msgid "Delete %s?"
-msgstr ""
+msgstr "Vymazať %s?"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:293
 msgid "Delete Annotation?"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:551
 msgid "Delete Database?"
-msgstr ""
+msgstr "Vymazať databázu?"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:745
 msgid "Delete Dataset?"
@@ -5425,20 +5624,20 @@ msgstr ""
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:353
 msgid "Delete Layer?"
-msgstr ""
+msgstr "\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t\\t #No translation available for this language."
 
 #: superset-frontend/src/features/home/SavedQueries.tsx:243
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:519
 msgid "Delete Query?"
-msgstr ""
+msgstr "Vymazať dopyt?"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:335
 msgid "Delete Report?"
-msgstr ""
+msgstr "Vymazať správu?"
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:323
 msgid "Delete Template?"
-msgstr ""
+msgstr "Zmazať šablónu?"
 
 #: superset/views/base.py:664
 msgid "Delete all Really?"
@@ -5446,37 +5645,37 @@ msgstr ""
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:195
 msgid "Delete annotation"
-msgstr ""
+msgstr "Vymazať anotáciu"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:214
 msgid "Delete dashboard tab?"
-msgstr ""
+msgstr "Zmazať kartu prehľadávača?"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:416
 msgid "Delete database"
-msgstr ""
+msgstr "Odstrániť databázu"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:246
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:270
 msgid "Delete email report"
-msgstr ""
+msgstr "Vymazať emailové hlásenie"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:428
 msgid "Delete query"
-msgstr ""
+msgstr "Vymažte požiadavku"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:236
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:219
 msgid "Delete template"
-msgstr ""
+msgstr "Vymaž šablónu"
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:36
 msgid "Delete this container and save to remove this message."
-msgstr ""
+msgstr "Vymažte tento kontajner a uložte pre odstránenie tohto správy."
 
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:108
 msgid "Deleted"
-msgstr ""
+msgstr "vymazať"
 
 #: superset/annotation_layers/annotations/api.py:504
 #, python-format
@@ -5553,7 +5752,7 @@ msgstr[2] ""
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:94
 #, python-format
 msgid "Deleted %s"
-msgstr ""
+msgstr "Vymazané: %s"
 
 #: superset-frontend/src/features/home/SavedQueries.tsx:172
 #: superset-frontend/src/pages/AlertReportList/index.tsx:183
@@ -5568,21 +5767,23 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/utils.tsx:311
 #, python-format
 msgid "Deleted: %s"
-msgstr ""
+msgstr "Vymazané: %s"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:217
 msgid ""
 "Deleting a tab will remove all content within it. You may still reverse this"
 " action with the"
 msgstr ""
+"Odstránenie karty odstráni všetok obsah v nej. Môžete ešte stále zvrátiť "
+"toto opatrenie pomocou"
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:184
 msgid "Delimited long & lat single column"
-msgstr ""
+msgstr "Delimitovaný jeden stĺpec so zemepisnou dĺžkou a šírkou"
 
 #: superset/views/database/forms.py:160
 msgid "Delimiter"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:124
 msgid "Delivery method"

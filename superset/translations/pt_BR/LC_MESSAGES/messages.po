@@ -838,7 +838,7 @@ msgstr "Já existe um banco de dados com o mesmo nome."
 msgid ""
 "A dictionary with column names and their data types if you need to change "
 "the defaults. Example: {\"user_id\":\"integer\"}"
-msgstr ""
+msgstr "Portuguese (Brazil) translation of the msgid"
 
 #: superset/views/dynamic_plugins.py:52
 msgid ""
@@ -1197,7 +1197,7 @@ msgstr "Adicionar filtro cruzado"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "Adicionar escopo personalizado"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
@@ -1616,7 +1616,7 @@ msgstr "Todos os gráficos"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "Todos os gráficos/escopo global"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
@@ -4648,7 +4648,7 @@ msgstr "Não foi possível carregar o driver de banco de dados: {}"
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr ""
+msgstr "Could not resolve hostname: \"%(host)s\"."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 msgid "Count"

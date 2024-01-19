@@ -826,7 +826,7 @@ msgstr "База данных с таким же именем уже сущес�
 msgid ""
 "A dictionary with column names and their data types if you need to change "
 "the defaults. Example: {\"user_id\":\"integer\"}"
-msgstr ""
+msgstr "Russian translation of the msgid"
 
 #: superset/views/dynamic_plugins.py:52
 msgid ""
@@ -892,7 +892,7 @@ msgstr "Читаемый URL-адрес для дашборда"
 #: superset-frontend/src/explore/controls.jsx:113
 msgid ""
 "A reference to the [Time] configuration, taking granularity into account"
-msgstr ""
+msgstr "Ссылка на настройки [Время], учитывающие гранулярность"
 
 #: superset/reports/commands/exceptions.py:186
 #, python-format
@@ -1173,7 +1173,7 @@ msgstr "Задать область действия кросс-фильтра"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "Добавить пользовательскую область"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
@@ -1313,7 +1313,7 @@ msgstr "Настройка взаимодействия базы данных с
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:231
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "Настройте параметры производительности этой базы данных.\\n"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1438,6 +1438,8 @@ msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated "
 "values to a dynamic color scale"
 msgstr ""
+"Агрегирует данные в пределах границ сеточных ячеек и отображает "
+"агрегированные значения"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/controlPanel.ts:110
 #, fuzzy
@@ -1587,7 +1589,7 @@ msgstr "Все графики"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "Все графики/глобальная обработка"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
@@ -1680,7 +1682,7 @@ msgstr "Разрешить выбор вершин"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:176
 msgid "Allow sending multiple polygons as a filter event"
-msgstr ""
+msgstr "Разрешить отправку нескольких полигонов как фильтрующее событие"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:196
 msgid "Allow this database to be explored"
@@ -2817,7 +2819,7 @@ msgstr "Размер маркера"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:149
 msgid "Bucket break points"
-msgstr ""
+msgstr "Точки разбиения ведра"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:511
 msgid "Build"
@@ -3074,7 +3076,7 @@ msgstr "Можно выбрать несколько значений"
 
 #: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
+msgstr "Нельзя иметь перекрытие между Сериями и Разбивками"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:205
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:753
@@ -3111,7 +3113,7 @@ msgstr "Невозможно удалить базу данных с подкл�
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:67
 msgid "Cannot have multiple credentials for the SSH Tunnel"
-msgstr ""
+msgstr "Невозможно иметь несколько учетных данных для SSH-туннеля"
 
 #: superset/views/core.py:734
 #, python-format
@@ -3599,6 +3601,8 @@ msgid ""
 "Check if the Rose Chart should use segment area instead of segment radius "
 "for proportioning"
 msgstr ""
+"Проверьте, должен ли График Розы использовать площадь сегмента вместо "
+"радиуса сегмента для пропорциона"
 
 #: superset-frontend/src/dashboard/components/AnchorLink/index.tsx:73
 msgid "Check out this chart in dashboard:"
@@ -3622,11 +3626,11 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:212
 msgid "Check to force date partitions to have the same height"
-msgstr ""
+msgstr "Отметьте для принудительного сравнения высоты разделов по дате"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:87
 msgid "Check to include time column dropdown"
-msgstr ""
+msgstr "Выберите для включения выпадающего меню столбца времени"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:76
 msgid "Check to include time grain dropdown"
@@ -3712,7 +3716,7 @@ msgstr "Выберите источник аннотаций"
 msgid ""
 "Choose whether a country should be shaded by the metric, or assigned a color"
 " based on a categorical color palette"
-msgstr ""
+msgstr "Выберите, должна ли стран"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:34
 msgid "Chord Diagram"
@@ -3782,7 +3786,7 @@ msgstr "Очистить форму"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:209
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
-msgstr ""
+msgstr "Нажмите на кнопку \"+Добавить/Редактиров"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:286
 msgid ""
@@ -4150,7 +4154,7 @@ msgstr "Расположение столбцов подытогов"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:170
 msgid "Columns to calculate distribution across."
-msgstr ""
+msgstr "Колонки для расчета распределения."
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:45
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:46
@@ -4235,6 +4239,8 @@ msgid ""
 "Compares the lengths of time different activities take in a shared timeline "
 "view."
 msgstr ""
+"Сравнивает продолжительность различных действий в общем представлении "
+"таймлайна."
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:36
@@ -4561,7 +4567,7 @@ msgstr "Не удалось загрузить драйвер базы данн�
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr ""
+msgstr "Could not resolve hostname: \"%(host)s\"."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 msgid "Count"
@@ -4732,6 +4738,8 @@ msgstr "Малиновый"
 msgid ""
 "Cross-filter will be applied to all of the charts that use this dataset."
 msgstr ""
+"Кросс-фильтр будет применен ко всем диаграммам, использующим этот набор "
+"данных."
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 #, fuzzy
@@ -4851,7 +4859,7 @@ msgstr "Дата/Время (DATETIME/TIMESTAMP)"
 #: superset/utils/encrypt.py:117
 #, python-format
 msgid "DB column %(col_name)s has unknown type: %(value_type)s"
-msgstr ""
+msgstr "Столбец DB %(col_name)s имеет неизвестный тип: %(value_type)s"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:102
 msgid "DEC"
@@ -5024,7 +5032,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/components/PlaySlider.jsx:182
 msgid "Data has no time steps"
-msgstr ""
+msgstr "Данные не имеют временных шагов"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:246
 msgid "Data preview"
@@ -5043,7 +5051,7 @@ msgstr "Тип данных"
 
 #: superset/utils/pandas_postprocessing/prophet.py:134
 msgid "DataFrame include at least one series"
-msgstr ""
+msgstr "DataFrame должен содержать хотя бы один столбец"
 
 #: superset/utils/pandas_postprocessing/prophet.py:132
 msgid "DataFrame must include temporal column"
@@ -5405,7 +5413,7 @@ msgstr "Декабрь"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:89
 msgid "Decides which column to sort the base axis by."
-msgstr ""
+msgstr "Определяет, по какому столбцу сортировать ось базы."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:160
 msgid "Decides which measure to sort the base axis by."

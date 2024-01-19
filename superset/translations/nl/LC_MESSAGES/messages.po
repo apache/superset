@@ -66,6 +66,8 @@ msgid ""
 " Set the opacity to 0 if you do not want to override the color specified in "
 "the GeoJSON"
 msgstr ""
+" Stel de dekking in op 0 als u de gespecificeerde kleur in GeoJSON niet wilt"
+" overschrijven."
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:399
 #, fuzzy
@@ -116,11 +118,12 @@ msgstr "%s kolom(men) en meeteenhe(i)d(en)"
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
 msgid " to mark a column as a time column"
-msgstr ""
+msgstr " om een kolom als tijdkolom te markeren"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
+"om SQL Lab te openen. Van daaruit kunt u de query opslaan als dataset."
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
@@ -263,7 +266,7 @@ msgstr "%s SSH TUNNEL PRIVE SLEUTEL"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s WACHTWOORD VOOR DE PRIVÉSLEUTEL VAN SSH-TUNNEL"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:245
 #, python-format
@@ -358,13 +361,15 @@ msgstr "(verwijderd of ongeldig type)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
-msgstr ""
+msgstr "(geen beschrijving, klik om stack-trace te zien)"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:168
 msgid ""
 "(optional) default value for the filter, when using the multiple option, you"
 " can use a semicolon-delimited list of options."
 msgstr ""
+"(optioneel) standaardwaarde voor de filter, wanneer u de 'meerdere' optie "
+"gebruikt, kunt u een lijst met opties gescheiden door puntkomma's gebruiken."
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
 msgid "), and they become available in your SQL (example:"
@@ -381,6 +386,13 @@ msgid ""
 "\n"
 "%(table)s\n"
 msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"<%(url)s|Verken in Superset>\n"
+"\n"
+"%(table)s\n"
 
 #: superset/reports/notifications/slack.py:82
 #, python-format
@@ -405,13 +417,15 @@ msgstr "+ %s meer"
 
 #: superset/views/database/forms.py:163
 msgid ","
-msgstr ""
+msgstr "\\n\\t"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:652
 msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n"
 "\n"
 msgstr ""
+"-- Opmerking: Tenzij u uw zoekopdracht opslaat, zullen deze tabbladen NIET blijven bestaan als u uw cookies wist of van browser verandert.\n"
+"\n"
 
 #: superset/views/database/forms.py:164
 msgid "."
@@ -438,7 +452,7 @@ msgstr "dag"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr ""
+msgstr "1 dag geleden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -469,7 +483,7 @@ msgstr "1 maand eindfrequentie"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
 msgid "1 month start frequency"
-msgstr ""
+msgstr "1 maand start frequentie"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:307
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:189
@@ -561,7 +575,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:509
 #: superset-frontend/src/explore/controlPanels/sections.tsx:235
 msgid "1D"
-msgstr ""
+msgstr " "
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:356
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:238
@@ -621,7 +635,7 @@ msgstr "28 dagen geleden"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.js:33
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:37
 msgid "2D"
-msgstr ""
+msgstr "2D"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:136
 msgid "3 letter code of the country"
@@ -654,7 +668,7 @@ msgstr "30 dagen"
 
 #: superset/db_engine_specs/base.py:104
 msgid "30 minute"
-msgstr ""
+msgstr "30 minuten"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:165
 #: superset-frontend/src/explore/controls.jsx:259
@@ -679,7 +693,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:64
 msgid "4 weeks (freq=4W-MON)"
-msgstr ""
+msgstr "4 weken (freq=4W-MA)"
 
 #: superset/db_engine_specs/base.py:101
 msgid "5 minute"
@@ -692,7 +706,7 @@ msgstr "5 minuten"
 
 #: superset/db_engine_specs/base.py:98
 msgid "5 second"
-msgstr ""
+msgstr "5 seconden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:161
 #: superset-frontend/src/explore/controls.jsx:255
@@ -710,7 +724,7 @@ msgstr "week"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:116
 msgid "52 weeks ago"
-msgstr ""
+msgstr "52 weeks ago"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:60
 #, fuzzy
@@ -721,7 +735,7 @@ msgstr "Week beginnend op maandag"
 #: superset-frontend/src/explore/controls.jsx:261
 #: superset/db_engine_specs/base.py:106
 msgid "6 hour"
-msgstr ""
+msgstr "6 uur"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:136
 msgid "60 days"
@@ -730,7 +744,7 @@ msgstr "60 dagen"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:166
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:239
 msgid "7 calendar day frequency"
-msgstr ""
+msgstr "7 kalenderdag frequentie"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:169
 #: superset-frontend/src/explore/controls.jsx:263
@@ -767,7 +781,7 @@ msgstr "<= (Kleiner of gelijk)"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1430
 msgid "<enter SQL expression here>"
-msgstr ""
+msgstr "<voer hier SQL-uitdrukking in>"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:500
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1427
@@ -803,7 +817,7 @@ msgstr ">= (Groter of gelijk)"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:34
 msgid "A Big Number"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset/views/database/forms.py:194
 #, fuzzy
@@ -827,7 +841,7 @@ msgstr ""
 
 #: superset/databases/commands/exceptions.py:42
 msgid "A database with the same name already exists."
-msgstr ""
+msgstr "Een database met dezelfde naam bestaat al."
 
 #: superset/views/database/forms.py:145
 msgid ""
@@ -843,7 +857,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/handlebarTemplate.tsx:61
 msgid "A handlebars template that is applied to the data"
-msgstr ""
+msgstr "Een handlebars-template dat wordt toegepast op de gegevens"
 
 #: superset/views/dynamic_plugins.py:47
 msgid "A human-friendly name"
@@ -858,16 +872,18 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:752
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:445
 msgid "A list of tags that have been applied to this chart."
-msgstr ""
+msgstr "Een lijst met tags die zijn toegepast op deze grafiek."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:424
 msgid ""
 "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
+"Een lijst van gebruikers die het diagram kunnen wijzigen. Doorzoekbaar op "
+"naam of gebruikersnaam."
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:29
 msgid "A map of the world, that can indicate values in different countries."
-msgstr ""
+msgstr "Een wereldkaart die waardes in verschillende landen kan aangeven."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.js:27
 msgid ""
@@ -896,6 +912,8 @@ msgstr "Een leesbare URL voor uw dashboard"
 msgid ""
 "A reference to the [Time] configuration, taking granularity into account"
 msgstr ""
+"Een verwijzing naar de [Tijd] configuratie, rekening houdend met de "
+"granulariteit"
 
 #: superset/reports/commands/exceptions.py:186
 #, fuzzy, python-format
@@ -904,11 +922,12 @@ msgstr "Dataset %(name)s bestaat al"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:368
 msgid "A reusable dataset will be saved with your chart."
-msgstr ""
+msgstr "Een herbruikbare dataset wordt opgeslagen met uw grafiek."
 
 #: superset-frontend/src/components/ReportModal/index.tsx:308
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr ""
+"Een screenshot van het dashboard wordt naar uw e-mailadres gestuurd op"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:963
 #: superset/connectors/sqla/views.py:365
@@ -922,6 +941,8 @@ msgstr ""
 #: superset/common/query_context_processor.py:417
 msgid "A time column must be specified when using a Time Comparison."
 msgstr ""
+"Een tijdkolom moet worden gespecificeerd bij gebruik van een "
+"tijdvergelijking."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:32
 msgid ""
@@ -939,7 +960,7 @@ msgstr "Er is een time-out opgetreden tijdens het genereren van een csv."
 
 #: superset/reports/commands/exceptions.py:243
 msgid "A timeout occurred while generating a dataframe."
-msgstr ""
+msgstr "Er is een time-out opgetreden bij het genereren van een dataframe."
 
 #: superset/reports/commands/exceptions.py:233
 msgid "A timeout occurred while taking a screenshot."
@@ -991,11 +1012,11 @@ msgstr "Toegangsverzoeken"
 
 #: superset-frontend/src/components/TableLoader/index.tsx:91
 msgid "Access to user activity data is restricted"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:175
 msgid "Access token"
-msgstr ""
+msgstr "\\t"
 
 #: superset/views/core.py:318
 msgid "Access was requested"
@@ -1057,7 +1078,7 @@ msgstr "Nul waarden"
 #: superset-frontend/src/explore/controls.jsx:78
 #: superset-frontend/src/explore/controls.jsx:101
 msgid "Adaptive formatting"
-msgstr ""
+msgstr "Aanpassende opmaak"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:228
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:377
@@ -1070,7 +1091,7 @@ msgstr "Voeg toe"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:382
 msgid "Add Alert"
-msgstr ""
+msgstr "Voeg waarschuwing toe"
 
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
@@ -1106,7 +1127,7 @@ msgstr "Voeg meeteenheid toe"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:381
 msgid "Add Report"
-msgstr ""
+msgstr "Voeg rapport toe"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
 msgid "Add Rule"
@@ -1132,7 +1153,7 @@ msgstr "Zoekopdracht in een nieuw tabblad"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:296
 msgid "Add a new tab to create SQL Query"
-msgstr ""
+msgstr "Voeg een nieuwe tab toe om een SQL-query te maken"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:220
 msgid "Add additional custom parameters"
@@ -1149,7 +1170,7 @@ msgstr "Voeg een item toe"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:583
 msgid "Add and edit filters"
-msgstr ""
+msgstr "Filters toevoegen en bewerken"
 
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:282
 msgid "Add annotation"
@@ -1163,11 +1184,11 @@ msgstr "Aantekeningenlaag toevoegen"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:306
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Voeg berekende kolommen toe aan dataset in \"Bewerk gegevensbron\" modal"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:303
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Voeg berekende tijdelijke kolommen toe aan dataset in \"Bew"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:197
 #, fuzzy
@@ -1176,7 +1197,7 @@ msgstr "Filter toevoegen"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "Voeg aangepast bereik toe"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:375
 msgid "Add delivery method"
@@ -1203,7 +1224,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
-msgstr ""
+msgstr "Filters en scheiders toevoegen"
 
 #: superset-frontend/src/components/Datasource/CollectionTable.tsx:458
 msgid "Add item"
@@ -1216,6 +1237,7 @@ msgstr "Meeteenheid toevoegen"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:401
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
+"Metrieken toevoegen aan dataset in \"Gegevensbron bewerken\" modaal venster"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:176
 msgid "Add new color formatter"
@@ -1258,7 +1280,7 @@ msgstr "Toevoegen aan het dashboard"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:126
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Horizontal.tsx:146
 msgid "Add/Edit Filters"
-msgstr ""
+msgstr "Filters toevoegen/bewerken"
 
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:122
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:149
@@ -1310,15 +1332,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:47
 msgid "Additive"
-msgstr ""
+msgstr "Additief"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:85
 msgid "Adjust how this database will interact with SQL Lab."
-msgstr ""
+msgstr "Pas aan hoe deze database communiceert met SQL Lab."
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:231
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "Pas prestatie-instellingen van deze database aan.\\n"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:132
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/controlPanel.ts:91
@@ -1416,7 +1438,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:57
 msgid "Aggregate"
-msgstr ""
+msgstr "Aggregatie"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:84
 msgid "Aggregate Mean"
@@ -1424,19 +1446,21 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:89
 msgid "Aggregate Sum"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:194
 msgid ""
 "Aggregate function applied to the list of points in each cluster to produce "
 "the cluster label."
-msgstr ""
+msgstr "Aggregatiefunctie toegepast op de lijst met punten"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:202
 msgid ""
 "Aggregate function to apply when pivoting and computing the total rows and "
 "columns"
 msgstr ""
+"Aggregate functie die moet worden toegepast bij pivoteren en berekenen van "
+"totale rijen en kolommen"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.js:27
 msgid ""
@@ -1592,7 +1616,7 @@ msgstr "Alle grafieken"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "Alle grafieken/globale afbakening"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
@@ -1601,11 +1625,11 @@ msgstr "Alle filters"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:235
 #, python-format
 msgid "All filters (%(filterCount)d)"
-msgstr ""
+msgstr "Alle filters (%(filterCount)d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/state.ts:36
 msgid "All panels"
-msgstr ""
+msgstr "Alle panelen"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/FilterScope.tsx:138
 msgid "All panels with this column will be affected by this filter"
@@ -1640,7 +1664,7 @@ msgstr "DML toestaan"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:468
 msgid "Allow columns to be rearranged"
-msgstr ""
+msgstr "Toestaan dat kolommen herschikt worden"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:120
 msgid "Allow creation of new tables based on queries"
@@ -1680,15 +1704,15 @@ msgstr "Meerdere selecties toestaan"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:190
 msgid "Allow node selections"
-msgstr ""
+msgstr "Knotenauswahl zulassen"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:176
 msgid "Allow sending multiple polygons as a filter event"
-msgstr ""
+msgstr "Meerdere polygoons verzenden als filtergebeurtenis toestaan"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:196
 msgid "Allow this database to be explored"
-msgstr ""
+msgstr "Deze database toestaan om te worden verkend"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:101
 msgid "Allow this database to be queried in SQL Lab"
@@ -1699,10 +1723,12 @@ msgid ""
 "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in "
 "SQL Lab"
 msgstr ""
+"Gebruikers toestaan om niet-SELECT statements (UPDATE, DELETE, CREATE, ...) "
+"uit te voeren in SQL Lab"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:193
 msgid "Allowed Domains (comma separated)"
-msgstr ""
+msgstr "Toegestane domeinen (gescheiden door komma's)"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:737
 #: superset-frontend/src/pages/DashboardList/index.tsx:611
@@ -1737,12 +1763,16 @@ msgid ""
 "An enclosed time range (both start and end) must be specified when using a "
 "Time Comparison."
 msgstr ""
+"Een afgesloten tijdsbereik (zowel begin als einde) moet worden "
+"gespecificeerd bij het gebruik van een Tijdsvergelijking."
 
 #: superset/databases/schemas.py:289
 msgid ""
 "An engine must be specified when passing individual parameters to a "
 "database."
 msgstr ""
+"Bij het doorgeven van individuele parameters aan een database moet een motor"
+" worden gespecificeerd."
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:791
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:183
@@ -1769,7 +1799,7 @@ msgstr "Er is een fout opgetreden bij het opslaan van dataset"
 #: superset/key_value/exceptions.py:38
 #: superset/temporary_cache/commands/exceptions.py:33
 msgid "An error occurred while accessing the value."
-msgstr ""
+msgstr "Er is een fout opgetreden bij het openen van de waarde."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1360
 msgid ""
@@ -1782,7 +1812,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/hooks.ts:308
 #, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het maken van %ss: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1530
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1552
@@ -1794,12 +1824,12 @@ msgstr "Er is een fout opgetreden bij het aanmaken van de gegevensbron"
 #: superset/key_value/exceptions.py:34
 #: superset/temporary_cache/commands/exceptions.py:29
 msgid "An error occurred while creating the value."
-msgstr ""
+msgstr "Er is een fout opgetreden bij het maken van de waarde."
 
 #: superset/key_value/exceptions.py:42
 #: superset/temporary_cache/commands/exceptions.py:37
 msgid "An error occurred while deleting the value."
-msgstr ""
+msgstr "Er is een fout opgetreden bij het verwijderen van de waarde."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1336
 msgid ""
@@ -1812,14 +1842,14 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/hooks.ts:106
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr ""
+msgstr "Er is een fout opgetreden tijdens het ophalen van %s info: %s"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:174
 #: superset-frontend/src/views/CRUD/hooks.ts:265
 #: superset-frontend/src/views/CRUD/hooks.ts:353
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het ophalen van %ss: %s"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:130
 msgid "An error occurred while fetching available CSS templates"
@@ -1862,7 +1892,7 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:299
 msgid "An error occurred while fetching dashboards"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het ophalen van dashboards: %s"
 
 #: superset-frontend/src/features/home/DashboardTable.tsx:148
 #: superset-frontend/src/pages/DashboardList/index.tsx:232
@@ -1961,7 +1991,7 @@ msgstr ""
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:396
 #, python-format
 msgid "An error occurred while fetching user values: %s"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het ophalen van gebruikerswaarden: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:831
 msgid ""
@@ -1975,7 +2005,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/hooks.ts:522
 #, python-format
 msgid "An error occurred while importing %s: %s"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het importeren van %s: %s"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:135
 #, fuzzy
@@ -1988,7 +2018,7 @@ msgstr "Er is een fout opgetreden bij het laden van de SQL"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Chart.jsx:325
 msgid "An error occurred while opening Explore"
-msgstr ""
+msgstr "Er is een fout opgetreden bij het openen van Verkennen"
 
 #: superset/key_value/exceptions.py:30
 #, fuzzy
@@ -2003,11 +2033,15 @@ msgstr "Er is een fout opgetreden tijdens opschonen van de logbestanden "
 msgid ""
 "An error occurred while removing query. Please contact your administrator."
 msgstr ""
+"Er is een fout opgetreden bij het verwijderen van de query. Neem contact op "
+"met uw beheerder."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:853
 msgid ""
 "An error occurred while removing tab. Please contact your administrator."
 msgstr ""
+"Er is een fout opgetreden bij het verwijderen van het tabblad. Neem contact "
+"op met uw beheerder."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1388
 msgid ""
@@ -2021,6 +2055,7 @@ msgstr ""
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr ""
+"Er is een fout opgetreden tijdens het weergeven van de visualisatie: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:706
 msgid ""
@@ -2069,10 +2104,13 @@ msgid ""
 "An error occurred while setting the tab template parameters. Please contact "
 "your administrator."
 msgstr ""
+"Er is een fout opgetreden bij het instellen van de tabblad sjabloon "
+"parameters. Neem contact op met"
 
 #: superset-frontend/src/explore/actions/exploreActions.ts:89
 msgid "An error occurred while starring this chart"
 msgstr ""
+"Er is een fout opgetreden bij het toevoegen van deze grafiek aan favorieten"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:255
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:301
@@ -2090,7 +2128,7 @@ msgstr ""
 #: superset/key_value/exceptions.py:46
 #: superset/temporary_cache/commands/exceptions.py:41
 msgid "An error occurred while updating the value."
-msgstr ""
+msgstr "Er is een fout opgetreden bij het bijwerken van de waarde."
 
 #: superset/key_value/exceptions.py:50
 #, fuzzy
@@ -2114,11 +2152,11 @@ msgstr "Veranker naar"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:117
 msgid "Angle at which to end progress axis"
-msgstr ""
+msgstr "Hoek waarbij de voortgangsas eindigt"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:107
 msgid "Angle at which to start progress axis"
-msgstr ""
+msgstr "Hoek waarbij de voortgangsas begint"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:187
 msgid "Animation"
@@ -2180,7 +2218,7 @@ msgstr "Het verwijderen van de Aantekeningenlaag is mislukt."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:582
 msgid "Annotation layer description columns"
-msgstr ""
+msgstr "Kolommen voor beschrijving van annotatielagen"
 
 #: superset/annotation_layers/commands/exceptions.py:53
 #: superset/annotation_layers/commands/exceptions.py:57
@@ -2189,7 +2227,7 @@ msgstr "Aantekeningenlaag heeft bijbehorende aantekeningen."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:557
 msgid "Annotation layer interval end"
-msgstr ""
+msgstr "Einde van het interval van annotatielaag"
 
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:251
 msgid "Annotation layer name"
@@ -2201,7 +2239,7 @@ msgstr "Aantekeningenlaag niet gevonden."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:699
 msgid "Annotation layer opacity"
-msgstr ""
+msgstr "Dekking van de annotatielaag"
 
 #: superset/annotation_layers/commands/exceptions.py:29
 msgid "Annotation layer parameters are invalid."
@@ -2209,15 +2247,15 @@ msgstr "De parameters van de aantekeningenlaag zijn ongeldig."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:684
 msgid "Annotation layer stroke"
-msgstr ""
+msgstr "Streepdikte annotatielaag"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:537
 msgid "Annotation layer time column"
-msgstr ""
+msgstr "Tijdskolom van annotaties"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:571
 msgid "Annotation layer title column"
-msgstr ""
+msgstr "Kolom titel van annotatielaag"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:810
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:813
@@ -2226,7 +2264,7 @@ msgstr "Type aantekeningenlaag"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:467
 msgid "Annotation layer value"
-msgstr ""
+msgstr "Waarde van de annotatielaag"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:83
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:71
@@ -2257,20 +2295,20 @@ msgstr "aantekening"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:822
 msgid "Annotation source type"
-msgstr ""
+msgstr "Bron voor aantekeningenlaag"
 
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:154
 msgid "Annotation template created"
-msgstr ""
+msgstr "Het annotatiesjabloon kon niet worden aangemaakt"
 
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:139
 msgid "Annotation template updated"
-msgstr ""
+msgstr "Annotatiesjabloon bijgewerkt"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/annotationsAndLayers.tsx:25
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:116
 msgid "Annotations and Layers"
-msgstr ""
+msgstr "Aantekeningen en lagen"
 
 #: superset-frontend/src/explore/controlPanels/sections.tsx:72
 msgid "Annotations and layers"
@@ -2294,6 +2332,7 @@ msgstr "Elke"
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:393
 msgid "Any additional detail to show in the certification tooltip."
 msgstr ""
+"Alle extra details die in de certificeringstooltip getoond moeten worden."
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 msgid ""
@@ -2307,6 +2346,8 @@ msgstr ""
 msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 msgstr ""
+"Elke database die verbindingen via SQL Alchemy URI's toestaat, kan worden "
+"toegevoegd. "
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1022
 msgid ""
@@ -2350,15 +2391,15 @@ msgstr "Toepassen"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:100
 msgid "Apply conditional color formatting to metric"
-msgstr ""
+msgstr "Pas voorwaardelijke kleurformatie toe op metrieken"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:386
 msgid "Apply conditional color formatting to metrics"
-msgstr ""
+msgstr "Toepassen van voorwaardelijke kleur opmaak op metingen"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:505
 msgid "Apply conditional color formatting to numeric columns"
-msgstr ""
+msgstr "Pas voorwaardelijke kleur opmaak toe op numerieke kolommen"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 msgid "Apply filters"
@@ -2477,7 +2518,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:170
 msgid "Area chart"
-msgstr ""
+msgstr "Gebiedsgrafiek"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:93
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:111
@@ -2526,7 +2567,7 @@ msgstr "op"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:97
 msgid "Auto Zoom"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:524
 msgid "Autocomplete"
@@ -2595,13 +2636,13 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1123
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1143
 msgid "Back"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:262
 #: superset-frontend/src/pages/AnnotationList/index.tsx:264
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:181
 msgid "Back to all"
-msgstr ""
+msgstr "Terug naar allemaal"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:311
 #: superset/views/database/mixins.py:200
@@ -2615,7 +2656,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:497
 msgid "Bad formula."
-msgstr ""
+msgstr "Foute formule."
 
 #: superset/viz.py:2452 superset/viz.py:2492
 msgid "Bad spatial key"
@@ -2632,7 +2673,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:82
 msgid "Bar Chart"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:43
 msgid "Bar Chart (legacy)"
@@ -2641,6 +2682,8 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:67
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr ""
+"Balkendiagrammen worden gebruikt om metingen weer te geven als een reeks "
+"balken."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:314
 msgid "Bar Values"
@@ -2669,6 +2712,7 @@ msgstr "Gebaseerd op een meeteenheid"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:56
 msgid "Based on granularity, number of time periods to compare against"
 msgstr ""
+"Gebaseerd op granulariteit, aantal tijdsperioden om mee te vergelijken"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:228
 msgid "Based on what should series be ordered on the chart and legend"
@@ -2703,7 +2747,7 @@ msgstr "Pas op."
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:178
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:75
 msgid "Before"
-msgstr ""
+msgstr "Voor"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
 #: superset/viz.py:1186
@@ -2712,7 +2756,7 @@ msgstr "Groot Getal"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:28
 msgid "Big Number Font Size"
-msgstr ""
+msgstr "Grootte van het lettertype van het grote nummer"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
 #: superset/viz.py:1150
@@ -2736,7 +2780,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:238
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:206
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "Ondermarge, in pixels, waardoor er meer ruimte is voor aslabels"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:186
 msgid "Bottom right"
@@ -2784,7 +2828,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/BoxPlot/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:58
 msgid "Box Plot"
-msgstr ""
+msgstr "Box Plot"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:123
 msgid "Breakdowns"
@@ -2797,12 +2841,12 @@ msgstr "Bubbelgrafiek"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:143
 msgid "Bubble Color"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:206
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:139
 msgid "Bubble Size"
-msgstr ""
+msgstr "Grootte van de bubbel"
 
 #: superset-frontend/src/explore/controls.jsx:415
 msgid "Bubble size"
@@ -2810,7 +2854,7 @@ msgstr "Bubbelgrootte"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:149
 msgid "Bucket break points"
-msgstr ""
+msgstr "Emmer breekpunten"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:511
 #, fuzzy
@@ -2862,7 +2906,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:337
 msgid "By key: use column names as sorting key"
-msgstr ""
+msgstr "Bij sleutel: gebruik kolomnamen als sorteersleutel"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:309
 msgid "By key: use row names as sorting key"
@@ -2871,7 +2915,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:310
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:338
 msgid "By value: use metric values as sorting key"
-msgstr ""
+msgstr "Op waarde: gebruik metrische waarden als sorteersleutel"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:232
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:328
@@ -2911,7 +2955,7 @@ msgstr "CSS"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/style.tsx:75
 msgid "CSS Styles"
-msgstr ""
+msgstr "CSS Styles"
 
 #: superset/initialization/__init__.py:288 superset/views/css_templates.py:38
 msgid "CSS Templates"
@@ -2988,11 +3032,11 @@ msgstr ""
 
 #: superset/errors.py:129
 msgid "CVAS (create view as select) query has more than one statement."
-msgstr ""
+msgstr "CVAS (create view as select) query bevat meer dan één statement."
 
 #: superset/errors.py:130
 msgid "CVAS (create view as select) query is not a SELECT statement."
-msgstr ""
+msgstr "CVAS (create view as select) query is not a SELECT statement."
 
 #: superset/connectors/sqla/views.py:393 superset/views/chart/mixin.py:76
 msgid "Cache Timeout"
@@ -3024,7 +3068,7 @@ msgstr "Cached waarde niet gevonden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:53
 msgid "Calculate contribution per series or row"
-msgstr ""
+msgstr "Bereken bijdrage per serie of rij"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:835
 #, python-format
@@ -3055,7 +3099,7 @@ msgstr "Kan bovenste tabblad niet in geneste tabbladen verplaatsen"
 #: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:59
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:77
 msgid "Can select multiple values"
-msgstr ""
+msgstr "Meerdere waarden kunnen worden geselecteerd"
 
 #: superset/viz.py:1727
 msgid "Can't have overlap between Series and Breakdowns"
@@ -3084,7 +3128,7 @@ msgstr "Annuleer"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:324
 msgid "Cancel query on window unload event"
-msgstr ""
+msgstr "Annuleer query bij venster uitlaadevenement"
 
 #: superset/sqllab/commands/export.py:78
 msgid "Cannot access the query"
@@ -3092,11 +3136,11 @@ msgstr ""
 
 #: superset/databases/commands/exceptions.py:111
 msgid "Cannot delete a database that has datasets attached"
-msgstr ""
+msgstr "\\t"
 
 #: superset/databases/ssh_tunnel/commands/exceptions.py:67
 msgid "Cannot have multiple credentials for the SSH Tunnel"
-msgstr ""
+msgstr "Kan geen meerdere referenties hebben voor de SSH-tunnel"
 
 #: superset/views/core.py:734
 #, python-format
@@ -3125,7 +3169,7 @@ msgstr "Kan tijdstring [%(human_readable)s] niet parsen"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:63
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:42
 msgid "Categorical"
-msgstr ""
+msgstr "Categorisch"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:105
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:142
@@ -3134,7 +3178,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:165
 msgid "Categories to group by on the x-axis."
-msgstr ""
+msgstr "Categorieën om te groeperen op de x-as."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/Scatter.jsx:46
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:677
@@ -3177,23 +3221,23 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:100
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:108
 msgid "Category, Value and Percentage"
-msgstr ""
+msgstr "Categorie, Waarde en Percentage"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:107
 msgid "Cell Padding"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:121
 msgid "Cell Radius"
-msgstr ""
+msgstr "Celstraal"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:95
 msgid "Cell Size"
-msgstr ""
+msgstr "Celgrootte"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:428
 msgid "Cell bars"
-msgstr ""
+msgstr "Celstaafdiagrammen"
 
 #: superset-frontend/src/components/FilterableTable/index.tsx:303
 msgid "Cell content"
@@ -3205,7 +3249,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:101
 msgid "Center"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/Heatmap.tsx:32
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/Hex.jsx:33
@@ -3216,7 +3260,7 @@ msgstr "Ongeldige longitude/latitude"
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:706
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:376
 msgid "Certification"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:343
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:348
@@ -3255,11 +3299,11 @@ msgstr "Gecertificeerd door %s"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:334
 msgid "Change order of columns."
-msgstr ""
+msgstr "Verander volgorde van kolommen."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:306
 msgid "Change order of rows."
-msgstr ""
+msgstr "Verander volgorde van rijen."
 
 #: superset/connectors/sqla/views.py:385
 msgid "Changed By"
@@ -3271,7 +3315,7 @@ msgstr "Gewijzigd op"
 
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:80
 msgid "Changes saved."
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:51
 msgid ""
@@ -3411,7 +3455,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:269
 msgid "Chart Orientation"
-msgstr ""
+msgstr "Grafiek oriëntatie"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:70
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:83
@@ -3492,6 +3536,7 @@ msgstr "Grafiek bestaat niet"
 #: superset/charts/data/api.py:130
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
+"Grafiek heeft geen opgeslagen query-context. Sla de grafiek opnieuw op."
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:130
 msgid "Chart height"
@@ -3499,7 +3544,7 @@ msgstr ""
 
 #: superset-frontend/src/pages/ChartList/index.tsx:228
 msgid "Chart imported"
-msgstr ""
+msgstr "Grafiek geïmporteerd"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:90
 #, fuzzy
@@ -3518,7 +3563,7 @@ msgstr "Grafiek naam"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:97
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:108
 msgid "Chart options"
-msgstr ""
+msgstr "\\t\\t"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:76
 #, fuzzy
@@ -3531,7 +3576,7 @@ msgstr "Grafiekparameters zijn ongeldig."
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:245
 msgid "Chart properties updated"
-msgstr ""
+msgstr "Eigenschappen van grafiek bijgewerkt"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:220
 #, fuzzy
@@ -3544,7 +3589,7 @@ msgstr "Toe grafiek"
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:314
 msgid "Chart type requires a dataset"
-msgstr ""
+msgstr "Grafiektype vereist een dataset"
 
 #: superset-frontend/src/explore/components/EmbedCodeContent.jsx:139
 #, fuzzy
@@ -3592,7 +3637,7 @@ msgstr "Kijk naar deze grafiek in het dashboard:"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:474
 msgid "Check out this chart: "
-msgstr ""
+msgstr "Bekijk deze grafiek: "
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:235
 msgid "Check out this dashboard: "
@@ -3608,7 +3653,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:212
 msgid "Check to force date partitions to have the same height"
-msgstr ""
+msgstr "Vink aan om datumpartities dezelfde hoogte te geven"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:87
 msgid "Check to include time column dropdown"
@@ -3641,7 +3686,7 @@ msgstr "Kies een grafiek of een dashboard, niet beide"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:979
 msgid "Choose a database..."
-msgstr ""
+msgstr "Kies een database..."
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:384
 #: superset-frontend/src/pages/ChartCreation/index.tsx:395
@@ -3655,28 +3700,29 @@ msgstr "Kies een meeteenheid voor de rechteras"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:61
 msgid "Choose a number format"
-msgstr ""
+msgstr "Kies een getalopmaak"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:67
 msgid "Choose a source"
-msgstr ""
+msgstr "Kies een bron"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey-loop/src/controlPanel.ts:44
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/controlPanel.ts:38
 msgid "Choose a source and a target"
-msgstr ""
+msgstr "Kies een bron en een doelwit"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:73
 msgid "Choose a target"
-msgstr ""
+msgstr "Selecteer een doel"
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:404
 msgid "Choose chart type"
-msgstr ""
+msgstr "Kies grafiek type"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:739
 msgid "Choose one of the available databases from the panel on the left."
 msgstr ""
+"Kies een van de beschikbare databases uit het paneel aan de linkerkant."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:812
 msgid "Choose the annotation layer type"
@@ -3684,15 +3730,15 @@ msgstr "Kies het aantekeningenlaagtype"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:163
 msgid "Choose the format for legend values"
-msgstr ""
+msgstr "Kies het formaat voor de legenda waarden"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:177
 msgid "Choose the position of the legend"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:824
 msgid "Choose the source of your annotations"
-msgstr ""
+msgstr "Kies de bron van uw annotaties"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:122
 msgid ""
@@ -3714,11 +3760,11 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:131
 msgid "Circle -> Arrow"
-msgstr ""
+msgstr "Cirkel -> Pijl"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:132
 msgid "Circle -> Circle"
-msgstr ""
+msgstr "Cirkel -> Cirkel"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:199
 msgid "Circle radar shape"
@@ -3730,11 +3776,13 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:42
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:71
 msgid "Circular"
-msgstr ""
+msgstr "Cirkelvormig"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:32
 msgid "Classic chart that visualizes how metrics change over time."
 msgstr ""
+"Klassieke grafiek die laat zien hoe metingen in de loop van de tijd "
+"veranderen."
 
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:41
 msgid ""
@@ -3762,7 +3810,7 @@ msgstr "Wis alles"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:675
 msgid "Clear form"
-msgstr ""
+msgstr "Formulier wissen"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:209
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
@@ -3796,7 +3844,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Table/index.tsx:217
 msgid "Click to cancel sorting"
-msgstr ""
+msgstr "Klik om de sortering te annuleren"
 
 #: superset-frontend/src/components/EditableTitle/index.tsx:211
 msgid "Click to edit"
@@ -3815,7 +3863,7 @@ msgstr "Klik om te bewerken"
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndColumnSelectPopoverTitle.jsx:81
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle.tsx:105
 msgid "Click to edit label"
-msgstr ""
+msgstr "Klik om label te bewerken"
 
 #: superset-frontend/src/components/FaveStar/index.tsx:76
 msgid "Click to favorite/unfavorite"
@@ -3863,7 +3911,7 @@ msgstr "Tabblad sluiten"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:183
 msgid "Cluster label aggregator"
-msgstr ""
+msgstr "Aggregator voor clusterlabels"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:84
 msgid "Clustering Radius"
@@ -3895,7 +3943,7 @@ msgstr "Cel inhoud"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.tsx:194
 msgid "Collapse table preview"
-msgstr ""
+msgstr "Inklappen tabelvoorbeeld"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:713
 msgid "Color"
@@ -3908,7 +3956,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:227
 msgid "Color Metric"
-msgstr ""
+msgstr "Kleurmetriek"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:111
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:337
@@ -3921,7 +3969,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:306
 msgid "Color bounds"
-msgstr ""
+msgstr "Kleur grenzen"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:116
 #, fuzzy
@@ -3934,7 +3982,7 @@ msgstr "Kleur meeteenheid"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:93
 msgid "Color of the target location"
-msgstr ""
+msgstr "Kleur van de doellocatie"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:87
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:217
@@ -3977,6 +4025,7 @@ msgid ""
 "Column \"%(column)s\" is not numeric or does not exists in the query "
 "results."
 msgstr ""
+"Kolom \"%(column)s\" is niet numeriek of bestaat niet in de queryresultaten."
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:361
 #, fuzzy
@@ -4001,15 +4050,15 @@ msgstr "Kolom Label(s)"
 msgid ""
 "Column containing ISO 3166-2 codes of region/province/department in your "
 "table."
-msgstr ""
+msgstr "Kolom met ISO 3166-2-codes van regio/provincie/af"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:74
 msgid "Column containing latitude data"
-msgstr ""
+msgstr "Kolom met breedtegraadgegevens"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:64
 msgid "Column containing longitude data"
-msgstr ""
+msgstr "Kolom met lengtegraadgegevens"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:69
 #, fuzzy
@@ -4022,7 +4071,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/getControlItemsMap.tsx:118
 msgid "Column is required"
-msgstr ""
+msgstr "Kolom is vereist"
 
 #: superset/views/database/forms.py:394 superset/views/database/forms.py:485
 msgid ""
@@ -4053,7 +4102,7 @@ msgstr "Kolom waarnaar aggregaat verwijst is ongedefinieerd:  %(column)s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:123
 msgid "Column select"
-msgstr ""
+msgstr "Kolom selecteren"
 
 #: superset/views/database/forms.py:221
 msgid ""
@@ -4065,11 +4114,11 @@ msgstr ""
 msgid ""
 "Column to use as the row labels of the dataframe. Leave empty if no index "
 "column."
-msgstr ""
+msgstr "Kolom"
 
 #: superset/views/database/forms.py:424
 msgid "Columnar File"
-msgstr ""
+msgstr "Kolom bestand"
 
 #: superset/views/database/views.py:568
 #, python-format
@@ -4080,7 +4129,7 @@ msgstr ""
 
 #: superset/views/database/views.py:443
 msgid "Columnar to Database configuration"
-msgstr ""
+msgstr "Kolom naar Database configuratie"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:110
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:33
@@ -4122,11 +4171,11 @@ msgstr "Kolommen ontbreken in databron: %(invalid_columns)s"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:367
 msgid "Columns subtotal position"
-msgstr ""
+msgstr "Positie subtotaal kolommen"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:170
 msgid "Columns to calculate distribution across."
-msgstr ""
+msgstr "Kolommen om distributie te berekenen."
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:45
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:46
@@ -4136,15 +4185,15 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:103
 #: superset-frontend/src/explore/fixtures.tsx:99
 msgid "Columns to display"
-msgstr ""
+msgstr "Kolommen om weer te geven"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:42
 msgid "Columns to group by"
-msgstr ""
+msgstr "Kolommen om op te groeperen"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:53
 msgid "Columns to group by on the columns"
-msgstr ""
+msgstr "Kolommen om op te groeperen in de kolommen"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:63
 msgid "Columns to group by on the rows"
@@ -4157,7 +4206,7 @@ msgstr "Synchroniseer kolommen van bron"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:250
 msgid "Combine metrics"
-msgstr ""
+msgstr "Metrieken combineren"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:297
 msgid ""
@@ -4181,10 +4230,12 @@ msgid ""
 "Compare multiple time series charts (as sparklines) and related metrics "
 "quickly."
 msgstr ""
+"Snel meerdere tijdreeksgrafieken (als sparklines) en gerelateerde "
+"statistieken vergelijken."
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/index.js:27
 msgid "Compare the same summarized metric across multiple groups."
-msgstr ""
+msgstr "Vergelijk dezelfde samengevatte metriek over meerdere groepen."
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:28
 msgid ""
@@ -4232,7 +4283,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:54
 msgid "Comparison Period Lag"
-msgstr ""
+msgstr "Achterstand in vergelijkingsperiode"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:67
 msgid "Comparison suffix"
@@ -4240,7 +4291,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.js:27
 msgid "Compose multiple layers together to form complex visuals."
-msgstr ""
+msgstr "Voeg meerdere lagen samen om complexe visuals te vormen."
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:45
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:48
@@ -4254,7 +4305,7 @@ msgstr "Bereken de bijdrage aan het totaal"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
 msgid "Condition"
-msgstr ""
+msgstr "Voorwaarde"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:99
 #, fuzzy
@@ -4264,11 +4315,11 @@ msgstr "Bijkomende informatie"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:385
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:504
 msgid "Conditional formatting"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:70
 msgid "Confidence interval"
-msgstr ""
+msgstr "Betrouwbaarheidsinterval"
 
 #: superset/utils/pandas_postprocessing/prophet.py:129
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
@@ -4305,6 +4356,7 @@ msgstr "Configureer de basis van uw Aantekeningenlaag."
 #: superset-frontend/src/dashboard/components/DashboardEmbedControls.tsx:177
 msgid "Configure this dashboard to embed it into an external web application."
 msgstr ""
+"Configureer dit dashboard om het in te sluiten in een externe webapplicatie."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:681
 msgid "Configure your how you overlay is displayed here."
@@ -4325,21 +4377,21 @@ msgstr "Opslaan bevestigen"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1751
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1914
 msgid "Connect"
-msgstr ""
+msgstr "Verbinden"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:184
 msgid "Connect Google Sheet"
-msgstr ""
+msgstr "Verbind Google Sheet"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:40
 msgid "Connect Google Sheets as tables to this database"
-msgstr ""
+msgstr "Verbind Google Spreadsheets als tabellen met deze database"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1716
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1756
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1918
 msgid "Connect a database"
-msgstr ""
+msgstr "Verbind met een database"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:173
 #, fuzzy
@@ -4349,10 +4401,12 @@ msgstr "Verwijder database"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1824
 msgid "Connect this database using the dynamic form instead"
 msgstr ""
+"Verbind deze database met behulp van het dynamische formulier in plaats "
+"daarvan"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:2007
 msgid "Connect this database with a SQLAlchemy URI string instead"
-msgstr ""
+msgstr "Verbind deze database in plaats daarvan met een SQLAlchemy URI-string"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:227
 msgid "Connection"
@@ -4365,7 +4419,7 @@ msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:701
 msgid "Connection looks good!"
-msgstr ""
+msgstr "De verbinding ziet er goed uit!"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:674
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:685
@@ -4389,7 +4443,7 @@ msgstr "Bijdrage"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:46
 msgid "Contribution Mode"
-msgstr ""
+msgstr "Bijdragemodus"
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:174
 msgid "Control"
@@ -4401,7 +4455,7 @@ msgstr "Controle gelabeld "
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:519
 msgid "Controls labeled "
-msgstr ""
+msgstr "Besturingselementen gelabeld "
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:64
@@ -4425,11 +4479,12 @@ msgstr "Kopieer SELECT-instructie naar het klembord"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:105
 msgid "Copy and Paste JSON credentials"
-msgstr ""
+msgstr "Kopieer en plak JSON referenties"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:125
 msgid "Copy and paste the entire service account .json file here"
 msgstr ""
+"Kopieer en plak hier het volledige .json-bestand van de service-account"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:108
 msgid "Copy link"
@@ -4468,14 +4523,16 @@ msgstr "Kopieer query link naar uw klembord"
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:26
 msgid "Copy the account name of that database you are trying to connect to."
 msgstr ""
+"Kopieer de accountnaam van die database waarop je probeert aan te sluiten."
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:93
 msgid "Copy the name of the HTTP Path of your cluster."
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:115
 msgid "Copy the name of the database you are trying to connect to."
 msgstr ""
+"Kopieer de naam van de database waarmee u probeert verbinding te maken."
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:271
 msgid "Copy to Clipboard"
@@ -4491,7 +4548,7 @@ msgstr "Kopieer naar klembord"
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/index.js:25
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:26
 msgid "Correlation"
-msgstr ""
+msgstr "Correlatie"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx:104
 msgid "Cost estimate"
@@ -4531,7 +4588,7 @@ msgstr "Kon het database driver niet laden: {}"
 #: superset/db_engine_specs/ocient.py:264
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
-msgstr ""
+msgstr "Could not resolve hostname: \"%(host)s\"."
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 #, fuzzy
@@ -4540,7 +4597,7 @@ msgstr "kolom"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:180
 msgid "Count Unique Values"
-msgstr ""
+msgstr "Aantal unieke waarden tellen"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:198
 msgid "Count as Fraction of Columns"
@@ -4552,12 +4609,12 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:194
 msgid "Count as Fraction of Total"
-msgstr ""
+msgstr "Tellen als fractie van het totaal"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:120
 msgid "Country"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:146
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:151
@@ -4618,7 +4675,7 @@ msgstr "Maak een nieuwe grafiek"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:144
 msgid "Create chart with dataset"
-msgstr ""
+msgstr "Maak grafiek met dataset"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:178
 #, fuzzy
@@ -4641,7 +4698,7 @@ msgstr "Maak een nieuwe filterset"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:145
 msgid "Create or select schema..."
-msgstr ""
+msgstr "Maak of selecteer schema..."
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:159
 msgid "Created"
@@ -4737,7 +4794,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:131
 #, python-format
 msgid "Currently rendered: %s"
-msgstr ""
+msgstr "Momenteel weergegeven: %s"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
 msgid "Custom"
@@ -4761,10 +4818,11 @@ msgstr "Custom SQL"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:471
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
+"De aangepaste SQL ad-hoc-metrieken zijn niet ingeschakeld voor dit dataset"
 
 #: superset/errors.py:145 superset/models/helpers.py:138
 msgid "Custom SQL fields cannot contain sub-queries."
-msgstr ""
+msgstr "Aangepaste SQL-velden kunnen geen subqueries bevatten."
 
 #: superset-frontend/src/filters/components/Time/index.ts:28
 msgid "Custom time filter plugin"
@@ -4776,7 +4834,7 @@ msgstr "Pas aan"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:165
 msgid "Customize Metrics"
-msgstr ""
+msgstr "Aanpassen van metrieken"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:482
 msgid "Customize columns"
@@ -4784,7 +4842,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:447
 msgid "Cyclic dependency detected"
-msgstr ""
+msgstr "Cyclische afhankelijkheid gedetecteerd"
 
 #: superset/connectors/sqla/views.py:255
 msgid "D3 Format"
@@ -4799,7 +4857,7 @@ msgstr "D3 formaat"
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:27
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:146
 msgid "D3 format syntax: https://github.com/d3/d3-format"
-msgstr ""
+msgstr "D3-formaatsyntax: https://github.com/d3/d3-format"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:150
 msgid ""
@@ -4810,11 +4868,11 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:285
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:392
 msgid "D3 time format for datetime columns"
-msgstr ""
+msgstr "D3 tijdformaat voor datetime-kolommen"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:62
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
-msgstr ""
+msgstr "D3-tijdformaat syntaxis: https://github.com/d3/d3-time-format"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:145
 #, fuzzy
@@ -4850,11 +4908,11 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:43
 msgid "Dark Cyan"
-msgstr ""
+msgstr "Dark Cyan"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:31
 msgid "Dark mode"
-msgstr ""
+msgstr "Donkere modus"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:405
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
@@ -4893,7 +4951,7 @@ msgstr "Het dashboard bestaat niet"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:170
 msgid "Dashboard imported"
-msgstr ""
+msgstr "Dashboard geïmporteerd"
 
 #: superset/dashboards/commands/exceptions.py:43
 msgid "Dashboard parameters are invalid."
@@ -4905,11 +4963,11 @@ msgstr "Dashboard eigenschappen"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:444
 msgid "Dashboard properties updated"
-msgstr ""
+msgstr "Dashboard eigenschappen bijgewerkt"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:117
 msgid "Dashboard scheme"
-msgstr ""
+msgstr "Dashboard schema"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:868
 msgid ""
@@ -4993,11 +5051,11 @@ msgstr ""
 msgid ""
 "Data could not be retrieved from the results backend. You need to re-run the"
 " original query."
-msgstr ""
+msgstr "Gege"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/components/PlaySlider.jsx:182
 msgid "Data has no time steps"
-msgstr ""
+msgstr "Gegevens hebben geen tijdstappen"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:246
 msgid "Data preview"
@@ -5068,7 +5126,7 @@ msgstr "Test connectie"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1522
 msgid "Database Creation Error"
-msgstr ""
+msgstr "Fout bij het maken van de database"
 
 #: superset/views/access_requests.py:46
 msgid "Database URL"
@@ -5079,7 +5137,7 @@ msgstr "Database URL"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:904
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1205
 msgid "Database connected"
-msgstr ""
+msgstr "Database verbonden"
 
 #: superset/databases/commands/exceptions.py:96
 msgid "Database could not be created."
@@ -5095,7 +5153,7 @@ msgstr "De database kon niet worden bijgewerkt."
 
 #: superset/errors.py:123
 msgid "Database does not allow data manipulation."
-msgstr ""
+msgstr "De database staat geen datamanipulatie toe."
 
 #: superset/charts/commands/exceptions.py:82
 #: superset/datasets/commands/exceptions.py:41
@@ -5119,7 +5177,7 @@ msgstr "Database fout"
 
 #: superset/databases/commands/validate.py:124
 msgid "Database is offline."
-msgstr ""
+msgstr "De database is offline."
 
 #: superset/reports/commands/exceptions.py:66
 msgid "Database is required for alerts"
@@ -5161,7 +5219,7 @@ msgstr "Database poort"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:853
 msgid "Database settings updated"
-msgstr ""
+msgstr "Database instellingen bijgewerkt"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:269
 #: superset-frontend/src/profile/components/Security.tsx:47
@@ -5254,7 +5312,7 @@ msgstr "Dataset parameters zijn ongeldig."
 #: superset/dashboards/api.py:415
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr ""
+msgstr "Dataset schema is ongeldig, veroorzaakt door: %(error)s"
 
 #: superset/datasets/commands/exceptions.py:186
 msgid "Dataset(s) could not be bulk deleted."
@@ -5274,7 +5332,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:847
 msgid "Datasets do not contain a temporal column"
-msgstr ""
+msgstr "Datasets bevatten geen tijdelijke kolom"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:110
 #: superset/views/access_requests.py:47 superset/views/chart/mixin.py:79
@@ -5283,7 +5341,7 @@ msgstr "Gegevensbron"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:60
 msgid "Datasource & Chart Type"
-msgstr ""
+msgstr "Gegevensbron & Grafiektype"
 
 #: superset/commands/exceptions.py:135
 #, fuzzy
@@ -5292,7 +5350,7 @@ msgstr "Dataset bestaat niet"
 
 #: superset/commands/exceptions.py:127
 msgid "Datasource type is invalid"
-msgstr ""
+msgstr "Ongeldig type gegevensbron"
 
 #: superset/charts/commands/exceptions.py:101
 msgid "Datasource type is required when datasource_id is given"
@@ -5301,7 +5359,7 @@ msgstr "Datasourcetype is vereist wanneer datasource_id is gegeven"
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:156
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:79
 msgid "Date Time Format"
-msgstr ""
+msgstr "Datum/Tijd Formaat"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:49
 msgid "Date filter"
@@ -5317,7 +5375,7 @@ msgstr "Datum filter"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:281
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:328
 msgid "Date format"
-msgstr ""
+msgstr "Datum formaat"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:334
 #, fuzzy
@@ -5337,6 +5395,8 @@ msgid ""
 "Datetime column not provided as part table configuration and is required by "
 "this type of chart"
 msgstr ""
+"Datumtijd-kolom is niet opgenomen als onderdeel van de tabelconfiguratie en "
+"is nodig voor dit type grafiek"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:300
 msgid "Datetime format"
@@ -5348,7 +5408,7 @@ msgstr "Dag"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:63
 msgid "Day (freq=D)"
-msgstr ""
+msgstr "Dag (freq=D)"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, python-format
@@ -5446,11 +5506,11 @@ msgstr "Default Value"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:363
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:371
 msgid "Default datetime"
-msgstr ""
+msgstr "Standaard datum/tijd"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:295
 msgid "Default latitude"
-msgstr ""
+msgstr "\\n"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:281
 msgid "Default longitude"
@@ -5469,22 +5529,28 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:96
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
+"De standaardwaarde moet worden ingesteld wanneer \"Filter heeft "
+"standaardwaarde\" is aangevinkt"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:92
 msgid "Default value must be set when \"Filter value is required\" is checked"
 msgstr ""
+"Standaardwaarde moet worden ingesteld wanneer \"Filterwaarde is vereist\" is"
+" aangevinkt"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/state.ts:88
 msgid ""
 "Default value set automatically when \"Select first filter value by "
 "default\" is checked"
 msgstr ""
+"De standaardwaarde wordt automatisch ingesteld wanneer \"Selecteer standaard"
+" het eerste filterwaarde\" is aangevinkt"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:145
 msgid ""
 "Define a function that receives the input and outputs the content for a "
 "tooltip"
-msgstr ""
+msgstr "Definieer een functie die de invoer ontvangt en de"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:155
 msgid "Define a function that returns a URL to navigate to when user clicks"
@@ -5507,7 +5573,7 @@ msgstr ""
 msgid ""
 "Defines a rolling window function to apply, works along with the [Periods] "
 "text box"
-msgstr ""
+msgstr "Definie"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/controlPanel.ts:124
 msgid "Defines how each series is broken down"
@@ -5515,14 +5581,14 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:285
 msgid "Defines the grid size in pixels"
-msgstr ""
+msgstr "Bepaalt de grootte van het rooster in pixels"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:119
 #: superset-frontend/src/explore/controls.jsx:383
 msgid ""
 "Defines the grouping of entities. Each series is shown as a specific color "
 "on the chart and has a legend toggle"
-msgstr ""
+msgstr "Definieert de groepering van entiteiten."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:58
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:273
@@ -5541,7 +5607,7 @@ msgstr ""
 msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
-msgstr ""
+msgstr "Definieert of de stap moet verschijnen aan het begin"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/FilterSetUnit.tsx:90
 #: superset-frontend/src/features/charts/ChartCard.tsx:106
@@ -5596,7 +5662,7 @@ msgstr "Verwijder Query?"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:335
 msgid "Delete Report?"
-msgstr ""
+msgstr "Verwijder rapport?"
 
 #: superset-frontend/src/pages/CssTemplateList/index.tsx:323
 msgid "Delete Template?"
@@ -5621,7 +5687,7 @@ msgstr "Verwijder database"
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:246
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:270
 msgid "Delete email report"
-msgstr ""
+msgstr "Verwijder e-mailrapport"
 
 #: superset-frontend/src/pages/SavedQueryList/index.tsx:428
 msgid "Delete query"
