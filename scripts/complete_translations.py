@@ -3,6 +3,8 @@ import polib
 from langchain_community.callbacks import get_openai_callback
 from langchain_openai import OpenAI
 import json
+import csv
+import io
 
 llm = OpenAI(model_name="gpt-3.5-turbo-instruct", n=2, best_of=2)
 
@@ -38,66 +40,64 @@ def update_po_files(glob_pattern, translations):
                     entry.msgstr = translations[entry.msgid][lang]
             po.save(file_path)
 
-def print_missing_translations_with_available(translations, missing_translations):
-    missing_translations_count = 0
-    for msgid, missing_langs in missing_translations.items():
-        print(f"msgid: {msgid}")
-        print("missing_translation:", ', '.join(missing_langs))
-        print("available translations:")
-        for lang, trans in translations[msgid].items():
-            if trans:  # Check if translation is not empty
-                missing_translations_count += 1
-                print(f"  '{lang}': {trans}")
-    print(f"Missing translations count: {missing_translations_count}")
 
-limit = 10;
 
 def generate_missing_translations(translations, missing_translations):
+    translated_count = 0
+    limit = 2
     with get_openai_callback() as cb:
-        missing_translations_count = 0
         for msgid, missing_langs in missing_translations.items():
-            for target_lang in missing_langs:
-                missing_translations_count += 1
+            translated_count += 1
+            csv_output = io.StringIO()
+            csv_writer = csv.writer(csv_output, quoting=csv.QUOTE_ALL)
 
-                template = "I have the following JSON object of `msgid` and `msgstr` strings pulled from a .po file:\n"
-                template += "{\n"
-                template += f"\t\"msgid\": \"{msgid}\",\n"
-                template += "\t\"translations\": {\n"
+            # Header for CSV
+            csv_writer.writerow(['msgid', 'Language', 'Text'])
 
-                translations_items = list(translations[msgid].items())
-                total_items = len(translations_items)
+            # Existing translations
+            for lang, trans in translations[msgid].items():
+                if lang != 'en':
+                    csv_writer.writerow([msgid, lang, trans])
+                else:
+                    csv_writer.writerow([msgid, lang, msgid])
 
-                for index, (lang, trans) in enumerate(translations_items):
-                    if trans:  # Check if translation is not empty
-                        template += f"\t\t\"{lang}\": \"{trans}\""
-                        if index < total_items - 1:  # If it's not the last item
-                            template += ","
-                        template += "\n"
+            # Include rows for missing translations
+            # for lang in missing_langs:
+            #     csv_writer.writerow([msgid, lang, ''])
 
-                template += "\t}\n"
-                template += "}\n\n"
-                template += f"I'm missing the translation for the '{target_lang}' language\n"
-                template += "Respond with a JSON object and nothing else. The json object should have the `msgid` key/value pair as specified in my JSON object, and the `msgstr` key/value pair with the translated string (including any relevant whitespace)\n"
-                # template += "Respond with the translated `msgstr` value (including any whitespace) and nothing else. The json object should have the `msgid` key/value pair as specified in my JSON object, and the `msgstr` key/value pair with the translated string (including any relevant whitespace)\n"
+            csv_request = csv_output.getvalue()
+            csv_output.close()
 
-                if missing_translations_count < 20:
-                    result = llm.invoke(template)
+            template = f"Please review the following CSV input, generated from text in my .po language files:\n\n{csv_request}\n\Generate a CSV file for the missing languages {missing_langs} in the same format with the same headers. The `Text` column filled in for these missing languages, being sure to retain all whitespace/tabs/newlines from the original format in the `msgid` column, so that the translated text matches the original format.\n"
 
-                    try:
-                        result = result.strip()
-                        # Parse the corrected string
-                        parsed_data = json.loads(result)
+            if len(missing_langs) > 0 and translated_count < limit:
+                print(f"template: \n{template}\n")
+                result = llm.invoke(template)
+                print(f"result:\n{result}\n")
 
-                        if "msgid" in parsed_data and "msgstr" in parsed_data and parsed_data["msgid"] and parsed_data["msgstr"]:
-                            print('SUCCESS!')
-                            populate_missing_translation(translations, parsed_data["msgid"], target_lang, parsed_data["msgstr"])
-                    except json.JSONDecodeError as e:
-                        print(f"Error parsing JSON: {e}")
-                        print("Result:", result)
+                print(f"missing languages: {missing_langs}")
+                      
+                # Parse the response
+                response_csv = io.StringIO(result.strip())
+                csv_reader = csv.DictReader(response_csv)
+
+                for row in csv_reader:
+                    # Strip whitespace and check if the fields are not empty
+                    if row.get('msgid', '') and row.get('Language', '') and row.get('Text', ''):
+                        if row['msgid'] in translations:
+                            print('msgid found in translations') 
+                            if row['Language'] in missing_langs:
+                                print(f"populating missing translation: {row['Language']}, {row['Text']}")
+                                populate_missing_translation(translations, row['msgid'], row['Language'], row['Text']) 
+                            else:
+                                print(f"language {row['Language']} not needed")
+                        else:
+                            print('msgid not found in translations')
+                response_csv.close()
+
+        print("Translations updated.")
 
 
-
-        print(f"Missing translations count: {missing_translations_count}")
     print(cb)
     
 
@@ -107,6 +107,7 @@ def populate_missing_translation(translations, msgid, language, string):
     else:
         print(f"Warning: msgid '{msgid}' not found in translations.")
 
+
 # Main process
 glob_pattern = '../superset/translations/**/LC_MESSAGES/*.po'
 translations = read_po_files(glob_pattern)
@@ -115,7 +116,6 @@ missing_translations = find_missing_translations(translations)
 # print('Missing translations:')
 # print(missing_translations)
 # print('Missing translations with available translations:')
-# print_missing_translations_with_available(translations, missing_translations)
 generate_missing_translations(translations, missing_translations)
 
 update_po_files(glob_pattern, translations)
