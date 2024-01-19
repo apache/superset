@@ -17,14 +17,14 @@
 """drop_url_table
 
 Revision ID: e863403c0c50
-Revises: 06dd9ff00fe8
+Revises: 214f580d09c9
 Create Date: 2023-12-28 16:03:31.691033
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e863403c0c50"
-down_revision = "06dd9ff00fe8"
+down_revision = "214f580d09c9"
 
 from importlib import import_module
 
