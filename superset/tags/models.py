@@ -21,7 +21,17 @@ from typing import TYPE_CHECKING
 
 from flask import escape
 from flask_appbuilder import Model
-from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Text
+from sqlalchemy import (
+    Column,
+    Enum,
+    exists,
+    ForeignKey,
+    Integer,
+    orm,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
@@ -147,7 +157,7 @@ def get_object_type(class_name: str) -> ObjectType:
 
 
 class ObjectUpdater:
-    object_type: str | None = None
+    object_type: str = "default"
 
     @classmethod
     def get_owners_ids(
@@ -175,10 +185,27 @@ class ObjectUpdater:
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
-            name = f"owner:{owner_id}"
+            name: str = f"owner:{owner_id}"
             tag = get_tag(name, session, TagType.owner)
+            cls.add_tag_object_if_not_tagged(
+                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
+            )
+
+    def add_tag_object_if_not_tagged(
+        session: orm.Session, tag_id: int, object_id: int, object_type: str
+    ) -> None:
+        # Check if the object is already tagged
+        exists_query = exists().where(
+            TaggedObject.tag_id == tag_id,
+            TaggedObject.object_id == object_id,
+            TaggedObject.object_type == object_type,
+        )
+        already_tagged = session.query(exists_query).scalar()
+
+        # Add TaggedObject to the session if it isn't already tagged
+        if not already_tagged:
             tagged_object = TaggedObject(
-                tag_id=tag.id, object_id=target.id, object_type=cls.object_type
+                tag_id=tag_id, object_id=object_id, object_type=object_type
             )
             session.add(tagged_object)
 
@@ -195,10 +222,9 @@ class ObjectUpdater:
 
             # add `type:` tags
             tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
-            tagged_object = TaggedObject(
-                tag_id=tag.id, object_id=target.id, object_type=cls.object_type
+            cls.add_tag_object_if_not_tagged(
+                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
-            session.add(tagged_object)
             session.commit()
 
     @classmethod
