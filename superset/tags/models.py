@@ -226,11 +226,11 @@ class ObjectUpdater:
             new_owner_tag_ids = cls.get_owner_tag_ids(session, target)
 
             # Add missing tags
-            for owner_id in new_owner_tag_ids - existing_owner_tag_ids:
-                name = f"owner:{owner_id}"
-                tag = get_tag(name, session, TagType.owner)
+            for owner_tag_id in new_owner_tag_ids - existing_owner_tag_ids:
                 tagged_object = TaggedObject(
-                    tag_id=tag.id, object_id=target.id, object_type=cls.object_type
+                    tag_id=owner_tag_id,
+                    object_id=target.id,
+                    object_type=cls.object_type,
                 )
                 session.add(tagged_object)
 
