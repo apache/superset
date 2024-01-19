@@ -190,6 +190,7 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         dataset = chart.datasource
         assert json.loads(chart.params) == {
+            "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
             "datasource": dataset.uid,
             "js_columns": ["color"],
