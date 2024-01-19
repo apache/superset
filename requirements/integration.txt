@@ -36,7 +36,7 @@ packaging==23.1
     #   tox
 pip-compile-multi==2.6.3
     # via -r requirements/integration.in
-pip-tools==6.13.0
+pip-tools==7.3.0
     # via pip-compile-multi
 platformdirs==3.8.1
     # via
@@ -55,6 +55,7 @@ pyyaml==6.0.1
 tomli==2.0.1
     # via
     #   build
+    #   pip-tools
     #   pyproject-api
     #   tox
 toposort==1.10

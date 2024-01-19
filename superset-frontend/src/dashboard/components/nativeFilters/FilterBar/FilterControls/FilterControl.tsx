@@ -49,7 +49,6 @@ const VerticalFilterControlTitle = styled.h4`
 const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   color: ${({ theme }) => theme.colors.grayscale.base};
-  max-width: ${({ theme }) => theme.gridUnit * 15}px;
   ${truncationCSS};
 `;
 
@@ -112,6 +111,7 @@ const HorizontalOverflowFilterControlContainer = styled(
 
 const VerticalFormItem = styled(StyledFormItem)`
   .ant-form-item-label {
+    overflow: visible;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
         display: none;
@@ -127,6 +127,7 @@ const HorizontalFormItem = styled(StyledFormItem)`
   }
 
   .ant-form-item-label {
+    overflow: visible;
     padding-bottom: 0;
     margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
@@ -200,10 +201,11 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
       placement="right"
       overlayInnerStyle={{
         display: '-webkit-box',
-        overflow: 'hidden',
-        WebkitLineClamp: 20,
+        WebkitLineClamp: 10,
         WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
         textOverflow: 'ellipsis',
+        whiteSpace: 'normal',
       }}
       getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >

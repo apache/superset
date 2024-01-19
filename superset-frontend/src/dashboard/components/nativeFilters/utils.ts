@@ -28,6 +28,7 @@ import {
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
+  t,
 } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
@@ -150,8 +151,7 @@ export function getExtraFormData(
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
     !behaviors.includes(Behavior.NATIVE_FILTER) ||
-    (isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL) &&
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
       behaviors.includes(Behavior.INTERACTIVE_CHART))
   );
 }
@@ -233,4 +233,22 @@ export const findTabsWithChartsInScope = (
       );
   }
   return tabsInScope;
+};
+
+export const getFilterValueForDisplay = (
+  value?: string[] | null | string | number | object,
+): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return `${value}`;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return t('Unknown value');
 };

@@ -31,7 +31,7 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -130,7 +130,7 @@ const selectIndicatorsForChartFromFilter = (
 
   return Object.keys(filter.columns)
     .filter(column =>
-      getChartIdsInFilterBoxScope({
+      getChartIdsInFilterScope({
         filterScope: filter.scopes[column],
       }).includes(chartId),
     )

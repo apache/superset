@@ -12,7 +12,7 @@ version: 1
 First make sure to wind down the running containers in Docker Compose:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 Then, update the folder that mirrors the `superset` repo through git:
@@ -25,7 +25,7 @@ git pull origin master
 Then, restart the containers and any changed Docker images will be automatically pulled down:
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 ### Updating Superset Manually

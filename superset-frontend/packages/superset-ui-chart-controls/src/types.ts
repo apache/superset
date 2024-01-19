@@ -280,7 +280,6 @@ export type SelectControlType =
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl';
 
-// via react-select/src/filters
 export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
@@ -479,13 +478,15 @@ export function isControlPanelSectionConfig(
 export function isDataset(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is Dataset {
-  return !!datasource && 'columns' in datasource;
+  return (
+    !!datasource && 'columns' in datasource && !('sqlEditorId' in datasource)
+  );
 }
 
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return !!datasource && 'results' in datasource && 'sql' in datasource;
+  return !!datasource && 'results' in datasource && 'sqlEditorId' in datasource;
 }
 
 export enum SortSeriesType {

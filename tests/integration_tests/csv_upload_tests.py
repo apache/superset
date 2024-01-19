@@ -165,7 +165,6 @@ def upload_excel(
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
-        "mangle_dupe_cols": False,
     }
     if schema := utils.get_example_default_schema():
         form_data["schema"] = schema

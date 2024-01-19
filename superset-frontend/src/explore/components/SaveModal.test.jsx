@@ -27,7 +27,10 @@ import Button from 'src/components/Button';
 import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
+import SaveModal, {
+  PureSaveModal,
+  StyledModal,
+} from 'src/explore/components/SaveModal';
 import { BrowserRouter } from 'react-router-dom';
 
 const middlewares = [thunk];
@@ -100,8 +103,12 @@ const queryDefaultProps = {
 };
 
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
 
-beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
+beforeAll(() => {
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+});
 
 afterAll(() => fetchMock.restore());
 
@@ -225,4 +232,28 @@ test('set dataset name when chart source is query', () => {
   const wrapper = getWrapper(queryDefaultProps, queryStore);
   expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
   expect(wrapper.state().datasetName).toBe('test');
+});
+
+test('make sure slice_id in the URLSearchParams before the redirect', () => {
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: jest.fn(),
+      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: jest.fn(),
+    },
+    user: { userId: 1 },
+    history: {
+      replace: jest.fn(),
+    },
+    dispatch: jest.fn(),
+  };
+
+  const saveModal = new PureSaveModal(myProps);
+  const result = saveModal.handleRedirect(
+    'https://example.com/?name=John&age=30',
+    { id: 1 },
+  );
+  expect(result.get('slice_id')).toEqual('1');
 });

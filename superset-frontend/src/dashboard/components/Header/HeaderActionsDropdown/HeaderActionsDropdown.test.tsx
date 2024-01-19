@@ -92,6 +92,14 @@ const editModeOnWithFilterScopesProps = {
   },
 };
 
+const guestUserProps = {
+  ...createProps(),
+  dashboardInfo: {
+    ...createProps().dashboardInfo,
+    userId: undefined,
+  },
+};
+
 function setup(props: HeaderDropdownProps) {
   return render(
     <div className="dashboard-header">
@@ -109,10 +117,10 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the dropdown button', () => {
+test('should render the Download dropdown button when not in edit mode', () => {
   const mockedProps = createProps();
   setup(mockedProps);
-  expect(screen.getByRole('button')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
 });
 
 test('should render the menu items', async () => {
@@ -121,16 +129,25 @@ test('should render the menu items', async () => {
   expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
-  expect(screen.getByText('Download as image')).toBeInTheDocument();
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
 });
 
 test('should render the menu items in edit mode', async () => {
   setup(editModeOnProps);
-  expect(screen.getAllByRole('menuitem')).toHaveLength(4);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(5);
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Edit properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+});
+
+test('should render the menu items in Embedded mode', async () => {
+  setup(guestUserProps);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(3);
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
 });
 
 describe('with native filters feature flag disabled', () => {

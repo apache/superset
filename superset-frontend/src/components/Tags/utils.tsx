@@ -46,7 +46,7 @@ export const tagToSelectOption = (
 ): SelectTagsValue => ({
   value: item.name,
   label: item.name,
-  key: item.name,
+  key: item.id,
 });
 
 export const loadTags = async (

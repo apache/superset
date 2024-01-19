@@ -72,6 +72,7 @@ import {
   scheduleQuery,
   setActiveSouthPaneTab,
   updateSavedQuery,
+  formatQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -92,7 +93,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isEmpty } from 'lodash';
+import { isBoolean, isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -103,6 +104,10 @@ import SqlEditorLeftBar, { ExtendedTable } from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
+import KeyboardShortcutButton, {
+  KEY_MAP,
+  KeyboardShortcut,
+} from '../KeyboardShortcutButton';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -114,6 +119,7 @@ const StyledToolbar = styled.div`
   justify-content: space-between;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-top: 0;
+  column-gap: ${({ theme }) => theme.gridUnit}px;
 
   form {
     margin-block-end: 0;
@@ -249,7 +255,9 @@ const SqlEditor: React.FC<Props> = ({
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
       latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
+      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
+        ? unsavedQueryEditor.hideLeftBar
+        : hideLeftBar;
     }
     return {
       database: databases[dbId || ''],
@@ -300,6 +308,10 @@ const SqlEditor: React.FC<Props> = ({
     [ctas, database, defaultQueryLimit, dispatch, queryEditor],
   );
 
+  const formatCurrentQuery = useCallback(() => {
+    dispatch(formatQuery(queryEditor));
+  }, [dispatch, queryEditor]);
+
   const stopQuery = useCallback(() => {
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
@@ -333,8 +345,8 @@ const SqlEditor: React.FC<Props> = ({
     return [
       {
         name: 'runQuery1',
-        key: 'ctrl+r',
-        descr: t('Run query'),
+        key: KeyboardShortcut.CTRL_R,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_R],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
             startQuery();
@@ -343,8 +355,8 @@ const SqlEditor: React.FC<Props> = ({
       },
       {
         name: 'runQuery2',
-        key: 'ctrl+enter',
-        descr: t('Run query'),
+        key: KeyboardShortcut.CTRL_ENTER,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_ENTER],
         func: () => {
           if (queryEditor.sql.trim() !== '') {
             startQuery();
@@ -353,20 +365,42 @@ const SqlEditor: React.FC<Props> = ({
       },
       {
         name: 'newTab',
-        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
-        descr: t('New tab'),
+        ...(userOS === 'Windows'
+          ? {
+              key: KeyboardShortcut.CTRL_Q,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_Q],
+            }
+          : {
+              key: KeyboardShortcut.CTRL_T,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_T],
+            }),
         func: () => {
           dispatch(addNewQueryEditor());
         },
       },
       {
         name: 'stopQuery',
-        key: userOS === 'MacOS' ? 'ctrl+x' : 'ctrl+e',
-        descr: t('Stop query'),
+        ...(userOS === 'MacOS'
+          ? {
+              key: KeyboardShortcut.CTRL_X,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_X],
+            }
+          : {
+              key: KeyboardShortcut.CTRL_E,
+              descr: KEY_MAP[KeyboardShortcut.CTRL_E],
+            }),
         func: stopQuery,
       },
+      {
+        name: 'formatQuery',
+        key: KeyboardShortcut.CTRL_SHIFT_F,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_SHIFT_F],
+        func: () => {
+          formatCurrentQuery();
+        },
+      },
     ];
-  }, [dispatch, queryEditor.sql, startQuery, stopQuery]);
+  }, [dispatch, queryEditor.sql, startQuery, stopQuery, formatCurrentQuery]);
 
   const hotkeys = useMemo(() => {
     // Get all hotkeys including ace editor hotkeys
@@ -376,8 +410,8 @@ const SqlEditor: React.FC<Props> = ({
       ...getHotkeyConfig(),
       {
         name: 'runQuery3',
-        key: 'ctrl+shift+enter',
-        descr: t('Run current query'),
+        key: KeyboardShortcut.CTRL_SHIFT_ENTER,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_SHIFT_ENTER],
         func: (editor: AceEditor['editor']) => {
           if (!editor.getValue().trim()) {
             return;
@@ -434,8 +468,8 @@ const SqlEditor: React.FC<Props> = ({
     if (userOS === 'MacOS') {
       base.push({
         name: 'previousLine',
-        key: 'ctrl+p',
-        descr: t('Previous Line'),
+        key: KeyboardShortcut.CTRL_P,
+        descr: KEY_MAP[KeyboardShortcut.CTRL_P],
         func: editor => {
           editor.navigateUp();
         },
@@ -525,10 +559,9 @@ const SqlEditor: React.FC<Props> = ({
     [setQueryEditorAndSaveSql],
   );
 
-  const onSqlChanged = (sql: string) => {
+  const onSqlChanged = useEffectEvent((sql: string) => {
     dispatch(queryEditorSetSql(queryEditor, sql));
-    setQueryEditorAndSaveSqlWithDebounce(sql);
-  };
+  });
 
   // Return the heights for the ace editor and the south pane as an object
   // given the height of the sql editor, north pane percent and south pane percent.
@@ -583,7 +616,7 @@ const SqlEditor: React.FC<Props> = ({
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu css={{ width: theme.gridUnit * 44 }}>
+      <Menu css={{ width: theme.gridUnit * 50 }}>
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
@@ -603,6 +636,7 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
+        <Menu.Item onClick={formatCurrentQuery}>{t('Format SQL')}</Menu.Item>
         {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
@@ -617,6 +651,11 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
+        <Menu.Item>
+          <KeyboardShortcutButton>
+            {t('Keyboard shortcuts')}
+          </KeyboardShortcutButton>
+        </Menu.Item>
       </Menu>
     );
   };
@@ -747,7 +786,7 @@ const SqlEditor: React.FC<Props> = ({
           )}
           <AceEditorWrapper
             autocomplete={autocompleteEnabled}
-            onBlur={setQueryEditorAndSaveSql}
+            onBlur={onSqlChanged}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
             height={`${aceEditorHeight}px`}

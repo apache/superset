@@ -26,7 +26,7 @@ from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
 from superset import db, event_logger
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )

@@ -22,12 +22,12 @@ import pytest
 
 from superset import app, db, security, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.commands.explore.form_data.delete import DeleteFormDataCommand
+from superset.commands.explore.form_data.get import GetFormDataCommand
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.form_data.update import UpdateFormDataCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.explore.form_data.commands.create import CreateFormDataCommand
-from superset.explore.form_data.commands.delete import DeleteFormDataCommand
-from superset.explore.form_data.commands.get import GetFormDataCommand
-from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils.core import DatasourceType, get_example_default_schema

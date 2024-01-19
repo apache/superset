@@ -30,6 +30,7 @@ partaking in the process should join the channel.
 
 ## Release notes for recent releases
 
+- [3.1](release-notes-3-1/README.md)
 - [2.0](release-notes-2-0/README.md)
 - [1.5](release-notes-1-5/README.md)
 - [1.4](release-notes-1-4/README.md)
@@ -387,7 +388,22 @@ The script will generate the email text that should be sent to dev@superset.apac
 
 ## Validating a release
 
+Official instructions:
 https://www.apache.org/info/verification.html
+
+We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
+`python verify_release.py ~/path/tp/apache-superset-{version/candidate}-source.tar.gz`
+
+
+If all goes well, you will see this result in your terminal:
+```bash
+SHA-512 verified
+RSA key verified
+```
+
+There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
+* `cd` into `superset-frontend` and run `npm run validate-release`
+* `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
 
@@ -415,11 +431,6 @@ git tag -f ${SUPERSET_VERSION}
 # push the tag to the remote
 git push origin ${SUPERSET_VERSION}
 ```
-
-### Update CHANGELOG and UPDATING on superset
-
-Now that we have a final Apache source release we need to open a pull request on Superset
-with the changes on `CHANGELOG.md` and `UPDATING.md`.
 
 ### Publishing a Convenience Release to PyPI
 
@@ -486,3 +497,9 @@ click the 3-dot icon and select `Create Release`, paste the content of the ANNOU
 release notes, and publish the new release.
 
 At this point, a GitHub action will run that will check whether this release's version number is higher than the current 'latest' release. If that condition is true, this release sha will automatically be tagged as `latest` so that the most recent release can be referenced simply by using the 'latest' tag instead of looking up the version number. The existing version number tag will still exist, and can also be used for reference.
+
+### Update Superset files
+
+Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG.m](../CHANGELOG.md) and [UPDATING.md](../UPDATING.md).
+
+We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.

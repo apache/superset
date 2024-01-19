@@ -373,6 +373,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
 
+  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  const dropdownOverlayStyle = {
+    zIndex: isFullSize ? 101 : 99,
+    animationDuration: '0s',
+  };
+
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -483,7 +489,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.SubMenu>
       )}
 
-      {props.slice.viz_type !== 'filter_box' && props.supersetCanCSV && (
+      {props.supersetCanCSV && (
         <Menu.SubMenu title={t('Download')}>
           <Menu.Item
             key={MENU_KEYS.EXPORT_CSV}
@@ -498,8 +504,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             {t('Export to Excel')}
           </Menu.Item>
 
-          {props.slice.viz_type !== 'filter_box' &&
-            isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+          {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
             props.supersetCanCSV &&
             isTable && (
               <>
@@ -541,6 +546,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
       <NoAnimationDropdown
         overlay={menu}
+        overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
       >

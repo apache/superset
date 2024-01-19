@@ -25,7 +25,7 @@ import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/Dashboar
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
-  setActiveTabs,
+  setActiveTab,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import {
@@ -41,18 +41,12 @@ fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),
-  setActiveTabs: jest.fn(),
+  setActiveTab: jest.fn(),
   setDirectPathToChild: jest.fn(),
 }));
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependant components to fix the prop warnings
-jest.mock('src/components/DeprecatedSelect/WindowedSelect', () => () => (
-  <div data-test="mock-windowed-select" />
-));
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-select" />
 ));
@@ -90,7 +84,7 @@ describe('DashboardBuilder', () => {
     favStarStub = (fetchFaveStar as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    activeTabsStub = (setActiveTabs as jest.Mock).mockReturnValue({
+    activeTabsStub = (setActiveTab as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [

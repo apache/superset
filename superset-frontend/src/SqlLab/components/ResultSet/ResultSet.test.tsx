@@ -95,7 +95,7 @@ const asyncRefetchResultsTableProps = {
     resultsKey: 'async results key',
   },
 };
-fetchMock.get('glob:*/api/v1/dataset?*', { result: [] });
+fetchMock.get('glob:*/api/v1/dataset/?*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);

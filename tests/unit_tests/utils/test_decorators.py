@@ -16,6 +16,7 @@
 # under the License.
 
 
+import uuid
 from contextlib import nullcontext
 from inspect import isclass
 from typing import Any, Optional
@@ -85,3 +86,166 @@ def test_statsd_gauge(
         with cm:
             my_func(response_value, 1, 2)
             mock.assert_called_once_with(expected_result, 1)
+
+
+@patch("superset.utils.decorators.g")
+def test_context_decorator(flask_g_mock) -> None:
+    @decorators.logs_context()
+    def myfunc(*args, **kwargs) -> str:
+        return "test"
+
+    @decorators.logs_context(slice_id=1, dashboard_id=1, execution_id=uuid.uuid4())
+    def myfunc_with_kwargs(*args, **kwargs) -> str:
+        return "test"
+
+    @decorators.logs_context(bad_context=1)
+    def myfunc_with_dissallowed_kwargs(*args, **kwargs) -> str:
+        return "test"
+
+    @decorators.logs_context(
+        context_func=lambda *args, **kwargs: {"slice_id": kwargs["chart_id"]}
+    )
+    def myfunc_with_context(*args, **kwargs) -> str:
+        return "test"
+
+    ### should not add any data to the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc(1, 1)
+    assert flask_g_mock.logs_context == {}
+
+    ### should add dashboard_id to the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc(1, 1, dashboard_id=1)
+    assert flask_g_mock.logs_context == {"dashboard_id": 1}
+
+    ### should add slice_id to the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc(1, 1, slice_id=1)
+    assert flask_g_mock.logs_context == {"slice_id": 1}
+
+    ### should add execution_id to the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc(1, 1, execution_id=1)
+    assert flask_g_mock.logs_context == {"execution_id": 1}
+
+    ### should add all three to the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc(1, 1, dashboard_id=1, slice_id=1, execution_id=1)
+    assert flask_g_mock.logs_context == {
+        "dashboard_id": 1,
+        "slice_id": 1,
+        "execution_id": 1,
+    }
+
+    ### should overwrite existing values in the global.logs_context scope
+    flask_g_mock.logs_context = {"dashboard_id": 2, "slice_id": 2, "execution_id": 2}
+    myfunc(1, 1, dashboard_id=3, slice_id=3, execution_id=3)
+    assert flask_g_mock.logs_context == {
+        "dashboard_id": 3,
+        "slice_id": 3,
+        "execution_id": 3,
+    }
+
+    ### Test when g.logs_context already exists
+    flask_g_mock.logs_context = {"slice_id": 2, "dashboard_id": 2}
+    args = (3, 4)
+    kwargs = {"slice_id": 3, "dashboard_id": 3}
+    myfunc(*args, **kwargs)
+    assert flask_g_mock.logs_context == {"slice_id": 3, "dashboard_id": 3}
+
+    ### Test when kwargs contain additional keys
+    flask_g_mock.logs_context = {}
+    args = (1, 2)
+    kwargs = {
+        "slice_id": 1,
+        "dashboard_id": 1,
+        "dataset_id": 1,
+        "execution_id": 1,
+        "report_schedule_id": 1,
+        "extra_key": 1,
+    }
+    myfunc(*args, **kwargs)
+    assert flask_g_mock.logs_context == {
+        "slice_id": 1,
+        "dashboard_id": 1,
+        "dataset_id": 1,
+        "execution_id": 1,
+        "report_schedule_id": 1,
+    }
+
+    ### should not add a value that does not exist in the global.logs_context scope
+    flask_g_mock.logs_context = {}
+    myfunc_with_dissallowed_kwargs()
+    assert flask_g_mock.logs_context == {}
+
+    ### should be able to add values to the decorator function directly
+    flask_g_mock.logs_context = {}
+    myfunc_with_kwargs()
+    assert flask_g_mock.logs_context["dashboard_id"] == 1
+    assert flask_g_mock.logs_context["slice_id"] == 1
+    assert isinstance(flask_g_mock.logs_context["execution_id"], uuid.UUID)
+
+    ### should be able to add values to the decorator function directly
+    # and it will overwrite any kwargs passed into the decorated function
+    flask_g_mock.logs_context = {}
+    myfunc_with_kwargs(execution_id=4)
+
+    assert flask_g_mock.logs_context["dashboard_id"] == 1
+    assert flask_g_mock.logs_context["slice_id"] == 1
+    assert isinstance(flask_g_mock.logs_context["execution_id"], uuid.UUID)
+
+    ### should be able to pass a callable context to the decorator
+    flask_g_mock.logs_context = {}
+    myfunc_with_context(chart_id=1)
+    assert flask_g_mock.logs_context == {"slice_id": 1}
+
+    ### Test when context_func returns additional keys
+    # it should use the context_func values
+    flask_g_mock.logs_context = {}
+    args = (1, 2)
+    kwargs = {"slice_id": 1, "dashboard_id": 1}
+
+    @decorators.logs_context(
+        context_func=lambda *args, **kwargs: {
+            "slice_id": 2,
+            "dashboard_id": 2,
+            "dataset_id": 2,
+            "execution_id": 2,
+            "report_schedule_id": 2,
+            "extra_key": 2,
+        }
+    )
+    def myfunc_with_extra_keys_context(*args, **kwargs) -> str:
+        return "test"
+
+    myfunc_with_extra_keys_context(
+        *args,
+        **kwargs,
+    )
+    assert flask_g_mock.logs_context == {
+        "slice_id": 2,
+        "dashboard_id": 2,
+        "dataset_id": 2,
+        "execution_id": 2,
+        "report_schedule_id": 2,
+    }
+
+    ### Test when context_func does not return a dictionary
+    flask_g_mock.logs_context = {}
+
+    @decorators.logs_context(context_func=lambda: "foo")  # type: ignore
+    def myfunc_with_bad_return_value() -> str:
+        return "test"
+
+    myfunc_with_bad_return_value()
+    assert flask_g_mock.logs_context == {}
+
+    ### Test when context_func is not callable
+    flask_g_mock.logs_context = {}
+
+    @decorators.logs_context(context_func="foo")  # type: ignore
+    def context_func_not_callable() -> str:
+        return "test"
+
+    context_func_not_callable()
+    assert flask_g_mock.logs_context == {}

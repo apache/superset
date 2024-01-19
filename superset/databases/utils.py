@@ -18,7 +18,7 @@ from typing import Any, Optional, Union
 
 from sqlalchemy.engine.url import make_url, URL
 
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 
 
 def get_foreign_keys_metadata(

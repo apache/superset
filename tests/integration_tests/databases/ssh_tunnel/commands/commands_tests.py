@@ -20,13 +20,13 @@ from unittest.mock import patch
 import pytest
 
 from superset import security_manager
-from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
-from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
-from superset.databases.ssh_tunnel.commands.exceptions import (
+from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
 )
-from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -67,7 +67,7 @@ class TestUpdateSSHTunnelCommand(SupersetTestCase):
 
 class TestDeleteSSHTunnelCommand(SupersetTestCase):
     @mock.patch("superset.utils.core.g")
-    @mock.patch("superset.databases.ssh_tunnel.commands.delete.is_feature_enabled")
+    @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
     def test_delete_ssh_tunnel_not_found(self, mock_g, mock_delete_is_feature_enabled):
         mock_g.user = security_manager.find_user("admin")
         mock_delete_is_feature_enabled.return_value = True

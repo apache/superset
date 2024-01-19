@@ -18,54 +18,11 @@
  */
 import JSONbig from 'json-bigint';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { JSONTree } from 'react-json-tree';
-import {
-  getMultipleTextDimensions,
-  t,
-  safeHtmlSpan,
-  styled,
-} from '@superset-ui/core';
+import { getMultipleTextDimensions, styled } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
-import { useJsonTreeTheme } from 'src/hooks/useJsonTreeTheme';
-import Button from '../Button';
-import CopyToClipboard from '../CopyToClipboard';
-import ModalTrigger from '../ModalTrigger';
+import { useCellContentParser } from './useCellContentParser';
+import { renderResultCell } from './utils';
 import { Table, TableSize } from '../Table';
-
-function safeJsonObjectParse(
-  data: unknown,
-): null | unknown[] | Record<string, unknown> {
-  // First perform a cheap proxy to avoid calling JSON.parse on data that is clearly not a
-  // JSON object or array
-  if (
-    typeof data !== 'string' ||
-    ['{', '['].indexOf(data.substring(0, 1)) === -1
-  ) {
-    return null;
-  }
-
-  // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
-  try {
-    const jsonData = JSONbig({ storeAsString: true }).parse(data);
-    if (jsonData && typeof jsonData === 'object') {
-      return jsonData;
-    }
-    return null;
-  } catch (_) {
-    return null;
-  }
-}
-
-export function convertBigIntStrToNumber(value: string | number) {
-  if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
-    return value.substring(1, value.length - 1);
-  }
-  return value;
-}
-
-function renderBigIntStrToNumber(value: string | number) {
-  return <>{convertBigIntStrToNumber(value)}</>;
-}
 
 const SCROLL_BAR_HEIGHT = 15;
 // This regex handles all possible number formats in javascript, including ints, floats,
@@ -147,43 +104,10 @@ const FilterableTable = ({
   const [fitted, setFitted] = useState(false);
   const [list] = useState<Datum[]>(() => formatTableData(data));
 
-  // columns that have complex type and were expanded into sub columns
-  const complexColumns = useMemo<Record<string, boolean>>(
-    () =>
-      orderedColumnKeys.reduce(
-        (obj, key) => ({
-          ...obj,
-          [key]: expandedColumns.some(name => name.startsWith(`${key}.`)),
-        }),
-        {},
-      ),
-    [expandedColumns, orderedColumnKeys],
-  );
-
-  const getCellContent = ({
-    cellData,
-    columnKey,
-  }: {
-    cellData: CellDataType;
-    columnKey: string;
-  }) => {
-    if (cellData === null) {
-      return 'NULL';
-    }
-    const content = String(cellData);
-    const firstCharacter = content.substring(0, 1);
-    let truncated;
-    if (firstCharacter === '[') {
-      truncated = '[…]';
-    } else if (firstCharacter === '{') {
-      truncated = '{…}';
-    } else {
-      truncated = '';
-    }
-    return complexColumns[columnKey] ? truncated : content;
-  };
-
-  const jsonTreeTheme = useJsonTreeTheme();
+  const getCellContent = useCellContentParser({
+    columnKeys: orderedColumnKeys,
+    expandedColumns,
+  });
 
   const getWidthsForColumns = () => {
     const PADDING = 50; // accounts for cell padding and width of sorting icon
@@ -259,29 +183,6 @@ const FilterableTable = ({
     return values.some(v => v.includes(lowerCaseText));
   };
 
-  const renderJsonModal = (
-    node: React.ReactNode,
-    jsonObject: Record<string, unknown> | unknown[],
-    jsonString: CellDataType,
-  ) => (
-    <ModalTrigger
-      modalBody={
-        <JSONTree
-          data={jsonObject}
-          theme={jsonTreeTheme}
-          valueRenderer={renderBigIntStrToNumber}
-        />
-      }
-      modalFooter={
-        <Button>
-          <CopyToClipboard shouldShowText={false} text={jsonString} />
-        </Button>
-      }
-      modalTitle={t('Cell content')}
-      triggerNode={node}
-    />
-  );
-
   // Parse any numbers from strings so they'll sort correctly
   const parseNumberFromString = (value: string | number | null) => {
     if (typeof value === 'string') {
@@ -321,21 +222,6 @@ const FilterableTable = ({
     [list, keyword],
   );
 
-  const renderTableCell = (cellData: CellDataType, columnKey: string) => {
-    const cellNode = getCellContent({ cellData, columnKey });
-    if (cellData === null) {
-      return <i className="text-muted">{cellNode}</i>;
-    }
-    const jsonObject = safeJsonObjectParse(cellData);
-    if (jsonObject) {
-      return renderJsonModal(cellNode, jsonObject, cellData);
-    }
-    if (allowHTML && typeof cellData === 'string') {
-      return safeHtmlSpan(cellNode);
-    }
-    return cellNode;
-  };
-
   // exclude the height of the horizontal scroll bar from the height of the table
   // and the height of the table container if the content overflows
   const totalTableHeight =
@@ -349,7 +235,13 @@ const FilterableTable = ({
     dataIndex: key,
     width: widthsForColumnsByKey[key],
     sorter: (a: Datum, b: Datum) => sortResults(key, a, b),
-    render: (text: CellDataType) => renderTableCell(text, key),
+    render: (text: CellDataType) =>
+      renderResultCell({
+        cellData: text,
+        columnKey: key,
+        allowHTML,
+        getCellContent,
+      }),
   }));
 
   return (

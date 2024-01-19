@@ -73,8 +73,6 @@ import { customTagRender } from './CustomTag';
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -281,8 +279,8 @@ const Select = forwardRef(
                 : option.value,
             ),
         );
-        fireOnChange();
       }
+      fireOnChange();
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
@@ -571,6 +569,7 @@ const Select = forwardRef(
           ]);
         }
       }
+      fireOnChange();
     };
 
     return (

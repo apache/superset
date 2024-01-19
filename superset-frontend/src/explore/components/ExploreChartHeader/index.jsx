@@ -156,8 +156,8 @@ export const ExploreChartHeader = ({
   const { redirectSQLLab } = actions;
 
   const redirectToSQLLab = useCallback(
-    formData => {
-      redirectSQLLab(formData, history);
+    (formData, openNewWindow = false) => {
+      redirectSQLLab(formData, !openNewWindow && history);
     },
     [redirectSQLLab, history],
   );
