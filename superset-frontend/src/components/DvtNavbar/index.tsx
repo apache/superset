@@ -138,19 +138,19 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
         <NavbarBottom>
           {pathName === '/superset/welcome/' && (
             <>
-              <DvtButtonTabs
+               {/*<DvtButtonTabs
                 active={active}
                 setActive={setActive}
                 data={activeData}
               />
-              <NavbarBottomRight>
-                {/* <DvtButton
+             <NavbarBottomRight>
+                 <DvtButton
                   typeColour="powder"
                   label={`${sort ? 'Sorted' : 'Sort'}: Date Created`}
                   icon="dvt-sort"
                   onClick={() => dispatch(dvtAppSetSort(!sort))}
-                /> */}
-              </NavbarBottomRight>
+                /> 
+              </NavbarBottomRight>*/}
             </>
           )}
           {pathName === '/chart/add' && (
