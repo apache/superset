@@ -2,15 +2,15 @@ import csv
 import glob
 import io
 
-import polib
+import polib  # type: ignore
 from langchain_community.callbacks import get_openai_callback
 from langchain_openai import OpenAI
 
 llm = OpenAI(model_name="gpt-3.5-turbo-instruct", n=2, best_of=2)
 
 
-def read_po_files(glob_pattern):
-    translations = {}
+def read_po_files(glob_pattern: str) -> dict[str, dict[str, str]]:
+    translations: dict[str, dict[str, str]] = {}
     for file_path in glob.glob(glob_pattern, recursive=True):
         if file_path.endswith(".po"):
             po = polib.pofile(file_path)
@@ -22,8 +22,10 @@ def read_po_files(glob_pattern):
     return translations
 
 
-def find_missing_translations(translations):
-    missing_translations = {}
+def find_missing_translations(
+    translations: dict[str, dict[str, str]]
+) -> dict[str, list[str]]:
+    missing_translations: dict[str, list[str]] = {}
     for msgid, langs in translations.items():
         for lang, msgstr in langs.items():
             if (
@@ -35,7 +37,7 @@ def find_missing_translations(translations):
     return missing_translations
 
 
-def update_po_files(glob_pattern, translations):
+def update_po_files(glob_pattern: str, translations: dict[str, dict[str, str]]) -> None:
     for file_path in glob.glob(glob_pattern, recursive=True):
         if file_path.endswith(".po"):
             po = polib.pofile(file_path)
@@ -46,9 +48,11 @@ def update_po_files(glob_pattern, translations):
             po.save(file_path)
 
 
-def generate_missing_translations(translations, missing_translations):
-    translated_count = 0
-    limit = 2
+def generate_missing_translations(
+    translations: dict[str, dict[str, str]], missing_translations: dict[str, list[str]]
+) -> None:
+    translated_count: int = 0
+    limit: int = 2
     with get_openai_callback() as cb:
         for msgid, missing_langs in missing_translations.items():
             translated_count += 1
@@ -115,7 +119,9 @@ def generate_missing_translations(translations, missing_translations):
     print(cb)
 
 
-def populate_missing_translation(translations, msgid, language, string):
+def populate_missing_translation(
+    translations: dict[str, dict[str, str]], msgid: str, language: str, string: str
+) -> None:
     if msgid in translations:
         translations[msgid][language] = string
     else:
@@ -123,9 +129,9 @@ def populate_missing_translation(translations, msgid, language, string):
 
 
 # Main process
-glob_pattern = "../superset/translations/**/LC_MESSAGES/*.po"
-translations = read_po_files(glob_pattern)
-missing_translations = find_missing_translations(translations)
+glob_pattern: str = "../superset/translations/**/LC_MESSAGES/*.po"
+translations: dict[str, dict[str, str]] = read_po_files(glob_pattern)
+missing_translations: dict[str, list[str]] = find_missing_translations(translations)
 
 # print('Missing translations:')
 # print(missing_translations)
