@@ -135,12 +135,13 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--path",
         "-p",
+        required=True,
         help="Path to a single ZIP file",
     )
     @click.option(
         "--username",
         "-u",
-        default=None,
+        required=True,
         help="Specify the user name to assign dashboards to",
     )
     def import_dashboards(path: str, username: Optional[str]) -> None:

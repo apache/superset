@@ -28,6 +28,22 @@ from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
+from superset.utils.core import AnnotationType
+
+
+def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
+    """
+    Mutating the chart's config params to keep only the annotations of
+    type FORMULA.
+    TODO:
+      handle annotation dependencies on either other charts or
+      annotation layers objects.
+    """
+    params = chart_config.get("params", {})
+    als = params.get("annotation_layers", [])
+    params["annotation_layers"] = [
+        al for al in als if al.get("annotationType") == AnnotationType.FORMULA
+    ]
 
 
 def import_chart(
@@ -46,6 +62,8 @@ def import_chart(
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
         )
+
+    filter_chart_annotations(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])
