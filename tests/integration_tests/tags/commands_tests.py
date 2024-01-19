@@ -63,7 +63,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ["create custom tag example 1", "create custom tag example 2"]
+        example_tags = {"create custom tag example 1", "create custom tag example 2"}
         command = CreateCustomTagCommand(
             ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
@@ -78,7 +78,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
             )
             .all()
         )
-        assert example_tags == [tag.name for tag in created_tags]
+        assert example_tags == {tag.name for tag in created_tags}
 
         # cleanup
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
