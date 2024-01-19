@@ -101,7 +101,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
   // const [searchText, setSearchText] = useState<string>('');
 
   return (
-    <StyledDvtNavbar>
+    <StyledDvtNavbar active={pathName !== '/superset/welcome/'}>
       <NavbarTop>
         {pathName !== '/superset/profile/admin/' ? (
           <>

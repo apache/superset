@@ -17,15 +17,27 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 
 interface SidebarProps {
   pathName: string;
 }
+
+interface SidebarIcon {
+  isOpen: boolean;
+  active: boolean;
+}
+
+interface SidebarRotateIcon {
+  isOpen: boolean;
+}
+
 const StyledDvtSidebar = styled.div<SidebarProps>`
   display: flex;
   flex-direction: column;
   position: relative;
-  min-width: 250px;
+  min-width: ${({ pathName }) =>
+    `${pathName === '/superset/welcome/' ? 250 : 300}`}px;
   padding: 32px 16px 39px 16px;
   position: fixed;
   top: 0;
@@ -74,6 +86,53 @@ const StyledDvtSidebarNavbarLogout = styled.div`
   margin-bottom: 35px;
 `;
 
+const StyledDvtSidebarIconGroup = styled.div<SidebarRotateIcon>`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 20px;
+  padding-right: ${({ isOpen }) => (isOpen ? '' : '6px')};
+  border-right: ${({ isOpen, theme }) =>
+    isOpen ? 'none' : `3px solid ${theme.colors.dvt.border.base}`};
+`;
+
+const StyledDvtSidebarGroup = styled.div`
+  display: flex;
+`;
+
+const StyledDvtSidebarIcon = styled(Link)<SidebarIcon>`
+  display: flex;
+  justify-content: ${({ isOpen }) => (isOpen ? '' : 'center')};
+  align-items: center;
+  border-radius: 10px;
+  width: ${({ isOpen }) => (isOpen ? '250px' : '40px')};
+  height: 40px;
+  padding-left: ${({ isOpen }) => (isOpen ? '15px' : '')};
+  gap: 15px;
+  text-decoration: ${({ active }) => (active ? 'underline' : '')};
+  font-size: 14px;
+  font-weight: 500;
+  background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+  color: ${({ theme }) => theme.colors.grayscale.light5};
+  &:hover,
+  &:focus {
+    color: ${({ theme }) => theme.colors.grayscale.light5};
+  }
+`;
+
+const StyledDvtSidebarRotateIcon = styled.div<SidebarRotateIcon>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.dvt.primary.base};
+  color: ${({ theme }) => theme.colors.grayscale.light5};
+  border-radius: 50px;
+  width: 40px;
+  height: 40px;
+  transition: transform 0.5s ease-in-out;
+  transform: ${({ isOpen }) => (isOpen ? 'rotate(180deg)' : 'none')};
+`;
+
 export {
   StyledDvtSidebar,
   StyledDvtSidebarHeader,
@@ -82,4 +141,8 @@ export {
   StyledDvtSidebarBodySelect,
   StyledDvtSidebarFooter,
   StyledDvtSidebarNavbarLogout,
+  StyledDvtSidebarIconGroup,
+  StyledDvtSidebarGroup,
+  StyledDvtSidebarIcon,
+  StyledDvtSidebarRotateIcon,
 };
