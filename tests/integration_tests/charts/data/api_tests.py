@@ -42,7 +42,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 import pytest
 from superset.models.slice import Slice
 
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db
@@ -1293,7 +1293,6 @@ def test_chart_cache_timeout(
 
     slice_with_cache_timeout = load_energy_table_with_slice[0]
     slice_with_cache_timeout.cache_timeout = 20
-    db.session.merge(slice_with_cache_timeout)
 
     datasource: SqlaTable = (
         db.session.query(SqlaTable)
@@ -1301,7 +1300,6 @@ def test_chart_cache_timeout(
         .first()
     )
     datasource.cache_timeout = 1254
-    db.session.merge(datasource)
 
     db.session.commit()
 
@@ -1331,7 +1329,6 @@ def test_chart_cache_timeout_not_present(
         .first()
     )
     datasource.cache_timeout = 1980
-    db.session.merge(datasource)
     db.session.commit()
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)

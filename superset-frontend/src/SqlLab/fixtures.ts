@@ -22,9 +22,11 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
+import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
 export const mockedActions = sinon.stub({ ...actions });
@@ -181,6 +183,7 @@ export const table = {
 };
 
 export const defaultQueryEditor = {
+  version: LatestQueryEditorVersion,
   id: 'dfsadfs',
   autorun: false,
   dbId: undefined,
@@ -579,11 +582,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     selected_columns: [
@@ -591,11 +596,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.TEMPORAL,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     expanded_columns: [
@@ -603,6 +610,7 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     data: [

@@ -280,7 +280,7 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           break;
         case MENU_KEYS.RUN_IN_SQL_LAB:
-          onOpenInEditor(latestQueryFormData);
+          onOpenInEditor(latestQueryFormData, domEvent.metaKey);
           setIsDropdownVisible(false);
           break;
         default:

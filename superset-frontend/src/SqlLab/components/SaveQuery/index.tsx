@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
+import type { DatabaseObject } from 'src/features/databases/types';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -39,10 +40,10 @@ interface SaveQueryProps {
   onSave: (arg0: QueryPayload, id: string) => void;
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
-  database: Record<string, any>;
+  database: Partial<DatabaseObject> | undefined;
 }
 
-type QueryPayload = {
+export type QueryPayload = {
   name: string;
   description?: string;
   id?: string;
@@ -65,7 +66,7 @@ const SaveQuery = ({
   queryEditorId,
   onSave = () => {},
   onUpdate,
-  saveQueryWarning = null,
+  saveQueryWarning,
   database,
   columns,
 }: SaveQueryProps) => {

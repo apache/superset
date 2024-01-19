@@ -123,7 +123,7 @@ const renderWithRouter = ({
         <ExploreViewContainer />
       </Route>
     </MemoryRouter>,
-    { useRedux: true, initialState },
+    { useRedux: true, useDnd: true, initialState },
   );
 };
 

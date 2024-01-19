@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
+import { combineReducers } from 'redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
 
 import App from 'src/SqlLab/components/App';
-import sqlLabReducer from 'src/SqlLab/reducers/index';
+import reducers from 'spec/helpers/reducerIndex';
 import { LOCALSTORAGE_MAX_USAGE_KB } from 'src/SqlLab/constants';
 import { LOG_EVENT } from 'src/logger/actions';
 import {
@@ -36,6 +37,8 @@ jest.mock('src/SqlLab/components/TabbedSqlEditors', () => () => (
 jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
+
+const sqlLabReducer = combineReducers(reducers);
 
 describe('SqlLab App', () => {
   const middlewares = [thunk];

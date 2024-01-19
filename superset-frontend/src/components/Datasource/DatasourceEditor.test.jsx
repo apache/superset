@@ -75,7 +75,7 @@ describe('DatasourceEditor', () => {
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
-          'Vehicle%20Sales%20%2B%27',
+          'Vehicle+Sales%20%2B',
         );
         fetchMock.reset();
         done();
@@ -188,22 +188,6 @@ describe('DatasourceEditor', () => {
       });
       expect(physicalRadioBtn).toBeDisabled();
       expect(virtualRadioBtn).toBeDisabled();
-    });
-  });
-
-  describe('render editor with feature flag false', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-    });
-
-    it('disable edit Source tab', async () => {
-      await asyncRender(props);
-      expect(
-        screen.queryByRole('img', { name: /lock-locked/i }),
-      ).not.toBeInTheDocument();
-      isFeatureEnabledMock.mockRestore();
     });
   });
 });

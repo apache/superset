@@ -28,7 +28,6 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ENABLE_ADVANCED_DATA_TYPES
-- KV_STORE
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
@@ -43,15 +42,13 @@ These features are **finished** but currently being tested. They are usable, but
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
-- DASHBOARD_VIRTUALIZATION
-- DRILL_BY
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
-- ENABLE_JAVASCRIPT_CONTROLS
 - ESTIMATE_QUERY_COST
 - GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
+- PLAYWRIGHT_REPORTS_AND_THUMBNAILS
 - RLS_IN_SQLLAB
 - SSH_TUNNELING [(docs)](https://superset.apache.org/docs/installation/setup-ssh-tunneling)
 - USE_ANALAGOUS_COLORS
@@ -64,10 +61,11 @@ These features flags are **safe for production**. They have been tested and will
 
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
-- DASHBOARD_CROSS_FILTERS
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
+- DASHBOARD_VIRTUALIZATION
 - DATAPANEL_CLOSED_BY_DEFAULT
 - DISABLE_LEGACY_DATASOURCE_EDITOR
+- DRILL_BY
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET
@@ -85,15 +83,9 @@ These features flags currently default to True and **will be removed in a future
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
-- CLIENT_CACHE
-- DASHBOARD_CACHE
-- DASHBOARD_FILTERS_EXPERIMENTAL
+- DASHBOARD_CROSS_FILTERS
 - DASHBOARD_NATIVE_FILTERS
-- DASHBOARD_NATIVE_FILTERS_SET
-- DISABLE_DATASET_SOURCE_EDIT
-- ENABLE_EXPLORE_DRAG_AND_DROP
-- ENABLE_EXPLORE_JSON_CSRF_PROTECTION
-- ENABLE_TEMPLATE_REMOVE_FILTERS
+- ENABLE_JAVASCRIPT_CONTROLS
 - GENERIC_CHART_AXES
-- REMOVE_SLICE_LEVEL_LABEL_COLORS
+- KV_STORE
 - VERSIONED_EXPORT

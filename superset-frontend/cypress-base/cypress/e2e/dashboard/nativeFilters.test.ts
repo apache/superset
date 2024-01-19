@@ -113,7 +113,7 @@ function prepareDashboardFilters(
         },
         type: 'NATIVE_FILTER',
         description: '',
-        chartsInScope: [6],
+        chartsInScope: [5],
         tabsInScope: [],
       });
     });
@@ -150,7 +150,7 @@ function prepareDashboardFilters(
             meta: {
               width: 4,
               height: 50,
-              chartId: 6,
+              chartId: 5,
               sliceName: 'Most Populated Countries',
             },
           },

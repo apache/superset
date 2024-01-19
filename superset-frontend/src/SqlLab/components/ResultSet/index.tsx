@@ -18,6 +18,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -32,6 +33,7 @@ import {
   usePrevious,
   css,
   getNumberFormatter,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -135,6 +137,8 @@ const ResultSetButtons = styled.div`
 const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const ResultSet = ({
   cache = false,
   csv = true,
@@ -149,12 +153,16 @@ const ResultSet = ({
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
+  const ResultTable =
+    extensionsRegistry.get('sqleditor.extension.resultTable') ??
+    FilterableTable;
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
+  const history = useHistory();
   const dispatch = useDispatch();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
@@ -209,8 +217,10 @@ const ResultSet = ({
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async () => {
+  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
     const { results } = query;
+
+    const openInNewWindow = clickEvent.metaKey;
 
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
@@ -223,7 +233,11 @@ const ResultSet = ({
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
       });
-      window.open(url, '_blank', 'noreferrer');
+      if (openInNewWindow) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        history.push(url);
+      }
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));
     }
@@ -578,8 +592,9 @@ const ResultSet = ({
               {sql}
             </>
           )}
-          <FilterableTable
+          <ResultTable
             data={data}
+            queryId={query.id}
             orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}

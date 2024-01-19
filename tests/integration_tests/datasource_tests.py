@@ -24,11 +24,11 @@ import prison
 import pytest
 
 from superset import app, db
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
@@ -474,7 +474,7 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
+            lambda: DatasourceDAO.get_datasource("table", 9999999),
         )
 
         self.login(username="admin")
@@ -486,7 +486,7 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             DatasourceTypeNotSupportedError,
-            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
+            lambda: DatasourceDAO.get_datasource("druid", 9999999),
         )
 
         self.login(username="admin")
@@ -550,7 +550,6 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
-    db.session.merge(virtual_dataset)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"

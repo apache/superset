@@ -18,7 +18,7 @@ import logging
 
 from flask_appbuilder.api import expose, protect, safe
 
-from superset import app, db, event_logger
+from superset import app, event_logger
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetSecurityException
@@ -100,7 +100,7 @@ class DatasourceRestApi(BaseSupersetApi):
         """
         try:
             datasource = DatasourceDAO.get_datasource(
-                db.session, DatasourceType(datasource_type), datasource_id
+                DatasourceType(datasource_type), datasource_id
             )
             datasource.raise_for_access()
         except ValueError:
@@ -115,11 +115,18 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(403, message=ex.message)
 
         row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
+        denormalize_column = not datasource.normalize_columns
         try:
             payload = datasource.values_for_column(
-                column_name=column_name, limit=row_limit
+                column_name=column_name,
+                limit=row_limit,
+                denormalize_column=denormalize_column,
             )
             return self.response(200, result=payload)
+        except KeyError:
+            return self.response(
+                400, message=f"Column name {column_name} does not exist"
+            )
         except NotImplementedError:
             return self.response(
                 400,

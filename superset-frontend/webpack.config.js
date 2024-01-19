@@ -117,6 +117,7 @@ const plugins = [
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,
+    'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
   }),
 
   new CopyPlugin({
@@ -211,7 +212,6 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
-    sqllab: addPreamble('/src/SqlLab/index.tsx'),
   },
   output,
   stats: 'minimal',

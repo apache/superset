@@ -29,6 +29,7 @@ import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -75,7 +76,7 @@ const userOS = detectOS();
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const sqlLabUrl = '/superset/sqllab';
+    const sqlLabUrl = '/sqllab';
     this.state = {
       sqlLabUrl,
     };
@@ -132,6 +133,7 @@ class TabbedSqlEditors extends React.PureComponent {
       new: isNewQuery,
       ...urlParams
     } = {
+      ...this.context.requestedQuery,
       ...bootstrapData.requested_query,
       ...queryParameters,
     };
@@ -332,6 +334,7 @@ class TabbedSqlEditors extends React.PureComponent {
 }
 TabbedSqlEditors.propTypes = propTypes;
 TabbedSqlEditors.defaultProps = defaultProps;
+TabbedSqlEditors.contextType = locationContext;
 
 function mapStateToProps({ sqlLab, common }) {
   return {

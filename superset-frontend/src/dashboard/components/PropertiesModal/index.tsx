@@ -681,7 +681,7 @@ const PropertiesModal = ({
         </Row>
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <FormItem label={t('Title')} name="title">
+            <FormItem label={t('Name')} name="title">
               <Input
                 data-test="dashboard-title-input"
                 type="text"
@@ -741,7 +741,6 @@ const PropertiesModal = ({
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
-                  allowNewOptions
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}

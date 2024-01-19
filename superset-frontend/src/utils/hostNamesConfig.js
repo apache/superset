@@ -41,12 +41,7 @@ function getDomainsConfig() {
   // eslint-disable-next-line camelcase
   initFeatureFlags(bootstrapData.common.feature_flags);
 
-  if (
-    bootstrapData &&
-    bootstrapData.common &&
-    bootstrapData.common.conf &&
-    bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS
-  ) {
+  if (bootstrapData?.common?.conf?.SUPERSET_WEBSERVER_DOMAINS) {
     bootstrapData.common.conf.SUPERSET_WEBSERVER_DOMAINS.forEach(hostName => {
       availableDomains.add(hostName);
     });

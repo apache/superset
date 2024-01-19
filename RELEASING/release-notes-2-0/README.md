@@ -34,7 +34,7 @@ Superset 2.0 is a big step forward. This release cleans up many legacy code path
 
 - New GitHub workflow to test Storybook Netlify instance nightly ([#19852](https://github.com/apache/superset/pull/19852))
 
-- Minimum requirement for Superset is now Python 3.8 ([#19017](https://github.com/apache/superset/pull/19017)
+- Minimum requirement for Superset is now Python 3.8 ([#19017](https://github.com/apache/superset/pull/19017))
 
 ## Features
 

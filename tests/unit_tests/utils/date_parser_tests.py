@@ -22,7 +22,7 @@ from unittest.mock import Mock, patch
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )

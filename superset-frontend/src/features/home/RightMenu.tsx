@@ -46,6 +46,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
+import TelemetryPixel from 'src/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -210,7 +211,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/superset/sqllab?new=true',
+      url: '/sqllab?new=true',
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -472,11 +473,6 @@ const RightMenu = ({
           {!navbarRight.user_is_anonymous && [
             <Menu.Divider key="user-divider" />,
             <Menu.ItemGroup key="user-section" title={t('User')}>
-              {navbarRight.user_profile_url && (
-                <Menu.Item key="profile">
-                  <Link to={navbarRight.user_profile_url}>{t('Profile')}</Link>
-                </Menu.Item>
-              )}
               {navbarRight.user_info_url && (
                 <Menu.Item key="info">
                   <a href={navbarRight.user_info_url}>{t('Info')}</a>
@@ -562,6 +558,11 @@ const RightMenu = ({
           {t('Login')}
         </StyledAnchor>
       )}
+      <TelemetryPixel
+        version={navbarRight.version_string}
+        sha={navbarRight.version_sha}
+        build={navbarRight.build_number}
+      />
     </StyledDiv>
   );
 };
