@@ -14,15 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (
-    alerts,
-    api,
-    base,
-    core,
-    css_templates,
-    dynamic_plugins,
-    health,
-    sql_lab,
-    tags,
-)
-from .log import api as log_api, views
+"""drop_url_table
+
+Revision ID: e863403c0c50
+Revises: 214f580d09c9
+Create Date: 2023-12-28 16:03:31.691033
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "e863403c0c50"
+down_revision = "214f580d09c9"
+
+from importlib import import_module
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.dialects import postgresql
+
+module = import_module("superset.migrations.versions.2016-01-13_20-24_8e80a26a31db_")
+
+
+def upgrade():
+    module.downgrade()
+
+
+def downgrade():
+    module.upgrade()
+    op.alter_column("url", "changed_on", existing_type=sa.DATETIME(), nullable=True)
+    op.alter_column("url", "created_on", existing_type=sa.DATETIME(), nullable=True)
