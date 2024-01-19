@@ -28,6 +28,14 @@ import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
 
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: ({ children }) => (
+    <div data-test="mock-draggable">{children({})}</div>
+  ),
+  Droppable: ({ children }) => (
+    <div data-test="mock-droppable">{children({})}</div>
+  ),
+}));
 jest.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
@@ -95,10 +103,14 @@ function setup(overrideProps) {
   });
 }
 
-test('should render a DragDroppable', () => {
+test('should render a Draggable', () => {
   // don't count child DragDroppables
-  const { getByTestId } = setup({ component: rowWithoutChildren });
-  expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
+  const { getByTestId, queryByTestId } = setup({
+    component: rowWithoutChildren,
+  });
+
+  expect(getByTestId('mock-draggable')).toBeInTheDocument();
+  expect(queryByTestId('mock-droppable')).not.toBeInTheDocument();
 });
 
 test('should skip rendering HoverMenu and DeleteComponentButton when not in editMode', () => {
@@ -116,11 +128,14 @@ test('should render a WithPopoverMenu', () => {
 });
 
 test('should render a HoverMenu in editMode', () => {
-  const { container } = setup({
+  const { container, getAllByTestId } = setup({
     component: rowWithoutChildren,
     editMode: true,
   });
   expect(container.querySelector('.hover-menu')).toBeInTheDocument();
+
+  // Droppable area enabled in editMode
+  expect(getAllByTestId('mock-droppable').length).toBe(1);
 });
 
 test('should render a DeleteComponentButton in editMode', () => {
