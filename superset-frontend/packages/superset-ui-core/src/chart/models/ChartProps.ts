@@ -76,7 +76,6 @@ export interface ChartPropsConfig {
   annotationData?: AnnotationData;
   /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
-  /** Initial values */
   initialValues?: DataRecordFilters;
   /** Main configuration of the chart */
   formData?: RawFormData;
