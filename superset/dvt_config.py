@@ -2,7 +2,9 @@ from superset.dvt_initialization import DVTAppInitializer
 from superset.dvt_security_manager.security_manager import DVTSecurityManager
 
 APP_INITIALIZER = DVTAppInitializer  # pylint: disable=invalid-name
-CUSTOM_SECURITY_MANAGER = DVTSecurityManager  # pylint: disable=invalid-name # type: ignore
+CUSTOM_SECURITY_MANAGER = (
+    DVTSecurityManager  # pylint: disable=invalid-name # type: ignore
+)
 
 LANGUAGES = {
     "en": {"flag": "us", "name": "English"},
