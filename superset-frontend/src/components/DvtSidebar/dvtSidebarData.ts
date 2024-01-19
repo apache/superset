@@ -450,41 +450,35 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/dashboard/list/',
     data: [
       {
-        values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
-        ],
+        values: [],
         placeholder: 'Owner',
         name: 'owner',
       },
       {
-        values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
-        ],
+        values: [],
         placeholder: 'Created by',
         name: 'createdBy',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Published', value: '!t' },
+          { label: 'Draft', value: '!f' },
         ],
         placeholder: 'Status',
         name: 'status',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Yes', value: '!t' },
+          { label: 'No', value: '!f' },
         ],
         placeholder: 'Favorite',
         name: 'favorite',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: 'Yes', value: '!t' },
+          { label: 'No', value: '!f' },
         ],
         placeholder: 'Certified',
         name: 'certified',
