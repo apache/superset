@@ -126,10 +126,11 @@ msgstr ""
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
+"za odprtje SQL Lab-a. Od tam lahko shranite poizvedbo kot nabor podatkov."
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
-msgstr ""
+msgstr " za vizualizacijo vaših podatkov."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
 msgid "!= (Is not equal)"
@@ -259,13 +260,13 @@ msgstr "%s GESLO"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s SSH TUNELSKO GESLO"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1391
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s SSH TUNELSKI ZASEBNI KLJUC"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
@@ -382,7 +383,7 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
 msgid "), and they become available in your SQL (example:"
-msgstr ""
+msgstr ") in postanejo na voljo v vašem SQL (primer:"
 
 #: superset/reports/notifications/slack.py:65
 #, python-format
@@ -422,7 +423,7 @@ msgstr ""
 #: superset-frontend/src/components/TruncatedList/index.tsx:147
 #, python-format
 msgid "+ %s more"
-msgstr ""
+msgstr "+ %s več"
 
 #: superset/views/database/forms.py:163
 msgid ","
@@ -438,7 +439,7 @@ msgstr ""
 
 #: superset/views/database/forms.py:164
 msgid "."
-msgstr ""
+msgstr "."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:813
 msgid "0 Selected"
@@ -447,7 +448,7 @@ msgstr "Izbranih: 0"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:165
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:238
 msgid "1 calendar day frequency"
-msgstr ""
+msgstr "1 koledarski dan frekvenca"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:168
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:306
@@ -482,12 +483,12 @@ msgstr "1 minuta"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:163
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:236
 msgid "1 minutely frequency"
-msgstr ""
+msgstr "1 minutna frekvenca"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:168
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:241
 msgid "1 month end frequency"
-msgstr ""
+msgstr "1 mesec končna frekvenca"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
@@ -504,7 +505,7 @@ msgstr "teden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:113
 msgid "1 week ago"
-msgstr ""
+msgstr "1 teden nazaj"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:62
 #, fuzzy
@@ -526,7 +527,7 @@ msgstr "leto"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:117
 msgid "1 year ago"
-msgstr ""
+msgstr "1 leto nazaj"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:243
@@ -570,7 +571,7 @@ msgstr "teden"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:120
 msgid "156 weeks ago"
-msgstr ""
+msgstr "156 weeks ago"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:360
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:242
@@ -617,15 +618,15 @@ msgstr "leto"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:119
 msgid "2 years ago"
-msgstr ""
+msgstr "2 leti nazaj"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
 msgid "2/98 percentiles"
-msgstr ""
+msgstr "2/98 percentiles"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:90
 msgid "22"
-msgstr ""
+msgstr "22"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:308
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:190
@@ -637,7 +638,7 @@ msgstr "90 dni"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:114
 msgid "28 days ago"
-msgstr ""
+msgstr "28 dni nazaj"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:35
@@ -660,7 +661,7 @@ msgstr "leto"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:121
 msgid "3 years ago"
-msgstr ""
+msgstr "3 leta nazaj"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:309
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191

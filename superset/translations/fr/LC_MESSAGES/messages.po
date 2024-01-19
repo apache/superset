@@ -54,7 +54,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:130
 msgid " (excluded)"
-msgstr ""
+msgstr "(exclu)"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:222
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:235
@@ -79,7 +79,7 @@ msgstr " Expression qui doit adhérer à "
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:48
 msgid " source code of Superset's sandboxed parser"
-msgstr ""
+msgstr "code source du parseur sandbox de Superset"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:312
 msgid ""
@@ -129,7 +129,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
-msgstr ""
+msgstr " pour visualiser vos données."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
 msgid "!= (Is not equal)"
@@ -249,7 +249,7 @@ msgstr "%s Mot de passe"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s MOT DE PASSE DU TUNNEL SSH"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1391
@@ -352,7 +352,7 @@ msgstr "(Supprimé)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:101
 msgid "(deleted or invalid type)"
-msgstr ""
+msgstr "(supprimé ou type invalide)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
@@ -408,7 +408,7 @@ msgstr ""
 #: superset-frontend/src/components/TruncatedList/index.tsx:147
 #, python-format
 msgid "+ %s more"
-msgstr ""
+msgstr "+ %s de plus"
 
 #: superset/views/database/forms.py:163
 msgid ","
@@ -422,7 +422,7 @@ msgstr ""
 
 #: superset/views/database/forms.py:164
 msgid "."
-msgstr ""
+msgstr "."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:813
 msgid "0 Selected"
@@ -431,7 +431,7 @@ msgstr "0 sélectionné"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:165
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:238
 msgid "1 calendar day frequency"
-msgstr ""
+msgstr "1 fréquence de jour calendrier"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:168
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:306
@@ -466,12 +466,12 @@ msgstr "1 minute"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:163
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:236
 msgid "1 minutely frequency"
-msgstr ""
+msgstr "fréquence toutes les 1 minute"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:168
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:241
 msgid "1 month end frequency"
-msgstr ""
+msgstr "Fréquence de fin de mois de 1 mois"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
@@ -538,7 +538,7 @@ msgstr "semaine"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:118
 msgid "104 weeks ago"
-msgstr ""
+msgstr "104 semaines plus tôt"
 
 #: superset/db_engine_specs/base.py:103
 msgid "15 minute"
@@ -554,7 +554,7 @@ msgstr "semaine"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:120
 msgid "156 weeks ago"
-msgstr ""
+msgstr "156 weeks ago"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:360
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:242
@@ -589,7 +589,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:507
 #: superset-frontend/src/explore/controlPanels/sections.tsx:233
 msgid "1T"
-msgstr ""
+msgstr "1T"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:313
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:195
@@ -605,11 +605,11 @@ msgstr "Il y a 2 ans"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
 msgid "2/98 percentiles"
-msgstr ""
+msgstr "2/98 percentiles"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:90
 msgid "22"
-msgstr ""
+msgstr "22"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:308
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:190
@@ -621,7 +621,7 @@ msgstr "90 jours"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:114
 msgid "28 days ago"
-msgstr ""
+msgstr "il y a 28 jours"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:35

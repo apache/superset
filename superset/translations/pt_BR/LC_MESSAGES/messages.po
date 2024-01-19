@@ -612,7 +612,7 @@ msgstr "2/98 percentis"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:90
 msgid "22"
-msgstr ""
+msgstr "22"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:308
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:190

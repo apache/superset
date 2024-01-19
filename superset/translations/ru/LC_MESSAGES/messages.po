@@ -255,13 +255,13 @@ msgstr "%s ПАРОЛЬ"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s SSH ТУННЕЛЬ ПАРОЛЬ"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1391
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s ЧАСТНЫЙ КЛЮЧ SSH ТУННЕЛЯ"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411

@@ -36,6 +36,10 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                이 필터는 대시보드의 컨텍스트에서 상속되었습니다.\n"
+"                차트를 저장할 때 저장되지 않습니다.\n"
+"              "
 
 #: superset/reports/notifications/email.py:89
 #, python-format
@@ -44,10 +48,13 @@ msgid ""
 "            Error: %(text)s\n"
 "            "
 msgstr ""
+"\n"
+"            오류: %(text)s\n"
+"            "
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:130
 msgid " (excluded)"
-msgstr ""
+msgstr "(제외됨)"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:222
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:235
@@ -67,11 +74,11 @@ msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:308
 msgid " expression which needs to adhere to the "
-msgstr ""
+msgstr " 준수해야하는 표현식 "
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:48
 msgid " source code of Superset's sandboxed parser"
-msgstr ""
+msgstr "Superset의 샌드박스 파서의 소스 코드"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:312
 msgid ""
@@ -98,7 +105,7 @@ msgstr "메트릭"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:382
 msgid " to edit or add columns and metrics."
-msgstr ""
+msgstr " 열과 측정 항목을 편집하거나 추가하려면."
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
@@ -111,16 +118,16 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
-msgstr ""
+msgstr " 데이터를 시각화하기 위해."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
 msgid "!= (Is not equal)"
-msgstr ""
+msgstr "!= (같지 않음)"
 
 #: superset/security/analytics_db_safety.py:48
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
-msgstr ""
+msgstr "%(dialect)s는 보안상의 이유로 데이터 소스로 사용할 수 없습니다."
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:83
 #, python-format
@@ -129,36 +136,39 @@ msgid ""
 "This may be triggered by: \n"
 "%(issues)s"
 msgstr ""
+"%(message)s\n"
+"다음과 같은 이유로 발생할 수 있습니다:\n"
+"%(issues)s"
 
 #: superset/reports/notifications/email.py:171
 #, python-format
 msgid "%(name)s.csv"
-msgstr ""
+msgstr "%(name)s.csv"
 
 #: superset/db_engine_specs/snowflake.py:112
 #, python-format
 msgid "%(object)s does not exist in this database."
-msgstr ""
+msgstr "%(object)s는 이 데이터베이스에 존재하지 않습니다."
 
 #: superset-frontend/src/features/home/EmptyState.tsx:43
 #, python-format
 msgid "%(other)s charts will appear here"
-msgstr ""
+msgstr "%(other)s 차트가 여기에 나타납니다"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:45
 #, python-format
 msgid "%(other)s dashboards will appear here"
-msgstr ""
+msgstr "%(other)s 대시보드가 여기에 나타납니다"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:47
 #, python-format
 msgid "%(other)s recents will appear here"
-msgstr ""
+msgstr "%(other)s 최근 항목이 여기에 표시됩니다"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:49
 #, python-format
 msgid "%(other)s saved queries will appear here"
-msgstr ""
+msgstr "%(other)s 저장한 쿼리가 여기에 표시됩니다"
 
 #: superset/reports/notifications/email.py:180
 #, python-format
@@ -170,7 +180,7 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:370
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr ""
+msgstr "%(rows)d 행이 반환되었습니다"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:93
 #, python-format
@@ -179,6 +189,9 @@ msgid ""
 "This may be triggered by:\n"
 " %(issue)s"
 msgstr ""
+"%(subtitle)s\n"
+"이것은 다음과 같은 이유로 발생할 수 있습니다:\n"
+" %(issue)s"
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:88
 #, fuzzy, python-format
@@ -193,12 +206,12 @@ msgstr[0] ""
 msgid ""
 "%(user)s was granted the role %(role)s that gives access to the "
 "%(datasource)s"
-msgstr ""
+msgstr "%(user)s에게 %(datasource)s에 대한 액세스를 제공하는 %(role)s 역할이 부여되었습니다"
 
 #: superset/views/core.py:2709
 #, python-format
 msgid "%(user)s's profile"
-msgstr ""
+msgstr "%(user)s의 프로필"
 
 #: superset/databases/commands/validate_sql.py:73 superset/views/core.py:2369
 #, python-format
@@ -223,13 +236,13 @@ msgstr "비밀번호"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s SSH 터널 비밀번호"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1391
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s SSH 터널 개인 키"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
@@ -240,17 +253,17 @@ msgstr ""
 #: superset-frontend/src/components/ListView/ListView.tsx:245
 #, python-format
 msgid "%s Selected"
-msgstr ""
+msgstr "%s 선택됨"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:830
 #, python-format
 msgid "%s Selected (%s Physical, %s Virtual)"
-msgstr ""
+msgstr "%s 선택됨 (%s 물리적, %s 가상)"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:823
 #, python-format
 msgid "%s Selected (Physical)"
-msgstr ""
+msgstr "%s 선택됨 (물리적)"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:816
 #, python-format
@@ -260,7 +273,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:332
 #, python-format
 msgid "%s aggregates(s)"
-msgstr ""
+msgstr "%s 집합"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:280
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:377
@@ -268,7 +281,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:323
 #, python-format
 msgid "%s column(s)"
-msgstr ""
+msgstr "%s 열"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:356
 #, python-format
@@ -287,7 +300,7 @@ msgstr[0] ""
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:321
 #, python-format
 msgid "%s option(s)"
-msgstr ""
+msgstr "옵션: %s"
 
 #: superset-frontend/src/explore/components/RowCountLabel/index.tsx:43
 #, fuzzy, python-format
@@ -298,25 +311,25 @@ msgstr[0] "%s 에러"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:341
 #, python-format
 msgid "%s saved metric(s)"
-msgstr ""
+msgstr "%s 저장된 측정치(s)"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:639
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:655
 #, python-format
 msgid "%s updated"
-msgstr ""
+msgstr "업데이트된 %s"
 
 #: superset-frontend/src/SqlLab/utils/newQueryTabName.ts:43
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:127
 #, python-format
 msgid "%s%s"
-msgstr ""
+msgstr "%s%s"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:441
 #: superset-frontend/src/components/TableView/TableView.tsx:250
 #, python-format
 msgid "%s-%s of %s"
-msgstr ""
+msgstr "%s-%s 의 %s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:116
 msgid "(Removed)"
@@ -324,7 +337,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:101
 msgid "(deleted or invalid type)"
-msgstr ""
+msgstr "(삭제 된 또는 잘못된 유형)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
@@ -338,7 +351,7 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
 msgid "), and they become available in your SQL (example:"
-msgstr ""
+msgstr ") 그리고 SQL에서 사용할 수 있게 됩니다 (예:\""
 
 #: superset/reports/notifications/slack.py:65
 #, python-format
@@ -361,12 +374,17 @@ msgid ""
 "\n"
 "Error: %(text)s\n"
 msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"오류: %(text)s\r\n"
 
 #: superset-frontend/src/components/ListView/CrossLinksTooltip.tsx:64
 #: superset-frontend/src/components/TruncatedList/index.tsx:147
 #, python-format
 msgid "+ %s more"
-msgstr ""
+msgstr "+ %s 더"
 
 #: superset/views/database/forms.py:163
 msgid ","
@@ -380,7 +398,7 @@ msgstr ""
 
 #: superset/views/database/forms.py:164
 msgid "."
-msgstr ""
+msgstr "."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:813
 msgid "0 Selected"
@@ -389,7 +407,7 @@ msgstr "테이블 선택"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:165
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:238
 msgid "1 calendar day frequency"
-msgstr ""
+msgstr "1 달력 일 빈도"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:168
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:306
@@ -413,7 +431,7 @@ msgstr "1시간"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:164
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:237
 msgid "1 hourly frequency"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:163
 #: superset-frontend/src/explore/controls.jsx:257
@@ -423,12 +441,12 @@ msgstr "1분"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:163
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:236
 msgid "1 minutely frequency"
-msgstr ""
+msgstr "1분마다 발생하는 빈도"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:168
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:241
 msgid "1 month end frequency"
-msgstr ""
+msgstr "1 개월 끝 주기"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
@@ -445,15 +463,15 @@ msgstr "주"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:113
 msgid "1 week ago"
-msgstr ""
+msgstr "1 주 전"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:62
 msgid "1 week starting Monday (freq=W-MON)"
-msgstr ""
+msgstr "월요일부터 시작하는 1주일 (freq=W-MON)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:61
 msgid "1 week starting Sunday (freq=W-SUN)"
-msgstr ""
+msgstr "일요일부터 시작하는 1 주 (freq=W-SUN)"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:311
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:193
@@ -465,12 +483,12 @@ msgstr "년"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:117
 msgid "1 year ago"
-msgstr ""
+msgstr "1년 전"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:243
 msgid "1 year end frequency"
-msgstr ""
+msgstr "1년 끝 주기"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:242
@@ -491,7 +509,7 @@ msgstr "주"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:118
 msgid "104 weeks ago"
-msgstr ""
+msgstr "104 주 전"
 
 #: superset/db_engine_specs/base.py:103
 msgid "15 minute"
@@ -507,7 +525,7 @@ msgstr "주"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:120
 msgid "156 weeks ago"
-msgstr ""
+msgstr "156 weeks ago"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:360
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:242
@@ -542,7 +560,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:507
 #: superset-frontend/src/explore/controlPanels/sections.tsx:233
 msgid "1T"
-msgstr ""
+msgstr "1T"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:313
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:195
@@ -554,15 +572,15 @@ msgstr "년"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:119
 msgid "2 years ago"
-msgstr ""
+msgstr "2년 전"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
 msgid "2/98 percentiles"
-msgstr ""
+msgstr "2/98 percentiles"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:90
 msgid "22"
-msgstr ""
+msgstr "22"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:308
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:190
@@ -574,7 +592,7 @@ msgstr "일"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:114
 msgid "28 days ago"
-msgstr ""
+msgstr "28일 전"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:35
@@ -597,7 +615,7 @@ msgstr "년"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:121
 msgid "3 years ago"
-msgstr ""
+msgstr "3년 전"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:309
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
@@ -609,7 +627,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:115
 msgid "30 days ago"
-msgstr ""
+msgstr "30일 전"
 
 #: superset/db_engine_specs/base.py:104
 #, fuzzy

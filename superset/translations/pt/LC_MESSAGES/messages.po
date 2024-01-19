@@ -36,6 +36,10 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                Este filtro foi herdado do contexto do painel.\n"
+"                Não será salvo ao salvar o gráfico.\n"
+"              "
 
 #: superset/reports/notifications/email.py:89
 #, python-format
@@ -44,6 +48,9 @@ msgid ""
 "            Error: %(text)s\n"
 "            "
 msgstr ""
+"\n"
+"            Erro: %(text)s\n"
+"            "
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:130
 msgid " (excluded)"
@@ -55,6 +62,8 @@ msgid ""
 " Set the opacity to 0 if you do not want to override the color specified in "
 "the GeoJSON"
 msgstr ""
+" Defina a opacidade como 0 se não quiser substituir a cor especificada no "
+"GeoJSON"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:399
 #, fuzzy
@@ -68,11 +77,11 @@ msgstr "Alterado em"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:308
 msgid " expression which needs to adhere to the "
-msgstr ""
+msgstr " expressão que precisa aderir a "
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:48
 msgid " source code of Superset's sandboxed parser"
-msgstr ""
+msgstr "código-fonte do analisador sandbox do Superset"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:312
 msgid ""
@@ -99,7 +108,7 @@ msgstr "Adicionar Métrica"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:382
 msgid " to edit or add columns and metrics."
-msgstr ""
+msgstr " para editar ou adicionar colunas e métricas."
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:329
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:364
@@ -109,19 +118,23 @@ msgstr ""
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:46
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr ""
+"para abrir o SQL Lab. De lá você pode salvar a consulta como um conjunto de "
+"dados."
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:332
 msgid " to visualize your data."
-msgstr ""
+msgstr " para visualizar seus dados."
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:117
 msgid "!= (Is not equal)"
-msgstr ""
+msgstr "!= (Não é igual)"
 
 #: superset/security/analytics_db_safety.py:48
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
+"%(dialect)s não pode ser usado como uma fonte de dados por motivos de "
+"segurança."
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:83
 #, python-format
@@ -130,36 +143,39 @@ msgid ""
 "This may be triggered by: \n"
 "%(issues)s"
 msgstr ""
+"%(message)s\n"
+"Isso pode ser acionado por: \n"
+"%(issues)s"
 
 #: superset/reports/notifications/email.py:171
 #, python-format
 msgid "%(name)s.csv"
-msgstr ""
+msgstr "%(name)s.csv"
 
 #: superset/db_engine_specs/snowflake.py:112
 #, python-format
 msgid "%(object)s does not exist in this database."
-msgstr ""
+msgstr "%(object)s não existe neste banco de dados."
 
 #: superset-frontend/src/features/home/EmptyState.tsx:43
 #, python-format
 msgid "%(other)s charts will appear here"
-msgstr ""
+msgstr "Os gráficos %(other)s aparecerão aqui"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:45
 #, python-format
 msgid "%(other)s dashboards will appear here"
-msgstr ""
+msgstr "Os %(other)s painéis aparecerão aqui"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:47
 #, python-format
 msgid "%(other)s recents will appear here"
-msgstr ""
+msgstr "%(other)s recentes irão aparecer aqui"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:49
 #, python-format
 msgid "%(other)s saved queries will appear here"
-msgstr ""
+msgstr "%(other)s consultas salvas serão exibidas aqui"
 
 #: superset/reports/notifications/email.py:180
 #, python-format
@@ -171,7 +187,7 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:370
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr ""
+msgstr "%(rows)d linhas retornadas"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:93
 #, python-format
@@ -180,6 +196,9 @@ msgid ""
 "This may be triggered by:\n"
 " %(issue)s"
 msgstr ""
+"%(subtitle)s\n"
+"Isto pode ser acionado por:\n"
+" %(issue)s"
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:88
 #, fuzzy, python-format
@@ -202,7 +221,7 @@ msgstr ""
 #: superset/views/core.py:2709
 #, python-format
 msgid "%(user)s's profile"
-msgstr ""
+msgstr "Perfil de %(user)s"
 
 #: superset/databases/commands/validate_sql.py:73 superset/views/core.py:2369
 #, python-format
@@ -211,6 +230,9 @@ msgid ""
 "Please recheck your query.\n"
 "Exception: %(ex)s"
 msgstr ""
+"%(validator)s não conseguiu verificar sua consulta.\n"
+"Por favor revise sua consulta.\n"
+"Exceção: %(ex)s"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:89
 #, python-format
@@ -227,13 +249,13 @@ msgstr "Broker Port"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s SENHA DO TÚNEL SSH"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1391
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s CHAVE PRIVADA DO TÚNEL SSH"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1411
@@ -249,12 +271,12 @@ msgstr "Executar a query selecionada"
 #: superset-frontend/src/pages/DatasetList/index.tsx:830
 #, python-format
 msgid "%s Selected (%s Physical, %s Virtual)"
-msgstr ""
+msgstr "%s Selecionado (%s Físico, %s Virtual)"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:823
 #, python-format
 msgid "%s Selected (Physical)"
-msgstr ""
+msgstr "%s Selecionado (Físico)"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:816
 #, python-format
@@ -264,7 +286,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:332
 #, python-format
 msgid "%s aggregates(s)"
-msgstr ""
+msgstr "%s agregados"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:280
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:377
@@ -304,7 +326,7 @@ msgstr[1] ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:341
 #, python-format
 msgid "%s saved metric(s)"
-msgstr ""
+msgstr "%s métricas salvas"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:639
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:655
@@ -316,13 +338,13 @@ msgstr "%s - sem título"
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:127
 #, python-format
 msgid "%s%s"
-msgstr ""
+msgstr "%s%s"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:441
 #: superset-frontend/src/components/TableView/TableView.tsx:250
 #, python-format
 msgid "%s-%s of %s"
-msgstr ""
+msgstr "%s-%s de %s"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitleContainer.tsx:116
 msgid "(Removed)"
@@ -330,7 +352,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:101
 msgid "(deleted or invalid type)"
-msgstr ""
+msgstr "(excluído ou tipo inválido)"
 
 #: superset-frontend/src/utils/getClientErrorObject.ts:76
 msgid "(no description, click to see stack trace)"
@@ -344,7 +366,7 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:71
 msgid "), and they become available in your SQL (example:"
-msgstr ""
+msgstr "), e eles se tornam disponíveis no seu SQL (exemplo:"
 
 #: superset/reports/notifications/slack.py:65
 #, python-format
@@ -357,6 +379,13 @@ msgid ""
 "\n"
 "%(table)s\n"
 msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"<%(url)s|Explorar no Superset>\n"
+"\n"
+"%(table)s\n"
 
 #: superset/reports/notifications/slack.py:82
 #, python-format
@@ -367,12 +396,17 @@ msgid ""
 "\n"
 "Error: %(text)s\n"
 msgstr ""
+"*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Erro: %(text)s\r\n"
 
 #: superset-frontend/src/components/ListView/CrossLinksTooltip.tsx:64
 #: superset-frontend/src/components/TruncatedList/index.tsx:147
 #, python-format
 msgid "+ %s more"
-msgstr ""
+msgstr "+ %s mais"
 
 #: superset/views/database/forms.py:163
 msgid ","
@@ -382,11 +416,11 @@ msgstr ""
 msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n"
 "\n"
-msgstr ""
+msgstr "-- Nota: A menos que você salve sua consulta, estes"
 
 #: superset/views/database/forms.py:164
 msgid "."
-msgstr ""
+msgstr "."
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:813
 msgid "0 Selected"
@@ -395,7 +429,7 @@ msgstr "Executar a query selecionada"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:165
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:238
 msgid "1 calendar day frequency"
-msgstr ""
+msgstr "1 dia de frequência do calendário"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:168
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:306
@@ -409,7 +443,7 @@ msgstr "dia"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr ""
+msgstr "1 dia atrás"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -419,7 +453,7 @@ msgstr "hora"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:164
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:237
 msgid "1 hourly frequency"
-msgstr ""
+msgstr "\\t"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:163
 #: superset-frontend/src/explore/controls.jsx:257
@@ -429,12 +463,12 @@ msgstr "1 minuto"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:163
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:236
 msgid "1 minutely frequency"
-msgstr ""
+msgstr "frequência de 1 em 1 minuto"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:168
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:241
 msgid "1 month end frequency"
-msgstr ""
+msgstr "1 mês de frequência final"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
@@ -451,15 +485,15 @@ msgstr "semana"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:113
 msgid "1 week ago"
-msgstr ""
+msgstr "1 semana atrás"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:62
 msgid "1 week starting Monday (freq=W-MON)"
-msgstr ""
+msgstr "1 semana começando segunda-feira (freq=W-SEG)"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:61
 msgid "1 week starting Sunday (freq=W-SUN)"
-msgstr ""
+msgstr "1 semana começando no domingo (freq=W-SUN)"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:311
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:193
@@ -471,12 +505,12 @@ msgstr "ano"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:117
 msgid "1 year ago"
-msgstr ""
+msgstr "1 ano atrás"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:243
 msgid "1 year end frequency"
-msgstr ""
+msgstr "Frequência de final de 1 ano"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:242
@@ -498,7 +532,7 @@ msgstr "semana"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:118
 msgid "104 weeks ago"
-msgstr ""
+msgstr "104 semanas atrás"
 
 #: superset/db_engine_specs/base.py:103
 #, fuzzy
@@ -515,7 +549,7 @@ msgstr "semana"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:120
 msgid "156 weeks ago"
-msgstr ""
+msgstr "156 weeks ago"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:360
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:242
@@ -550,7 +584,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:507
 #: superset-frontend/src/explore/controlPanels/sections.tsx:233
 msgid "1T"
-msgstr ""
+msgstr "1T"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:313
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:195
@@ -562,15 +596,15 @@ msgstr "ano"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:119
 msgid "2 years ago"
-msgstr ""
+msgstr "2 anos atrás"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
 msgid "2/98 percentiles"
-msgstr ""
+msgstr "2/98 percentiles"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:90
 msgid "22"
-msgstr ""
+msgstr "22"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:308
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:190
@@ -582,7 +616,7 @@ msgstr "dia"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:114
 msgid "28 days ago"
-msgstr ""
+msgstr "28 dias atrás"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/index.js:35
@@ -606,7 +640,7 @@ msgstr "ano"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:121
 msgid "3 years ago"
-msgstr ""
+msgstr "3 anos atrás"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:309
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
@@ -618,7 +652,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:115
 msgid "30 days ago"
-msgstr ""
+msgstr "28 dias atrás"
 
 #: superset/db_engine_specs/base.py:104
 #, fuzzy
