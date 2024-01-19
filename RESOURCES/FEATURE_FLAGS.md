@@ -88,4 +88,3 @@ These features flags currently default to True and **will be removed in a future
 - ENABLE_JAVASCRIPT_CONTROLS
 - GENERIC_CHART_AXES
 - KV_STORE
-- VERSIONED_EXPORT

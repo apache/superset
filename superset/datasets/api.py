@@ -22,14 +22,13 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-import yaml
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset import event_logger, is_feature_enabled
+from superset import event_logger
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -68,7 +67,7 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.utils.core import parse_boolean_string
-from superset.views.base import DatasourceFilter, generate_download_headers
+from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -489,7 +488,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple datasets as YAML files.
         ---
         get:
@@ -519,49 +518,31 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         requested_ids = kwargs["rison"]
 
-        if is_feature_enabled("VERSIONED_EXPORT"):
-            token = request.args.get("token")
-            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-            root = f"dataset_export_{timestamp}"
-            filename = f"{root}.zip"
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        filename = f"{root}.zip"
 
-            buf = BytesIO()
-            with ZipFile(buf, "w") as bundle:
-                try:
-                    for file_name, file_content in ExportDatasetsCommand(
-                        requested_ids
-                    ).run():
-                        with bundle.open(f"{root}/{file_name}", "w") as fp:
-                            fp.write(file_content.encode())
-                except DatasetNotFoundError:
-                    return self.response_404()
-            buf.seek(0)
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportDatasetsCommand(
+                    requested_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+            except DatasetNotFoundError:
+                return self.response_404()
+        buf.seek(0)
 
-            response = send_file(
-                buf,
-                mimetype="application/zip",
-                as_attachment=True,
-                download_name=filename,
-            )
-            if token:
-                response.set_cookie(token, "done", max_age=600)
-            return response
-
-        query = self.datamodel.session.query(SqlaTable).filter(
-            SqlaTable.id.in_(requested_ids)
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
         )
-        query = self._base_filters.apply_all(query)
-        items = query.all()
-        ids = [item.id for item in items]
-        if len(ids) != len(requested_ids):
-            return self.response_404()
-
-        data = [t.export_to_dict() for t in items]
-        return Response(
-            yaml.safe_dump(data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text",
-        )
+        if token := request.args.get("token"):
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/duplicate", methods=("POST",))
     @protect()
