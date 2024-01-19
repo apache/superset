@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import moment from 'moment';
 import {
@@ -25,7 +8,10 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 
-export const parseMetricValue = (metricValue: number | string | null) => {
+import { ConditionalFormattingConfig, COMPARATOR } from './types';
+import { MULTIPLE_VALUE_COMPARATORS, DEFAULT_COLOR } from './constants';
+
+const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
     const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
     if (dateObject.isValid()) {
@@ -36,7 +22,7 @@ export const parseMetricValue = (metricValue: number | string | null) => {
   return metricValue;
 };
 
-export const getDateFormatter = (
+const getDateFormatter = (
   timeFormat: string,
   granularity?: TimeGranularity,
   fallbackFormat?: string | null,
@@ -44,3 +30,140 @@ export const getDateFormatter = (
   timeFormat === smartDateFormatter.id
     ? getTimeFormatterForGranularity(granularity)
     : getTimeFormatter(timeFormat ?? fallbackFormat);
+
+const calculateColor = (
+  className: string | undefined,
+  positiveColor: string | undefined,
+  negativeColor: string | undefined,
+) => {
+  if (!className) return DEFAULT_COLOR;
+  if (className.includes('positive')) return positiveColor;
+  if (className.includes('negative')) return negativeColor;
+  return DEFAULT_COLOR;
+};
+
+const parseDataGetColor = (
+  inputData: ConditionalFormattingConfig,
+  value: number,
+) => {
+  const {
+    operator,
+    targetValue,
+    targetValueLeft,
+    targetValueRight,
+    colorScheme,
+  } = inputData;
+
+  if (!operator) return DEFAULT_COLOR;
+
+  if (!targetValue && (!targetValueLeft || !targetValueRight)) {
+    return DEFAULT_COLOR;
+  }
+
+  if (
+    MULTIPLE_VALUE_COMPARATORS.includes(operator) &&
+    (targetValueLeft === undefined || targetValueRight === undefined)
+  ) {
+    return DEFAULT_COLOR;
+  }
+
+  if (
+    operator !== COMPARATOR.NONE &&
+    !MULTIPLE_VALUE_COMPARATORS.includes(operator) &&
+    targetValue === undefined
+  ) {
+    return DEFAULT_COLOR;
+  }
+
+  if (
+    operator !== COMPARATOR.NONE &&
+    !MULTIPLE_VALUE_COMPARATORS.includes(operator) &&
+    targetValue === undefined
+  ) {
+    return DEFAULT_COLOR;
+  }
+
+  const targetValueLeftNum = targetValueLeft ? Number(targetValueLeft) : null;
+  const targetValueRightNum = targetValueRight
+    ? Number(targetValueRight)
+    : null;
+
+  switch (operator) {
+    case COMPARATOR.NONE:
+      return colorScheme;
+      break;
+    case COMPARATOR.GREATER_THAN:
+      if (!targetValue) return DEFAULT_COLOR;
+
+      return value > targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.LESS_THAN:
+      if (!targetValue) return DEFAULT_COLOR;
+
+      return value < targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.GREATER_OR_EQUAL:
+      if (!targetValue) return DEFAULT_COLOR;
+
+      return value >= targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.LESS_OR_EQUAL:
+      if (!targetValue) return DEFAULT_COLOR;
+
+      return value <= targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.EQUAL:
+      return value === targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.NOT_EQUAL:
+      return value !== targetValue ? colorScheme : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.BETWEEN:
+      if (!targetValueLeftNum || !targetValueRightNum) return DEFAULT_COLOR;
+
+      return value > targetValueLeftNum && value < targetValueRightNum
+        ? colorScheme
+        : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.BETWEEN_OR_EQUAL:
+      if (!targetValueLeftNum || !targetValueRightNum) return DEFAULT_COLOR;
+
+      return value >= targetValueLeftNum && value <= targetValueRightNum
+        ? colorScheme
+        : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.BETWEEN_OR_LEFT_EQUAL:
+      if (!targetValueLeftNum || !targetValueRightNum) return DEFAULT_COLOR;
+
+      return value >= targetValueLeftNum && value < targetValueRightNum
+        ? colorScheme
+        : DEFAULT_COLOR;
+      break;
+    case COMPARATOR.BETWEEN_OR_RIGHT_EQUAL:
+      if (!targetValueLeftNum || !targetValueRightNum) return DEFAULT_COLOR;
+
+      return value > targetValueLeftNum && value <= targetValueRightNum
+        ? colorScheme
+        : DEFAULT_COLOR;
+      break;
+    default:
+      return DEFAULT_COLOR;
+      break;
+  }
+};
+
+const getColors = (
+  inputData: ConditionalFormattingConfig[],
+  value: number | null | undefined,
+) => {
+  if (!inputData || !inputData.length) return [DEFAULT_COLOR];
+  if (!value) return [DEFAULT_COLOR];
+
+  const parsedColors = inputData.map(data =>
+    parseDataGetColor(data, value),
+  ) as string[];
+
+  return parsedColors;
+};
+
+export { calculateColor, getDateFormatter, parseMetricValue, getColors };

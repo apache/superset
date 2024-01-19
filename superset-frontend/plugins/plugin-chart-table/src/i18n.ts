@@ -1,21 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { Locale } from '@superset-ui/core';
 
@@ -47,6 +30,20 @@ const translations: Partial<Record<Locale, typeof en>> = {
     'table.previous_page': ['Précédent'],
     'table.next_page': ['Suivante'],
     'search.num_records': ['%s enregistrement', '%s enregistrements...'],
+  },
+  // DODO added
+  ru: {
+    'Query Mode': [''],
+    Aggregate: [''],
+    'Raw Records': ['Необработанные записи'],
+    'Emit Filter Events': [''],
+    'Show Cell Bars': ['Показывать столбцы ячеек'],
+    'page_size.show': ['Показать'],
+    'page_size.all': ['все'],
+    'page_size.entries': ['записей'],
+    'table.previous_page': ['Предыдущая'],
+    'table.next_page': ['Следующая'],
+    'search.num_records': ['%s запись', '%s записей...'],
   },
   zh: {
     'Query Mode': ['查询模式'],

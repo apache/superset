@@ -18,6 +18,8 @@ import {
 import { areObjectsEqual } from 'src/reduxUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
+// DODO added
+import { bootstrapData } from 'src/preamble';
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
@@ -107,6 +109,35 @@ const SliceContainer = styled.div`
   flex-direction: column;
   max-height: 100%;
 `;
+
+// DODO added
+function getPageLanguage() {
+  if (!document) {
+    return null;
+  }
+  const select = document.querySelector('#changeLanguage select');
+  const selectedLanguage = select ? select.value : null;
+  return selectedLanguage;
+}
+
+const getLocaleForSuperset = () => {
+  const dodoisLanguage = getPageLanguage();
+  if (dodoisLanguage) {
+    if (dodoisLanguage === 'ru-RU') return 'ru';
+    return 'en';
+  }
+  return 'en';
+};
+
+let userLanguage = 'en';
+
+if (process.env.type === undefined) {
+  userLanguage =
+    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+    'en';
+} else {
+  userLanguage = getLocaleForSuperset();
+}
 
 class Chart extends React.Component {
   constructor(props) {
@@ -338,6 +369,8 @@ class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: format,
+      // DODO added
+      language: userLanguage,
       force: true,
       ownState: this.props.ownState,
       slice: this.props.slice,
@@ -389,6 +422,8 @@ class Chart extends React.Component {
       isInView,
       emitCrossFilters,
       logEvent,
+      // DODO added
+      dashboardLanguage,
     } = this.props;
 
     const { width } = this.state;
@@ -455,6 +490,8 @@ class Chart extends React.Component {
           formData={formData}
           width={width}
           height={this.getHeaderHeight()}
+          // DODO added
+          dashboardLanguage={dashboardLanguage}
         />
 
         {/*
@@ -515,6 +552,8 @@ class Chart extends React.Component {
             datasetsStatus={datasetsStatus}
             isInView={isInView}
             emitCrossFilters={emitCrossFilters}
+            // DODO added
+            dashboardLanguage={dashboardLanguage}
           />
         </ChartWrapper>
       </SliceContainer>

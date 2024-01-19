@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
@@ -231,6 +214,22 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
     [component, updateComponents],
   );
 
+  // DODO added
+  const handleUpdateSliceNameRU = useCallback(
+    (nextName: string) => {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            sliceNameOverrideRU: nextName,
+          },
+        },
+      });
+    },
+    [component, updateComponents],
+  );
+
   const handleToggleFullSize = useCallback(() => {
     setFullSizeChartId(isFullSize ? null : chartId);
   }, [chartId, isFullSize, setFullSizeChartId]);
@@ -309,6 +308,14 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 ''
               }
               updateSliceName={handleUpdateSliceName}
+              // DODO added
+              sliceNameRU={
+                component.meta.sliceNameOverrideRU ||
+                component.meta.sliceNameRU ||
+                component.meta.sliceName ||
+                ''
+              }
+              updateSliceNameRU={handleUpdateSliceNameRU}
               isComponentVisible={isComponentVisible}
               handleToggleFullSize={handleToggleFullSize}
               isFullSize={isFullSize}
