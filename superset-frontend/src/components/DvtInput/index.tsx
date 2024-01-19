@@ -80,7 +80,7 @@ const DvtInput = ({
           </DvtPopper>
         )}
         {popoverLabel && (
-          <DvtPopper label={popoverLabel} direction={popoverDirection}>
+          <DvtPopper size='small' label={popoverLabel} direction={popoverDirection}>
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({
