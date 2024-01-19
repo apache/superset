@@ -29,24 +29,38 @@ const sizes = {
   large: 56,
 };
 
-const StyledInput = styled.div<StyledInputProps>`
+const StyledInputInput = styled.div<StyledInputProps>`
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${({ theme }) => theme.colors.dvt.primary.light2};
+  border: ${({ theme, typeDesign }) =>
+    typeDesign === 'chartsForm'
+      ? 'none'
+      : `1px solid ${theme.colors.dvt.primary.light2}`};
   padding: 8px 16px;
   border-radius: ${({ typeDesign }) =>
-    typeDesign === 'form' ? '4px' : '12px'};
+    typeDesign === 'form'
+      ? '4px'
+      : typeDesign === 'chartsForm'
+      ? '4px'
+      : '12px'};
   width: 100%;
   height: ${({ $size }) => sizes[$size]}px;
+  background-color: ${({ typeDesign, theme }) =>
+    typeDesign === 'chartsForm'
+      ? theme.colors.dvt.grayscale.light2
+      : theme.colors.grayscale.light5};
 `;
 
-const StyledInputField = styled.input`
+const StyledInputField = styled.input<StyledInputProps>`
   width: 100%;
   height: 100%;
   border: none;
   color: ${({ theme }) => theme.colors.dvt.text.bold};
-
+  background-color: ${({ typeDesign, theme }) =>
+    typeDesign === 'chartsForm'
+      ? theme.colors.dvt.grayscale.light2
+      : theme.colors.grayscale.light5};
   &:focus {
     outline: none;
   }
@@ -65,4 +79,28 @@ const StyledInputIcon = styled.div`
   cursor: pointer;
 `;
 
-export { StyledInput, StyledInputField, StyledInputIcon };
+const StyledInput = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const StyledInputLabel = styled.div`
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const StyledInputPopover = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+export {
+  StyledInput,
+  StyledInputField,
+  StyledInputIcon,
+  StyledInputLabel,
+  StyledInputInput,
+  StyledInputPopover,
+};

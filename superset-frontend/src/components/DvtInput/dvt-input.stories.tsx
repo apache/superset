@@ -141,3 +141,50 @@ Form.argTypes = {
     defaultValue: 'form',
   },
 };
+
+export const ChartsForm = (args: DvtInputProps) => {
+  const [text, setText] = useState<string>('');
+  const [inputText, setInputText] = useState<string>('');
+  return (
+    <div style={{ display: 'flex', width: 500, gap: 15 }}>
+      <DvtInput
+        {...args}
+        label="Y Axis Label"
+        placeholder="min"
+        value={text}
+        onChange={setText}
+        handleSearchClick={() => {}}
+      />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'flex-end',
+        }}
+      >
+        <DvtInput
+          {...args}
+          value={inputText}
+          onChange={setInputText}
+          handleSearchClick={() => {}}
+          placeholder="max"
+        />
+      </div>
+    </div>
+  );
+};
+
+ChartsForm.argTypes = {
+  type: {
+    control: { type: 'select' },
+    defaultValue: 'text',
+  },
+  size: {
+    control: { type: 'select' },
+    defaultValue: 'small',
+  },
+  typeDesign: {
+    control: { type: 'select' },
+    defaultValue: 'chartsForm',
+  },
+};
