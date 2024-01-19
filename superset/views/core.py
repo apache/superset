@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name
+# pylint: disable=too-many-lines
 from __future__ import annotations
 
 import contextlib
@@ -236,19 +237,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    EXPLORE_JSON_METHODS = ["POST"]
-    if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
-        EXPLORE_JSON_METHODS.append("GET")
-
     @api
     @has_access_api
     @handle_api_exception
     @event_logger.log_this
     @expose(
         "/explore_json/<datasource_type>/<int:datasource_id>/",
-        methods=EXPLORE_JSON_METHODS,
+        methods=(
+            "GET",
+            "POST",
+        ),
     )
-    @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
+    @expose(
+        "/explore_json/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="4.0.0")
@@ -459,7 +465,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if datasource_id is not None:
             with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(
-                    db.session,
                     DatasourceType("table"),
                     datasource_id,
                 )
@@ -700,7 +705,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         In terms of the `extra_filters` these can be obtained from records in the JSON
         encoded `logs.json` column associated with the `explore_json` action.
         """
-        session = db.session()
         slice_id = request.args.get("slice_id")
         dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
@@ -717,14 +721,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 status=400,
             )
         if slice_id:
-            slices = session.query(Slice).filter_by(id=slice_id).all()
+            slices = db.session.query(Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
                 )
         elif table_name and db_name:
             table = (
-                session.query(SqlaTable)
+                db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
                     Database.database_name == db_name
@@ -741,7 +745,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=404,
                 )
             slices = (
-                session.query(Slice)
+                db.session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
                 .all()
             )
@@ -868,7 +872,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), int(datasource_id)
+            DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
@@ -912,13 +916,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/profile/")
-    @deprecated(new_target="/profile")
-    def profile(self) -> FlaskResponse:
-        return redirect("/profile/")
 
     @has_access
     @event_logger.log_this

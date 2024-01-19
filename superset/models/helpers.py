@@ -461,11 +461,10 @@ class ImportExportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:
+def _user(user: User) -> str:
     if not user:
         return ""
-    url = f"/superset/profile/{user.username}/"
-    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
+    return escape(user)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -512,11 +511,11 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("created_by")
     def creator(self) -> Union[Markup, str]:
-        return _user_link(self.created_by)
+        return _user(self.created_by)
 
     @property
     def changed_by_(self) -> Union[Markup, str]:
-        return _user_link(self.changed_by)
+        return _user(self.changed_by)
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
@@ -1760,10 +1759,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
-            if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if get_column_name(flt_col) in removed_filters:
-                    # Skip generating SQLA filter when the jinja template handles it.
-                    continue
+            if get_column_name(flt_col) in removed_filters:
+                # Skip generating SQLA filter when the jinja template handles it.
+                continue
 
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:

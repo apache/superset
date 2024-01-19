@@ -175,7 +175,6 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
       user_info_url: '',
       user_login_url: '',
       user_logout_url: '',
-      user_profile_url: '',
       locale: '',
     },
     settings: [],

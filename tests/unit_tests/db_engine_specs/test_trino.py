@@ -24,11 +24,19 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import types
+from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
 from trino.sqlalchemy import datatype
 
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -529,3 +537,14 @@ def test_get_indexes_no_table():
         db_mock, inspector_mock, "test_table", "test_schema"
     )
     assert result == []
+
+
+def test_get_dbapi_exception_mapping():
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mapping = TrinoEngineSpec.get_dbapi_exception_mapping()
+    assert mapping.get(TrinoUserError) == SupersetDBAPIProgrammingError
+    assert mapping.get(TrinoInternalError) == SupersetDBAPIDatabaseError
+    assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
+    assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
+    assert mapping.get(Exception) is None

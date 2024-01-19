@@ -25,7 +25,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { LineEditableTabs } from 'src/components/Tabs';
 import { AntdModal } from 'src/components';
-import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -40,8 +39,6 @@ import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
-  fetchMock.post('glob:*/r/shortener/', {});
-
   const props = {
     id: 'TABS_ID',
     parentId: DASHBOARD_ROOT_ID,

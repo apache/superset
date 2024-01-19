@@ -94,10 +94,7 @@ describe('nativeFilterGate', () => {
       isFeatureEnabledMock = jest
         .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation((featureFlag: FeatureFlag) =>
-          [
-            FeatureFlag.DASHBOARD_CROSS_FILTERS,
-            FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL,
-          ].includes(featureFlag),
+          [FeatureFlag.DASHBOARD_CROSS_FILTERS].includes(featureFlag),
         );
     });
 

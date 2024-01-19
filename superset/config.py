@@ -409,16 +409,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # editor no longer shows. Currently this is set to false so that the editor
     # option does show, but we will be depreciating it.
     "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
-    # For some security concerns, you may need to enforce CSRF protection on
-    # all query request to explore_json endpoint. In Superset, we use
-    # `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection
-    # for all POST requests, but this protection doesn't apply to GET method.
-    # When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot
-    # make GET request to explore_json. explore_json accepts both GET and POST request.
-    # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
-    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,  # deprecated
     "ENABLE_TEMPLATE_PROCESSING": False,
-    "ENABLE_TEMPLATE_REMOVE_FILTERS": True,  # deprecated
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
@@ -431,7 +422,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
@@ -440,7 +430,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
-    "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
@@ -485,9 +474,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
     "AVOID_COLORS_COLLISION": True,
-    # Set to False to only allow viewing own recent activity
-    # or to disallow users from viewing other users profile page
-    # Do not show user info or profile in the menu
+    # Do not show user info in the menu
     "MENU_HIDE_USER_INFO": False,
     # Allows users to add a ``superset://`` DB that can query across databases. This is
     # an experimental feature with potential security and performance risks, so use with
