@@ -6292,10 +6292,10 @@ get-symbol-description@^1.0.0:
     call-bind "^1.0.2"
     get-intrinsic "^1.1.1"
 
-github-buttons@^2.8.0:
-  version "2.21.1"
-  resolved "https://registry.yarnpkg.com/github-buttons/-/github-buttons-2.21.1.tgz#9e55eb83b70c9149a21c235db2e971c53d4d98a2"
-  integrity sha512-n9bCQ8sj+5oX1YH5NeyWGbAclRDtHEhMBzqw2ctsWpdEHOwVgfruRu0VIVy01Ah10dd/iFajMHYU71L7IBWBOw==
+github-buttons@^2.22.0:
+  version "2.27.0"
+  resolved "https://registry.yarnpkg.com/github-buttons/-/github-buttons-2.27.0.tgz#bbebea3d1c4f8c302b7d8432fd25a679242597e2"
+  integrity sha512-PmfRMI2Rttg/2jDfKBeSl621sEznrsKF019SuoLdoNlO7qRUZaOyEI5Li4uW+79pVqnDtKfIEVuHTIJ5lgy64w==
 
 github-slugger@^1.4.0:
   version "1.4.0"
@@ -8539,6 +8539,11 @@ prismjs@^1.28.0:
   resolved "https://registry.yarnpkg.com/prismjs/-/prismjs-1.29.0.tgz#f113555a8fa9b57c35e637bba27509dcf802dd12"
   integrity sha512-Kx/1w86q/epKcmte75LNrEoT+lX8pBpavuAbvJWRXar7Hz8jrtF+e3vY751p0R8H9HdArwaCTNDDzHg/ScJK1Q==
 
+prismjs@~1.28.0:
+  version "1.28.0"
+  resolved "https://registry.yarnpkg.com/prismjs/-/prismjs-1.28.0.tgz#0d8f561fa0f7cf6ebca901747828b149147044b6"
+  integrity sha512-8aaXdYvl1F7iC7Xm1spqSaY/OJBpYW3v+KJ+F17iYxvdc8sfjW194COK5wVhMZX45tGteiBQgdvD/nhxcRwylw==
+
 process-nextick-args@~2.0.0:
   version "2.0.1"
   resolved "https://registry.npmjs.org/process-nextick-args/-/process-nextick-args-2.0.1.tgz"
@@ -9157,12 +9162,12 @@ react-fast-compare@^3.2.0:
   resolved "https://registry.yarnpkg.com/react-fast-compare/-/react-fast-compare-3.2.0.tgz#641a9da81b6a6320f270e89724fb45a0b39e43bb"
   integrity sha512-rtGImPZ0YyLrscKI9xTpV8psd6I8VAtjKCzQDlzyDvqJA8XOW78TXYQwNRNd8g8JZnDu8q9Fu/1v4HPAVwVdHA==
 
-react-github-btn@^1.2.0:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/react-github-btn/-/react-github-btn-1.2.1.tgz#ece93f609a4bad5e7eb9f47ae49bfaba69466dce"
-  integrity sha512-/gXD01mHAOhW0xYuNJFDn08OGjaMXOjcg6GCKVPdHvQcWzswH4aT85DLDAAJ6Zhw/71veSIH4Kx1BTBfy69SsA==
+react-github-btn@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/react-github-btn/-/react-github-btn-1.4.0.tgz#92654107e92658e60dd977c7a92b212f806da78d"
+  integrity sha512-lV4FYClAfjWnBfv0iNlJUGhamDgIq6TayD0kPZED6VzHWdpcHmPfsYOZ/CFwLfPv4Zp+F4m8QKTj0oy2HjiGXg==
   dependencies:
-    github-buttons "^2.8.0"
+    github-buttons "^2.22.0"
 
 react-helmet-async@*:
   version "1.2.3"
