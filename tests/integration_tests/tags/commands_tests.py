@@ -63,7 +63,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ["create custom tag example 1", "create custom tag example 2"]
+        example_tags = {"create custom tag example 1", "create custom tag example 2"}
         command = CreateCustomTagCommand(
             ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
@@ -78,7 +78,7 @@ class TestCreateCustomTagCommand(SupersetTestCase):
             )
             .all()
         )
-        assert example_tags == [tag.name for tag in created_tags]
+        assert example_tags == {tag.name for tag in created_tags}
 
         # cleanup
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tags))
@@ -99,7 +99,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
             .filter_by(dashboard_title="World Bank's Data")
             .one()
         )
-        example_tags = ["create custom tag example 1", "create custom tag example 2"]
+        example_tags = {"create custom tag example 1", "create custom tag example 2"}
         command = CreateCustomTagCommand(
             ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
@@ -115,7 +115,7 @@ class TestDeleteTagsCommand(SupersetTestCase):
             .order_by(Tag.name)
             .all()
         )
-        assert example_tags == [tag.name for tag in created_tags]
+        assert example_tags == {tag.name for tag in created_tags}
 
         command = DeleteTagsCommand(example_tags)
         command.run()
@@ -132,7 +132,7 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
         example_dashboard = (
             db.session.query(Dashboard).filter_by(slug="world_health").one()
         )
-        example_tags = ["create custom tag example 1", "create custom tag example 2"]
+        example_tags = {"create custom tag example 1", "create custom tag example 2"}
         command = CreateCustomTagCommand(
             ObjectType.dashboard.value, example_dashboard.id, example_tags
         )
@@ -152,7 +152,7 @@ class TestDeleteTaggedObjectCommand(SupersetTestCase):
         command = DeleteTaggedObjectCommand(
             object_type=ObjectType.dashboard.value,
             object_id=example_dashboard.id,
-            tag=example_tags[0],
+            tag=list(example_tags)[0],
         )
         command.run()
         tagged_objects = (

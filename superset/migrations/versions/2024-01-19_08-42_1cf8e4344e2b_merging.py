@@ -14,10 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""merging
 
-import os
-import sys
+Revision ID: 1cf8e4344e2b
+Revises: ('e863403c0c50', '15a2c68a2e6b')
+Create Date: 2024-01-19 08:42:37.694192
 
-# hack to be able to import / reuse migration_utils.py in revisions
-module_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(module_dir)
+"""
+
+# revision identifiers, used by Alembic.
+revision = "1cf8e4344e2b"
+down_revision = ("e863403c0c50", "15a2c68a2e6b")
+
+import sqlalchemy as sa
+from alembic import op
+
+
+def upgrade():
+    pass
+
+
+def downgrade():
+    pass
