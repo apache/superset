@@ -191,8 +191,9 @@ class ObjectUpdater:
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
 
+    @classmethod
     def add_tag_object_if_not_tagged(
-        session: orm.Session, tag_id: int, object_id: int, object_type: str
+        cls, session: orm.Session, tag_id: int, object_id: int, object_type: str
     ) -> None:
         # Check if the object is already tagged
         exists_query = exists().where(
