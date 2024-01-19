@@ -53,11 +53,11 @@ interface DvtSidebarState {
     tags: string;
   };
   dashboard: {
-    owner: string;
-    createdBy: string;
-    status: string;
-    favorite: string;
-    certified: string;
+    owner: any;
+    createdBy: any;
+    status: any;
+    favorite: any;
+    certified: any;
   };
   data: {
     fetched: {
@@ -114,11 +114,11 @@ const initialState: DvtSidebarState = {
     tags: '',
   },
   dashboard: {
-    owner: '',
-    createdBy: '',
-    status: '',
-    favorite: '',
-    certified: '',
+    owner: {},
+    createdBy: {},
+    status: {},
+    favorite: {},
+    certified: {},
   },
   data: {
     fetched: {
