@@ -1733,7 +1733,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tbl, cte = self.get_from_clause(template_processor)
 
         if groupby_all_columns:
-            qry = qry.group_by(*groupby_all_columns.values())
+            if db_engine_spec.use_column_alias_in_groupby:
+                qry = qry.group_by(*groupby_all_columns.keys())
+            else:
+                qry = qry.group_by(*groupby_all_columns.values())
 
         where_clause_and = []
         having_clause_and = []
