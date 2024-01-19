@@ -259,7 +259,7 @@ supersetNode:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: '{{ .Release.Name }}-redis-headless'
     # redis_password: superset
-    redis_port: "6379"  
+    redis_port: "6379"
     # Or SSL port is usually 6380
     # Add following if you want to use SSL with Redis
     # use_redis_ssl:
