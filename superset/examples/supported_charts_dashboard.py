@@ -397,12 +397,12 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Sunburst Chart",
-            viz_type="sunburst",
+            viz_type="sunburst_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="sunburst",
+                viz_type="sunburst_v2",
                 metric="sum__num",
-                groupby=["gender", "state"],
+                columns=["gender", "state"],
             ),
         ),
         Slice(

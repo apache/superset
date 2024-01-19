@@ -151,8 +151,7 @@ export function getExtraFormData(
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
     !behaviors.includes(Behavior.NATIVE_FILTER) ||
-    (isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL) &&
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
       behaviors.includes(Behavior.INTERACTIVE_CHART))
   );
 }

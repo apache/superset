@@ -559,8 +559,15 @@ class TestCore(SupersetTestCase):
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_datasource(self):
+        form_data = {
+            "viz_type": "dist_bar",
+        }
         self.login(username="admin")
-        data = self.get_json_resp("/superset/explore_json/", raise_on_error=False)
+        rv = self.client.post(
+            "/superset/explore_json/",
+            data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
 
         self.assertEqual(
             data["errors"][0]["message"],
@@ -964,7 +971,6 @@ class TestCore(SupersetTestCase):
         urls = [
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
-            "/superset/profile/",
             f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
@@ -1195,11 +1201,6 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
-
-    def test_redirect_new_profile(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/profile/")
-        assert resp.status_code == 302
 
     def test_redirect_new_sqllab(self):
         self.login(username="admin")

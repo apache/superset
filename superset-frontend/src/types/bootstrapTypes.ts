@@ -109,7 +109,6 @@ export interface NavBarProps {
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
-  user_profile_url: string | null;
   locale: string;
 }
 

@@ -25,7 +25,7 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Most Populated Countries', viz: 'table' },
   { name: "World's Population", viz: 'big_number' },
   { name: 'Growth Rate', viz: 'line' },
-  { name: 'Rural Breakdown', viz: 'sunburst' },
+  { name: 'Rural Breakdown', viz: 'sunburst_v2' },
   { name: "World's Pop Growth", viz: 'area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
   { name: 'Treemap', viz: 'treemap_v2' },

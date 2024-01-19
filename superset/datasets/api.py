@@ -108,6 +108,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "changed_by_name",
         "changed_by.first_name",
         "changed_by.last_name",
+        "changed_by.id",
         "changed_on_utc",
         "changed_on_delta_humanized",
         "default_endpoint",

@@ -19,6 +19,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 import useFetch from 'src/hooks/useFetch';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
@@ -82,6 +83,7 @@ const headerData = [
 
 function DvtDashboardList() {
   const history = useHistory<{ from: string }>();
+  const dashboardSelector = useAppSelector(state => state.dvtSidebar.dashboard);
 
   const [selectedRows, setSelectedRows] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -91,22 +93,36 @@ function DvtDashboardList() {
   const searchApiUrl = () => {
     const filterData = [
       { col: 'dashboard_title', opr: 'title_or_slug', value: '' },
-      { col: 'owners', opr: 'rel_m_m', value: '' },
-      { col: 'created_by', opr: 'rel_m_m', value: '' },
-      { col: 'published', opr: 'eq', value: '' },
-      { col: 'id', opr: 'dashboard_is_favorite', value: '' },
-      { col: 'id', opr: 'dashboard_is_certified', value: '' },
+      { col: 'owners', opr: 'rel_m_m', value: dashboardSelector.owner?.value },
+      {
+        col: 'created_by',
+        opr: 'rel_o_m',
+        value: dashboardSelector.createdBy?.value,
+      },
+      { col: 'published', opr: 'eq', value: dashboardSelector.status?.value },
+      {
+        col: 'id',
+        opr: 'dashboard_is_favorite',
+        value: dashboardSelector.favorite?.value,
+      },
+      {
+        col: 'id',
+        opr: 'dashboard_is_certified',
+        value: dashboardSelector.certified?.value,
+      },
     ];
 
     let filters = '';
     const sort = 'order_column:changed_on_delta_humanized,order_direction:desc';
 
+    const withoutValues = [undefined, null, ''];
+
     const filteredData = filterData
-      .filter(item => item.value !== '')
+      .filter(item => !withoutValues.includes(item.value))
       .map(item => `(col:${item.col},opr:${item.opr},value:${item.value})`)
       .join(',');
 
-    if (filterData.filter(item => item.value !== '').length) {
+    if (filterData.filter(item => !withoutValues.includes(item.value)).length) {
       filters = `filters:!(${filteredData}),`;
     }
 

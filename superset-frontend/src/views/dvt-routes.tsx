@@ -124,10 +124,6 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
-const Profile = lazy(
-  () => import(/* webpackChunkName: "Profile" */ 'src/pages/Profile'),
-);
-
 type Routes = {
   path: string;
   Component: React.ComponentType;
@@ -225,10 +221,6 @@ export const routes: Routes = [
   {
     path: '/rowlevelsecurity/list',
     Component: RowLevelSecurityList,
-  },
-  {
-    path: '/profile',
-    Component: Profile,
   },
   {
     path: '/sqllab/',

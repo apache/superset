@@ -117,7 +117,6 @@ const createProps = (): RightMenuProps => ({
     user_info_url: '/users/userinfo/',
     user_logout_url: '/logout/',
     user_login_url: '/login/',
-    user_profile_url: '/profile/',
     locale: 'en',
     version_string: '1.0.0',
     version_sha: 'randomSHA',

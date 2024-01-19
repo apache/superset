@@ -25,13 +25,13 @@
     "@docusaurus/preset-classic": "^2.4.3",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
-    "@mdx-js/react": "^1.6.22",
+    "@mdx-js/react": "^3.0.0",
     "@saucelabs/theme-github-codeblock": "^0.1.1",
     "@superset-ui/style": "^0.14.23",
     "@svgr/webpack": "^5.5.0",
     "antd": "^4.19.3",
     "buffer": "^6.0.3",
-    "clsx": "^1.1.1",
+    "clsx": "^2.1.0",
     "docusaurus-plugin-less": "^2.0.2",
     "file-loader": "^6.2.0",
     "less": "^4.2.0",
@@ -41,14 +41,14 @@
     "react-dom": "^17.0.1",
     "react-github-btn": "^1.2.0",
     "stream": "^0.0.2",
-    "swagger-ui-react": "^4.1.3",
+    "swagger-ui-react": "^5.11.0",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^2.4.1",
-    "@tsconfig/docusaurus": "^1.0.6",
+    "@tsconfig/docusaurus": "^2.0.2",
     "@types/react": "^17.0.42",
-    "typescript": "^4.3.5",
+    "typescript": "^5.3.3",
     "webpack": "^5.76.0"
   },
   "browserslist": {
