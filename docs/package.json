@@ -37,6 +37,7 @@
     "less": "^4.2.0",
     "less-loader": "^11.0.0",
     "prism-react-renderer": "^1.2.1",
+    "prismjs": "^1.28.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-github-btn": "^1.2.0",
