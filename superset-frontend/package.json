@@ -127,7 +127,6 @@
     "antd": "4.10.3",
     "babel-plugin-typescript-to-proptypes": "^2.0.0",
     "bootstrap": "^3.4.1",
-    "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",
     "broadcast-channel": "^4.10.0",
     "chrono-node": "^2.2.6",
