@@ -32,9 +32,6 @@ import QueryLimitSelect, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));

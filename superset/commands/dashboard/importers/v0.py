@@ -29,6 +29,7 @@ from superset.commands.base import BaseCommand
 from superset.commands.dataset.importers.v0 import import_dataset
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import DashboardImportException
+from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import (
@@ -79,7 +80,7 @@ def import_chart(
 
 
 def import_dashboard(
-    # pylint: disable=too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,
     import_time: Optional[int] = None,
@@ -173,6 +174,7 @@ def import_dashboard(
         for slc in db.session.query(Slice).all()
         if "remote_id" in slc.params_dict
     }
+    new_slice_ids = []
     for slc in slices:
         logger.info(
             "Importing slice %s from the dashboard: %s",
@@ -181,6 +183,7 @@ def import_dashboard(
         )
         remote_slc = remote_id_slice_map.get(slc.id)
         new_slc_id = import_chart(slc, remote_slc, import_time=import_time)
+        new_slice_ids.append(new_slc_id)
         old_to_new_slc_id_dict[slc.id] = new_slc_id
         # update json metadata that deals with slice ids
         new_slc_id_str = str(new_slc_id)
@@ -249,22 +252,21 @@ def import_dashboard(
 
     alter_native_filters(dashboard_to_import)
 
-    new_slices = (
+    if existing_dashboard:
+        existing_dashboard.override(dashboard_to_import)
+    else:
+        db.session.add(dashboard_to_import)
+
+    dashboard = existing_dashboard or dashboard_to_import
+    dashboard.slices = (
         db.session.query(Slice)
         .filter(Slice.id.in_(old_to_new_slc_id_dict.values()))
         .all()
     )
-
-    if existing_dashboard:
-        existing_dashboard.override(dashboard_to_import)
-        existing_dashboard.slices = new_slices
-        db.session.flush()
-        return existing_dashboard.id
-
-    dashboard_to_import.slices = new_slices
-    db.session.add(dashboard_to_import)
+    # Migrate any filter-box charts to native dashboard filters.
+    migrate_dashboard(dashboard)
     db.session.flush()
-    return dashboard_to_import.id  # type: ignore
+    return dashboard.id
 
 
 def decode_dashboards(o: dict[str, Any]) -> Any:

@@ -76,7 +76,6 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
-import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
@@ -98,7 +97,6 @@ export default class MainPreset extends Preset {
         new CountryMapChartPlugin().configure({ key: 'country_map' }),
         new DistBarChartPlugin().configure({ key: 'dist_bar' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
-        new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
         new EchartsFunnelChartPlugin().configure({ key: 'funnel' }),
         new EchartsTreemapChartPlugin().configure({ key: 'treemap_v2' }),
         new EchartsGaugeChartPlugin().configure({ key: 'gauge_chart' }),

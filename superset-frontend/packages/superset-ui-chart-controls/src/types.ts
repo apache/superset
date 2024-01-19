@@ -280,7 +280,6 @@ export type SelectControlType =
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl';
 
-// via react-select/src/filters
 export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
