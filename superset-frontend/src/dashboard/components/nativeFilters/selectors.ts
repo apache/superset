@@ -358,34 +358,31 @@ export const selectNativeIndicatorsForChart = (
     return cachedNativeIndicatorsForChart[chartId];
   }
 
-  let nativeFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-    nativeFilterIndicators =
-      nativeFilters &&
-      Object.values(nativeFilters)
-        .filter(
-          nativeFilter =>
-            nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
-            nativeFilter.chartsInScope?.includes(chartId),
-        )
-        .map(nativeFilter => {
-          const column = nativeFilter.targets?.[0]?.column?.name;
-          const filterState = dataMask[nativeFilter.id]?.filterState;
-          const label = extractLabel(filterState);
-          return {
+  const nativeFilterIndicators =
+    nativeFilters &&
+    Object.values(nativeFilters)
+      .filter(
+        nativeFilter =>
+          nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
+          nativeFilter.chartsInScope?.includes(chartId),
+      )
+      .map(nativeFilter => {
+        const column = nativeFilter.targets?.[0]?.column?.name;
+        const filterState = dataMask[nativeFilter.id]?.filterState;
+        const label = extractLabel(filterState);
+        return {
+          column,
+          name: nativeFilter.name,
+          path: [nativeFilter.id],
+          status: getStatus({
+            label,
             column,
-            name: nativeFilter.name,
-            path: [nativeFilter.id],
-            status: getStatus({
-              label,
-              column,
-              rejectedColumns,
-              appliedColumns,
-            }),
-            value: label,
-          };
-        });
-  }
+            rejectedColumns,
+            appliedColumns,
+          }),
+          value: label,
+        };
+      });
 
   let crossFilterIndicators: any = [];
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {

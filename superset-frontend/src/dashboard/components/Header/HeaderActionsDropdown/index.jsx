@@ -19,12 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -361,18 +356,14 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu>
           )
         ) : null}
-        {editMode &&
-          !(
-            isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            isEmpty(dashboardInfo?.metadata?.filter_scopes)
-          ) && (
-            <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
-              <FilterScopeModal
-                className="m-r-5"
-                triggerNode={t('Set filter mapping')}
-              />
-            </Menu.Item>
-          )}
+        {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
+          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
+            <FilterScopeModal
+              className="m-r-5"
+              triggerNode={t('Set filter mapping')}
+            />
+          </Menu.Item>
+        )}
 
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal
