@@ -17,18 +17,27 @@
 
 from alembic.operations import BatchOperations, Operations
 
+naming_convention = {
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+}
+
 
 def create_unique_constraint(
     op: Operations, index_id: str, table_name: str, uix_columns: list[str]
 ) -> None:
-    with op.batch_alter_table(table_name) as batch_op:
+    with op.batch_alter_table(
+        table_name, naming_convention=naming_convention
+    ) as batch_op:
         batch_op.create_unique_constraint(index_id, uix_columns)
 
 
 def drop_unique_constraint(op: Operations, index_id: str, table_name: str) -> None:
     dialect = op.get_bind().dialect.name
 
-    with op.batch_alter_table(table_name) as batch_op:
+    with op.batch_alter_table(
+        table_name, naming_convention=naming_convention
+    ) as batch_op:
         if dialect == "mysql":
             # MySQL requires specifying the type of constraint
             batch_op.drop_constraint(index_id, type_="unique")
