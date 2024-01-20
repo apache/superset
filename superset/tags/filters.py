@@ -34,6 +34,6 @@ class UserCreatedTagTypeFilter(BaseFilter):  # pylint: disable=too-few-public-me
     def apply(self, query: Query, value: bool) -> Query:
         if value:
             return query.filter(Tag.type == TagType.custom)
-        elif value is False:
+        if value is False:
             return query.filter(Tag.type != TagType.custom)
         return query
