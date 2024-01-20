@@ -39,6 +39,7 @@ const StyledDiv = styled.div`
         height: 100%;
       }
       & .empty-droptarget:before {
+        display: block;
         border-color: ${theme.colors.primary.light1};
         background-color: ${theme.colors.primary.light3};
       }

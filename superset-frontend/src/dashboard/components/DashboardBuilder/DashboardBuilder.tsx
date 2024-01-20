@@ -119,7 +119,7 @@ const StyledHeader = styled.div`
     .empty-droptarget:before {
       position: absolute;
       content: '';
-      display: block;
+      display: none;
       width: calc(100% - ${theme.gridUnit * 2}px);
       height: calc(100% - ${theme.gridUnit * 2}px);
       left: ${theme.gridUnit}px;
@@ -623,7 +623,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
-          className={cx(!topLevelTabs && 'empty-droptarget')}
+          className={cx(!topLevelTabs && editMode && 'empty-droptarget')}
           component={dashboardRoot}
           parentComponent={null}
           depth={DASHBOARD_ROOT_DEPTH}
