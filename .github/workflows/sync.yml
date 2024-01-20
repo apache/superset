@@ -5,6 +5,10 @@ on:
   - cron: "0 */24 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   # Upstream repo name
   UPSTREAM_REPO: https://github.com/apache/superset
@@ -26,7 +30,7 @@ jobs:
         echo "Fetching upstream"
         git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
         git fetch tmp_upstream --tags
-        latest_tag_commit=$(git ls-remote --tags --sort=committerdate remote|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
+        latest_tag_commit=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
 
         echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
         git branch -D upstream
