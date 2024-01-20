@@ -21,6 +21,9 @@ jobs:
       - name: lint
         working-directory: ./superset-websocket
         run: npm run lint
+      - name: typescript checks
+        working-directory: ./superset-websocket
+        run: npm run type
       - name: prettier
         working-directory: ./superset-websocket
         run: npm run prettier-check
