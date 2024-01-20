@@ -52,7 +52,7 @@
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
     "format": "npm run _prettier -- --write",
     "lint": "npm run _lint -- .",
-    "lint-fix": "npm run _lint -- --fix",
+    "lint-fix": "npm run _lint . -- --fix",
     "lint-file": "npm run _lint",
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
