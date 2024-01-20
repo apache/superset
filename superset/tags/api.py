@@ -20,7 +20,9 @@ from typing import Any
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
+from sqlalchemy.orm import Query
 
 from superset.commands.tag.create import (
     CreateCustomTagCommand,
@@ -40,7 +42,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
-from superset.tags.models import ObjectType, Tag
+from superset.tags.models import ObjectType, Tag, TagType
 from superset.tags.schemas import (
     delete_tags_schema,
     openapi_spec_methods_override,
@@ -50,6 +52,7 @@ from superset.tags.schemas import (
     TagPostSchema,
     TagPutSchema,
 )
+from superset.views.base import BaseFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -58,6 +61,24 @@ from superset.views.base_api import (
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+
+
+class UserCreatedTagTypeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Filter for tag type.
+    When set to True, only user-created tags are returned.
+    When set to False, only system tags are returned.
+    """
+
+    name = _("Is custom tag")
+    arg_name = "custom_tag"
+
+    def apply(self, query: Query, value: bool) -> Query:
+        if value:
+            return query.filter(Tag.type == TagType.custom)
+        elif value is False:
+            return query.filter(Tag.type != TagType.custom)
+        return query
 
 
 class TagRestApi(BaseSupersetModelRestApi):
@@ -118,6 +139,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     allowed_rel_fields = {"created_by", "changed_by"}
+
+    search_filters = {"type": [UserCreatedTagTypeFilter]}
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
