@@ -34,6 +34,8 @@ jobs:
         git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
         git fetch tmp_upstream --tags
         latest_tag_commit=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
+        latest_tag=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
+        echo LATEST_TAG=${latest_tag} >> $GITHUB_ENV
 
         echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
         git branch -D upstream || echo "${{ env.SYNC_DEST_BRANCH }} branch deleted!"
@@ -50,7 +52,7 @@ jobs:
         source_branch: ${{ env.SYNC_DEST_BRANCH }}
         destination_branch: ortege
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        pr_title: "Pulling ${{ github.ref }} into ortege"
+        pr_title: "Pulling Upstream ${{ env.LATEST_TAG }} into ortege"
         pr_body: |
           :crown: *An automated PR to sync with upstream*
           
