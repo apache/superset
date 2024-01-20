@@ -18,7 +18,7 @@ jobs:
       run: |
         git remote add manual_upstream ${{ env.UPSTREAM_REPO }}
         echo "Fetching upstream"
-        git fetch manual_upstream --quiet
+        git fetch manual_upstream --tags
         res=$(git ls-remote --tags --sort=committerdate manual_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
         echo LATEST_TAG=$res >> $GITHUB_ENV
     - name: Synchronize repository
