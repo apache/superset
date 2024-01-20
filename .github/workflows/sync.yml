@@ -6,7 +6,10 @@ on:
   workflow_dispatch:
 
 env:
+  # Upstream repo name
   UPSTREAM_REPO: https://github.com/apache/superset
+  # Downstream repo's branch name which should be synced by upstream
+  SYNC_DEST_BRANCH: upstream
 
 jobs:
   sync:
@@ -14,24 +17,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Fetch the latest stable tag/release from the upstream repo
+
+    - name: Sync
       run: |
-        git remote add manual_upstream ${{ env.UPSTREAM_REPO }}
+        echo "Resetting origin to: https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
+        git remote set-url origin "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
+
         echo "Fetching upstream"
-        git fetch manual_upstream --tags
-        res=$(git ls-remote --tags --sort=committerdate manual_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
-        echo LATEST_TAG=$res >> $GITHUB_ENV
-    - name: Synchronize repository
-      uses: repo-sync/github-sync@v2
-      with:
-        source_repo: ${{ env.UPSTREAM_REPO }}
-        source_branch: ${{ env.LATEST_TAG }}
-        destination_branch: upstream
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
+        git fetch tmp_upstream --tags
+        latest_tag=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
+        git remote --verbose
+
+        echo "Pushing changings from tmp_upstream to origin"
+        git push origin "refs/remotes/tmp_upstream/$latest_tag:refs/heads/${{ env.SYNC_DEST_BRANCH }}" --force
+
+        echo "Removing tmp_upstream"
+        git remote rm tmp_upstream
+        git remote --verbose
+
     - name: Create pull request
       uses: repo-sync/pull-request@v2
       with:
-        source_branch: upstream
+        source_branch: ${{ env.SYNC_DEST_BRANCH }}
         destination_branch: ortege
         github_token: ${{ secrets.GITHUB_TOKEN }}
         pr_title: "Pulling ${{ github.ref }} into ortege"
