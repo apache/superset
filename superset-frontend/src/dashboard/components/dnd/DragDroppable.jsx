@@ -25,13 +25,7 @@ import { css, styled } from '@superset-ui/core';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
-import {
-  DROP_TOP,
-  DROP_RIGHT,
-  DROP_BOTTOM,
-  DROP_LEFT,
-  DROP_FORBIDDEN,
-} from '../../util/getDropPosition';
+import { DROP_FORBIDDEN } from '../../util/getDropPosition';
 
 const propTypes = {
   children: PropTypes.func,
