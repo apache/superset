@@ -5,19 +5,26 @@ on:
   - cron: "0 */24 * * *"
   workflow_dispatch:
 
+env:
+  UPSTREAM_REPO: https://github.com/apache/superset
+
 jobs:
   sync:
     name: sync the latest tag
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: |
-        res=$(git ls-remote --tags --sort=committerdate|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
+    - name: Fetch the latest stable tag/release from the upstream repo
+      run: |
+        git remote add manual_upstream ${{ env.UPSTREAM_REPO }}
+        echo "Fetching upstream"
+        git fetch manual_upstream --quiet
+        res=$(git ls-remote --tags --sort=committerdate manual_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
         echo LATEST_TAG=$res >> $GITHUB_ENV
     - name: Synchronize repository
       uses: repo-sync/github-sync@v2
       with:
-        source_repo: https://github.com/apache/superset
+        source_repo: ${{ env.UPSTREAM_REPO }}
         source_branch: ${{ env.LATEST_TAG }}
         destination_branch: upstream
         github_token: ${{ secrets.GITHUB_TOKEN }}
