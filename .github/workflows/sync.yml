@@ -26,11 +26,12 @@ jobs:
         echo "Fetching upstream"
         git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
         git fetch tmp_upstream --tags
-        latest_tag=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $2}')
-        git remote --verbose
+        latest_tag_commit=$(git ls-remote --tags --sort=committerdate remote|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
 
-        echo "Pushing changings from tmp_upstream to origin"
-        git push origin "refs/remotes/tmp_upstream/$latest_tag:refs/heads/${{ env.SYNC_DEST_BRANCH }}" --force
+        echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
+        git branch -D upstream
+        git checkout -b ${{ env.SYNC_DEST_BRANCH }} ${latest_tag_commit}
+        git push origin ${{ env.SYNC_DEST_BRANCH }} --force
 
         echo "Removing tmp_upstream"
         git remote rm tmp_upstream
