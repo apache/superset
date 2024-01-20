@@ -42,6 +42,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
+from superset.tags.filters import UserCreatedTagTypeFilter
 from superset.tags.models import ObjectType, Tag, TagType
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -61,24 +62,6 @@ from superset.views.base_api import (
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
-
-
-class UserCreatedTagTypeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    """
-    Filter for tag type.
-    When set to True, only user-created tags are returned.
-    When set to False, only system tags are returned.
-    """
-
-    name = _("Is custom tag")
-    arg_name = "custom_tag"
-
-    def apply(self, query: Query, value: bool) -> Query:
-        if value:
-            return query.filter(Tag.type == TagType.custom)
-        elif value is False:
-            return query.filter(Tag.type != TagType.custom)
-        return query
 
 
 class TagRestApi(BaseSupersetModelRestApi):
