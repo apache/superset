@@ -789,8 +789,8 @@ is configured as a pre-commit hook. There are also numerous [editor integrations
 cd superset-frontend
 npm ci
 # run eslint checks
-npm run lint
-# run tsc checks
+npm run eslint -- .
+# run tsc (typescript) checks
 npm run type
 ```
 

@@ -18,9 +18,9 @@ jobs:
       - name: Install dependencies
         working-directory: ./superset-websocket
         run: npm ci
-      - name: lint
+      - name: eslint
         working-directory: ./superset-websocket
-        run: npm run lint
+        run: npm run eslint -- .
       - name: typescript checks
         working-directory: ./superset-websocket
         run: npm run type

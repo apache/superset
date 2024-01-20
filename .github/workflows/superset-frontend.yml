@@ -40,7 +40,7 @@ jobs:
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run lint -- --quiet
+          npm run eslint -- . --quiet
           npm run type
           npm run prettier-check
       - name: Build plugins packages
