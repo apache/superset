@@ -28,6 +28,7 @@ jobs:
       run: |
         echo "Resetting origin to: https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
         git remote set-url origin "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
+        git fetch origin --quiet
 
         echo "Fetching upstream"
         git remote add tmp_upstream ${{ env.UPSTREAM_REPO }}
