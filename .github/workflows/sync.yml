@@ -36,7 +36,7 @@ jobs:
         latest_tag_commit=$(git ls-remote --tags --sort=committerdate tmp_upstream|egrep -iv 'helm|rc'|tail -1|awk '{print $1}')
 
         echo "Pushing the latest tag commit as the origin SYNC_DEST_BRANCH"
-        git branch -D upstream
+        git branch -D upstream || echo "${{ env.SYNC_DEST_BRANCH }} branch deleted!"
         git checkout -b ${{ env.SYNC_DEST_BRANCH }} ${latest_tag_commit}
         git push origin ${{ env.SYNC_DEST_BRANCH }} --force
 
