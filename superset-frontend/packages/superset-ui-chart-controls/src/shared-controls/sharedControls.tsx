@@ -205,7 +205,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
-    if (!hasGenericChartAxes) {
+    if (!hasGenericChartAxes || !controls?.x_axis) {
       return true;
     }
 
