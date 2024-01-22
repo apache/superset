@@ -199,7 +199,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
-                    message="Guest users can only use predefined metrics",
+                    message=_("Guest users can only use predefined metrics"),
                     level=ErrorLevel.ERROR,
                 ),
             )
