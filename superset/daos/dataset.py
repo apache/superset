@@ -17,8 +17,10 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
+import dateutil.parser
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -149,6 +151,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             )
         ).all()
         return len(dataset_query) == 0
+
+    @staticmethod
+    def validate_column_pdf_is_iso8601(dt_format: str) -> bool:
+        if dt_format in ("epoch_s", "epoch_ms", None):
+            return True
+        try:
+            dt_str = datetime.now().strftime(dt_format)
+            dateutil.parser.isoparse(dt_str)
+            return True
+        except ValueError:
+            return False
 
     @classmethod
     def update(

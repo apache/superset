@@ -44,11 +44,11 @@ openapi_spec_methods_override = {
 }
 
 
-def validate_python_date_format(value: str) -> bool:
-    if value in ("epoch_s", "epoch_ms"):
+def validate_python_date_format(dt_format: str) -> bool:
+    if dt_format in ("epoch_s", "epoch_ms"):
         return True
     try:
-        dt_str = datetime.now().strftime(value)
+        dt_str = datetime.now().strftime(dt_format)
         isoparse(dt_str)
     except ValueError as ex:
         raise ValidationError([_("Invalid date/timestamp format")]) from ex
