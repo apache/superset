@@ -62,7 +62,7 @@ jobs:
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
           docker buildx build --target ci \
             --load \
-            --cache-from=type=local,src=/tmp/superset \
+            --cache-from=type=registry,ref=apache/superset:lean \
             -t ${{ github.sha }} \
             -t "pr-${{ github.event.pull_request.number }}" \
             --platform linux/amd64 \
