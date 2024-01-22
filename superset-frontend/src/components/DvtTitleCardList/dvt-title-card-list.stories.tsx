@@ -86,4 +86,9 @@ export const Default = (args: DvtTitleCardListProps) => {
 
 Default.args = {
   title: 'Example List Title',
+  dropdown: [
+    { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+    { label: 'Export', icon: 'share', onClick: () => {} },
+    { label: 'Delete', icon: 'trash', onClick: () => {} },
+  ],
 };

@@ -156,6 +156,11 @@ function DvtWelcome() {
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'Dashboard')
           }
+          dropdown={[
+            { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+            { label: 'Export', icon: 'share', onClick: () => {} },
+            { label: 'Delete', icon: 'trash', onClick: () => {} },
+          ]}
         />
 
         <DvtTitleCardList
@@ -164,9 +169,18 @@ function DvtWelcome() {
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'slice')
           }
+          dropdown={[
+            { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+            { label: 'Export', icon: 'share', onClick: () => {} },
+            { label: 'Delete', icon: 'trash', onClick: () => {} },
+          ]}
         />
 
-        <DvtTitleCardList title="Saved Queries" data={savedQueriesData} />
+        <DvtTitleCardList
+          title="Saved Queries"
+          data={savedQueriesData}
+          dropdown={[{ label: 'Share', onClick: () => {} }]}
+        />
       </DataContainer>
       <CalendarContainer>
         {openCalendar ? (
