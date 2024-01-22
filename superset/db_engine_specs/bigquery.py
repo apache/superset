@@ -52,7 +52,7 @@ try:
     from google.oauth2 import service_account
 
     dependencies_installed = True
-except ModuleNotFoundError:
+except ImportError:
     dependencies_installed = False
 
 try:

@@ -42,6 +42,7 @@ from superset.commands.query.importers.v1.utils import import_saved_query
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 
@@ -106,6 +107,7 @@ class ImportAssetsCommand(BaseCommand):
                 }
 
         # import charts
+        charts = []
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
@@ -117,6 +119,7 @@ class ImportAssetsCommand(BaseCommand):
                 if "query_context" in config:
                     config["query_context"] = None
                 chart = import_chart(session, config, overwrite=True)
+                charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
         # import dashboards
@@ -143,6 +146,14 @@ class ImportAssetsCommand(BaseCommand):
                     )
                 )
                 session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
+
+                # Migrate any filter-box charts to native dashboard filters.
+                migrate_dashboard(dashboard)
+
+        # Remove all obsolete filter-box charts.
+        for chart in charts:
+            if chart.viz_type == "filter_box":
+                session.delete(chart)
 
     def run(self) -> None:
         self.validate()

@@ -77,7 +77,6 @@ const DEFAULT_ORDER = [
   'echarts_timeseries_scatter',
   'pie',
   'mixed_timeseries',
-  'filter_box',
   'dist_bar',
   'area',
   'bar',
