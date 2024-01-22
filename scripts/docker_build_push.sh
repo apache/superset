@@ -131,7 +131,7 @@ fi
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=apache/superset:${BUILD_TARGET} \
+  --cache-from=type=registry,ref=apache/superset:${TARGET} \
   --cache-to=type=registry,mode=max,ref=apache/superset:${BUILD_TARGET} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
