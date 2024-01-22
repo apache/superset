@@ -6,12 +6,6 @@ from superset.initialization import SupersetAppInitializer
 
 class DVTAppInitializer(SupersetAppInitializer):
     def init_views(self) -> None:
-        # pylint: disable=import-outside-toplevel
-        #
-        # We're doing local imports, as several of them import
-        # models which in turn try to import
-        # the global Flask app
-        #
         # pylint: disable=import-outside-toplevel,too-many-locals,too-many-statements
         from superset import security_manager
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
