@@ -69,7 +69,10 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
             table.template_params = self._base_model.template_params
             table.normalize_columns = self._base_model.normalize_columns
             table.is_sqllab_view = True
-            table.sql = ParsedQuery(self._base_model.sql).stripped()
+            table.sql = ParsedQuery(
+                self._base_model.sql,
+                engine=database.db_engine_spec.engine,
+            ).stripped()
             db.session.add(table)
             cols = []
             for config_ in self._base_model.columns:
