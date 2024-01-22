@@ -24,27 +24,35 @@ jobs:
             echo "has-secrets=0" >> "$GITHUB_OUTPUT"
             echo "no secrets!"
           fi
-
   docker-build:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: ["dev", "lean", "lean310", "lean39", "websocket", "dockerize"]
+        platform: ["linux/amd64", "linux/arm64"]
+      fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
         with:
           persist-credentials: false
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - shell: bash
+
+      - name: Build Docker Image
+        shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ./scripts/docker_build_push.sh
+          ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
 
       - name: Build ephemeral env image
         if: github.event_name == 'pull_request'
