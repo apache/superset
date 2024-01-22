@@ -54,7 +54,6 @@ const DvtCard: React.FC<DvtCardProps> = ({
 }) => {
   const history = useHistory();
   const [hoverOnLink, setHoverOnLink] = useState<boolean>(false);
-  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
 
   const truncatedFormat = (text: string, maxLength: number) =>
     text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
@@ -87,14 +86,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
             </IconButton>
           )}
 
-          {dropdown && (
-            <DvtDropdown
-              isOpen={dropdownOpen}
-              setIsOpen={() => setDropdownOpen(!dropdownOpen)}
-              data={dropdown}
-              icon="more_vert"
-            />
-          )}
+          {dropdown && <DvtDropdown data={dropdown} icon="more_vert" />}
         </DvtHeadButtons>
       </DvtCardHead>
       <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>

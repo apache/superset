@@ -33,8 +33,6 @@ export interface OptionProps {
 }
 
 export interface DvtDropdownProps {
-  isOpen: boolean;
-  setIsOpen: () => void;
   data: OptionProps[];
   icon: string;
 }
@@ -51,7 +49,13 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
         {isOpen && (
           <DropdownMenu>
             {data.map((item, index) => (
-              <DropdownOption key={index} onClick={item.onClick}>
+              <DropdownOption
+                key={index}
+                onClick={() => {
+                  item.onClick();
+                  setIsOpen(false);
+                }}
+              >
                 {item.icon && <Icon fileName={item.icon} />}
                 {item.label}
               </DropdownOption>
