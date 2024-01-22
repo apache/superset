@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  JsonResponse,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { JsonResponse, SupersetClient, t } from '@superset-ui/core';
 import { RouteComponentProps } from 'react-router-dom';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   Dataset,
   DatasetSelectLabel,
@@ -31,15 +24,7 @@ interface ChartCreationState {
   canCreateDataset: boolean;
 }
 
-const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
-
-if (
-  isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-  !denyList.includes('filter_box')
-) {
-  denyList.push('filter_box');
-}
+const denyList: string[] = ['filter_box'];
 
 const DvtChartAdd: React.FC<ChartCreationProps> = ({
   user,
