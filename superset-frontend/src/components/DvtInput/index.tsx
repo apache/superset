@@ -69,7 +69,11 @@ const DvtInput = ({
       <StyledInputPopover>
         <StyledInputLabel>{label}</StyledInputLabel>
         {importantLabel && (
-          <DvtPopper label={importantLabel} direction={popoverDirection}>
+          <DvtPopper
+            label={importantLabel}
+            direction={popoverDirection}
+            size="small"
+          >
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({
@@ -80,7 +84,11 @@ const DvtInput = ({
           </DvtPopper>
         )}
         {popoverLabel && (
-          <DvtPopper size='small' label={popoverLabel} direction={popoverDirection}>
+          <DvtPopper
+            size="small"
+            label={popoverLabel}
+            direction={popoverDirection}
+          >
             <Icon
               fileName="warning"
               css={(theme: SupersetTheme) => ({
