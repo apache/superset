@@ -325,32 +325,13 @@ class ParsedQuery:
 
             pseudo_query = parse_one(f"SELECT {literal.this}", dialect=self._dialect)
             sources = pseudo_query.find_all(exp.Table)
-        elif statement:
-            sources = []
-            for scope in traverse_scope(statement):
-                for source in scope.sources.values():
-                    if not isinstance(source, exp.Table):
-                        continue
-
-                    # CTEs in the parent scope look like tables (and are represented by
-                    # exp.Table objects), but should not be considered as such;
-                    # otherwise a user with access to table `foo` could access any table
-                    # with a query like this:
-                    #
-                    #   WITH foo AS (SELECT * FROM bar) SELECT * FROM foo
-                    #
-                    parent_sources = scope.parent.sources if scope.parent else {}
-                    ctes_in_scope = {
-                        name
-                        for name, parent_scope in parent_sources.items()
-                        if isinstance(parent_scope, Scope)
-                        and parent_scope.scope_type == ScopeType.CTE
-                    }
-                    if source.name not in ctes_in_scope:
-                        sources.append(source)
-
         else:
-            return set()
+            sources = [
+                source
+                for scope in traverse_scope(statement)
+                for source in scope.sources.values()
+                if isinstance(source, exp.Table) and not self._is_cte(source, scope)
+            ]
 
         return {
             Table(
@@ -360,6 +341,28 @@ class ParsedQuery:
             )
             for source in sources
         }
+
+    def _is_cte(self, source: exp.Table, scope: Scope) -> bool:
+        """
+        Is the source a CTE?
+
+        CTEs in the parent scope look like tables (and are represented by
+        exp.Table objects), but should not be considered as such;
+        otherwise a user with access to table `foo` could access any table
+        with a query like this:
+
+            WITH foo AS (SELECT * FROM target_table) SELECT * FROM foo
+
+        """
+        parent_sources = scope.parent.sources if scope.parent else {}
+        ctes_in_scope = {
+            name
+            for name, parent_scope in parent_sources.items()
+            if isinstance(parent_scope, Scope)
+            and parent_scope.scope_type == ScopeType.CTE
+        }
+
+        return source.name in ctes_in_scope
 
     @property
     def limit(self) -> Optional[int]:
