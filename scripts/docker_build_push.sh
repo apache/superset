@@ -132,12 +132,12 @@ docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
   --cache-from=type=registry,ref=apache/superset:${TARGET} \
-  --cache-to=type=registry,mode=max,ref=apache/superset:${BUILD_TARGET} \
+  --cache-to=type=registry,mode=max,ref=apache/superset:${TARGET} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
-  --label "target=${BUILD_TARGET}" \
+  --label "target=${TARGET}" \
   --label "build_actor=${GITHUB_ACTOR}" \
   ${BUILD_ARG:+--build-arg PY_VER="${BUILD_ARG}"} \
   ${DOCKER_CONTEXT}
