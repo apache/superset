@@ -60,6 +60,14 @@ if [[ "${TEST_ENV}" == "true" ]]; then
   exit 0
 fi
 
+# for the dev image, it's ok to tag master as latest-dev
+# for production, we only want to tag the latest official release as latest
+if [ "${LATEST_TAG}" = "master" ]; then
+  DEV_TAG="${REPO_NAME}:latest-dev"
+else
+  DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
+fi
+
 case "${TARGET}" in
   "dev")
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
@@ -114,14 +122,6 @@ else
   DOCKER_ARGS="--push"
 fi
 set -x
-
-# for the dev image, it's ok to tag master as latest-dev
-# for production, we only want to tag the latest official release as latest
-if [ "${LATEST_TAG}" = "master" ]; then
-  DEV_TAG="${REPO_NAME}:latest-dev"
-else
-  DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
-fi
 
 TARGET_ARGUMENT=""
 if [[ -n "${BUILD_TARGET}" ]]; then
