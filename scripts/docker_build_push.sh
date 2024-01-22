@@ -125,7 +125,7 @@ fi
 
 TARGET_ARGUMENT=""
 if [[ -n "${BUILD_TARGET}" ]]; then
-  TARGET_ARGUMENT="--target ${TARGET}"
+  TARGET_ARGUMENT="--target ${BUILD_TARGET}"
 fi
 
 docker buildx build \
