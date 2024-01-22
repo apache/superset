@@ -14,11 +14,13 @@ import { useAppSelector } from 'src/hooks/useAppSelector';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import { ChartMetadata, t } from '@superset-ui/core';
 import useFetch from 'src/hooks/useFetch';
+import useOnClickOutside from 'src/hooks/useOnClickOutsite';
+import { DoubleRightOutlined } from '@ant-design/icons';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
-import { DoubleRightOutlined } from '@ant-design/icons';
 import DvtTitlePlus from '../DvtTitlePlus';
 import DvtNavigation from '../DvtNavigation';
+import DvtPopper from '../DvtPopper';
 // import DvtFolderNavigation from '../DvtFolderNavigation';
 import DvtSelect from '../DvtSelect';
 import DvtNavigationBar from '../DvtNavigationBar';
@@ -36,12 +38,11 @@ import {
   StyledDvtSidebarGroup,
   StyledDvtSidebarIcon,
   StyledDvtSidebarRotateIcon,
+  StyledDvtSidebarLink,
 } from './dvt-sidebar.module';
 import DvtList from '../DvtList';
 import DvtDatePicker from '../DvtDatepicker';
 import { usePluginContext } from '../DynamicPlugins';
-import useOnClickOutside from 'src/hooks/useOnClickOutsite';
-import DvtPopper from '../DvtPopper';
 
 interface DvtSidebarProps {
   pathName: string;
@@ -432,30 +433,34 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 <StyledDvtSidebarIconGroup ref={ref} isOpen={isOpen}>
                   {filteredData.data.map((item: any, subIndex: number) =>
                     isOpen ? (
-                      <StyledDvtSidebarIcon
-                        to={item.url}
-                        isOpen={isOpen}
-                        active={pathName === item.url}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <Icon key={subIndex} fileName={item.fileName} />
-                        {isOpen && item.title}
-                      </StyledDvtSidebarIcon>
+                      <StyledDvtSidebarLink to={item.url}>
+                        <StyledDvtSidebarIcon
+                          isOpen={isOpen}
+                          active={pathName === item.url}
+                          onClick={() => setIsOpen(false)}
+                          key={subIndex}
+                        >
+                          <Icon fileName={item.fileName} />
+                          {isOpen && item.title}
+                        </StyledDvtSidebarIcon>
+                      </StyledDvtSidebarLink>
                     ) : (
                       <DvtPopper
                         label={item.title}
                         direction="right"
                         size="small"
+                        key={subIndex}
                       >
-                        <StyledDvtSidebarIcon
-                          to={item.url}
-                          isOpen={isOpen}
-                          active={pathName === item.url}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <Icon key={subIndex} fileName={item.fileName} />
-                          {isOpen && item.title}
-                        </StyledDvtSidebarIcon>
+                        <StyledDvtSidebarLink to={item.url}>
+                          <StyledDvtSidebarIcon
+                            isOpen={isOpen}
+                            active={pathName === item.url}
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <Icon fileName={item.fileName} />
+                            {isOpen && item.title}
+                          </StyledDvtSidebarIcon>{' '}
+                        </StyledDvtSidebarLink>
                       </DvtPopper>
                     ),
                   )}

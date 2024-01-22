@@ -100,7 +100,7 @@ const StyledDvtSidebarGroup = styled.div`
   display: flex;
 `;
 
-const StyledDvtSidebarIcon = styled(Link)<SidebarIcon>`
+const StyledDvtSidebarIcon = styled.div<SidebarIcon>`
   display: flex;
   justify-content: ${({ isOpen }) => (isOpen ? '' : 'center')};
   align-items: center;
@@ -118,6 +118,9 @@ const StyledDvtSidebarIcon = styled(Link)<SidebarIcon>`
   &:focus {
     color: ${({ theme }) => theme.colors.grayscale.light5};
   }
+`;
+
+const StyledDvtSidebarLink = styled(Link)`
 `;
 
 const StyledDvtSidebarRotateIcon = styled.div<SidebarRotateIcon>`
@@ -145,4 +148,5 @@ export {
   StyledDvtSidebarGroup,
   StyledDvtSidebarIcon,
   StyledDvtSidebarRotateIcon,
+  StyledDvtSidebarLink
 };
