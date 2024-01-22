@@ -19,8 +19,8 @@ def wrapped(*args, **kwargs):
     [
         ("1.0.0", "lean", "linux/amd64", "LATEST_TAG is master", "master"),
         ("2.1.0", "lean", "linux/amd64", "LATEST_TAG is master", "master"),
-        # ("2.1.1", "lean", "linux/amd64", "LATEST_TAG is master", "master"),
-        # ("3.0.0", "lean", "linux/amd64", "LATEST_TAG is master", "master"),
+        ("2.1.1", "lean", "linux/amd64", "LATEST_TAG is latest", "master"),
+        ("3.0.0", "lean", "linux/amd64", "LATEST_TAG is latest", "master"),
         ("2.1.0rc1", "lean", "linux/amd64", "LATEST_TAG is 2.1.0", "2.1.0"),
         ("", "lean", "linux/amd64", "LATEST_TAG is foo", "foo"),
         ("2.1", "lean", "linux/amd64", "LATEST_TAG is 2.1", "2.1"),
