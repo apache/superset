@@ -37,7 +37,8 @@ from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
-from superset.models.dashboard import dashboard_slices
+from superset.migrations.shared.native_filters import migrate_dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -105,6 +106,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 }
 
         # import charts with the correct parent ref
+        charts = []
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if (
@@ -121,6 +123,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                     config["query_context"] = None
 
                 chart = import_chart(session, config, overwrite=False)
+                charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
@@ -129,11 +132,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
         ).fetchall()
 
         # import dashboards
+        dashboards: list[Dashboard] = []
         dashboard_chart_ids: list[tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboards.append(dashboard)
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break
@@ -147,3 +152,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
         session.execute(dashboard_slices.insert(), values)
+
+        # Migrate any filter-box charts to native dashboard filters.
+        for dashboard in dashboards:
+            migrate_dashboard(dashboard)
+
+        # Remove all obsolete filter-box charts.
+        for chart in charts:
+            if chart.viz_type == "filter_box":
+                session.delete(chart)

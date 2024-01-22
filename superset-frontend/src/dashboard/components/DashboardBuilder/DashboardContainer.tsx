@@ -21,11 +21,9 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  FeatureFlag,
   Filter,
   Filters,
   getCategoricalSchemeRegistry,
-  isFeatureEnabled,
   SupersetClient,
   useComponentDidUpdate,
 } from '@superset-ui/core';
@@ -104,10 +102,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [dashboardLayout, directPathToChild]);
 
   useEffect(() => {
-    if (
-      !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      nativeFilterScopes.length === 0
-    ) {
+    if (nativeFilterScopes.length === 0) {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {

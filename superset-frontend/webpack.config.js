@@ -247,7 +247,6 @@ const config = {
               'redux',
               'react-redux',
               'react-hot-loader',
-              'react-select',
               'react-sortable-hoc',
               'react-table',
               'react-ace',
