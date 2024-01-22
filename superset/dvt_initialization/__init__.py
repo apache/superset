@@ -80,8 +80,6 @@ class DVTAppInitializer(SupersetAppInitializer):
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
-        from superset.views.profile import ProfileView
-        from superset.views.redirects import R
         from superset.views.sql_lab.views import (
             SavedQueryView,
             SavedQueryViewApi,
@@ -206,8 +204,6 @@ class DVTAppInitializer(SupersetAppInitializer):
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(KV)
-        appbuilder.add_view_no_menu(R)
-        appbuilder.add_view_no_menu(ProfileView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
         appbuilder.add_view_no_menu(SliceAsync)
