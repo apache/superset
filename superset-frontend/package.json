@@ -129,8 +129,6 @@
     "chrono-node": "^2.2.6",
     "classnames": "^2.2.5",
     "core-js": "^3.6.5",
-    "d3-array": "^1.2.4",
-    "d3-color": "^3.1.0",
     "d3-scale": "^2.1.2",
     "dom-to-image-more": "^2.10.1",
     "dom-to-pdf": "^0.3.2",
