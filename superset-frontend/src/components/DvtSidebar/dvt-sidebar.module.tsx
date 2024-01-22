@@ -91,7 +91,7 @@ const StyledDvtSidebarIconGroup = styled.div<SidebarRotateIcon>`
   flex-direction: column;
   flex: 1;
   gap: 20px;
-  padding-right: ${({ isOpen }) => (isOpen ? '' : '6px')};
+  padding-right: ${({ isOpen }) => (isOpen ? '' : '8px')};
   border-right: ${({ isOpen, theme }) =>
     isOpen ? 'none' : `3px solid ${theme.colors.dvt.border.base}`};
 `;

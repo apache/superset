@@ -430,18 +430,36 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
             .map((filteredData: any, index: number) => (
               <div key={index}>
                 <StyledDvtSidebarIconGroup ref={ref} isOpen={isOpen}>
-                  {filteredData.data.map((item: any, subIndex: number) => (
-                    <DvtPopper label={item.title} direction='right' size='small'>
+                  {filteredData.data.map((item: any, subIndex: number) =>
+                    isOpen ? (
                       <StyledDvtSidebarIcon
                         to={item.url}
                         isOpen={isOpen}
                         active={pathName === item.url}
+                        onClick={() => setIsOpen(false)}
                       >
                         <Icon key={subIndex} fileName={item.fileName} />
                         {isOpen && item.title}
                       </StyledDvtSidebarIcon>
-                    </DvtPopper>
-                  ))}
+                    ) : (
+                      <DvtPopper
+                        label={item.title}
+                        direction="right"
+                        size="small"
+                      >
+                        <StyledDvtSidebarIcon
+                          to={item.url}
+                          isOpen={isOpen}
+                          active={pathName === item.url}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Icon key={subIndex} fileName={item.fileName} />
+                          {isOpen && item.title}
+                        </StyledDvtSidebarIcon>
+                      </DvtPopper>
+                    ),
+                  )}
+
                   <StyledDvtSidebarRotateIcon
                     isOpen={isOpen}
                     onClick={() => setIsOpen(!isOpen)}
