@@ -25,7 +25,10 @@ from sqlalchemy import text
 from sqlparse.sql import Identifier, Token, TokenList
 from sqlparse.tokens import Name
 
-from superset.exceptions import QueryClauseValidationException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.sql_parse import (
     add_table_name,
     extract_table_references,
@@ -267,9 +270,27 @@ def test_extract_tables_illdefined() -> None:
     """
     Test that ill-defined tables return an empty set.
     """
-    assert extract_tables("SELECT * FROM schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname.schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname..") == set()
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM schemaname.")
+    assert (
+        str(excinfo.value) == "Unable to parse SQL (generic): SELECT * FROM schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname.schemaname.")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname..")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
+    )
+
+    # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
         Table(table="tbname", schema=None, catalog="catalogname")
     }
