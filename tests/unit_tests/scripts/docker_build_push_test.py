@@ -33,8 +33,11 @@ def test_tag_latest_release(tag, expected_output, branch):
     ) as subprocess_mock:
         result = BashMock.docker_build_push(tag, branch)
 
+        params = f"{tag} lean linux/amd64"
+        cmd = f"./scripts/docker_build_push.sh {params}"
+        print(cmd)
         subprocess_mock.assert_called_once_with(
-            f"./scripts/docker_build_push.sh {tag}",
+            cmd,
             shell=True,
             capture_output=True,
             text=True,
