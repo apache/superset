@@ -120,8 +120,7 @@ const StyledDvtSidebarIcon = styled.div<SidebarIcon>`
   }
 `;
 
-const StyledDvtSidebarLink = styled(Link)`
-`;
+const StyledDvtSidebarLink = styled(Link)``;
 
 const StyledDvtSidebarRotateIcon = styled.div<SidebarRotateIcon>`
   display: flex;
@@ -148,5 +147,5 @@ export {
   StyledDvtSidebarGroup,
   StyledDvtSidebarIcon,
   StyledDvtSidebarRotateIcon,
-  StyledDvtSidebarLink
+  StyledDvtSidebarLink,
 };
