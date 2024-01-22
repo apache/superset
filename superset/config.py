@@ -287,10 +287,10 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Ortege"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/ortege-logo-horiz.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -1426,20 +1426,39 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "default-src": [
+            "'self'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com",
+            "'unsafe-inline'",
+        ],
+        "img-src": [
+            "'self'",
+            "blob:",
+            "data:",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
+        ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'strict-dynamic'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com", 
+            "'unsafe-inline'",
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,
@@ -1449,20 +1468,39 @@ TALISMAN_CONFIG = {
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "blob:", "data:"],
+        "default-src": [
+            "'self'", 
+            "https://*.clarity.ms", 
+            "https://c.bing.com",
+            "'unsafe-inline'",
+        ],
+        "img-src": [
+            "'self'",
+            "blob:",
+            "data:",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
+        ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
             "https://api.mapbox.com",
             "https://events.mapbox.com",
+            "https://*.clarity.ms",
+            "https://c.bing.com",
         ],
         "object-src": "'none'",
         "style-src": [
             "'self'",
             "'unsafe-inline'",
         ],
-        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "script-src": [
+            "'self'", 
+            "'strict-dynamic'", 
+            "https://*.clarity.ms", 
+            "'unsafe-inline'",
+            "'unsafe-eval'"
+        ],
     },
     "content_security_policy_nonce_in": ["script-src"],
     "force_https": False,

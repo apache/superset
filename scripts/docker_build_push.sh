@@ -20,7 +20,8 @@ set -eo pipefail
 GITHUB_RELEASE_TAG_NAME="$1"
 
 SHA=$(git rev-parse HEAD)
-REPO_NAME="apache/superset"
+REPO_NAME=${2:-apache/superset}
+REGISTRY_URL=${3}
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
@@ -67,13 +68,13 @@ if [ -z "${DOCKERHUB_TOKEN}" ]; then
   echo "Skipping Docker push"
   # By default load it back
   DOCKER_ARGS="--load"
-  ARCHITECTURE_FOR_BUILD="linux/amd64 linux/arm64"
+  ARCHITECTURE_FOR_BUILD="linux/amd64"
 else
   # Login and push
   docker logout
-  docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
+  docker login "${REGISTRY_URL}" --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
   DOCKER_ARGS="--push"
-  ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
+  ARCHITECTURE_FOR_BUILD="linux/amd64"
 fi
 set -x
 
@@ -85,23 +86,23 @@ else
   DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
 fi
 
-#
-# Build the dev image
-#
-docker buildx build --target dev \
-  $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-dev \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-dev" \
-  -t "${REPO_NAME}:${REFSPEC}-dev" \
-  -t "${DEV_TAG}" \
-  --platform linux/amd64 \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=dev" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+# #
+# # Build the dev image
+# #
+# docker buildx build --target dev \
+#   $DOCKER_ARGS \
+#   --cache-from=type=registry,ref=apache/superset:master-dev \
+#   --cache-from=type=local,src=/tmp/superset \
+#   --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+#   -t "${REPO_NAME}:${SHA}-dev" \
+#   -t "${REPO_NAME}:${REFSPEC}-dev" \
+#   -t "${DEV_TAG}" \
+#   --platform linux/amd64 \
+#   --label "sha=${SHA}" \
+#   --label "built_at=$(date)" \
+#   --label "target=dev" \
+#   --label "build_actor=${GITHUB_ACTOR}" \
+#   .
 
 #
 # Build the "lean" image
@@ -138,23 +139,23 @@ docker buildx build --target lean \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
 
-#
-# Build the "lean39" image
-#
-docker buildx build --target lean \
-  $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-py39" \
-  -t "${REPO_NAME}:${REFSPEC}-py39" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py39" \
-  --platform linux/amd64 \
-  --build-arg PY_VER="3.9-slim-bullseye"\
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean39" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+# #
+# # Build the "lean39" image
+# #
+# docker buildx build --target lean \
+#   $DOCKER_ARGS \
+#   --cache-from=type=local,src=/tmp/superset \
+#   --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+#   -t "${REPO_NAME}:${SHA}-py39" \
+#   -t "${REPO_NAME}:${REFSPEC}-py39" \
+#   -t "${REPO_NAME}:${LATEST_TAG}-py39" \
+#   --platform linux/amd64 \
+#   --build-arg PY_VER="3.9-slim-bullseye"\
+#   --label "sha=${SHA}" \
+#   --label "built_at=$(date)" \
+#   --label "target=lean39" \
+#   --label "build_actor=${GITHUB_ACTOR}" \
+#   .
 
 
 for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
