@@ -14,27 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import abort, g
-from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose
-from flask_appbuilder.security.decorators import has_access
+"""migrate-sunburst-chart
 
-from superset import event_logger, security_manager
-from superset.superset_typing import FlaskResponse
+Revision ID: a32e0c4d8646
+Revises: 59a1450b3c10
+Create Date: 2023-12-22 14:41:43.638321
 
-from .base import BaseSupersetView
+"""
+
+# revision identifiers, used by Alembic.
+revision = "a32e0c4d8646"
+down_revision = "59a1450b3c10"
+
+from alembic import op
+
+from superset import db
+from superset.migrations.shared.migrate_viz import MigrateSunburst
 
 
-class ProfileView(BaseSupersetView):
-    route_base = "/profile"
-    class_permission_name = "Profile"
+def upgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigrateSunburst.upgrade(session)
 
-    @expose("/")
-    @has_access
-    @permission_name("read")
-    @event_logger.log_this
-    def root(self) -> FlaskResponse:
-        user = g.user if hasattr(g, "user") and g.user else None
-        if not user or security_manager.is_guest_user(user) or user.is_anonymous:
-            abort(404)
-        return super().render_app_template()
+
+def downgrade():
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    MigrateSunburst.downgrade(session)

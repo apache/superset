@@ -171,7 +171,7 @@ const mockedProps = {
       },
     ],
     brand: {
-      path: '/superset/profile/admin/',
+      path: '/superset/welcome/',
       icon: '/static/assets/images/superset-logo-horiz.png',
       alt: 'Superset',
       width: '126',
@@ -203,7 +203,6 @@ const mockedProps = {
       user_info_url: '/users/userinfo/',
       user_logout_url: '/logout/',
       user_login_url: '/login/',
-      user_profile_url: '/profile/',
       locale: 'en',
       version_string: '1.0.0',
       version_sha: 'randomSHA',
@@ -462,25 +461,6 @@ test('should NOT render the user actions when user is anonymous', async () => {
   });
   expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByText('User')).not.toBeInTheDocument();
-});
-
-test('should render the Profile link when available', async () => {
-  useSelectorMock.mockReturnValue({ roles: user.roles });
-  const {
-    data: {
-      navbar_right: { user_profile_url },
-    },
-  } = mockedProps;
-
-  render(<Menu {...notanonProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-  });
-
-  userEvent.hover(screen.getByText('Settings'));
-  const profile = await screen.findByText('Profile');
-  expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
 test('should render the About section and version_string, sha or build_number when available', async () => {

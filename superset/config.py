@@ -428,12 +428,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
-    "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
     "GLOBAL_ASYNC_QUERIES": False,
-    "VERSIONED_EXPORT": True,  # deprecated
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
@@ -476,9 +473,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
     "AVOID_COLORS_COLLISION": True,
-    # Set to False to only allow viewing own recent activity
-    # or to disallow users from viewing other users profile page
-    # Do not show user info or profile in the menu
+    # Do not show user info in the menu
     "MENU_HIDE_USER_INFO": False,
     # Allows users to add a ``superset://`` DB that can query across databases. This is
     # an experimental feature with potential security and performance risks, so use with

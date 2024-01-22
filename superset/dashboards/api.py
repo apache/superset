@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import make_response, redirect, request, Response, send_file, url_for
+from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -85,7 +85,6 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
-from superset.views.base import generate_download_headers
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -714,7 +713,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
-    def export(self, **kwargs: Any) -> Response:  # pylint: disable=too-many-locals
+    def export(self, **kwargs: Any) -> Response:
         """Download multiple dashboards as YAML files.
         ---
         get:
@@ -745,50 +744,32 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         requested_ids = kwargs["rison"]
-        token = request.args.get("token")
 
-        if is_feature_enabled("VERSIONED_EXPORT"):
-            timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-            root = f"dashboard_export_{timestamp}"
-            filename = f"{root}.zip"
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dashboard_export_{timestamp}"
+        filename = f"{root}.zip"
 
-            buf = BytesIO()
-            with ZipFile(buf, "w") as bundle:
-                try:
-                    for file_name, file_content in ExportDashboardsCommand(
-                        requested_ids
-                    ).run():
-                        with bundle.open(f"{root}/{file_name}", "w") as fp:
-                            fp.write(file_content.encode())
-                except DashboardNotFoundError:
-                    return self.response_404()
-            buf.seek(0)
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            try:
+                for file_name, file_content in ExportDashboardsCommand(
+                    requested_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+            except DashboardNotFoundError:
+                return self.response_404()
+        buf.seek(0)
 
-            response = send_file(
-                buf,
-                mimetype="application/zip",
-                as_attachment=True,
-                download_name=filename,
-            )
-            if token:
-                response.set_cookie(token, "done", max_age=600)
-            return response
-
-        query = self.datamodel.session.query(Dashboard).filter(
-            Dashboard.id.in_(requested_ids)
+        response = send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=filename,
         )
-        query = self._base_filters.apply_all(query)
-        ids = {item.id for item in query.all()}
-        if not ids:
-            return self.response_404()
-        export = Dashboard.export_dashboards(ids)
-        resp = make_response(export, 200)
-        resp.headers["Content-Disposition"] = generate_download_headers("json")[
-            "Content-Disposition"
-        ]
-        if token:
-            resp.set_cookie(token, "done", max_age=600)
-        return resp
+        if token := request.args.get("token"):
+            response.set_cookie(token, "done", max_age=600)
+        return response
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()

@@ -413,17 +413,6 @@ class TestCore(SupersetTestCase):
         db.session.delete(ck)
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
-    def test_redirect_invalid(self):
-        model_url = models.Url(url="hhttp://invalid.com")
-        db.session.add(model_url)
-        db.session.commit()
-
-        self.login(username="admin")
-        response = self.client.get(f"/r/{model_url.id}")
-        assert response.headers["Location"] == "/"
-        db.session.delete(model_url)
-        db.session.commit()
-
     @with_feature_flags(KV_STORE=False)
     def test_kv_disabled(self):
         self.login(username="admin")
@@ -971,7 +960,6 @@ class TestCore(SupersetTestCase):
         urls = [
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
-            "/superset/profile/",
             f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
@@ -1202,11 +1190,6 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
-
-    def test_redirect_new_profile(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/profile/")
-        assert resp.status_code == 302
 
     def test_redirect_new_sqllab(self):
         self.login(username="admin")

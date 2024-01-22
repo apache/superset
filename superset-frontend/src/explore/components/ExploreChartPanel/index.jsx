@@ -430,31 +430,27 @@ const ExploreChartPanel = ({
       className="panel panel-default chart-container"
       showSplite={showSplite}
     >
-      {vizType === 'filter_box' ? (
-        panelBody
-      ) : (
-        <Split
-          sizes={splitSizes}
-          minSize={MIN_SIZES}
-          direction="vertical"
-          gutterSize={gutterHeight}
-          onDragEnd={onDragEnd}
-          elementStyle={elementStyle}
-          expandToMin
-        >
-          {panelBody}
-          <DataTablesPane
-            ownState={ownState}
-            queryFormData={queryFormData}
-            datasource={datasource}
-            queryForce={force}
-            onCollapseChange={onCollapseChange}
-            chartStatus={chart.chartStatus}
-            errorMessage={errorMessage}
-            actions={actions}
-          />
-        </Split>
-      )}
+      <Split
+        sizes={splitSizes}
+        minSize={MIN_SIZES}
+        direction="vertical"
+        gutterSize={gutterHeight}
+        onDragEnd={onDragEnd}
+        elementStyle={elementStyle}
+        expandToMin
+      >
+        {panelBody}
+        <DataTablesPane
+          ownState={ownState}
+          queryFormData={queryFormData}
+          datasource={datasource}
+          queryForce={force}
+          onCollapseChange={onCollapseChange}
+          chartStatus={chart.chartStatus}
+          errorMessage={errorMessage}
+          actions={actions}
+        />
+      </Split>
       {showDatasetModal && (
         <SaveDatasetModal
           visible={showDatasetModal}

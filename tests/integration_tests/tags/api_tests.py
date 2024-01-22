@@ -577,15 +577,25 @@ class TestTagApi(SupersetTestCase):
         result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
         assert len(result) == 1
 
-        tagged_objects = db.session.query(TaggedObject).filter(
-            TaggedObject.object_id == dashboard.id,
-            TaggedObject.object_type == ObjectType.dashboard,
+        tagged_objects = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == dashboard.id,
+                TaggedObject.object_type == ObjectType.dashboard,
+                Tag.type == TagType.custom,
+            )
         )
         assert tagged_objects.count() == 2
 
-        tagged_objects = db.session.query(TaggedObject).filter(
-            TaggedObject.object_id == chart.id,
-            TaggedObject.object_type == ObjectType.chart,
+        tagged_objects = (
+            db.session.query(TaggedObject)
+            .join(Tag)
+            .filter(
+                TaggedObject.object_id == chart.id,
+                TaggedObject.object_type == ObjectType.chart,
+                Tag.type == TagType.custom,
+            )
         )
         assert tagged_objects.count() == 2
 

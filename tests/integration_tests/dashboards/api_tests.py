@@ -36,7 +36,6 @@ from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import backend, override_user
-from superset.views.base import generate_download_headers
 
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -1652,11 +1651,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": False},
-        clear=True,
-    )
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
@@ -1671,8 +1665,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         rv = self.get_assert_metric(uri, "export")
-        headers = generate_download_headers("json")["Content-Disposition"]
 
+        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
