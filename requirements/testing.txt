@@ -24,10 +24,6 @@ db-dtypes==1.1.1
     # via pandas-gbq
 docker==6.1.1
     # via -r requirements/testing.in
-exceptiongroup==1.1.1
-    # via pytest
-ephem==4.1.4
-    # via lunarcalendar
 flask-testing==0.8.1
     # via -r requirements/testing.in
 fonttools==4.39.4
@@ -121,6 +117,8 @@ pyee==9.0.4
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
+pyhive[presto]==0.7.0
+    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
