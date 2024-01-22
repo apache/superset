@@ -433,12 +433,11 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
                 <StyledDvtSidebarIconGroup ref={ref} isOpen={isOpen}>
                   {filteredData.data.map((item: any, subIndex: number) =>
                     isOpen ? (
-                      <StyledDvtSidebarLink to={item.url}>
+                      <StyledDvtSidebarLink to={item.url} key={subIndex}>
                         <StyledDvtSidebarIcon
                           isOpen={isOpen}
                           active={pathName === item.url}
                           onClick={() => setIsOpen(false)}
-                          key={subIndex}
                         >
                           <Icon fileName={item.fileName} />
                           {isOpen && item.title}
