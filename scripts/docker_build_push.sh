@@ -28,6 +28,38 @@ DOCKER_ARGS="--load" # default args, change as needed
 DOCKER_CONTEXT="."
 
 
+if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+  REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
+  PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
+  LATEST_TAG="pr-${PR_NUM}"
+elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/tags/::' | head -c 40)
+  LATEST_TAG="${REFSPEC}"
+else
+  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
+  LATEST_TAG="${REFSPEC}"
+fi
+
+
+if [[ "${REFSPEC}" == "master" ]]; then
+  LATEST_TAG="master"
+fi
+
+# get the latest release tag
+if [ -n "${GITHUB_RELEASE_TAG_NAME}" ]; then
+  output=$(source ./scripts/tag_latest_release.sh "${GITHUB_RELEASE_TAG_NAME}" --dry-run) || true
+  SKIP_TAG=$(echo "${output}" | grep "SKIP_TAG" | cut -d'=' -f2)
+  if [[ "${SKIP_TAG}" == "SKIP_TAG::false" ]]; then
+    LATEST_TAG="latest"
+  fi
+fi
+
+if [[ "${TEST_ENV}" == "true" ]]; then
+  # don't run the build in test environment
+  echo "LATEST_TAG is ${LATEST_TAG}"
+  exit 0
+fi
+
 case "${TARGET}" in
   "dev")
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
@@ -62,40 +94,6 @@ case "${TARGET}" in
     exit 1
     ;;
 esac
-
-
-if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-  REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
-  PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
-  LATEST_TAG="pr-${PR_NUM}"
-elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
-  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/tags/::' | head -c 40)
-  LATEST_TAG="${REFSPEC}"
-else
-  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
-  LATEST_TAG="${REFSPEC}"
-fi
-
-
-if [[ "${REFSPEC}" == "master" ]]; then
-  LATEST_TAG="master"
-fi
-
-# get the latest release tag
-if [ -n "${GITHUB_RELEASE_TAG_NAME}" ]; then
-  output=$(source ./scripts/tag_latest_release.sh "${GITHUB_RELEASE_TAG_NAME}" --dry-run) || true
-  SKIP_TAG=$(echo "${output}" | grep "SKIP_TAG" | cut -d'=' -f2)
-  if [[ "${SKIP_TAG}" == "SKIP_TAG::false" ]]; then
-    LATEST_TAG="latest"
-  fi
-fi
-
-if [[ "${TEST_ENV}" == "true" ]]; then
-  # don't run the build in test environment
-  echo "LATEST_TAG is ${LATEST_TAG}"
-  exit 0
-fi
-
 
 cat<<EOF
   Rolling with tags:

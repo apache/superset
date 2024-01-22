@@ -32,10 +32,10 @@ class BashMock:
         return result
 
     @staticmethod
-    def docker_build_push(tag, branch):
-        bash_command = f"./scripts/docker_build_push.sh {tag}"
+    def docker_build_push(tag, target, platform, branch):
+        cmd = f'./scripts/docker_build_push.sh "{tag}" "{target}" "{platform}"'
         result = subprocess.run(
-            bash_command,
+            cmd,
             shell=True,
             capture_output=True,
             text=True,
