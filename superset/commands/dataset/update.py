@@ -143,7 +143,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             # validate python_date_format is ISO8601 format
             for col in columns:
                 if not DatasetDAO.validate_column_pdf_is_iso8601(
-                    col["python_date_format"]
+                    col.get("python_date_format", None)
                 ):
                     exceptions.append(DatasetColumnsConstraintsValidationError())
 
