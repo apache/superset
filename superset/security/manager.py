@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload, Session
+from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -545,8 +545,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         # group all datasources by database
-        session = self.get_session
-        all_datasources = SqlaTable.get_all_datasources(session)
+        all_datasources = SqlaTable.get_all_datasources(self.get_session)
         datasources_by_database: dict["Database", set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
@@ -1828,6 +1827,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
+        sql: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -1838,6 +1839,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param query_context: The query context
         :param table: The Superset table (requires database)
         :param viz: The visualization
+        :param sql: The SQL string (requires database)
+        :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
@@ -1846,7 +1849,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.models.sql_lab import Query
         from superset.sql_parse import Table
+        from superset.utils.core import shortid
+
+        if sql and database:
+            query = Query(
+                database=database,
+                sql=sql,
+                schema=schema,
+                client_id=shortid()[:10],
+                user_id=get_user_id(),
+            )
+            self.get_session.expunge(query)
 
         if database and table or query:
             if query:
@@ -1861,7 +1876,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 default_schema = database.get_default_schema_for_query(query)
                 tables = {
                     Table(table_.table, table_.schema or default_schema)
-                    for table_ in sql_parse.ParsedQuery(query.sql).tables
+                    for table_ in sql_parse.ParsedQuery(
+                        query.sql,
+                        engine=database.db_engine_spec.engine,
+                    ).tables
                 }
             elif table:
                 tables = {table}
@@ -2001,17 +2019,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.get_dashboard_access_error_object(dashboard)
             )
 
-    def get_user_by_username(
-        self, username: str, session: Session = None
-    ) -> Optional[User]:
+    def get_user_by_username(self, username: str) -> Optional[User]:
         """
         Retrieves a user by it's username case sensitive. Optional session parameter
         utility method normally useful for celery tasks where the session
         need to be scoped
         """
-        session = session or self.get_session
         return (
-            session.query(self.user_model)
+            self.get_session.query(self.user_model)
             .filter(self.user_model.username == username)
             .one_or_none()
         )

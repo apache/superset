@@ -159,8 +159,7 @@ function SavedQueryList({
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
@@ -204,7 +203,7 @@ function SavedQueryList({
     buttonStyle: 'primary',
   });
 
-  if (canCreate && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+  if (canCreate) {
     subMenuButtons.push({
       name: (
         <Tooltip

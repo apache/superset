@@ -432,11 +432,6 @@ git tag -f ${SUPERSET_VERSION}
 git push origin ${SUPERSET_VERSION}
 ```
 
-### Update CHANGELOG and UPDATING on superset
-
-Now that we have a final Apache source release we need to open a pull request on Superset
-with the changes on `CHANGELOG.md` and `UPDATING.md`.
-
 ### Publishing a Convenience Release to PyPI
 
 Extract the release to the `/tmp` folder to build the PiPY release. Files in the `/tmp` folder will be automatically deleted by the OS.
@@ -502,3 +497,9 @@ click the 3-dot icon and select `Create Release`, paste the content of the ANNOU
 release notes, and publish the new release.
 
 At this point, a GitHub action will run that will check whether this release's version number is higher than the current 'latest' release. If that condition is true, this release sha will automatically be tagged as `latest` so that the most recent release can be referenced simply by using the 'latest' tag instead of looking up the version number. The existing version number tag will still exist, and can also be used for reference.
+
+### Update Superset files
+
+Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG.m](../CHANGELOG.md) and [UPDATING.md](../UPDATING.md).
+
+We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.

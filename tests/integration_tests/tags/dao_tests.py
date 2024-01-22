@@ -124,13 +124,19 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("with_tagging_system_feature")
     # test create tag
     def test_create_tagged_objects(self):
-        # test that a tag cannot be added if it has ':' in it
-        with pytest.raises(DAOCreateFailedError):
-            TagDAO.create_custom_tagged_objects(
-                object_type=ObjectType.dashboard.name,
-                object_id=1,
-                tag_names=["invalid:example tag 1"],
-            )
+        # test that a tag can be added if it has ':' in it
+        TagDAO.create_custom_tagged_objects(
+            object_type=ObjectType.dashboard.name,
+            object_id=1,
+            tag_names=["valid:example tag 1"],
+        )
+
+        # test that a tag can be added if it has ',' in it
+        TagDAO.create_custom_tagged_objects(
+            object_type=ObjectType.dashboard.name,
+            object_id=1,
+            tag_names=["example,tag,1"],
+        )
 
         # test that a tag can be added if it has a valid name
         TagDAO.create_custom_tagged_objects(
@@ -320,11 +326,3 @@ class TestTagsDAO(SupersetTestCase):
             .first()
         )
         assert tagged_object is None
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @pytest.mark.usefixtures("with_tagging_system_feature")
-    def test_validate_tag_name(self):
-        assert TagDAO.validate_tag_name("example_tag_name") is True
-        assert TagDAO.validate_tag_name("invalid:tag_name") is False
-        db.session.query(TaggedObject).delete()
-        db.session.query(Tag).delete()

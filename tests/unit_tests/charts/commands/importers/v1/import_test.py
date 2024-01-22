@@ -108,3 +108,22 @@ def test_import_chart_without_permission(
         str(excinfo.value)
         == "Chart doesn't exist and user doesn't have permission to create charts"
     )
+
+
+def test_filter_chart_annotations(mocker: MockFixture, session: Session) -> None:
+    """
+    Test importing a chart.
+    """
+    from superset import security_manager
+    from superset.commands.chart.importers.v1.utils import filter_chart_annotations
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config_with_mixed_annotations,
+    )
+
+    config = copy.deepcopy(chart_config_with_mixed_annotations)
+    filter_chart_annotations(config)
+    params = config["params"]
+    annotation_layers = params["annotation_layers"]
+
+    assert len(annotation_layers) == 1
+    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])

@@ -35,7 +35,7 @@
     "memoize-one": "^5.1.1",
     "react-table": "^7.6.3",
     "regenerator-runtime": "^0.13.7",
-    "xss": "^1.0.10"
+    "xss": "^1.0.14"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

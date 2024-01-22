@@ -52,7 +52,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-loadable": "^5.5.0",
-    "react-resizable": "^3.0.4",
+    "react-resizable": "^3.0.5",
     "storybook-addon-jsx": "^7.3.14"
   },
   "devDependencies": {
@@ -80,7 +80,7 @@
     "@superset-ui/legacy-plugin-chart-rose": "*",
     "@superset-ui/legacy-plugin-chart-sankey": "*",
     "@superset-ui/legacy-plugin-chart-sankey-loop": "*",
-    "@superset-ui/legacy-plugin-chart-sunburst": "*",
+    "@superset-ui/legacy-plugin-chart-time-table": "*",
     "@superset-ui/legacy-plugin-chart-world-map": "*",
     "@superset-ui/legacy-preset-chart-deckgl": "*",
     "@superset-ui/legacy-preset-chart-nvd3": "*",

@@ -64,7 +64,6 @@ import Tag from 'src/types/TagType';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
@@ -106,7 +105,6 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
-setupPlugins();
 const registry = getChartMetadataRegistry();
 
 const createFetchDatasets = async (
@@ -236,8 +234,7 @@ function ChartList(props: ChartListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
@@ -358,9 +355,7 @@ function ChartList(props: ChartListProps) {
               )}
               {sliceName}
             </Link>
-            {description && (
-              <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
-            )}
+            {description && <InfoTooltip tooltip={description} />}
           </FlexRowContainer>
         ),
         Header: t('Name'),
@@ -781,21 +776,19 @@ function ChartList(props: ChartListProps) {
       },
     });
 
-    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-      subMenuButtons.push({
-        name: (
-          <Tooltip
-            id="import-tooltip"
-            title={t('Import charts')}
-            placement="bottomRight"
-          >
-            <Icons.Import data-test="import-button" />
-          </Tooltip>
-        ),
-        buttonStyle: 'link',
-        onClick: openChartImportModal,
-      });
-    }
+    subMenuButtons.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import charts')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openChartImportModal,
+    });
   }
 
   return (

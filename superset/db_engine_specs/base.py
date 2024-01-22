@@ -50,7 +50,6 @@ from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import literal_column, quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
@@ -900,7 +899,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return database.compile_sqla_query(qry)
 
         if cls.limit_method == LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.ParsedQuery(sql)
+            parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
             sql = parsed_query.set_or_update_query_limit(limit, force=force)
 
         return sql
@@ -981,7 +980,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        parsed_query = sql_parse.ParsedQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         return parsed_query.limit
 
     @classmethod
@@ -993,7 +992,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param limit: New limit to insert/replace into query
         :return: Query with new limit
         """
-        parsed_query = sql_parse.ParsedQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         return parsed_query.set_or_update_query_limit(limit)
 
     @classmethod
@@ -1071,7 +1070,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows
@@ -1080,9 +1079,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # TODO: Fix circular import error caused by importing sql_lab.Query
 
     @classmethod
-    def execute_with_cursor(
-        cls, cursor: Any, sql: str, query: Query, session: Session
-    ) -> None:
+    def execute_with_cursor(cls, cursor: Any, sql: str, query: Query) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
 
@@ -1095,7 +1092,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         logger.debug("Query %d: Running query: %s", query.id, sql)
         cls.execute(cursor, sql, async_=True)
         logger.debug("Query %d: Handling cursor", query.id)
-        cls.handle_cursor(cursor, query, session)
+        cls.handle_cursor(cursor, query)
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:
@@ -1490,7 +1487,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: Database instance
         :return: Dictionary with different costs
         """
-        parsed_query = ParsedQuery(statement)
+        parsed_query = ParsedQuery(statement, engine=cls.engine)
         sql = parsed_query.stripped()
         sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
         mutate_after_split = current_app.config["MUTATE_AFTER_SPLIT"]
@@ -1525,7 +1522,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 "Database does not support cost estimation"
             )
 
-        parsed_query = sql_parse.ParsedQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         statements = parsed_query.get_statements()
 
         costs = []
@@ -1586,7 +1583,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return:
         """
         if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query)
+            query = sql_parse.strip_comments_from_sql(query, engine=cls.engine)
 
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
@@ -1841,7 +1838,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # pylint: disable=unused-argument
     @classmethod
-    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+    def prepare_cancel_query(cls, query: Query) -> None:
         """
         Some databases may acquire the query cancelation id after the query
         cancelation request has been received. For those cases, the db engine spec

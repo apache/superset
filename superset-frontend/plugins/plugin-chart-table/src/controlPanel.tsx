@@ -21,11 +21,9 @@ import React from 'react';
 import {
   ChartDataResponseResult,
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   hasGenericChartAxes,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
@@ -290,22 +288,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
-          ? [
-              {
-                name: 'server_pagination',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Server pagination'),
-                  description: t(
-                    'Enable server side pagination of results (experimental feature)',
-                  ),
-                  default: false,
-                },
-              },
-            ]
-          : [],
+        [
+          {
+            name: 'server_pagination',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Server pagination'),
+              description: t(
+                'Enable server side pagination of results (experimental feature)',
+              ),
+              default: false,
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',

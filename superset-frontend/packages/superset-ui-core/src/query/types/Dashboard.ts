@@ -54,17 +54,6 @@ export type DataMaskState = { [id: string]: DataMask };
 export type DataMaskWithId = { id: string } & DataMask;
 export type DataMaskStateWithId = { [filterId: string]: DataMaskWithId };
 
-export type FilterSet = {
-  id: number;
-  name: string;
-  nativeFilters: Filters;
-  dataMask: DataMaskStateWithId;
-};
-
-export type FilterSets = {
-  [filtersSetId: string]: FilterSet;
-};
-
 export type Filter = {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
@@ -133,7 +122,6 @@ export type PartialFilters = {
 
 export type NativeFiltersState = {
   filters: Filters;
-  filterSets: FilterSets;
   focusedFilterId?: string;
   hoveredFilterId?: string;
 };

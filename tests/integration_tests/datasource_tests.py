@@ -474,7 +474,7 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
+            lambda: DatasourceDAO.get_datasource("table", 9999999),
         )
 
         self.login(username="admin")
@@ -486,7 +486,7 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             DatasourceTypeNotSupportedError,
-            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
+            lambda: DatasourceDAO.get_datasource("druid", 9999999),
         )
 
         self.login(username="admin")

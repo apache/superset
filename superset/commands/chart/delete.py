@@ -31,7 +31,6 @@ from superset.daos.chart import ChartDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -45,9 +44,6 @@ class DeleteChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._models
-
-        for model_id in self._model_ids:
-            Dashboard.clear_cache_for_slice(slice_id=model_id)
 
         try:
             ChartDAO.delete(self._models)

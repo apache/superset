@@ -101,7 +101,7 @@ describe('Dashboard tabs', () => {
       cy.get('.Select__control').first().should('be.visible').click();
       cy.get('.Select__control input[type=text]').first().focus().type('South');
       cy.get('.Select__option').contains('South Asia').click();
-      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+      cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
       // send new query from same tab
       cy.wait(treemapAlias).then(({ request }) => {
@@ -149,7 +149,7 @@ describe('Dashboard tabs', () => {
       cy.get('.ant-tabs-tab').contains('row tab 1').click();
 
       cy.get('.Select__clear-indicator').click();
-      cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
+      cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
       // trigger 1 new query
       waitForChartLoad(TREEMAP);

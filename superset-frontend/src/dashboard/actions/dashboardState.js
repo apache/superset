@@ -61,11 +61,7 @@ import {
   SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
-import {
-  addFilter,
-  removeFilter,
-  updateDirectPathToFilter,
-} from './dashboardFilters';
+import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 
@@ -554,7 +550,7 @@ export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
 }
 
-export function addSliceToDashboard(id, component) {
+export function addSliceToDashboard(id) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
@@ -580,21 +576,12 @@ export function addSliceToDashboard(id, component) {
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
-
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
-        dispatch(addFilter(id, component, selectedSlice.form_data));
-      }
     });
   };
 }
 
 export function removeSliceFromDashboard(id) {
-  return (dispatch, getState) => {
-    const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
-      dispatch(removeFilter(id));
-    }
-
+  return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
     getSharedLabelColor().removeSlice(id);
