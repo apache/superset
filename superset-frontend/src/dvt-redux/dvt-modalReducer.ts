@@ -22,6 +22,8 @@ interface ModalState {
   component: string;
   lastComponent?: string;
   title?: string;
+  buttonLabel: string;
+  buttonOnClick: () => void;
   meta?: any;
 }
 
@@ -29,6 +31,8 @@ const initialState: ModalState = {
   component: '',
   lastComponent: '',
   title: '',
+  buttonLabel: '',
+  buttonOnClick: () => {},
   meta: {},
 };
 
@@ -37,15 +41,25 @@ const dvtModalSlice = createSlice({
   initialState,
   reducers: {
     openModal: (state, action: PayloadAction<ModalState>) => {
-      state.component = action.payload.component;
-      state.title = action.payload.title;
-      state.meta = action.payload.meta ? action.payload.meta : {};
+      return {
+        ...state,
+        component: action.payload.component,
+        title: action.payload.title,
+        buttonLabel: action.payload.buttonLabel,
+        buttonOnClick: action.payload.buttonOnClick,
+        meta: action.payload.meta,
+      };
     },
     closeModal: state => {
-      state.component = '';
-      state.lastComponent = state.component;
-      state.title = '';
-      state.meta = {};
+      return {
+        ...state,
+        component: '',
+        lastComponent: state.component,
+        title: '',
+        buttonLabel: '',
+        buttonOnClick: () => {},
+        meta: {},
+      };
     },
   },
 });
