@@ -93,7 +93,7 @@ docker compose -f docker-compose-non-dev.yml up
 ```
 
 :::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of `SECRET_KEY` in a Superset config file or `SUPERSET_SECRET_KEY` as an [environment variable](https://github.com/apache/superset/blob/master/docker/.env-non-dev). Please see [Configuring Superset](https://superset.apache.org/docs/installation/configuring-superset/) for more details.
+Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of `SECRET_KEY` in a Superset config file or `SUPERSET_SECRET_KEY` as an [environment variable](https://github.com/apache/superset/blob/master/docker/.env-non-dev). Please see [Configuring Superset](/docs/installation/configuring-superset/) for more details.
 :::
 :::caution
 All of the content belonging to a Superset instance - charts, dashboards, users, etc. - is stored in its metadata database. In production, this database should be backed up.

@@ -90,14 +90,6 @@ if TYPE_CHECKING:
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
-class Url(Model, AuditMixinNullable):
-    """Used for the short url feature"""
-
-    __tablename__ = "url"
-    id = Column(Integer, primary_key=True)
-    url = Column(Text)
-
-
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
 
     """Used for any type of key-value store"""

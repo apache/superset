@@ -31,7 +31,6 @@ it('initializes feature flags with predefined values', () => {
     value: undefined,
   });
   const featureFlags = {
-    CLIENT_CACHE: true,
     DRILL_BY: false,
   };
   uiCore.initFeatureFlags(featureFlags);
@@ -67,10 +66,8 @@ it('returns false for unset feature flag', () => {
 it('returns true for set feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {
-      CLIENT_CACHE: true,
+      DRILL_BY: true,
     },
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.CLIENT_CACHE)).toEqual(
-    true,
-  );
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(true);
 });

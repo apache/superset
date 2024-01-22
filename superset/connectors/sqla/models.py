@@ -699,7 +699,7 @@ class BaseDatasource(
 
     @classmethod
     def get_datasource_by_name(
-        cls, session: Session, datasource_name: str, schema: str, database_name: str
+        cls, datasource_name: str, schema: str, database_name: str
     ) -> BaseDatasource | None:
         raise NotImplementedError()
 
@@ -1238,14 +1238,13 @@ class SqlaTable(
     @classmethod
     def get_datasource_by_name(
         cls,
-        session: Session,
         datasource_name: str,
         schema: str | None,
         database_name: str,
     ) -> SqlaTable | None:
         schema = schema or None
         query = (
-            session.query(cls)
+            db.session.query(cls)
             .join(Database)
             .filter(cls.table_name == datasource_name)
             .filter(Database.database_name == database_name)
@@ -1939,12 +1938,10 @@ class SqlaTable(
         )
 
     @classmethod
-    def get_eager_sqlatable_datasource(
-        cls, session: Session, datasource_id: int
-    ) -> SqlaTable:
+    def get_eager_sqlatable_datasource(cls, datasource_id: int) -> SqlaTable:
         """Returns SqlaTable with columns and metrics."""
         return (
-            session.query(cls)
+            db.session.query(cls)
             .options(
                 sa.orm.subqueryload(cls.columns),
                 sa.orm.subqueryload(cls.metrics),
@@ -2037,8 +2034,7 @@ class SqlaTable(
         :param connection: Unused.
         :param target: The metric or column that was updated.
         """
-        inspector = inspect(target)
-        session = inspector.session
+        session = inspect(target).session
 
         # Forces an update to the table's changed_on value when a metric or column on the
         # table is updated. This busts the cache key for all charts that use the table.

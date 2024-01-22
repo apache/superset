@@ -17,8 +17,6 @@
  * under the License.
  */
 import {
-  isFeatureEnabled,
-  FeatureFlag,
   getExtensionsRegistry,
   styled,
   SupersetClient,
@@ -207,8 +205,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const initialSort = SORT_BY;
 
@@ -349,9 +346,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   />
                 )}
                 {titleLink}
-                {description && (
-                  <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
-                )}
+                {description && <InfoTooltip tooltip={description} />}
               </FlexRowContainer>
             );
           } catch {
@@ -656,21 +651,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       buttonStyle: 'primary',
     });
 
-    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
-      buttonArr.push({
-        name: (
-          <Tooltip
-            id="import-tooltip"
-            title={t('Import datasets')}
-            placement="bottomRight"
-          >
-            <Icons.Import data-test="import-button" />
-          </Tooltip>
-        ),
-        buttonStyle: 'link',
-        onClick: openDatasetImportModal,
-      });
-    }
+    buttonArr.push({
+      name: (
+        <Tooltip
+          id="import-tooltip"
+          title={t('Import datasets')}
+          placement="bottomRight"
+        >
+          <Icons.Import data-test="import-button" />
+        </Tooltip>
+      ),
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
   }
 
   menuData.buttons = buttonArr;

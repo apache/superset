@@ -43,7 +43,7 @@ export default class EchartsSunburstChartPlugin extends EchartsChartPlugin {
           'Uses circles to visualize the flow of data through different stages of a system. Hover over individual paths in the visualization to understand the stages a value took. Useful for multi-stage, multi-group visualizing funnels and pipelines.',
         ),
         exampleGallery: [{ url: example1 }, { url: example2 }],
-        name: t('Sunburst Chart v2'),
+        name: t('Sunburst Chart'),
         tags: [
           t('ECharts'),
           t('Aesthetic'),

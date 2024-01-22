@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -67,14 +66,6 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
-
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });

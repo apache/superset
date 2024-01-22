@@ -143,11 +143,7 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  const clientMethod =
-    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-      ? SupersetClient.get
-      : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json, response }) =>
+  return SupersetClient.post(querySettings).then(({ json, response }) =>
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     ({
@@ -379,7 +375,6 @@ export function exploreJSON(
   force = false,
   timeout = 60,
   key,
-  method,
   dashboardId,
   ownState,
 ) {
@@ -402,7 +397,7 @@ export function exploreJSON(
       resultFormat: 'json',
       resultType: 'full',
       force,
-      method,
+      method: 'POST',
       requestParams,
       ownState,
     });
@@ -518,36 +513,6 @@ export function exploreJSON(
   };
 }
 
-export const GET_SAVED_CHART = 'GET_SAVED_CHART';
-export function getSavedChart(
-  formData,
-  force = false,
-  timeout = 60,
-  key,
-  dashboardId,
-  ownState,
-) {
-  /*
-   * Perform a GET request to `/explore_json`.
-   *
-   * This will return the payload of a saved chart, optionally filtered by
-   * ad-hoc or extra filters from dashboards. Eg:
-   *
-   *  GET  /explore_json?{"chart_id":1}
-   *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'GET',
-    dashboardId,
-    ownState,
-  );
-}
-
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
 export function postChartFormData(
   formData,
@@ -557,21 +522,7 @@ export function postChartFormData(
   dashboardId,
   ownState,
 ) {
-  /*
-   * Perform a POST request to `/explore_json`.
-   *
-   * This will post the form data to the endpoint, returning a new chart.
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'POST',
-    dashboardId,
-    ownState,
-  );
+  return exploreJSON(formData, force, timeout, key, dashboardId, ownState);
 }
 
 export function redirectSQLLab(formData, history) {

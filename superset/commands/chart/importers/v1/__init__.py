@@ -83,6 +83,10 @@ class ImportChartsCommand(ImportModelsCommand):
         # import charts with the correct parent ref
         for file_name, config in configs.items():
             if file_name.startswith("charts/") and config["dataset_uuid"] in datasets:
+                # Ignore obsolete filter-box charts.
+                if config["viz_type"] == "filter_box":
+                    continue
+
                 # update datasource id, type, and name
                 dataset = datasets[config["dataset_uuid"]]
                 config.update(

@@ -304,7 +304,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         filtersOpen={verticalConfig.filtersOpen}
         filterValues={filterValues}
         isInitialized={isInitialized}
-        isDisabled={isApplyDisabled}
         height={verticalConfig.height}
         offset={verticalConfig.offset}
         onSelectionChange={handleFilterSelectionChange}

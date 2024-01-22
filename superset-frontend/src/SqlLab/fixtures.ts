@@ -22,6 +22,7 @@ import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
   DatasourceType,
   denormalizeTimestamp,
+  GenericDataType,
   QueryResponse,
   QueryState,
 } from '@superset-ui/core';
@@ -581,11 +582,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     selected_columns: [
@@ -593,11 +596,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.TEMPORAL,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     expanded_columns: [
@@ -605,6 +610,7 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
+        type_generic: GenericDataType.STRING,
       },
     ],
     data: [
