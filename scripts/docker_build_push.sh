@@ -136,4 +136,4 @@ docker buildx build --target ${BUILD_TARGET} \
   --label "target=${BUILD_TARGET}" \
   --label "build_actor=${GITHUB_ACTOR}" \
   ${BUILD_ARG:+--build-arg PY_VER="${BUILD_ARG}"} \
-  $DOCKER_CONTEXT
+  ${DOCKER_CONTEXT}
