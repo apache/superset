@@ -833,7 +833,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     @validates("python_date_format")
     def validate_pdf_is_iso8601(self, _: str, dt_format: str) -> str:
-        if dt_format in ("epoch_s", "epoch_ms"):
+        if dt_format in ("epoch_s", "epoch_ms", None):
             return dt_format
         try:
             dt_str = datetime.now().strftime(dt_format)
