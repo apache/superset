@@ -323,9 +323,9 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Initial Viewport Settings'),
               default: 'Auto',
-              choices: formatSelectOptions(['Auto','Fixed']),
+              choices: formatSelectOptions(['Auto', 'Fixed']),
               description: t(
-                'Auto calculate on bounds or fix the initial settings'
+                'Auto calculate on bounds or fix the initial settings',
               ),
             },
           },

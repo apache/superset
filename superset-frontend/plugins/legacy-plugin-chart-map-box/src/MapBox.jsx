@@ -65,14 +65,14 @@ class MapBox extends React.Component {
   constructor(props) {
     super(props);
 
-    const { 
+    const {
       width,
       height,
       bounds,
       viewportLongitude,
       viewportLatitude,
       viewportZoom,
-      initialViewportSettings
+      initialViewportSettings,
     } = this.props;
 
     // Get a viewport that fits the given bounds, which all marks to be clustered.
@@ -85,7 +85,7 @@ class MapBox extends React.Component {
     const { latitude, longitude, zoom } = mercator;
 
     let initialViewport;
-    if(initialViewportSettings === 'Fixed') {
+    if (initialViewportSettings === 'Fixed') {
       initialViewport = {
         longitude: !isEmpty(viewportLongitude) ? viewportLongitude : longitude,
         latitude: !isEmpty(viewportLatitude) ? viewportLatitude : latitude,
