@@ -59,8 +59,8 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db_engine_specs
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
-from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
@@ -185,6 +185,7 @@ class Database(
         "is_managed_externally",
         "external_url",
         "encrypted_extra",
+        "impersonate_user",
     ]
     export_children = ["tables"]
 
@@ -237,6 +238,11 @@ class Database(
         return self.get_extra().get("disable_data_preview", False) is True
 
     @property
+    def schema_options(self) -> dict[str, Any]:
+        """Additional schema display config for engines with complex schemas"""
+        return self.get_extra().get("schema_options", {})
+
+    @property
     def data(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -247,6 +253,7 @@ class Database(
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
             "explore_database_id": self.explore_database_id,
+            "schema_options": self.schema_options,
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
@@ -837,7 +844,9 @@ class Database(
         self, table_name: str, schema: str | None = None
     ) -> list[ResultSetColumnType]:
         with self.get_inspector_with_context() as inspector:
-            return self.db_engine_spec.get_columns(inspector, table_name, schema)
+            return self.db_engine_spec.get_columns(
+                inspector, table_name, schema, self.schema_options
+            )
 
     def get_metrics(
         self,
@@ -965,7 +974,7 @@ class Database(
         """
         label_expected = label or sqla_col.name
         # add quotes to tables
-        if self.db_engine_spec.allows_alias_in_select:
+        if self.db_engine_spec.get_allows_alias_in_select(self):
             label = self.db_engine_spec.make_label_compatible(label_expected)
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected

@@ -35,8 +35,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import superset.utils.database
 import superset.views.utils
 from superset import dataframe, db, security_manager, sql_lab
-from superset.charts.commands.exceptions import ChartDataQueryFailedError
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -713,10 +713,17 @@ class TestCore(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
 
-        self.assertEqual(rv.status_code, 202)
-        self.assertCountEqual(
-            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
-        )
+        # If chart is cached, it will return 200, otherwise 202
+        assert rv.status_code in {200, 202}
+        if rv.status_code == 202:
+            assert keys == [
+                "channel_id",
+                "job_id",
+                "user_id",
+                "status",
+                "errors",
+                "result_url",
+            ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
@@ -1164,7 +1171,7 @@ class TestCore(SupersetTestCase):
         self.assertIn("Error message", data)
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
+    @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")
     def test_explore_redirect(self, mock_command: mock.Mock):
         self.login(username="admin")
         random_key = "random_key"

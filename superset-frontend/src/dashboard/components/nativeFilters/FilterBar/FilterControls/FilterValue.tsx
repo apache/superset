@@ -52,6 +52,7 @@ import {
   onFiltersRefreshSuccess,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
+import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
@@ -322,7 +323,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       ) : (
         <SuperChart
           height={HEIGHT}
-          width="100%"
+          width={RESPONSIVE_WIDTH}
           showOverflow={showOverflow}
           formData={formData}
           displaySettings={displaySettings}

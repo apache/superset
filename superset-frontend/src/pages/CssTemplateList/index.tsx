@@ -21,13 +21,11 @@ import React, { useMemo, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
-import moment from 'moment';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import { Tooltip } from 'src/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, {
@@ -37,6 +35,8 @@ import ListView, {
 } from 'src/components/ListView';
 import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
+import { ModifiedInfo } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
 
@@ -138,65 +138,11 @@ function CssTemplatesList({
               changed_by: changedBy,
             },
           },
-        }: any) => {
-          let name = 'null';
-
-          if (changedBy) {
-            name = `${changedBy.first_name} ${changedBy.last_name}`;
-          }
-
-          return (
-            <Tooltip
-              id="allow-run-async-header-tooltip"
-              title={t('Last modified by %s', name)}
-              placement="right"
-            >
-              <span>{changedOn}</span>
-            </Tooltip>
-          );
-        },
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         disableSortBy: true,
-      },
-      {
-        Cell: ({
-          row: {
-            original: { created_on: createdOn },
-          },
-        }: any) => {
-          const date = new Date(createdOn);
-          const utc = new Date(
-            Date.UTC(
-              date.getFullYear(),
-              date.getMonth(),
-              date.getDate(),
-              date.getHours(),
-              date.getMinutes(),
-              date.getSeconds(),
-              date.getMilliseconds(),
-            ),
-          );
-
-          return moment(utc).fromNow();
-        },
-        Header: t('Created on'),
-        accessor: 'created_on',
-        size: 'xl',
-        disableSortBy: true,
-      },
-      {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
-        Cell: ({
-          row: {
-            original: { created_by: createdBy },
-          },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -231,6 +177,10 @@ function CssTemplatesList({
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
         size: 'xl',
+      },
+      {
+        accessor: QueryObjectColumns.changed_by,
+        hidden: true,
       },
     ],
     [canDelete, canCreate],
@@ -270,15 +220,22 @@ function CssTemplatesList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created by'),
-        key: 'created_by',
-        id: 'created_by',
+        Header: t('Name'),
+        key: 'search',
+        id: 'template_name',
+        input: 'search',
+        operator: FilterOperator.contains,
+      },
+      {
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'css_template',
-          'created_by',
+          'changed_by',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset datasource values: %s',
@@ -288,13 +245,6 @@ function CssTemplatesList({
           user,
         ),
         paginate: true,
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'template_name',
-        input: 'search',
-        operator: FilterOperator.contains,
       },
     ],
     [],

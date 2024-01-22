@@ -18,6 +18,7 @@ from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 from urllib3.exceptions import NewConnectionError
 
+from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -45,17 +46,17 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1M": "to_start_of_minute(TO_DATETIME({col}))",
-        "PT5M": "to_start_of_five_minutes(TO_DATETIME({col}))",
-        "PT10M": "to_start_of_ten_minutes(TO_DATETIME({col}))",
-        "PT15M": "to_start_of_fifteen_minutes(TO_DATETIME({col}))",
-        "PT30M": "TO_DATETIME(intDiv(toUInt32(TO_DATETIME({col})), 1800)*1800)",
-        "PT1H": "to_start_of_hour(TO_DATETIME({col}))",
-        "P1D": "to_start_of_day(TO_DATETIME({col}))",
-        "P1W": "to_monday(TO_DATETIME({col}))",
-        "P1M": "to_start_of_month(TO_DATETIME({col}))",
-        "P3M": "to_start_of_quarter(TO_DATETIME({col}))",
-        "P1Y": "to_start_of_year(TO_DATETIME({col}))",
+        TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",
+        TimeGrain.MINUTE: "to_start_of_minute(TO_DATETIME({col}))",
+        TimeGrain.FIVE_MINUTES: "to_start_of_five_minutes(TO_DATETIME({col}))",
+        TimeGrain.TEN_MINUTES: "to_start_of_ten_minutes(TO_DATETIME({col}))",
+        TimeGrain.FIFTEEN_MINUTES: "to_start_of_fifteen_minutes(TO_DATETIME({col}))",
+        TimeGrain.HOUR: "to_start_of_hour(TO_DATETIME({col}))",
+        TimeGrain.DAY: "to_start_of_day(TO_DATETIME({col}))",
+        TimeGrain.WEEK: "to_monday(TO_DATETIME({col}))",
+        TimeGrain.MONTH: "to_start_of_month(TO_DATETIME({col}))",
+        TimeGrain.QUARTER: "to_start_of_quarter(TO_DATETIME({col}))",
+        TimeGrain.YEAR: "to_start_of_year(TO_DATETIME({col}))",
     }
 
     column_type_mappings = (
@@ -133,6 +134,8 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
 
         if isinstance(sqla_type, types.Date):
             return f"to_date('{dttm.date().isoformat()}')"
+        if isinstance(sqla_type, types.TIMESTAMP):
+            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
         if isinstance(sqla_type, types.DateTime):
             return f"""to_dateTime('{dttm.isoformat(sep=" ", timespec="seconds")}')"""
         return None

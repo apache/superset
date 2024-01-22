@@ -22,7 +22,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.dialects import mysql
 
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.jinja_context import dataset_macro, WhereInMacro
 
 

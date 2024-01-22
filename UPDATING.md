@@ -22,17 +22,17 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 3.1.0
 
 - [24657](https://github.com/apache/superset/pull/24657): Bumps the cryptography package to augment the OpenSSL security vulnerability.
-
-### Breaking Changes
-
-### Potential Downtime
 
 ### Other
 
 - [24982](https://github.com/apache/superset/pull/24982): By default, physical datasets on Oracle-like dialects like Snowflake will now use denormalized column names. However, existing datasets won't be affected. To change this behavior, the "Advanced" section on the dataset modal has a "Normalize column names" flag which can be changed to change this behavior.
+
+## 3.0.3
+
+- [26034](https://github.com/apache/superset/issues/26034): Fixes a problem where numeric x-axes were being treated as categorical values. As a consequence of that, the way labels are displayed might change given that ECharts has a different treatment for numerical and categorical values. To revert to the old behavior, users need to manually convert numerical columns to text so that they are treated as categories. Check https://github.com/apache/superset/issues/26159 for more details.
 
 ## 3.0.0
 

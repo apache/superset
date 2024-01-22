@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.0.0-dev",
+  "version": "3.1.0",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -33,7 +33,8 @@
   },
   "workspaces": [
     "packages/*",
-    "plugins/*"
+    "plugins/*",
+    "src/setup/*"
   ],
   "scripts": {
     "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
@@ -251,6 +252,7 @@
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.7.0",
     "@types/classnames": "^2.2.10",
+    "@types/dom-to-image": "^2.6.7",
     "@types/enzyme": "^3.10.5",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/fetch-mock": "^7.3.2",
@@ -325,7 +327,7 @@
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.7.6",
     "mock-socket": "^9.0.3",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "prettier": "^2.4.1",
     "prettier-plugin-packagejson": "^2.2.15",
     "process": "^0.11.10",

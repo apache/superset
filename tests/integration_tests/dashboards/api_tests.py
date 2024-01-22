@@ -177,6 +177,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(result[0]["column_types"], expected_values)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/datasets"
+        is_guest_user = True
+        has_guest_access = True
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        dashboard = Dashboard.get("world_health")
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
+        result = data["result"]
+        actual_dataset_ids = {dataset["id"] for dataset in result}
+        self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+        for dataset in result:
+            for excluded_key in ["database", "owners"]:
+                assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):
         self.login(username="alpha")
         uri = "api/v1/dashboard/not_found/datasets"
@@ -405,6 +425,29 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "changed_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
+        """
+        Dashboard API: Test get dashboard as guest
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.get_assert_metric(uri, "get")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        for excluded_key in ["changed_by", "changed_by_name", "owners"]:
+            assert excluded_key not in data["result"]
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()

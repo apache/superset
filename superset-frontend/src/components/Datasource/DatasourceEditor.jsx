@@ -1114,7 +1114,7 @@ class DatasourceEditor extends React.PureComponent {
                     <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
                       <Field
                         fieldKey="table_name"
-                        label={t('Dataset name')}
+                        label={t('Name')}
                         control={
                           <TextControl
                             controlId="table_name"

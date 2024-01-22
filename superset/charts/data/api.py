@@ -30,19 +30,19 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
-from superset.charts.commands.exceptions import (
-    ChartDataCacheLoadError,
-    ChartDataQueryFailedError,
-)
-from superset.charts.data.commands.create_async_job_command import (
-    CreateAsyncChartDataJobCommand,
-)
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.commands.chart.data.create_async_job_command import (
+    CreateAsyncChartDataJobCommand,
+)
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import (
+    ChartDataCacheLoadError,
+    ChartDataQueryFailedError,
+)
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger

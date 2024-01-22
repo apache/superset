@@ -79,8 +79,11 @@ from .register import OrtegeRegisterView
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
-    from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
+    from superset.connectors.sqla.models import (
+        BaseDatasource,
+        RowLevelSecurityFilter,
+        SqlaTable,
+    )
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -878,7 +881,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.merge(role_to)
         self.get_session.commit()
 
     def set_role(
@@ -900,7 +902,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.merge(role)
         self.get_session.commit()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
@@ -2154,10 +2155,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.daos.dashboard import EmbeddedDashboardDAO
-        from superset.embedded_dashboard.commands.exceptions import (
+        from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
