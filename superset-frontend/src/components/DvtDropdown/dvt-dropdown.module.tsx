@@ -31,6 +31,7 @@ const StyledDropdown = styled.div`
   position: absolute;
   top: calc(100% + 2px);
   left: 9px;
+  z-index: 100;
 `;
 
 const DropdownMenu = styled.div`
@@ -41,6 +42,7 @@ const DropdownMenu = styled.div`
   animation: ${optionsKeyframes} 0.3s ease-in-out;
   border-radius: 4px;
   padding: 4px 0;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
 const DropdownOption = styled.div`

@@ -26,9 +26,9 @@ import {
   StyledDropdownGroup,
 } from './dvt-dropdown.module';
 
-interface OptionProps {
+export interface OptionProps {
   label: string;
-  icon: string;
+  icon?: string;
   onClick: () => void;
 }
 
@@ -52,7 +52,7 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
           <DropdownMenu>
             {data.map((item, index) => (
               <DropdownOption key={index} onClick={item.onClick}>
-                <Icon fileName={item.icon} />
+                {item.icon && <Icon fileName={item.icon} />}
                 {item.label}
               </DropdownOption>
             ))}

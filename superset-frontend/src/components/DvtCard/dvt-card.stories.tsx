@@ -49,4 +49,5 @@ Default.args = {
   label: 'Label',
   description:
     'Monitors real-time network stats like latency and uptime for smooth operations.',
+  dropdown: [{ label: 'Delete', icon: 'dvt-delete', onClick: () => {} }],
 };
