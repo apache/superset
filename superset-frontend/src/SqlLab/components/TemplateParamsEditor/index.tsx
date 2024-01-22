@@ -19,7 +19,7 @@
 import React, { useState, useEffect } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 
 import Badge from 'src/components/Badge';
 import ModalTrigger from 'src/components/ModalTrigger';

@@ -20,7 +20,7 @@ import React from 'react';
 import { t, SupersetTheme, SwitchProps } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import { ActionType } from '.';
 import { infoTooltip, toggleStyle } from './styles';
 

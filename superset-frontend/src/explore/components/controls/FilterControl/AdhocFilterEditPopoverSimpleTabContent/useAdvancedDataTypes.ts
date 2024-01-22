@@ -18,7 +18,7 @@
  */
 import { useCallback, useState } from 'react';
 import { ensureIsArray, SupersetClient, t } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import rison from 'rison';
 import { AdvancedDataTypesState, Props } from './index';
 

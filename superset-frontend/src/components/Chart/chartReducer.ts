@@ -18,7 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
-import { omit } from 'lodash';
+import omit from 'lodash/omit';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';

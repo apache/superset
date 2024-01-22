@@ -21,7 +21,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 
 import {
   t,

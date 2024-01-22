@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
-import { uniqBy } from 'lodash';
+import uniqBy from 'lodash/uniqBy';
 import { useSelector } from 'react-redux';
 import {
   createErrorHandler,

@@ -34,7 +34,7 @@ import {
 } from 'use-query-params';
 
 import rison from 'rison';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import {
   FetchDataConfig,
   Filter,

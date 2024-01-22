@@ -37,7 +37,8 @@ import {
   t,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
+import isEqual from 'lodash/isEqual';
+import isEqualWith from 'lodash/isEqualWith';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';

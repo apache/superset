@@ -48,7 +48,8 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
-import { isEmpty, isString } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import isString from 'lodash/isString';
 
 interface QueryDatabase {
   id?: number;

@@ -20,7 +20,7 @@ import { SafeMarkdown, styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
 import React, { useMemo, useState } from 'react';
-import { isPlainObject } from 'lodash';
+import isPlainObject from 'lodash/isPlainObject';
 import Helpers from 'just-handlebars-helpers';
 
 export interface HandlebarsViewerProps {

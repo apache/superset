@@ -23,7 +23,11 @@ import React, {
   useState,
   useRef,
 } from 'react';
-import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
+import uniq from 'lodash/uniq';
+import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
+import debounce from 'lodash/debounce';
+import isEmpty from 'lodash/isEmpty';
 import {
   Filter,
   FilterConfiguration,

@@ -23,7 +23,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from 'deck.gl/typed';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
-import { noop } from 'lodash';
+import noop from 'lodash/noop';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';

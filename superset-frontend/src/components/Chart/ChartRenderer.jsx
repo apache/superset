@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, isEqual, cloneDeep } from 'lodash';
+import snakeCase from 'lodash/snakeCase';
+import isEqual from 'lodash/isEqual';
+import cloneDeep from 'lodash/cloneDeep';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {

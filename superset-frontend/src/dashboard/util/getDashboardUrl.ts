@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import serializeActiveFilterValues from './serializeActiveFilterValues';

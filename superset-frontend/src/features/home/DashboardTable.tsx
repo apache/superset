@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { filter } from 'lodash';
+import filter from 'lodash/filter';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';

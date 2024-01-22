@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import invert from 'lodash/invert';
 import {
   AnnotationLayer,
   buildCustomFormatters,

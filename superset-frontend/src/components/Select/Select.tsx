@@ -34,7 +34,9 @@ import {
   usePrevious,
 } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
+import uniq from 'lodash/uniq';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,

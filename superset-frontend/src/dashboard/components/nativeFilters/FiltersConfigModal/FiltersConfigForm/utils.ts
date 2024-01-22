@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { flatMapDeep } from 'lodash';
+import flatMapDeep from 'lodash/flatMapDeep';
 import { FormInstance } from 'src/components';
 import React from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';

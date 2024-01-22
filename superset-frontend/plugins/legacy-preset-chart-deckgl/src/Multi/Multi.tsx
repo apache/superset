@@ -20,7 +20,7 @@
  * under the License.
  */
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import {
   Datasource,
   HandlerFunction,

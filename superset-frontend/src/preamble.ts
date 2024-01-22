@@ -26,7 +26,7 @@ import {
   supersetTheme,
   initFeatureFlags,
 } from '@superset-ui/core';
-import { merge } from 'lodash';
+import merge from 'lodash/merge';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';

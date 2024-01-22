@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { startCase } from 'lodash';
+import startCase from 'lodash/startCase';
 import AntdEnhancedIcons from './AntdEnhanced';
 import Icon from './Icon';
 import IconType from './IconType';

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { flow, keyBy, mapValues } from 'lodash/fp';
-import { flatMap, isEmpty } from 'lodash';
+import flatMap from 'lodash/flatMap';
+import isEmpty from 'lodash/isEmpty';
 
 import { CHART_TYPE, TAB_TYPE } from './componentTypes';
 import { getChartIdAndColumnFromFilterKey } from './getDashboardFilterKey';

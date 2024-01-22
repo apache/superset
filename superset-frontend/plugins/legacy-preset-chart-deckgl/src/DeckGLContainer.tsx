@@ -29,7 +29,7 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { StaticMap } from 'react-map-gl';
 import DeckGL, { Layer } from 'deck.gl/typed';
 import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';

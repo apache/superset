@@ -19,14 +19,12 @@
 import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import {
-  isEqual,
-  omitBy,
-  omit,
-  isUndefined,
-  isNull,
-  isEqualWith,
-} from 'lodash';
+import isEqual from 'lodash/isEqual';
+import omitBy from 'lodash/omitBy';
+import omit from 'lodash/omit';
+import isUndefined from 'lodash/isUndefined';
+import isNull from 'lodash/isNull';
+import isEqualWith from 'lodash/isEqualWith';
 import { ensureIsArray } from '@superset-ui/core';
 
 export function addToObject(

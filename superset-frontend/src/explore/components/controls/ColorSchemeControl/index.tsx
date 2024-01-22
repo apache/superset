@@ -18,7 +18,7 @@
  */
 import React, { useMemo } from 'react';
 import { ColorScheme, SequentialScheme, styled, t } from '@superset-ui/core';
-import { isFunction } from 'lodash';
+import isFunction from 'lodash/isFunction';
 import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';

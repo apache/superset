@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import { SupersetClient, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';

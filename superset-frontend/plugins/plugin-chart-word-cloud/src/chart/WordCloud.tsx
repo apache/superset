@@ -31,7 +31,7 @@ import {
   seed,
   CategoricalColorScale,
 } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 const seedRandom = seed('superset-ui');
 export const ROTATION = {

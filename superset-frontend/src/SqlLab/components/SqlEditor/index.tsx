@@ -93,7 +93,8 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isBoolean, isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import isBoolean from 'lodash/isBoolean';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';

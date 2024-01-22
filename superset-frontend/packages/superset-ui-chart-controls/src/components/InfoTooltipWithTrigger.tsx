@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { kebabCase } from 'lodash';
+import kebabCase from 'lodash/kebabCase';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import { t } from '@superset-ui/core';
 import { Tooltip, TooltipProps } from './Tooltip';

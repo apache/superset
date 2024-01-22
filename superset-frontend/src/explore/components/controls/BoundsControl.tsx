@@ -19,7 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 type ValueType = (number | null)[];

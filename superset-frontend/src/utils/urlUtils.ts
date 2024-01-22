@@ -23,7 +23,7 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import rison from 'rison';
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import {
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,

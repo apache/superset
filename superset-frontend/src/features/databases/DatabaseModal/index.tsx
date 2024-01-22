@@ -57,7 +57,8 @@ import {
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
-import { isEmpty, pick } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
+import pick from 'lodash/pick';
 import {
   DatabaseObject,
   DatabaseForm,

@@ -23,7 +23,7 @@ import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
 import { css, t, styled, useTheme } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 
 import {
   removeDataPreview,

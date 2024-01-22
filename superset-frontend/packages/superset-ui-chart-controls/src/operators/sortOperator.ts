@@ -16,7 +16,7 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { isEmpty } from 'lodash';
+import isEmpty from 'lodash/isEmpty';
 import {
   ensureIsArray,
   getMetricLabel,

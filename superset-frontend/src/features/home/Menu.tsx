@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';

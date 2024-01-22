@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { pickBy } from 'lodash';
+import pickBy from 'lodash/pickBy';
 import { QueryEditor, LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { api, JsonResponse } from './queryApi';
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { kebabCase } from 'lodash';
+import kebabCase from 'lodash/kebabCase';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Tooltip from './Tooltip';
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNumber } from 'lodash';
+import isNumber from 'lodash/isNumber';
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
 import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';

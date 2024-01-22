@@ -23,7 +23,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { isNil } from 'lodash';
+import isNil from 'lodash/isNil';
 import { ModalFuncProps } from 'antd/lib/modal';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
