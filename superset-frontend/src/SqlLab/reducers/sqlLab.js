@@ -544,6 +544,18 @@ export default function sqlLabReducer(state = {}, action) {
         ),
       };
     },
+    [actions.QUERY_EDITOR_SET_RESULT_SEARCH]() {
+      return {
+        ...state,
+        ...alterUnsavedQueryEditorState(
+          state,
+          {
+            resultSearch: action.resultSearch,
+          },
+          action.queryEditor.id,
+        ),
+      };
+    },
     [actions.QUERY_EDITOR_SET_QUERY_LIMIT]() {
       return {
         ...state,

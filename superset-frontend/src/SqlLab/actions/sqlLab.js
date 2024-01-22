@@ -61,6 +61,7 @@ export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
+export const QUERY_EDITOR_SET_RESULT_SEARCH = 'QUERY_EDITOR_SET_RESULT_SEARCH';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
@@ -926,6 +927,10 @@ export function queryEditorSetQueryLimit(queryEditor, queryLimit) {
     queryEditor,
     queryLimit,
   };
+}
+
+export function queryEditorSetResultSearch(queryEditor, resultSearch) {
+  return { type: QUERY_EDITOR_SET_RESULT_SEARCH, queryEditor, resultSearch };
 }
 
 export function queryEditorSetTemplateParams(queryEditor, templateParams) {

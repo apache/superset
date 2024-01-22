@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
@@ -42,7 +42,7 @@ import {
   SaveDatasetModal,
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
@@ -61,6 +61,7 @@ import {
   fetchQueryResults,
   reFetchQueryResults,
   reRunQuery,
+  queryEditorSetResultSearch,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
 import Icons from 'src/components/Icons';
@@ -83,6 +84,7 @@ export interface ResultSetProps {
   displayLimit: number;
   height: number;
   query: QueryResponse;
+  queryEditorId?: string;
   search?: boolean;
   showSql?: boolean;
   showSqlInline?: boolean;
@@ -146,6 +148,7 @@ const ResultSet = ({
   displayLimit,
   height,
   query,
+  queryEditorId,
   search = true,
   showSql = false,
   showSqlInline = false,
@@ -156,14 +159,25 @@ const ResultSet = ({
   const ResultTable =
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
+  const dispatch = useDispatch();
   const theme = useTheme();
-  const [searchText, setSearchText] = useState('');
+  const { resultSearch, queryEditor } = useSelector(
+    (state: SqlLabRootState) => {
+      const queryEditor = state.sqlLab.queryEditors.find(
+        ({ id }) => id === queryEditorId,
+      );
+      return {
+        resultSearch: queryEditor?.resultSearch,
+        queryEditor,
+      };
+    },
+  );
+  const [searchText, setSearchText] = useState(resultSearch);
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
   const history = useHistory();
-  const dispatch = useDispatch();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
@@ -215,6 +229,7 @@ const ResultSet = ({
 
   const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchText(event.target.value);
+    dispatch(queryEditorSetResultSearch(queryEditor, event.target.value));
   };
 
   const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {

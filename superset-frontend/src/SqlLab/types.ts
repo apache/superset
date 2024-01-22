@@ -56,6 +56,7 @@ export interface QueryEditor {
   northPercent?: number;
   southPercent?: number;
   updatedAt?: number;
+  resultSearch?: string;
 }
 
 export type toastState = {

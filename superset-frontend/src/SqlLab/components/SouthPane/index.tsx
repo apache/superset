@@ -191,6 +191,7 @@ const SouthPane = ({
             defaultQueryLimit={defaultQueryLimit}
             showSql
             showSqlInline
+            queryEditorId={queryEditorId}
           />
         );
       }
@@ -222,6 +223,7 @@ const SouthPane = ({
           height={innerTabContentHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
+          queryEditorId={queryEditorId}
         />
       </Tabs.TabPane>
     ));

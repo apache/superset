@@ -65,6 +65,7 @@ export default function getInitialState({
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
     remoteId: null,
+    resultSearch: '',
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
 
@@ -93,6 +94,7 @@ export default function getInitialState({
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
         updatedAt: activeTab.extra_json?.updatedAt,
+        resultSearch: activeTab.result_search || '',
       };
     } else {
       // dummy state, actual state will be loaded on tab switch
