@@ -129,7 +129,7 @@ if [[ -n "${BUILD_TARGET}" ]]; then
 fi
 
 docker buildx build \
-  ${TARGET_ARGUMENT}
+  ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
   --cache-from=type=registry,ref=apache/superset:${BUILD_TARGET} \
   --cache-to=type=registry,mode=max,ref=apache/superset:${BUILD_TARGET} \
