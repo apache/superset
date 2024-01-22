@@ -81,12 +81,12 @@ case "${TARGET}" in
     ;;
   "websocket")
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-websocket -t ${REPO_NAME}:${REFSPEC}-websocket -t ${REPO_NAME}:${LATEST_TAG}-websocket"
-    BUILD_TARGET="websocket"
+    BUILD_TARGET=""
 	DOCKER_CONTEXT="superset-websocket"
     ;;
   "dockerize")
     DOCKER_TAGS="-t ${REPO_NAME}:dockerize"
-    BUILD_TARGET="dockerize"
+    BUILD_TARGET=""
 	DOCKER_CONTEXT="-f dockerize.Dockerfile ."
     ;;
   *)
@@ -123,7 +123,13 @@ else
   DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
 fi
 
-docker buildx build --target ${BUILD_TARGET} \
+TARGET_ARGUMENT=""
+if [[ -n "${BUILD_TARGET}" ]]; then
+  TARGET_ARGUMENT="--target ${TARGET}"
+fi
+
+docker buildx build \
+  ${TARGET_ARGUMENT}
   ${DOCKER_ARGS} \
   --cache-from=type=registry,ref=apache/superset:${BUILD_TARGET} \
   --cache-to=type=registry,mode=max,ref=apache/superset:${BUILD_TARGET} \
