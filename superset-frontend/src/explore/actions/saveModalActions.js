@@ -19,7 +19,7 @@
 import rison from 'rison';
 import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from 'lodash';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { Operators } from '../constants';
 

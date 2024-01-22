@@ -23,7 +23,7 @@ import {
   JsonValue,
   useTheme,
 } from '@superset-ui/core';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { ControlFormItemNode } from './ControlFormItem';
 
 export * from './ControlFormItem';

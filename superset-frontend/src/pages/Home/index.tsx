@@ -28,7 +28,7 @@ import {
 import rison from 'rison';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
-import reject from 'lodash/reject';
+import { reject } from 'lodash';
 import {
   dangerouslyGetItemDoNotUse,
   dangerouslySetItemDoNotUse,

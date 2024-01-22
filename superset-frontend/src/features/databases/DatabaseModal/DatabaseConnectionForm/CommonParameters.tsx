@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from 'lodash';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';

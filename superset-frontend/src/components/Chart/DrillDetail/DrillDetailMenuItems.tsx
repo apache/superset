@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode, useCallback, useMemo, useState } from 'react';
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from 'lodash';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,

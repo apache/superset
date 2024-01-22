@@ -18,7 +18,7 @@
  */
 import { FilterConfiguration, Filters, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import cloneDeep from 'lodash/cloneDeep';
+import { cloneDeep } from 'lodash';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
   setDataMaskForFilterConfigComplete,

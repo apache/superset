@@ -39,9 +39,7 @@ import {
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, clearDataMask } from 'src/dataMask/actions';
 import { useImmer } from 'use-immer';
-import isEmpty from 'lodash/isEmpty';
-import isEqual from 'lodash/isEqual';
-import debounce from 'lodash/debounce';
+import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';

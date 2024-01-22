@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from 'lodash';
 import { mapValues, flow, keyBy } from 'lodash/fp';
 import {
   getChartIdAndColumnFromFilterKey,

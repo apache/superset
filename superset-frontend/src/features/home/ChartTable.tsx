@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
-import filter from 'lodash/filter';
+import { filter } from 'lodash';
 import {
   useChartEditModal,
   useFavoriteStatus,

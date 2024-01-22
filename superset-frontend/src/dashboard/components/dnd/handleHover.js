@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import throttle from 'lodash/throttle';
+import { throttle } from 'lodash';
 import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
 import getDropPosition from 'src/dashboard/util/getDropPosition';
 import handleScroll from './handleScroll';

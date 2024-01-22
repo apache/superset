@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import zip from 'lodash/zip';
+import { zip } from 'lodash';
 import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,

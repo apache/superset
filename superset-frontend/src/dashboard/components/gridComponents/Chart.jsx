@@ -20,8 +20,7 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
+import { debounce, isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';

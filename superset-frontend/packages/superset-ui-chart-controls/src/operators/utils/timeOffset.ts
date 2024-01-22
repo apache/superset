@@ -18,7 +18,7 @@
  * under the License.
  */
 import { JsonObject } from '@superset-ui/core';
-import isString from 'lodash/isString';
+import { isString } from 'lodash';
 
 export const hasTimeOffset = (
   series: JsonObject,

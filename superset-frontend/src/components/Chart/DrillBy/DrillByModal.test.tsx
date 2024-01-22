@@ -19,9 +19,7 @@
 
 import React, { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import omit from 'lodash/omit';
-import isUndefined from 'lodash/isUndefined';
-import omitBy from 'lodash/omitBy';
+import { omit, isUndefined, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';
 import { waitFor, within } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import omit from 'lodash/omit';
+import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';

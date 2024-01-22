@@ -18,7 +18,7 @@
  */
 import { useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import isObject from 'lodash/isObject';
+import { isObject } from 'lodash';
 import rison from 'rison';
 import {
   SupersetClient,

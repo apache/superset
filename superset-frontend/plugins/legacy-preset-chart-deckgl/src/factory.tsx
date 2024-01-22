@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import { Layer } from 'deck.gl/typed';
 import {
   Datasource,

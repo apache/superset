@@ -7,7 +7,7 @@ import {
   SequentialSchemeConfig,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
-import isPlainObject from 'lodash/isPlainObject';
+import { isPlainObject } from 'lodash';
 import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
 

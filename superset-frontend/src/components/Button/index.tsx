@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { Children, ReactElement } from 'react';
-import kebabCase from 'lodash/kebabCase';
+import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
 import { AntdButton } from 'src/components';

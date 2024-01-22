@@ -20,7 +20,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
-import isInteger from 'lodash/isInteger';
+import { isInteger } from 'lodash';
 // @ts-ignore
 import { locales } from 'antd/dist/antd-with-locales';
 import { Col, Row } from 'src/components';

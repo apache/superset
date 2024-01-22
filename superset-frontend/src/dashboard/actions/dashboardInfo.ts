@@ -18,7 +18,7 @@
  */
 import { Dispatch } from 'redux';
 import { makeApi, CategoricalColorNamespace, t } from '@superset-ui/core';
-import isString from 'lodash/isString';
+import { isString } from 'lodash';
 import { getErrorText } from 'src/utils/getClientErrorObject';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {

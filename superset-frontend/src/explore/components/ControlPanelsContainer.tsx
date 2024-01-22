@@ -52,7 +52,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
-import kebabCase from 'lodash/kebabCase';
+import { kebabCase } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';

@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import uniqWith from 'lodash/uniqWith';
+import { uniqWith } from 'lodash';
 import cx from 'classnames';
 import {
   DataMaskStateWithId,

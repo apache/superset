@@ -21,8 +21,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import isArray from 'lodash/isArray';
-import mergeWith from 'lodash/mergeWith';
+import { mergeWith, isArray } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {

@@ -42,8 +42,7 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
-import debounce from 'lodash/debounce';
-import pickBy from 'lodash/pickBy';
+import { debounce, pickBy } from 'lodash';
 import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import AddSliceCard from './AddSliceCard';

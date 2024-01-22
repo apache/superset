@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import cloneDeep from 'lodash/cloneDeep';
+import { cloneDeep } from 'lodash';
 
 function processObject(object: Object) {
   const result = object;

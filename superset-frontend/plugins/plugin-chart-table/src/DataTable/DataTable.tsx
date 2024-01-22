@@ -38,7 +38,7 @@ import {
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
 import { typedMemo, usePrevious } from '@superset-ui/core';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,

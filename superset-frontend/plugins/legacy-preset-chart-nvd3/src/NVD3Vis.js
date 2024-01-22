@@ -17,8 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import kebabCase from 'lodash/kebabCase';
-import throttle from 'lodash/throttle';
+import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
 import moment from 'moment';
 import nv from 'nvd3-fork';

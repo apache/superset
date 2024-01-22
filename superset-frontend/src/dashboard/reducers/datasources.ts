@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import keyBy from 'lodash/keyBy';
+import { keyBy } from 'lodash';
 import { DatasourcesState } from 'src/dashboard/types';
 import {
   DatasourcesActionPayload,

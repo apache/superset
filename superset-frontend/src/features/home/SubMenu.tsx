@@ -21,7 +21,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
 import { Tooltip } from 'src/components/Tooltip';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { Row } from 'src/components';
 import { Menu, MenuMode, MainNav as DropdownMenu } from 'src/components/Menu';
 import Button, { OnClickHandler } from 'src/components/Button';

@@ -18,7 +18,7 @@
  */
 // TODO: requires redux-localstorage > 1.0 for typescript support
 import persistState from 'redux-localstorage';
-import pickBy from 'lodash/pickBy';
+import { pickBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { filterUnsavedQueryEditorList } from 'src/SqlLab/components/EditorAutoSync';
 import {

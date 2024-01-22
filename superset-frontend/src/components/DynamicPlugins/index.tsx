@@ -26,7 +26,7 @@ import {
   logging,
   makeApi,
 } from '@superset-ui/core';
-import omitBy from 'lodash/omitBy';
+import { omitBy } from 'lodash';
 
 const metadataRegistry = getChartMetadataRegistry();
 

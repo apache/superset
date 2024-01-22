@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
-import cloneDeep from 'lodash/cloneDeep';
+import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,

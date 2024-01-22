@@ -51,7 +51,7 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
-import isString from 'lodash/isString';
+import { isString } from 'lodash';
 import { Link } from 'react-router-dom';
 
 const propTypes = {

@@ -23,7 +23,7 @@ import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
-import isEmpty from 'lodash/isEmpty';
+import { isEmpty } from 'lodash';
 
 export const SET_REPORT = 'SET_REPORT';
 export function setReport(report, resourceId, creationMethod, filterField) {

@@ -31,8 +31,7 @@ import {
   useComponentDidMount,
   usePrevious,
 } from '@superset-ui/core';
-import debounce from 'lodash/debounce';
-import pick from 'lodash/pick';
+import { debounce, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/react';

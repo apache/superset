@@ -28,8 +28,7 @@ import {
 
 import { ControlConfig } from '@superset-ui/chart-controls';
 
-import debounce from 'lodash/debounce';
-import isArray from 'lodash/isArray';
+import { debounce, isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';

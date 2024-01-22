@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { formatSelectOptions } from '@superset-ui/chart-controls';
 import { SLOW_DEBOUNCE, t } from '@superset-ui/core';
 

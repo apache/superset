@@ -25,7 +25,7 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
-import isNumber from 'lodash/isNumber';
+import { isNumber } from 'lodash';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;

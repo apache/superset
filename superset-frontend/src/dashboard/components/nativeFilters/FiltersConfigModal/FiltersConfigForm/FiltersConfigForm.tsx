@@ -38,7 +38,7 @@ import {
   SupersetApiError,
   t,
 } from '@superset-ui/core';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import React, {
   forwardRef,
   useCallback,

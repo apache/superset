@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import isObject from 'lodash/isObject';
+import { isObject } from 'lodash';
 import { t, SupersetClient } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { useHistory } from 'react-router-dom';

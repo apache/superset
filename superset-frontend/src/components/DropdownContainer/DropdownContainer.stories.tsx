@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import { css } from '@superset-ui/core';
 import Select from '../Select/Select';
 import Button from '../Button';
