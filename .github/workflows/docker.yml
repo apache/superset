@@ -60,6 +60,17 @@ jobs:
     name: docker-build
     runs-on: ubuntu-latest
     steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build ephemeral env image
         if: github.event_name == 'pull_request'
         run: |
