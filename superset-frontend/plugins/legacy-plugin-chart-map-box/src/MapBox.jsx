@@ -44,6 +44,10 @@ const propTypes = {
   renderWhileDragging: PropTypes.bool,
   rgb: PropTypes.array,
   bounds: PropTypes.array,
+  viewportLongitude: PropTypes.number, 
+  viewportLatitude: PropTypes.number, 
+  viewportZoom: PropTypes.number,
+  initialViewportSettings: PropTypes.string,
 };
 
 const defaultProps = {
@@ -55,11 +59,16 @@ const defaultProps = {
   pointRadiusUnit: 'Pixels',
 };
 
+const isEmpty = (value) => {
+  return value === undefined || value === null || value === "";
+}
+
 class MapBox extends React.Component {
   constructor(props) {
     super(props);
 
-    const { width, height, bounds } = this.props;
+    const { width, height, bounds, viewportLongitude, viewportLatitude, viewportZoom, initialViewportSettings } = this.props;
+
     // Get a viewport that fits the given bounds, which all marks to be clustered.
     // Derive lat, lon and zoom from this viewport. This is only done on initial
     // render as the bounds don't update as we pan/zoom in the current design.
@@ -69,13 +78,25 @@ class MapBox extends React.Component {
     }).fitBounds(bounds);
     const { latitude, longitude, zoom } = mercator;
 
-    this.state = {
-      viewport: {
+    let initialViewport;
+    if(initialViewportSettings === "Fixed") {
+      initialViewport = {
+        longitude: !isEmpty(viewportLongitude) ? viewportLongitude : longitude,
+        latitude: !isEmpty(viewportLatitude) ? viewportLatitude : latitude,
+        zoom: !isEmpty(viewportZoom) ? viewportZoom : zoom,
+      }
+    }
+    else {
+      initialViewport = {
         longitude,
         latitude,
         zoom,
-      },
-    };
+      }
+    }
+    this.state = {
+      viewport: initialViewport,
+    }
+
     this.handleViewportChange = this.handleViewportChange.bind(this);
   }
 
