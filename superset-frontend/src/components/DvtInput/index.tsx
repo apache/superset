@@ -17,32 +17,46 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { supersetTheme } from '@superset-ui/core';
+import { SupersetTheme, supersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
+import DvtPopper from '../DvtPopper';
 import {
   StyledInput,
+  StyledInputInput,
   StyledInputField,
   StyledInputIcon,
+  StyledInputLabel,
+  StyledInputPopover,
 } from './dvt-input.module';
 
 export interface DvtInputProps {
+  label?: string;
   placeholder?: string;
   type?: 'text' | 'password' | 'email' | 'search';
-  typeDesign?: 'text' | 'form';
+  typeDesign?: 'text' | 'form' | 'chartsForm';
   size?: 'small' | 'medium' | 'large';
   value: string;
   onChange: (value: string) => void;
   handleSearchClick?: () => void;
+  disabled?: boolean;
+  importantLabel?: string;
+  popoverLabel?: string;
+  popoverDirection?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 const DvtInput = ({
+  label,
   placeholder = '',
   type = 'text',
-  size = 'medium',
+  size = 'small',
   value,
   typeDesign = 'text',
   onChange,
   handleSearchClick,
+  importantLabel,
+  popoverDirection,
+  disabled,
+  popoverLabel,
 }: DvtInputProps) => {
   const [show, setShow] = useState<boolean>(false);
 
@@ -51,47 +65,87 @@ const DvtInput = ({
   };
 
   return (
-    <StyledInput $size={size} typeDesign={typeDesign}>
-      {type === 'email' && (
-        <Icon
-          fileName="email"
-          iconSize="xl"
-          iconColor={supersetTheme.colors.dvt.text.label}
-          style={{ paddingRight: '12px' }}
-        />
-      )}
-      {type === 'password' && (
-        <Icon
-          fileName="lock_locked"
-          iconSize="xl"
-          iconColor={supersetTheme.colors.dvt.text.label}
-          style={{ paddingRight: '12px' }}
-        />
-      )}
-      <StyledInputField
-        placeholder={placeholder}
-        type={show ? 'text' : type}
-        value={value}
-        onChange={handleChange}
-      />
-      {type === 'password' && (
-        <StyledInputIcon onClick={() => setShow(!show)}>
+    <StyledInput>
+      <StyledInputPopover>
+        <StyledInputLabel>{label}</StyledInputLabel>
+        {importantLabel && (
+          <DvtPopper
+            label={importantLabel}
+            direction={popoverDirection}
+            size="small"
+          >
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.alert.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        )}
+        {popoverLabel && (
+          <DvtPopper
+            size="small"
+            label={popoverLabel}
+            direction={popoverDirection}
+          >
+            <Icon
+              fileName="warning"
+              css={(theme: SupersetTheme) => ({
+                color: theme.colors.dvt.primary.base,
+              })}
+              iconSize="l"
+            />
+          </DvtPopper>
+        )}
+      </StyledInputPopover>
+      <StyledInputInput $size={size} typeDesign={typeDesign}>
+        {type === 'email' && (
           <Icon
-            fileName={show ? 'eye' : 'eye_slash'}
+            fileName="email"
             iconSize="xl"
             iconColor={supersetTheme.colors.dvt.text.label}
+            style={{ paddingRight: '12px' }}
           />
-        </StyledInputIcon>
-      )}
-      {type === 'search' && (
-        <StyledInputIcon onClick={() => handleSearchClick && handleSearchClick}>
+        )}
+        {type === 'password' && (
           <Icon
-            fileName="search"
+            fileName="lock_locked"
             iconSize="xl"
             iconColor={supersetTheme.colors.dvt.text.label}
+            style={{ paddingRight: '12px' }}
           />
-        </StyledInputIcon>
-      )}
+        )}
+        <StyledInputField
+          typeDesign={typeDesign}
+          $size={size}
+          placeholder={placeholder}
+          type={show ? 'text' : type}
+          value={value}
+          onChange={handleChange}
+          disabled={disabled}
+        />
+        {type === 'password' && (
+          <StyledInputIcon onClick={() => setShow(!show)}>
+            <Icon
+              fileName={show ? 'eye' : 'eye_slash'}
+              iconSize="xl"
+              iconColor={supersetTheme.colors.dvt.text.label}
+            />
+          </StyledInputIcon>
+        )}
+        {type === 'search' && (
+          <StyledInputIcon
+            onClick={() => handleSearchClick && handleSearchClick}
+          >
+            <Icon
+              fileName="search"
+              iconSize="xl"
+              iconColor={supersetTheme.colors.dvt.text.label}
+            />
+          </StyledInputIcon>
+        )}
+      </StyledInputInput>
     </StyledInput>
   );
 };
