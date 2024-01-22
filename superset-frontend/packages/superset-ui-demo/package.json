@@ -43,7 +43,7 @@
     "@storybook/react": "^6.3.12",
     "@types/react-loadable": "^5.5.3",
     "antd": "4.10.3",
-    "bootstrap": "^3.4.1",
+    "bootstrap": "^5.3.2",
     "core-js": "3.8.3",
     "gh-pages": "^3.0.0",
     "jquery": "^3.4.1",
