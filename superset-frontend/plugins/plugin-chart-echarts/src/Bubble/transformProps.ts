@@ -151,6 +151,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     true,
     false,
+    true,
     legendMargin,
     true,
     'Left',

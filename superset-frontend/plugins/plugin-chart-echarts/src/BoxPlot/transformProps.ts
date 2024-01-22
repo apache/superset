@@ -247,6 +247,7 @@ export default function transformProps(
     legendOrientation,
     addYAxisTitleOffset,
     false,
+    true,
     null,
     addXAxisTitleOffset,
     yAxisTitlePosition,
