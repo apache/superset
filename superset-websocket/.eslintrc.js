@@ -33,7 +33,7 @@ module.exports = {
     'prettier',
   ],
   rules: {
-    "lodash/import-scope": [2, "method"],
+    "lodash/import-scope": [2, "member"],
     "@typescript-eslint/explicit-module-boundary-types": 0,
     "@typescript-eslint/no-var-requires": 0,
   },
