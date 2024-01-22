@@ -242,7 +242,7 @@ module.exports = {
     'jsx-a11y/anchor-is-valid': 1,
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
-    'lodash/import-scope': [2, 'method'],
+    'lodash/import-scope': [2, 'member'],
     'new-cap': 0,
     'no-bitwise': 0,
     'no-continue': 0,

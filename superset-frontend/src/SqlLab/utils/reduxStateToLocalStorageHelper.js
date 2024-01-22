@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import {
   BYTES_PER_CHAR,

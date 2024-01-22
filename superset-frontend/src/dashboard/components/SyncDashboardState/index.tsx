@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import { shallowEqual, useSelector } from 'react-redux';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 import {

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import memoize from 'lodash/memoize';
+import { memoize } from 'lodash';
 import { isControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { controls } from '../explore/controls';

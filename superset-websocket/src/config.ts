@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import _merge from 'lodash/merge';
+import {merge as _merge} from 'lodash';
 
 export interface RedisConfig {
   port: number;
