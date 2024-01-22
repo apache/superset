@@ -64,6 +64,7 @@ import {
   postStopQuery,
   queryEditorSetAutorun,
   queryEditorSetSql,
+  queryEditorSetCursorPosition,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
@@ -759,6 +760,10 @@ const SqlEditor: React.FC<Props> = ({
     );
   };
 
+  const handleCursorPositionChange = newPosition => {
+    dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
+  };
+
   const queryPane = () => {
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
@@ -789,6 +794,7 @@ const SqlEditor: React.FC<Props> = ({
             onBlur={onSqlChanged}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
+            onCursorPositionChange={handleCursorPositionChange}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />

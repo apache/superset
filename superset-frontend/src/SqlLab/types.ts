@@ -35,6 +35,11 @@ export enum QueryEditorVersion {
 
 export const LatestQueryEditorVersion = QueryEditorVersion.v1;
 
+export interface CursorPosition {
+  row: number;
+  column: number;
+}
+
 export interface QueryEditor {
   version: QueryEditorVersion;
   id: string;
@@ -56,6 +61,7 @@ export interface QueryEditor {
   northPercent?: number;
   southPercent?: number;
   updatedAt?: number;
+  cursorPosition?: CursorPosition;
 }
 
 export type toastState = {

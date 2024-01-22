@@ -35,11 +35,17 @@ type HotKey = {
   func: (aceEditor: IAceEditor) => void;
 };
 
+type CursorPosition = {
+  row: number;
+  column: number;
+};
+
 type AceEditorWrapperProps = {
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
+  onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
   hotkeys: HotKey[];
 };
@@ -69,6 +75,7 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
+  onCursorPositionChange,
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
@@ -79,10 +86,11 @@ const AceEditorWrapper = ({
     'sql',
     'schema',
     'templateParams',
+    'cursorPosition',
   ]);
 
   const currentSql = queryEditor.sql ?? '';
-
+  const cursorPosition = queryEditor.cursorPosition ?? { row: 0, column: 0 };
   const [sql, setSql] = useState(currentSql);
 
   // The editor changeSelection is called multiple times in a row,
@@ -143,6 +151,16 @@ const AceEditorWrapper = ({
 
       currentSelectionCache.current = selectedText;
     });
+    editor.selection.on('changeCursor', () => {
+      const cursor = editor.getCursorPosition();
+      onCursorPositionChange(cursor);
+    });
+
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.renderer.updateFontSize();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {
