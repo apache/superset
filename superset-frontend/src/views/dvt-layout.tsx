@@ -23,6 +23,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import DvtSidebar from 'src/components/DvtSidebar';
 import DvtNavbar from 'src/components/DvtNavbar';
+import DvtModal from 'src/dvt-modal';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { routes } from 'src/views/dvt-routes';
@@ -76,6 +77,7 @@ const DvtLayout = () => {
       <GlobalStyles />
       <DvtSidebar pathName={pathname} />
       <DvtNavbar pathName={pathname} />
+      <DvtModal />
       <Main navbarInHeight={WithNavbarBottom.includes(pathname)}>
         <Switch>
           {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
