@@ -33,10 +33,6 @@ import {
   isCrossFiltersEnabled,
 } from 'src/dashboard/util/crossFilters';
 import {
-  DASHBOARD_FILTER_SCOPE_GLOBAL,
-  dashboardFilter,
-} from 'src/dashboard/reducers/dashboardFilters';
-import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
   GRID_COLUMN_COUNT,
@@ -49,10 +45,8 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
-import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -72,20 +66,10 @@ export const hydrateDashboard =
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
-    let preselectFilters = {};
-
     charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
-    try {
-      // allow request parameter overwrite dashboard metadata
-      preselectFilters =
-        getUrlParam(URL_PARAMS.preselectFilters) ||
-        JSON.parse(metadata.default_filters);
-    } catch (e) {
-      //
-    }
 
     if (metadata?.shared_label_colors) {
       updateColorSchema(metadata, metadata?.shared_label_colors);
@@ -116,8 +100,6 @@ export const hydrateDashboard =
     const parent = layout[parentId];
     let newSlicesContainer;
     let newSlicesContainerWidth = 0;
-
-    const filterScopes = metadata?.filter_scopes || {};
 
     const chartQueries = {};
     const dashboardFilters = {};
@@ -187,57 +169,6 @@ export const hydrateDashboard =
         newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
-      }
-
-      // build DashboardFilters for interactive filter features
-      if (slice.form_data.viz_type === 'filter_box') {
-        const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let { columns } = configs;
-        const { labels } = configs;
-        if (preselectFilters[key]) {
-          Object.keys(columns).forEach(col => {
-            if (preselectFilters[key][col]) {
-              columns = {
-                ...columns,
-                [col]: preselectFilters[key][col],
-              };
-            }
-          });
-        }
-
-        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
-          const scopeSettings = {
-            ...filterScopes[key],
-          };
-          const { scope, immune } = {
-            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
-            ...scopeSettings[column],
-          };
-
-          return {
-            ...map,
-            [column]: {
-              scope,
-              immune,
-            },
-          };
-        }, {});
-
-        const componentId = chartIdToLayoutId[key];
-        const directPathToFilter = (layout[componentId].parents || []).slice();
-        directPathToFilter.push(componentId);
-        dashboardFilters[key] = {
-          ...dashboardFilter,
-          chartId: key,
-          componentId,
-          datasourceId: slice.form_data.datasource,
-          filterName: slice.slice_name,
-          directPathToFilter,
-          columns,
-          labels,
-          scopes: scopesByChartId,
-          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-        };
       }
 
       // sync layout names with current slice names in case a slice was edited

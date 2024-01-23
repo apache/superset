@@ -413,17 +413,6 @@ class TestCore(SupersetTestCase):
         db.session.delete(ck)
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
-    def test_redirect_invalid(self):
-        model_url = models.Url(url="hhttp://invalid.com")
-        db.session.add(model_url)
-        db.session.commit()
-
-        self.login(username="admin")
-        response = self.client.get(f"/r/{model_url.id}")
-        assert response.headers["Location"] == "/"
-        db.session.delete(model_url)
-        db.session.commit()
-
     @with_feature_flags(KV_STORE=False)
     def test_kv_disabled(self):
         self.login(username="admin")

@@ -38,7 +38,7 @@ body:
       value: |
         ### Environment
 
-        Please specify your environment. If your environment does not match the alternatives, you need to upgrade your environment before submitting the issue as it may have already been fixed. For additional information about the releases, check out the [release page](https://github.com/apache/superset/wiki).
+        Please specify your environment. If your environment does not match the alternatives, you need to upgrade your environment before submitting the issue as it may have already been fixed. For additional information about the releases, see [Release Process](https://github.com/apache/superset/wiki/Release-Process).
   - type: dropdown
     id: superset-version
     attributes:
