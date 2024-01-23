@@ -154,7 +154,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return len(dataset_query) == 0
 
     @staticmethod
-    def validate_column_python_date_format(dt_format: str) -> bool:
+    def validate_python_date_format(dt_format: str) -> bool:
         if dt_format in ("epoch_s", "epoch_ms"):
             return True
         try:
@@ -212,7 +212,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 "python_date_format" in column
                 and column["python_date_format"] is not None
             ):
-                if not DatasetDAO.validate_column_python_date_format(
+                if not DatasetDAO.validate_python_date_format(
                     column["python_date_format"]
                 ):
                     raise DAOUpdateFailedError(
