@@ -44,8 +44,7 @@ import {
 } from '@superset-ui/core';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import debounce from 'lodash/debounce';
-import throttle from 'lodash/throttle';
+import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
@@ -93,7 +92,6 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isBoolean, isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';

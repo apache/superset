@@ -24,8 +24,7 @@ import {
   t,
   isFeatureEnabled,
 } from '@superset-ui/core';
-import invert from 'lodash/invert';
-import mapKeys from 'lodash/mapKeys';
+import { invert, mapKeys } from 'lodash';
 
 import { now } from 'src/utils/dates';
 import {
