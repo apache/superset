@@ -24,27 +24,52 @@ jobs:
             echo "has-secrets=0" >> "$GITHUB_OUTPUT"
             echo "no secrets!"
           fi
-
   docker-build:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    name: docker-build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
+        platform: ["linux/amd64", "linux/arm64"]
+      fail-fast: false
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
+
+  ephemeral-docker-build:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          ./scripts/docker_build_push.sh
+        uses: docker/setup-buildx-action@v3
 
       - name: Build ephemeral env image
         if: github.event_name == 'pull_request'
@@ -54,7 +79,7 @@ jobs:
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
           docker buildx build --target ci \
             --load \
-            --cache-from=type=local,src=/tmp/superset \
+            --cache-from=type=registry,ref=apache/superset:lean \
             -t ${{ github.sha }} \
             -t "pr-${{ github.event.pull_request.number }}" \
             --platform linux/amd64 \
@@ -64,7 +89,7 @@ jobs:
 
       - name: Upload build artifacts
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build
           path: build/
