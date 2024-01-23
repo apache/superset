@@ -100,9 +100,12 @@ jobs:
             core.info(JSON.stringify(artifacts))
 
             const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "build"
-            })[0];
-            if(!matchArtifact) return core.setFailed("Build artifacts not found")
+              return artifact.name === "build";
+            });
+            
+            if (!matchArtifact.length) {
+              return core.setFailed("Build artifacts not found");
+            }
 
             const download = await github.actions.downloadArtifact({
                 owner: context.repo.owner,
