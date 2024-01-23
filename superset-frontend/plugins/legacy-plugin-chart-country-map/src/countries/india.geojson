@@ -2,12 +2,17 @@
   "type": "FeatureCollection",
   "crs": {
     "type": "name",
-    "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" }
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
   },
   "features": [
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-SK", "NAME_1": "Sikkim" },
+      "properties": {
+        "ISO": "IN-SK",
+        "NAME_1": "Sikkim"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -55,7 +60,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-TG", "NAME_1": "Telangana" },
+      "properties": {
+        "ISO": "IN-TG",
+        "NAME_1": "Telangana"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -200,7 +208,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-LA", "NAME_1": "Ladakh" },
+      "properties": {
+        "ISO": "IN-LA",
+        "NAME_1": "Ladakh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1292,7 +1303,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-JK", "NAME_1": "Jammu and Kashmir" },
+      "properties": {
+        "ISO": "IN-JK",
+        "NAME_1": "Jammu and Kashmir"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1500,7 +1514,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-CH", "NAME_1": "Chandigarh" },
+      "properties": {
+        "ISO": "IN-CH",
+        "NAME_1": "Chandigarh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1516,7 +1533,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-DL", "NAME_1": "Delhi" },
+      "properties": {
+        "ISO": "IN-DL",
+        "NAME_1": "Delhi"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1542,7 +1562,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-HP", "NAME_1": "Himachal Pradesh" },
+      "properties": {
+        "ISO": "IN-HP",
+        "NAME_1": "Himachal Pradesh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1645,7 +1668,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-HR", "NAME_1": "Haryana" },
+      "properties": {
+        "ISO": "IN-HR",
+        "NAME_1": "Haryana"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -1773,7 +1799,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-AP", "NAME_1": "Andhra Pradesh" },
+      "properties": {
+        "ISO": "IN-AP",
+        "NAME_1": "Andhra Pradesh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2022,7 +2051,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-KL", "NAME_1": "Kerala" },
+      "properties": {
+        "ISO": "IN-KL",
+        "NAME_1": "Kerala"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2128,7 +2160,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-LD", "NAME_1": "Lakshadweep" },
+      "properties": {
+        "ISO": "IN-LD",
+        "NAME_1": "Lakshadweep"
+      },
       "geometry": {
         "type": "MultiPolygon",
         "coordinates": [
@@ -2167,7 +2202,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-OR", "NAME_1": "Odisha" },
+      "properties": {
+        "ISO": "IN-OR",
+        "NAME_1": "Odisha"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2386,7 +2424,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-KA", "NAME_1": "Karnataka" },
+      "properties": {
+        "ISO": "IN-KA",
+        "NAME_1": "Karnataka"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2613,7 +2654,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-GA", "NAME_1": "Goa" },
+      "properties": {
+        "ISO": "IN-GA",
+        "NAME_1": "Goa"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2654,7 +2698,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-AN", "NAME_1": "Andaman and Nicobar" },
+      "properties": {
+        "ISO": "IN-AN",
+        "NAME_1": "Andaman and Nicobar"
+      },
       "geometry": {
         "type": "MultiPolygon",
         "coordinates": [
@@ -2832,7 +2879,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-AS", "NAME_1": "Assam" },
+      "properties": {
+        "ISO": "IN-AS",
+        "NAME_1": "Assam"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -2998,7 +3048,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-MN", "NAME_1": "Manipur" },
+      "properties": {
+        "ISO": "IN-MN",
+        "NAME_1": "Manipur"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3060,7 +3113,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-NL", "NAME_1": "Nagaland" },
+      "properties": {
+        "ISO": "IN-NL",
+        "NAME_1": "Nagaland"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3123,7 +3179,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-ML", "NAME_1": "Meghalaya" },
+      "properties": {
+        "ISO": "IN-ML",
+        "NAME_1": "Meghalaya"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3191,7 +3250,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-PB", "NAME_1": "Punjab" },
+      "properties": {
+        "ISO": "IN-PB",
+        "NAME_1": "Punjab"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3296,7 +3358,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-RJ", "NAME_1": "Rajasthan" },
+      "properties": {
+        "ISO": "IN-RJ",
+        "NAME_1": "Rajasthan"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3587,7 +3652,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-UP", "NAME_1": "Uttar Pradesh" },
+      "properties": {
+        "ISO": "IN-UP",
+        "NAME_1": "Uttar Pradesh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3861,7 +3929,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-UT", "NAME_1": "Uttarakhand" },
+      "properties": {
+        "ISO": "IN-UT",
+        "NAME_1": "Uttarakhand"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -3970,7 +4041,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-JH", "NAME_1": "Jharkhand" },
+      "properties": {
+        "ISO": "IN-JH",
+        "NAME_1": "Jharkhand"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -4133,7 +4207,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-WB", "NAME_1": "West Bengal" },
+      "properties": {
+        "ISO": "IN-WB",
+        "NAME_1": "West Bengal"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -4405,7 +4482,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-BR", "NAME_1": "Bihar" },
+      "properties": {
+        "ISO": "IN-BR",
+        "NAME_1": "Bihar"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -4569,7 +4649,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-CT", "NAME_1": "Chhattisgarh" },
+      "properties": {
+        "ISO": "IN-CT",
+        "NAME_1": "Chhattisgarh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -4750,7 +4833,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-MP", "NAME_1": "Madhya Pradesh" },
+      "properties": {
+        "ISO": "IN-MP",
+        "NAME_1": "Madhya Pradesh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5087,7 +5173,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-PY", "NAME_1": "Puducherry" },
+      "properties": {
+        "ISO": "IN-PY",
+        "NAME_1": "Puducherry"
+      },
       "geometry": {
         "type": "MultiPolygon",
         "coordinates": [
@@ -5116,7 +5205,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-TN", "NAME_1": "Tamil Nadu" },
+      "properties": {
+        "ISO": "IN-TN",
+        "NAME_1": "Tamil Nadu"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5274,7 +5366,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-GJ", "NAME_1": "Gujarat" },
+      "properties": {
+        "ISO": "IN-GJ",
+        "NAME_1": "Gujarat"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5534,7 +5629,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-AR", "NAME_1": "Arunachal Pradesh" },
+      "properties": {
+        "ISO": "IN-AR",
+        "NAME_1": "Arunachal Pradesh"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5731,7 +5829,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-MZ", "NAME_1": "Mizoram" },
+      "properties": {
+        "ISO": "IN-MZ",
+        "NAME_1": "Mizoram"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5806,7 +5907,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-TR", "NAME_1": "Tripura" },
+      "properties": {
+        "ISO": "IN-TR",
+        "NAME_1": "Tripura"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -5879,7 +5983,10 @@
     },
     {
       "type": "Feature",
-      "properties": { "ISO": "IN-MH", "NAME_1": "Maharashtra" },
+      "properties": {
+        "ISO": "IN-MH",
+        "NAME_1": "Maharashtra"
+      },
       "geometry": {
         "type": "Polygon",
         "coordinates": [
