@@ -24,7 +24,6 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
-import sqlparse
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -37,6 +36,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql_parse import SQLQuery
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -281,8 +281,9 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        sql = sqlparse.format(query.sql, strip_comments=True)
-        if re.search(r"set\s+search_path\s*=", sql, re.IGNORECASE):
+        statement = SQLQuery(query.sql)
+        settings = statement.get_settings()
+        if "search_path" in settings:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
