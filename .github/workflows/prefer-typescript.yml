@@ -4,8 +4,12 @@ on:
   push:
     branches:
       - 'master'
+    paths:
+      - "superset-frontend/src/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset-frontend/src/**"
 
 jobs:
   prefer_typescript:
