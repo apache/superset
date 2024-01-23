@@ -18,10 +18,45 @@
  */
 import { styled } from '@superset-ui/core';
 
-const StyledModal = styled.div``;
-const StyledModalCard = styled.div``;
-const StyledModalCardClose = styled.div``;
-const StyledModalCardTitle = styled.div``;
+interface StyledModalProps {
+  size: 'small' | 'medium';
+}
+
+const StyledModal = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 1, 0, 0.46);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+`;
+const StyledModalCard = styled.div<StyledModalProps>`
+  position: relative;
+  border-radius: 12px;
+  width: ${({ size }) => (size === 'small' ? '919px' : '1150.68px')};
+  height: ${({ size }) => (size === 'small' ? '683px' : '621.428px')};
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
+const StyledModalCardClose = styled.div`
+  content: '';
+  position: absolute;
+  top: 23px;
+  right: 43.63px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 300ms;
+`;
+const StyledModalCardTitle = styled.div`
+  background: ${({ theme }) => theme.colors.dvt.grayscale.light2};
+  border-radius: 12px;
+  padding: 16px 27px;
+  width: 100%;
+  height: 60px;
+`;
 const StyledModalCardBody = styled.div``;
 
 export {

@@ -1,8 +1,9 @@
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { useDispatch } from 'react-redux';
+import DvtButton from 'src/components/DvtButton';
+import useOnClickOutside from '../hooks/useOnClickOutsite';
+import { useAppSelector } from '../hooks/useAppSelector';
 import { closeModal } from '../dvt-redux/dvt-modalReducer';
-import useOnClickOutside from 'src/hooks/useOnClickOutsite';
-import { useAppSelector } from 'src/hooks/useAppSelector';
 import {
   StyledModal,
   StyledModalCard,
@@ -10,11 +11,11 @@ import {
   StyledModalCardClose,
   StyledModalCardTitle,
 } from './dvt-modal.module';
-import DvtButton from 'src/components/DvtButton';
 
 export interface ModalProps {
   meta?: any;
   closeModal: () => void | undefined;
+  size?: 'small' | 'medium';
 }
 
 const getComponent = (cmpnt: string, meta: any, closeModal: () => void) => {
@@ -23,7 +24,7 @@ const getComponent = (cmpnt: string, meta: any, closeModal: () => void) => {
       return <></>;
   }
 };
-const DvtModal = () => {
+const DvtModal: React.FC<ModalProps> = ({ size = 'medium' }) => {
   const dispatch = useDispatch();
   const ref = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(ref, () => handleCloseModal());
@@ -40,11 +41,21 @@ const DvtModal = () => {
 
   return component ? (
     <StyledModal>
-      <StyledModalCard ref={ref}>
-        <StyledModalCardClose onClick={() => handleCloseModal()} />
+      <StyledModalCard size={size} ref={ref}>
+        <StyledModalCardClose onClick={() => handleCloseModal()}>
+          X
+        </StyledModalCardClose>
         {title && <StyledModalCardTitle>{title}</StyledModalCardTitle>}
         {buttonLabel && (
-          <DvtButton label={buttonLabel} onClick={buttonOnClick} />
+          <DvtButton
+            bold
+            colour="primary"
+            icon="dvt-add_square"
+            label={buttonLabel}
+            onClick={buttonOnClick}
+            size="medium"
+            typeColour="powder"
+          />
         )}
         <StyledModalCardBody>
           {getComponent(component, meta, () => handleCloseModal())}
