@@ -90,18 +90,6 @@ class DatasetColumnsExistsValidationError(ValidationError):
         super().__init__([_("One or more columns already exist")], field_name="columns")
 
 
-class DatasetColumnsConstraintsValidationError(ValidationError):
-    """
-    Marshmallow validation error when dataset columns have an invalid python_date_format
-    """
-
-    def __init__(self) -> None:
-        super().__init__(
-            [_("One or more columns have an invalid python_date_format")],
-            field_name="columns",
-        )
-
-
 class DatasetMetricsNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error when dataset metric for update does not exist

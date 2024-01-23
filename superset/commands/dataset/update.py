@@ -26,7 +26,6 @@ from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseChangeValidationError,
     DatasetColumnNotFoundValidationError,
-    DatasetColumnsConstraintsValidationError,
     DatasetColumnsDuplicateValidationError,
     DatasetColumnsExistsValidationError,
     DatasetExistsValidationError,
@@ -139,13 +138,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     self._model_id, columns_names
                 ):
                     exceptions.append(DatasetColumnsExistsValidationError())
-
-            # validate python_date_format is ISO8601 format
-            for col in columns:
-                if not DatasetDAO.validate_column_pdf_is_iso8601(
-                    col.get("python_date_format", None)
-                ):
-                    exceptions.append(DatasetColumnsConstraintsValidationError())
 
     def _validate_metrics(
         self, metrics: list[dict[str, Any]], exceptions: list[ValidationError]
