@@ -102,7 +102,7 @@ jobs:
             const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name === "build";
             });
-            
+
             if (!matchArtifact.length) {
               return core.setFailed("Build artifacts not found");
             }
