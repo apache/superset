@@ -38,6 +38,7 @@ jobs:
         uses: ./.github/actions/chart-releaser-action
         with:
           charts_dir: helm
+          mark_as_latest: false
         env:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
