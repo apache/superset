@@ -28,7 +28,7 @@ export interface DvtTitlePlusProps {
 
 const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({ title = '', onClick }) => (
   <StyledDvtTitlePlus>
-    <DvtTitlePlusTitle>{t(`${title}`)}</DvtTitlePlusTitle>
+    <DvtTitlePlusTitle>{title && t(`${title}`)}</DvtTitlePlusTitle>
     {onClick && (
       <PlusOutlined
         css={(theme: SupersetTheme) => ({
