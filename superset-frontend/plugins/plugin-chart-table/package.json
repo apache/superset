@@ -31,7 +31,7 @@
     "classnames": "^2.3.2",
     "d3-array": "^2.4.0",
     "lodash": "^4.17.21",
-    "match-sorter": "^6.3.0",
+    "match-sorter": "^6.3.3",
     "memoize-one": "^5.1.1",
     "react-table": "^7.8.0",
     "regenerator-runtime": "^0.13.7",
