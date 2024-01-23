@@ -40,27 +40,23 @@ const dvtModalSlice = createSlice({
   name: 'dvt-modal',
   initialState,
   reducers: {
-    openModal: (state, action: PayloadAction<ModalState>) => {
-      return {
-        ...state,
-        component: action.payload.component,
-        title: action.payload.title,
-        buttonLabel: action.payload.buttonLabel,
-        buttonOnClick: action.payload.buttonOnClick,
-        meta: action.payload.meta,
-      };
-    },
-    closeModal: state => {
-      return {
-        ...state,
-        component: '',
-        lastComponent: state.component,
-        title: '',
-        buttonLabel: '',
-        buttonOnClick: () => {},
-        meta: {},
-      };
-    },
+    openModal: (state, action: PayloadAction<ModalState>) => ({
+      ...state,
+      component: action.payload.component,
+      title: action.payload.title,
+      buttonLabel: action.payload.buttonLabel,
+      buttonOnClick: action.payload.buttonOnClick,
+      meta: action.payload.meta,
+    }),
+    closeModal: state => ({
+      ...state,
+      component: '',
+      lastComponent: state.component,
+      title: '',
+      buttonLabel: '',
+      buttonOnClick: () => {},
+      meta: {},
+    }),
   },
 });
 
