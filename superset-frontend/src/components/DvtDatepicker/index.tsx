@@ -31,7 +31,6 @@ import {
   StyledDatepickerCalendar,
 } from './dvt-datepicker.module';
 
-
 export interface DvtDatePickerProps {
   label?: string;
   placeholder?: string;

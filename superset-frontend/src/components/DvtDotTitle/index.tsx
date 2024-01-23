@@ -25,7 +25,6 @@ import {
   StyledTitle,
 } from './dvt-dot-title.module';
 
-
 export interface DvtDotTitleProps {
   label?: string;
 }
