@@ -169,6 +169,9 @@ const defaultTheme = {
       border: {
         base: '#F1F5F9',
       },
+      backgroundColor: {
+        base: 'rgba(0, 0, 1, 0.46)',
+      },
     },
   },
   opacity: {

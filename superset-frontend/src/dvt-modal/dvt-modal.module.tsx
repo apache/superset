@@ -28,8 +28,7 @@ const StyledModal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${({ theme }) => theme.colors.grayscale.dark2};
-  opacity: 0.46;
+  background-color: ${({ theme }) => theme.colors.dvt.backgroundColor.base};
   display: flex;
   align-items: center;
   justify-content: center;

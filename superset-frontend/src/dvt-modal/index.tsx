@@ -12,11 +12,6 @@ import {
   StyledModalCardTitle,
 } from './dvt-modal.module';
 
-export interface ModalProps {
-  meta?: any;
-  closeModal: () => void | undefined;
-}
-
 const getComponent = (cmpnt: string, meta: any, closeModal: () => void) => {
   switch (cmpnt) {
     default:
@@ -38,13 +33,11 @@ const DvtModal = () => {
       case 'add-report':
       case 'add-alert':
         return 'medium';
-      case 'edit-dataset':
-      case 'sql-query':
-        return 'small';
       default:
         return 'small';
     }
   })();
+  
   const handleCloseModal = () => {
     dispatch(closeModal());
   };
