@@ -35,7 +35,7 @@
     "@types/fetch-mock": "^7.3.3",
     "@types/json-bigint": "^1.0.1",
     "@types/lodash": "^4.14.149",
-    "@types/math-expression-evaluator": "^1.2.1",
+    "@types/math-expression-evaluator": "^1.3.3",
     "@types/node": "^18.0.0",
     "@types/prop-types": "^15.7.2",
     "@types/rison": "0.0.6",
