@@ -66,7 +66,6 @@ from sqlalchemy.orm import (
     relationship,
     RelationshipProperty,
     Session,
-    validates,
 )
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
@@ -830,17 +829,6 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     def __repr__(self) -> str:
         return str(self.column_name)
-
-    @validates("python_date_format")
-    def validate_pdf_is_iso8601(self, _: str, dt_format: str) -> str:
-        if dt_format in ("epoch_s", "epoch_ms", None):
-            return dt_format
-        try:
-            dt_str = datetime.now().strftime(dt_format)
-            dateutil.parser.isoparse(dt_str)
-        except ValueError as ex:
-            raise ValueError("python_date_format is invalid ISO 8601 format") from ex
-        return dt_format
 
     @property
     def is_boolean(self) -> bool:
