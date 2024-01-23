@@ -33,7 +33,7 @@
     "lodash": "^4.17.21",
     "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
-    "react-table": "^7.6.3",
+    "react-table": "^7.8.0",
     "regenerator-runtime": "^0.13.7",
     "xss": "^1.0.14"
   },
