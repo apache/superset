@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
