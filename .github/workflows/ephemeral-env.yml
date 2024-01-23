@@ -110,7 +110,7 @@ jobs:
             const download = await github.actions.downloadArtifact({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                artifact_id: matchArtifact.id,
+                artifact_id: matchArtifact[0].id,
                 archive_format: 'zip',
             });
             var fs = require('fs');
