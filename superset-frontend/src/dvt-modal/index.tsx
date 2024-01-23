@@ -15,7 +15,6 @@ import {
 export interface ModalProps {
   meta?: any;
   closeModal: () => void | undefined;
-  size?: 'small' | 'medium';
 }
 
 const getComponent = (cmpnt: string, meta: any, closeModal: () => void) => {
@@ -24,17 +23,28 @@ const getComponent = (cmpnt: string, meta: any, closeModal: () => void) => {
       return <></>;
   }
 };
-const DvtModal: React.FC<ModalProps> = ({ size = 'medium' }) => {
+const DvtModal = () => {
   const dispatch = useDispatch();
   const ref = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(ref, () => handleCloseModal());
 
-  const component = useAppSelector(state => state.modal.component);
-  const title = useAppSelector(state => state.modal.title);
-  const buttonLabel = useAppSelector(state => state.modal.buttonLabel);
-  const buttonOnClick = useAppSelector(state => state.modal.buttonOnClick);
-  const meta = useAppSelector(state => state.modal.meta);
-
+  const component = useAppSelector(state => state.dvtModal.component);
+  const title = useAppSelector(state => state.dvtModal.title);
+  const buttonLabel = useAppSelector(state => state.dvtModal.buttonLabel);
+  const buttonOnClick = useAppSelector(state => state.dvtModal.buttonOnClick);
+  const meta = useAppSelector(state => state.dvtModal.meta);
+  const size = (() => {
+    switch (component) {
+      case 'add-report':
+      case 'add-alert':
+        return 'medium';
+      case 'edit-dataset':
+      case 'sql-query':
+        return 'small';
+      default:
+        return 'small';
+    }
+  })();
   const handleCloseModal = () => {
     dispatch(closeModal());
   };
