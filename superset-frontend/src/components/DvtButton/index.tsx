@@ -21,7 +21,6 @@ import { t } from '@superset-ui/core';
 import { StyledDvtButton } from './dvt-button.module';
 import Icon from '../Icons/Icon';
 
-
 export interface DvtButtonProps {
   label: string;
   icon?: string;

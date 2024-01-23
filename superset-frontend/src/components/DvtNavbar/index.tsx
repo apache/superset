@@ -31,6 +31,7 @@ import {
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
+import { t } from '@superset-ui/core';
 // import DvtInput from '../DvtInput';
 // import DvtSelect from '../DvtSelect';
 import DvtProfileMenu from '../DvtProfileMenu';
@@ -45,7 +46,6 @@ import {
   NavbarProfileIcon,
   NavbarProfileIconDot,
 } from './dvt-navbar.module';
-import { t } from '@superset-ui/core';
 
 export interface DvtNavbarProps {
   pathName: string;
@@ -160,12 +160,12 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
               <NavbarBottomRight>
                 <DvtButton
                   typeColour="powder"
-                  label={t("Create New Chart")}
+                  label={t('Create New Chart')}
                   onClick={() => {}}
                   bold
                 />
               </NavbarBottomRight>
-              {console.log(t("Create New Chart"))}
+              {console.log(t('Create New Chart'))}
             </>
           )}
           {pathName === '/superset/sqllab/history/' && (
