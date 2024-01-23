@@ -19,6 +19,7 @@
 import json
 import logging
 from collections.abc import Iterator
+from typing import Callable
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -37,15 +38,15 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     not_found = SavedQueryNotFoundError
 
     @staticmethod
-    def _export(
-        model: SavedQuery, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    def _file_name(model: SavedQuery) -> str:
         # build filename based on database, optional schema, and label
         database_slug = secure_filename(model.database.database_name)
         schema_slug = secure_filename(model.schema)
         query_slug = secure_filename(model.label) or str(model.uuid)
-        file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
+        return f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
 
+    @staticmethod
+    def _file_content(model: SavedQuery) -> str:
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -56,10 +57,19 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+        return file_content
 
-        # include database as well
+    @staticmethod
+    def _export(
+        model: SavedQuery, export_related: bool = True
+    ) -> Iterator[tuple[str, Callable]]:
+        yield ExportSavedQueriesCommand._file_name(
+            model
+        ), lambda: ExportSavedQueriesCommand._file_content(model)
+
         if export_related:
+            # include database as well
+            database_slug = secure_filename(model.database.database_name)
             file_name = f"databases/{database_slug}.yaml"
 
             payload = model.database.export_to_dict(

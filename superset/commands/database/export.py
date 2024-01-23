@@ -56,12 +56,12 @@ class ExportDatabasesCommand(ExportModelsCommand):
     not_found = DatabaseNotFoundError
 
     @staticmethod
-    def _export(
-        model: Database, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    def _file_name(model: Database):
         db_file_name = get_filename(model.database_name, model.id, skip_id=True)
-        file_path = f"databases/{db_file_name}.yaml"
+        return f"databases/{db_file_name}.yaml"
 
+    @staticmethod
+    def _file_content(model: Database):
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -100,9 +100,18 @@ class ExportDatabasesCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_path, file_content
+        return file_content
+
+    @staticmethod
+    def _export(
+        model: Database, export_related: bool = True
+    ) -> Iterator[tuple[str, str]]:
+        yield ExportDatabasesCommand._file_name(
+            model
+        ), lambda: ExportDatabasesCommand._file_content(model)
 
         if export_related:
+            db_file_name = get_filename(model.database_name, model.id, skip_id=True)
             for dataset in model.tables:
                 ds_file_name = get_filename(
                     dataset.table_name, dataset.id, skip_id=True
@@ -119,4 +128,4 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["database_uuid"] = str(model.uuid)
 
                 file_content = yaml.safe_dump(payload, sort_keys=False)
-                yield file_path, file_content
+                yield file_path, lambda: file_content

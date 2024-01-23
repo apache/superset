@@ -42,10 +42,12 @@ class ExportChartsCommand(ExportModelsCommand):
     not_found = ChartNotFoundError
 
     @staticmethod
-    def _export(model: Slice, export_related: bool = True) -> Iterator[tuple[str, str]]:
+    def _file_name(model: Slice) -> str:
         file_name = get_filename(model.slice_name, model.id)
-        file_path = f"charts/{file_name}.yaml"
+        return f"charts/{file_name}.yaml"
 
+    @staticmethod
+    def _file_content(model: Slice) -> str:
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -69,7 +71,13 @@ class ExportChartsCommand(ExportModelsCommand):
             payload["dataset_uuid"] = str(model.table.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_path, file_content
+        return file_content
+
+    @staticmethod
+    def _export(model: Slice, export_related: bool = True) -> Iterator[tuple[str, str]]:
+        yield ExportChartsCommand._file_name(
+            model
+        ), lambda: ExportChartsCommand._file_content(model)
 
         if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()
