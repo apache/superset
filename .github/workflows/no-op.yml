@@ -31,7 +31,7 @@ jobs:
           echo "This is a no-op step for frontend-build to ensure a successful status."
           exit 0
 
-  pre-commit (3.9):
+  "pre-commit (3.9)":
     runs-on: ubuntu-latest
     steps:
       - name: No-op for pre-commit
@@ -39,7 +39,7 @@ jobs:
           echo "This is a no-op step for pre-commit to ensure a successful status."
           exit 0
 
-  python-lint (3.9):
+  "python-lint (3.9)":
     runs-on: ubuntu-latest
     steps:
       - name: No-op for python-lint
