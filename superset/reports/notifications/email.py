@@ -177,7 +177,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _get_subject(self) -> str:
         return __(
-            "%(title)s",
+            "%(prefix)s %(title)s",
+            prefix=app.config["EMAIL_REPORTS_SUBJECT_PREFIX"],
             title=self._content.name,
         )
 
