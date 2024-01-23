@@ -66,8 +66,8 @@ github:
           - cypress-matrix (3, chrome)
           - docker-build
           - frontend-build
-          - pre-commit (3.9)
-          - python-lint (3.9)
+          - pre-commit
+          - python-lint
           - test-mysql (3.9)
           - test-postgres (3.9)
           - test-postgres (3.10)
