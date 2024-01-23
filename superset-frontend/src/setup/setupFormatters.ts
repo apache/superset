@@ -22,16 +22,22 @@ import {
   getNumberFormatterRegistry,
   NumberFormats,
   getTimeFormatterRegistry,
-  smartDateFormatter,
-  smartDateVerboseFormatter,
+  SMART_DATE_ID,
+  SMART_DATE_DETAILED_ID,
+  SMART_DATE_VERBOSE_ID,
+  createSmartDateFormatter,
+  createSmartDateVerboseFormatter,
+  createSmartDateDetailedFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
+import { TimeLocaleDefinition } from 'd3-time-format';
 
 export default function setupFormatters(
-  d3Format: Partial<FormatLocaleDefinition>,
+  d3NumberFormat: Partial<FormatLocaleDefinition>,
+  d3TimeFormat: Partial<TimeLocaleDefinition>,
 ) {
   getNumberFormatterRegistry()
-    .setD3Format(d3Format)
+    .setD3Format(d3NumberFormat)
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
     .registerValue(',0', getNumberFormatter(',.4~f'))
@@ -72,8 +78,21 @@ export default function setupFormatters(
       createDurationFormatter({ formatSubMilliseconds: true }),
     );
 
-  getTimeFormatterRegistry()
-    .registerValue('smart_date', smartDateFormatter)
-    .registerValue('smart_date_verbose', smartDateVerboseFormatter)
-    .setDefaultKey('smart_date');
+  const timeFormatterRegistry = getTimeFormatterRegistry();
+
+  timeFormatterRegistry
+    .setD3Format(d3TimeFormat)
+    .registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(timeFormatterRegistry.d3Format),
+    )
+    .registerValue(
+      SMART_DATE_VERBOSE_ID,
+      createSmartDateVerboseFormatter(timeFormatterRegistry.d3Format),
+    )
+    .registerValue(
+      SMART_DATE_DETAILED_ID,
+      createSmartDateDetailedFormatter(timeFormatterRegistry.d3Format),
+    )
+    .setDefaultKey(SMART_DATE_ID);
 }
