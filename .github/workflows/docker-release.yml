@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["dev", "lean", "lean310", "lean39", "websocket", "dockerize"]
+        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
       fail-fast: false
     steps:

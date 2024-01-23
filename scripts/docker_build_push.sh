@@ -68,6 +68,8 @@ else
   DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
 fi
 
+BUILD_ARG="3.9-slim-bookworm"
+
 case "${TARGET}" in
   "dev")
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
@@ -81,11 +83,6 @@ case "${TARGET}" in
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-py310 -t ${REPO_NAME}:${REFSPEC}-py310 -t ${REPO_NAME}:${LATEST_TAG}-py310"
     BUILD_TARGET="lean"
     BUILD_ARG="3.10-slim-bookworm"
-    ;;
-  "lean39")
-    DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-py39 -t ${REPO_NAME}:${REFSPEC}-py39 -t ${REPO_NAME}:${LATEST_TAG}-py39"
-    BUILD_TARGET="lean"
-    BUILD_ARG="3.9-slim-bullseye"
     ;;
   "websocket")
     DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-websocket -t ${REPO_NAME}:${REFSPEC}-websocket -t ${REPO_NAME}:${LATEST_TAG}-websocket"
@@ -138,6 +135,7 @@ docker buildx build \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=${TARGET}" \
+  --label "base=${PY_VER}" \
   --label "build_actor=${GITHUB_ACTOR}" \
   ${BUILD_ARG:+--build-arg PY_VER="${BUILD_ARG}"} \
   ${DOCKER_CONTEXT}
