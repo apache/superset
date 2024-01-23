@@ -29,7 +29,7 @@
     "@types/enzyme": "^3.10.5",
     "@types/react-table": "^7.0.29",
     "classnames": "^2.3.2",
-    "d3-array": "^2.4.0",
+    "d3-array": "^3.2.4",
     "lodash": "^4.17.21",
     "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
