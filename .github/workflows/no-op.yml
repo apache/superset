@@ -32,6 +32,9 @@ jobs:
           exit 0
 
   pre-commit:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for pre-commit
@@ -40,6 +43,9 @@ jobs:
           exit 0
 
   python-lint:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for python-lint
