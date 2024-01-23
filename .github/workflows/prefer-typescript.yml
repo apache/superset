@@ -10,7 +10,6 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
     paths:
       - "superset-frontend/src/**"
-
 jobs:
   prefer_typescript:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
