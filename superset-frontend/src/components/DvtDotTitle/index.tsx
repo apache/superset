@@ -17,12 +17,14 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import {
   StyledDotTitle,
   StyledDotIcon,
   StyledDot,
   StyledTitle,
 } from './dvt-dot-title.module';
+
 
 export interface DvtDotTitleProps {
   label?: string;
@@ -33,7 +35,7 @@ const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => (
     <StyledDotIcon>
       <StyledDot />
     </StyledDotIcon>
-    <StyledTitle>{label}</StyledTitle>
+    <StyledTitle>{t(`${label}`)}</StyledTitle>
   </StyledDotTitle>
 );
 

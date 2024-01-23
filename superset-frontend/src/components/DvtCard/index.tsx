@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme, t } from '@superset-ui/core';
 import {
   DvtCardDescription,
   DvtCardLinkButton,
@@ -42,9 +42,9 @@ export interface DvtCardProps {
 }
 
 const DvtCard: React.FC<DvtCardProps> = ({
-  title,
-  label,
-  description,
+  title = '',
+  label = '',
+  description = '',
   isFavorite,
   setFavorite,
   link = '',
@@ -65,7 +65,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
       onMouseLeave={() => setHoverOnLink(false)}
     >
       <DvtCardHead>
-        <DvtCardTitle>{truncatedFormat(title, 17)}</DvtCardTitle>
+        <DvtCardTitle>{truncatedFormat(t(`${title}`), 17)}</DvtCardTitle>
         <DvtHeadButtons>
           {isFavorite !== null && (
             <IconButton onClick={handleFavoriteClick}>
@@ -92,9 +92,9 @@ const DvtCard: React.FC<DvtCardProps> = ({
           </IconButton>
         </DvtHeadButtons>
       </DvtCardHead>
-      <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>
+      <DvtCardLabel>{truncatedFormat(t(`${label}`), 25)}</DvtCardLabel>
       <DvtCardDescription>
-        {truncatedFormat(description, 100)}
+        {truncatedFormat(t(`${description}`), 100)}
       </DvtCardDescription>
       <DvtCardLinkButton>
         {hoverOnLink && (

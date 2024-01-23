@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactNode, useState } from 'react';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme, t } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledCollapse,
@@ -37,10 +37,10 @@ export interface DvtCollapseProps {
 }
 
 const DvtCollapse: React.FC<DvtCollapseProps> = ({
-  label,
+  label = '',
   children,
   popoverDirection = 'top',
-  popoverLabel,
+  popoverLabel = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -48,11 +48,14 @@ const DvtCollapse: React.FC<DvtCollapseProps> = ({
     <StyledCollapse>
       <StyledCollapseGroup>
         <StyledCollapseLabel>
-          {label}
+          {t(`${label}`)}
           {popoverLabel && (
             <StyledCollapsePopover>
               {popoverLabel ? (
-                <DvtPopper label={popoverLabel} direction={popoverDirection}>
+                <DvtPopper
+                  label={t(`${popoverLabel}`)}
+                  direction={popoverDirection}
+                >
                   <Icon
                     fileName="warning"
                     css={(theme: SupersetTheme) => ({

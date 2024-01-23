@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import moment from 'moment';
 import {
   StyledContentListLi,
@@ -28,6 +29,7 @@ import {
   StyledDvtContentSubtitleP,
   StyledDvtContentTitle,
 } from './dvt-content.module';
+
 
 export interface HeaderProps {
   title: string;
@@ -45,7 +47,11 @@ export interface DvtContentProps {
   data: DataProps[];
 }
 
-const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
+const DvtContent: React.FC<DvtContentProps> = ({
+  title = '',
+  header,
+  data,
+}) => {
   const getFormattedDifference = (modified: moment.Moment) => {
     const now = moment();
     const diff = now.diff(modified);
@@ -75,7 +81,7 @@ const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
 
   return (
     <StyledDvtContent>
-      <StyledDvtContentTitle>{title}</StyledDvtContentTitle>
+      <StyledDvtContentTitle>{t(`${title}`)}</StyledDvtContentTitle>
       <StyledDvtContentHeader>
         {header.map((item, index) => (
           <StyledDvtContentSubtitleP
@@ -85,7 +91,7 @@ const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
               flex: item.width ? 'none' : 1,
             }}
           >
-            {item.title}
+            {t(`${item.title}`)}
           </StyledDvtContentSubtitleP>
         ))}
       </StyledDvtContentHeader>

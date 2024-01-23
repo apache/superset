@@ -18,6 +18,7 @@
  */
 import React, { useState } from 'react';
 import DvtButton from '../DvtButton';
+import { t } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledDvtTextarea,
@@ -43,7 +44,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   limit,
   setLimit,
   clickRun,
-  placeholder,
+  placeholder = '',
   value,
   setValue,
 }) => {
@@ -60,7 +61,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   return (
     <StyledDvtTextareaSelectRun>
       <StyledDvtTextarea
-        placeholder={placeholder}
+        placeholder={t(`${placeholder}`)}
         value={value}
         onChange={event => setValue(event.target.value)}
       />

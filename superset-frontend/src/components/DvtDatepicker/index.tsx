@@ -20,6 +20,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
+import { t } from '@superset-ui/core';
 import DvtCalendar from '../DvtCalendar';
 import {
   StyledDatepicker,
@@ -29,6 +30,7 @@ import {
   StyledDatepickerGroup,
   StyledDatepickerCalendar,
 } from './dvt-datepicker.module';
+
 
 export interface DvtDatePickerProps {
   label?: string;
@@ -42,8 +44,8 @@ export interface DvtDatePickerProps {
 }
 
 const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
-  label,
-  placeholder,
+  label = '',
+  placeholder = '',
   selectedDate,
   setSelectedDate,
   width = 202,
@@ -80,7 +82,9 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
 
   return (
     <StyledDatepicker ref={ref} style={{ minWidth: maxWidth ? '100%' : width }}>
-      {label && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
+      {t(`${label}`) && (
+        <StyledDatepickerLabel>{t(`${label}`)}</StyledDatepickerLabel>
+      )}
       <StyledDatepickerGroup>
         <StyledDatepickerInput
           isOpen={isOpen}
@@ -89,7 +93,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
           onChange={handleInputChange}
           onBlur={handleInputBlur}
           value={inputValue}
-          placeholder={placeholder}
+          placeholder={t(`${placeholder}`)}
         />
         <StyledDatepickerIcon isOpen={isOpen} onClick={handleDatepickerClick}>
           <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />

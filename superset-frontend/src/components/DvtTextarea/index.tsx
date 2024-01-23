@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import {
   StyleTextarea,
   StyleTextareaLabel,
@@ -32,7 +33,7 @@ export interface DvtTextareaProps {
 }
 
 const DvtTextarea: React.FC<DvtTextareaProps> = ({
-  label,
+  label = '',
   typeDesign = 'text',
   placeholder = '',
   value,
@@ -44,11 +45,13 @@ const DvtTextarea: React.FC<DvtTextareaProps> = ({
 
   return (
     <StyleTextarea>
-      {label && <StyleTextareaLabel>{label}</StyleTextareaLabel>}
+      {t(`${label}`) && (
+        <StyleTextareaLabel>{t(`${label}`)}</StyleTextareaLabel>
+      )}
       <StyleTextareaText
         typeDesign={typeDesign}
         value={value}
-        placeholder={placeholder}
+        placeholder={t(`${placeholder}`)}
         onChange={handleChange}
       />
     </StyleTextarea>

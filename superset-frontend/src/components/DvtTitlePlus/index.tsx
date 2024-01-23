@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme, t } from '@superset-ui/core';
 import { StyledDvtTitlePlus, DvtTitlePlusTitle } from './dvt-title-plus.module';
 
 export interface DvtTitlePlusProps {
@@ -28,7 +28,7 @@ export interface DvtTitlePlusProps {
 
 const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({ title = '', onClick }) => (
   <StyledDvtTitlePlus>
-    <DvtTitlePlusTitle>{title}</DvtTitlePlusTitle>
+    <DvtTitlePlusTitle>{t(`${title}`)}</DvtTitlePlusTitle>
     {onClick && (
       <PlusOutlined
         css={(theme: SupersetTheme) => ({

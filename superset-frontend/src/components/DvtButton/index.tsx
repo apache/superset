@@ -17,8 +17,10 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import { StyledDvtButton } from './dvt-button.module';
 import Icon from '../Icons/Icon';
+
 
 export interface DvtButtonProps {
   label: string;
@@ -33,7 +35,7 @@ export interface DvtButtonProps {
 }
 
 const DvtButton: React.FC<DvtButtonProps> = ({
-  label,
+  label = '',
   icon,
   size = 'medium',
   onClick,
@@ -52,7 +54,7 @@ const DvtButton: React.FC<DvtButtonProps> = ({
     $bold={bold}
     $iconToRight={iconToRight}
   >
-    {label}
+    {t(`${label}`)}
     {icon && <Icon fileName={icon} iconSize="l" />}
   </StyledDvtButton>
 );

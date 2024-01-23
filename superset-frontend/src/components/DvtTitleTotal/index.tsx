@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import {
   DvtTitle,
   DvtTotal,
@@ -28,9 +29,12 @@ export interface DvtTitleTotalProps {
   title: string;
 }
 
-const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({ total = 0, title }) => (
+const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({
+  total = 0,
+  title = '',
+}) => (
   <StyledDvtTitleTotal>
-    <DvtTitle>{title}</DvtTitle>
+    <DvtTitle>{t(`${title}`)}</DvtTitle>
     <DvtTotal>{`(${total})`}</DvtTotal>
   </StyledDvtTitleTotal>
 );

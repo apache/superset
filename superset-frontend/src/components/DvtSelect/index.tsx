@@ -18,7 +18,7 @@
  */
 import React, { useRef, useState } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
-import { SupersetTheme } from '@superset-ui/core';
+import { SupersetTheme, t } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import DvtPopper from '../DvtPopper';
 import {
@@ -49,8 +49,8 @@ export interface DvtSelectProps {
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
   data,
-  label,
-  placeholder,
+  label = '',
+  placeholder = '',
   selectedValue = {},
   setSelectedValue,
   typeDesign = 'normal',
@@ -83,7 +83,9 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
     >
       <StyledSelectPopover>
         {label && (
-          <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
+          <StyledSelectLabel typeDesign={typeDesign}>
+            {t(`${label}`)}
+          </StyledSelectLabel>
         )}
         {important && !selectedValue[objectName] && (
           <DvtPopper
@@ -122,7 +124,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         typeDesign={typeDesign}
         selectedValue={selectedValue[objectName]}
       >
-        {selectedValue[objectName] || placeholder}
+        {selectedValue[objectName] || t(`${placeholder}`)}
         <StyledSelectIcon isOpen={isOpen}>
           <Icon
             fileName="caret_right"
