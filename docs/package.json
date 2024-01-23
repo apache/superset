@@ -28,7 +28,7 @@
     "@mdx-js/react": "^1.6.22",
     "@saucelabs/theme-github-codeblock": "^0.2.3",
     "@superset-ui/style": "^0.14.23",
-    "@svgr/webpack": "^5.5.0",
+    "@svgr/webpack": "^8.1.0",
     "antd": "^4.19.3",
     "buffer": "^6.0.3",
     "clsx": "^2.1.0",
