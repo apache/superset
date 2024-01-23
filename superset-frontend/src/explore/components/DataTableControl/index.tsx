@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { Space } from 'src/components';
 import { Input } from 'src/components/Input';
 import {
