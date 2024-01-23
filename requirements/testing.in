@@ -27,4 +27,5 @@ pylint
 pytest
 pytest-cov
 pytest-mock
+pytest-xdist
 statsd
