@@ -61,24 +61,6 @@ Create chart name and version as used by the chart label.
   {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{/*
-Generate Redis URL for SSL and non-SSL protocols
-*/}}
-{{- define "superset-redis-url" -}}
-  {{- if .Values.supersetNode.connections.use_redis_ssl -}}
-    {{- if .Values.supersetNode.connections.redis_password -}}
-      rediss://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
-    {{- else -}}
-      rediss://{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##?ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" -}}
-    {{- end -}}
-  {{- else -}}
-    {{- if .Values.supersetNode.connections.redis_password -}}
-      redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##
-    {{- else -}}
-      redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/##DBNAME##
-    {{- end -}}
-  {{- end -}}
-{{- end -}}
 
 {{- define "superset-config" }}
 import os
@@ -87,12 +69,19 @@ from flask_caching.backends.rediscache import RedisCache
 def env(key, default=None):
     return os.getenv(key, default)
 
+# Redis Base URL
+{{- if .Values.supersetNode.connections.redis_password }}
+REDIS_BASE_URL=f"{env('REDIS_PROTO')}://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+{{- else }}
+REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+{{- end }}
+
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
       'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
-      'CACHE_REDIS_URL': f"{{- include "superset-redis-url" . | replace "##DBNAME##" "{env('REDIS_DB', 1)}" -}}",
+      'CACHE_REDIS_URL': f"{REDIS_BASE_URL}/{env('REDIS_DB', 1)}{env('REDIS_SSL_PARAM', '')}",
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -101,8 +90,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
-  broker_url = f"{{- include "superset-redis-url" . | replace "##DBNAME##" "0" -}}"
-  result_backend = f"{{- include "superset-redis-url" . | replace "##DBNAME##" "0" -}}"
+  broker_url = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{env('REDIS_SSL_PARAM', '')}"
+  result_backend = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{env('REDIS_SSL_PARAM', '')}"
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(

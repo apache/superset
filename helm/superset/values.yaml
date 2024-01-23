@@ -260,6 +260,8 @@ supersetNode:
     redis_host: '{{ .Release.Name }}-redis-headless'
     # redis_password: superset
     redis_port: "6379"
+    redis_cache_db: "1"
+    redis_celery_db: "0"
     # Or SSL port is usually 6380
     # Add following if you want to use SSL with Redis
     # use_redis_ssl:
