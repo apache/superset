@@ -28,7 +28,7 @@ const StyledModal = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${({ theme }) => theme.colors.dvt.backgroundColor.base};
+  background-color: ${({ theme }) => theme.colors.dvt.backgroundColor.opacity};
   display: flex;
   align-items: center;
   justify-content: center;

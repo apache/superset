@@ -37,7 +37,6 @@ const DvtModal = () => {
         return 'small';
     }
   })();
-  
   const handleCloseModal = () => {
     dispatch(closeModal());
   };
