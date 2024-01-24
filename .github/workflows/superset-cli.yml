@@ -2,8 +2,8 @@ name: Superset CLI tests
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - 'master'
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
