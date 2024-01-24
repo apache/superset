@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +18,7 @@
  */
 import React from 'react';
 import { Switch } from 'antd';
-import { supersetTheme, t } from '@superset-ui/core';
+import { supersetTheme } from '@superset-ui/core';
 import { StyledDvtDarkMode, DvtDarkModeLabel } from './dvt-dark-mode.module';
 import Icon from '../Icons/Icon';
 
@@ -39,7 +38,7 @@ const DvtDarkMode: React.FC<DvtDarkModeProps> = ({
       fileName="dvt-moon_stars"
       iconColor={supersetTheme.colors.dvt.text.label}
     />
-    <DvtDarkModeLabel>{t(`${title}`)}</DvtDarkModeLabel>
+    <DvtDarkModeLabel>{title}</DvtDarkModeLabel>
     <Switch checked={darkMode} onChange={bol => setDarkMode(bol)} />
   </StyledDvtDarkMode>
 );

@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarConnectionSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -138,7 +139,7 @@ function ConnectionList() {
       <DvtTable data={currentItems} header={modifiedData.header} />
       <StyledConnectionButton>
         <DvtButton
-          label="Create a New Connection"
+          label={t('Create a New Connection')}
           onClick={() => {}}
           colour="grayscale"
         />
@@ -155,11 +156,11 @@ function ConnectionList() {
       <DvtIconDataLabel
         label={
           editedData.length === 0
-            ? 'No Connection Yet'
-            : 'No results match your filter criteria'
+            ? t('No Connection Yet')
+            : t('No results match your filter criteria')
         }
         buttonLabel={
-          editedData.length === 0 ? 'Connection' : 'Clear All Filter'
+          editedData.length === 0 ? t('Connection') : t('Clear All Filter')
         }
         buttonClick={() => {
           if (editedData.length > 0) {

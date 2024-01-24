@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +18,7 @@
  */
 import React, { useRef, useState } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
-import { SupersetTheme, t } from '@superset-ui/core';
+import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import DvtPopper from '../DvtPopper';
 import {
@@ -85,7 +84,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
       <StyledSelectPopover>
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>
-            {label && t(`${label}`)}
+            {label && { label }}
           </StyledSelectLabel>
         )}
         {important && !selectedValue[objectName] && (
@@ -125,7 +124,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         typeDesign={typeDesign}
         selectedValue={selectedValue[objectName]}
       >
-        {selectedValue[objectName] || t(`${placeholder}`)}
+        {selectedValue[objectName] || { placeholder }}
         <StyledSelectIcon isOpen={isOpen}>
           <Icon
             fileName="caret_right"

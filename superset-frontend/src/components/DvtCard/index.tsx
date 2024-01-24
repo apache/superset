@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { supersetTheme, t } from '@superset-ui/core';
+import { supersetTheme } from '@superset-ui/core';
 import {
   DvtCardDescription,
   DvtCardLinkButton,
@@ -43,9 +42,9 @@ export interface DvtCardProps {
 }
 
 const DvtCard: React.FC<DvtCardProps> = ({
-  title = '',
-  label = '',
-  description = '',
+  title,
+  label,
+  description,
   isFavorite,
   setFavorite,
   link = '',
@@ -66,7 +65,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
       onMouseLeave={() => setHoverOnLink(false)}
     >
       <DvtCardHead>
-        <DvtCardTitle>{truncatedFormat(t(`${title}`), 17)}</DvtCardTitle>
+        <DvtCardTitle>{truncatedFormat(title, 17)}</DvtCardTitle>
         <DvtHeadButtons>
           {isFavorite !== null && (
             <IconButton onClick={handleFavoriteClick}>
@@ -93,9 +92,9 @@ const DvtCard: React.FC<DvtCardProps> = ({
           </IconButton>
         </DvtHeadButtons>
       </DvtCardHead>
-      <DvtCardLabel>{truncatedFormat(t(`${label}`), 25)}</DvtCardLabel>
+      <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>
       <DvtCardDescription>
-        {truncatedFormat(t(`${description}`), 100)}
+        {truncatedFormat(description, 100)}
       </DvtCardDescription>
       <DvtCardLinkButton>
         {hoverOnLink && (

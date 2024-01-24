@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useHistory } from 'react-router-dom';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import useFetch from 'src/hooks/useFetch';
@@ -173,7 +174,7 @@ function DvtDashboardList() {
               <span>{`${selectedRows.length} Selected`}</span>
             </StyledSelectedItemCount>
             <DvtButton
-              label="Deselect All"
+              label={t('Deselect All')}
               bold
               colour="primary"
               typeColour="outline"
@@ -184,7 +185,7 @@ function DvtDashboardList() {
         </StyledDvtSelectButtons>
         <StyledDashboardButtons>
           <DvtButton
-            label="Delete"
+            label={t('Delete')}
             icon="dvt-delete"
             iconToRight
             colour="error"
@@ -192,7 +193,7 @@ function DvtDashboardList() {
             onClick={() => {}}
           />
           <DvtButton
-            label="Export"
+            label={t('Export')}
             icon="dvt-export"
             iconToRight
             colour="primary"
@@ -215,7 +216,7 @@ function DvtDashboardList() {
       <StyledDashboardBottom>
         <StyledDashboardCreateDashboard>
           <DvtButton
-            label="Create a New Dashboard"
+            label={t('Create a New Dashboard')}
             colour="grayscale"
             bold
             typeColour="basic"

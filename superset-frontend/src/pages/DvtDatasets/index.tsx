@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import moment from 'moment';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
@@ -120,7 +121,7 @@ function DvtDatasets() {
         </StyledSelected>
         <StyledDeselect>
           <DvtButton
-            label="Deselect All"
+            label={t('Deselect All')}
             bold
             colour="primary"
             typeColour="outline"
@@ -140,7 +141,7 @@ function DvtDatasets() {
       </div>
       <StyledButtons>
         <DvtButton
-          label="Create a New Dataset"
+          label={t('Create a New Dataset')}
           onClick={() => {}}
           colour="grayscale"
           typeColour="basic"

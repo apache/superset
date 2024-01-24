@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,7 +18,7 @@
  */
 import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { SupersetTheme, t } from '@superset-ui/core';
+import { SupersetTheme } from '@superset-ui/core';
 import { StyledDvtTitlePlus, DvtTitlePlusTitle } from './dvt-title-plus.module';
 
 export interface DvtTitlePlusProps {
@@ -29,7 +28,7 @@ export interface DvtTitlePlusProps {
 
 const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({ title = '', onClick }) => (
   <StyledDvtTitlePlus>
-    <DvtTitlePlusTitle>{t(`${title}`)}</DvtTitlePlusTitle>
+    <DvtTitlePlusTitle>{title}</DvtTitlePlusTitle>
     {onClick && (
       <PlusOutlined
         css={(theme: SupersetTheme) => ({

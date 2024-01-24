@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 // import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
@@ -162,12 +160,11 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
               <NavbarBottomRight>
                 <DvtButton
                   typeColour="powder"
-                  label={t('Create New Chart')}
+                  label="Create New Chart"
                   onClick={() => {}}
                   bold
                 />
               </NavbarBottomRight>
-              {console.log(t('Create New Chart'))}
             </>
           )}
           {pathName === '/superset/sqllab/history/' && (

@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
 import moment from 'moment';
 import {
   StyledContentListLi,
@@ -81,7 +79,7 @@ const DvtContent: React.FC<DvtContentProps> = ({
 
   return (
     <StyledDvtContent>
-      <StyledDvtContentTitle>{t(`${title}`)}</StyledDvtContentTitle>
+      <StyledDvtContentTitle>{title}</StyledDvtContentTitle>
       <StyledDvtContentHeader>
         {header.map((item, index) => (
           <StyledDvtContentSubtitleP
@@ -91,7 +89,7 @@ const DvtContent: React.FC<DvtContentProps> = ({
               flex: item.width ? 'none' : 1,
             }}
           >
-            {t(`${item.title}`)}
+            {item.title}
           </StyledDvtContentSubtitleP>
         ))}
       </StyledDvtContentHeader>

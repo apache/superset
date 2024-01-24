@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -27,6 +28,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtButton from 'src/components/DvtButton';
 import DvtIconDataLabel from 'src/components/DvtIconDataLabel';
 import { StyledReports, StyledReportsButton } from './dvt-reports.module';
+
 
 const modifiedData = {
   header: [
@@ -156,7 +158,7 @@ function ReportList() {
     <StyledReports>
       <div>
         <DvtButton
-          label="Deselect All"
+          label={t("Deselect All")}
           bold
           colour="primary"
           typeColour="outline"
@@ -173,7 +175,7 @@ function ReportList() {
       />
       <StyledReportsButton>
         <DvtButton
-          label="Create a New Graph/Chart"
+          label={t("Create a New Graph/Chart")}
           onClick={() => {}}
           colour="grayscale"
         />
@@ -190,10 +192,10 @@ function ReportList() {
       <DvtIconDataLabel
         label={
           editedData.length === 0
-            ? 'No Alerts Yet'
-            : 'No results match your filter criteria'
+            ? t('No Alerts Yet')
+            : t('No results match your filter criteria')
         }
-        buttonLabel={editedData.length === 0 ? 'Alert' : 'Clear All Filter'}
+        buttonLabel={editedData.length === 0 ? t('Alert') : t('Clear All Filter')}
         buttonClick={() => {
           if (editedData.length > 0) {
             clearReports();

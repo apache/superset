@@ -1,3 +1,5 @@
+import { t } from "@superset-ui/core";
+
 interface SidebarDataProps {
   pathname: string;
   data: any[];
@@ -91,30 +93,30 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/databaseview/list/',
     data: [
       {
-        label: 'EXPOSE IN SQL LAB',
+        label: t('EXPOSE IN SQL LAB'),
         values: [
           { label: 'No', value: 'false' },
           { label: 'Yes', value: 'true' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
         name: 'expose_in_sqllab',
       },
       {
-        label: 'AQE',
+        label: t('AQE'),
         values: [
           { label: 'No', value: 'false' },
           { label: 'Yes', value: 'true' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
         name: 'allow_run_async',
       },
       {
-        label: 'SEARCH',
+        label: t('SEARCH'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         name: 'search',
       },
     ],
@@ -123,42 +125,42 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/superset/sqllab/history/',
     data: [
       {
-        label: 'Database',
+        label: t('Database'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'State',
+        label: t('State'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'User',
+        label: t('User'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
       {
-        label: 'Time Range',
+        label: t('Time Range'),
         values: [],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         datePicker: true,
       },
       {
-        label: 'Search by Query Text',
+        label: t('Search by Query Text'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
     ],
   },
@@ -166,31 +168,31 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/superset/sqllab/saved_queries/',
     data: [
       {
-        label: 'Database',
+        label: t('Database'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'Schema',
+        label: t('Schema'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'Tags',
+        label: t('Tags'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
       {
-        label: 'Search',
+        label: t('Search'),
         values: [],
       },
     ],
@@ -203,7 +205,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Owner',
+        placeholder: t('Owner'),
         name: 'owner',
       },
       {
@@ -211,7 +213,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Database',
+        placeholder: t('Database'),
         name: 'database',
       },
       {
@@ -221,7 +223,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Lorem ıpsum', value: 'failed1' },
           { label: 'Dolor Sit Amet', value: 'success1' },
         ],
-        placeholder: 'Schema',
+        placeholder: t('Schema'),
         name: 'schema',
       },
       {
@@ -229,7 +231,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type',
+        placeholder: t('Type'),
         name: 'type',
       },
       {
@@ -237,7 +239,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Certified',
+        placeholder: t('Certified'),
         name: 'certified',
       },
     ],
@@ -250,14 +252,14 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Sqlite',
+        placeholder: t('Sqlite'),
       },
       {
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Main',
+        placeholder: t('Main'),
       },
       {
         values: [],
@@ -436,12 +438,12 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'postgresql examples', value: 'postgresql_examples' },
           { label: 'postgresql PostgreSQL', value: 'postgresql_postgresql' },
         ],
-        placeholder: 'DATABASE',
+        placeholder: t('DATABASE'),
         name: 'database',
       },
       {
         values: [{ label: 'Schema', value: 'schema' }],
-        placeholder: 'SCHEMA',
+        placeholder: t('SCHEMA'),
         name: 'schema',
       },
     ],
@@ -490,12 +492,12 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Owner',
+        placeholder: t('Owner'),
         name: 'owner',
       },
       {
         values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Created by',
+        placeholder: t('Created by'),
         name: 'createdBy',
       },
       {
@@ -512,7 +514,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Box Plot', value: 'box_plot' },
           { label: 'Sankey Diagram', value: 'sankey' },
         ],
-        placeholder: 'Chart Type',
+        placeholder: t('Chart Type'),
         name: 'chartType',
       },
       {
@@ -530,7 +532,7 @@ const DvtSidebarData: SidebarDataProps[] = [
             value: 'public.users_channels-uzooNNtSRO',
           },
         ],
-        placeholder: 'Dataset',
+        placeholder: t('Dataset'),
         name: 'dataset',
       },
       {
@@ -547,7 +549,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           },
           { label: 'Video Game Sales', value: 'Video Game Sales' },
         ],
-        placeholder: 'Dashboards',
+        placeholder: t('Dashboards'),
         name: 'dashboards',
       },
       {
@@ -555,7 +557,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Yes', value: 'true' },
           { label: 'No', value: 'false' },
         ],
-        placeholder: 'Favorite',
+        placeholder: t('Favorite'),
         name: 'favorite',
       },
       {
@@ -563,7 +565,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Yes', value: 'true' },
           { label: 'No', value: null },
         ],
-        placeholder: 'Certified',
+        placeholder: t('Certified'),
         name: 'certified',
       },
     ],
@@ -598,7 +600,7 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         name: 'search',
       },
     ],
@@ -652,7 +654,7 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/chart/add',
     data: [
       {
-        placeholder: 'Dataset',
+        placeholder: t('Dataset'),
         name: 'dataset',
       },
       {
@@ -661,15 +663,15 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: 'ECharts', value: 'echarts' },
           { label: 'Advanced-Analytics', value: 'advanced_analytics' },
         ],
-        placeholder: 'Recommended Tags',
+        placeholder: t('Recommended Tags'),
         name: 'recommended_tags',
       },
       {
-        placeholder: 'Category',
+        placeholder: t('Category'),
         name: 'category',
       },
       {
-        placeholder: 'Tags',
+        placeholder: t('Tags'),
         name: 'tags',
       },
     ],

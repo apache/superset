@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useState, useRef } from 'react';
-import { t } from '@superset-ui/core';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
@@ -83,9 +81,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
 
   return (
     <StyledDatepicker ref={ref} style={{ minWidth: maxWidth ? '100%' : width }}>
-      {t(`${label}`) && (
-        <StyledDatepickerLabel>{t(`${label}`)}</StyledDatepickerLabel>
-      )}
+      {{ label } && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
       <StyledDatepickerGroup>
         <StyledDatepickerInput
           isOpen={isOpen}
@@ -94,7 +90,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
           onChange={handleInputChange}
           onBlur={handleInputBlur}
           value={inputValue}
-          placeholder={t(`${placeholder}`)}
+          placeholder={placeholder}
         />
         <StyledDatepickerIcon isOpen={isOpen} onClick={handleDatepickerClick}>
           <Icon fileName="caret_right" iconSize="xxl" iconColor="black" />

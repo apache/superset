@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarAlertsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -143,7 +144,7 @@ function AlertList() {
     <StyledAlerts>
       <div>
         <DvtButton
-          label="Deselect All"
+          label={t('Deselect All')}
           bold
           colour="primary"
           typeColour="outline"
@@ -160,7 +161,7 @@ function AlertList() {
       />
       <StyledAlertsButton>
         <DvtButton
-          label="Create a New Alert"
+          label={t('Create a New Alert')}
           onClick={() => {}}
           colour="grayscale"
         />

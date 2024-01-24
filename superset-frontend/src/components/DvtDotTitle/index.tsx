@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
 import {
   StyledDotTitle,
   StyledDotIcon,
@@ -35,7 +33,7 @@ const DvtDotTitle = ({ label = '' }: DvtDotTitleProps) => (
     <StyledDotIcon>
       <StyledDot />
     </StyledDotIcon>
-    <StyledTitle>{t(`${label}`)}</StyledTitle>
+    <StyledTitle>{label}</StyledTitle>
   </StyledDotTitle>
 );
 

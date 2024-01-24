@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
 import {
   DvtTitle,
   DvtTotal,
@@ -35,8 +33,8 @@ const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({
   title = '',
 }) => (
   <StyledDvtTitleTotal>
-    <DvtTitle>{t(`${title}`)}</DvtTitle>
-    <DvtTotal>{`(${total})`}</DvtTotal>
+    <DvtTitle>{title}</DvtTitle>
+    <DvtTotal>{total}</DvtTotal>
   </StyledDvtTitleTotal>
 );
 

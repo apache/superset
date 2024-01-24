@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,9 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t } from '@superset-ui/core';
 import DvtButton from '../DvtButton';
-
 import Icon from '../Icons/Icon';
 import {
   StyledDvtTextarea,
@@ -63,7 +60,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   return (
     <StyledDvtTextareaSelectRun>
       <StyledDvtTextarea
-        placeholder={t(`${placeholder}`)}
+        placeholder={placeholder}
         value={value}
         onChange={event => setValue(event.target.value)}
       />

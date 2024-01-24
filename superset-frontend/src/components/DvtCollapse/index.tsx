@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +17,7 @@
  * under the License.
  */
 import React, { ReactNode, useState } from 'react';
-import { SupersetTheme, t } from '@superset-ui/core';
+import { SupersetTheme } from '@superset-ui/core';
 import Icon from '../Icons/Icon';
 import {
   StyledCollapse,
@@ -49,14 +48,11 @@ const DvtCollapse: React.FC<DvtCollapseProps> = ({
     <StyledCollapse>
       <StyledCollapseGroup>
         <StyledCollapseLabel>
-          {t(`${label}`)}
+          {label}
           {popoverLabel && (
             <StyledCollapsePopover>
               {popoverLabel ? (
-                <DvtPopper
-                  label={t(`${popoverLabel}`)}
-                  direction={popoverDirection}
-                >
+                <DvtPopper label={popoverLabel} direction={popoverDirection}>
                   <Icon
                     fileName="warning"
                     css={(theme: SupersetTheme) => ({
