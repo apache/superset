@@ -3,10 +3,14 @@ name: Python Presto/Hive
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - 'master'
+    paths:
+      - "superset/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset/**"
 
 jobs:
   test-postgres-presto:
