@@ -32,22 +32,13 @@ on:
 
 # List of jobs
 jobs:
-  config:
-    runs-on: "ubuntu-latest"
-    outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
-    steps:
-      - name: "Check for secrets"
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ (secrets.CHROMATIC_PROJECT_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-          fi
-
+  check-secrets:
+    uses: ./.github/workflows/check-secrets.yml
+    with:
+      secret_name: 'CHROMATIC_PROJECT_TOKEN'
   chromatic-deployment:
-    needs: config
-    if: needs.config.outputs.has-secrets
+    needs: check-secrets
+    if: needs.check-secrets.outputs.has-secrets == 'true'
     # Operating System
     runs-on: ubuntu-latest
     # Job steps
