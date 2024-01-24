@@ -69,28 +69,29 @@ else
 fi
 
 BUILD_ARG="3.9-slim-bookworm"
+MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}:${TARGET}:${BUILD_PLATFORM}:${BUILD_ARG}"
 
 case "${TARGET}" in
   "dev")
-    DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
     BUILD_TARGET="dev"
     ;;
   "lean")
-    DOCKER_TAGS="-t ${REPO_NAME}:${SHA} -t ${REPO_NAME}:${REFSPEC} -t ${REPO_NAME}:${LATEST_TAG}"
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA} -t ${REPO_NAME}:${REFSPEC} -t ${REPO_NAME}:${LATEST_TAG}"
     BUILD_TARGET="lean"
     ;;
   "lean310")
-    DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-py310 -t ${REPO_NAME}:${REFSPEC}-py310 -t ${REPO_NAME}:${LATEST_TAG}-py310"
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-py310 -t ${REPO_NAME}:${REFSPEC}-py310 -t ${REPO_NAME}:${LATEST_TAG}-py310"
     BUILD_TARGET="lean"
     BUILD_ARG="3.10-slim-bookworm"
     ;;
   "websocket")
-    DOCKER_TAGS="-t ${REPO_NAME}:${SHA}-websocket -t ${REPO_NAME}:${REFSPEC}-websocket -t ${REPO_NAME}:${LATEST_TAG}-websocket"
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-websocket -t ${REPO_NAME}:${REFSPEC}-websocket -t ${REPO_NAME}:${LATEST_TAG}-websocket"
     BUILD_TARGET=""
 	DOCKER_CONTEXT="superset-websocket"
     ;;
   "dockerize")
-    DOCKER_TAGS="-t ${REPO_NAME}:dockerize"
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:dockerize"
     BUILD_TARGET=""
 	DOCKER_CONTEXT="-f dockerize.Dockerfile ."
     ;;
@@ -128,8 +129,8 @@ fi
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=apache/superset:${TARGET} \
-  --cache-to=type=registry,mode=max,ref=apache/superset:${TARGET} \
+  --cache-from=type=registry,ref=${MAIN_UNIQUE_TAG} \
+  --cache-to=type=registry,mode=max,ref=${MAIN_UNIQUE_TAG} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
