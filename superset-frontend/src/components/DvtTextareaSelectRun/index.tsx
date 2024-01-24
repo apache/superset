@@ -18,8 +18,9 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import DvtButton from '../DvtButton';
 import { t } from '@superset-ui/core';
+import DvtButton from '../DvtButton';
+
 import Icon from '../Icons/Icon';
 import {
   StyledDvtTextarea,

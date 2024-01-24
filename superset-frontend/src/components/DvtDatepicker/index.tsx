@@ -18,10 +18,11 @@
  * under the License.
  */
 import React, { useEffect, useState, useRef } from 'react';
+import { t } from '@superset-ui/core';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
-import { t } from '@superset-ui/core';
+
 import DvtCalendar from '../DvtCalendar';
 import {
   StyledDatepicker,
