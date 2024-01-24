@@ -39,11 +39,20 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
-      - name: lint
+      - name: eslint
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run lint -- --quiet
+          npm run eslint -- . --quiet
+      - name: tsc
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: |
+          npm run type
+      - name: prettier
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: |
           npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outcome == 'failure'
