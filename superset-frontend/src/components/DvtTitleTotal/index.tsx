@@ -34,7 +34,7 @@ const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({
 }) => (
   <StyledDvtTitleTotal>
     <DvtTitle>{title}</DvtTitle>
-    <DvtTotal>{total}</DvtTotal>
+    <DvtTotal>{`(${total})`}</DvtTotal>
   </StyledDvtTitleTotal>
 );
 
