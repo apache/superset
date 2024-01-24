@@ -69,7 +69,10 @@ else
 fi
 
 BUILD_ARG="3.9-slim-bookworm"
-MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}-${TARGET}-${BUILD_PLATFORM}-${BUILD_ARG}"
+
+# Replace '/' with '-' in BUILD_PLATFORM
+SAFE_BUILD_PLATFORM=$(echo "${BUILD_PLATFORM}" | sed 's/\//-/g')
+MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}-${TARGET}-${SAFE_BUILD_PLATFORM}-${BUILD_ARG}"
 
 
 case "${TARGET}" in
