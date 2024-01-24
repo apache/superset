@@ -130,11 +130,13 @@ if [[ -n "${BUILD_TARGET}" ]]; then
   TARGET_ARGUMENT="--target ${BUILD_TARGET}"
 fi
 
+CACHE_REF="${REPO_NAME}-cache:${BUILD_TARGET}-${BUILD_ARG}"
+
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=${REPO_NAME}-cache \
-  --cache-to=type=registry,mode=max,ref=${REPO_NAME}-cache \
+  --cache-from=type=registry,ref=${CACHE_REF} \
+  --cache-to=type=registry,mode=max,ref=${CACHE_REF} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
