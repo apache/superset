@@ -508,7 +508,10 @@ const DvtSidebarData: SidebarDataProps[] = [
           { label: t('World Map'), value: 'world_map' },
           { label: t('Treemap (legacy)'), value: 'treemap' },
           { label: t('Bar Chart'), value: 'dist_bar' },
-          { label: t('Time-series Bar Chart'), value: 'echarts_timeseries_bar' },
+          {
+            label: t('Time-series Bar Chart'),
+            value: 'echarts_timeseries_bar',
+          },
           { label: t('Chord Diagram'), value: 'chord' },
           { label: t('Heatmap'), value: 'heatmap' },
           { label: t('Box Plot'), value: 'box_plot' },
