@@ -130,7 +130,8 @@ if [[ -n "${BUILD_TARGET}" ]]; then
   TARGET_ARGUMENT="--target ${BUILD_TARGET}"
 fi
 
-CACHE_REF="${REPO_NAME}-cache:${BUILD_TARGET}-${BUILD_ARG}"
+CACHE_REF="${REPO_NAME}-cache:${TARGET}-${BUILD_ARG}"
+CACHE_REF=$(echo "${CACHE_REF}" | tr -d '.')
 
 docker buildx build \
   ${TARGET_ARGUMENT} \
