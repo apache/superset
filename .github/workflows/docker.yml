@@ -33,6 +33,13 @@ jobs:
       matrix:
         target: ["dev", "lean", "lean310", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
+        exclude:
+          # disabling because slow! no python wheels for arm/py39 and
+          # QEMU is slow!
+          - target: "dev"
+            platform: "linux/arm64"
+          - target: "lean"
+            platform: "linux/arm64"
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
