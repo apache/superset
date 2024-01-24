@@ -83,9 +83,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
     >
       <StyledSelectPopover>
         {label && (
-          <StyledSelectLabel typeDesign={typeDesign}>
-            {{ label } && { label }}
-          </StyledSelectLabel>
+          <StyledSelectLabel typeDesign={typeDesign}>{label}</StyledSelectLabel>
         )}
         {important && !selectedValue[objectName] && (
           <DvtPopper
