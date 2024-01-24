@@ -159,7 +159,6 @@ const AceEditorWrapper = ({
     const { row, column } = cursorPosition;
     editor.moveCursorToPosition({ row, column });
     editor.focus();
-    editor.renderer.updateFontSize();
     editor.scrollToLine(row, true, true);
   };
 
