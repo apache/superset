@@ -64,6 +64,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -910,7 +911,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        sql = SQLStatement(sql).format()
+        try:
+            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
+        except SupersetParseError:
+            logger.warning("Unable to parse SQL to format it, passing it as-is")
+
         if mutate:
             sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -1077,7 +1082,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 ) from ex
 
-        query = SQLQuery(sql.strip("\t\r\n; "))
+        query = SQLQuery(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
         if len(query.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")

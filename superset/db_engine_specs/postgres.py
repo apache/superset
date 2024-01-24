@@ -281,7 +281,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        statement = SQLQuery(query.sql)
+        statement = SQLQuery(query.sql, engine=cls.engine)
         settings = statement.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(

@@ -103,7 +103,6 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    QueryStringExtended,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice

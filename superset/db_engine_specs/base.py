@@ -1448,7 +1448,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 qry = partition_query
         sql = database.compile_sqla_query(qry)
         if indent:
-            sql = SQLQuery(sql).format()
+            sql = SQLQuery(sql, engine=cls.engine).format()
         return sql
 
     @classmethod

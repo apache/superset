@@ -56,7 +56,7 @@ from sqlparse.tokens import (
 )
 from sqlparse.utils import imt
 
-from superset.exceptions import QueryClauseValidationException
+from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.utils.backports import StrEnum
 
 try:
@@ -345,7 +345,7 @@ class SQLQuery:
         """
         Pretty-format the SQL query.
         """
-        return ";\n".join(statement.format() for statement in self.statements)
+        return ";\n".join(statement.format(comments) for statement in self.statements)
 
     def get_settings(self) -> dict[str, str]:
         """
@@ -376,11 +376,15 @@ class SQLStatement:
         engine: Optional[str] = None,
     ):
         dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
-        self._parsed = (
-            self._parse_statement(statement, dialect)
-            if isinstance(statement, str)
-            else statement
-        )
+
+        if isinstance(statement, str):
+            try:
+                self._parsed = self._parse_statement(statement, dialect)
+            except ParseError as ex:
+                raise SupersetParseError(statement, engine) from ex
+        else:
+            self._parsed = statement
+
         self._dialect = dialect
         self.tables = extract_tables_from_statement(self._parsed, dialect)
 

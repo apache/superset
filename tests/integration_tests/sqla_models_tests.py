@@ -250,10 +250,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
         # assert virtual dataset
-        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
         # assert dataset calculated column
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
         assert "'foo_P1D'" in query
         # assert dataset saved metric
@@ -746,7 +747,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "COL4 IS NOT NULL",
+            "sql_should_contain": "NOT COL4 IS NULL",
         },
     ]
     for expected in expected_results:
