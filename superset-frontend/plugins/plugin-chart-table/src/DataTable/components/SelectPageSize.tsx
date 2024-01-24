@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { formatSelectOptions } from '@superset-ui/chart-controls';
 
 export type SizeOption = [number, string];
 
@@ -78,20 +77,7 @@ export default React.memo(function SelectPageSize({
   onChange,
 }: SelectPageSizeProps) {
   const sizeOptionValues = sizeOptions.map(getOptionValue);
-  let options = [...sizeOptions];
-  // insert current size to list
-  if (
-    currentSize !== undefined &&
-    (currentSize !== total || !sizeOptionValues.includes(0)) &&
-    !sizeOptionValues.includes(currentSize)
-  ) {
-    options = [...sizeOptions];
-    options.splice(
-      sizeOptionValues.findIndex(x => x > currentSize),
-      0,
-      formatSelectOptions([currentSize])[0],
-    );
-  }
+  const options = [...sizeOptions];
   const current = currentSize === undefined ? sizeOptionValues[0] : currentSize;
   const SelectRenderer = selectRenderer || DefaultSelectRenderer;
   return (
