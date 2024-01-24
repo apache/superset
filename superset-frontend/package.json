@@ -37,7 +37,6 @@
     "src/setup/*"
   ],
   "scripts": {
-    "_lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
@@ -50,9 +49,10 @@
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
+    "eslint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx",
     "format": "npm run _prettier -- --write",
-    "lint": "npm run _lint && npm run type",
-    "lint-fix": "npm run _lint -- --fix && npm run type",
+    "lint": "npm run eslint -- . && npm run type",
+    "lint-fix": "npm run eslint -- . --fix",
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
     "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
