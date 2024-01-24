@@ -18,6 +18,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 // import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
@@ -32,7 +33,7 @@ import {
 import DvtButtonTabs from '../DvtButtonTabs';
 import DvtButton from '../DvtButton';
 import DvtDotTitle from '../DvtDotTitle';
-import { t } from '@superset-ui/core';
+
 // import DvtInput from '../DvtInput';
 // import DvtSelect from '../DvtSelect';
 import DvtProfileMenu from '../DvtProfileMenu';

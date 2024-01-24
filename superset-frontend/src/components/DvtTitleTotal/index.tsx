@@ -1,3 +1,4 @@
+/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -34,7 +35,7 @@ const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({
   title = '',
 }) => (
   <StyledDvtTitleTotal>
-    <DvtTitle>{title && t(`${title}`)}</DvtTitle>
+    <DvtTitle>{t(`${title}`)}</DvtTitle>
     <DvtTotal>{`(${total})`}</DvtTotal>
   </StyledDvtTitleTotal>
 );

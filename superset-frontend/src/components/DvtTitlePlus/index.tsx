@@ -1,3 +1,4 @@
+/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,7 +29,7 @@ export interface DvtTitlePlusProps {
 
 const DvtTitlePlus: React.FC<DvtTitlePlusProps> = ({ title = '', onClick }) => (
   <StyledDvtTitlePlus>
-    <DvtTitlePlusTitle>{title && t(`${title}`)}</DvtTitlePlusTitle>
+    <DvtTitlePlusTitle>{t(`${title}`)}</DvtTitlePlusTitle>
     {onClick && (
       <PlusOutlined
         css={(theme: SupersetTheme) => ({

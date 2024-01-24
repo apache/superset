@@ -1,3 +1,4 @@
+/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,8 +46,8 @@ const DvtTextarea: React.FC<DvtTextareaProps> = ({
 
   return (
     <StyleTextarea>
-      {label && t(`${label}`) && (
-        <StyleTextareaLabel>{label && t(`${label}`)}</StyleTextareaLabel>
+      {t(`${label}`) && (
+        <StyleTextareaLabel>{t(`${label}`)}</StyleTextareaLabel>
       )}
       <StyleTextareaText
         typeDesign={typeDesign}
