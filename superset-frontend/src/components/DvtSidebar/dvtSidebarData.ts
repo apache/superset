@@ -1,4 +1,4 @@
-import { t } from "@superset-ui/core";
+import { t } from '@superset-ui/core';
 
 interface SidebarDataProps {
   pathname: string;
