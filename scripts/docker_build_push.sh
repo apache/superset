@@ -69,7 +69,8 @@ else
 fi
 
 BUILD_ARG="3.9-slim-bookworm"
-MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}:${TARGET}:${BUILD_PLATFORM}:${BUILD_ARG}"
+MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}-${TARGET}-${BUILD_PLATFORM}-${BUILD_ARG}"
+
 
 case "${TARGET}" in
   "dev")
