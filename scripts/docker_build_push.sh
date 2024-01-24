@@ -131,14 +131,15 @@ if [[ -n "${BUILD_TARGET}" ]]; then
 fi
 
 CACHE_REF="${REPO_NAME}:cache-${TARGET}-${BUILD_ARG}"
-CACHE_REF="${REPO_NAME}"
 CACHE_REF=$(echo "${CACHE_REF}" | tr -d '.')
+
+# TODO: Commenting out two flags until we figure out how to make this work in forks
+#--cache-from=type=registry,ref=${CACHE_REF} \
+#--cache-to=type=registry,mode=max,ref=${CACHE_REF} \
 
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=${CACHE_REF} \
-  --cache-to=type=registry,mode=max,ref=${CACHE_REF} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
