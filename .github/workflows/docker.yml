@@ -15,18 +15,20 @@ jobs:
     steps:
       - name: "Check for secrets"
         id: check
-        shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          if [[ -n "$DOCKERHUB_USER" && -n "$DOCKERHUB_TOKEN" ]]; then
+            echo "has-secrets=true" >> "$GITHUB_ENV"
             echo "has secrets!"
           else
-            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
+            echo "has-secrets=false" >> "$GITHUB_ENV"
             echo "no secrets!"
           fi
   docker-build:
     needs: config
-    if: needs.config.outputs.has-secrets
+    if: needs.config.outputs.has-secrets == 'true'
     name: docker-build
     runs-on: ubuntu-latest
     strategy:
