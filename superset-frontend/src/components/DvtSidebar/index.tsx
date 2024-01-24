@@ -11,7 +11,7 @@ import {
 } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
-import { ChartMetadata } from '@superset-ui/core';
+import { ChartMetadata, t } from '@superset-ui/core';
 import useFetch from 'src/hooks/useFetch';
 import DvtLogo from '../DvtLogo';
 import DvtDarkMode from '../DvtDarkMode';
@@ -261,7 +261,11 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
 
   const { mountedPluginMetadata } = usePluginContext();
   const typesWithDefaultOrder = new Set(DefaultOrder);
-  const RECOMMENDED_TAGS = ['Popular', 'ECharts', 'Advanced-Analytics'];
+  const RECOMMENDED_TAGS = [
+    t('Popular'),
+    t('ECharts'),
+    t('Advanced-Analytics'),
+  ];
   const OTHER_CATEGORY = 'Other';
 
   function vizSortFactor(entry: VizEntry) {

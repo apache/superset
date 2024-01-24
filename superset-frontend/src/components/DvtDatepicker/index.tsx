@@ -81,7 +81,7 @@ const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
 
   return (
     <StyledDatepicker ref={ref} style={{ minWidth: maxWidth ? '100%' : width }}>
-      {{ label } && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
+      {label && <StyledDatepickerLabel>{label}</StyledDatepickerLabel>}
       <StyledDatepickerGroup>
         <StyledDatepickerInput
           isOpen={isOpen}

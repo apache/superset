@@ -45,7 +45,7 @@ const DvtTextarea: React.FC<DvtTextareaProps> = ({
 
   return (
     <StyleTextarea>
-      {{ label } && <StyleTextareaLabel>{label}</StyleTextareaLabel>}
+      {label && <StyleTextareaLabel>{label}</StyleTextareaLabel>}
       <StyleTextareaText
         typeDesign={typeDesign}
         value={value}

@@ -84,7 +84,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
       <StyledSelectPopover>
         {label && (
           <StyledSelectLabel typeDesign={typeDesign}>
-            {label && { label }}
+            {{ label } && { label }}
           </StyledSelectLabel>
         )}
         {important && !selectedValue[objectName] && (
@@ -124,7 +124,7 @@ const DvtSelect: React.FC<DvtSelectProps> = ({
         typeDesign={typeDesign}
         selectedValue={selectedValue[objectName]}
       >
-        {selectedValue[objectName] || { placeholder }}
+        {selectedValue[objectName] || placeholder}
         <StyledSelectIcon isOpen={isOpen}>
           <Icon
             fileName="caret_right"

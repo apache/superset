@@ -29,7 +29,7 @@ export interface DvtDarkModeProps {
 }
 
 const DvtDarkMode: React.FC<DvtDarkModeProps> = ({
-  title = '',
+  title = 'Dark Mode',
   darkMode,
   setDarkMode,
 }) => (
