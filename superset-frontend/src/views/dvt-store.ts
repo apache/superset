@@ -61,6 +61,7 @@ import dvtAppReducer from 'src/dvt-redux/dvt-appReducer';
 import dvtSidebarReducer from 'src/dvt-redux/dvt-sidebarReducer';
 import dvtNavbarReducer from 'src/dvt-redux/dvt-navbarReducer';
 import dvtModalReducer from 'src/dvt-redux/dvt-modalReducer';
+import dvtDashboardReducer from 'src/dvt-redux/dvt-dashboardReducer';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -147,6 +148,7 @@ const reducers = {
   dvtSidebar: dvtSidebarReducer,
   dvtNavbar: dvtNavbarReducer,
   dvtModal: dvtModalReducer,
+  dvtDashboard: dvtDashboardReducer,
 };
 
 /* In some cases the jinja template injects two seperate React apps into basic.html

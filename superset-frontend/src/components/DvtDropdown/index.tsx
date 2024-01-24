@@ -29,15 +29,16 @@ import {
 export interface OptionProps {
   label: string;
   icon?: string;
-  onClick: () => void;
+  onClick: (id: number) => void;
 }
 
 export interface DvtDropdownProps {
   data: OptionProps[];
   icon: string;
+  id?: number;
 }
 
-const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
+const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon, id = 0 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(ref, () => setIsOpen(false));
@@ -52,7 +53,7 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon }) => {
               <DropdownOption
                 key={index}
                 onClick={() => {
-                  item.onClick();
+                  item.onClick(id);
                   setIsOpen(false);
                 }}
               >

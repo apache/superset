@@ -21,18 +21,12 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface ModalState {
   component: string;
   lastComponent?: string;
-  title?: string;
-  buttonLabel: string;
-  buttonOnClick: () => void;
   meta?: any;
 }
 
 const initialState: ModalState = {
   component: '',
   lastComponent: '',
-  title: '',
-  buttonLabel: '',
-  buttonOnClick: () => {},
   meta: {},
 };
 
@@ -43,18 +37,12 @@ const dvtModalSlice = createSlice({
     openModal: (state, action: PayloadAction<ModalState>) => ({
       ...state,
       component: action.payload.component,
-      title: action.payload.title,
-      buttonLabel: action.payload.buttonLabel,
-      buttonOnClick: action.payload.buttonOnClick,
       meta: action.payload.meta,
     }),
     closeModal: state => ({
       ...state,
       component: '',
       lastComponent: state.component,
-      title: '',
-      buttonLabel: '',
-      buttonOnClick: () => {},
       meta: {},
     }),
   },
