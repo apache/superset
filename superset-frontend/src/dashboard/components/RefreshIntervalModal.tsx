@@ -144,10 +144,15 @@ class RefreshIntervalModal extends React.PureComponent<
               buttonStyle="primary"
               buttonSize="small"
               onClick={this.onSave}
+              className="btn-primary"
             >
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
-            <Button onClick={this.onCancel} buttonSize="small">
+            <Button
+              onClick={this.onCancel}
+              buttonSize="small"
+              className="btn-secondary"
+            >
               {t('Cancel')}
             </Button>
           </>

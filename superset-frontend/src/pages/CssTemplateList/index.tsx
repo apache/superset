@@ -200,6 +200,7 @@ function CssTemplatesList({
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => {
         setCurrentCssTemplate(null);
         setCssTemplateModalOpen(true);
@@ -212,6 +213,7 @@ function CssTemplatesList({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
+      className: 'btn-secondary',
     });
   }
 

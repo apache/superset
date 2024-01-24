@@ -759,6 +759,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      className: 'btn-secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });
@@ -771,6 +772,7 @@ function ChartList(props: ChartListProps) {
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => {
         history.push('/chart/add');
       },
@@ -787,6 +789,7 @@ function ChartList(props: ChartListProps) {
         </Tooltip>
       ),
       buttonStyle: 'link',
+        className: 'btn-link',
       onClick: openChartImportModal,
     });
   }

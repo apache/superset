@@ -274,7 +274,12 @@ class Chart extends React.PureComponent {
               {t(
                 'Click on "Create chart" button in the control panel on the left to preview a visualization or',
               )}{' '}
-              <span role="button" tabIndex={0} onClick={this.props.onQuery}>
+              <span
+                role="button"
+                className="btn-link"
+                tabIndex={0}
+                onClick={this.props.onQuery}
+              >
                 {t('click here')}
               </span>
               .

@@ -1,0 +1,67 @@
+@colors-list: transparent transparent, black #000000, white #ffffff, red #ff1515,
+  purple #4e0389, orange #ff9d00, gray-900 #242933, gray-800 #303540,
+  gray-700 #434a56, gray-600 #5e6774, gray-500 #808b99, gray-400 #b9c1cb,
+  gray-300 #cfd5dd, gray-200 #e3e8ed, gray-100 #eff2f5, gray-50 #f6f7f9,
+  gray-default #303540, black-default #000000,
+  // 800
+  blue-900 #00384c,
+  blue-800 #005371, blue-700 #00658a, blue-600 #0075a3, blue-500 #1295c4,
+  blue-400 #2ebaec, blue-300 #7bdbfd, blue-200 #b9ecfe, blue-100 #d6f4ff,
+  blue-default #0075a3,
+  // 600
+  red-900 #600404,
+  red-800 #730202, red-700 #ab0707, red-600 #c91d1d, red-500 #e23636,
+  red-400 #f15a5a, red-300 #f87676, red-200 #fe9a9a, red-100 #fec2c2,
+  red-50 #fff4f4, red-default #c91d1d,
+  // 600
+  orange-900 #602304,
+  orange-800 #7a2c05, orange-700 #a54209, orange-600 #bf4803, orange-500 #e5641a,
+  orange-400 #ef8243, orange-300 #f79a64, orange-200 #ffb88f, orange-100 #ffd8c2,
+  orange-default #bf4803,
+  // 600
+  yellow-900 #5c4000,
+  yellow-800 #835f01, yellow-700 #b18002, yellow-600 #dea102, yellow-500 #f3af02,
+  yellow-400 #fdc535, yellow-300 #fed671, yellow-200 #fee29a, yellow-100 #feeec2,
+  yellow-default #dea102,
+  // 600
+  green-900 #044d2e,
+  green-800 #066048, green-700 #087c5e, green-600 #09906d, green-500 #0a9e78,
+  green-400 #1ac69a, green-300 #4be7bf, green-200 #82eed2, green-100 #d2f9ef,
+  green-default #09906d,
+  // 600
+  copper-900 #562d10,
+  copper-800 #793f16, copper-700 #8b4818, copper-600 #bf6322, copper-500 #d47735,
+  copper-400 #e08d52, copper-300 #e7a474, copper-200 #edbb97, copper-100 #f6ddcb,
+  garnet-900 #481e1e, garnet-800 #572424, garnet-700 #743131, garnet-600 #9f4342,
+  garnet-500 #b95958, garnet-400 #c87674, garnet-300 #d59290, garnet-200 #e5b4b3,
+  garnet-100 #f0d2d1, plum-900 #422441, plum-800 #532d52, plum-700 #6a3968,
+  plum-600 #875a84, plum-500 #a578a3, plum-400 #bc8fba, plum-300 #c69fc4,
+  plum-200 #d9bfd8, plum-100 #e8d9e8, purple-900 #262640, purple-800 #363759,
+  purple-700 #4d4d80, purple-600 #5a5a8c, purple-500 #6a6b9f, purple-400 #8080b3,
+  purple-300 #9999c2, purple-200 #b3b3d1, purple-100 #d9d9e8, teal-900 #143939,
+  teal-800 #1a4c4c, teal-700 #246a6a, teal-600 #2c8181, teal-500 #37a0a0,
+  teal-400 #58c6c6, teal-300 #8fd9d9, teal-200 #b3e5e5, teal-100 #e0f5f5;
+
+.setColor(@name, @color: black) {
+  .bg-@{name} {
+    background-color: @color !important;
+  }
+  .text-@{name} {
+    color: @color !important;
+  }
+  .border-@{name} {
+    border-color: @color !important;
+  }
+  .placeholder-@{name} {
+    border-color: @color !important;
+  }
+}
+
+.loopColors(@index) when (@index > 0) {
+  @color: extract(@colors-list, @index);
+  @name: extract(@color, 1);
+  @value: extract(@color, 2);
+  .setColor(@name, @value);
+  .loopColors(@index - 1);
+}
+.loopColors(length(@colors-list));

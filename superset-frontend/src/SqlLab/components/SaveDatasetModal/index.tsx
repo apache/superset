@@ -358,6 +358,7 @@ export const SaveDatasetModal = ({
             <Button
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
+              className="btn-primary"
               onClick={handleSaveInDataset}
               loading={loading}
             >
@@ -367,10 +368,15 @@ export const SaveDatasetModal = ({
           {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
               {shouldOverwriteDataset && (
-                <Button onClick={handleOverwriteCancel}>{t('Back')}</Button>
+                <Button
+                  className="btn-secondary"
+                  onClick={handleOverwriteCancel}
+                >
+                  {t('Back')}
+                </Button>
               )}
               <Button
-                className="md"
+                className="md btn-primary"
                 buttonStyle="primary"
                 onClick={handleOverwriteDataset}
                 disabled={disableSaveAndExploreBtn}

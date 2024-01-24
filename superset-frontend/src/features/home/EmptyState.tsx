@@ -142,7 +142,7 @@ export default function EmptyState({
           {tableName !== WelcomeTable.Recents && (
             <ButtonContainer>
               <Link to={mineRedirects[tableName]}>
-                <Button buttonStyle="primary">
+                <Button buttonStyle="primary" className="btn-primary">
                   <i className="fa fa-plus" />
                   {tableName === WelcomeTable.SavedQueries
                     ? t('SQL query')

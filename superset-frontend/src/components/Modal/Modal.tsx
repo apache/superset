@@ -106,9 +106,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   .ant-modal-content {
     display: flex;
     flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 16}px)`};
+    margin-bottom: ${({ theme }) => theme.gridUnit * 8}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 8}px;
   }
 
   .ant-modal-header {
@@ -144,6 +144,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
+    > div {
+      height: auto !important;
+    }
   }
   .ant-modal-footer {
     flex: 0 0 1;
@@ -265,7 +268,13 @@ const CustomModal = ({
   }
   const modalFooter = isNil(FooterComponent)
     ? [
-        <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
+        <Button
+          key="back"
+          onClick={onHide}
+          cta
+          data-test="modal-cancel-button"
+          className="btn-secondary"
+        >
           {t('Cancel')}
         </Button>,
         <Button
@@ -276,6 +285,7 @@ const CustomModal = ({
           onClick={onHandledPrimaryAction}
           cta
           data-test="modal-confirm-button"
+          className="btn-primary"
         >
           {primaryButtonName}
         </Button>,
@@ -377,8 +387,10 @@ CustomModal.displayName = 'Modal';
 // Button style using global CSS in src/GlobalStyles.tsx.
 // TODO: Replace this logic when on Ant Design 5.
 const buttonProps = {
-  okButtonProps: { className: 'modal-functions-ok-button' },
-  cancelButtonProps: { className: 'modal-functions-cancel-button' },
+  okButtonProps: { className: 'modal-functions-ok-button btn-primary' },
+  cancelButtonProps: {
+    className: 'modal-functions-cancel-button btn-secondary',
+  },
 };
 
 // TODO: in another PR, rename this to CompatabilityModal

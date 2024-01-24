@@ -387,6 +387,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             allowClear
             allowNewOptions
             ariaLabel={t('Select a dashboard')}
+              data-test="select-a-dashboard"
             options={this.loadDashboards}
             onChange={this.onDashboardChange}
             value={this.state.dashboard}
@@ -436,17 +437,25 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   renderFooter = () => (
     <div data-test="save-modal-footer">
-      <Button id="btn_cancel" buttonSize="small" onClick={this.onHide}>
+      <Button
+        id="btn_cancel"
+        className="btn-secondary"
+        buttonSize="small"
+        onClick={this.onHide}
+      >
         {t('Cancel')}
       </Button>
       <Button
         id="btn_modal_save_goto_dash"
         buttonSize="small"
+        className="btn-secondary"
         disabled={
           !this.state.newSliceName ||
           !this.state.dashboard ||
           (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName)
+            !this.state.datasetName) ||
+          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
+            this.state.vizType === 'filter_box')
         }
         onClick={() => this.saveOrOverwrite(true)}
       >
@@ -455,6 +464,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       <Button
         id="btn_modal_save"
         buttonSize="small"
+        className="btn-primary"
         buttonStyle="primary"
         onClick={() => this.saveOrOverwrite(false)}
         disabled={

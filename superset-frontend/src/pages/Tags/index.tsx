@@ -294,6 +294,7 @@ function TagList(props: TagListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      className: 'btn-secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });

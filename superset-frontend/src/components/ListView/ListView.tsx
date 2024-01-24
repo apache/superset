@@ -101,12 +101,14 @@ const BulkSelectWrapper = styled(Alert)`
 
     .deselect-all, .tag-btn {
       color: ${theme.colors.primary.base};
-      margin-left: ${theme.gridUnit * 4}px;
+      margin-left: ${theme.gridUnit * 2}px;
+      line-height: 1.5715;
+      display: inline-block;
     }
 
     .divider {
       margin: ${`${-theme.gridUnit * 2}px 0 ${-theme.gridUnit * 2}px ${
-        theme.gridUnit * 4
+        theme.gridUnit * 2
       }px`};
       width: 1px;
       height: ${theme.gridUnit * 8}px;
@@ -378,17 +380,22 @@ function ListView<T extends object = any>({
                         data-test="bulk-select-deselect-all"
                         role="button"
                         tabIndex={0}
-                        className="deselect-all"
+                        className="deselect-all btn-secondary"
                         onClick={() => toggleAllRowsSelected(false)}
                       >
                         {t('Deselect all')}
                       </span>
-                      <div className="divider" />
+                      <div className="divider box-shadow-none" />
                       {bulkActions.map(action => (
                         <Button
                           data-test="bulk-select-action"
                           key={action.key}
                           buttonStyle={action.type}
+                          className={`${
+                            action?.name === 'Delete'
+                              ? 'btn-primary'
+                              : 'btn-secondary'
+                          }`}
                           cta
                           onClick={() =>
                             action.onSelect(
@@ -404,7 +411,7 @@ function ListView<T extends object = any>({
                           data-test="bulk-select-tag-btn"
                           role="button"
                           tabIndex={0}
-                          className="tag-btn"
+                          className="tag-btn btn-secondary"
                           onClick={() => setShowBulkTagModal(true)}
                         >
                           {t('Add Tag')}

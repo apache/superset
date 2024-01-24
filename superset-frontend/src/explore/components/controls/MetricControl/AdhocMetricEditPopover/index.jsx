@@ -443,6 +443,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           >
             <FormItem label={t('column')}>
               <Select
+                className="select-column"
                 options={columns.map(column => ({
                   value: column.column_name,
                   label: column.verbose_name || column.column_name,
@@ -507,6 +508,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             onClick={this.onResetStateAndClose}
             data-test="AdhocMetricEdit#cancel"
             cta
+            className="btn-secondary"
           >
             {t('Close')}
           </Button>
@@ -515,6 +517,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             buttonStyle="primary"
             buttonSize="small"
             data-test="AdhocMetricEdit#save"
+            className="btn-primary"
             onClick={this.onSave}
             cta
           >

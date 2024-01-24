@@ -197,7 +197,7 @@ class Tab extends React.PureComponent {
                   <a
                     href={`/chart/add?dashboard_id=${dashboardId}`}
                     rel="noopener noreferrer"
-                    target="_blank"
+                    target="_self"
                   >
                     {t('create a new chart')}
                   </a>{' '}

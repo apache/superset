@@ -40,11 +40,17 @@ interface ModalFooterProps {
 
 const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
   <>
-    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
+    <Button
+      className="btn-primary"
+      buttonStyle="secondary"
+      buttonSize="small"
+      onClick={exploreChart}
+    >
       {t('Edit chart')}
     </Button>
     <Button
       buttonStyle="primary"
+      className="btn-secondary"
       buttonSize="small"
       onClick={closeModal}
       data-test="close-drilltodetail-modal"

@@ -96,6 +96,7 @@ const TableViewStyles = styled.div<{
 const PaginationStyles = styled.div<{
   isPaginationSticky?: boolean;
 }>`
+  position: relative !important;
   display: flex;
   flex-direction: column;
   justify-content: center;

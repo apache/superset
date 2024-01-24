@@ -71,6 +71,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
       <HeaderButton
         {...getFilterBarTestId('create-filter')}
         buttonStyle="link"
+        className="btn-secondary"
         buttonSize="xsmall"
         onClick={handleClick}
       >

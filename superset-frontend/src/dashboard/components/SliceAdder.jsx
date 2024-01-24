@@ -331,10 +331,11 @@ class SliceAdder extends React.Component {
           <NewChartButton
             buttonStyle="link"
             buttonSize="xsmall"
+            className="btn-primary create-chart-button"
             onClick={() =>
               window.open(
                 `/chart/add?dashboard_id=${this.props.dashboardId}`,
-                '_blank',
+                '_self',
                 'noopener noreferrer',
               )
             }

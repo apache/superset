@@ -39,6 +39,7 @@ export function CancelConfirmationAlert({
       closable={false}
       type="warning"
       key="alert"
+      className="alert-box alert-warning"
       message={title}
       css={{
         textAlign: 'left',
@@ -53,6 +54,7 @@ export function CancelConfirmationAlert({
             buttonSize="small"
             buttonStyle="secondary"
             onClick={onDismiss}
+            className="btn-alert"
           >
             {t('Keep editing')}
           </Button>
@@ -61,6 +63,7 @@ export function CancelConfirmationAlert({
             buttonSize="small"
             buttonStyle="primary"
             onClick={onConfirm}
+            className="btn-alert"
           >
             {t('Yes, cancel')}
           </Button>

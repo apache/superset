@@ -106,6 +106,7 @@ export const FilterInput = ({
     <Input
       prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
       placeholder={t('Search')}
+      aria-label="samples-inner-input"
       onChange={(event: any) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);

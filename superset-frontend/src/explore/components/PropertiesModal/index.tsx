@@ -307,6 +307,7 @@ function PropertiesModal({
             buttonSize="small"
             onClick={onHide}
             cta
+            className="btn-secondary"
           >
             {t('Cancel')}
           </Button>
@@ -325,6 +326,7 @@ function PropertiesModal({
                 : ''
             }
             cta
+            className="btn-primary"
           >
             {t('Save')}
           </Button>

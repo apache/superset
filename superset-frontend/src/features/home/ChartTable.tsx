@@ -192,6 +192,7 @@ function ChartTable({
               </>
             ),
             buttonStyle: 'tertiary',
+            className: 'btn-primary',
             onClick: () => {
               window.location.assign('/chart/add');
             },
@@ -199,6 +200,7 @@ function ChartTable({
           {
             name: t('View All »'),
             buttonStyle: 'link',
+            className: 'btn-secondary',
             onClick: () => {
               const target =
                 activeTab === TableTab.Favorite

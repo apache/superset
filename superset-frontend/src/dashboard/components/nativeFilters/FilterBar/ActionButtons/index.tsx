@@ -135,7 +135,7 @@ const ActionButtons = ({
         disabled={isApplyDisabled}
         buttonStyle="primary"
         htmlType="submit"
-        className="filter-apply-button"
+        className="filter-apply-button btn-primary"
         onClick={onApply}
         {...getFilterBarTestId('apply-button')}
       >
@@ -145,7 +145,7 @@ const ActionButtons = ({
         disabled={!isClearAllEnabled}
         buttonStyle="link"
         buttonSize="small"
-        className="filter-clear-all-button"
+        className="filter-clear-all-button btn-secondary"
         onClick={onClearAll}
         {...getFilterBarTestId('clear-button')}
       >

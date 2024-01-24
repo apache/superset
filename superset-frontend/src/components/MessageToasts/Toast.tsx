@@ -99,7 +99,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       {icon}
       <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       <i
-        className="fa fa-close pull-right pointer"
+        className="fa fa-close pull-right pointer btn-secondary"
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

@@ -273,6 +273,7 @@ export const ExploreChartHeader = ({
                 onClick={showModal}
                 disabled={saveDisabled}
                 data-test="query-save-button"
+                className="btn-primary"
                 css={saveButtonStyles}
               >
                 <Icons.SaveOutlined iconSize="l" />

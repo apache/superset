@@ -27,6 +27,7 @@ export function Prev({ disabled, onClick }: PaginationButtonProps) {
       <span
         role="button"
         tabIndex={disabled ? -1 : 0}
+        className="pagination-prev"
         onClick={e => {
           e.preventDefault();
           if (!disabled) onClick(e);

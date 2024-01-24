@@ -194,6 +194,7 @@ const ViewResultsModalTrigger = ({
         onClick={openModal}
         role="button"
         tabIndex={0}
+        className="span-modal-trigger"
       >
         {triggerNode}
       </span>
@@ -214,6 +215,7 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="secondary"
                 buttonSize="small"
                 onClick={exploreChart}
+                className="btn-primary"
               >
                 {t('Edit chart')}
               </Button>
@@ -221,6 +223,7 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="primary"
                 buttonSize="small"
                 onClick={closeModal}
+                className="btn-secondary"
               >
                 {t('Close')}
               </Button>

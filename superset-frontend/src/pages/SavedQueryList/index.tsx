@@ -190,6 +190,7 @@ function SavedQueryList({
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
+      className: 'btn-secondary',
       buttonStyle: 'secondary',
     });
   }
@@ -200,6 +201,7 @@ function SavedQueryList({
         <i className="fa fa-plus" /> {t('Query')}
       </Link>
     ),
+    className: 'btn-primary',
     buttonStyle: 'primary',
   });
 
@@ -216,6 +218,7 @@ function SavedQueryList({
         </Tooltip>
       ),
       buttonStyle: 'link',
+      className: 'btn-link',
       onClick: openSavedQueryImportModal,
       'data-test': 'import-button',
     });

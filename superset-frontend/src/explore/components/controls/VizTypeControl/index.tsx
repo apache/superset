@@ -120,7 +120,13 @@ const VizTypeControl = ({
           text-decoration: underline;
         `}
       >
-        <span role="button" tabIndex={0} onClick={openModal}>
+        <span
+            role="button"
+            className="btn-link"
+            data-test="chart-button"
+            tabIndex={0}
+            onClick={openModal}
+          >
           {t('View all charts')}
         </span>
       </div>

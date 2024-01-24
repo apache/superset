@@ -335,7 +335,12 @@ export default class TimeSeriesColumnControl extends React.Component {
             />,
           )}
         <ButtonBar>
-          <Button buttonSize="small" onClick={this.onClose} cta>
+          <Button
+            buttonSize="small"
+            onClick={this.onClose}
+            cta
+            className="btn-secondary"
+          >
             {t('Close')}
           </Button>
           <Button

@@ -326,6 +326,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           buttonStyle="secondary"
           cta
           key="cancel"
+          className="btn-secondary"
           onClick={onHide}
           data-test={DATE_FILTER_TEST_KEY.cancelButton}
         >
@@ -335,6 +336,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           buttonStyle="primary"
           cta
           disabled={!validTimeRange}
+          className="btn-primary"
           key="apply"
           onClick={onSave}
           data-test={DATE_FILTER_TEST_KEY.applyButton}

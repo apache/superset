@@ -367,6 +367,7 @@ export class ChartCreation extends React.PureComponent<
           )}
           <Button
             buttonStyle="primary"
+            className="btn-primary"
             disabled={isButtonDisabled}
             onClick={this.gotoSlice}
           >

@@ -102,6 +102,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
           <Button
             data-test="modal-save-dashboard-button"
             buttonStyle="secondary"
+            className="btn-secondary"
             onClick={onHide}
           >
             {t('Cancel')}
@@ -109,6 +110,7 @@ const BulkTagModal: React.FC<BulkTagModalProps> = ({
           <Button
             data-test="modal-save-dashboard-button"
             buttonStyle="primary"
+            className="btn-primary"
             onClick={onSave}
           >
             {t('Save')}

@@ -162,13 +162,16 @@ export const EmptyStateBig = ({
         max-width: ${theme.gridUnit * 150}px;
       `}
     >
-      <BigTitle>{title}</BigTitle>
-      {description && <BigDescription>{description}</BigDescription>}
+      <BigTitle className="text-gray-600">{title}</BigTitle>
+      {description && (
+        <BigDescription className="text-gray-600">{description}</BigDescription>
+      )}
       {buttonAction && buttonText && (
         <ActionButton
           buttonStyle="primary"
           onClick={buttonAction}
           onMouseDown={handleMouseDown}
+          className="btn-primary"
         >
           {buttonText}
         </ActionButton>
@@ -191,8 +194,10 @@ export const EmptyStateMedium = ({
         max-width: ${theme.gridUnit * 100}px;
       `}
     >
-      <Title>{title}</Title>
-      {description && <Description>{description}</Description>}
+      <Title className="text-gray-600">{title}</Title>
+      {description && (
+        <Description className="text-gray-600">{description}</Description>
+      )}
       {buttonText && buttonAction && (
         <ActionButton
           buttonStyle="primary"
@@ -218,8 +223,12 @@ export const EmptyStateSmall = ({
         max-width: ${theme.gridUnit * 75}px;
       `}
     >
-      <Title>{title}</Title>
-      {description && <SmallDescription>{description}</SmallDescription>}
+      <Title className="text-gray-600">{title}</Title>
+      {description && (
+        <SmallDescription className="text-gray-600">
+          {description}
+        </SmallDescription>
+      )}
     </TextContainer>
   </EmptyStateContainer>
 );

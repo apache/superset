@@ -259,10 +259,12 @@ const SavedQueries = ({
               </Link>
             ),
             buttonStyle: 'tertiary',
+            className: 'btn-primary',
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
+            className: 'btn-secondary',
             onClick: () => {
               window.location.href = '/savedqueryview/list';
             },

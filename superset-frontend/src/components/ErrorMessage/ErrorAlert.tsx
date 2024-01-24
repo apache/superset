@@ -207,6 +207,7 @@ export default function ErrorAlert({
               <Button
                 cta
                 buttonStyle="primary"
+                className="btn-secondary"
                 onClick={() => setIsModalOpen(false)}
               >
                 {t('Close')}

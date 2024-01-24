@@ -418,6 +418,7 @@ function AlertList({
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => {
         handleAlertEdit(null);
       },
@@ -428,6 +429,7 @@ function AlertList({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
+      className: 'btn-secondary',
       'data-test': 'bulk-select-toggle',
     });
   }
