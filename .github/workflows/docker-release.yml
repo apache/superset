@@ -24,8 +24,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
+        exclude:
+          # disabling because slow! no python wheels for arm/py39 and
+          # QEMU is slow!
+          - build_preset: "dev"
+            platform: "linux/arm64"
+          - build_preset: "lean"
+            platform: "linux/arm64"
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -47,4 +54,5 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
-          ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME" ${{ matrix.target }} ${{ matrix.platform }}
+          pip install click
+          ./scripts/build_docker.py ${{ matrix.build_preset }} release --platform ${{ matrix.platform }}
