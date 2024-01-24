@@ -20315,4 +20315,3 @@ msgstr ""
 #, python-format
 msgid "We have the following keys: %s"
 msgstr "У нас есть следующие ключи: %s"
-
