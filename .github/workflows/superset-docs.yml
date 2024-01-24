@@ -4,9 +4,12 @@ on:
   push:
     paths:
       - "docs/**"
+    branches:
+      - 'master'
   pull_request:
     paths:
       - "docs/**"
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   config:

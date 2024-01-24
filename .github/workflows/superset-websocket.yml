@@ -1,11 +1,14 @@
 name: WebSocket server
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - "superset-websocket/**"
   pull_request:
     paths:
       - "superset-websocket/**"
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   app-checks:
