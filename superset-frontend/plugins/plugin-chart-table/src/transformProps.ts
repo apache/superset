@@ -226,6 +226,10 @@ const transformProps = (
     emitCrossFilters,
   } = chartProps;
 
+  if (Number(formData.server_page_length) > 10000) {
+    formData.server_page_length = 10000;
+  }
+
   const {
     align_pn: alignPositiveNegative = true,
     color_pn: colorPositiveNegative = true,
@@ -234,6 +238,7 @@ const transformProps = (
     page_length: pageLength,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
+    server_page_length_options: serverPageLengthOptions = [],
     order_desc: sortDesc = false,
     query_mode: queryMode,
     show_totals: showTotals,
@@ -256,6 +261,22 @@ const transformProps = (
     rowCount = baseQuery?.rowcount ?? 0;
   }
   const data = processDataRecords(baseQuery?.data, columns);
+
+  if (
+    serverPagination &&
+    !Number.isNaN(serverPageLength) &&
+    serverPageLength <= data.length &&
+    !serverPageLengthOptions?.some(
+      (option: [number, string]) => option[0] === serverPageLength,
+    )
+  ) {
+    serverPageLengthOptions?.push([
+      serverPageLength,
+      serverPageLength === 0 ? 'All' : String(serverPageLength),
+    ]);
+    serverPageLengthOptions.sort((a: any[], b: any[]) => a[0] - b[0]);
+  }
+
   const totals =
     showTotals && queryMode === QueryMode.aggregate
       ? totalQuery?.data[0]
@@ -286,6 +307,7 @@ const transformProps = (
     pageSize: serverPagination
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
+    serverPageLengthOptions,
     filters: filterState.filters,
     emitCrossFilters,
     onChangeFilter,
