@@ -133,8 +133,8 @@ fi
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=${REPO_NAME} \
-  --cache-to=type=registry,mode=max,ref=${REPO_NAME} \
+  --cache-from=type=registry,ref=${REPO_NAME}-cache \
+  --cache-to=type=registry,mode=max,ref=${REPO_NAME}-cache \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
