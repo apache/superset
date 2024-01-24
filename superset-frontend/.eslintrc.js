@@ -81,14 +81,6 @@ module.exports = {
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
-      parserOptions: {
-        project: [
-          './tsconfig.json',
-          './cypress-base/tsconfig.json',
-          './packages/superset-ui-demo/tsconfig.json',
-          // './packages/superset-ui-core/tsconfig.json',
-        ],
-      },
       extends: [
         'airbnb',
         'plugin:@typescript-eslint/recommended',
