@@ -74,7 +74,6 @@ BUILD_ARG="3.9-slim-bookworm"
 SAFE_BUILD_PLATFORM=$(echo "${BUILD_PLATFORM}" | sed 's/\//-/g')
 MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}-${TARGET}-${SAFE_BUILD_PLATFORM}-${BUILD_ARG}"
 
-
 case "${TARGET}" in
   "dev")
     DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
@@ -107,6 +106,7 @@ esac
 
 cat<<EOF
   Rolling with tags:
+  - $MAIN_UNIQUE_TAG
   - ${REPO_NAME}:${SHA}
   - ${REPO_NAME}:${REFSPEC}
   - ${REPO_NAME}:${LATEST_TAG}
@@ -133,8 +133,8 @@ fi
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=${MAIN_UNIQUE_TAG} \
-  --cache-to=type=registry,mode=max,ref=${MAIN_UNIQUE_TAG} \
+  --cache-from=type=registry,ref=${REPO_NAME} \
+  --cache-to=type=registry,mode=max,ref=${REPO_NAME} \
   ${DOCKER_TAGS} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
