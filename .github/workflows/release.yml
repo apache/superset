@@ -1,4 +1,4 @@
-name: release-workflow
+name: npm-release-workflow
 
 on:
   push:
