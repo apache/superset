@@ -65,6 +65,7 @@ export default function getInitialState({
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
     remoteId: null,
+    cursorPosition: { row: 0, column: 0 },
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
 
