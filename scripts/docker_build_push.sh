@@ -137,7 +137,7 @@ CACHE_REF="${REPO_NAME}-cache:${TARGET}-${BUILD_ARG}"
 CACHE_REF=$(echo "${CACHE_REF}" | tr -d '.')
 CACHE_FROM_ARG="--cache-from=type=registry,ref=${CACHE_REF}"
 CACHE_TO_ARG=""
-if [ -z "${DOCKERHUB_TOKEN}" ]; then
+if [ -n "${DOCKERHUB_TOKEN}" ]; then
   # need to be logged in to push to the cache
   CACHE_TO_ARG="--cache-to=type=registry,mode=max,ref=${CACHE_REF}"
 fi
