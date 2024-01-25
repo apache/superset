@@ -760,7 +760,7 @@ const SqlEditor: React.FC<Props> = ({
     );
   };
 
-  const handleCursorPositionChange = (newPosition: any) => {
+  const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
 
