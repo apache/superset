@@ -27,7 +27,6 @@ REPO_NAME="apache/superset"
 DOCKER_ARGS="--load" # default args, change as needed
 DOCKER_CONTEXT="."
 
-
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
   PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
@@ -39,7 +38,6 @@ else
   REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
   LATEST_TAG="${REFSPEC}"
 fi
-
 
 if [[ "${REFSPEC}" == "master" ]]; then
   LATEST_TAG="master"
