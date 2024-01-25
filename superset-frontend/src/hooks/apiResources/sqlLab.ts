@@ -56,7 +56,6 @@ export type InitialState = {
     hide_left_bar?: boolean;
     saved_query: { id: number } | null;
     extra_json?: Record<string, any>;
-    cursor_position?: CursorPosition;
   };
   databases: object[];
   queries: Record<
