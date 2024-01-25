@@ -1,4 +1,3 @@
-/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,41 +18,41 @@
  */
 import React from 'react';
 import {
-  StyleTextarea,
-  StyleTextareaLabel,
-  StyleTextareaText,
-} from './dvt-textarea.module';
+  StyledJsonEditor,
+  StyledJsonEditorLabel,
+  StyledJsonEditorInput,
+} from './dvt-json-editor.module';
 
-export interface DvtTextareaProps {
+export interface DvtJsonEditorProps {
   label?: string;
-  typeDesign?: 'text' | 'form' | 'border' | 'resize';
   placeholder?: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: any;
+  onChange: (value: any) => void;
+  height?: string;
+  name?: string;
 }
 
-const DvtTextarea: React.FC<DvtTextareaProps> = ({
+const DvtJsonEditor = ({
   label,
-  typeDesign = 'text',
-  placeholder,
+  placeholder = '',
   value,
   onChange,
-}) => {
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-  };
+  height = '169px',
+  name = '',
+}: DvtJsonEditorProps) => (
+  <StyledJsonEditor>
+    {label && <StyledJsonEditorLabel>{label}</StyledJsonEditorLabel>}
+    <StyledJsonEditorInput
+      showLoadingForImport
+      name={name}
+      value={value}
+      onChange={onChange}
+      tabSize={2}
+      width="100%"
+      height={height}
+      placeholder={placeholder}
+    />
+  </StyledJsonEditor>
+);
 
-  return (
-    <StyleTextarea>
-      {label && <StyleTextareaLabel>{label}</StyleTextareaLabel>}
-      <StyleTextareaText
-        typeDesign={typeDesign}
-        value={value}
-        placeholder={placeholder}
-        onChange={handleChange}
-      />
-    </StyleTextarea>
-  );
-};
-
-export default DvtTextarea;
+export default DvtJsonEditor;

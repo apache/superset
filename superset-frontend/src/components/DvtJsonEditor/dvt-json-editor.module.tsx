@@ -16,26 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import {
-  DvtTitle,
-  DvtTotal,
-  StyledDvtTitleTotal,
-} from './dvt-title-total.module';
+import { styled } from '@superset-ui/core';
+import { JsonEditor } from 'src/components/AsyncAceEditor';
 
-export interface DvtTitleTotalProps {
-  total: number;
-  title: string;
-}
+const StyledJsonEditor = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
 
-const DvtTitleTotal: React.FC<DvtTitleTotalProps> = ({
-  total = 0,
-  title = '',
-}) => (
-  <StyledDvtTitleTotal>
-    <DvtTitle>{title}</DvtTitle>
-    <DvtTotal>{`(${total})`}</DvtTotal>
-  </StyledDvtTitleTotal>
-);
+const StyledJsonEditorLabel = styled.div`
+  color: ${({ theme }) => theme.colors.dvt.text.label};
+  font-size: 12px;
+  font-weight: 500;
+`;
 
-export default DvtTitleTotal;
+const StyledJsonEditorInput = styled(JsonEditor)`
+  flex: 1 1 auto;
+  border-radius: 4px;
+
+  &.ace-github .ace_gutter {
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  }
+`;
+
+export { StyledJsonEditor, StyledJsonEditorLabel, StyledJsonEditorInput };

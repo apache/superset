@@ -20,6 +20,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import moment, { Moment } from 'moment';
 import Icon from '../Icons/Icon';
+
 import DvtCalendar from '../DvtCalendar';
 import {
   StyledDatepicker,
@@ -42,8 +43,8 @@ export interface DvtDatePickerProps {
 }
 
 const DvtDatePicker: React.FC<DvtDatePickerProps> = ({
-  label,
-  placeholder,
+  label = '',
+  placeholder = '',
   selectedDate,
   setSelectedDate,
   width = 202,

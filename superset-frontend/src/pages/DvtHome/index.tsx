@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { openModal } from 'src/dvt-redux/dvt-modalReducer';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -167,10 +168,9 @@ function DvtWelcome() {
   return (
     <StyledDvtWelcome>
       <DataContainer>
-        <DvtTitleCardList title="Recents" data={recentData} />
-
+        <DvtTitleCardList title={t('Recents')} data={recentData} />
         <DvtTitleCardList
-          title="Dashboards"
+          title={t('Dashboards')}
           data={dashboardData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'Dashboard')
@@ -187,9 +187,8 @@ function DvtWelcome() {
             { label: 'Delete', icon: 'trash', onClick: () => {} },
           ]}
         />
-
         <DvtTitleCardList
-          title="Charts"
+          title={t('Charts')}
           data={chartData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'slice')
@@ -200,9 +199,8 @@ function DvtWelcome() {
             { label: 'Delete', icon: 'trash', onClick: () => {} },
           ]}
         />
-
         <DvtTitleCardList
-          title="Saved Queries"
+          title={t('Saved Queries')}
           data={savedQueriesData}
           dropdown={[{ label: 'Share', onClick: () => {} }]}
         />
@@ -217,7 +215,7 @@ function DvtWelcome() {
           />
         ) : (
           <DvtButton
-            label="Open Calendar"
+            label={t('Open Calendar')}
             onClick={() => setOpenCalendar(true)}
           />
         )}

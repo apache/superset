@@ -43,7 +43,7 @@ const DvtTextareaSelectRun: React.FC<DvtTextareaSelectRunProps> = ({
   limit,
   setLimit,
   clickRun,
-  placeholder,
+  placeholder = '',
   value,
   setValue,
 }) => {

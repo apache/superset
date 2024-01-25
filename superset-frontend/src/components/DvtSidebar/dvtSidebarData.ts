@@ -1,3 +1,5 @@
+import { t } from '@superset-ui/core';
+
 interface SidebarDataProps {
   pathname: string;
   data: any[];
@@ -91,30 +93,30 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/databaseview/list/',
     data: [
       {
-        label: 'EXPOSE IN SQL LAB',
+        label: t('EXPOSE IN SQL LAB'),
         values: [
           { label: 'No', value: 'false' },
           { label: 'Yes', value: 'true' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
         name: 'expose_in_sqllab',
       },
       {
-        label: 'AQE',
+        label: t('AQE'),
         values: [
           { label: 'No', value: 'false' },
           { label: 'Yes', value: 'true' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
         name: 'allow_run_async',
       },
       {
-        label: 'SEARCH',
+        label: t('SEARCH'),
         values: [
           { label: 'Failed', value: 'failed' },
           { label: 'Success', value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         name: 'search',
       },
     ],
@@ -123,42 +125,42 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/superset/sqllab/history/',
     data: [
       {
-        label: 'Database',
+        label: t('Database'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'State',
+        label: t('State'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'User',
+        label: t('User'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
       {
-        label: 'Time Range',
+        label: t('Time Range'),
         values: [],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         datePicker: true,
       },
       {
-        label: 'Search by Query Text',
+        label: t('Search by Query Text'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
     ],
   },
@@ -166,31 +168,31 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/superset/sqllab/saved_queries/',
     data: [
       {
-        label: 'Database',
+        label: t('Database'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'Schema',
+        label: t('Schema'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
       },
       {
-        label: 'Tags',
+        label: t('Tags'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
       },
       {
-        label: 'Search',
+        label: t('Search'),
         values: [],
       },
     ],
@@ -200,44 +202,44 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Owner',
+        placeholder: t('Owner'),
         name: 'owner',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Database',
+        placeholder: t('Database'),
         name: 'database',
       },
       {
         values: [
-          { label: 'Lorem ıpsum', value: 'failed' },
-          { label: 'Dolor Sit Amet', value: 'success' },
-          { label: 'Lorem ıpsum', value: 'failed1' },
-          { label: 'Dolor Sit Amet', value: 'success1' },
+          { label: t('Lorem ıpsum'), value: 'failed' },
+          { label: t('Dolor Sit Amet'), value: 'success' },
+          { label: t('Lorem ıpsum'), value: 'failed1' },
+          { label: t('Dolor Sit Amet'), value: 'success1' },
         ],
-        placeholder: 'Schema',
+        placeholder: t('Schema'),
         name: 'schema',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Type',
+        placeholder: t('Type'),
         name: 'type',
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Certified',
+        placeholder: t('Certified'),
         name: 'certified',
       },
     ],
@@ -247,17 +249,17 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Sqlite',
+        placeholder: t('Sqlite'),
       },
       {
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Main',
+        placeholder: t('Main'),
       },
       {
         values: [],
@@ -423,7 +425,7 @@ const DvtSidebarData: SidebarDataProps[] = [
             title: 'table_schema_subtitle',
           },
         ],
-        placeholder: 'See Table Schema',
+        placeholder: t('See Table Schema'),
         title: 'FFC 2019 Survey',
       },
     ],
@@ -433,15 +435,15 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         values: [
-          { label: 'postgresql examples', value: 'postgresql_examples' },
-          { label: 'postgresql PostgreSQL', value: 'postgresql_postgresql' },
+          { label: t('postgresql examples'), value: 'postgresql_examples' },
+          { label: t('postgresql PostgreSQL'), value: 'postgresql_postgresql' },
         ],
-        placeholder: 'DATABASE',
+        placeholder: t('DATABASE'),
         name: 'database',
       },
       {
-        values: [{ label: 'Schema', value: 'schema' }],
-        placeholder: 'SCHEMA',
+        values: [{ label: t('Schema'), value: 'schema' }],
+        placeholder: t('SCHEMA'),
         name: 'schema',
       },
     ],
@@ -451,36 +453,36 @@ const DvtSidebarData: SidebarDataProps[] = [
     data: [
       {
         values: [],
-        placeholder: 'Owner',
+        placeholder: t('Owner'),
         name: 'owner',
       },
       {
         values: [],
-        placeholder: 'Created by',
+        placeholder: t('Created by'),
         name: 'createdBy',
       },
       {
         values: [
-          { label: 'Published', value: '!t' },
-          { label: 'Draft', value: '!f' },
+          { label: t('Published'), value: '!t' },
+          { label: t('Draft'), value: '!f' },
         ],
-        placeholder: 'Status',
+        placeholder: t('Status'),
         name: 'status',
       },
       {
         values: [
-          { label: 'Yes', value: '!t' },
-          { label: 'No', value: '!f' },
+          { label: t('Yes'), value: '!t' },
+          { label: t('No'), value: '!f' },
         ],
-        placeholder: 'Favorite',
+        placeholder: t('Favorite'),
         name: 'favorite',
       },
       {
         values: [
-          { label: 'Yes', value: '!t' },
-          { label: 'No', value: '!f' },
+          { label: t('Yes'), value: '!t' },
+          { label: t('No'), value: '!f' },
         ],
-        placeholder: 'Certified',
+        placeholder: t('Certified'),
         name: 'certified',
       },
     ],
@@ -489,81 +491,84 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/report/list/',
     data: [
       {
-        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Owner',
+        values: [{ label: t('Superset Admin'), value: 'Superset Admin' }],
+        placeholder: t('Owner'),
         name: 'owner',
       },
       {
-        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Created by',
+        values: [{ label: t('Superset Admin'), value: 'Superset Admin' }],
+        placeholder: t('Created by'),
         name: 'createdBy',
       },
       {
         values: [
-          { label: 'Pie Chart', value: 'pie' },
-          { label: 'Big Number with Trendline', value: 'big_number' },
-          { label: 'Table', value: 'table' },
-          { label: 'World Map', value: 'world_map' },
-          { label: 'Treemap (legacy)', value: 'treemap' },
-          { label: 'Bar Chart', value: 'dist_bar' },
-          { label: 'Time-series Bar Chart', value: 'echarts_timeseries_bar' },
-          { label: 'Chord Diagram', value: 'chord' },
-          { label: 'Heatmap', value: 'heatmap' },
-          { label: 'Box Plot', value: 'box_plot' },
-          { label: 'Sankey Diagram', value: 'sankey' },
+          { label: t('Pie Chart'), value: 'pie' },
+          { label: t('Big Number with Trendline'), value: 'big_number' },
+          { label: t('Table'), value: 'table' },
+          { label: t('World Map'), value: 'world_map' },
+          { label: t('Treemap (legacy)'), value: 'treemap' },
+          { label: t('Bar Chart'), value: 'dist_bar' },
+          {
+            label: t('Time-series Bar Chart'),
+            value: 'echarts_timeseries_bar',
+          },
+          { label: t('Chord Diagram'), value: 'chord' },
+          { label: t('Heatmap'), value: 'heatmap' },
+          { label: t('Box Plot'), value: 'box_plot' },
+          { label: t('Sankey Diagram'), value: 'sankey' },
         ],
-        placeholder: 'Chart Type',
+        placeholder: t('Chart Type'),
         name: 'chartType',
       },
       {
         values: [
-          { label: 'arac', value: 'dwh.arac' },
-          { label: 'alarm_event', value: 'cap.alarm_event' },
+          { label: t('arac'), value: 'dwh.arac' },
+          { label: t('alarm_event'), value: 'cap.alarm_event' },
           {
-            label: 'FCC 2018 Survey',
+            label: t('FCC 2018 Survey'),
             value: 'public.FCC 2018 Survey',
           },
-          { label: 'video_game_sales', value: 'public.video_game_sales' },
-          { label: 'hrrr2', value: 'public.hrrr2' },
+          { label: t('video_game_sales'), value: 'public.video_game_sales' },
+          { label: t('hrrr2'), value: 'public.hrrr2' },
           {
-            label: 'users_channels-uzooNNtSRO',
+            label: t('users_channels-uzooNNtSRO'),
             value: 'public.users_channels-uzooNNtSRO',
           },
         ],
-        placeholder: 'Dataset',
+        placeholder: t('Dataset'),
         name: 'dataset',
       },
       {
         values: [
-          { label: 'Unicode Test', value: 'Unicode Test' },
+          { label: t('Unicode Test'), value: 'Unicode Test' },
           {
-            label: 'COVID Vaccine Dashboard',
+            label: t('COVID Vaccine Dashboard'),
             value: 'COVID Vaccine Dashboard',
           },
-          { label: 'untitled dashboard', value: 'untitled dashboard' },
+          { label: t('untitled dashboard'), value: 'untitled dashboard' },
           {
-            label: 'FCC New Coder Survey 2018',
+            label: t('FCC New Coder Survey 2018'),
             value: 'FCC New Coder Survey 2018',
           },
-          { label: 'Video Game Sales', value: 'Video Game Sales' },
+          { label: t('Video Game Sales'), value: 'Video Game Sales' },
         ],
-        placeholder: 'Dashboards',
+        placeholder: t('Dashboards'),
         name: 'dashboards',
       },
       {
         values: [
-          { label: 'Yes', value: 'true' },
-          { label: 'No', value: 'false' },
+          { label: t('Yes'), value: 'true' },
+          { label: t('No'), value: 'false' },
         ],
-        placeholder: 'Favorite',
+        placeholder: t('Favorite'),
         name: 'favorite',
       },
       {
         values: [
-          { label: 'Yes', value: 'true' },
-          { label: 'No', value: null },
+          { label: t('Yes'), value: 'true' },
+          { label: t('No'), value: null },
         ],
-        placeholder: 'Certified',
+        placeholder: t('Certified'),
         name: 'certified',
       },
     ],
@@ -572,33 +577,33 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/alert/list/',
     data: [
       {
-        label: 'Owner',
-        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Select or type a value',
+        label: t('Owner'),
+        values: [{ label: t('Superset Admin'), value: 'Superset Admin' }],
+        placeholder: t('Select or type a value'),
         name: 'owner',
       },
       {
-        label: 'Created by',
-        values: [{ label: 'Superset Admin', value: 'Superset Admin' }],
-        placeholder: 'Select or type a value',
+        label: t('Created by'),
+        values: [{ label: t('Superset Admin'), value: 'Superset Admin' }],
+        placeholder: t('Select or type a value'),
         name: 'createdBy',
       },
       {
-        label: 'Status',
+        label: t('Status'),
         values: [
-          { label: 'Error', value: 'Error' },
-          { label: 'Success', value: 'Success' },
+          { label: t('Error'), value: 'Error' },
+          { label: t('Success'), value: 'Success' },
         ],
-        placeholder: 'Select or type a value',
+        placeholder: t('Select or type a value'),
         name: 'status',
       },
       {
-        label: 'Search',
+        label: t('Search'),
         values: [
-          { label: 'Failed', value: 'failed' },
-          { label: 'Success', value: 'success' },
+          { label: t('Failed'), value: 'failed' },
+          { label: t('Success'), value: 'success' },
         ],
-        placeholder: 'Type a value',
+        placeholder: t('Type a value'),
         name: 'search',
       },
     ],
@@ -610,39 +615,39 @@ const DvtSidebarData: SidebarDataProps[] = [
         items: [
           {
             icon: 'dvt-briefcase',
-            label: 'Created Content',
+            label: t('Created Content'),
             url: 'test',
           },
           {
             icon: 'dvt-calendar',
-            label: 'Schedule',
+            label: t('Schedule'),
             url: 'test1',
           },
           {
             icon: 'dvt-history',
-            label: 'Recent Activity',
+            label: t('Recent Activity'),
             url: 'test2',
           },
           {
             icon: 'dvt-star',
-            label: 'Favorites',
+            label: t('Favorites'),
             url: 'test3',
           },
           {
             icon: 'dvt-users',
-            label: 'Groups and Roles',
+            label: t('Groups and Roles'),
             url: 'test4',
           },
           {
             icon: 'dvt-arrow_forwardup',
-            label: 'Query History',
+            label: t('Query History'),
             url: 'test5',
           },
         ],
         itemsLogout: [
           {
             icon: 'dvt-logout',
-            label: 'Log Out',
+            label: t('Log Out'),
           },
         ],
       },
@@ -652,24 +657,24 @@ const DvtSidebarData: SidebarDataProps[] = [
     pathname: '/chart/add',
     data: [
       {
-        placeholder: 'Dataset',
+        placeholder: t('Dataset'),
         name: 'dataset',
       },
       {
         values: [
-          { label: 'Popular', value: 'popular' },
-          { label: 'ECharts', value: 'echarts' },
-          { label: 'Advanced-Analytics', value: 'advanced_analytics' },
+          { label: t('Popular'), value: 'popular' },
+          { label: t('ECharts'), value: 'echarts' },
+          { label: t('Advanced-Analytics'), value: 'advanced_analytics' },
         ],
-        placeholder: 'Recommended Tags',
+        placeholder: t('Recommended Tags'),
         name: 'recommended_tags',
       },
       {
-        placeholder: 'Category',
+        placeholder: t('Category'),
         name: 'category',
       },
       {
-        placeholder: 'Tags',
+        placeholder: t('Tags'),
         name: 'tags',
       },
     ],

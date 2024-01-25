@@ -45,7 +45,11 @@ export interface DvtContentProps {
   data: DataProps[];
 }
 
-const DvtContent: React.FC<DvtContentProps> = ({ title, header, data }) => {
+const DvtContent: React.FC<DvtContentProps> = ({
+  title = '',
+  header,
+  data,
+}) => {
   const getFormattedDifference = (modified: moment.Moment) => {
     const now = moment();
     const diff = now.diff(modified);

@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import moment from 'moment';
 import DvtButton from 'src/components/DvtButton';
 import DvtPagination from 'src/components/DvtPagination';
@@ -33,37 +34,37 @@ import {
 const header = [
   {
     id: 1,
-    title: 'Name',
+    title: t('Name'),
     field: 'table_name',
     flex: 3,
     checkbox: true,
     folderIcon: true,
     onLink: true,
   },
-  { id: 2, title: 'Type', field: 'kind' },
-  { id: 3, title: 'Database', field: 'database' },
-  { id: 4, title: 'Schema', field: 'schema' },
-  { id: 5, title: 'Modified Date', field: 'changed_on_utc' },
-  { id: 6, title: 'Modified by', field: 'changed_by_name' },
-  { id: 7, title: 'Owners', field: 'owners' },
+  { id: 2, title: t('Type'), field: 'kind' },
+  { id: 3, title: t('Database'), field: 'database' },
+  { id: 4, title: t('Schema'), field: 'schema' },
+  { id: 5, title: t('Modified Date'), field: 'changed_on_utc' },
+  { id: 6, title: t('Modified by'), field: 'changed_by_name' },
+  { id: 7, title: t('Owners'), field: 'owners' },
   {
     id: 8,
-    title: 'Actions',
+    title: t('Actions'),
     clicks: [
       {
         icon: 'edit_alt',
         click: () => {},
-        popperLabel: 'Edit',
+        popperLabel: t('Edit'),
       },
       {
         icon: 'share',
         click: () => {},
-        popperLabel: 'Export',
+        popperLabel: t('Export'),
       },
       {
         icon: 'trash',
         click: () => {},
-        popperLabel: 'Delete',
+        popperLabel: t('Delete'),
       },
     ],
   },
@@ -120,7 +121,7 @@ function DvtDatasets() {
         </StyledSelected>
         <StyledDeselect>
           <DvtButton
-            label="Deselect All"
+            label={t('Deselect All')}
             bold
             colour="primary"
             typeColour="outline"
@@ -140,7 +141,7 @@ function DvtDatasets() {
       </div>
       <StyledButtons>
         <DvtButton
-          label="Create a New Dataset"
+          label={t('Create a New Dataset')}
           onClick={() => {}}
           colour="grayscale"
           typeColour="basic"

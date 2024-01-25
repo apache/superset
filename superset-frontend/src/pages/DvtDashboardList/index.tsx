@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useHistory } from 'react-router-dom';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import useFetch from 'src/hooks/useFetch';
@@ -41,7 +42,7 @@ import {
 const headerData = [
   {
     id: 1,
-    title: 'Title',
+    title: t('Title'),
     field: 'dashboard_title',
     flex: 3,
     checkbox: true,
@@ -49,33 +50,33 @@ const headerData = [
   },
   {
     id: 2,
-    title: 'Modified By',
+    title: t('Modified By'),
     field: 'changed_by_name',
     urlField: 'changed_by_url',
   },
-  { id: 3, title: 'Status', field: 'status' },
-  { id: 4, title: 'Modified', field: 'created_on_delta_humanized' },
-  { id: 5, title: 'Created By', field: 'createdbyName' },
-  { id: 6, title: 'Owners', field: 'owners' },
+  { id: 3, title: t('Status'), field: 'status' },
+  { id: 4, title: t('Modified'), field: 'created_on_delta_humanized' },
+  { id: 5, title: t('Created By'), field: 'createdbyName' },
+  { id: 6, title: t('Owners'), field: 'owners' },
   {
     id: 7,
-    title: 'Action',
+    title: t('Action'),
     showHover: true,
     clicks: [
       {
         icon: 'edit_alt',
         click: () => {},
-        popperLabel: 'Edit',
+        popperLabel: t('Edit'),
       },
       {
         icon: 'share',
         click: () => {},
-        popperLabel: 'Export',
+        popperLabel: t('Export'),
       },
       {
         icon: 'trash',
         click: () => {},
-        popperLabel: 'Delete',
+        popperLabel: t('Delete'),
       },
     ],
   },
@@ -173,7 +174,7 @@ function DvtDashboardList() {
               <span>{`${selectedRows.length} Selected`}</span>
             </StyledSelectedItemCount>
             <DvtButton
-              label="Deselect All"
+              label={t('Deselect All')}
               bold
               colour="primary"
               typeColour="outline"
@@ -184,7 +185,7 @@ function DvtDashboardList() {
         </StyledDvtSelectButtons>
         <StyledDashboardButtons>
           <DvtButton
-            label="Delete"
+            label={t('Delete')}
             icon="dvt-delete"
             iconToRight
             colour="error"
@@ -192,7 +193,7 @@ function DvtDashboardList() {
             onClick={() => {}}
           />
           <DvtButton
-            label="Export"
+            label={t('Export')}
             icon="dvt-export"
             iconToRight
             colour="primary"
@@ -215,7 +216,7 @@ function DvtDashboardList() {
       <StyledDashboardBottom>
         <StyledDashboardCreateDashboard>
           <DvtButton
-            label="Create a New Dashboard"
+            label={t('Create a New Dashboard')}
             colour="grayscale"
             bold
             typeColour="basic"
