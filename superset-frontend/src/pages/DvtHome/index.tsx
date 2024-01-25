@@ -150,24 +150,35 @@ function DvtWelcome() {
     <StyledDvtWelcome>
       <DataContainer>
         <DvtTitleCardList title={t('Recents')} data={recentData} />
-
         <DvtTitleCardList
           title={t('Dashboards')}
           data={dashboardData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'Dashboard')
           }
+          dropdown={[
+            { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+            { label: 'Export', icon: 'share', onClick: () => {} },
+            { label: 'Delete', icon: 'trash', onClick: () => {} },
+          ]}
         />
-
         <DvtTitleCardList
           title={t('Charts')}
           data={chartData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'slice')
           }
+          dropdown={[
+            { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+            { label: 'Export', icon: 'share', onClick: () => {} },
+            { label: 'Delete', icon: 'trash', onClick: () => {} },
+          ]}
         />
-
-        <DvtTitleCardList title={t('Saved Queries')} data={savedQueriesData} />
+        <DvtTitleCardList
+          title={t('Saved Queries')}
+          data={savedQueriesData}
+          dropdown={[{ label: 'Share', onClick: () => {} }]}
+        />
       </DataContainer>
       <CalendarContainer>
         {openCalendar ? (

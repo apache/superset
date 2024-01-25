@@ -31,6 +31,7 @@ import {
 } from './dvt-card.module';
 import Icons from '../Icons';
 import Icon from '../Icons/Icon';
+import DvtDropdown, { OptionProps } from '../DvtDropdown';
 
 export interface DvtCardProps {
   title: string;
@@ -39,6 +40,7 @@ export interface DvtCardProps {
   isFavorite: boolean | null;
   setFavorite: React.Dispatch<React.SetStateAction<boolean>>;
   link?: string;
+  dropdown?: OptionProps[];
 }
 
 const DvtCard: React.FC<DvtCardProps> = ({
@@ -47,6 +49,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
   description,
   isFavorite,
   setFavorite,
+  dropdown,
   link = '',
 }) => {
   const history = useHistory();
@@ -83,13 +86,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
             </IconButton>
           )}
 
-          <IconButton>
-            <Icon
-              fileName="more_vert"
-              iconSize="xl"
-              iconColor={supersetTheme.colors.dvt.text.bold}
-            />
-          </IconButton>
+          {dropdown && <DvtDropdown data={dropdown} icon="more_vert" />}
         </DvtHeadButtons>
       </DvtCardHead>
       <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>

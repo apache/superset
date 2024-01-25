@@ -23,6 +23,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import DvtSidebar from 'src/components/DvtSidebar';
 import DvtNavbar from 'src/components/DvtNavbar';
+import DvtModal from 'src/dvt-modal';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { routes } from 'src/views/dvt-routes';
@@ -33,8 +34,13 @@ interface StyledLayoutProps {
   navbarInHeight: boolean;
 }
 
-const StyledApp = styled.div<StyledLayoutProps>`
-  margin-left: 250px;
+interface StyledLayoutWidthProps {
+  navbarInHeight: boolean;
+  active: boolean;
+}
+
+const StyledApp = styled.div<StyledLayoutWidthProps>`
+  margin-left: ${({ active }) => (active ? '300px' : '250px')};
   padding-top: ${({ navbarInHeight }) => (navbarInHeight ? 160 : 80)}px;
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   height: 100vh;
@@ -64,10 +70,14 @@ const DvtLayout = () => {
   const { pathname } = location;
 
   return (
-    <StyledApp navbarInHeight={WithNavbarBottom.includes(pathname)}>
+    <StyledApp
+      navbarInHeight={WithNavbarBottom.includes(pathname)}
+      active={pathname !== '/superset/welcome/'}
+    >
       <GlobalStyles />
       <DvtSidebar pathName={pathname} />
       <DvtNavbar pathName={pathname} />
+      <DvtModal />
       <Main navbarInHeight={WithNavbarBottom.includes(pathname)}>
         <Switch>
           {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (

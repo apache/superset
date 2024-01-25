@@ -18,13 +18,17 @@
  */
 import { styled } from '@superset-ui/core';
 
-const StyledDvtNavbar = styled.div`
+interface SidebarIcon {
+  active: boolean;
+}
+
+const StyledDvtNavbar = styled.div<SidebarIcon>`
   padding: 0 30px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   position: fixed;
   top: 0;
   right: 0;
-  left: 250px;
+  left: ${({ active }) => (active ? '300px' : '250px')};
 `;
 
 const NavbarTop = styled.div`

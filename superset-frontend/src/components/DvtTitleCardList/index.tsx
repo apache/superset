@@ -27,6 +27,7 @@ import {
   StyledDvtTitleCardList,
 } from './dvt-title-card-list.module';
 import Icon from '../Icons/Icon';
+import { OptionProps } from '../DvtDropdown';
 
 export interface CardDataProps {
   id: number;
@@ -41,12 +42,14 @@ export interface DvtTitleCardListProps {
   title: string;
   data: CardDataProps[];
   setFavorites?: (id: number, isFavorite: boolean) => void;
+  dropdown?: OptionProps[];
 }
 
 const DvtTitleCardList: React.FC<DvtTitleCardListProps> = ({
   title,
   data,
   setFavorites,
+  dropdown,
 }) => (
   <StyledDvtTitleCardList>
     <DvtCardListHead>
@@ -80,6 +83,7 @@ const DvtTitleCardList: React.FC<DvtTitleCardListProps> = ({
             )
           }
           link={item.link}
+          dropdown={dropdown}
         />
       ))}
     </StyledDvtCardList>
