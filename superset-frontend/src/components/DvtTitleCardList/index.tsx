@@ -84,6 +84,7 @@ const DvtTitleCardList: React.FC<DvtTitleCardListProps> = ({
           }
           link={item.link}
           dropdown={dropdown}
+          item={item}
         />
       ))}
     </StyledDvtCardList>

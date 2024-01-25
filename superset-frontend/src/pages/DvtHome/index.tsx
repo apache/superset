@@ -17,8 +17,10 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
+import { openModal } from 'src/dvt-redux/dvt-modalReducer';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtCalendar from 'src/components/DvtCalendar';
 import DvtButton from 'src/components/DvtButton';
@@ -98,6 +100,7 @@ function DvtWelcome() {
   const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [savedQueriesData, setSavedQueriesData] = useState<CardDataProps[]>([]);
+  const dispatch = useDispatch();
 
   const handleSetFavorites = (
     id: number,
@@ -146,6 +149,22 @@ function DvtWelcome() {
     );
   }, []);
 
+  const handleEditDashboard = async (item: any) => {
+    try {
+      const response = await fetch(`/api/v1/dashboard/${item.id}`);
+      const editedDashboardData = await response.json();
+
+      dispatch(
+        openModal({
+          component: 'edit-dashboard',
+          meta: editedDashboardData,
+        }),
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <StyledDvtWelcome>
       <DataContainer>
@@ -157,7 +176,13 @@ function DvtWelcome() {
             handleSetFavorites(id, isFavorite, 'Dashboard')
           }
           dropdown={[
-            { label: 'Edit', icon: 'edit_alt', onClick: () => {} },
+            {
+              label: 'Edit',
+              icon: 'edit_alt',
+              onClick: (item: any) => {
+                handleEditDashboard(item);
+              },
+            },
             { label: 'Export', icon: 'share', onClick: () => {} },
             { label: 'Delete', icon: 'trash', onClick: () => {} },
           ]}

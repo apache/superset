@@ -41,6 +41,7 @@ export interface DvtCardProps {
   setFavorite: React.Dispatch<React.SetStateAction<boolean>>;
   link?: string;
   dropdown?: OptionProps[];
+  item: any;
 }
 
 const DvtCard: React.FC<DvtCardProps> = ({
@@ -50,6 +51,7 @@ const DvtCard: React.FC<DvtCardProps> = ({
   isFavorite,
   setFavorite,
   dropdown,
+  item,
   link = '',
 }) => {
   const history = useHistory();
@@ -86,7 +88,9 @@ const DvtCard: React.FC<DvtCardProps> = ({
             </IconButton>
           )}
 
-          {dropdown && <DvtDropdown data={dropdown} icon="more_vert" />}
+          {dropdown && (
+            <DvtDropdown data={dropdown} item={item} icon="more_vert" />
+          )}
         </DvtHeadButtons>
       </DvtCardHead>
       <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>
