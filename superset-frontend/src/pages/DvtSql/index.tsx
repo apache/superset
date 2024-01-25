@@ -1,34 +1,36 @@
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import DvtPagination from 'src/components/DvtPagination';
 import DvtTable from 'src/components/DvtTable';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { StyledSqlPagination } from './dvt-sql.module';
 
+
 const SavedQueriesHeader = [
-  { id: 1, title: 'Name', field: 'label', flex: 3 },
-  { id: 2, title: 'Database', field: 'database_name' },
-  { id: 3, title: 'Schema', field: 'schema' },
-  { id: 4, title: 'Tables', field: 'table' },
-  { id: 5, title: 'Created on', field: 'id' },
-  { id: 6, title: 'Modified', field: 'changed_on_delta_humanized' },
+  { id: 1, title: t('Name'), field: 'label', flex: 3 },
+  { id: 2, title: t('Database'), field: 'database_name' },
+  { id: 3, title: t('Schema'), field: 'schema' },
+  { id: 4, title: t('Tables'), field: 'table' },
+  { id: 5, title: t('Created on'), field: 'id' },
+  { id: 6, title: t('Modified'), field: 'changed_on_delta_humanized' },
   {
     id: 7,
-    title: 'Actions',
+    title: t('Actions'),
     clicks: [
       {
         icon: 'edit_alt',
         click: () => {},
-        popperLabel: 'Edit',
+        popperLabel: t('Edit'),
       },
       {
         icon: 'share',
         click: () => {},
-        popperLabel: 'Export',
+        popperLabel: t('Export'),
       },
       {
         icon: 'trash',
         click: () => {},
-        popperLabel: 'Delete',
+        popperLabel: t('Delete'),
       },
     ],
   },
@@ -37,53 +39,53 @@ const SavedQueriesHeader = [
 const QueryHistoryHeader = [
   {
     id: 1,
-    title: 'Time',
+    title: t('Time'),
     field: 'changed_on',
     flex: 3,
   },
   {
     id: 2,
-    title: 'Tab Name',
+    title: t('Tab Name'),
     field: 'tab_name',
   },
   {
     id: 3,
-    title: 'Database',
+    title: t('Database'),
     field: 'database_name',
   },
   {
     id: 4,
-    title: 'Schema',
+    title: t('Schema'),
     field: 'schema',
   },
   {
     id: 5,
-    title: 'Tables',
+    title: t('Tables'),
     field: 'table',
   },
   {
     id: 6,
-    title: 'User',
+    title: t('User'),
     field: 'user',
   },
   {
     id: 7,
-    title: 'Rows',
+    title: t('Rows'),
     field: 'rows',
   },
   {
     id: 8,
-    title: 'SQL',
+    title: t('SQL'),
     field: 'sql',
   },
   {
     id: 9,
-    title: 'Actions',
+    title: t('Actions'),
     clicks: [
       {
         icon: 'edit_alt',
         click: () => {},
-        popperLabel: 'Edit',
+        popperLabel: t('Edit'),
       },
     ],
   },

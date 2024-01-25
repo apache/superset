@@ -32,33 +32,33 @@ const modifiedData = {
   header: [
     {
       id: 1,
-      title: 'Name',
+      title: t('Name'),
       field: 'slice_name',
       checkbox: true,
     },
-    { id: 2, title: 'Visualization Type', field: 'viz_type' },
-    { id: 3, title: 'Dataset', field: 'datasource_name_text' },
-    { id: 4, title: 'Modified date', field: 'date' },
-    { id: 5, title: 'Modified by', field: 'changed_by' },
-    { id: 6, title: 'Created by', field: 'created_by' },
+    { id: 2, title: t('Visualization Type'), field: 'viz_type' },
+    { id: 3, title: t('Dataset'), field: 'datasource_name_text' },
+    { id: 4, title: t('Modified date'), field: 'date' },
+    { id: 5, title: t('Modified by'), field: 'changed_by' },
+    { id: 6, title: t('Created by'), field: 'created_by' },
     {
       id: 9,
-      title: 'Action',
+      title: t('Action'),
       clicks: [
         {
           icon: 'edit_alt',
           click: () => {},
-          popperLabel: 'Edit',
+          popperLabel: t('Edit'),
         },
         {
           icon: 'share',
           click: () => {},
-          popperLabel: 'Export',
+          popperLabel: t('Export'),
         },
         {
           icon: 'trash',
           click: () => {},
-          popperLabel: 'Delete',
+          popperLabel: t('Delete'),
         },
       ],
     },

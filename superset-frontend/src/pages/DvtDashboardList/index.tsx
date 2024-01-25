@@ -42,7 +42,7 @@ import {
 const headerData = [
   {
     id: 1,
-    title: 'Title',
+    title: t('Title'),
     field: 'dashboard_title',
     flex: 3,
     checkbox: true,
@@ -50,33 +50,33 @@ const headerData = [
   },
   {
     id: 2,
-    title: 'Modified By',
+    title: t('Modified By'),
     field: 'changed_by_name',
     urlField: 'changed_by_url',
   },
-  { id: 3, title: 'Status', field: 'status' },
-  { id: 4, title: 'Modified', field: 'created_on_delta_humanized' },
-  { id: 5, title: 'Created By', field: 'createdbyName' },
-  { id: 6, title: 'Owners', field: 'owners' },
+  { id: 3, title: t('Status'), field: 'status' },
+  { id: 4, title: t('Modified'), field: 'created_on_delta_humanized' },
+  { id: 5, title: t('Created By'), field: 'createdbyName' },
+  { id: 6, title: t('Owners'), field: 'owners' },
   {
     id: 7,
-    title: 'Action',
+    title: t('Action'),
     showHover: true,
     clicks: [
       {
         icon: 'edit_alt',
         click: () => {},
-        popperLabel: 'Edit',
+        popperLabel: t('Edit'),
       },
       {
         icon: 'share',
         click: () => {},
-        popperLabel: 'Export',
+        popperLabel: t('Export'),
       },
       {
         icon: 'trash',
         click: () => {},
-        popperLabel: 'Delete',
+        popperLabel: t('Delete'),
       },
     ],
   },
