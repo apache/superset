@@ -88,7 +88,9 @@ const DvtCard: React.FC<DvtCardProps> = ({
             </IconButton>
           )}
 
-          {dropdown && <DvtDropdown data={dropdown} item={item} icon="more_vert" />}
+          {dropdown && (
+            <DvtDropdown data={dropdown} item={item} icon="more_vert" />
+          )}
         </DvtHeadButtons>
       </DvtCardHead>
       <DvtCardLabel>{truncatedFormat(label, 25)}</DvtCardLabel>
