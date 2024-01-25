@@ -44,8 +44,6 @@ jobs:
           ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
 
   ephemeral-docker-build:
-    needs: config
-    if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
     steps:
