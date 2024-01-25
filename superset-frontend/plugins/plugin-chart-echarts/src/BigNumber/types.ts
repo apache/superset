@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { EChartsCoreOption } from 'echarts';
 import {
@@ -67,7 +50,7 @@ export type BigNumberWithTrendlineChartProps =
 
 export type TimeSeriesDatum = [number, number | null];
 
-export type BigNumberVizProps = {
+export type BigNumberVisProps = {
   className?: string;
   width: number;
   height: number;
@@ -96,4 +79,30 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+};
+
+// DODO added
+export enum COMPARATOR {
+  NONE = 'None',
+  GREATER_THAN = '>',
+  LESS_THAN = '<',
+  GREATER_OR_EQUAL = '≥',
+  LESS_OR_EQUAL = '≤',
+  EQUAL = '=',
+  NOT_EQUAL = '≠',
+  BETWEEN = '< x <',
+  BETWEEN_OR_EQUAL = '≤ x ≤',
+  BETWEEN_OR_LEFT_EQUAL = '≤ x <',
+  BETWEEN_OR_RIGHT_EQUAL = '< x ≤',
+}
+
+// DODO added
+export type ConditionalFormattingConfig = {
+  operator?: COMPARATOR;
+  targetValue?: number;
+  targetValueLeft?: number | string;
+  targetValueRight?: number | string;
+  column?: string;
+  colorScheme?: string;
+  isFixedColor?: boolean;
 };

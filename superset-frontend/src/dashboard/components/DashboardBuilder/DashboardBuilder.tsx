@@ -1,22 +1,6 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+/* eslint-disable @typescript-eslint/prefer-optional-chain */
 /* eslint-env browser */
+// DODO was here
 import cx from 'classnames';
 import React, {
   FC,
@@ -83,11 +67,41 @@ import {
   OPEN_FILTER_BAR_MAX_WIDTH,
   OPEN_FILTER_BAR_WIDTH,
 } from 'src/dashboard/constants';
+import { bootstrapData } from 'src/preamble';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 
 type DashboardBuilderProps = {};
+
+function getPageLanguage() {
+  if (!document) {
+    return null;
+  }
+  const select = document.querySelector('#changeLanguage select');
+  // @ts-ignore
+  const selectedLanguage = select ? select.value : null;
+  return selectedLanguage;
+}
+
+const getLocaleForSuperset = () => {
+  const dodoisLanguage = getPageLanguage();
+  if (dodoisLanguage) {
+    if (dodoisLanguage === 'ru-RU') return 'ru';
+    return 'en';
+  }
+  return 'en';
+};
+
+let userLanguage = 'en';
+
+if (process.env.type === undefined) {
+  userLanguage =
+    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+    'en';
+} else {
+  userLanguage = getLocaleForSuperset();
+}
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
@@ -613,6 +627,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               renderTabContent={false}
               renderHoverMenu={false}
               onChangeTab={handleChangeTab}
+              // DODO changed
+              userLanguage={userLanguage}
             />
           </WithPopoverMenu>
         )}

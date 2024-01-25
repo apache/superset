@@ -15,7 +15,7 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
-import { User } from './types/bootstrapTypes';
+import { BootstrapUser, User } from './types/bootstrapTypes';
 import getBootstrapData from './utils/getBootstrapData';
 
 if (process.env.WEBPACK_MODE === 'development') {
@@ -23,32 +23,61 @@ if (process.env.WEBPACK_MODE === 'development') {
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-const bootstrapData = getBootstrapData();
+// const bootstrapData = getBootstrapData();
+// eslint-disable-next-line import/no-mutable-exports
+export let bootstrapData: {
+  user?: BootstrapUser;
+  common?: any;
+  config?: any;
+  embedded?: {
+    dashboard_id: string;
+  };
+} = {};
+
+bootstrapData = {
+  ...getBootstrapData(),
+};
 
 // Configure translation
 if (typeof window !== 'undefined') {
-  configure({ languagePack: bootstrapData.common.language_pack });
-  moment.locale(bootstrapData.common.locale);
+  const root = document.getElementById('app');
+  bootstrapData = root
+    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
+    : {};
+  // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
+  if (bootstrapData.common && bootstrapData.common.language_pack) {
+    const languagePack = bootstrapData.common.language_pack;
+    configure({ languagePack });
+    moment.locale(bootstrapData.common.locale);
+  } else {
+    configure();
+  }
 } else {
   configure();
 }
 
+console.log('bootstrapData', bootstrapData);
+
 // Configure feature flags
-initFeatureFlags(bootstrapData.common.feature_flags);
+// TODO: need to find feature flags
+initFeatureFlags(bootstrapData?.common?.feature_flags || {});
 
 // Setup SupersetClient
 setupClient();
 
+// TODO: need to find feature flags
 setupColors(
-  bootstrapData.common.extra_categorical_color_schemes,
-  bootstrapData.common.extra_sequential_color_schemes,
+  bootstrapData?.common?.extra_categorical_color_schemes,
+  bootstrapData?.common?.extra_sequential_color_schemes,
 );
 
 // Setup number formatters
-setupFormatters(bootstrapData.common.d3_format);
+// TODO: need to find feature flags
+setupFormatters(bootstrapData?.common?.d3_format);
 
 setupDashboardComponents();
 
+// DODO added
 const dodoTheme = {
   ...supersetTheme,
   colors: {
@@ -79,7 +108,8 @@ const dodoTheme = {
 
 export const theme = merge(
   dodoTheme,
-  bootstrapData.common.theme_overrides ?? {},
+  // TODO: need to find feature flags
+  bootstrapData?.common?.theme_overrides ?? {},
 );
 
 const getMe = makeApi<void, User>({

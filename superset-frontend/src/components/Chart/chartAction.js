@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
@@ -45,6 +28,9 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
+
+import { API_HANDLER } from 'src/Superstructure/api';
+import URI from 'urijs'
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -115,6 +101,7 @@ export const dynamicPluginControlsReady = () => (dispatch, getState) => {
   });
 };
 
+// DODO changed
 const legacyChartDataRequest = async (
   formData,
   resultFormat,
@@ -124,6 +111,46 @@ const legacyChartDataRequest = async (
   requestParams = {},
   parseMethod,
 ) => {
+  console.log(
+    'legacyChartDataRequest [ process.env.type => ',
+    process.env.type,
+    ']',
+    formData,
+  );
+  if (process.env.type === undefined) {
+    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+    const allowDomainSharding =
+      // eslint-disable-next-line camelcase
+      domainShardingEnabled && requestParams?.dashboard_id;
+    const url = getExploreUrl({
+      formData,
+      endpointType,
+      force,
+      allowDomainSharding,
+      method,
+      requestParams: requestParams.dashboard_id
+        ? { dashboard_id: requestParams.dashboard_id }
+        : {},
+    });
+    const querySettings = {
+      ...requestParams,
+      url,
+      postPayload: { form_data: formData },
+    };
+
+    const clientMethod =
+      'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+        ? SupersetClient.get
+        : SupersetClient.post;
+    return clientMethod(querySettings).then(({ json, response }) =>
+      // Make the legacy endpoint return a payload that corresponds to the
+      // V1 chart data endpoint response signature.
+      ({
+        response,
+        json: { result: [json] },
+      }),
+    );
+  }
   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
@@ -138,6 +165,12 @@ const legacyChartDataRequest = async (
       ? { dashboard_id: requestParams.dashboard_id }
       : {},
   });
+
+  const newFormData = {
+    ...formData,
+    url_params: {},
+  };
+
   const querySettings = {
     ...requestParams,
     url,
@@ -145,20 +178,53 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  const clientMethod =
-    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-      ? SupersetClient.get
-      : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json, response }) =>
-    // Make the legacy endpoint return a payload that corresponds to the
-    // V1 chart data endpoint response signature.
-    ({
-      response,
-      json: { result: [json] },
-    }),
-  );
+  const bodyFormData = new FormData();
+  bodyFormData.append('form_data', JSON.stringify(newFormData));
+
+  if (isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
+    return API_HANDLER.SupersetClientNoApi({
+      method: 'get',
+      url,
+      body: bodyFormData,
+    });
+  }
+  if (process.env.type === undefined) {
+    const clientMethod =
+      'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
+        ? SupersetClient.get
+        : SupersetClient.post;
+    return clientMethod(querySettings).then(({ json, response }) =>
+      // Make the legacy endpoint return a payload that corresponds to the
+      // V1 chart data endpoint response signature.
+      ({
+        response,
+        json: { result: [json] },
+      }),
+    );
+  }
+
+  return API_HANDLER.SupersetClientNoApi({
+    method: 'post',
+    url,
+    body: bodyFormData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 };
 
+// DODO added
+function getChartDataUriAltered({ path, qs }) {
+  let uri = new URI({
+    port: window.location.port ? window.location.port : '',
+    path,
+  });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+
+  return uri;
+}
+
+// DODO changed
 const v1ChartDataRequest = async (
   formData,
   resultFormat,
@@ -169,6 +235,43 @@ const v1ChartDataRequest = async (
   ownState,
   parseMethod,
 ) => {
+  if (process.env.type === undefined) {
+    const payload = buildV1ChartDataPayload({
+      formData,
+      resultType,
+      resultFormat,
+      force,
+      setDataMask,
+      ownState,
+    });
+
+    // The dashboard id is added to query params for tracking purposes
+    const { slice_id: sliceId } = formData;
+    const { dashboard_id: dashboardId } = requestParams;
+
+    const qs = {};
+    if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
+    if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
+    if (force !== false) qs.force = force;
+
+    const allowDomainSharding =
+      // eslint-disable-next-line camelcase
+      domainShardingEnabled && requestParams?.dashboard_id;
+    const url = getChartDataUri({
+      path: '/api/v1/chart/data',
+      qs,
+      allowDomainSharding,
+    }).toString();
+
+    const querySettings = {
+      ...requestParams,
+      url,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    };
+
+    return SupersetClient.post(querySettings);
+  }
   const payload = buildV1ChartDataPayload({
     formData,
     resultType,
@@ -190,21 +293,24 @@ const v1ChartDataRequest = async (
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
-  const url = getChartDataUri({
+  const url = getChartDataUriAltered({
     path: '/api/v1/chart/data',
     qs,
     allowDomainSharding,
   }).toString();
 
-  const querySettings = {
-    ...requestParams,
-    url,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    parseMethod,
-  };
+  // const querySettings = {
+  //   ...requestParams,
+  //   url,
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(payload),
+  //   parseMethod,
+  // };
 
-  return SupersetClient.post(querySettings);
+  // return SupersetClient.post(querySettings);
+  const t = API_HANDLER.SupersetClient({ method: 'post', url, body: payload }); 
+  console.log('hereTXX', t);
+  return t
 };
 
 export async function getChartDataRequest({
@@ -408,30 +514,118 @@ export function exploreJSON(
 
     dispatch(chartUpdateStarted(controller, formData, key));
 
-    const chartDataRequestCaught = chartDataRequest
-      .then(({ response, json }) => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
-          // deal with getChartDataRequest transforming the response data
-          const result = 'result' in json ? json.result : json;
-          const [useLegacyApi] = getQuerySettings(formData);
-          switch (response.status) {
-            case 200:
-              // Query results returned synchronously, meaning query was already cached.
-              return Promise.resolve(result);
-            case 202:
-              // Query is running asynchronously and we must await the results
-              if (useLegacyApi) {
-                return waitForAsyncData(result[0]);
-              }
-              return waitForAsyncData(result);
-            default:
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
+    if (process.env.type === undefined) {
+      const chartDataRequestCaught = chartDataRequest
+        .then(({ response, json }) => {
+          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+            // deal with getChartDataRequest transforming the response data
+            const result = 'result' in json ? json.result : json;
+            switch (response.status) {
+              case 200:
+                // Query results returned synchronously, meaning query was already cached.
+                return Promise.resolve(result);
+              case 202:
+                // Query is running asynchronously and we must await the results
+                if (shouldUseLegacyApi(formData)) {
+                  return waitForAsyncData(result[0]);
+                }
+                return waitForAsyncData(result);
+              default:
+                throw new Error(
+                  `Received unexpected response status (${response.status}) while fetching chart data`,
+                );
+            }
           }
-        }
 
-        return json.result;
+          return json.result;
+        })
+        .then(queriesResponse => {
+          queriesResponse.forEach(resultItem =>
+            dispatch(
+              logEvent(LOG_ACTIONS_LOAD_CHART, {
+                slice_id: key,
+                applied_filters: resultItem.applied_filters,
+                is_cached: resultItem.is_cached,
+                force_refresh: force,
+                row_count: resultItem.rowcount,
+                datasource: formData.datasource,
+                start_offset: logStart,
+                ts: new Date().getTime(),
+                duration: Logger.getTimestamp() - logStart,
+                has_extra_filters:
+                  formData.extra_filters && formData.extra_filters.length > 0,
+                viz_type: formData.viz_type,
+                data_age: resultItem.is_cached
+                  ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                  : null,
+              }),
+            ),
+          );
+          return dispatch(chartUpdateSucceeded(queriesResponse, key));
+        })
+        .catch(response => {
+          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+            return dispatch(chartUpdateFailed([response], key));
+          }
+
+          const appendErrorLog = (errorDetails, isCached) => {
+            dispatch(
+              logEvent(LOG_ACTIONS_LOAD_CHART, {
+                slice_id: key,
+                has_err: true,
+                is_cached: isCached,
+                error_details: errorDetails,
+                datasource: formData.datasource,
+                start_offset: logStart,
+                ts: new Date().getTime(),
+                duration: Logger.getTimestamp() - logStart,
+              }),
+            );
+          };
+          if (response.name === 'AbortError') {
+            appendErrorLog('abort');
+            return dispatch(chartUpdateStopped(key));
+          }
+          return getClientErrorObject(response).then(parsedResponse => {
+            if (response.statusText === 'timeout') {
+              appendErrorLog('timeout');
+            } else {
+              appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
+            }
+            return dispatch(chartUpdateFailed([parsedResponse], key));
+          });
+        });
+
+      // only retrieve annotations when calling the legacy API
+      const annotationLayers = shouldUseLegacyApi(formData)
+        ? formData.annotation_layers || []
+        : [];
+      const isDashboardRequest = dashboardId > 0;
+
+      return Promise.all([
+        chartDataRequestCaught,
+        dispatch(triggerQuery(false, key)),
+        dispatch(updateQueryFormData(formData, key)),
+        ...annotationLayers.map(annotation =>
+          dispatch(
+            runAnnotationQuery({
+              annotation,
+              timeout,
+              formData,
+              key,
+              isDashboardRequest,
+              force,
+            }),
+          ),
+        ),
+      ]);
+    }
+
+    const chartDataRequestCaught = chartDataRequest
+      .then(response => {
+        const t = response.result;
+        Promise.resolve(t);
+        return t;
       })
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
