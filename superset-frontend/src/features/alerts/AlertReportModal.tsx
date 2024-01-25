@@ -93,7 +93,7 @@ export interface AlertReportModalProps {
 }
 
 const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
+const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];

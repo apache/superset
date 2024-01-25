@@ -82,7 +82,6 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
               onChange={(e: any) => {
                 setScheduleFormat(e);
               }}
-              value={scheduleFormat}
               options={SCHEDULE_TYPE_OPTIONS}
               //   sortComparator={propertyComparator('value')}
             />
@@ -105,7 +104,9 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
               style={error ? { borderColor: theme.colors.error.base } : {}}
               placeholder={t('CRON expression')}
               disabled={scheduleFormat !== 'input'}
+              value={value}
               onBlur={handleBlur}
+              onChange={e => customSetValue(e.target.value)}
               onPressEnter={handlePressEnter}
             />
           ) : (
