@@ -94,7 +94,6 @@ export default function getInitialState({
         queryLimit: activeTab.query_limit,
         hideLeftBar: activeTab.hide_left_bar,
         updatedAt: activeTab.extra_json?.updatedAt,
-        cursorPosition: activeTab.cursor_position || undefined,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch

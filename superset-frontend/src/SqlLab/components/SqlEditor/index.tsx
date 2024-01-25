@@ -42,7 +42,11 @@ import {
   QueryResponse,
   Query,
 } from '@superset-ui/core';
-import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import type {
+  QueryEditor,
+  SqlLabRootState,
+  CursorPosition,
+} from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
@@ -760,7 +764,7 @@ const SqlEditor: React.FC<Props> = ({
     );
   };
 
-  const handleCursorPositionChange = (newPosition: any) => {
+  const handleCursorPositionChange = (newPosition: CursorPosition) => {
     dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
   };
 

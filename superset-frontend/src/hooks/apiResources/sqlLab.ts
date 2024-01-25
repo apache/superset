@@ -20,11 +20,6 @@ import type { QueryResponse } from '@superset-ui/core';
 import type { JsonResponse } from './queryApi';
 import { api } from './queryApi';
 
-export interface CursorPosition {
-  row: number;
-  column: number;
-}
-
 export type InitialState = {
   active_tab: {
     id: number;
@@ -56,7 +51,6 @@ export type InitialState = {
     hide_left_bar?: boolean;
     saved_query: { id: number } | null;
     extra_json?: Record<string, any>;
-    cursor_position?: CursorPosition;
   };
   databases: object[];
   queries: Record<

@@ -25,6 +25,7 @@ import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import type { CursorPosition } from 'src/SqlLab/types';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
@@ -33,11 +34,6 @@ type HotKey = {
   descr?: string;
   name: string;
   func: (aceEditor: IAceEditor) => void;
-};
-
-type CursorPosition = {
-  row: number;
-  column: number;
 };
 
 type AceEditorWrapperProps = {
