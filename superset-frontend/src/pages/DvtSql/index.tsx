@@ -5,7 +5,6 @@ import DvtTable from 'src/components/DvtTable';
 import { useAppSelector } from 'src/hooks/useAppSelector';
 import { StyledSqlPagination } from './dvt-sql.module';
 
-
 const SavedQueriesHeader = [
   { id: 1, title: t('Name'), field: 'label', flex: 3 },
   { id: 2, title: t('Database'), field: 'database_name' },
