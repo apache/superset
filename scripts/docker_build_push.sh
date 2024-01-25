@@ -130,15 +130,22 @@ if [[ -n "${BUILD_TARGET}" ]]; then
   TARGET_ARGUMENT="--target ${BUILD_TARGET}"
 fi
 
+# Building the cache settings
 CACHE_REF="${REPO_NAME}-cache:${TARGET}-${BUILD_ARG}"
 CACHE_REF=$(echo "${CACHE_REF}" | tr -d '.')
+CACHE_FROM_ARG="--cache-from=type=registry,ref=${CACHE_REF}"
+CACHE_TO_ARG=""
+if [ -n "${DOCKERHUB_TOKEN}" ]; then
+  # need to be logged in to push to the cache
+  CACHE_TO_ARG="--cache-to=type=registry,mode=max,ref=${CACHE_REF}"
+fi
 
 docker buildx build \
   ${TARGET_ARGUMENT} \
   ${DOCKER_ARGS} \
-  --cache-from=type=registry,ref=${CACHE_REF} \
-  --cache-to=type=registry,mode=max,ref=${CACHE_REF} \
   ${DOCKER_TAGS} \
+  ${CACHE_FROM_ARG} \
+  ${CACHE_TO_ARG} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
