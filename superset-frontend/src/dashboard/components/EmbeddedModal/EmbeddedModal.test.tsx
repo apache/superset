@@ -18,8 +18,12 @@
  */
 
 import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom';
 import {
   SupersetApiError,
@@ -64,85 +68,70 @@ beforeEach(() => {
   resetMockApi();
 });
 
-it('renders', async () => {
+test('renders', async () => {
   setup();
-  await waitFor(() => {
-    expect(screen.getByText('Embed')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Embed')).toBeInTheDocument();
 });
 
-it('displays loading state', async () => {
+test('renders loading state', async () => {
   setup();
   await waitFor(() => {
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
   });
 });
 
-it('renders the modal default content', async () => {
+test('renders the modal default content', async () => {
   render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
-  await waitFor(() => {
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(
-      screen.getByText(new RegExp(/Allowed Domains/, 'i')),
-    ).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Settings')).toBeInTheDocument();
+  expect(
+    screen.getByText(new RegExp(/Allowed Domains/, 'i')),
+  ).toBeInTheDocument();
 });
 
-it('renders the correct actions when dashboard is ready to embed', async () => {
+test('renders the correct actions when dashboard is ready to embed', async () => {
   setup();
-  await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: 'Deactivate' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Save changes' }),
-    ).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Save changes' }),
+  ).toBeInTheDocument();
 });
 
-it('renders the correct actions when dashboard is not ready to embed', async () => {
+test('renders the correct actions when dashboard is not ready to embed', async () => {
   setMockApiNotFound();
   setup();
-  await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: 'Enable embedding' }),
-    ).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByRole('button', { name: 'Enable embedding' }),
+  ).toBeInTheDocument();
 });
 
-it('enables embedding', async () => {
+test('enables embedding', async () => {
   setMockApiNotFound();
   setup();
 
-  await waitFor(() => {
-    const enableEmbed = screen.getByRole('button', {
-      name: 'Enable embedding',
-    });
-    expect(enableEmbed).toBeInTheDocument();
-    fireEvent.click(enableEmbed);
+  const enableEmbed = await screen.findByRole('button', {
+    name: 'Enable embedding',
   });
+  expect(enableEmbed).toBeInTheDocument();
 
-  await waitFor(() => {
-    expect(
-      screen.getByRole('button', { name: 'Deactivate' }),
-    ).toBeInTheDocument();
-  });
+  fireEvent.click(enableEmbed);
+
+  expect(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  ).toBeInTheDocument();
 });
 
-it('shows and hides the confirmation modal on deactivation', async () => {
+test('shows and hides the confirmation modal on deactivation', async () => {
   setup();
 
-  await waitFor(() => {
-    const deactivate = screen.getByRole('button', { name: 'Deactivate' });
-    fireEvent.click(deactivate);
-  });
+  const deactivate = await screen.findByRole('button', { name: 'Deactivate' });
+  fireEvent.click(deactivate);
 
-  await waitFor(() => {
-    expect(screen.getByText('Disable embedding?')).toBeInTheDocument();
-    expect(
-      screen.getByText('This will remove your current embed configuration.'),
-    ).toBeInTheDocument();
-  });
+  expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
+  expect(
+    screen.getByText('This will remove your current embed configuration.'),
+  ).toBeInTheDocument();
 
   const okBtn = screen.getByRole('button', { name: 'OK' });
   fireEvent.click(okBtn);
@@ -152,24 +141,22 @@ it('shows and hides the confirmation modal on deactivation', async () => {
   });
 });
 
-it('enables the "Save Changes" button', async () => {
+test('enables the "Save Changes" button', async () => {
   setup();
 
-  await waitFor(() => {
-    const allowedDomainsInput = screen.getByLabelText(
-      new RegExp(/Allowed Domains/, 'i'),
-    );
-    const saveChangesBtn = screen.getByRole('button', { name: 'Save changes' });
+  const allowedDomainsInput = await screen.findByLabelText(
+    new RegExp(/Allowed Domains/, 'i'),
+  );
+  const saveChangesBtn = screen.getByRole('button', { name: 'Save changes' });
 
-    expect(saveChangesBtn).toBeDisabled();
-    expect(allowedDomainsInput).toBeInTheDocument();
+  expect(saveChangesBtn).toBeDisabled();
+  expect(allowedDomainsInput).toBeInTheDocument();
 
-    fireEvent.change(allowedDomainsInput, { target: { value: 'test.com' } });
-    expect(saveChangesBtn).toBeEnabled();
-  });
+  fireEvent.change(allowedDomainsInput, { target: { value: 'test.com' } });
+  expect(saveChangesBtn).toBeEnabled();
 });
 
-it('adds extension to DashboardEmbedModal', async () => {
+test('adds extension to DashboardEmbedModal', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 
   extensionsRegistry.set('embedded.modal', () => (
@@ -179,9 +166,7 @@ it('adds extension to DashboardEmbedModal', async () => {
   setupExtensions();
   setup();
 
-  await waitFor(() => {
-    expect(
-      screen.getByText('dashboard.embed.modal.extension component'),
-    ).toBeInTheDocument();
-  });
+  expect(
+    await screen.findByText('dashboard.embed.modal.extension component'),
+  ).toBeInTheDocument();
 });
