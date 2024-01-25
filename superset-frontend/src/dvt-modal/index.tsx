@@ -11,20 +11,27 @@ import {
   StyledModalCardClose,
 } from './dvt-modal.module';
 
-const getComponent = (cmpnt: string) => {
+export interface ModalProps {
+  meta: any;
+  onClose: () => void;
+}
+
+const getComponent = (cmpnt: string, meta: any, onClose: () => void) => {
   switch (cmpnt) {
     case 'edit-dashboard':
-      return <DvtDashboardEdit />;
+      return <DvtDashboardEdit meta={meta} onClose={onClose} />;
     default:
       return <></>;
   }
 };
+
 const DvtModal = () => {
   const dispatch = useDispatch();
-  const ref = useRef<HTMLDivElement | null>(null);
-  useOnClickOutside(ref, () => handleCloseModal());
-
   const component = useAppSelector(state => state.dvtModal.component);
+  const meta = useAppSelector(state => state.dvtModal.meta);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const handleCloseModal = () => dispatch(closeModal());
+  useOnClickOutside(ref, () => handleCloseModal());
 
   const size = (() => {
     switch (component) {
@@ -35,17 +42,15 @@ const DvtModal = () => {
     }
   })();
 
-  const handleCloseModal = () => {
-    dispatch(closeModal());
-  };
-
   return component ? (
     <StyledModal>
       <StyledModalCard size={size} ref={ref}>
         <StyledModalCardClose onClick={() => handleCloseModal()}>
           X
         </StyledModalCardClose>
-        <StyledModalCardBody>{getComponent(component)}</StyledModalCardBody>
+        <StyledModalCardBody>
+          {getComponent(component, meta, handleCloseModal)}
+        </StyledModalCardBody>
       </StyledModalCard>
     </StyledModal>
   ) : (

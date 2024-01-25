@@ -25,6 +25,7 @@ const StyledDashboardEdit = styled.div`
   width: 100%;
   gap: 15px;
 `;
+
 const StyledDashboardEditHeader = styled.div`
   display: flex;
   align-items: center;

@@ -4,7 +4,7 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 type UseFetchProps = {
   url: string | null;
-  method?: 'GET' | 'POST' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
 };

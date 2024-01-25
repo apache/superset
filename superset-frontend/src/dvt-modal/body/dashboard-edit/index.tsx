@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { t } from '@superset-ui/core';
-import { useDispatch } from 'react-redux';
-import { useAppSelector } from 'src/hooks/useAppSelector';
-import { closeModal } from 'src/dvt-redux/dvt-modalReducer';
+import { ModalProps } from 'src/dvt-modal';
+import useFetch from 'src/hooks/useFetch';
 import DvtButton from 'src/components/DvtButton';
 import DvtInput from 'src/components/DvtInput';
 import {
@@ -12,9 +11,7 @@ import {
   StyledDashboardEditInput,
 } from './dashboard-edit.module';
 
-const DvtDashboardEdit = () => {
-  const dispatch = useDispatch();
-  const meta = useAppSelector(state => state.dvtModal.meta);
+const DvtDashboardEdit = ({ meta, onClose }: ModalProps) => {
   const [title, setTitle] = useState<string>(meta.result.dashboard_title);
   const [slugUrl, setSlugUrl] = useState<string>(meta.result.slug);
   const [owners, setOwners] = useState<string>(
@@ -26,29 +23,26 @@ const DvtDashboardEdit = () => {
   const [certifiedBy, setCertifiedBy] = useState<string>(
     meta.result.certified_by,
   );
+  const [dashboardApi, setDashboardApi] = useState<string>('');
 
-  const useUpdateData = async () => {
-    try {
-      await fetch(`/api/v1/dashboard/${meta.result.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          certification_details: certifiedBy,
-          certified_by: changedNyName,
-          dashboard_title: title,
-          owners: [1],
-          slug: slugUrl,
-          json_metadata:
-            '{"shared_label_colors": {}, "color_scheme_domain": []}',
-        }),
-      });
-      dispatch(closeModal());
-    } catch (error) {
-      console.error(error);
+  const updateDashboardData = useFetch({
+    url: dashboardApi,
+    method: 'PUT',
+    body: {
+      certification_details: certifiedBy,
+      certified_by: changedNyName,
+      dashboard_title: title,
+      owners: [1],
+      slug: slugUrl,
+      json_metadata: '{"shared_label_colors": {}, "color_scheme_domain": []}',
+    },
+  });
+
+  useEffect(() => {
+    if (updateDashboardData?.id) {
+      onClose();
     }
-  };
+  }, [onClose, updateDashboardData]);
 
   return (
     <StyledDashboardEdit>
@@ -57,7 +51,7 @@ const DvtDashboardEdit = () => {
           colour="primary"
           label={t('SAVE')}
           typeColour="powder"
-          onClick={useUpdateData}
+          onClick={() => setDashboardApi(`/api/v1/dashboard/${meta.result.id}`)}
           size="small"
         />
       </StyledDashboardEditHeader>
