@@ -42,7 +42,11 @@ import {
   QueryResponse,
   Query,
 } from '@superset-ui/core';
-import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import type {
+  QueryEditor,
+  SqlLabRootState,
+  CursorPosition,
+} from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
@@ -63,6 +67,7 @@ import {
   postStopQuery,
   queryEditorSetAutorun,
   queryEditorSetSql,
+  queryEditorSetCursorPosition,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
@@ -757,6 +762,10 @@ const SqlEditor: React.FC<Props> = ({
     );
   };
 
+  const handleCursorPositionChange = (newPosition: CursorPosition) => {
+    dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
+  };
+
   const queryPane = () => {
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
@@ -787,6 +796,7 @@ const SqlEditor: React.FC<Props> = ({
             onBlur={onSqlChanged}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
+            onCursorPositionChange={handleCursorPositionChange}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />

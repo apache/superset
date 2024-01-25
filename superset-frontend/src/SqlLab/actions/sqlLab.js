@@ -59,6 +59,8 @@ export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
+export const QUERY_EDITOR_SET_CURSOR_POSITION =
+  'QUERY_EDITOR_SET_CURSOR_POSITION';
 export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
@@ -879,6 +881,10 @@ export function updateSavedQuery(query, clientId) {
 
 export function queryEditorSetSql(queryEditor, sql, queryId) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql, queryId };
+}
+
+export function queryEditorSetCursorPosition(queryEditor, position) {
+  return { type: QUERY_EDITOR_SET_CURSOR_POSITION, queryEditor, position };
 }
 
 export function queryEditorSetAndSaveSql(targetQueryEditor, sql, queryId) {
