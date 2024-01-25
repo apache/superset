@@ -24,7 +24,7 @@ const dirtyHackDodoIs = () => {
   // In dodois the div.all has css property min-height, that forces the footer to be overlapped
   const dodoElementAll = document.getElementsByClassName('all')[0];
 
-  if (dodoElementAll && dodoElementAll.classList.contains('overwrite-height')) {
+  if (dodoElementAll?.classList.contains('overwrite-height')) {
     dodoElementAll.classList.remove('overwrite-height');
   }
 };

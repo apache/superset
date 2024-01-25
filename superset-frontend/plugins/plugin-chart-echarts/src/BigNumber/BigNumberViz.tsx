@@ -3,9 +3,9 @@ import React from 'react';
 import {
   t,
   getNumberFormatter,
-  NumberFormatter,
+  // NumberFormatter,
   smartDateVerboseFormatter,
-  TimeFormatter,
+  // TimeFormatter,
   computeMaxFontSize,
   BRAND_COLOR,
   POSITIVE_COLOR,
@@ -13,7 +13,7 @@ import {
   styled,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
-import { EChartsCoreOption } from 'echarts';
+// import { EChartsCoreOption } from 'echarts';
 import {
   PROPORTION,
   NO_DATA_OR_HASNT_LANDED,
@@ -23,16 +23,16 @@ import {
 import { calculateColor, getColors } from './utils';
 import Echart from '../components/Echart';
 import {
-  BigNumberVizProps,
-  TimeSeriesDatum,
+  // BigNumberVizProps,
+  // TimeSeriesDatum,
   ConditionalFormattingConfig,
-  BigNumberVisProps,
+  BigNumberVizProps,
 } from './types';
 import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 
-class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
+class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
   static defaultProps = {
     className: '',
     headerFormatter: defaultNumberFormatter,
@@ -225,11 +225,14 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
   renderComparison(maxHeight: number) {
     const {
       bigNumber,
+      // @ts-ignore
       comparison,
       width,
       bigNumberFallback,
       className,
+      // @ts-ignore
       positiveColor,
+      // @ts-ignore
       negativeColor,
     } = this.props;
     let fontSize = 0;
@@ -321,6 +324,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      // @ts-ignore
       conditionalFormatting,
       bigNumber,
     } = this.props;
@@ -373,6 +377,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     return (
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
+        {/* @ts-ignore */}
         {this.renderKicker(kickerFontSize * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height), textColor)}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height), textColor)}

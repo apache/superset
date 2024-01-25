@@ -13,7 +13,7 @@ import FileSaver from 'file-saver';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { URL_PARAMS, CSV, XLSX, CSV_MIME, XLSX_MIME } from 'src/constants';
+import { URL_PARAMS, XLSX, CSV_MIME, XLSX_MIME } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
@@ -44,6 +44,11 @@ export function getHostName(allowDomainSharding = false) {
   }
   return availableDomains[currentIndex];
 }
+
+export const shouldUseLegacyApi = formData => {
+  const vizMetadata = getChartMetadataRegistry().get(formData.viz_type);
+  return vizMetadata ? vizMetadata.useLegacyApi : false;
+};
 
 export function getAnnotationJsonUrl(slice_id, force) {
   if (slice_id === null || slice_id === undefined) {
@@ -243,6 +248,8 @@ export const getCSV = async (url, payload, isLegacy, resultFormat) => {
   return null;
 };
 
+export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
+  resultFormat === 'csv' ? resultFormat : resultType;
 
 // DODO-changed (added)
 export const exportChartPlugin = ({
@@ -282,74 +289,24 @@ export const exportChartPlugin = ({
     console.groupEnd();
 
     return getCSV(updatedUrl, payload, true, resultFormat);
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-      ownState,
-      parseMethod,
-    });
-
-    console.groupCollapsed('EXPORT CSV/XLSX');
-    console.log('url', url);
-    console.log('payload', payload);
-    console.groupEnd();
-
-    return getCSV(url, payload, false, resultFormat);
   }
 
-  // SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  url = '/api/v1/chart/data';
+  payload = buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+    parseMethod,
+  });
 
-  // // TODO: DODO check how this workds in plugin
-  // console.log('shouldUseLegacyApi(formData)', shouldUseLegacyApi(formData));
+  console.groupCollapsed('EXPORT CSV/XLSX');
+  console.log('url', url);
+  console.log('payload', payload);
+  console.groupEnd();
 
-  // if (shouldUseLegacyApi(formData)) {
-  //   const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-  //   url = getExploreUrl({
-  //     formData,
-  //     endpointType,
-  //     allowDomainSharding: false,
-  //   });
-  //   payload = formData;
-
-  // const fixedUrl =
-  //   url.split(`${window.location.origin}/superset`).filter(x => x)[0] || null;
-
-  // const updatedUrl =
-  //   resultFormat === XLSX
-  //     ? `${fixedUrl}&${XLSX}=true&language=${language}`
-  //     : `${fixedUrl}&language=${language}`;
-
-  //   console.groupCollapsed('EXPORT CSV/XLSX legacy');
-  //   console.log('url', url);
-  //   console.log('fixedUrl', fixedUrl);
-  //   console.log('payload', payload);
-  //   console.log('resultFormat', resultFormat);
-  //   console.log('updatedUrl', updatedUrl);
-  //   console.groupEnd();
-
-  //   return getCSV(updatedUrl, payload, true, resultFormat);
-  // }
-
-  // url = '/api/v1/chart/data';
-  // payload = buildV1ChartDataPayload({
-  //   formData,
-  //   force,
-  //   resultFormat,
-  //   resultType,
-  //   ownState,
-  //   language,
-  // });
-
-  // console.groupCollapsed('EXPORT CSV');
-  // console.log('url', url);
-  // console.log('payload', payload);
-  // console.groupEnd();
-
-  // return getCSV(url, payload, false, resultFormat);
+  return getCSV(url, payload, false, resultFormat);
 };
 
 const generateFileName = (filename, extension) =>
@@ -368,9 +325,6 @@ const getExportedChartName = (slice = {}, extension) => {
     extension,
   );
 };
-
-export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
 
 export const exportChart = ({
   formData,

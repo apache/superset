@@ -50,7 +50,7 @@ export type BigNumberWithTrendlineChartProps =
 
 export type TimeSeriesDatum = [number, number | null];
 
-export type BigNumberVisProps = {
+export type BigNumberVizProps = {
   className?: string;
   width: number;
   height: number;

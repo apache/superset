@@ -17,6 +17,7 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import { requiresQuery } from 'src/modules/AnnotationTypes';
 
@@ -30,7 +31,7 @@ import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 
 import { API_HANDLER } from 'src/Superstructure/api';
-import URI from 'urijs'
+import URI from 'urijs';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -233,7 +234,7 @@ const v1ChartDataRequest = async (
   requestParams,
   setDataMask,
   ownState,
-  parseMethod,
+  // parseMethod,
 ) => {
   if (process.env.type === undefined) {
     const payload = buildV1ChartDataPayload({
@@ -306,11 +307,10 @@ const v1ChartDataRequest = async (
   //   body: JSON.stringify(payload),
   //   parseMethod,
   // };
-
   // return SupersetClient.post(querySettings);
-  const t = API_HANDLER.SupersetClient({ method: 'post', url, body: payload }); 
+  const t = API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
   console.log('hereTXX', t);
-  return t
+  return t;
 };
 
 export async function getChartDataRequest({

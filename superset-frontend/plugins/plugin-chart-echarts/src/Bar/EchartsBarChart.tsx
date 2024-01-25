@@ -13,6 +13,8 @@ export default function EchartsBar({
   groupby,
   selectedValues,
   formData,
+  // @ts-ignore
+  refs,
 }: BarChartTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -66,6 +68,7 @@ export default function EchartsBar({
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

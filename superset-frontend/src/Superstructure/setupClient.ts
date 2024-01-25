@@ -12,7 +12,7 @@ export default function setupClient() {
     protocol: ['http:', 'https:'].includes(window?.location?.protocol)
       ? (window?.location?.protocol as 'http:' | 'https:')
       : undefined,
-    host: (window.location && window.location.host) || '',
+    host: window.location?.host || '',
     csrfToken: csrfToken || cookieCSRFToken,
   })
     .init()

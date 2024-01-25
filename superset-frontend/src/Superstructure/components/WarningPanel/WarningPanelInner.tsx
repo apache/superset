@@ -7,25 +7,23 @@ const WarningPanelInner = ({ msgObj }: { msgObj: IPanelMsgObj }) => (
     <ColumnWrapper classes="col-md-11">
       <i>{msgObj.subTitle}</i>
 
-      {(msgObj.listTitle || (msgObj.releases && msgObj.releases.length)) && (
+      {(msgObj.listTitle || msgObj.releases?.length) && (
         <div
           style={{
             marginTop:
-              msgObj.listTitle || (msgObj.releases && msgObj.releases.length)
-                ? '18px'
-                : '0',
+              msgObj.listTitle || msgObj.releases?.length ? '18px' : '0',
           }}
         >
           {msgObj.listTitle && <p>{msgObj.listTitle}</p>}
 
-          {msgObj.releases && msgObj.releases.length && (
+          {msgObj.releases?.length && (
             <ul style={{ paddingLeft: '28px' }}>
               {msgObj.releases.map((release, key) => (
                 <div style={{ marginBottom: '20px' }}>
                   <li key={key}>
                     <b>{release.date}</b> <i>({release.status})</i>
                   </li>
-                  {release.messages && release.messages.length && (
+                  {release.messages?.length && (
                     <ol>
                       {release.messages.map((message, key) => (
                         <li key={key}>{message}</li>

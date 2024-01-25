@@ -147,6 +147,7 @@ module.exports = {
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
         'file-progress/activate': 1,
+        'no-console': 'off',
       },
       settings: {
         'import/resolver': {

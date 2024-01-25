@@ -161,24 +161,6 @@ class Tab extends React.PureComponent {
       dashboardId,
     } = this.props;
 
-    // DODO added
-    const TitleWrapper = styled.div`
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      flex-direction: row;
-      span {
-        margin-left: 12px;
-        &:first-child {
-          margin-left: 0;
-        }
-      }
-    `;
-    const TitleLabel = styled.span`
-      display: inline-block;
-      padding: 0;
-    `;
-
     const shouldDisplayEmptyState = tabComponent.children.length === 0;
     return (
       <div className="dashboard-component-tabs-content">
@@ -273,6 +255,24 @@ class Tab extends React.PureComponent {
   }
 
   renderTab() {
+    // DODO added
+    const TitleWrapper = styled.div`
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      flex-direction: row;
+      span {
+        margin-left: 12px;
+        &:first-child {
+          margin-left: 0;
+        }
+      }
+    `;
+    const TitleLabel = styled.span`
+      display: inline-block;
+      padding: 0;
+    `;
+
     const {
       component,
       parentComponent,

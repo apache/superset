@@ -44,8 +44,7 @@ const AnalyticsMain = (props: {
           <ColumnWrapper classes="col-sm-12 col-md-8">
             {annotationMessages.map(
               message =>
-                message &&
-                message.data.result && (
+                message?.data.result && (
                   <div
                     key={message.data.result.id + Math.random()}
                     style={{ margin: '0 0 20px 0' }}

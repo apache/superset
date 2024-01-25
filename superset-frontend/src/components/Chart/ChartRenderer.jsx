@@ -17,13 +17,15 @@ import {
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 // DODO swapped component
 import {
+  EmptyStateBig,
   EmptyStateBig as EmptyStateBigPlugin,
+  EmptyStateSmall,
   EmptyStateSmall as EmptyStateSmallPlugin,
 } from 'src/Superstructure/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
-import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 // DODO added
 import { LimitWarning } from 'src/Superstructure/components/LimitWarning';
+import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
 const propTypes = {
   annotationData: PropTypes.object,

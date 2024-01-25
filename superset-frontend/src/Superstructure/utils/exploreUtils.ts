@@ -16,7 +16,7 @@ export const getCSV = async (url: string, payload: Record<string, any>) => {
     body: payload,
   });
 
-  if (response && response.result) {
+  if (response?.result) {
     return response.result[0];
   }
 

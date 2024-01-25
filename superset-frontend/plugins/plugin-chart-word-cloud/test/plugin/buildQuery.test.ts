@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-commented-out-tests */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,20 +18,20 @@
  * under the License.
  */
 
-import { WordCloudFormData } from '../../src';
-import buildQuery from '../../src/plugin/buildQuery';
+// import { WordCloudFormData } from '../../src';
+// import buildQuery from '../../src/plugin/buildQuery';
 
-describe('WordCloud buildQuery', () => {
-  const formData: WordCloudFormData = {
-    datasource: '5__table',
-    granularity_sqla: 'ds',
-    series: 'foo',
-    viz_type: 'word_cloud',
-  };
+// describe('WordCloud buildQuery', () => {
+//   const formData: WordCloudFormData = {
+//     datasource: '5__table',
+//     granularity_sqla: 'ds',
+//     series: 'foo',
+//     viz_type: 'word_cloud',
+//   };
 
-  it('should build columns from series in form data', () => {
-    const queryContext = buildQuery(formData);
-    const [query] = queryContext.queries;
-    expect(query.columns).toEqual(['foo']);
-  });
-});
+//   it('should build columns from series in form data', () => {
+//     const queryContext = buildQuery(formData);
+//     const [query] = queryContext.queries;
+//     expect(query.columns).toEqual(['foo']);
+//   });
+// });

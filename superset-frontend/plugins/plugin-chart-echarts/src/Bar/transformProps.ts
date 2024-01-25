@@ -87,8 +87,7 @@ export default function transformProps(
     // @ts-ignore
     metrics.forEach((metricName: string) => {
       const [foundMetric] = findMetric(chartPropsDatasourceMetrics, metricName);
-      if (foundMetric && foundMetric.d3format)
-        yAxisFormat = foundMetric.d3format;
+      if (foundMetric?.d3format) yAxisFormat = foundMetric.d3format;
     });
   }
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);

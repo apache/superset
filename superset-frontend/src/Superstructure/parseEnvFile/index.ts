@@ -30,7 +30,7 @@ const populateWithMainMenu = (
   };
   const returningArray = [mainRoute] as RouteConfig[];
 
-  if (dynamicDashboardRoutes && dynamicDashboardRoutes.length) {
+  if (dynamicDashboardRoutes?.length) {
     for (let i = 0; i < dynamicDashboardRoutes.length; i += 1) {
       returningArray.push(dynamicDashboardRoutes[i]);
     }

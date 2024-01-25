@@ -201,7 +201,7 @@ class Dashboard extends React.PureComponent {
 
   // return charts in array
   getAllCharts() {
-    console.log('this.props.charts', this.props.charts)
+    console.log('this.props.charts', this.props.charts);
     return Object.values(this.props.charts);
   }
 

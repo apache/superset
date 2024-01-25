@@ -67,7 +67,7 @@ export const createTooltipElement = ({
   `;
 
   values.forEach(val => {
-    if (val && val.value && val.serName) {
+    if (val?.value && val.serName) {
       finalValue = `${finalValue}
     <div style="margin: 0px 0 5px; line-height: 1">
       <div style="margin: 0px 0 0; line-height: 1">

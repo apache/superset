@@ -56,7 +56,7 @@ initFeatureFlags(bootstrap.common.feature_flags);
 
 // Configure translation
 if (typeof window !== 'undefined') {
-  if (bootstrap.common && bootstrap.common.language_pack) {
+  if (bootstrap.common?.language_pack) {
     const languagePack = bootstrap.common.language_pack;
     console.log('languagePack', languagePack);
     // @ts-ignore

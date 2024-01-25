@@ -19,11 +19,11 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import ChartRenderer from './ChartRenderer';
 // DODO swapped component
 import { ChartErrorMessage as ChartErrorMessagePlugin } from 'src/Superstructure/components/ChartErrorMessage';
 import { ChartErrorMessage } from 'src/components/Chart/ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
+import ChartRenderer from './ChartRenderer';
 
 const propTypes = {
   annotationData: PropTypes.object,

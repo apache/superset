@@ -171,8 +171,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         );
 
         if (
-          idsResponse &&
-          idsResponse.loaded &&
+          idsResponse?.loaded &&
           idsResponse.data?.ids &&
           idsResponse.data?.ids.length
         ) {
@@ -209,8 +208,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
         );
 
         if (
-          idsResponse &&
-          idsResponse.loaded &&
+          idsResponse?.loaded &&
           idsResponse.data?.ids &&
           idsResponse.data?.ids.length
         ) {
@@ -270,12 +268,10 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       return null;
     }
 
-    const filteredDashboards =
-      dashboardsResponse.data &&
-      dashboardsResponse.data.filter(
-        (dashboard: Dashboard) =>
-          dashboard.certified_by && dashboard.certification_details,
-      );
+    const filteredDashboards = dashboardsResponse.data?.filter(
+      (dashboard: Dashboard) =>
+        dashboard.certified_by && dashboard.certification_details,
+    );
 
     if (!filteredDashboards?.length) {
       setLoaded(false);
@@ -408,23 +404,21 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       ) {
         const csrf = await handleCsrfRequest({ useAuth });
 
-        if (csrf && csrf.data && csrf.data.result) {
+        if (csrf?.data?.result) {
           const dashboards = await handleDashboardsRequest(params.business);
 
           const annotationIds = await handleAnnotationLayersRequest();
           if (annotationIds) {
             const annotations = await handleAnnotationsRequest(annotationIds);
-            if (annotations && annotations.length) {
-              const filteredAnnotations = annotations.filter(
-                annotation =>
-                  annotation &&
-                  annotation?.data?.result.short_descr.includes(ALERT_PREFIX),
+            if (annotations?.length) {
+              const filteredAnnotations = annotations.filter(annotation =>
+                annotation?.data?.result.short_descr.includes(ALERT_PREFIX),
               );
               setAnnotationsObjects(filteredAnnotations);
             }
           }
 
-          if (dashboards && dashboards.data && dashboards.data.length) {
+          if (dashboards?.data?.length) {
             let SORTING_IDS = [] as any[];
 
             const sortingAnnotationIds =
@@ -435,10 +429,9 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                 sortingAnnotationIds,
               );
 
-              if (annotations && annotations.length) {
+              if (annotations?.length) {
                 const filteredSortingAnnotations = annotations.filter(
                   annotation =>
-                    annotation &&
                     annotation?.data?.result.short_descr.includes(
                       SORTING_PREFIX,
                     ),
@@ -462,7 +455,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
               ),
             );
 
-            if (navConfigFull && navConfigFull.navigation.routes.length) {
+            if (navConfigFull?.navigation.routes.length) {
               setLoaded(true);
 
               const { basename, originUrl, frontendLogger } = params;
