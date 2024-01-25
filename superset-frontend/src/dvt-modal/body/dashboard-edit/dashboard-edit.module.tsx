@@ -34,19 +34,22 @@ const StyledDashboardEditHeader = styled.div`
   height: 60px;
   padding-left: 16px;
 `;
+
 const StyledDashboardEditBody = styled.div`
   display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
+  justify-content: space-between;
   background-color: ${({ theme }) => theme.colors.dvt.grayscale.light2};
   margin: 0px 27px 16px 27px;
   border-radius: 12px;
   height: 100%;
   padding: 18px 28px;
+  gap: 15px;
 `;
+
 const StyledDashboardEditInput = styled.div`
   display: flex;
   flex-direction: column;
+  width: 50%;
   gap: 15px;
 `;
 

@@ -25,6 +25,7 @@ const DvtModal = () => {
   useOnClickOutside(ref, () => handleCloseModal());
 
   const component = useAppSelector(state => state.dvtModal.component);
+
   const size = (() => {
     switch (component) {
       case 'add-alert':
@@ -33,6 +34,7 @@ const DvtModal = () => {
         return 'small';
     }
   })();
+
   const handleCloseModal = () => {
     dispatch(closeModal());
   };

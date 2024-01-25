@@ -148,9 +148,9 @@ function DvtWelcome() {
     );
   }, []);
 
-  const handleEditDashboard = async (id: number) => {
+  const handleEditDashboard = async (item: any) => {
     try {
-      const response = await fetch(`/api/v1/dashboard/${id}`);
+      const response = await fetch(`/api/v1/dashboard/${item.id}`);
       const editedDashboardData = await response.json();
 
       dispatch(
@@ -160,7 +160,7 @@ function DvtWelcome() {
         }),
       );
     } catch (error) {
-      console.error('Failed to edit dashboard:', error);
+      console.error(error);
     }
   };
 
@@ -179,8 +179,8 @@ function DvtWelcome() {
             {
               label: 'Edit',
               icon: 'edit_alt',
-              onClick: (id: number) => {
-                handleEditDashboard(id);
+              onClick: (item: any) => {
+                handleEditDashboard(item);
               },
             },
             { label: 'Export', icon: 'share', onClick: () => {} },
