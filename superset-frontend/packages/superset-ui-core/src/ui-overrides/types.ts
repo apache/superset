@@ -135,11 +135,21 @@ export interface SliceHeaderExtension {
   dashboardId: number;
 }
 
+/**
+ * Interface for extensions to Embed Modal
+ */
+export interface DashboardEmbedModalExtensions {
+  dashboardId: string;
+  show: boolean;
+  onHide: () => void;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
+  'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
   'dashboard.nav.right': React.ComponentType;
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
