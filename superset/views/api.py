@@ -26,7 +26,7 @@ from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
 from superset import db, event_logger
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
@@ -50,10 +50,10 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/query/", methods=["POST"])
+    @expose("/v1/query/", methods=("POST",))
     def query(self) -> FlaskResponse:
         """
-        Takes a query_obj constructed in the client and returns payload data response
+        Take a query_obj constructed in the client and returns payload data response
         for the given query_obj.
 
         raises SupersetSecurityException: If the user cannot access the resource
@@ -72,30 +72,29 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    @expose("/v1/form_data/", methods=("GET",))
+    def query_form_data(self) -> FlaskResponse:
         """
-        Get the formdata stored in the database for existing slice.
+        Get the form_data stored in the database for existing slice.
         params: slice_id: integer
         """
         form_data = {}
-        slice_id = request.args.get("slice_id")
-        if slice_id:
+        if slice_id := request.args.get("slice_id"):
             slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 
         update_time_range(form_data)
 
-        return json.dumps(form_data)
+        return self.json_response(form_data)
 
     @api
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
-    @expose("/v1/time_range/", methods=["GET"])
+    @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
-        """Get actually time range from human readable string or datetime expression"""
+        """Get actually time range from human-readable string or datetime expression."""
         time_range = kwargs["rison"]
         try:
             since, until = get_since_until(time_range)
@@ -106,7 +105,7 @@ class Api(BaseSupersetView):
             }
             return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": _("Unexpected time range: %s" % error)}
+            error_msg = {"message": _(f"Unexpected time range: {error}")}
             return self.json_response(error_msg, 400)
 
     def get_query_context_factory(self) -> QueryContextFactory:

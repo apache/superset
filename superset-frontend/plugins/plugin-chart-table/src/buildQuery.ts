@@ -52,10 +52,15 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
-  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } =
-    formData;
+  const {
+    percent_metrics: percentMetrics,
+    order_desc: orderDesc = false,
+    extra_form_data,
+  } = formData;
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
+  const time_grain_sqla =
+    extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
   let formDataCopy = formData;
   // never include time in raw records mode
   if (queryMode === QueryMode.raw) {
@@ -102,12 +107,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       columns = columns.map(col => {
         if (
           isPhysicalColumn(col) &&
-          formData.time_grain_sqla &&
+          time_grain_sqla &&
           hasGenericChartAxes &&
           formData?.temporal_columns_lookup?.[col]
         ) {
           return {
-            timeGrain: formData.time_grain_sqla,
+            timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,

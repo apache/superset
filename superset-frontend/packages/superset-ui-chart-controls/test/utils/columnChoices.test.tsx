@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, testQueryResponse } from '@superset-ui/core';
+import {
+  DatasourceType,
+  GenericDataType,
+  testQueryResponse,
+} from '@superset-ui/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
@@ -27,28 +31,35 @@ describe('columnChoices()', () => {
         metrics: [],
         type: DatasourceType.Table,
         main_dttm_col: 'test',
-        time_grain_sqla: 'P1D',
+        time_grain_sqla: [],
         columns: [
           {
             column_name: 'fiz',
+            type: 'INT',
+            type_generic: GenericDataType.NUMERIC,
           },
           {
             column_name: 'about',
             verbose_name: 'right',
+            type: 'VARCHAR',
+            type_generic: GenericDataType.STRING,
           },
           {
             column_name: 'foo',
-            verbose_name: 'bar',
+            verbose_name: undefined,
+            type: 'TIMESTAMP',
+            type_generic: GenericDataType.TEMPORAL,
           },
         ],
         verbose_map: {},
-        column_format: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),
     ).toEqual([
-      ['foo', 'bar'],
       ['fiz', 'fiz'],
+      ['foo', 'foo'],
       ['about', 'right'],
     ]);
   });

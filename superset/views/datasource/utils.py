@@ -14,20 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from superset import app, db
+from superset import app
+from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
-from superset.datasets.commands.exceptions import DatasetSamplesFailedError
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 
-def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> Dict[str, int]:
+def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, int]:
     samples_row_limit = app.config.get("SAMPLES_ROW_LIMIT", 1000)
     limit = samples_row_limit
     offset = 0
@@ -43,16 +43,15 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> Dict[str, 
     return {"row_offset": offset, "row_limit": limit}
 
 
-def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
+def get_samples(  # pylint: disable=too-many-arguments
     datasource_type: str,
     datasource_id: int,
     force: bool = False,
     page: int = 1,
     per_page: int = 1000,
     payload: Optional[SamplesPayloadSchema] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     datasource = DatasourceDAO.get_datasource(
-        session=db.session,
         datasource_type=datasource_type,
         datasource_id=datasource_id,
     )
@@ -104,21 +103,18 @@ def get_samples(  # pylint: disable=too-many-arguments,too-many-locals
         result_type=ChartDataResultType.FULL,
         force=force,
     )
-    samples_results = samples_instance.get_payload()
-    count_star_results = count_star_instance.get_payload()
 
     try:
-        sample_data = samples_results["queries"][0]
-        count_star_data = count_star_results["queries"][0]
-        failed_status = (
-            sample_data.get("status") == QueryStatus.FAILED
-            or count_star_data.get("status") == QueryStatus.FAILED
-        )
-        error_msg = sample_data.get("error") or count_star_data.get("error")
-        if failed_status and error_msg:
-            cache_key = sample_data.get("cache_key")
-            QueryCacheManager.delete(cache_key, region=CacheRegion.DATA)
-            raise DatasetSamplesFailedError(error_msg)
+        count_star_data = count_star_instance.get_payload()["queries"][0]
+
+        if count_star_data.get("status") == QueryStatus.FAILED:
+            raise DatasetSamplesFailedError(count_star_data.get("error"))
+
+        sample_data = samples_instance.get_payload()["queries"][0]
+
+        if sample_data.get("status") == QueryStatus.FAILED:
+            QueryCacheManager.delete(count_star_data.get("cache_key"), CacheRegion.DATA)
+            raise DatasetSamplesFailedError(sample_data.get("error"))
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page

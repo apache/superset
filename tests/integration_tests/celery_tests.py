@@ -120,9 +120,8 @@ def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
 def quote_f(value: Optional[str]):
     if not value:
         return value
-    return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
-        value
-    )
+    with get_example_database().get_inspector_with_context() as inspector:
+        return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 
 def cta_result(ctas_method: CtasMethod):

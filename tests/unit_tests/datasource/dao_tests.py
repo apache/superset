@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from sqlalchemy.orm.session import Session
@@ -101,12 +101,11 @@ FROM my_catalog.my_schema.my_table
 
 def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert 1 == result.id
@@ -115,11 +114,11 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
 
 
 def test_get_datasource_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import Query
 
     result = DatasourceDAO.get_datasource(
-        datasource_type=DatasourceType.QUERY, datasource_id=1, session=session_with_data
+        datasource_type=DatasourceType.QUERY, datasource_id=1
     )
 
     assert result.id == 1
@@ -127,13 +126,12 @@ def test_get_datasource_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_saved_query(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SAVEDQUERY,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -141,13 +139,12 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_table(session_with_data: Session) -> None:
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
     from superset.tables.models import Table
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -155,13 +152,12 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
 
 
 def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
         datasource_id=1,
-        session=session_with_data,
     )
 
     assert result.id == 1
@@ -170,15 +166,14 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
 
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
-    from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
     assert isinstance(
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=1,
-            session=session_with_data,
         ),
         SqlaTable,
     )
@@ -187,7 +182,6 @@ def test_get_datasource_w_str_param(session_with_data: Session) -> None:
         DatasourceDAO.get_datasource(
             datasource_type="sl_table",
             datasource_id=1,
-            session=session_with_data,
         ),
         Table,
     )
@@ -201,12 +195,11 @@ def test_get_all_datasources(session_with_data: Session) -> None:
 
 
 def test_not_found_datasource(session_with_data: Session) -> None:
-    from superset.dao.exceptions import DatasourceNotFound
-    from superset.datasource.dao import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
 
     with pytest.raises(DatasourceNotFound):
         DatasourceDAO.get_datasource(
             datasource_type="table",
             datasource_id=500000,
-            session=session_with_data,
         )

@@ -30,7 +30,6 @@ export enum LocalStorageKeys {
    * TODO: Update all local storage keys to follow the new pattern. This is a breaking change,
    * and therefore should be done in a major release.
    */
-  filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
   db = 'db',
   chart_split_sizes = 'chart_split_sizes',
   controls_width = 'controls_width',
@@ -54,11 +53,11 @@ export enum LocalStorageKeys {
   explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
   dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
   dashboard__explore_context = 'dashboard__explore_context',
+  dashboard__editor_show_only_my_charts = 'dashboard__editor_show_only_my_charts',
   common__resizable_sidebar_widths = 'common__resizable_sidebar_widths',
 }
 
 export type LocalStorageValues = {
-  filter_box_transition_snoozed_at: Record<number, number>;
   db: object | null;
   chart_split_sizes: [number, number];
   controls_width: number;
@@ -73,6 +72,7 @@ export type LocalStorageValues = {
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;
+  dashboard__editor_show_only_my_charts: boolean;
   common__resizable_sidebar_widths: Record<string, number>;
 };
 

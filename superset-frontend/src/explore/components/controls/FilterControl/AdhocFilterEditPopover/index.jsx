@@ -24,9 +24,7 @@ import { styled, t } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/components/Tabs';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
@@ -34,6 +32,7 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
+import { EXPRESSION_TYPES } from '../types';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -151,7 +150,7 @@ export default class AdhocFilterEditPopover extends React.Component {
         POPOVER_INITIAL_WIDTH,
       ),
       height: Math.max(
-        this.dragStartHeight + (e.clientY - this.dragStartY) * 2,
+        this.dragStartHeight + (e.clientY - this.dragStartY),
         POPOVER_INITIAL_HEIGHT,
       ),
     });

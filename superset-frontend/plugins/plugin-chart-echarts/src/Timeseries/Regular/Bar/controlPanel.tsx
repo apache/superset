@@ -23,23 +23,29 @@ import {
   ControlPanelsContainerProps,
   ControlSetRow,
   ControlStateMapping,
+  ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   formatSelectOptions,
   getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import {
+  legendSection,
+  minorTicks,
+  richTooltipSection,
+  seriesOrderSection,
+  showValueSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+} from '../../../controls';
 
 import { OrientationType } from '../../types';
 import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import {
-  legendSection,
-  richTooltipSection,
-  showValueSection,
-} from '../../../controls';
 
 const {
   logAxis,
@@ -47,7 +53,6 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
   orientation,
 } = DEFAULT_FORM_DATA;
 
@@ -161,21 +166,9 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
     ],
     [
       {
-        name: 'xAxisLabelRotation',
+        name: xAxisLabelRotation.name,
         config: {
-          type: 'SelectControl',
-          freeForm: true,
-          clearable: false,
-          label: t('Rotate axis label'),
-          choices: [
-            [0, '0°'],
-            [45, '45°'],
-          ],
-          default: xAxisLabelRotation,
-          renderTrigger: true,
-          description: t(
-            'Input field supports custom rotation. e.g. 30 for 30°',
-          ),
+          ...xAxisLabelRotation.config,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
@@ -192,6 +185,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
+    ['currency_format'],
     [
       {
         name: 'logAxis',
@@ -220,6 +214,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
+    [truncateXAxis],
+    [xAxisBounds],
     [
       {
         name: 'truncateYAxis',
@@ -291,9 +287,9 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       expanded: true,
       controlSetRows: [
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisTitleControl('x'),
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisTitleControl('y'),
       ],
     },
@@ -301,8 +297,10 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         ...showValueSection,
+        [minorTicks],
         [
           {
             name: 'zoomable',
@@ -316,10 +314,10 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('x'),
         ...richTooltipSection,
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
       ],
     },

@@ -17,9 +17,8 @@
  * under the License.
  */
 import React, { useMemo, useRef } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, useTruncation } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
-import { useTruncation } from 'src/hooks/useTruncation';
 import CrossLinksTooltip from './CrossLinksTooltip';
 
 export type CrossLinkProps = {

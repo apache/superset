@@ -29,7 +29,7 @@ import Button from 'src/components/Button';
 import { exploreChart } from 'src/explore/exploreUtils';
 import { SqlLabRootState } from 'src/SqlLab/types';
 
-interface ExploreCtasResultsButtonProps {
+export interface ExploreCtasResultsButtonProps {
   table: string;
   schema?: string | null;
   dbId: number;
@@ -48,10 +48,10 @@ const ExploreCtasResultsButton = ({
   const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
 
   const buildVizOptions = {
-    datasourceName: table,
+    table_name: table,
     schema,
-    dbId,
-    templateParams,
+    database_id: dbId,
+    template_params: templateParams,
   };
 
   const visualize = () => {

@@ -87,3 +87,13 @@ export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
     }
   }
 `;
+
+export const chartContextMenuStyles = (theme: SupersetTheme) => css`
+  .ant-dropdown-menu.chart-context-menu {
+    min-width: ${theme.gridUnit * 43}px;
+  }
+  .ant-dropdown-menu-submenu.chart-context-submenu {
+    max-width: ${theme.gridUnit * 60}px;
+    min-width: ${theme.gridUnit * 40}px;
+  }
+`;

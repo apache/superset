@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { ensureIsArray, t, useTheme } from '@superset-ui/core';
+import { ensureIsArray, t, useTheme, usePrevious } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Icons from 'src/components/Icons';
@@ -28,7 +28,6 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import { usePrevious } from 'src/hooks/usePrevious';
 import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';

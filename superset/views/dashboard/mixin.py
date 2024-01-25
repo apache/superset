@@ -21,7 +21,6 @@ from superset.dashboards.filters import DashboardAccessFilter
 
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods
-
     list_title = _("Dashboards")
     show_title = _("Show Dashboard")
     add_title = _("Add Dashboard")
@@ -66,7 +65,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "roles": _(
             "Roles is a list which defines access to the dashboard. "
             "Granting a role access to a dashboard will bypass dataset level checks."
-            "If no roles are defined then the dashboard is available to all roles."
+            "If no roles are defined, regular access permissions apply."
         ),
         "published": _(
             "Determines whether or not this dashboard is "
@@ -89,5 +88,5 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "json_metadata": _("JSON Metadata"),
     }
 
-    def pre_delete(self, item: "DashboardMixin") -> None:  # pylint: disable=no-self-use
+    def pre_delete(self, item: "DashboardMixin") -> None:
         security_manager.raise_for_ownership(item)

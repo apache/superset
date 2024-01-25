@@ -35,12 +35,6 @@ import Pagination from 'src/components/Pagination/Wrapper';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
-jest.mock('src/components/Icons/Icon', () => ({
-  __esModule: true,
-  default: () => <span />,
-  StyledIcon: () => <span />,
-}));
-
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {
@@ -476,7 +470,7 @@ describe('ListView', () => {
     });
 
     await act(async () => {
-      wrapper2.find('[aria-label="Sort"]').first().props().onChange({
+      wrapper2.find('[aria-label="Sort"]').first().props().onSelect({
         desc: false,
         id: 'something',
         label: 'Alphabetical',

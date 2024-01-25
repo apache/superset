@@ -55,6 +55,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   ConditionalFormattingConfig[]
 > & {
   columnOptions: { label: string; value: string }[];
+  removeIrrelevantConditions: boolean;
   verboseMap: Record<string, string>;
   label: string;
   description: string;

@@ -21,7 +21,7 @@ import {
   getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -33,7 +33,6 @@ import {
   jsOnclickHref,
   legendFormat,
   legendPosition,
-  lineColumn,
   fillColorPicker,
   strokeColorPicker,
   filled,
@@ -49,10 +48,6 @@ import {
 } from '../../utilities/Shared_DeckGL';
 import { dndLineColumn } from '../../utilities/sharedDndControls';
 
-const lines = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndLineColumn
-  : lineColumn;
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
@@ -62,9 +57,9 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            ...lines,
+            ...dndLineColumn,
             config: {
-              ...lines.config,
+              ...dndLineColumn.config,
               label: t('Polygon Column'),
             },
           },
@@ -97,10 +92,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [
-        [mapboxStyle, viewport],
-        [autozoom, null],
-      ],
+      controlSetRows: [[mapboxStyle], [viewport], [autozoom]],
     },
     {
       label: t('Polygon Settings'),
@@ -108,10 +100,26 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
-        [extruded, multiplier],
-        [lineWidth, null],
+        [extruded],
+        [multiplier],
+        [lineWidth],
         [
-          'linear_color_scheme',
+          {
+            name: 'line_width_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Line width unit'),
+              default: 'pixels',
+              choices: [
+                ['meters', t('meters')],
+                ['pixels', t('pixels')],
+              ],
+              renderTrigger: true,
+            },
+          },
+        ],
+        ['linear_color_scheme'],
+        [
           {
             name: 'opacity',
             config: {
@@ -140,6 +148,8 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
             },
           },
+        ],
+        [
           {
             name: 'break_points',
             config: {
@@ -166,6 +176,8 @@ const config: ControlPanelConfig = {
               description: t('Whether to apply filter when items are clicked'),
             },
           },
+        ],
+        [
           {
             name: 'toggle_polygons',
             config: {
@@ -179,7 +191,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [legendPosition, legendFormat],
+        [legendPosition],
+        [legendFormat],
       ],
     },
     {

@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import {
   sharedControls,
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
   sections,
   getStandardizedControls,
@@ -73,7 +74,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        [<div className="section-header">{t('General')}</div>],
+        [<ControlSubSectionHeader>{t('General')}</ControlSubSectionHeader>],
         [
           {
             name: 'min_val',
@@ -153,6 +154,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'value_formatter',
@@ -193,7 +195,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_axis_tick',
@@ -232,7 +234,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Progress')}</div>],
+        [<ControlSubSectionHeader>{t('Progress')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_progress',
@@ -273,7 +275,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Intervals')}</div>],
+        [<ControlSubSectionHeader>{t('Intervals')}</ControlSubSectionHeader>],
         [
           {
             name: 'intervals',

@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -30,25 +31,25 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)",
-        "PT1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)",
-        "PT1H": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)",
-        "P1D": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)",
-        "P1W": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO WEEK) AS DATE)",
-        "P1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)",
-        "P3M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
-        "P1Y": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)",
+        TimeGrain.SECOND: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)",
+        TimeGrain.MINUTE: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)",
+        TimeGrain.HOUR: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)",
+        TimeGrain.DAY: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)",
+        TimeGrain.WEEK: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO WEEK) AS DATE)",
+        TimeGrain.MONTH: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)",
+        TimeGrain.QUARTER: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
+        TimeGrain.YEAR: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)",
     }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, types.TIMESTAMP):
-            datetime_fomatted = dttm.isoformat(sep=" ", timespec="seconds")
-            return f"""CAST('{datetime_fomatted}' AS TIMESTAMP)"""
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CAST('{datetime_formatted}' AS TIMESTAMP)"""
         return None

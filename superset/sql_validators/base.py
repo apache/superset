@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from superset.models.core import Database
 
@@ -34,7 +34,7 @@ class SQLValidationAnnotation:  # pylint: disable=too-few-public-methods
         self.start_column = start_column
         self.end_column = end_column
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of this annotation"""
         return {
             "line_number": self.line_number,
@@ -53,6 +53,6 @@ class BaseSQLValidator:  # pylint: disable=too-few-public-methods
     @classmethod
     def validate(
         cls, sql: str, schema: Optional[str], database: Database
-    ) -> List[SQLValidationAnnotation]:
+    ) -> list[SQLValidationAnnotation]:
         """Check that the given SQL querystring is valid for the given engine"""
         raise NotImplementedError

@@ -73,9 +73,6 @@ def load_examples_run(
         print("Loading [BART lines]")
         examples.load_bart_lines(only_metadata, force)
 
-        print("Loading [Multi Line]")
-        examples.load_multi_line(only_metadata)
-
         print("Loading [Misc Charts] dashboard")
         examples.load_misc_dashboard()
 

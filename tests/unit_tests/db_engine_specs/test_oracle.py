@@ -111,3 +111,17 @@ def test_convert_dttm(
     from superset.db_engine_specs.oracle import OracleEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "name,expected_result",
+    [
+        ("col", "COL"),
+        ("Col", "Col"),
+        ("COL", "COL"),
+    ],
+)
+def test_denormalize_name(name: str, expected_result: str):
+    from superset.db_engine_specs.oracle import OracleEngineSpec as spec
+
+    assert spec.denormalize_name(oracle.dialect(), name) == expected_result

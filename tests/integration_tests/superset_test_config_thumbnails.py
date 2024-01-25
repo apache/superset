@@ -19,6 +19,7 @@ from copy import copy
 
 from superset.config import *
 
+SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
     DATA_DIR, "unittests.integration_tests.db"
@@ -61,11 +62,10 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 
 
-class CeleryConfig(object):
-    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks.thumbnails")
-    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
-    CONCURRENCY = 1
+class CeleryConfig:
+    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+    imports = ("superset.sql_lab", "superset.tasks.thumbnails")
+    concurrency = 1
 
 
 CELERY_CONFIG = CeleryConfig

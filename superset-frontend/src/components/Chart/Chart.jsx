@@ -18,9 +18,14 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
-
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
@@ -59,7 +64,6 @@ const propTypes = {
   triggerRender: PropTypes.bool,
   force: PropTypes.bool,
   isFiltersInitialized: PropTypes.bool,
-  isDeactivatedViz: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -94,7 +98,6 @@ const defaultProps = {
   triggerRender: false,
   dashboardId: null,
   chartStackTrace: null,
-  isDeactivatedViz: false,
   force: false,
   isInView: true,
 };
@@ -109,6 +112,10 @@ const Styles = styled.div`
   }
 
   .slice_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
     height: ${p => p.height}px;
 
     .pivot_table tbody tr {
@@ -136,51 +143,27 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
 
   componentDidUpdate() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
-      // if the chart is deactivated (filter_box), only load once
-      if (this.props.isDeactivatedViz && this.props.queriesResponse) {
-        return;
-      }
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
 
   runQuery() {
-    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
-      // Load saved chart with a GET request
-      this.props.actions.getSavedChart(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    } else {
-      // Create chart with POST request
-      this.props.actions.postChartFormData(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    }
+    // Create chart with POST request
+    this.props.actions.postChartFormData(
+      this.props.formData,
+      Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+      this.props.timeout,
+      this.props.chartId,
+      this.props.dashboardId,
+      this.props.ownState,
+    );
   }
 
   handleRenderContainerFailure(error, info) {
@@ -257,7 +240,6 @@ class Chart extends React.PureComponent {
       errorMessage,
       chartIsStale,
       queriesResponse = [],
-      isDeactivatedViz = false,
       width,
     } = this.props;
 
@@ -328,7 +310,7 @@ class Chart extends React.PureComponent {
               <Loading />
             )}
           </div>
-          {isLoading && !isDeactivatedViz && <Loading />}
+          {isLoading && <Loading />}
         </Styles>
       </ErrorBoundary>
     );

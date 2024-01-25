@@ -39,21 +39,15 @@ const buildQuery: BuildQuery<PluginFilterSelectQueryFormData> = (
     if (search) {
       columns.filter(isPhysicalColumn).forEach(column => {
         const label = getColumnLabel(column);
-        if (coltypeMap[label] === GenericDataType.STRING) {
+        if (
+          coltypeMap[label] === GenericDataType.STRING ||
+          (coltypeMap[label] === GenericDataType.NUMERIC &&
+            !Number.isNaN(Number(search)))
+        ) {
           extraFilters.push({
             col: column,
             op: 'ILIKE',
             val: `%${search}%`,
-          });
-        } else if (
-          coltypeMap[label] === GenericDataType.NUMERIC &&
-          !Number.isNaN(Number(search))
-        ) {
-          // for numeric columns we apply a >= where clause
-          extraFilters.push({
-            col: column,
-            op: '>=',
-            val: Number(search),
           });
         }
       });

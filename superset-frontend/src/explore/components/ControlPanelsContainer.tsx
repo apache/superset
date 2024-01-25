@@ -39,6 +39,7 @@ import {
   isDefined,
   JsonValue,
   NO_TIME_RANGE,
+  usePrevious,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -59,7 +60,6 @@ import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import Modal from 'src/components/Modal';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
@@ -70,6 +70,7 @@ import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
+import { CLAUSES } from './controls/FilterControl/types';
 
 const { confirm } = Modal;
 
@@ -235,7 +236,7 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
@@ -299,14 +300,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       x_axis !== previousXAxis &&
       isTemporalColumn(x_axis, props.exploreState.datasource)
     ) {
-      const noFilter =
-        !adhoc_filters ||
-        !adhoc_filters.find(
-          filter =>
-            filter.expressionType === 'SIMPLE' &&
-            filter.operator === Operators.TEMPORAL_RANGE &&
-            filter.subject === x_axis,
-        );
+      const noFilter = !adhoc_filters?.find(
+        filter =>
+          filter.expressionType === 'SIMPLE' &&
+          filter.operator === Operators.TEMPORAL_RANGE &&
+          filter.subject === x_axis,
+      );
       if (noFilter) {
         confirm({
           title: t('The X-axis is not on the filters list'),
@@ -317,7 +316,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
-                clause: 'WHERE',
+                clause: CLAUSES.WHERE,
                 subject: x_axis,
                 operator: Operators.TEMPORAL_RANGE,
                 comparator: defaultTimeFilter || NO_TIME_RANGE,
@@ -494,7 +493,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ) => {
         const isTemporalRange = (filter: Record<string, any>) =>
           filter.operator === Operators.TEMPORAL_RANGE;
-        if (isTemporalRange(valueToBeDeleted)) {
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
             return t(

@@ -16,12 +16,15 @@
 # under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.engine.url import make_url
 
+from superset.exceptions import SupersetSecurityException
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -81,11 +84,92 @@ def test_convert_dttm(
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
     from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"), {}
+        )
+        is None
+    )
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-csearch_path=secret"},
+        )
+        == "secret"
+    )
+
+    assert (
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-c search_path = secret -cfoo=bar -c debug"},
+        )
+        == "secret"
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        PostgresEngineSpec.get_schema_from_engine_params(
+            make_url("postgresql://user:password@host/db1"),
+            {"options": "-csearch_path=secret,public"},
+        )
+    assert str(excinfo.value) == (
+        "Multiple schemas are configured in the search path, which means "
+        "Superset is unable to determine the schema of unqualified table "
+        "names and enforce permissions."
+    )
+
+
+def test_get_prequeries() -> None:
+    """
+    Test the ``get_prequeries`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert PostgresEngineSpec.get_prequeries() == []
+    assert PostgresEngineSpec.get_prequeries(schema="test") == [
+        'set search_path = "test"'
+    ]
+
+
+def test_get_default_schema_for_query(mocker: MockFixture) -> None:
+    """
+    Test the ``get_default_schema_for_query`` method.
+    """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    database = mocker.MagicMock()
+    query = mocker.MagicMock()
+
+    query.sql = "SELECT * FROM some_table"
+    query.schema = "foo"
+    assert PostgresEngineSpec.get_default_schema_for_query(database, query) == "foo"
+
+    query.sql = """
+set
+-- this is a tricky comment
+search_path -- another one
+= bar;
+SELECT * FROM some_table;
+    """
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        PostgresEngineSpec.get_default_schema_for_query(database, query)
+    assert (
+        str(excinfo.value)
+        == "Users are not allowed to set a search path for security reasons."
+    )

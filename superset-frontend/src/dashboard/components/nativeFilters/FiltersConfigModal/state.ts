@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { usePrevious } from 'src/hooks/usePrevious';
-import { NativeFilterType } from '@superset-ui/core';
+import { NativeFilterType, usePrevious } from '@superset-ui/core';
 import { FilterRemoval } from './types';
 
 /**

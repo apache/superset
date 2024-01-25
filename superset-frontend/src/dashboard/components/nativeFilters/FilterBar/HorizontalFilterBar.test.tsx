@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { NativeFilterType } from '@superset-ui/core';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';

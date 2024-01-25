@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { parseYAxisBound } from '../../src/utils/controls';
+import { parseAxisBound } from '../../src/utils/controls';
 
 describe('parseYAxisBound', () => {
   it('should return undefined for invalid values', () => {
-    expect(parseYAxisBound(null)).toBeUndefined();
-    expect(parseYAxisBound(undefined)).toBeUndefined();
-    expect(parseYAxisBound(NaN)).toBeUndefined();
-    expect(parseYAxisBound('abc')).toBeUndefined();
+    expect(parseAxisBound(null)).toBeUndefined();
+    expect(parseAxisBound(undefined)).toBeUndefined();
+    expect(parseAxisBound(NaN)).toBeUndefined();
+    expect(parseAxisBound('abc')).toBeUndefined();
   });
 
   it('should return numeric value for valid values', () => {
-    expect(parseYAxisBound(0)).toEqual(0);
-    expect(parseYAxisBound('0')).toEqual(0);
-    expect(parseYAxisBound(1)).toEqual(1);
-    expect(parseYAxisBound('1')).toEqual(1);
-    expect(parseYAxisBound(10.1)).toEqual(10.1);
-    expect(parseYAxisBound('10.1')).toEqual(10.1);
+    expect(parseAxisBound(0)).toEqual(0);
+    expect(parseAxisBound('0')).toEqual(0);
+    expect(parseAxisBound(1)).toEqual(1);
+    expect(parseAxisBound('1')).toEqual(1);
+    expect(parseAxisBound(10.1)).toEqual(10.1);
+    expect(parseAxisBound('10.1')).toEqual(10.1);
   });
 });

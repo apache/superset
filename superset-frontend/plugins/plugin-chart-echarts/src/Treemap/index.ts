@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -25,8 +25,9 @@ import thumbnail from './images/thumbnail.png';
 import example1 from './images/treemap_v2_1.png';
 import example2 from './images/treemap_v2_2.jpg';
 import { EchartsTreemapChartProps, EchartsTreemapFormData } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsTreemapChartPlugin extends ChartPlugin<
+export default class EchartsTreemapChartPlugin extends EchartsChartPlugin<
   EchartsTreemapFormData,
   EchartsTreemapChartProps
 > {
@@ -45,8 +46,12 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsTreemap'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.INTERACTIVE_CHART,
+          Behavior.DRILL_TO_DETAIL,
+          Behavior.DRILL_BY,
+        ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description: t(
@@ -64,7 +69,7 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
           t('Proportional'),
         ],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

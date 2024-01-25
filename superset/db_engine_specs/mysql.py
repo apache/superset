@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple
+from decimal import Decimal
+from re import Pattern
+from typing import Any, Callable, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -35,6 +38,7 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
@@ -58,7 +62,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
+class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
@@ -68,6 +72,8 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         "mysql://user:password@host:port/dbname[?key=value&key=value...]"
     )
     encryption_parameters = {"ssl": "1"}
+
+    supports_dynamic_schema = True
 
     column_type_mappings = (
         (
@@ -121,29 +127,32 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             GenericDataType.STRING,
         ),
     )
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
+    }
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_ADD(DATE({col}), "
+        TimeGrain.SECOND: "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
         " + SECOND({col})) SECOND)",
-        "PT1M": "DATE_ADD(DATE({col}), "
+        TimeGrain.MINUTE: "DATE_ADD(DATE({col}), "
         "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)",
-        "PT1H": "DATE_ADD(DATE({col}), " "INTERVAL HOUR({col}) HOUR)",
-        "P1D": "DATE({col})",
-        "P1W": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFWEEK({col}) - 1 DAY))",
-        "P1M": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFMONTH({col}) - 1 DAY))",
-        "P3M": "MAKEDATE(YEAR({col}), 1) "
+        TimeGrain.HOUR: "DATE_ADD(DATE({col}), INTERVAL HOUR({col}) HOUR)",
+        TimeGrain.DAY: "DATE({col})",
+        TimeGrain.WEEK: "DATE(DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY))",
+        TimeGrain.MONTH: "DATE(DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY))",
+        TimeGrain.QUARTER: "MAKEDATE(YEAR({col}), 1) "
         "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER",
-        "P1Y": "DATE(DATE_SUB({col}, " "INTERVAL DAYOFYEAR({col}) - 1 DAY))",
-        "1969-12-29T00:00:00Z/P1W": "DATE(DATE_SUB({col}, "
+        TimeGrain.YEAR: "DATE(DATE_SUB({col}, INTERVAL DAYOFYEAR({col}) - 1 DAY))",
+        TimeGrain.WEEK_STARTING_MONDAY: "DATE(DATE_SUB({col}, "
         "INTERVAL DAYOFWEEK(DATE_SUB({col}, "
         "INTERVAL 1 DAY)) - 1 DAY))",
     }
 
-    type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
+    type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
@@ -173,10 +182,18 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
             {},
         ),
     }
+    disallow_uri_query_params = {
+        "mysqldb": {"local_infile"},
+        "mysqlconnector": {"allow_local_infile"},
+    }
+    enforce_uri_query_params = {
+        "mysqldb": {"local_infile": 0},
+        "mysqlconnector": {"allow_local_infile": 0},
+    }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -188,13 +205,37 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return None
 
     @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
-        if selected_schema:
-            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        uri, new_connect_args = super().adjust_engine_params(
+            uri,
+            connect_args,
+            catalog,
+            schema,
+        )
 
-        return uri
+        if schema:
+            uri = uri.set(database=parse.quote(schema, safe=""))
+
+        return uri, new_connect_args
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        A MySQL database is a SQLAlchemy schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -222,11 +263,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
         message = str(ex)
-        try:
+        with contextlib.suppress(AttributeError, KeyError):
             if isinstance(ex.args, tuple) and len(ex.args) > 1:
                 message = ex.args[1]
-        except (AttributeError, KeyError):
-            pass
         return message
 
     @classmethod

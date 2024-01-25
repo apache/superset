@@ -20,12 +20,14 @@ import React, { useEffect, useState } from 'react';
 import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
 import {
-  t,
-  SupersetClient,
-  SupersetTheme,
-  styled,
+  isFeatureEnabled,
+  FeatureFlag,
   hasGenericChartAxes,
   isDefined,
+  styled,
+  SupersetClient,
+  SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import {
   Operators,
@@ -38,14 +40,10 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   ColumnMeta,
   Dataset,
@@ -54,6 +52,7 @@ import {
 import useAdvancedDataTypes from './useAdvancedDataTypes';
 import { useDatePickerInAdhocFilter } from '../utils';
 import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
+import { CLAUSES, EXPRESSION_TYPES } from '../types';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;

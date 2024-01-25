@@ -3,23 +3,26 @@ name: Python-Unit
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - 'master'
+    paths:
+      - "superset/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset/**"
 
 jobs:
   unit-tests:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.9", "3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           submodules: recursive
@@ -32,7 +35,7 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -50,6 +53,8 @@ jobs:
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
+        env:
+          SUPERSET_TESTENV: true
         run: |
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage

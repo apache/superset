@@ -98,11 +98,10 @@ const plugins = [
             .filter(x => x.endsWith('.css'))
             .map(x => `${output.publicPath}${x}`),
           js: chunks
-            .filter(x => x.endsWith('.js'))
+            .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
             .map(x => `${output.publicPath}${x}`),
         };
       });
-
       return {
         ...seed,
         entrypoints: entryFiles,
@@ -116,6 +115,9 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env.REDUX_DEFAULT_MIDDLEWARE':
+      process.env.REDUX_DEFAULT_MIDDLEWARE,
+    'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
   }),
 
   new CopyPlugin({
@@ -210,9 +212,6 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
-    sqllab: addPreamble('/src/SqlLab/index.tsx'),
-    profile: addPreamble('/src/profile/index.tsx'),
-    showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
   output,
   stats: 'minimal',
@@ -248,9 +247,7 @@ const config = {
               'redux',
               'react-redux',
               'react-hot-loader',
-              'react-select',
               'react-sortable-hoc',
-              'react-virtualized',
               'react-table',
               'react-ace',
               '@hot-loader.*',
@@ -418,12 +415,11 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
-              svgoConfig: {
-                plugins: {
-                  removeViewBox: false,
-                  icon: true,
-                },
-              },
+              titleProp: true,
+              ref: true,
+              // this is the default value for the icon. Using other values
+              // here will replace width and height in svg with 1em
+              icon: false,
             },
           },
         ],
@@ -512,7 +508,11 @@ if (isDevMode) {
       () => proxyConfig,
     ],
     client: {
-      overlay: { errors: true, warnings: false },
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: error => !/ResizeObserver/.test(error.message),
+      },
       logging: 'error',
     },
     static: path.join(process.cwd(), '../static/assets'),

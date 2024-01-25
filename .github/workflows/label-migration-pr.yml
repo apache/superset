@@ -1,0 +1,25 @@
+name: Label Migration PR
+
+on:
+  pull_request:
+    paths:
+      - 'superset/migrations/**'
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Add label
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{github.token}}
+          script: |
+            github.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['risk:db-migration']
+            })

@@ -5,10 +5,27 @@ on:
     types: [created]
 
 jobs:
-  ephemeral_env_comment:
+  config:
+    runs-on: "ubuntu-latest"
     if: github.event.issue.pull_request
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  ephemeral_env_comment:
+    needs: config
+    if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     outputs:
       slash-command: ${{ steps.eval-body.outputs.result }}
       feature-flags: ${{ steps.eval-feature-flags.outputs.result }}
@@ -51,7 +68,7 @@ jobs:
         github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
           github.issues.createComment({
@@ -62,14 +79,91 @@ jobs:
           })
           core.setFailed(errMsg)
 
+  docker_ephemeral_env:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    name: Push ephemeral env Docker image to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Download artifact"
+        uses: actions/github-script@v3.1.0
+        with:
+          script: |
+            const artifacts = await github.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: ${{ github.event.workflow_run.id }},
+            });
+
+            core.info('*** artifacts')
+            core.info(JSON.stringify(artifacts))
+
+            const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name === "build";
+            });
+
+            if (!matchArtifact.length) {
+              return core.setFailed("Build artifacts not found");
+            }
+
+            const download = await github.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: matchArtifact[0].id,
+                archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/build.zip', Buffer.from(download.data));
+
+      - run: unzip build.zip
+
+      - name: Display downloaded files (debug)
+        run: ls -la
+
+      - name: Get SHA
+        id: get-sha
+        run: echo "::set-output name=sha::$(cat ./SHA)"
+
+      - name: Get PR
+        id: get-pr
+        run: echo "::set-output name=num::$(cat ./PR-NUM)"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Load, tag and push image to ECR
+        id: push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: superset-ci
+          SHA: ${{ steps.get-sha.outputs.sha }}
+          IMAGE_TAG: pr-${{ steps.get-pr.outputs.num }}
+        run: |
+          docker load < $SHA.tar.gz
+          docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
+          docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+
   ephemeral_env_up:
     needs: ephemeral_env_comment
     if: needs.ephemeral_env_comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         persist-credentials: false
 
@@ -97,7 +191,7 @@ jobs:
       if: steps.check-image.outcome == 'failure'
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
           github.issues.createComment({
@@ -171,7 +265,7 @@ jobs:
       if: ${{ success() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
@@ -184,7 +278,7 @@ jobs:
       if: ${{ failure() }}
       uses: actions/github-script@v3
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
+        github-token: ${{github.token}}
         script: |
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},

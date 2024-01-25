@@ -21,6 +21,7 @@ import {
   css,
   GenericDataType,
   getTimeFormatter,
+  safeHtmlSpan,
   styled,
   t,
   TimeFormats,
@@ -28,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { Space } from 'src/components';
 import { Input } from 'src/components/Input';
 import {
@@ -263,6 +264,7 @@ export const useTableColumns = (
   datasourceId?: string,
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
+  allowHTML?: boolean,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
@@ -345,6 +347,9 @@ export const useTableColumns = (
                     typeof value === 'number'
                   ) {
                     return timeFormatter(value);
+                  }
+                  if (typeof value === 'string' && allowHTML) {
+                    return safeHtmlSpan(value);
                   }
                   return String(value);
                 },

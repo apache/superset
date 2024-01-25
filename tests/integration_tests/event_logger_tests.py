@@ -17,8 +17,8 @@
 import logging
 import time
 import unittest
-from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
+from datetime import timedelta
+from typing import Any, Optional
 from unittest.mock import patch
 
 from flask import current_app
@@ -179,7 +179,7 @@ class TestEventLogger(unittest.TestCase):
                 duration=timedelta(days=64, seconds=29156, microseconds=10),
                 object_ref={"baz": "food"},
                 log_to_statsd=False,
-                payload_override={"engine": "sqllite"},
+                payload_override={"engine": "sqlite"},
             )
 
         assert logger.records == [
@@ -188,7 +188,7 @@ class TestEventLogger(unittest.TestCase):
                     {
                         "path": "/",
                         "object_ref": {"baz": "food"},
-                        "payload_override": {"engine": "sqllite"},
+                        "payload_override": {"engine": "sqlite"},
                     }
                 ],
                 "user_id": 2,
@@ -226,7 +226,7 @@ class TestEventLogger(unittest.TestCase):
                 duration=timedelta(days=64, seconds=29156, microseconds=10),
                 object_ref={"baz": "food"},
                 log_to_statsd=False,
-                payload_override={"engine": "sqllite"},
+                payload_override={"engine": "sqlite"},
             )
 
         assert logger.records[0]["user_id"] == None

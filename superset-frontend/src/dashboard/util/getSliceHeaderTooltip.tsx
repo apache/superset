@@ -18,15 +18,10 @@
  */
 
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { detectOS } from 'src/utils/common';
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB)) {
-    return sliceName
-      ? t('Click to edit %s in a new tab', sliceName)
-      : t('Click to edit chart.');
-  }
   const isMac = detectOS() === 'MacOS';
   const firstLine = sliceName
     ? t('Click to edit %s.', sliceName)

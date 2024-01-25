@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from hashlib import md5
 from secrets import token_urlsafe
-from typing import Any, Union
+from typing import Any
 from uuid import UUID, uuid3
 
 import hashids
@@ -35,7 +35,7 @@ def random_key() -> str:
     return token_urlsafe(48)
 
 
-def get_filter(resource: KeyValueResource, key: Union[int, UUID]) -> KeyValueFilter:
+def get_filter(resource: KeyValueResource, key: int | UUID) -> KeyValueFilter:
     try:
         filter_: KeyValueFilter = {"resource": resource.value}
         if isinstance(key, UUID):

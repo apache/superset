@@ -15,16 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Union
 
 import pandas as pd
-from numpy.distutils.misc_util import is_sequence
 
 from superset.utils.pandas_postprocessing.utils import (
     _is_multi_index_on_columns,
     escape_separator,
     FLAT_COLUMN_SEPARATOR,
 )
+
+
+def is_sequence(seq: Any) -> bool:
+    if isinstance(seq, str):
+        return False
+
+    return isinstance(seq, Iterable)
 
 
 def flatten(
@@ -85,7 +92,7 @@ def flatten(
         _columns = []
         for series in df.columns.to_flat_index():
             _cells = []
-            for cell in series if is_sequence(series) else [series]:  # type: ignore
+            for cell in series if is_sequence(series) else [series]:
                 if pd.notnull(cell):
                     # every cell should be converted to string and escape comma
                     _cells.append(escape_separator(str(cell)))

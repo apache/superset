@@ -4,12 +4,30 @@ on:
   push:
     paths:
       - "docs/**"
+    branches:
+      - 'master'
   pull_request:
     paths:
       - "docs/**"
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
+  config:
+    runs-on: "ubuntu-latest"
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - name: "Check for secrets"
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+
   build-deploy:
+    needs: config
+    if: needs.config.outputs.has-secrets
     name: Build & Deploy
     runs-on: ubuntu-20.04
     defaults:
@@ -17,7 +35,7 @@ jobs:
         working-directory: docs
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           persist-credentials: false
           submodules: recursive

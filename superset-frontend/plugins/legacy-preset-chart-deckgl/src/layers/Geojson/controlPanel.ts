@@ -17,12 +17,7 @@
  * under the License.
  */
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import {
-  t,
-  legacyValidateInteger,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { t, legacyValidateInteger } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
   filterNulls,
@@ -37,15 +32,10 @@ import {
   extruded,
   viewport,
   mapboxStyle,
-  geojsonColumn,
   autozoom,
   lineWidth,
 } from '../../utilities/Shared_DeckGL';
 import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
-
-const geojson = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndGeojsonColumn
-  : geojsonColumn;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -54,7 +44,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [geojson],
+        [dndGeojsonColumn],
         ['row_limit'],
         [filterNulls],
         ['adhoc_filters'],
@@ -69,8 +59,23 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [fillColorPicker, strokeColorPicker],
         [filled, stroked],
-        [extruded, null],
-        [lineWidth, null],
+        [extruded],
+        [lineWidth],
+        [
+          {
+            name: 'line_width_unit',
+            config: {
+              type: 'SelectControl',
+              label: t('Line width unit'),
+              default: 'pixels',
+              choices: [
+                ['meters', t('meters')],
+                ['pixels', t('pixels')],
+              ],
+              renderTrigger: true,
+            },
+          },
+        ],
         [
           {
             name: 'point_radius_scale',
@@ -83,7 +88,6 @@ const config: ControlPanelConfig = {
               choices: formatSelectOptions([0, 100, 200, 300, 500]),
             },
           },
-          null,
         ],
       ],
     },

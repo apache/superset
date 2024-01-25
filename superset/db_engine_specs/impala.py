@@ -18,14 +18,14 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
 
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset import db
+from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.sql_lab import Query
 
@@ -42,13 +42,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1M": "TRUNC({col}, 'MI')",
-        "PT1H": "TRUNC({col}, 'HH')",
-        "P1D": "TRUNC({col}, 'DD')",
-        "P1W": "TRUNC({col}, 'WW')",
-        "P1M": "TRUNC({col}, 'MONTH')",
-        "P3M": "TRUNC({col}, 'Q')",
-        "P1Y": "TRUNC({col}, 'YYYY')",
+        TimeGrain.MINUTE: "TRUNC({col}, 'MI')",
+        TimeGrain.HOUR: "TRUNC({col}, 'HH')",
+        TimeGrain.DAY: "TRUNC({col}, 'DD')",
+        TimeGrain.WEEK: "TRUNC({col}, 'WW')",
+        TimeGrain.MONTH: "TRUNC({col}, 'MONTH')",
+        TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
+        TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
 
     @classmethod
@@ -57,7 +57,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 
@@ -68,7 +68,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    def get_schema_names(cls, inspector: Inspector) -> List[str]:
+    def get_schema_names(cls, inspector: Inspector) -> list[str]:
         schemas = [
             row[0]
             for row in inspector.engine.execute("SHOW SCHEMAS")
@@ -80,7 +80,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor
@@ -101,7 +101,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
         query_id = query.id
@@ -113,8 +113,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             status = cursor.status()
             while status in unfinished_states:
-                session.refresh(query)
-                query = session.query(Query).filter_by(id=query_id).one()
+                db.session.refresh(query)
+                query = db.session.query(Query).filter_by(id=query_id).one()
                 # if query cancelation was requested prior to the handle_cursor call, but
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
@@ -145,7 +145,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         needs_commit = True
 
                     if needs_commit:
-                        session.commit()
+                        db.session.commit()
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )

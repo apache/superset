@@ -17,8 +17,9 @@ import csv as lib_csv
 import os
 import re
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Optional, Union
 
 import click
 from click.core import Context
@@ -67,15 +68,15 @@ class GitChangeLog:
     def __init__(
         self,
         version: str,
-        logs: List[GitLog],
+        logs: list[GitLog],
         access_token: Optional[str] = None,
         risk: Optional[bool] = False,
     ) -> None:
         self._version = version
         self._logs = logs
-        self._pr_logs_with_details: Dict[int, Dict[str, Any]] = {}
-        self._github_login_cache: Dict[str, Optional[str]] = {}
-        self._github_prs: Dict[int, Any] = {}
+        self._pr_logs_with_details: dict[int, dict[str, Any]] = {}
+        self._github_login_cache: dict[str, Optional[str]] = {}
+        self._github_prs: dict[int, Any] = {}
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
         self._github = Github(github_token)
@@ -126,7 +127,7 @@ class GitChangeLog:
             "superset/migrations/versions/" in file.filename for file in commit.files
         )
 
-    def _get_pull_request_details(self, git_log: GitLog) -> Dict[str, Any]:
+    def _get_pull_request_details(self, git_log: GitLog) -> dict[str, Any]:
         pr_number = git_log.pr_number
         if pr_number:
             detail = self._pr_logs_with_details.get(pr_number)
@@ -138,7 +139,7 @@ class GitChangeLog:
         title = pr_info.title if pr_info else git_log.message
         pr_type = re.match(SUPERSET_PULL_REQUEST_TYPES, title)
         if pr_type:
-            pr_type = pr_type.group().strip('"')
+            pr_type = pr_type.group().strip('"')  # type: ignore
 
         labels = (" | ").join([label.name for label in pr_info.labels])
         is_risky = self._is_risk_pull_request(pr_info.labels)
@@ -156,7 +157,7 @@ class GitChangeLog:
 
         return detail
 
-    def _is_risk_pull_request(self, labels: List[Any]) -> bool:
+    def _is_risk_pull_request(self, labels: list[Any]) -> bool:
         for label in labels:
             risk_label = re.match(SUPERSET_RISKY_LABELS, label.name)
             if risk_label is not None:
@@ -174,8 +175,8 @@ class GitChangeLog:
 
     def _parse_change_log(
         self,
-        changelog: Dict[str, str],
-        pr_info: Dict[str, str],
+        changelog: dict[str, str],
+        pr_info: dict[str, str],
         github_login: str,
     ) -> None:
         formatted_pr = (
@@ -227,7 +228,7 @@ class GitChangeLog:
             result += f"**{key}** {changelog[key]}\n"
         return result
 
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
+    def __iter__(self) -> Iterator[dict[str, Any]]:
         for log in self._logs:
             yield {
                 "pr_number": log.pr_number,
@@ -250,20 +251,20 @@ class GitLogs:
 
     def __init__(self, git_ref: str) -> None:
         self._git_ref = git_ref
-        self._logs: List[GitLog] = []
+        self._logs: list[GitLog] = []
 
     @property
     def git_ref(self) -> str:
         return self._git_ref
 
     @property
-    def logs(self) -> List[GitLog]:
+    def logs(self) -> list[GitLog]:
         return self._logs
 
     def fetch(self) -> None:
         self._logs = list(map(self._parse_log, self._git_logs()))[::-1]
 
-    def diff(self, git_logs: "GitLogs") -> List[GitLog]:
+    def diff(self, git_logs: "GitLogs") -> list[GitLog]:
         return [log for log in git_logs.logs if log not in self._logs]
 
     def __repr__(self) -> str:
@@ -284,7 +285,7 @@ class GitLogs:
             print(f"Could not checkout {git_ref}")
             sys.exit(1)
 
-    def _git_logs(self) -> List[str]:
+    def _git_logs(self) -> list[str]:
         # let's get current git ref so we can revert it back
         current_git_ref = self._git_get_current_head()
         self._git_checkout(self._git_ref)

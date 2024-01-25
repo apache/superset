@@ -72,7 +72,6 @@ def upgrade():
                     new_conditional_formatting.append(formatter)
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
-            session.merge(slc)
             session.commit()
     session.close()
 

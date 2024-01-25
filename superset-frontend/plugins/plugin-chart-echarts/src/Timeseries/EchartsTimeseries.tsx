@@ -21,6 +21,10 @@ import {
   DTTM_ALIAS,
   BinaryQueryObjectFilterClause,
   AxisType,
+  getTimeFormatter,
+  getColumnLabel,
+  getNumberFormatter,
+  LegendState,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
@@ -28,12 +32,11 @@ import ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
-import { currentSeries } from '../utils/series';
+import { formatSeriesName } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
 
-// @ts-ignore
 export default function EchartsTimeseries({
   formData,
   height,
@@ -46,17 +49,18 @@ export default function EchartsTimeseries({
   setControlValue,
   legendData = [],
   onContextMenu,
+  onLegendStateChanged,
+  onFocusedSeries,
   xValueFormatter,
   xAxis,
   refs,
   emitCrossFilters,
+  coltypeMapping,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
-  const lastTimeRef = useRef(Date.now());
-  const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraControlHeight, setExtraControlHeight] = useState(0);
@@ -64,34 +68,6 @@ export default function EchartsTimeseries({
     const updatedHeight = extraControlRef.current?.offsetHeight || 0;
     setExtraControlHeight(updatedHeight);
   }, [formData.showExtraControls]);
-
-  const handleDoubleClickChange = useCallback(
-    (name?: string) => {
-      const echartInstance = echartRef.current?.getEchartInstance();
-      if (!name) {
-        currentSeries.legend = '';
-        echartInstance?.dispatchAction({
-          type: 'legendAllSelect',
-        });
-      } else {
-        legendData.forEach(datum => {
-          if (datum === name) {
-            currentSeries.legend = datum;
-            echartInstance?.dispatchAction({
-              type: 'legendSelect',
-              name: datum,
-            });
-          } else {
-            echartInstance?.dispatchAction({
-              type: 'legendUnSelect',
-              name: datum,
-            });
-          }
-        });
-      }
-    },
-    [legendData],
-  );
 
   const getModelInfo = (target: ViewRootGroup, globalModel: GlobalModel) => {
     let el = target;
@@ -108,40 +84,56 @@ export default function EchartsTimeseries({
     return model;
   };
 
+  const getCrossFilterDataMask = useCallback(
+    (value: string) => {
+      const selected: string[] = Object.values(selectedValues);
+      let values: string[];
+      if (selected.includes(value)) {
+        values = selected.filter(v => v !== value);
+      } else {
+        values = [value];
+      }
+      const groupbyValues = values.map(value => labelMap[value]);
+      return {
+        dataMask: {
+          extraFormData: {
+            filters:
+              values.length === 0
+                ? []
+                : groupby.map((col, idx) => {
+                    const val = groupbyValues.map(v => v[idx]);
+                    if (val === null || val === undefined)
+                      return {
+                        col,
+                        op: 'IS NULL' as const,
+                      };
+                    return {
+                      col,
+                      op: 'IN' as const,
+                      val: val as (string | number | boolean)[],
+                    };
+                  }),
+          },
+          filterState: {
+            label: groupbyValues.length ? groupbyValues : undefined,
+            value: groupbyValues.length ? groupbyValues : null,
+            selectedValues: values.length ? values : null,
+          },
+        },
+        isCurrentValueSelected: selected.includes(value),
+      };
+    },
+    [groupby, labelMap, selectedValues],
+  );
+
   const handleChange = useCallback(
-    (values: string[]) => {
+    (value: string) => {
       if (!emitCrossFilters) {
         return;
       }
-      const groupbyValues = values.map(value => labelMap[value]);
-
-      setDataMask({
-        extraFormData: {
-          filters:
-            values.length === 0
-              ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
-                  if (val === null || val === undefined)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val as (string | number | boolean)[],
-                  };
-                }),
-        },
-        filterState: {
-          label: groupbyValues.length ? groupbyValues : undefined,
-          value: groupbyValues.length ? groupbyValues : null,
-          selectedValues: values.length ? values : null,
-        },
-      });
+      setDataMask(getCrossFilterDataMask(value).dataMask);
     },
-    [groupby, labelMap, setDataMask, emitCrossFilters],
+    [emitCrossFilters, setDataMask, getCrossFilterDataMask],
   );
 
   const eventHandlers: EventHandlers = {
@@ -152,76 +144,78 @@ export default function EchartsTimeseries({
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
         const { seriesName: name } = props;
-        const values = Object.values(selectedValues);
-        if (values.includes(name)) {
-          handleChange(values.filter(v => v !== name));
-        } else {
-          handleChange([name]);
-        }
+        handleChange(name);
       }, TIMER_DURATION);
     },
     mouseout: () => {
-      currentSeries.name = '';
+      onFocusedSeries(null);
     },
     mouseover: params => {
-      currentSeries.name = params.seriesName;
+      onFocusedSeries(params.seriesName);
     },
     legendselectchanged: payload => {
-      const currentTime = Date.now();
-      // TIMER_DURATION is the interval between two legendselectchanged event
-      if (
-        currentTime - lastTimeRef.current < TIMER_DURATION &&
-        lastSelectedLegend.current === payload.name
-      ) {
-        // execute dbclick
-        handleDoubleClickChange(payload.name);
-      } else {
-        lastTimeRef.current = currentTime;
-        // remember last selected legend
-        lastSelectedLegend.current = payload.name;
-      }
-      // if all legend is unselected, we keep all selected
-      if (Object.values(payload.selected).every(i => !i)) {
-        handleDoubleClickChange();
-      }
+      onLegendStateChanged?.(payload.selected);
     },
-    contextmenu: eventParams => {
+    legendselectall: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    legendinverseselect: payload => {
+      onLegendStateChanged?.(payload.selected);
+    },
+    contextmenu: async eventParams => {
       if (onContextMenu) {
         eventParams.event.stop();
-        const { data } = eventParams;
-        if (data) {
-          const pointerEvent = eventParams.event.event;
-          const values = [
-            ...(eventParams.name ? [eventParams.name] : []),
-            ...labelMap[eventParams.seriesName],
-          ];
-          const filters: BinaryQueryObjectFilterClause[] = [];
-          if (xAxis.type === AxisType.time) {
-            filters.push({
-              col:
-                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
-                xAxis.label === DTTM_ALIAS
-                  ? formData.granularitySqla
-                  : xAxis.label,
-              grain: formData.timeGrainSqla,
-              op: '==',
-              val: data[0],
-              formattedVal: xValueFormatter(data[0]),
-            });
-          }
-          [
-            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
-            ...formData.groupby,
-          ].forEach((dimension, i) =>
-            filters.push({
-              col: dimension,
-              op: '==',
-              val: values[i],
-              formattedVal: String(values[i]),
-            }),
-          );
-          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        const { data, seriesName } = eventParams;
+        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+        const drillByFilters: BinaryQueryObjectFilterClause[] = [];
+        const pointerEvent = eventParams.event.event;
+        const values = [
+          ...(eventParams.name ? [eventParams.name] : []),
+          ...(labelMap[seriesName] ?? []),
+        ];
+        if (data && xAxis.type === AxisType.time) {
+          drillToDetailFilters.push({
+            col:
+              // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+              xAxis.label === DTTM_ALIAS
+                ? formData.granularitySqla
+                : xAxis.label,
+            grain: formData.timeGrainSqla,
+            op: '==',
+            val: data[0],
+            formattedVal: xValueFormatter(data[0]),
+          });
         }
+        [
+          ...(xAxis.type === AxisType.category && data ? [xAxis.label] : []),
+          ...formData.groupby,
+        ].forEach((dimension, i) =>
+          drillToDetailFilters.push({
+            col: dimension,
+            op: '==',
+            val: values[i],
+            formattedVal: String(values[i]),
+          }),
+        );
+        formData.groupby.forEach((dimension, i) => {
+          const val = labelMap[seriesName][i];
+          drillByFilters.push({
+            col: dimension,
+            op: '==',
+            val,
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
+          });
+        });
+
+        onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+          drillToDetail: drillToDetailFilters,
+          crossFilter: getCrossFilterDataMask(seriesName),
+          drillBy: { filters: drillByFilters, groupbyFieldName: 'groupby' },
+        });
       }
     },
   };
@@ -240,15 +234,16 @@ export default function EchartsTimeseries({
         // @ts-ignore
         const globalModel = echartInstance.getModel();
         const model = getModelInfo(params.target, globalModel);
-        const seriesCount = globalModel.getSeriesCount();
-        const currentSeriesIndices = globalModel.getCurrentSeriesIndices();
         if (model) {
           const { name } = model;
-          if (seriesCount !== currentSeriesIndices.length) {
-            handleDoubleClickChange();
-          } else {
-            handleDoubleClickChange(name);
-          }
+          const legendState: LegendState = legendData.reduce(
+            (previous, datum) => ({
+              ...previous,
+              [datum]: datum === name,
+            }),
+            {},
+          );
+          onLegendStateChanged?.(legendState);
         }
       }
     },
@@ -260,6 +255,7 @@ export default function EchartsTimeseries({
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
       <Echart
+        ref={echartRef}
         refs={refs}
         height={height - extraControlHeight}
         width={width}

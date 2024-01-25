@@ -21,11 +21,9 @@ import React from 'react';
 import {
   ChartDataResponseResult,
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   hasGenericChartAxes,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
@@ -124,7 +122,9 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   ...sharedControls.metrics,
   label: t('Percentage metrics'),
   description: t(
-    'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
+    'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
+      'Percentage metrics will be calculated only from data within the row limit. ' +
+      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
   ),
   visibility: isAggMode,
   resetOnHide: false,
@@ -288,22 +288,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
-          ? [
-              {
-                name: 'server_pagination',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Server pagination'),
-                  description: t(
-                    'Enable server side pagination of results (experimental feature)',
-                  ),
-                  default: false,
-                },
-              },
-            ]
-          : [],
+        [
+          {
+            name: 'server_pagination',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Server pagination'),
+              description: t(
+                'Enable server side pagination of results (experimental feature)',
+              ),
+              default: false,
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
@@ -327,27 +324,33 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        !hasGenericChartAxes
+          ? [
+              {
+                name: 'include_time',
+                config: {
+                  type: 'CheckboxControl',
+                  label: t('Include time'),
+                  description: t(
+                    'Whether to include the time granularity as defined in the time section',
+                  ),
+                  default: false,
+                  visibility: isAggMode,
+                  resetOnHide: false,
+                },
+              },
+            ]
+          : [null],
         [
-          {
-            name: 'include_time',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Include time'),
-              description: t(
-                'Whether to include the time granularity as defined in the time section',
-              ),
-              default: false,
-              visibility: isAggMode,
-              resetOnHide: false,
-            },
-          },
           {
             name: 'order_desc',
             config: {
               type: 'CheckboxControl',
               label: t('Sort descending'),
               default: true,
-              description: t('Whether to sort descending or ascending'),
+              description: t(
+                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
+              ),
               visibility: isAggMode,
               resetOnHide: false,
             },
@@ -451,7 +454,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Whether to colorize numeric values by if they are positive or negative',
+                'Whether to colorize numeric values by whether they are positive or negative',
               ),
             },
           },
@@ -477,6 +480,8 @@ const config: ControlPanelConfig = {
               type: 'ColumnConfigControl',
               label: t('Customize columns'),
               description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
               renderTrigger: true,
               shouldMapStateToProps() {
                 return true;
@@ -510,6 +515,7 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : explore?.datasource?.columns ?? {};
+                const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -525,6 +531,7 @@ const config: ControlPanelConfig = {
                         }))
                     : [];
                 return {
+                  removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions: numericColumns,
                   verboseMap,
                 };

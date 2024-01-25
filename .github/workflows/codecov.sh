@@ -174,7 +174,7 @@ cat << EOF
 
     -c           Move discovered coverage reports to the trash
     -z FILE      Upload specified file directly to Codecov and bypass all report generation.
-                 This is inteded to be used only with a pre-formatted Codecov report and is not
+                 This is intended to be used only with a pre-formatted Codecov report and is not
                  expected to work under any other circumstances.
     -Z           Exit with 1 if not successful. Default will Exit with 0
 
@@ -1152,7 +1152,7 @@ fi
 
 if [ "$ft_search" = "1" ];
 then
-  # detect bower comoponents location
+  # detect bower components location
   bower_components="bower_components"
   bower_rc=$(cd "$git_root" && cat .bowerrc 2>/dev/null || echo "")
   if [ "$bower_rc" != "" ];

@@ -48,7 +48,6 @@ import {
   drawBarValues,
   generateBubbleTooltipContent,
   generateCompareTooltipContent,
-  generateMultiLineTooltipContent,
   generateRichLineTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
@@ -124,15 +123,7 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const TIMESERIES_VIZ_TYPES = [
-  'line',
-  'dual_line',
-  'line_multi',
-  'area',
-  'compare',
-  'bar',
-  'time_pivot',
-];
+const TIMESERIES_VIZ_TYPES = ['line', 'area', 'compare', 'bar', 'time_pivot'];
 
 const CHART_ID_PREFIX = 'chart-id-';
 
@@ -198,10 +189,8 @@ const propTypes = {
     'column',
     'dist_bar',
     'line',
-    'line_multi',
     'time_pivot',
     'pie',
-    'dual_line',
   ]),
   xAxisFormat: PropTypes.string,
   numberFormat: PropTypes.string,
@@ -305,9 +294,7 @@ function nvd3Vis(element, props) {
     xIsLogScale,
     xTicksLayout,
     yAxisFormat,
-    yAxis2Format,
     yAxisBounds,
-    yAxis2Bounds,
     yAxisLabel,
     yAxisShowMinMax = false,
     yAxis2ShowMinMax = false,
@@ -399,13 +386,6 @@ function nvd3Vis(element, props) {
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
-        break;
-
-      case 'dual_line':
-      case 'line_multi':
-        chart = nv.models.multiChart();
-        chart.interpolate(lineInterpolation);
-        chart.xScale(d3.time.scale.utc());
         break;
 
       case 'bar':
@@ -713,19 +693,6 @@ function nvd3Vis(element, props) {
       );
     }
 
-    if (isVizTypes(['dual_line', 'line_multi'])) {
-      const yAxisFormatter1 = getNumberFormatter(yAxisFormat);
-      const yAxisFormatter2 = getNumberFormatter(yAxis2Format);
-      chart.yAxis1.tickFormat(yAxisFormatter1);
-      chart.yAxis2.tickFormat(yAxisFormatter2);
-      const yAxisFormatters = data.map(datum =>
-        datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2,
-      );
-      chart.useInteractiveGuideline(true);
-      chart.interactiveLayer.tooltip.contentGenerator(d =>
-        generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatters),
-      );
-    }
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
     chart.width(width);
     chart.height(height);
@@ -811,48 +778,6 @@ function nvd3Vis(element, props) {
       chart.dispatch.on('stateChange.applyYAxisBounds', applyYAxisBounds);
     }
 
-    // align yAxis1 and yAxis2 ticks
-    if (isVizTypes(['dual_line', 'line_multi'])) {
-      const count = chart.yAxis1.ticks();
-      const ticks1 = chart.yAxis1
-        .scale()
-        .domain(chart.yAxis1.domain())
-        .nice(count)
-        .ticks(count);
-      const ticks2 = chart.yAxis2
-        .scale()
-        .domain(chart.yAxis2.domain())
-        .nice(count)
-        .ticks(count);
-
-      // match number of ticks in both axes
-      const difference = ticks1.length - ticks2.length;
-      if (ticks1.length > 0 && ticks2.length > 0 && difference !== 0) {
-        const smallest = difference < 0 ? ticks1 : ticks2;
-        const delta = smallest[1] - smallest[0];
-        for (let i = 0; i < Math.abs(difference); i += 1) {
-          if (i % 2 === 0) {
-            smallest.unshift(smallest[0] - delta);
-          } else {
-            smallest.push(smallest[smallest.length - 1] + delta);
-          }
-        }
-        chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
-        chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
-        chart.yAxis1.tickValues(ticks1);
-        chart.yAxis2.tickValues(ticks2);
-      }
-
-      chart.yDomain1([
-        yAxisBounds[0] || ticks1[0],
-        yAxisBounds[1] || ticks1[ticks1.length - 1],
-      ]);
-      chart.yDomain2([
-        yAxis2Bounds[0] || ticks2[0],
-        yAxis2Bounds[1] || ticks2[ticks2.length - 1],
-      ]);
-    }
-
     if (showMarkers) {
       svg
         .selectAll('.nv-point')
@@ -915,10 +840,6 @@ function nvd3Vis(element, props) {
         margins.bottom = 40;
       }
 
-      if (isVizTypes(['dual_line', 'line_multi'])) {
-        const maxYAxis2LabelWidth = getMaxLabelSize(svg, 'nv-y2');
-        margins.right = maxYAxis2LabelWidth + marginPad;
-      }
       if (bottomMargin && bottomMargin !== 'auto') {
         margins.bottom = parseInt(bottomMargin, 10);
       }

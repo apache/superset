@@ -15,16 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import pickle
-from typing import Any, Dict, Iterator
+from collections.abc import Iterator
+from typing import Any
 from uuid import uuid3
 
 import pytest
 from sqlalchemy.orm import Session
 
 from superset import db
+from superset.explore.permalink.schemas import ExplorePermalinkSchema
 from superset.key_value.models import KeyValueEntry
-from superset.key_value.types import KeyValueResource
+from superset.key_value.types import KeyValueResource, MarshmallowKeyValueCodec
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
@@ -43,7 +44,7 @@ def chart(app_context, load_world_bank_dashboard_with_slices) -> Slice:
 
 
 @pytest.fixture
-def form_data(chart) -> Dict[str, Any]:
+def form_data(chart) -> dict[str, Any]:
     datasource = f"{chart.datasource.id}__{chart.datasource.type}"
     return {
         "chart_id": chart.id,
@@ -68,7 +69,7 @@ def permalink_salt() -> Iterator[str]:
 
 
 def test_post(
-    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+    form_data: dict[str, Any], permalink_salt: str, test_client, login_as_admin
 ):
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 201
@@ -81,28 +82,31 @@ def test_post(
     db.session.commit()
 
 
-def test_post_access_denied(test_client, login_as, form_data):
+def test_post_access_denied(form_data, test_client, login_as):
     login_as("gamma")
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 403
 
 
 def test_get_missing_chart(
-    test_client, login_as_admin, chart, permalink_salt: str
+    chart, permalink_salt: str, test_client, login_as_admin
 ) -> None:
     from superset.key_value.models import KeyValueEntry
 
     chart_id = 1234
     entry = KeyValueEntry(
         resource=KeyValueResource.EXPLORE_PERMALINK,
-        value=pickle.dumps(
+        value=MarshmallowKeyValueCodec(ExplorePermalinkSchema()).encode(
             {
                 "chartId": chart_id,
                 "datasourceId": chart.datasource.id,
-                "datasourceType": DatasourceType.TABLE,
-                "formData": {
-                    "slice_id": chart_id,
-                    "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
+                "datasourceType": DatasourceType.TABLE.value,
+                "state": {
+                    "urlParams": [["foo", "bar"]],
+                    "formData": {
+                        "slice_id": chart_id,
+                        "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
+                    },
                 },
             }
         ),
@@ -122,7 +126,7 @@ def test_post_invalid_schema(test_client, login_as_admin) -> None:
 
 
 def test_get(
-    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+    form_data: dict[str, Any], permalink_salt: str, test_client, login_as_admin
 ) -> None:
     resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     data = json.loads(resp.data.decode("utf-8"))

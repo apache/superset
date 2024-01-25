@@ -202,6 +202,10 @@ class TestQueryApi(SupersetTestCase):
         gamma2 = self.create_user(
             "gamma_2", "password", "Gamma", email="gamma2@superset.org"
         )
+        # Add SQLLab role to these gamma users, so they have access to queries
+        sqllab_role = self.get_role("sql_lab")
+        gamma1.roles.append(sqllab_role)
+        gamma2.roles.append(sqllab_role)
 
         gamma1_client_id = self.get_random_string()
         gamma2_client_id = self.get_random_string()
@@ -281,7 +285,6 @@ class TestQueryApi(SupersetTestCase):
             "first_name",
             "id",
             "last_name",
-            "username",
         ]
         assert list(data["result"][0]["database"].keys()) == [
             "database_name",
@@ -383,7 +386,7 @@ class TestQueryApi(SupersetTestCase):
             sql="SELECT col1, col2 from table1",
         )
 
-        self.login(username="gamma")
+        self.login(username="gamma_sqllab")
         arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
@@ -436,7 +439,6 @@ class TestQueryApi(SupersetTestCase):
         for key, value in data["result"][0].items():
             # We can't assert timestamp
             if key not in (
-                "changedOn",
                 "changed_on",
                 "end_time",
                 "start_running_time",

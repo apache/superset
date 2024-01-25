@@ -17,7 +17,7 @@
 import json
 import string
 from random import choice, randint, random, uniform
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -84,6 +84,14 @@ def load_world_bank_dashboard_with_slices_module_scope(load_world_bank_data):
         _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
+@pytest.fixture(scope="class")
+def load_world_bank_dashboard_with_slices_class_scope(load_world_bank_data):
+    with app.app_context():
+        dash_id_to_delete, slices_ids_to_delete = create_dashboard_for_loaded_data()
+        yield
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
 def create_dashboard_for_loaded_data():
     with app.app_context():
         table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
@@ -94,7 +102,7 @@ def create_dashboard_for_loaded_data():
         return dash_id_to_delete, slices_ids_to_delete
 
 
-def _create_world_bank_slices(table: SqlaTable) -> List[Slice]:
+def _create_world_bank_slices(table: SqlaTable) -> list[Slice]:
     from superset.examples.world_bank import create_slices
 
     slices = create_slices(table)
@@ -102,7 +110,7 @@ def _create_world_bank_slices(table: SqlaTable) -> List[Slice]:
     return slices
 
 
-def _commit_slices(slices: List[Slice]):
+def _commit_slices(slices: list[Slice]):
     for slice in slices:
         o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
         if o:
@@ -128,7 +136,7 @@ def _create_world_bank_dashboard(table: SqlaTable) -> Dashboard:
     return dash
 
 
-def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
+def _cleanup(dash_id: int, slices_ids: list[int]) -> None:
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
     db.session.delete(dash)
     for slice_id in slices_ids:
@@ -148,7 +156,7 @@ def _get_dataframe(database: Database) -> DataFrame:
     return df
 
 
-def _get_world_bank_data() -> List[Dict[Any, Any]]:
+def _get_world_bank_data() -> list[dict[Any, Any]]:
     data = []
     for _ in range(100):
         data.append(

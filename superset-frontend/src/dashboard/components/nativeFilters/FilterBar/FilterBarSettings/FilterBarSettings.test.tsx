@@ -33,8 +33,11 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     userId: '1',
     metadata: {
       native_filter_configuration: {},
-      show_native_filters: true,
       chart_configuration: {},
+      global_chart_configuration: {
+        scope: { rootPath: ['ROOT_ID'], excluded: [] },
+        chartsInScope: [],
+      },
       color_scheme: '',
       color_namespace: '',
       color_scheme_domain: [],
@@ -217,7 +220,7 @@ test('On selection change, send request and update checked value', async () => {
     within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(await screen.findByText('Horizontal (Top)'));
+  userEvent.click(screen.getByText('Horizontal (Top)'));
 
   // 1st check - checkmark appears immediately after click
   expect(
