@@ -35,11 +35,7 @@ type HotKey = {
   func: (aceEditor: IAceEditor) => void;
 };
 
-type CursorPosition = {
-  row: number;
-  column: number;
-};
-
+import type { CursorPosition } from 'src/SqlLab/types';
 type AceEditorWrapperProps = {
   autocomplete: boolean;
   onBlur: (sql: string) => void;
