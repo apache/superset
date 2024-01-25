@@ -58,6 +58,7 @@ import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import { findPermission } from 'src/utils/findPermission';
 
 const MENU_KEYS = {
   DOWNLOAD_AS_IMAGE: 'download_as_image',
@@ -260,6 +261,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
 
+  const canViewDrill = useSelector((state: RootState) =>
+    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
+  );
+
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -428,7 +433,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {props.supersetCanExplore && (
+      {(props.supersetCanExplore || canViewDrill) && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -443,7 +448,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {(props.supersetCanExplore || canViewDrill) && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
             exploreUrl={props.exploreUrl}
@@ -465,7 +470,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        props.supersetCanExplore && (
+        (props.supersetCanExplore || canViewDrill) && (
           <DrillDetailMenuItems
             chartId={slice.slice_id}
             formData={props.formData}

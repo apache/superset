@@ -90,6 +90,9 @@ const ChartContextMenu = (
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
+  const canViewDrill = useSelector((state: RootState) =>
+    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
+  );
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -108,12 +111,12 @@ const ChartContextMenu = (
 
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-    canExplore &&
+    (canExplore || canViewDrill) &&
     isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DRILL_BY) &&
-    canExplore &&
+    (canExplore || canViewDrill) &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
