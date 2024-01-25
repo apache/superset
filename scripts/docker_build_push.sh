@@ -112,6 +112,7 @@ cat<<EOF
   - ${REPO_NAME}:${LATEST_TAG}
 EOF
 
+
 if [ -z "${DOCKERHUB_TOKEN}" ]; then
   # Skip if secrets aren't populated -- they're only visible for actions running in the repo (not on forks)
   echo "Skipping Docker push"
