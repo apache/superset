@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarAlertsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -30,32 +31,32 @@ import { StyledAlerts, StyledAlertsButton } from './dvt-alerts.module';
 
 const modifiedData = {
   header: [
-    { id: 1, title: 'Last Run', field: 'lastRun', checkbox: true },
-    { id: 2, title: 'Name', field: 'name' },
-    { id: 3, title: 'Schedule', field: 'schedule' },
-    { id: 4, title: 'Notification Method', field: 'crontab_humanized' },
-    { id: 5, title: 'Created By', field: 'createdBy' },
-    { id: 6, title: 'Owners', field: 'owners' },
-    { id: 7, title: 'Modified', field: 'modified' },
-    { id: 8, title: 'Active', field: 'active' },
+    { id: 1, title: t('Last Run'), field: 'lastRun', checkbox: true },
+    { id: 2, title: t('Name'), field: 'name' },
+    { id: 3, title: t('Schedule'), field: 'schedule' },
+    { id: 4, title: t('Notification Method'), field: 'crontab_humanized' },
+    { id: 5, title: t('Created By'), field: 'createdBy' },
+    { id: 6, title: t('Owners'), field: 'owners' },
+    { id: 7, title: t('Modified'), field: 'modified' },
+    { id: 8, title: t('Active'), field: 'active' },
     {
       id: 9,
-      title: 'Action',
+      title: t('Action'),
       clicks: [
         {
           icon: 'edit_alt',
           click: () => {},
-          popperLabel: 'Edit',
+          popperLabel: t('Edit'),
         },
         {
           icon: 'share',
           click: () => {},
-          popperLabel: 'Export',
+          popperLabel: t('Export'),
         },
         {
           icon: 'trash',
           click: () => {},
-          popperLabel: 'Delete',
+          popperLabel: t('Delete'),
         },
       ],
     },
@@ -143,7 +144,7 @@ function AlertList() {
     <StyledAlerts>
       <div>
         <DvtButton
-          label="Deselect All"
+          label={t('Deselect All')}
           bold
           colour="primary"
           typeColour="outline"
@@ -160,7 +161,7 @@ function AlertList() {
       />
       <StyledAlertsButton>
         <DvtButton
-          label="Create a New Alert"
+          label={t('Create a New Alert')}
           onClick={() => {}}
           colour="grayscale"
         />

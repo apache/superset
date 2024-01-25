@@ -279,7 +279,7 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
     t('ECharts'),
     t('Advanced-Analytics'),
   ];
-  const OTHER_CATEGORY = t('Other');
+  const OTHER_CATEGORY = 'Other';
 
   function vizSortFactor(entry: VizEntry) {
     if (typesWithDefaultOrder.has(entry.key)) {
@@ -580,7 +580,11 @@ const DvtSidebar: React.FC<DvtSidebarProps> = ({ pathName }) => {
       )}
       {pathTitles(pathName) === 'Welcome Page' && (
         <StyledDvtSidebarFooter>
-          <DvtDarkMode darkMode={darkMode} setDarkMode={setDarkMode} />
+          <DvtDarkMode
+            title={t('Dark Mode')}
+            darkMode={darkMode}
+            setDarkMode={setDarkMode}
+          />
         </StyledDvtSidebarFooter>
       )}
     </StyledDvtSidebar>

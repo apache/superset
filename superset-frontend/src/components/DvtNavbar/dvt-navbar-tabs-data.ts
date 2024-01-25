@@ -1,3 +1,5 @@
+import { t } from '@superset-ui/core';
+
 export interface TabsDataProps {
   label: string;
   icon?: string;
@@ -22,10 +24,10 @@ export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
     pathname: '/alert/list/',
     data: [
       {
-        label: 'Alerts',
+        label: t('Alerts'),
       },
       {
-        label: 'Reports',
+        label: t('Reports'),
       },
     ],
   },
@@ -33,10 +35,10 @@ export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
     pathname: '/superset/sqllab/history/',
     data: [
       {
-        label: 'Saved Queries',
+        label: t('Saved Queries'),
       },
       {
-        label: 'Query History',
+        label: t('Query History'),
       },
     ],
   },
@@ -44,11 +46,11 @@ export const DvtNavbarTabsData: DvtNavbarTabsDataProps[] = [
     pathname: '/superset/sqllab/',
     data: [
       {
-        label: 'Saved ',
+        label: t('Saved'),
         icon: 'caret_down',
       },
       {
-        label: 'Copy Link',
+        label: t('Copy Link'),
         icon: 'link',
       },
     ],

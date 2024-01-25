@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarReportsSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -32,33 +32,33 @@ const modifiedData = {
   header: [
     {
       id: 1,
-      title: 'Name',
+      title: t('Name'),
       field: 'slice_name',
       checkbox: true,
     },
-    { id: 2, title: 'Visualization Type', field: 'viz_type' },
-    { id: 3, title: 'Dataset', field: 'datasource_name_text' },
-    { id: 4, title: 'Modified date', field: 'date' },
-    { id: 5, title: 'Modified by', field: 'changed_by' },
-    { id: 6, title: 'Created by', field: 'created_by' },
+    { id: 2, title: t('Visualization Type'), field: 'viz_type' },
+    { id: 3, title: t('Dataset'), field: 'datasource_name_text' },
+    { id: 4, title: t('Modified date'), field: 'date' },
+    { id: 5, title: t('Modified by'), field: 'changed_by' },
+    { id: 6, title: t('Created by'), field: 'created_by' },
     {
       id: 9,
-      title: 'Action',
+      title: t('Action'),
       clicks: [
         {
           icon: 'edit_alt',
           click: () => {},
-          popperLabel: 'Edit',
+          popperLabel: t('Edit'),
         },
         {
           icon: 'share',
           click: () => {},
-          popperLabel: 'Export',
+          popperLabel: t('Export'),
         },
         {
           icon: 'trash',
           click: () => {},
-          popperLabel: 'Delete',
+          popperLabel: t('Delete'),
         },
       ],
     },
@@ -156,7 +156,7 @@ function ReportList() {
     <StyledReports>
       <div>
         <DvtButton
-          label="Deselect All"
+          label={t('Deselect All')}
           bold
           colour="primary"
           typeColour="outline"
@@ -173,7 +173,7 @@ function ReportList() {
       />
       <StyledReportsButton>
         <DvtButton
-          label="Create a New Graph/Chart"
+          label={t('Create a New Graph/Chart')}
           onClick={() => {}}
           colour="grayscale"
         />
@@ -190,10 +190,12 @@ function ReportList() {
       <DvtIconDataLabel
         label={
           editedData.length === 0
-            ? 'No Alerts Yet'
-            : 'No results match your filter criteria'
+            ? t('No Alerts Yet')
+            : t('No results match your filter criteria')
         }
-        buttonLabel={editedData.length === 0 ? 'Alert' : 'Clear All Filter'}
+        buttonLabel={
+          editedData.length === 0 ? t('Alert') : t('Clear All Filter')
+        }
         buttonClick={() => {
           if (editedData.length > 0) {
             clearReports();

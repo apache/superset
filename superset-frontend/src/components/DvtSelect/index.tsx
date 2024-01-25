@@ -49,8 +49,8 @@ export interface DvtSelectProps {
 
 const DvtSelect: React.FC<DvtSelectProps> = ({
   data,
-  label,
-  placeholder,
+  label = '',
+  placeholder = '',
   selectedValue = {},
   setSelectedValue,
   typeDesign = 'normal',

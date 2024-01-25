@@ -37,10 +37,10 @@ export interface DvtCollapseProps {
 }
 
 const DvtCollapse: React.FC<DvtCollapseProps> = ({
-  label,
+  label = '',
   children,
   popoverDirection = 'top',
-  popoverLabel,
+  popoverLabel = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 

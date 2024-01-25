@@ -18,6 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { dvtSidebarConnectionSetProperty } from 'src/dvt-redux/dvt-sidebarReducer';
 import { useAppSelector } from 'src/hooks/useAppSelector';
@@ -33,9 +34,9 @@ import {
 
 const modifiedData = {
   header: [
-    { id: 1, title: 'Database', field: 'database', heartIcon: true },
-    { id: 2, title: 'Admin', field: 'admin' },
-    { id: 3, title: 'Last Modified', field: 'date' },
+    { id: 1, title: t('Database'), field: 'database', heartIcon: true },
+    { id: 2, title: t('Admin'), field: 'admin' },
+    { id: 3, title: t('Last Modified'), field: 'date' },
     {
       id: 4,
       title: 'Action',
@@ -43,17 +44,17 @@ const modifiedData = {
         {
           icon: 'edit_alt',
           click: () => {},
-          popperLabel: 'Edit',
+          popperLabel: t('Edit'),
         },
         {
           icon: 'share',
           click: () => {},
-          popperLabel: 'Export',
+          popperLabel: t('Export'),
         },
         {
           icon: 'trash',
           click: () => {},
-          popperLabel: 'Delete',
+          popperLabel: t('Delete'),
         },
       ],
     },
@@ -138,7 +139,7 @@ function ConnectionList() {
       <DvtTable data={currentItems} header={modifiedData.header} />
       <StyledConnectionButton>
         <DvtButton
-          label="Create a New Connection"
+          label={t('Create a New Connection')}
           onClick={() => {}}
           colour="grayscale"
         />
@@ -155,11 +156,11 @@ function ConnectionList() {
       <DvtIconDataLabel
         label={
           editedData.length === 0
-            ? 'No Connection Yet'
-            : 'No results match your filter criteria'
+            ? t('No Connection Yet')
+            : t('No results match your filter criteria')
         }
         buttonLabel={
-          editedData.length === 0 ? 'Connection' : 'Clear All Filter'
+          editedData.length === 0 ? t('Connection') : t('Clear All Filter')
         }
         buttonClick={() => {
           if (editedData.length > 0) {

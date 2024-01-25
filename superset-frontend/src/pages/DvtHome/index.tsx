@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
+import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import DvtCalendar from 'src/components/DvtCalendar';
@@ -148,10 +149,9 @@ function DvtWelcome() {
   return (
     <StyledDvtWelcome>
       <DataContainer>
-        <DvtTitleCardList title="Recents" data={recentData} />
-
+        <DvtTitleCardList title={t('Recents')} data={recentData} />
         <DvtTitleCardList
-          title="Dashboards"
+          title={t('Dashboards')}
           data={dashboardData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'Dashboard')
@@ -162,9 +162,8 @@ function DvtWelcome() {
             { label: 'Delete', icon: 'trash', onClick: () => {} },
           ]}
         />
-
         <DvtTitleCardList
-          title="Charts"
+          title={t('Charts')}
           data={chartData}
           setFavorites={(id, isFavorite) =>
             handleSetFavorites(id, isFavorite, 'slice')
@@ -175,9 +174,8 @@ function DvtWelcome() {
             { label: 'Delete', icon: 'trash', onClick: () => {} },
           ]}
         />
-
         <DvtTitleCardList
-          title="Saved Queries"
+          title={t('Saved Queries')}
           data={savedQueriesData}
           dropdown={[{ label: 'Share', onClick: () => {} }]}
         />
@@ -192,7 +190,7 @@ function DvtWelcome() {
           />
         ) : (
           <DvtButton
-            label="Open Calendar"
+            label={t('Open Calendar')}
             onClick={() => setOpenCalendar(true)}
           />
         )}

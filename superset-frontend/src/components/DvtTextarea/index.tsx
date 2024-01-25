@@ -1,3 +1,4 @@
+/* eslint-disable translation-vars/no-template-vars */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -34,7 +35,7 @@ export interface DvtTextareaProps {
 const DvtTextarea: React.FC<DvtTextareaProps> = ({
   label,
   typeDesign = 'text',
-  placeholder = '',
+  placeholder,
   value,
   onChange,
 }) => {
