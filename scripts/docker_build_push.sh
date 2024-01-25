@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+    needs: config
+    if: needs.config.outputs.has-secrets == 'true'
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
