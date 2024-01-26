@@ -99,6 +99,7 @@
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@fontsource/inter": "^4.0.0",
+    "@react-spring/web": "^9.4.5",
     "@reduxjs/toolkit": "^1.9.3",
     "@scarf/scarf": "^1.1.1",
     "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
