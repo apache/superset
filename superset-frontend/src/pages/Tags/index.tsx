@@ -59,6 +59,17 @@ function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
 
+  const initialFilters = useMemo(
+    () => [
+      {
+        id: 'type',
+        operator: 'custom_tag',
+        value: true,
+      },
+    ],
+    [],
+  );
+
   const {
     state: {
       loading,
@@ -70,7 +81,14 @@ function TagList(props: TagListProps) {
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
+  } = useListViewResource<Tag>(
+    'tag',
+    t('tag'),
+    addDangerToast,
+    undefined,
+    undefined,
+    initialFilters,
+  );
 
   const [showTagModal, setShowTagModal] = useState<boolean>(false);
   const [tagToEdit, setTagToEdit] = useState<Tag | null>(null);
