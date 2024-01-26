@@ -157,7 +157,7 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, data }) => {
         <NavbarProfileMenu>
           <DvtProfileMenu img={UserData.image} />
         </NavbarProfileMenu>
-        {languages.length && (
+        {languages.length > 0 && (
           <DvtDropdown
             label={
               languages.find(
