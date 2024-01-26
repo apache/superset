@@ -38,6 +38,8 @@ cachelib==0.9.0
     # via
     #   flask-caching
     #   flask-session
+cachetools==5.3.2
+    # via google-auth
 cattrs==23.2.1
     # via requests-cache
 celery==5.3.6
@@ -88,6 +90,8 @@ dnspython==2.1.0
     # via email-validator
 email-validator==1.1.3
     # via flask-appbuilder
+exceptiongroup==1.2.0
+    # via cattrs
 flask==2.2.5
     # via
     #   apache-superset
@@ -138,6 +142,8 @@ geographiclib==1.52
     # via geopy
 geopy==2.2.0
     # via apache-superset
+google-auth==2.27.0
+    # via shillelagh
 greenlet==2.0.2
     # via
     #   shillelagh
@@ -155,7 +161,10 @@ idna==3.2
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   flask
+    #   shillelagh
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -245,6 +254,12 @@ prompt-toolkit==3.0.38
     # via click-repl
 pyarrow==14.0.1
     # via apache-superset
+pyasn1==0.5.1
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.3.0
+    # via google-auth
 pycparser==2.20
     # via cffi
 pygments==2.15.0
@@ -295,9 +310,11 @@ requests-cache==1.1.1
     # via shillelagh
 rich==13.3.4
     # via flask-limiter
+rsa==4.9
+    # via google-auth
 selenium==3.141.0
     # via apache-superset
-shillelagh==1.2.10
+shillelagh[gsheetsapi]==1.2.10
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
@@ -338,7 +355,9 @@ tabulate==0.8.9
 typing-extensions==4.4.0
     # via
     #   apache-superset
+    #   cattrs
     #   flask-limiter
+    #   kombu
     #   limits
     #   shillelagh
 tzdata==2023.3
@@ -379,7 +398,9 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
