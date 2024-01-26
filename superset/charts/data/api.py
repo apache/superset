@@ -427,15 +427,19 @@ class ChartDataRestApi(ChartRestApi):
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
-    @logs_context(
-        context_func=lambda self, form_data: {
+    def _map_form_data_datasource_to_dataset_id(
+        self, form_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
             "dataset_id": form_data.get("datasource", {}).get("id")
             if isinstance(form_data.get("datasource"), dict)
-            and form_data.get("datasource").get("type") == DatasourceType.TABLE.value
+            and form_data.get("datasource", {}).get("type")
+            == DatasourceType.TABLE.value
             else None,
             "slice_id": form_data.get("form_data", {}).get("slice_id"),
         }
-    )
+
+    @logs_context(context_func=_map_form_data_datasource_to_dataset_id)
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:
