@@ -24,21 +24,9 @@ you'll probably want to run these commands manually and understand what
 they do prior to doing so.
 
 For coordinating on releases, on operational topics that require more
-synchronous communications, we recommend using the `#apache-releases` channel
+synchronous communications, we recommend using the release channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
-
-## Release notes for recent releases
-
-- [3.1](release-notes-3-1/README.md)
-- [2.0](release-notes-2-0/README.md)
-- [1.5](release-notes-1-5/README.md)
-- [1.4](release-notes-1-4/README.md)
-- [1.3](release-notes-1-3/README.md)
-- [1.2](release-notes-1-2/README.md)
-- [1.1](release-notes-1-1/README.md)
-- [1.0](release-notes-1-0/README.md)
-- [0.38](release-notes-0-38/README.md)
 
 ## Release setup (First Time Only)
 
@@ -231,7 +219,7 @@ git push
 
 ### Updating changelog
 
-Next, update the `CHANGELOG.md` with all the changes that are included in the release.
+Next, update the `CHANGELOG/<version>.md` with all the changes that are included in the release.
 Make sure the branch has been pushed to `origin` to ensure the changelog generator
 can pick up changes since the previous release.
 Similar to `cherrytree`, the change log script requires a github token, either as an env var
@@ -255,7 +243,7 @@ python changelog.py --previous_version 0.37 --current_version 0.38 changelog --a
 ```
 
 The script will checkout both branches, compare all the PRs, and output the lines that are needed to be added to the
-`CHANGELOG.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
+`CHANGELOG/<version>.md` file in the root of the repo. Remember to also make sure to update the branch id (with the above command
 `1.5` needs to be changed to `1.5.0`)
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around
@@ -394,16 +382,17 @@ https://www.apache.org/info/verification.html
 We now have a handy script for anyone validating a release to use. The core of it is in this very folder, `verify_release.py`. Just make sure you have all three release files in the same directory (`{some version}.tar.gz`, `{some version}.tar.gz.asc` and `{some version}tar.gz.sha512`). Then you can pass this script the path to the `.gz` file like so:
 `python verify_release.py ~/path/tp/apache-superset-{version/candidate}-source.tar.gz`
 
-
 If all goes well, you will see this result in your terminal:
+
 ```bash
 SHA-512 verified
 RSA key verified
 ```
 
 There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
-* `cd` into `superset-frontend` and run `npm run validate-release`
-* `cd` into `RELEASES` and run `./validate_this_release.sh`
+
+- `cd` into `superset-frontend` and run `npm run validate-release`
+- `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
 
@@ -500,6 +489,6 @@ At this point, a GitHub action will run that will check whether this release's v
 
 ### Update Superset files
 
-Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG.m](../CHANGELOG.md) and [UPDATING.md](../UPDATING.md).
+Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG/\<version\>.md](../CHANGELOG) and [UPDATING.md](../UPDATING.md).
 
 We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.
