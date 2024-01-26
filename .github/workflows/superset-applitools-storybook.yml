@@ -2,7 +2,7 @@ name: Applitools Storybook
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "* * * * *"
 
 env:
   APPLITOOLS_APP_NAME: Superset
