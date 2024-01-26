@@ -26,7 +26,7 @@ docker==6.1.1
     # via -r requirements/testing.in
 flask-testing==0.8.1
     # via -r requirements/testing.in
-fonttools==4.39.4
+fonttools==4.43.0
     # via matplotlib
 freezegun==1.2.2
     # via -r requirements/testing.in
@@ -117,8 +117,6 @@ pyee==9.0.4
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
-pyhive[presto]==0.7.0
-    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in
