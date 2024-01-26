@@ -76,7 +76,7 @@ const DvtLayout = () => {
     >
       <GlobalStyles />
       <DvtSidebar pathName={pathname} />
-      <DvtNavbar pathName={pathname} />
+      <DvtNavbar pathName={pathname} data={bootstrapData.common.menu_data} />
       <DvtModal />
       <Main navbarInHeight={WithNavbarBottom.includes(pathname)}>
         <Switch>

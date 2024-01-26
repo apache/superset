@@ -36,6 +36,7 @@ const NavbarTop = styled.div`
   align-items: center;
   min-height: 80px;
   border-top: 1px solid ${({ theme }) => theme.colors.dvt.border.base};
+  gap: 25px;
 `;
 
 const NavbarBottom = styled.div`
@@ -58,7 +59,6 @@ const NavbarSearchInput = styled.div`
 
 const NavbarProfileMenu = styled.div`
   display: flex;
-  width: 70px;
 `;
 
 const NavbarProfileIcon = styled.div`
