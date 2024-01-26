@@ -93,7 +93,7 @@ jobs:
             const artifacts = await github.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                run_id: ${{ github.event.workflow_run.id }},
+                run_id: ${{ github.event.workflow_run.workflow_id }},
             });
 
             core.info('*** artifacts')
