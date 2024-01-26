@@ -169,6 +169,7 @@
     "js-yaml-loader": "^1.2.2",
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
+    "just-handlebars-helpers": "^1.0.19",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "mapbox-gl": "^2.10.0",
