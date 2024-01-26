@@ -3,6 +3,12 @@ on:
   push:
     paths:
       - "superset/migrations/**"
+    branches:
+      - 'master'
+  pull_request:
+    paths:
+      - "superset/migrations/**"
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   check_db_migration_conflict:

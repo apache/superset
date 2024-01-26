@@ -2,10 +2,8 @@ name: E2E
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-    paths-ignore:
-      - "docs/**"
+    branches:
+      - 'master'
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 

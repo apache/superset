@@ -22,6 +22,11 @@ jobs:
       run: |
         source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
 
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
     - name: Run latest-tag
       uses: ./.github/actions/latest-tag
       if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
