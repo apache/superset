@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, usePrevious } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -44,7 +45,7 @@ const StyledLabel = styled.span`
   `}
 `;
 
-function alterForComparison(value) {
+export const alterForComparison = value => {
   // Considering `[]`, `{}`, `null` and `undefined` as identical
   // for this purpose
   if (value === undefined || value === null || value === '') {
@@ -60,39 +61,73 @@ function alterForComparison(value) {
     }
   }
   return value;
-}
+};
 
-export default class AlteredSliceTag extends React.Component {
-  constructor(props) {
-    super(props);
-    const diffs = this.getDiffs(props);
-    const controlsMap = getControlsForVizType(this.props.origFormData.viz_type);
-    const rows = this.getRowsFromDiffs(diffs, controlsMap);
-
-    this.state = { rows, hasDiffs: !isEmpty(diffs), controlsMap };
+export const formatValueHandler = (value, key, controlsMap) => {
+  // Format display value based on the control type
+  // or the value type
+  if (value === undefined) {
+    return 'N/A';
   }
-
-  UNSAFE_componentWillReceiveProps(newProps) {
-    // Update differences if need be
-    if (isEqual(this.props, newProps)) {
-      return;
+  if (value === null) {
+    return 'null';
+  }
+  if (controlsMap[key]?.type === 'AdhocFilterControl') {
+    if (!value.length) {
+      return '[]';
     }
-    const diffs = this.getDiffs(newProps);
-    this.setState(prevState => ({
-      rows: this.getRowsFromDiffs(diffs, prevState.controlsMap),
-      hasDiffs: !isEmpty(diffs),
-    }));
+    return value
+      .map(v => {
+        const filterVal =
+          v.comparator && v.comparator.constructor === Array
+            ? `[${v.comparator.join(', ')}]`
+            : v.comparator;
+        return `${v.subject} ${v.operator} ${filterVal}`;
+      })
+      .join(', ');
   }
-
-  getRowsFromDiffs(diffs, controlsMap) {
-    return Object.entries(diffs).map(([key, diff]) => ({
-      control: (controlsMap[key] && controlsMap[key].label) || key,
-      before: this.formatValue(diff.before, key, controlsMap),
-      after: this.formatValue(diff.after, key, controlsMap),
-    }));
+  if (controlsMap[key]?.type === 'BoundsControl') {
+    return `Min: ${value[0]}, Max: ${value[1]}`;
   }
+  if (controlsMap[key]?.type === 'CollectionControl') {
+    return value.map(v => safeStringify(v)).join(', ');
+  }
+  if (
+    controlsMap[key]?.type === 'MetricsControl' &&
+    value.constructor === Array
+  ) {
+    const formattedValue = value.map(v => v?.label ?? v);
+    return formattedValue.length ? formattedValue.join(', ') : '[]';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (value.constructor === Array) {
+    const formattedValue = value.map(v => v?.label ?? v);
+    return formattedValue.length ? formattedValue.join(', ') : '[]';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+  return safeStringify(value);
+};
 
-  getDiffs(props) {
+export const getRowsFromDiffs = (diffs, controlsMap) =>
+  Object.entries(diffs).map(([key, diff]) => ({
+    control: (controlsMap[key] && controlsMap[key].label) || key,
+    before: formatValueHandler(diff.before, key, controlsMap),
+    after: formatValueHandler(diff.after, key, controlsMap),
+  }));
+
+export const isEqualish = (val1, val2) =>
+  isEqual(alterForComparison(val1), alterForComparison(val2));
+
+const AlteredSliceTag = props => {
+  const prevProps = usePrevious(props);
+  const [rows, setRows] = useState([]);
+  const [hasDiffs, setHasDiffs] = useState(false);
+
+  const getDiffs = useCallback(() => {
     // Returns all properties that differ in the
     // current form data and the saved form data
     const ofd = sanitizeFormData(props.origFormData);
@@ -107,67 +142,35 @@ export default class AlteredSliceTag extends React.Component {
       if (['filters', 'having', 'where'].includes(fdKey)) {
         return;
       }
-      if (!this.isEqualish(ofd[fdKey], cfd[fdKey])) {
+      if (!isEqualish(ofd[fdKey], cfd[fdKey])) {
         diffs[fdKey] = { before: ofd[fdKey], after: cfd[fdKey] };
       }
     });
     return diffs;
-  }
+  }, [props.currentFormData, props.origFormData]);
 
-  isEqualish(val1, val2) {
-    return isEqual(alterForComparison(val1), alterForComparison(val2));
-  }
+  useEffect(() => {
+    const diffs = getDiffs();
+    const controlsMap = getControlsForVizType(props.origFormData?.viz_type);
+    setRows(getRowsFromDiffs(diffs, controlsMap));
+    setHasDiffs(!isEmpty(diffs));
+  }, [getDiffs, props]);
 
-  formatValue(value, key, controlsMap) {
-    // Format display value based on the control type
-    // or the value type
-    if (value === undefined) {
-      return 'N/A';
-    }
-    if (value === null) {
-      return 'null';
-    }
-    if (controlsMap[key]?.type === 'AdhocFilterControl') {
-      if (!value.length) {
-        return '[]';
+  useEffect(() => {
+    const diffs = getDiffs();
+
+    const updateStateWithDiffs = () => {
+      if (isEqual(prevProps, props)) {
+        return;
       }
-      return value
-        .map(v => {
-          const filterVal =
-            v.comparator && v.comparator.constructor === Array
-              ? `[${v.comparator.join(', ')}]`
-              : v.comparator;
-          return `${v.subject} ${v.operator} ${filterVal}`;
-        })
-        .join(', ');
-    }
-    if (controlsMap[key]?.type === 'BoundsControl') {
-      return `Min: ${value[0]}, Max: ${value[1]}`;
-    }
-    if (controlsMap[key]?.type === 'CollectionControl') {
-      return value.map(v => safeStringify(v)).join(', ');
-    }
-    if (
-      controlsMap[key]?.type === 'MetricsControl' &&
-      value.constructor === Array
-    ) {
-      const formattedValue = value.map(v => v?.label ?? v);
-      return formattedValue.length ? formattedValue.join(', ') : '[]';
-    }
-    if (typeof value === 'boolean') {
-      return value ? 'true' : 'false';
-    }
-    if (value.constructor === Array) {
-      const formattedValue = value.map(v => v?.label ?? v);
-      return formattedValue.length ? formattedValue.join(', ') : '[]';
-    }
-    if (typeof value === 'string' || typeof value === 'number') {
-      return value;
-    }
-    return safeStringify(value);
-  }
+      setRows(prevRows => getRowsFromDiffs(diffs, prevRows));
+      setHasDiffs(!isEmpty(diffs));
+    };
 
-  renderModalBody() {
+    updateStateWithDiffs();
+  }, [getDiffs, props, prevProps]);
+
+  const renderModalBody = useCallback(() => {
     const columns = [
       {
         accessor: 'control',
@@ -188,39 +191,39 @@ export default class AlteredSliceTag extends React.Component {
     return (
       <TableView
         columns={columns}
-        data={this.state.rows}
+        data={rows}
         pageSize={50}
         className="table-condensed"
         columnsForWrapText={columnsForWrapText}
       />
     );
-  }
+  }, [rows]);
 
-  renderTriggerNode() {
-    return (
+  const renderTriggerNode = useCallback(
+    () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
       </Tooltip>
-    );
-  }
+    ),
+    [],
+  );
 
-  render() {
-    // Return nothing if there are no differences
-    if (!this.state.hasDiffs) {
-      return null;
-    }
-    // Render the label-warning 'Altered' tag which the user may
-    // click to open a modal containing a table summarizing the
-    // differences in the slice
-    return (
-      <ModalTrigger
-        triggerNode={this.renderTriggerNode()}
-        modalTitle={t('Chart changes')}
-        modalBody={this.renderModalBody()}
-        responsive
-      />
-    );
+  if (!hasDiffs) {
+    return null;
   }
-}
+  // Render the label-warning 'Altered' tag which the user may
+  // click to open a modal containing a table summarizing the
+  // differences in the slice
+  return (
+    <ModalTrigger
+      triggerNode={renderTriggerNode()}
+      modalTitle={t('Chart changes')}
+      modalBody={renderModalBody()}
+      responsive
+    />
+  );
+};
+
+export default AlteredSliceTag;
 
 AlteredSliceTag.propTypes = propTypes;
