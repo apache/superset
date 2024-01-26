@@ -76,12 +76,19 @@ REDIS_BASE_URL=f"{env('REDIS_PROTO')}://:{env('REDIS_PASSWORD')}@{env('REDIS_HOS
 REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- end }}
 
+# Redis URL Params
+{{- if .Values.supersetNode.connections.use_redis_ssl }}
+REDIS_URL_PARAMS = f"?ssl_cert_req={env('REDIS_SSL_CERT_REQS')}"
+{{- else }}
+REDIS_URL_PARAMS = ""
+{{- end}}
+
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
       'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
-      'CACHE_REDIS_URL': f"{REDIS_BASE_URL}/{env('REDIS_DB', 1)}{env('REDIS_SSL_PARAM', '')}",
+      'CACHE_REDIS_URL': f"{REDIS_BASE_URL}/{env('REDIS_DB', 1)}{REDIS_URL_PARAMS}",
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -90,8 +97,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
-  broker_url = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{env('REDIS_SSL_PARAM', '')}"
-  result_backend = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{env('REDIS_SSL_PARAM', '')}"
+  broker_url = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{REDIS_URL_PARAMS}"
+  result_backend = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{REDIS_URL_PARAMS}"
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
