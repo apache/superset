@@ -28,7 +28,7 @@ import {
   useComponentDidUpdate,
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {

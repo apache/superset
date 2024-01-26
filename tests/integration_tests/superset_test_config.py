@@ -31,6 +31,7 @@ logging.getLogger("flask_appbuilder.api").setLevel(logging.WARNING)
 logging.getLogger("flask_appbuilder.security.sqla.manager").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
+SECRET_KEY = "dummy_secret_key_for_test_to_silence_warnings"
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
     DATA_DIR, "unittests.integration_tests.db"

@@ -270,7 +270,9 @@ class Chart extends React.Component {
   changeFilter(newSelectedValues = {}) {
     this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
       id: this.props.chart.id,
-      columns: Object.keys(newSelectedValues),
+      columns: Object.keys(newSelectedValues).filter(
+        key => newSelectedValues[key] !== null,
+      ),
     });
     this.props.changeFilter(this.props.chart.id, newSelectedValues);
   }
