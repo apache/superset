@@ -11,7 +11,7 @@ jobs:
     secrets: inherit
   docker-release:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == '1'
+    if: needs.check-secrets.outputs.has-secrets == 'true'
     name: docker-release
     runs-on: ubuntu-latest
     strategy:

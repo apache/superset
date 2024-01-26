@@ -13,7 +13,7 @@ jobs:
     secrets: inherit
   build:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == '1'
+    if: needs.check-secrets.outputs.has-secrets == 'true'
     name: Bump version and publish package(s)
 
     runs-on: ubuntu-20.04

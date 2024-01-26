@@ -18,7 +18,7 @@ jobs:
     secrets: inherit
   cron:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == '1'
+    if: needs.check-secrets.outputs.has-secrets == 'true'
     runs-on: ubuntu-20.04
     strategy:
       matrix:
