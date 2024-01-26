@@ -365,6 +365,11 @@
     "webpack-manifest-plugin": "^4.0.2",
     "webpack-sources": "^3.2.0"
   },
+  "peerDependencies": {
+		"react-spring": "^9.x",
+    "yeoman-generator": "^5.x",
+    "yosay": "^2.x"
+	},
   "engines": {
     "node": "^16.9.1",
     "npm": "^7.5.4 || ^8.1.2"
