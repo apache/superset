@@ -162,6 +162,7 @@
     "fuse.js": "^6.4.6",
     "geolib": "^2.0.24",
     "global-box": "^1.2.0",
+    "handlebars": "^4.7.7",
     "html-webpack-plugin": "^5.3.2",
     "immer": "^9.0.6",
     "interweave": "^13.0.0",
