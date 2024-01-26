@@ -10,9 +10,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'NPM_TOKEN' # also note that GH_PERSONAL_ACCESS_TOKEN is used
+    secrets: inherit
   build:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: Bump version and publish package(s)
 
     runs-on: ubuntu-20.04

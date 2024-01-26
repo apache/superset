@@ -16,9 +16,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'SUPERSET_SITE_BUILD'
+    secrets: inherit
   build-deploy:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: Build & Deploy
     runs-on: ubuntu-20.04
     defaults:

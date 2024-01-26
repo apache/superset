@@ -8,9 +8,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'DOCKERHUB_USER'
+    secrets: inherit
   docker-release:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: docker-release
     runs-on: ubuntu-latest
     strategy:

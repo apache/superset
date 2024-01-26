@@ -9,9 +9,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'AWS_SECRET_ACCESS_KEY'
+    secrets: inherit
   ephemeral_env_comment:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
     permissions:
@@ -71,7 +72,7 @@ jobs:
 
   docker_ephemeral_env:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: Push ephemeral env Docker image to ECR
     runs-on: ubuntu-latest
 

@@ -36,9 +36,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'CHROMATIC_PROJECT_TOKEN'
+    secrets: inherit
   chromatic-deployment:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     # Operating System
     runs-on: ubuntu-latest
     # Job steps

@@ -9,9 +9,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'AWS_SECRET_ACCESS_KEY'
+    secrets: inherit
   ephemeral-env-cleanup:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     name: Cleanup ephemeral envs
     runs-on: ubuntu-latest
     permissions:

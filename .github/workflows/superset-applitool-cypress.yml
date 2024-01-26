@@ -9,9 +9,10 @@ jobs:
     uses: ./.github/workflows/check-secrets.yml
     with:
       secret_name: 'APPLITOOLS_API_KEY'
+    secrets: inherit
   cypress-applitools:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == 'true'
+    if: needs.check-secrets.outputs.has-secrets
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
