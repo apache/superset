@@ -15,55 +15,16 @@ jobs:
     steps:
       - name: "Check for secrets"
         id: check
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
         run: |
-          if [[ -n "$DOCKERHUB_USER" && -n "$DOCKERHUB_TOKEN" ]]; then
-            echo "has-secrets=true" >> "$GITHUB_ENV"
+          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
             echo "has secrets!"
           else
-            echo "has-secrets=false" >> "$GITHUB_ENV"
+            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
             echo "no secrets!"
           fi
   docker-build:
-    needs: config
-    if: needs.config.outputs.has-secrets == 'true'
-    name: docker-build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
-        platform: ["linux/amd64", "linux/arm64"]
-        exclude:
-          # disabling because slow! no python wheels for arm/py39 and
-          # QEMU is slow!
-          - target: "dev"
-            platform: "linux/arm64"
-          - target: "lean"
-            platform: "linux/arm64"
-      fail-fast: false
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
-
-  ephemeral-docker-build:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-build
