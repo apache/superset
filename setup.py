@@ -118,7 +118,7 @@ setup(
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
         "selenium>=3.141.0, <4.10.0",
-        "shillelagh>=1.2.10, <2.0",
+        "shillelagh[gsheetsapi]>=1.2.10, <2.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
@@ -192,9 +192,7 @@ setup(
         "prophet": ["prophet>=1.1.5, <2"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, <0.9"],
         "rockset": ["rockset-sqlalchemy>=0.0.1, <1"],
-        "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.10, <2"
-        ],
+        "shillelagh": ["shillelagh[all]>=1.2.10, <2"],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": [
             "pyhive[hive]>=0.6.5;python_version<'3.11'",
