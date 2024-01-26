@@ -152,7 +152,7 @@ setup(
             "databricks-sql-connector>=2.0.2, <3",
             "sqlalchemy-databricks>=0.2.0",
         ],
-        "db2": ["ibm-db-sa>=0.3.5, <0.4"],
+        "db2": ["ibm-db-sa>0.3.8, <=0.4.0"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.5,<0.7"],

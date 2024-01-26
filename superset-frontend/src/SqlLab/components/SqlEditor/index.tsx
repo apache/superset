@@ -42,10 +42,13 @@ import {
   QueryResponse,
   Query,
 } from '@superset-ui/core';
-import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import type {
+  QueryEditor,
+  SqlLabRootState,
+  CursorPosition,
+} from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import debounce from 'lodash/debounce';
-import throttle from 'lodash/throttle';
+import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
@@ -64,6 +67,7 @@ import {
   postStopQuery,
   queryEditorSetAutorun,
   queryEditorSetSql,
+  queryEditorSetCursorPosition,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
   runQueryFromSqlEditor,
@@ -93,7 +97,6 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isBoolean, isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -759,6 +762,10 @@ const SqlEditor: React.FC<Props> = ({
     );
   };
 
+  const handleCursorPositionChange = (newPosition: CursorPosition) => {
+    dispatch(queryEditorSetCursorPosition(queryEditor, newPosition));
+  };
+
   const queryPane = () => {
     const { aceEditorHeight, southPaneHeight } =
       getAceEditorAndSouthPaneHeights(height, northPercent, southPercent);
@@ -789,6 +796,7 @@ const SqlEditor: React.FC<Props> = ({
             onBlur={onSqlChanged}
             onChange={onSqlChanged}
             queryEditorId={queryEditor.id}
+            onCursorPositionChange={handleCursorPositionChange}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />

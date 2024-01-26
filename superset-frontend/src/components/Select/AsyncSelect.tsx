@@ -31,8 +31,7 @@ import React, {
 } from 'react';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
-import { isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';

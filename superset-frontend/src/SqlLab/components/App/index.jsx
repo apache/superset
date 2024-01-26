@@ -22,7 +22,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import { css, styled, t } from '@superset-ui/core';
-import throttle from 'lodash/throttle';
+import { throttle } from 'lodash';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
   LOCALSTORAGE_WARNING_THRESHOLD,
