@@ -86,9 +86,14 @@ def test_export(session: Session) -> None:
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
-    export = list(
-        ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
-    )
+    export = [
+        (file[0], file[1]())
+        for file in list(
+            ExportDatasetsCommand._export(
+                sqla_table
+            )  # pylint: disable=protected-access
+        )
+    ]
     assert export == [
         (
             "datasets/my_database/my_table.yaml",
