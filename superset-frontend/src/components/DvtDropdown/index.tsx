@@ -21,6 +21,8 @@ import useOnClickOutside from 'src/hooks/useOnClickOutsite';
 import Icon from '../Icons/Icon';
 import {
   StyledDropdown,
+  StyledDropdownOpen,
+  StyledDropdownLabel,
   DropdownMenu,
   DropdownOption,
   StyledDropdownGroup,
@@ -34,19 +36,33 @@ export interface OptionProps {
 
 export interface DvtDropdownProps {
   data: OptionProps[];
-  icon: string;
+  icon?: string;
   item?: any;
+  direction?: 'left' | 'right';
+  label?: string;
 }
 
-const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon, item = {} }) => {
+const DvtDropdown: React.FC<DvtDropdownProps> = ({
+  data,
+  icon,
+  item = {},
+  direction = 'right',
+  label = '',
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const ref = useRef<HTMLDivElement | null>(null);
   useOnClickOutside(ref, () => setIsOpen(false));
 
   return (
     <StyledDropdownGroup>
-      <Icon fileName={icon} iconSize="xl" onClick={() => setIsOpen(!isOpen)} />
-      <StyledDropdown ref={ref}>
+      <StyledDropdownOpen onClick={() => setIsOpen(!isOpen)}>
+        {!icon ? (
+          <StyledDropdownLabel>{label}</StyledDropdownLabel>
+        ) : (
+          <Icon fileName={icon} iconSize="xl" />
+        )}
+      </StyledDropdownOpen>
+      <StyledDropdown ref={ref} direction={direction}>
         {isOpen && (
           <DropdownMenu>
             {data.map((data, index) => (
@@ -67,4 +83,5 @@ const DvtDropdown: React.FC<DvtDropdownProps> = ({ data, icon, item = {} }) => {
     </StyledDropdownGroup>
   );
 };
+
 export default DvtDropdown;

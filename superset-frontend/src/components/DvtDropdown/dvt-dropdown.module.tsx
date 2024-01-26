@@ -18,6 +18,10 @@
  */
 import { keyframes, styled } from '@superset-ui/core';
 
+interface StyledDropdownProps {
+  direction: string;
+}
+
 const optionsKeyframes = keyframes`
   from {
     transform: scaleY(0);
@@ -27,11 +31,27 @@ const optionsKeyframes = keyframes`
   }
 `;
 
-const StyledDropdown = styled.div`
+const StyledDropdownOpen = styled.button`
+  outline: none;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+`;
+
+const StyledDropdown = styled.div<StyledDropdownProps>`
   position: absolute;
   top: calc(100% + 2px);
-  left: 9px;
+  ${({ direction }) =>
+    (direction === 'right' && 'left: 50%') ||
+    (direction === 'left' && 'right: 50%')};
   z-index: 100;
+`;
+
+const StyledDropdownLabel = styled.div`
+  font-size: 14px;
 `;
 
 const DropdownMenu = styled.div`
@@ -62,4 +82,11 @@ const StyledDropdownGroup = styled.div`
   display: inline-flex;
 `;
 
-export { StyledDropdown, DropdownMenu, DropdownOption, StyledDropdownGroup };
+export {
+  StyledDropdown,
+  StyledDropdownOpen,
+  StyledDropdownLabel,
+  DropdownMenu,
+  DropdownOption,
+  StyledDropdownGroup,
+};

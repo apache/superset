@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,6 +23,7 @@ import { useAppSelector } from 'src/hooks/useAppSelector';
 // import { dvtAppSetSort } from 'src/dvt-redux/dvt-appReducer';
 import { BellOutlined } from '@ant-design/icons';
 import { dvtNavbarSqlSetTabs } from 'src/dvt-redux/dvt-navbarReducer';
+import { t } from '@superset-ui/core';
 import {
   DvtNavbarTabsData,
   UserData,
@@ -46,18 +48,26 @@ import {
   NavbarProfileIcon,
   NavbarProfileIconDot,
 } from './dvt-navbar.module';
+import DvtDropdown from '../DvtDropdown';
 
 export interface DvtNavbarProps {
   pathName: string;
-  user?: any;
+  data?: any;
 }
 
-const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
+interface LanguagesProps {
+  flag: string;
+  name: string;
+  url: string;
+}
+
+const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, data }) => {
   const dispatch = useDispatch();
   // const sort = useAppSelector(state => state.dvtApp.sort);
   const sqlSelector = useAppSelector(state => state.dvtNavbar.sql);
   const [active, setActive] = useState<string>('All');
   const [activeData, setActiveData] = useState<TabsDataProps[]>([]);
+  const [languages, setLanguages] = useState<LanguagesProps[]>([]);
 
   const pathTitles = (pathname: string) => {
     switch (pathname) {
@@ -99,6 +109,19 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
     }
   }, [pathName]);
 
+  useEffect(() => {
+    if (data?.navbar_right?.show_language_picker) {
+      const languageObjs = data.navbar_right.languages;
+      setLanguages(
+        Object.keys(languageObjs).map(key => ({
+          flag: key,
+          name: t(languageObjs[key].name),
+          url: languageObjs[key].url,
+        })),
+      );
+    }
+  }, [data?.navbar_right?.show_language_picker]);
+
   // const [searchText, setSearchText] = useState<string>('');
 
   return (
@@ -134,6 +157,23 @@ const DvtNavbar: React.FC<DvtNavbarProps> = ({ pathName, user }) => {
         <NavbarProfileMenu>
           <DvtProfileMenu img={UserData.image} />
         </NavbarProfileMenu>
+        {languages.length > 0 && (
+          <DvtDropdown
+            label={
+              languages.find(
+                (item: LanguagesProps) =>
+                  item.flag === data.navbar_right.locale,
+              )?.name
+            }
+            direction="left"
+            data={languages.map((item: any) => ({
+              label: item.name,
+              onClick: () => {
+                window.location.href = `${window.location.origin}${item.url}`;
+              },
+            }))}
+          />
+        )}
       </NavbarTop>
       {WithNavbarBottom.includes(pathName) && (
         <NavbarBottom>

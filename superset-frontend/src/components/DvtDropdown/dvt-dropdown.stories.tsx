@@ -33,4 +33,5 @@ Default.args = {
     { label: 'Delete', icon: 'trash', onClick: () => {} },
   ],
   icon: 'more_vert',
+  direction: 'right',
 };
