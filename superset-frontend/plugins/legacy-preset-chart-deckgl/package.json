@@ -34,7 +34,7 @@
     "deck.gl": "8.5.2",
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
-    "moment": "^2.20.1",
+    "moment": "^2.18.1",
     "mousetrap": "^1.6.1",
     "prop-types": "^15.6.0",
     "react-bootstrap-slider": "2.1.5",

@@ -35,7 +35,7 @@
     "dompurify": "^2.0.6",
     "fast-safe-stringify": "^2.0.6",
     "lodash": "^4.17.11",
-    "moment": "^2.20.1",
+    "moment": "^2.18.1",
     "nvd3-fork": "^2.0.5",
     "prop-types": "^15.6.2",
     "urijs": "^1.19.8"
