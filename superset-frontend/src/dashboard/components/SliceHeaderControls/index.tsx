@@ -262,7 +262,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
 
   const canViewDrill = useSelector((state: RootState) =>
-    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
+    findPermission('can_view_drill_dashboard', 'Superset', state.user?.roles),
   );
 
   const refreshChart = () => {
