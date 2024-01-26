@@ -67,7 +67,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             model
         ), lambda: ExportSavedQueriesCommand._file_content(model)
 
-        if export_related:
+        if export_related:  # TODO: Maybe we can use database export command here?
             # include database as well
             database_slug = secure_filename(model.database.database_name)
             file_name = f"databases/{database_slug}.yaml"
@@ -89,4 +89,4 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             payload["version"] = EXPORT_VERSION
 
             file_content = yaml.safe_dump(payload, sort_keys=False)
-            yield file_name, file_content
+            yield file_name, lambda: file_content
