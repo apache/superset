@@ -12,7 +12,7 @@ jobs:
     secrets: inherit
   ephemeral-env-cleanup:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == "1"
+    if: needs.check-secrets.outputs.has-secrets == '1'
     name: Cleanup ephemeral envs
     runs-on: ubuntu-latest
     permissions:

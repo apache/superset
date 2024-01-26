@@ -15,7 +15,7 @@ jobs:
     secrets: inherit
   license_check:
     needs: check-secrets
-    if: needs.check-secrets.outputs.has-secrets == "1"
+    if: needs.check-secrets.outputs.has-secrets == '1'
     name: License Check
     runs-on: ubuntu-20.04
     steps:
