@@ -23,7 +23,7 @@ jobs:
         run: npm ci
       - name: eslint
         working-directory: ./superset-websocket
-        run: npm run eslint -- .
+        run: npm run eslint -- . --quiet
       - name: typescript checks
         working-directory: ./superset-websocket
         run: npm run type
