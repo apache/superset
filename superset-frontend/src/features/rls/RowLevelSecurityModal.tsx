@@ -162,16 +162,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     } else if (rule?.id !== null && !loading && !fetchError) {
       fetchResource(rule.id as number);
     }
-  }, [rule]);
-
-  useEffect(() => {
-    if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
-    }
-  }, [resource]);
+  }, [rule, fetchError, fetchResource, isEditMode, loading]);
 
   // find selected tables and roles
   const getSelectedData = useCallback(() => {
@@ -200,25 +191,47 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     });
 
     return { tables, roles };
-  }, [resource?.tables, resource?.roles]);
-
-  // validate
-  const currentRuleSafe = currentRule || {};
-  useEffect(() => {
-    validate();
-  }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
-
-  // * event handlers *
-  type SelectValue = {
-    value: string;
-    label: string;
-  };
+  }, [resource]);
 
   const updateRuleState = (name: string, value: any) => {
     setCurrentRule(currentRuleData => ({
       ...currentRuleData,
       [name]: value,
     }));
+  };
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentRule({ ...resource, id: rule?.id });
+      const selectedTableAndRoles = getSelectedData();
+      updateRuleState('tables', selectedTableAndRoles?.tables || []);
+      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+    }
+  }, [resource, getSelectedData, rule?.id]);
+
+  // validate
+  const currentRuleSafe = currentRule || {};
+  useEffect(() => {
+    // * state validators *
+    const validate = () => {
+      if (
+        currentRuleSafe?.name &&
+        currentRuleSafe?.clause &&
+        currentRuleSafe?.tables?.length
+      ) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
+    };
+
+    validate();
+  }, [currentRuleSafe?.name, currentRuleSafe?.clause, currentRuleSafe?.tables]);
+
+  // * event handlers *
+  type SelectValue = {
+    value: string;
+    label: string;
   };
 
   const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
@@ -317,19 +330,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       },
     [],
   );
-
-  // * state validators *
-  const validate = () => {
-    if (
-      currentRule?.name &&
-      currentRule?.clause &&
-      currentRule.tables?.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
 
   return (
     <StyledModal
