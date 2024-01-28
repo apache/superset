@@ -77,6 +77,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
 
 const verifyExpectedFormData = (
   interceptedRequest: Interception,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expectedFormData: Record<string, any>,
 ) => {
   const actualFormData = interceptedRequest.request.body?.form_data;
