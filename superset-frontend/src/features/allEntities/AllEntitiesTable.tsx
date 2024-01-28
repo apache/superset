@@ -74,7 +74,6 @@ interface AllEntitiesTableProps {
 }
 
 export default function AllEntitiesTable({
-  search = '',
   setShowTagModal,
   objects,
 }: AllEntitiesTableProps) {
