@@ -2,9 +2,10 @@ name: License Check
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**"
+    branches:
+      - 'master'
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   config:

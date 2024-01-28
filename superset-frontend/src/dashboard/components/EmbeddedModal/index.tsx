@@ -31,7 +31,7 @@ import Button from 'src/components/Button';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { FormItem } from 'src/components/Form';
-import { EmbeddedDashboard } from '../types';
+import { EmbeddedDashboard } from 'src/dashboard/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -135,6 +135,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           // 404 just means the dashboard isn't currently embedded
           return { result: null };
         }
+        addDangerToast(t('Sorry, something went wrong. Please try again.'));
         throw err;
       })
       .then(({ result }) => {
@@ -199,6 +200,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
         </label>
         <Input
           name="allowed-domains"
+          id="allowed-domains"
           value={allowedDomains}
           placeholder="superset.example.com"
           onChange={event => setAllowedDomains(event.target.value)}
@@ -237,12 +239,17 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   );
 };
 
-export const DashboardEmbedModal = (props: Props) => {
+const DashboardEmbedModal = (props: Props) => {
   const { show, onHide } = props;
+  const DashboardEmbedModalExtension = extensionsRegistry.get('embedded.modal');
 
-  return (
+  return DashboardEmbedModalExtension ? (
+    <DashboardEmbedModalExtension {...props} />
+  ) : (
     <Modal show={show} onHide={onHide} title={t('Embed')} hideFooter>
       <DashboardEmbedControls {...props} />
     </Modal>
   );
 };
+
+export default DashboardEmbedModal;

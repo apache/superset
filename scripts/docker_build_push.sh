@@ -18,9 +18,15 @@
 set -eo pipefail
 
 GITHUB_RELEASE_TAG_NAME="$1"
+TARGET="$2"
+BUILD_PLATFORM="$3" # should be either 'linux/amd64' or 'linux/arm64'
 
+# Common variables
 SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/superset"
+DOCKER_ARGS="--load" # default args, change as needed
+DOCKER_CONTEXT="."
+
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
   REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/g' | head -c 40)
@@ -54,9 +60,53 @@ if [[ "${TEST_ENV}" == "true" ]]; then
   exit 0
 fi
 
+# for the dev image, it's ok to tag master as latest-dev
+# for production, we only want to tag the latest official release as latest
+if [ "${LATEST_TAG}" = "master" ]; then
+  DEV_TAG="${REPO_NAME}:latest-dev"
+else
+  DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
+fi
+
+BUILD_ARG="3.9-slim-bookworm"
+
+# Replace '/' with '-' in BUILD_PLATFORM
+SAFE_BUILD_PLATFORM=$(echo "${BUILD_PLATFORM}" | sed 's/\//-/g')
+MAIN_UNIQUE_TAG="${REPO_NAME}:${SHA}-${TARGET}-${SAFE_BUILD_PLATFORM}-${BUILD_ARG}"
+
+case "${TARGET}" in
+  "dev")
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-dev -t ${REPO_NAME}:${REFSPEC}-dev -t ${DEV_TAG}"
+    BUILD_TARGET="dev"
+    ;;
+  "lean")
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA} -t ${REPO_NAME}:${REFSPEC} -t ${REPO_NAME}:${LATEST_TAG}"
+    BUILD_TARGET="lean"
+    ;;
+  "lean310")
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-py310 -t ${REPO_NAME}:${REFSPEC}-py310 -t ${REPO_NAME}:${LATEST_TAG}-py310"
+    BUILD_TARGET="lean"
+    BUILD_ARG="3.10-slim-bookworm"
+    ;;
+  "websocket")
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:${SHA}-websocket -t ${REPO_NAME}:${REFSPEC}-websocket -t ${REPO_NAME}:${LATEST_TAG}-websocket"
+    BUILD_TARGET=""
+	DOCKER_CONTEXT="superset-websocket"
+    ;;
+  "dockerize")
+    DOCKER_TAGS="-t ${MAIN_UNIQUE_TAG} -t ${REPO_NAME}:dockerize"
+    BUILD_TARGET=""
+	DOCKER_CONTEXT="-f dockerize.Dockerfile ."
+    ;;
+  *)
+    echo "Invalid TARGET: ${TARGET}"
+    exit 1
+    ;;
+esac
 
 cat<<EOF
   Rolling with tags:
+  - $MAIN_UNIQUE_TAG
   - ${REPO_NAME}:${SHA}
   - ${REPO_NAME}:${REFSPEC}
   - ${REPO_NAME}:${LATEST_TAG}
@@ -67,123 +117,40 @@ if [ -z "${DOCKERHUB_TOKEN}" ]; then
   echo "Skipping Docker push"
   # By default load it back
   DOCKER_ARGS="--load"
-  ARCHITECTURE_FOR_BUILD="linux/amd64 linux/arm64"
 else
   # Login and push
   docker logout
   docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
   DOCKER_ARGS="--push"
-  ARCHITECTURE_FOR_BUILD="linux/amd64,linux/arm64"
 fi
 set -x
 
-# for the dev image, it's ok to tag master as latest-dev
-# for production, we only want to tag the latest official release as latest
-if [ "${LATEST_TAG}" = "master" ]; then
-  DEV_TAG="${REPO_NAME}:latest-dev"
-else
-  DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
+TARGET_ARGUMENT=""
+if [[ -n "${BUILD_TARGET}" ]]; then
+  TARGET_ARGUMENT="--target ${BUILD_TARGET}"
 fi
 
-for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
-#
-# Build the dev image
-#
-docker buildx build --target dev \
-  $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-dev \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-dev" \
-  -t "${REPO_NAME}:${REFSPEC}-dev" \
-  -t "${DEV_TAG}" \
-  --platform ${BUILD_PLATFORM} \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=dev" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+# Building the cache settings
+CACHE_REF="${REPO_NAME}-cache:${TARGET}-${BUILD_ARG}"
+CACHE_REF=$(echo "${CACHE_REF}" | tr -d '.')
+CACHE_FROM_ARG="--cache-from=type=registry,ref=${CACHE_REF}"
+CACHE_TO_ARG=""
+if [ -n "${DOCKERHUB_TOKEN}" ]; then
+  # need to be logged in to push to the cache
+  CACHE_TO_ARG="--cache-to=type=registry,mode=max,ref=${CACHE_REF}"
+fi
 
-#
-# Build the "lean" image
-#
-docker buildx build --target lean \
-  $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}" \
-  -t "${REPO_NAME}:${REFSPEC}" \
-  -t "${REPO_NAME}:${LATEST_TAG}" \
-  --platform ${BUILD_PLATFORM} \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
-
-#
-# Build the "lean310" image
-#
-docker buildx build --target lean \
-  $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-py310" \
-  -t "${REPO_NAME}:${REFSPEC}-py310" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --platform ${BUILD_PLATFORM} \
-  --build-arg PY_VER="3.10-slim-bookworm"\
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean310" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
-
-#
-# Build the "lean39" image
-#
-docker buildx build --target lean \
-  $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-py39" \
-  -t "${REPO_NAME}:${REFSPEC}-py39" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py39" \
-  --platform ${BUILD_PLATFORM} \
-  --build-arg PY_VER="3.9-slim-bullseye"\
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean39" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
-
-#
-# Build the "websocket" image
-#
 docker buildx build \
-  $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-websocket \
-  -t "${REPO_NAME}:${SHA}-websocket" \
-  -t "${REPO_NAME}:${REFSPEC}-websocket" \
-  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
+  ${TARGET_ARGUMENT} \
+  ${DOCKER_ARGS} \
+  ${DOCKER_TAGS} \
+  ${CACHE_FROM_ARG} \
+  ${CACHE_TO_ARG} \
   --platform ${BUILD_PLATFORM} \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
-  --label "target=websocket" \
+  --label "target=${TARGET}" \
+  --label "base=${PY_VER}" \
   --label "build_actor=${GITHUB_ACTOR}" \
-  superset-websocket
-
-#
-# Build the dockerize image
-#
-docker buildx build \
-  $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:dockerize \
-  -t "${REPO_NAME}:dockerize" \
-  --platform ${BUILD_PLATFORM} \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  -f dockerize.Dockerfile \
-  .
-done
+  ${BUILD_ARG:+--build-arg PY_VER="${BUILD_ARG}"} \
+  ${DOCKER_CONTEXT}

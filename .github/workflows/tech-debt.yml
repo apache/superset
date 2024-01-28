@@ -1,0 +1,31 @@
+name: Upload Technical Debt Metrics to Google Sheets
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  process-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install Dependencies
+        run: npm install
+        working-directory: ./superset-frontend
+
+      - name: Run Script
+        env:
+          SPREADSHEET_ID: '1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo'
+          SERVICE_ACCOUNT_KEY: ${{ secrets.GSHEET_KEY }}
+        run: npm run lint-stats
+        working-directory: ./superset-frontend

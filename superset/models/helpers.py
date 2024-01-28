@@ -1972,7 +1972,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                col = literal_column(col.name)
+                with self.database.get_sqla_engine_with_context() as engine:
+                    quote = engine.dialect.identifier_preparer.quote
+                    col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 
