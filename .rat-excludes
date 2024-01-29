@@ -35,7 +35,6 @@ apache_superset.egg-info
 # Generated doc files
 env/*
 docs/.htaccess*
-docs-v2/.htaccess*
 .nojekyll
 _build/*
 _static/*
@@ -63,4 +62,4 @@ generator-superset/*
 temporary_superset_ui/*
 
 # docs overrides for third party logos
-superset/docs/static/img/databases/*
+docs/static/img/databases/*.svg
