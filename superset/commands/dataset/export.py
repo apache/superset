@@ -19,6 +19,7 @@
 import json
 import logging
 from collections.abc import Iterator
+from typing import Callable
 
 import yaml
 from flask_appbuilder import Model
@@ -84,7 +85,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: SqlaTable, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportDatasetsCommand._file_name(
             model
         ), lambda: ExportDatasetsCommand._file_content(model)

@@ -107,7 +107,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
     not_found = DashboardNotFoundError
 
     @staticmethod
-    def _file_name(model: Dashboard):
+    def _file_name(model: Dashboard) -> str:
         file_name = get_filename(model.dashboard_title, model.id)
         return f"dashboards/{file_name}.yaml"
 
@@ -154,7 +154,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: Dashboard, export_related: bool = True
-    ) -> Iterator[tuple[str, Callable]]:
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportDashboardsCommand._file_name(
             model
         ), lambda: ExportDashboardsCommand._file_content(model)

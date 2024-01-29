@@ -62,7 +62,7 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: SavedQuery, export_related: bool = True
-    ) -> Iterator[tuple[str, Callable]]:
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportSavedQueriesCommand._file_name(
             model
         ), lambda: ExportSavedQueriesCommand._file_content(model)

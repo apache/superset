@@ -37,7 +37,7 @@ class ExportAssetsCommand(BaseCommand):
     Command that exports all databases, datasets, charts, dashboards and saved queries.
     """
 
-    def run(self) -> Iterator[tuple[str, Callable]]:
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
         metadata = {
             "version": EXPORT_VERSION,
             "type": "assets",

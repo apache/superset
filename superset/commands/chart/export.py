@@ -19,6 +19,7 @@
 import json
 import logging
 from collections.abc import Iterator
+from typing import Callable
 
 import yaml
 
@@ -74,7 +75,9 @@ class ExportChartsCommand(ExportModelsCommand):
         return file_content
 
     @staticmethod
-    def _export(model: Slice, export_related: bool = True) -> Iterator[tuple[str, str]]:
+    def _export(
+        model: Slice, export_related: bool = True
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportChartsCommand._file_name(
             model
         ), lambda: ExportChartsCommand._file_content(model)

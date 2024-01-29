@@ -18,7 +18,7 @@
 
 import json
 import logging
-from typing import Any
+from typing import Any, Callable
 from collections.abc import Iterator
 
 import yaml
@@ -56,12 +56,12 @@ class ExportDatabasesCommand(ExportModelsCommand):
     not_found = DatabaseNotFoundError
 
     @staticmethod
-    def _file_name(model: Database):
+    def _file_name(model: Database) -> str:
         db_file_name = get_filename(model.database_name, model.id, skip_id=True)
         return f"databases/{db_file_name}.yaml"
 
     @staticmethod
-    def _file_content(model: Database):
+    def _file_content(model: Database) -> str:
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -105,7 +105,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
     @staticmethod
     def _export(
         model: Database, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportDatabasesCommand._file_name(
             model
         ), lambda: ExportDatabasesCommand._file_content(model)

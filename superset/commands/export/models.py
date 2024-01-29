@@ -52,10 +52,10 @@ class ExportModelsCommand(BaseCommand):
     @staticmethod
     def _export(
         model: Model, export_related: bool = True
-    ) -> Iterator[tuple[str, Callable]]:
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         raise NotImplementedError("Subclasses MUST implement _export")
 
-    def run(self) -> Iterator[tuple[str, Callable]]:
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
         self.validate()
 
         metadata = {
