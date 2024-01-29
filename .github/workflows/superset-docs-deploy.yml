@@ -1,15 +1,11 @@
-name: Docs
+name: Docs Deployment
 
 on:
   push:
     paths:
       - "docs/**"
     branches:
-      - 'master'
-  pull_request:
-    paths:
-      - "docs/**"
-    types: [synchronize, opened, reopened, ready_for_review]
+      - "master"
 
 jobs:
   config:
@@ -51,9 +47,9 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
         with:
-          source-directory: './docs/build'
-          destination-github-username: 'apache'
-          destination-repository-name: 'superset-site'
-          target-branch: 'asf-site'
+          source-directory: "./docs/build"
+          destination-github-username: "apache"
+          destination-repository-name: "superset-site"
+          target-branch: "asf-site"
           commit-message: "deploying docs: ${{ github.event.head_commit.message }} (apache/superset@${{ github.sha }})"
           user-email: dev@superset.apache.org

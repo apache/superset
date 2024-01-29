@@ -217,7 +217,6 @@ const Community = () => {
                     </a>
                   }
                   description={<p className="description">{description}</p>}
-                  role="group"
                   aria-label="Community link"
                 />
               </List.Item>
