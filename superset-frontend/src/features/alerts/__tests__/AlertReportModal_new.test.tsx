@@ -27,7 +27,7 @@ const generateMockPayload = (dashboard = true) => {
     active: false,
     context_markdown: 'string',
     creation_method: 'alerts_reports',
-    crontab: '0 * * * *',
+    crontab: '0 0 * * *',
     custom_width: null,
     database: {
       database_name: 'examples',
@@ -108,7 +108,7 @@ const validAlert: AlertObject = {
   changed_on_delta_humanized: 'now',
   created_on: '2023-12-12T22:33:25.927764',
   creation_method: 'alerts_reports',
-  crontab: '0 * * * *',
+  crontab: '0 0 * * *',
   dashboard_id: 0,
   chart_id: 0,
   force_screenshot: false,
@@ -549,12 +549,13 @@ describe('schedule section', () => {
     );
     expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
   });
-  it('defaults to hour when CRON is not selected', async () => {
+  it('defaults to day when CRON is not selected', async () => {
     render(<AlertReportModal {...generateMockedProps(true, false, false)} />, {
       useRedux: true,
     });
     userEvent.click(screen.getByTestId('schedule-panel'));
-    expect(screen.getByTitle(/hour/i)).toBeInTheDocument();
+    const days = screen.getAllByTitle(/day/i, { exact: true });
+    expect(days.length).toBe(2);
   });
 });
 
