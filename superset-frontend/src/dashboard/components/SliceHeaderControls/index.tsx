@@ -260,11 +260,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
-
   const canViewDrill = useSelector((state: RootState) =>
     findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
   );
-
+  const canExploreOrView = props.supersetCanExplore || canViewDrill;
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -433,7 +432,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {(props.supersetCanExplore || canViewDrill) && (
+      {canExploreOrView && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -448,7 +447,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {(props.supersetCanExplore || canViewDrill) && (
+      {canExploreOrView && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
             exploreUrl={props.exploreUrl}
@@ -470,14 +469,14 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        (props.supersetCanExplore || canViewDrill) && (
+        canExploreOrView && (
           <DrillDetailMenuItems
             chartId={slice.slice_id}
             formData={props.formData}
           />
         )}
 
-      {(slice.description || props.supersetCanExplore) && <Menu.Divider />}
+      {(slice.description || canExploreOrView) && <Menu.Divider />}
 
       {supersetCanShare && (
         <Menu.SubMenu title={t('Share')}>
