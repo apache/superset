@@ -1819,7 +1819,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
         database: Optional["Database"] = None,
@@ -1907,6 +1907,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if denied:
                 raise SupersetSecurityException(
                     self.get_table_access_error_object(denied)
+                )
+
+        if self.is_guest_user() and query_context:
+            # Guest users MUST not modify the payload so it's requesting a different
+            # chart or different ad-hoc metrics from what's saved.
+            form_data = query_context.form_data
+            stored_chart = query_context.slice_
+
+            if (
+                form_data is None
+                or stored_chart is None
+                or form_data.get("slice_id") != stored_chart.id
+                or form_data.get("metrics", []) != stored_chart.params_dict["metrics"]
+                or any(
+                    query.metrics != stored_chart.params_dict["metrics"]
+                    for query in query_context.queries
+                )
+            ):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                        message=_("Guest user cannot modify chart payload"),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
 
         if datasource or query_context or viz:
