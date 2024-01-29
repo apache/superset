@@ -61,10 +61,8 @@ tsconfig.tsbuildinfo
 generator-superset/*
 temporary_superset_ui/*
 
-# docs overrides for third party logos
-docs/static/img/databases/apache-pinot.svg
-docs/static/img/databases/csv.svg
-docs/static/img/databases/google-big-query.svg
-docs/static/img/databases/google-sheets.svg
-docs/static/img/databases/postgresql.svg
-docs/static/img/databases/snowflake.svg
+# docs overrides for third party logos we don't have the rights to
+google-big-query.svg
+google-sheets.svg
+postgresql.svg
+snowflake.svg
