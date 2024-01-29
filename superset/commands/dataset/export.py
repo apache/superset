@@ -82,7 +82,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         return file_content
 
     @staticmethod
-    def _export(  # pylint: disable=too-many-locals
+    def _export(
         model: SqlaTable, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportDatasetsCommand._file_name(
