@@ -26,7 +26,7 @@ import TooltipRow from '../../TooltipRow';
 
 function setTooltipContent(o) {
   return (
-    o.object.extraProps && (
+    o.object?.extraProps && (
       <div className="deckgl-tooltip">
         {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow
