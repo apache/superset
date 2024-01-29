@@ -550,6 +550,7 @@ export function getPadding(
   yAxisTitlePosition?: string,
   yAxisTitleMargin?: number,
   xAxisTitleMargin?: number,
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -560,21 +561,28 @@ export function getPadding(
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
   const xAxisOffset = addXAxisTitleOffset ? Number(xAxisTitleMargin) || 0 : 0;
-  return getChartPadding(showLegend, legendOrientation, margin, {
-    top:
-      yAxisTitlePosition && yAxisTitlePosition === 'Top'
-        ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-        : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
-    bottom: zoomable
-      ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
-      : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
-    left:
-      yAxisTitlePosition === 'Left'
-        ? TIMESERIES_CONSTANTS.gridOffsetLeft + (Number(yAxisTitleMargin) || 0)
-        : TIMESERIES_CONSTANTS.gridOffsetLeft,
-    right:
-      showLegend && legendOrientation === LegendOrientation.Right
-        ? 0
-        : TIMESERIES_CONSTANTS.gridOffsetRight,
-  });
+  return getChartPadding(
+    showLegend,
+    legendOrientation,
+    margin,
+    {
+      top:
+        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+          ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+      bottom: zoomable
+        ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
+        : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
+      left:
+        yAxisTitlePosition === 'Left'
+          ? TIMESERIES_CONSTANTS.gridOffsetLeft +
+            (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetLeft,
+      right:
+        showLegend && legendOrientation === LegendOrientation.Right
+          ? 0
+          : TIMESERIES_CONSTANTS.gridOffsetRight,
+    },
+    isHorizontal,
+  );
 }
