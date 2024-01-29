@@ -37,14 +37,6 @@ google-api-core[grpc]==2.11.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.17.3
-    # via
-    #   google-api-core
-    #   google-auth-oauthlib
-    #   google-cloud-core
-    #   pandas-gbq
-    #   pydata-google-auth
-    #   sqlalchemy-bigquery
 google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
@@ -132,8 +124,6 @@ requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
-rsa==4.9
-    # via google-auth
 sqlalchemy-bigquery==1.6.1
     # via apache-superset
 statsd==4.0.1
