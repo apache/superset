@@ -795,10 +795,26 @@ describe('getChartPadding', () => {
       right: 0,
       top: 0,
     });
+    expect(
+      getChartPadding(true, LegendOrientation.Left, 100, undefined, true),
+    ).toEqual({
+      bottom: 100,
+      left: 0,
+      right: 0,
+      top: 0,
+    });
   });
 
   it('should return the correct padding for right orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 50,
+      top: 0,
+    });
+    expect(
+      getChartPadding(true, LegendOrientation.Right, 50, undefined, true),
+    ).toEqual({
       bottom: 0,
       left: 0,
       right: 50,
@@ -813,12 +829,28 @@ describe('getChartPadding', () => {
       right: 0,
       top: 20,
     });
+    expect(
+      getChartPadding(true, LegendOrientation.Top, 20, undefined, true),
+    ).toEqual({
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 20,
+    });
   });
 
   it('should return the correct padding for bottom orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
       bottom: 10,
       left: 0,
+      right: 0,
+      top: 0,
+    });
+    expect(
+      getChartPadding(true, LegendOrientation.Bottom, 10, undefined, true),
+    ).toEqual({
+      bottom: 0,
+      left: 10,
       right: 0,
       top: 0,
     });
