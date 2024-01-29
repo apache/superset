@@ -127,5 +127,4 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["version"] = EXPORT_VERSION
                 payload["database_uuid"] = str(model.uuid)
 
-                file_content = yaml.safe_dump(payload, sort_keys=False)
-                yield file_path, lambda: file_content
+                yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)

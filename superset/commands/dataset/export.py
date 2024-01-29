@@ -22,7 +22,6 @@ from collections.abc import Iterator
 from typing import Callable
 
 import yaml
-from flask_appbuilder import Model
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -83,7 +82,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
         return file_content
 
     @staticmethod
-    def _export(
+    def _export(  # pylint: disable=too-many-locals
         model: SqlaTable, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield ExportDatasetsCommand._file_name(
