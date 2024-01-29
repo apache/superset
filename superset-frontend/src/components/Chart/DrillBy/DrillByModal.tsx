@@ -76,6 +76,7 @@ interface ModalFooterProps {
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
+  const theme = useTheme();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const onEditChartClick = useCallback(() => {
@@ -139,6 +140,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drill-by-modal"
+        css={css`
+          margin-left: ${theme.gridUnit * 2}px;
+        `}
       >
         {t('Close')}
       </Button>

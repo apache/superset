@@ -93,6 +93,9 @@ const ChartContextMenu = (
   const canViewDrill = useSelector((state: RootState) =>
     findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
   );
+  const canDatasourceSamples = useSelector((state: RootState) =>
+    findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -108,15 +111,17 @@ const ChartContextMenu = (
   }>({ clientX: 0, clientY: 0 });
 
   const menuItems = [];
+  const canExploreOrView = canExplore || canViewDrill;
 
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-    (canExplore || canViewDrill) &&
+    canExploreOrView &&
+    canDatasourceSamples &&
     isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DRILL_BY) &&
-    (canExplore || canViewDrill) &&
+    canExploreOrView &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
