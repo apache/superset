@@ -26,7 +26,7 @@ import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
@@ -35,7 +35,6 @@ import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 import SubMenu from 'src/features/home/SubMenu';
-import * as reactRedux from 'react-redux';
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
@@ -48,15 +47,13 @@ const datasetsDuplicateEndpoint = 'glob:*/api/v1/dataset/duplicate*';
 const databaseEndpoint = 'glob:*/api/v1/dataset/related/database*';
 const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-
 const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by_name: 'user',
   kind: i === 0 ? 'virtual' : 'physical', // ensure there is 1 virtual
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `https://www.google.com?${i}`,
+  explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
@@ -261,7 +258,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
+      .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });
@@ -281,45 +278,5 @@ describe('RTL', () => {
     });
 
     expect(importTooltip).toBeInTheDocument();
-  });
-});
-
-describe('Prevent unsafe URLs', () => {
-  const columnCount = 8;
-  const exploreUrlIndex = 1;
-  const getTdIndex = (rowNumber: number): number =>
-    rowNumber * columnCount + exploreUrlIndex;
-
-  const mockedProps = {};
-  let wrapper: any;
-
-  it('Check prevent unsafe is on renders relative links', async () => {
-    useSelectorMock.mockReturnValue(true);
-    wrapper = await mountAndWait(mockedProps);
-    const tdElements = wrapper.find(ListView).find('td');
-    expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
-      '/https://www.google.com?0',
-    );
-    expect(tdElements.at(getTdIndex(1)).find('a').prop('href')).toBe(
-      '/https://www.google.com?1',
-    );
-    expect(tdElements.at(getTdIndex(2)).find('a').prop('href')).toBe(
-      '/https://www.google.com?2',
-    );
-  });
-
-  it('Check prevent unsafe is off renders absolute links', async () => {
-    useSelectorMock.mockReturnValue(false);
-    wrapper = await mountAndWait(mockedProps);
-    const tdElements = wrapper.find(ListView).find('td');
-    expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
-      'https://www.google.com?0',
-    );
-    expect(tdElements.at(getTdIndex(1)).find('a').prop('href')).toBe(
-      'https://www.google.com?1',
-    );
-    expect(tdElements.at(getTdIndex(2)).find('a').prop('href')).toBe(
-      'https://www.google.com?2',
-    );
   });
 });

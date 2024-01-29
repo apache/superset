@@ -41,7 +41,7 @@ from pyparsing import (
     Suppress,
 )
 
-from superset.commands.chart.exceptions import (
+from superset.charts.commands.exceptions import (
     TimeDeltaAmbiguousError,
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,

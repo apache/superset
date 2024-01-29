@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 import inspect
 import time
 import unittest
@@ -48,7 +47,6 @@ from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
 from .base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
@@ -1346,6 +1344,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_menu("Alerts & Report", perm_set)
 
     def assert_can_gamma(self, perm_set):
+        self.assert_can_read("CssTemplate", perm_set)
         self.assert_can_read("Dataset", perm_set)
 
         # make sure that user can create slices and dashboards
@@ -1513,6 +1512,8 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", gamma_perm_set)
         self.assert_can_read("Dataset", gamma_perm_set)
+        self.assert_can_read("Annotation", gamma_perm_set)
+        self.assert_can_read("CssTemplate", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", gamma_perm_set)
@@ -1642,19 +1643,17 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
-    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
     ):
-        query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
+        query_context = Mock(datasource=self.get_datasource_mock())
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(query_context=query_context)
 
-        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
@@ -1675,193 +1674,23 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
 
-    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_viz(
-        self, mock_can_access_schema, mock_can_access, mock_is_owner, mock_g
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
     ):
         test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(viz=test_viz)
 
-        mock_g.user = security_manager.find_user("gamma")
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(viz=test_viz)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @with_feature_flags(DASHBOARD_RBAC=True)
-    @patch("superset.security.manager.g")
-    @patch("superset.security.SupersetSecurityManager.is_owner")
-    @patch("superset.security.SupersetSecurityManager.can_access")
-    @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_rbac(
-        self,
-        mock_can_access_schema,
-        mock_can_access,
-        mock_is_owner,
-        mock_g,
-    ):
-        births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls", db.session, expunge_from_session=False)
-        birth_names = girls.datasource
-
-        world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
-
-        births.json_metadata = json.dumps(
-            {
-                "native_filter_configuration": [
-                    {
-                        "id": "NATIVE_FILTER-ABCDEFGH",
-                        "targets": [{"datasetId": birth_names.id}],
-                    },
-                    {
-                        "id": "NATIVE_FILTER-IJKLMNOP",
-                        "targets": [{"datasetId": treemap.id}],
-                    },
-                ]
-            }
-        )
-
-        mock_g.user = security_manager.find_user("gamma")
-        mock_is_owner.return_value = False
-        mock_can_access.return_value = False
-        mock_can_access_schema.return_value = False
-
-        for kwarg in ["query_context", "viz"]:
-            births.roles = []
-
-            # No dashboard roles.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "slice_id": girls.id,
-                            },
-                        )
-                    }
-                )
-
-            births.roles = [self.get_role("Gamma")]
-
-            # Undefined dashboard.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={},
-                        )
-                    }
-                )
-
-            # Undefined dashboard chart.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={"dashboardId": births.id},
-                        )
-                    }
-                )
-
-            # Ill-defined dashboard chart.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "slice_id": treemap.id,
-                            },
-                        )
-                    }
-                )
-
-            # Dashboard chart not associated with said datasource.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": world_health.id,
-                                "slice_id": treemap.id,
-                            },
-                        )
-                    }
-                )
-
-            # Dashboard chart associated with said datasource.
-            security_manager.raise_for_access(
-                **{
-                    kwarg: Mock(
-                        datasource=birth_names,
-                        form_data={
-                            "dashboardId": births.id,
-                            "slice_id": girls.id,
-                        },
-                    )
-                }
-            )
-
-            # Ill-defined native filter.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "type": "NATIVE_FILTER",
-                            },
-                        )
-                    }
-                )
-
-            # Native filter not associated with said datasource.
-            with self.assertRaises(SupersetSecurityException):
-                security_manager.raise_for_access(
-                    **{
-                        kwarg: Mock(
-                            datasource=birth_names,
-                            form_data={
-                                "dashboardId": births.id,
-                                "native_filter_id": "NATIVE_FILTER-IJKLMNOP",
-                                "type": "NATIVE_FILTER",
-                            },
-                        )
-                    }
-                )
-
-            # Native filter associated with said datasource.
-            security_manager.raise_for_access(
-                **{
-                    kwarg: Mock(
-                        datasource=birth_names,
-                        form_data={
-                            "dashboardId": births.id,
-                            "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
-                            "type": "NATIVE_FILTER",
-                        },
-                    )
-                }
-            )
-
-        db.session.expunge_all()
 
     @patch("superset.security.manager.g")
     def test_get_user_roles(self, mock_g):

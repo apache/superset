@@ -23,15 +23,10 @@ import React, {
   useState,
   MouseEvent,
 } from 'react';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { FeatureFlag, styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,

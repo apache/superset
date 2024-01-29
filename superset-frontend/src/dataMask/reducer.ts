@@ -24,7 +24,6 @@ import {
   DataMask,
   DataMaskStateWithId,
   DataMaskWithId,
-  isFeatureEnabled,
   FeatureFlag,
   Filter,
   FilterConfiguration,
@@ -32,6 +31,7 @@ import {
 } from '@superset-ui/core';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   AnyDataMaskAction,
   CLEAR_DATA_MASK_STATE,

@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -75,7 +75,7 @@ describe('DatasourceEditor', () => {
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
-          'Vehicle+Sales%20%2B',
+          'Vehicle%20Sales%20%2B%27',
         );
         fetchMock.reset();
         done();
@@ -156,7 +156,7 @@ describe('DatasourceEditor', () => {
   describe('enable edit Source tab', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
+        .spyOn(featureFlags, 'isFeatureEnabled')
         .mockImplementation(() => false);
     });
 
@@ -194,7 +194,7 @@ describe('DatasourceEditor', () => {
   describe('render editor with feature flag false', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
+        .spyOn(featureFlags, 'isFeatureEnabled')
         .mockImplementation(() => true);
     });
 

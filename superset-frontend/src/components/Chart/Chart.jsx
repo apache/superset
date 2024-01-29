@@ -21,11 +21,11 @@ import React from 'react';
 import {
   ensureIsArray,
   FeatureFlag,
-  isFeatureEnabled,
   logging,
   styled,
   t,
 } from '@superset-ui/core';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
@@ -173,7 +173,7 @@ class Chart extends React.PureComponent {
       // Create chart with POST request
       this.props.actions.postChartFormData(
         this.props.formData,
-        Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
         this.props.timeout,
         this.props.chartId,
         this.props.dashboardId,

@@ -82,6 +82,8 @@ def _create_energy_table() -> list[Slice]:
         table.metrics.append(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
+    db.session.merge(table)
+    db.session.commit()
     table.fetch_metadata()
 
     slices = []

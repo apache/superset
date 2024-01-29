@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import contextlib
 import logging
 import os
 import sys
@@ -26,9 +25,8 @@ import wtforms_json
 from deprecation import deprecated
 from flask import Flask, redirect
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from flask_compress import Compress
-from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.constants import CHANGE_ME_SECRET_KEY
@@ -36,7 +34,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager_factory,
+    async_query_manager,
     cache_manager,
     celery_app,
     csrf,
@@ -184,7 +182,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
-        from superset.views.profile import ProfileView
         from superset.views.redirects import R
         from superset.views.sql_lab.views import (
             SavedQueryView,
@@ -193,7 +190,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
-        from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
 
@@ -313,12 +309,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(KV)
         appbuilder.add_view_no_menu(R)
-        appbuilder.add_view_no_menu(ProfileView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SavedQueryViewApi)
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
-        appbuilder.add_view_no_menu(SqllabView)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
@@ -350,7 +344,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "SQL Editor",
             label=__("SQL Lab"),
-            href="/sqllab/",
+            href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -367,7 +361,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_link(
             "Query Search",
             label=__("Query History"),
-            href="/sqllab/history/",
+            href="/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -480,10 +474,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
-    def configure_session(self) -> None:
-        if self.config["SESSION_SERVER_SIDE"]:
-            Session(self.superset_app)
-
     def init_app(self) -> None:
         """
         Main entry point which will delegate to other methods in
@@ -491,7 +481,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.pre_init()
         self.check_secret_key()
-        self.configure_session()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
         # Configuration of feature_flags must be done first to allow init features
@@ -605,8 +594,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             self.superset_app.wsgi_app = ChunkedEncodingFix(self.superset_app.wsgi_app)
 
         if self.config["UPLOAD_FOLDER"]:
-            with contextlib.suppress(OSError):
+            try:
                 os.makedirs(self.config["UPLOAD_FOLDER"])
+            except OSError:
+                pass
+
         for middleware in self.config["ADDITIONAL_MIDDLEWARE"]:
             self.superset_app.wsgi_app = middleware(self.superset_app.wsgi_app)
 
@@ -673,7 +665,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            async_query_manager_factory.init_app(self.superset_app)
+            async_query_manager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

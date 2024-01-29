@@ -117,9 +117,4 @@ export const Databases = [
     href: 'https://www.microsoft.com/en-us/sql-server',
     imgName: 'msql.png',
   },
-  {
-    title: 'Apache Doris',
-    href: 'https://doris.apache.org/',
-    imgName: 'doris.png',
-  },
 ];

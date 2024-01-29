@@ -89,7 +89,14 @@ ONE_YEAR = 365 * 24 * 60 * 60  # 1 year in seconds
 logger = logging.getLogger(__name__)
 
 
-def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[..., Any]:
+def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-argument
+    args_hash = hash(frozenset(request.args.items()))
+    return f"view/{request.path}/{args_hash}"
+
+
+def memoized_func(
+    key: str | None = None, cache: Cache = cache_manager.cache
+) -> Callable[..., Any]:
     """
     Decorator with configurable key and cache backend.
 
@@ -122,11 +129,14 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
             if not kwargs.get("cache", True):
                 return f(*args, **kwargs)
 
-            # format the key using args/kwargs passed to the decorated function
-            signature = inspect.signature(f)
-            bound_args = signature.bind(*args, **kwargs)
-            bound_args.apply_defaults()
-            cache_key = key.format(**bound_args.arguments)
+            if key:
+                # format the key using args/kwargs passed to the decorated function
+                signature = inspect.signature(f)
+                bound_args = signature.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                cache_key = key.format(**bound_args.arguments)
+            else:
+                cache_key = view_cache_key(*args, **kwargs)
 
             obj = cache.get(cache_key)
             if not kwargs.get("force") and obj is not None:
@@ -143,7 +153,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
 def etag_cache(
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
-    max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
+    max_age: int | float | None = None,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
 ) -> Callable[..., Any]:
@@ -159,6 +169,8 @@ def etag_cache(
     dataframe cache for requests that produce the same SQL.
 
     """
+    if max_age is None:
+        max_age = app.config["CACHE_DEFAULT_TIMEOUT"]
 
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)

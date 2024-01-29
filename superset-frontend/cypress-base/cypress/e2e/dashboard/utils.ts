@@ -23,6 +23,7 @@ import { ChartSpec, waitForChartLoad } from 'cypress/utils';
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },
+  { name: 'Region Filter', viz: 'filter_box' },
   { name: "World's Population", viz: 'big_number' },
   { name: 'Growth Rate', viz: 'line' },
   { name: 'Rural Breakdown', viz: 'sunburst' },
@@ -321,7 +322,7 @@ export function applyNativeFilterValueWithIndex(index: number, value: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
     .eq(index)
     .should('exist', { timeout: 10000 })
-    .type(`${value}{enter}`, { force: true });
+    .type(`${value}{enter}`);
   // click the title to dismiss shown options
   cy.get(nativeFilters.filterFromDashboardView.filterName)
     .eq(index)

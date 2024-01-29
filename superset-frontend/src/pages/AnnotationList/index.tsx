@@ -154,7 +154,7 @@ function AnnotationList({
     () => [
       {
         accessor: 'short_descr',
-        Header: t('Name'),
+        Header: t('Label'),
       },
       {
         accessor: 'long_descr',
@@ -321,9 +321,6 @@ function AnnotationList({
               disableBulkSelect={toggleBulkSelect}
               emptyState={emptyState}
               fetchData={fetchData}
-              addDangerToast={addDangerToast}
-              addSuccessToast={addSuccessToast}
-              refreshData={refreshData}
               initialSort={initialSort}
               loading={loading}
               pageSize={PAGE_SIZE}

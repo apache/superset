@@ -17,18 +17,17 @@
 """Unit tests for Superset"""
 import json
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 from unittest import mock
 
 import prison
 import pytest
 
 from superset import app, db
-from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
@@ -77,58 +76,6 @@ class TestDatasource(SupersetTestCase):
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
 
-    def test_always_filter_main_dttm(self):
-        self.login(username="admin")
-        session = db.session
-        database = get_example_database()
-
-        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
-        if database.backend == "sqlite":
-            pass
-        elif database.backend in ["postgresql", "mysql"]:
-            sql = sql.replace("DATE()", "NOW()")
-        else:
-            return
-
-        query_obj = {
-            "columns": ["metric"],
-            "filter": [],
-            "from_dttm": datetime.now() - timedelta(days=1),
-            "granularity": "additional_dttm",
-            "orderby": [],
-            "to_dttm": datetime.now() + timedelta(days=1),
-            "series_columns": [],
-            "row_limit": 1000,
-            "row_offset": 0,
-        }
-        table = SqlaTable(
-            table_name="dummy_sql_table",
-            database=database,
-            schema=get_example_default_schema(),
-            main_dttm_col="default_dttm",
-            columns=[
-                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
-                TableColumn(
-                    column_name="additional_dttm", type="DATETIME", is_dttm=True
-                ),
-            ],
-            sql=sql,
-        )
-
-        session.add(table)
-        session.commit()
-
-        table.always_filter_main_dttm = False
-        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-        assert "default_dttm" not in result and "additional_dttm" in result
-
-        table.always_filter_main_dttm = True
-        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-        assert "default_dttm" in result and "additional_dttm" in result
-
-        session.delete(table)
-        session.commit()
-
     def test_external_metadata_for_virtual_table(self):
         self.login(username="admin")
         session = db.session
@@ -158,8 +105,6 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
-                "normalize_columns": tbl.normalize_columns,
-                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -188,8 +133,6 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
-                "normalize_columns": tbl.normalize_columns,
-                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -208,8 +151,6 @@ class TestDatasource(SupersetTestCase):
                     "database_name": example_database.database_name,
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
-                    "normalize_columns": False,
-                    "always_filter_main_dttm": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -223,8 +164,6 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": "foo",
                 "table_name": "bar",
-                "normalize_columns": False,
-                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -241,8 +180,6 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
-                "normalize_columns": False,
-                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -359,6 +296,32 @@ class TestDatasource(SupersetTestCase):
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_default_endpoint_validation_fail(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 400
+
+    def test_save_default_endpoint_validation_unsafe(self):
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = True
 
     def test_save_default_endpoint_validation_success(self):
         self.login(username="admin")
@@ -550,6 +513,7 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.merge(virtual_dataset)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"

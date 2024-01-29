@@ -42,7 +42,7 @@ def dummy_schema() -> "DatabaseParametersSchemaMixin":
     """
     from superset.databases.schemas import DatabaseParametersSchemaMixin
 
-    class DummySchema(DatabaseParametersSchemaMixin, Schema):
+    class DummySchema(Schema, DatabaseParametersSchemaMixin):
         sqlalchemy_uri = fields.String()
 
     return DummySchema()

@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@with_appcontext
 @click.argument("directory")
 @click.option(
     "--overwrite",
@@ -72,7 +71,7 @@ if feature_flags.get("VERSIONED_EXPORT"):
     def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         """Export dashboards to ZIP file"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.export import ExportDashboardsCommand
+        from superset.dashboards.commands.export import ExportDashboardsCommand
         from superset.models.dashboard import Dashboard
 
         g.user = security_manager.find_user(username="admin")
@@ -106,8 +105,8 @@ if feature_flags.get("VERSIONED_EXPORT"):
     def export_datasources(datasource_file: Optional[str] = None) -> None:
         """Export datasources to ZIP file"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dataset.export import ExportDatasetsCommand
         from superset.connectors.sqla.models import SqlaTable
+        from superset.datasets.commands.export import ExportDatasetsCommand
 
         g.user = security_manager.find_user(username="admin")
 
@@ -144,10 +143,10 @@ if feature_flags.get("VERSIONED_EXPORT"):
     def import_dashboards(path: str, username: Optional[str]) -> None:
         """Import dashboards from ZIP file"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.importers.dispatcher import (
+        from superset.commands.importers.v1.utils import get_contents_from_bundle
+        from superset.dashboards.commands.importers.dispatcher import (
             ImportDashboardsCommand,
         )
-        from superset.commands.importers.v1.utils import get_contents_from_bundle
 
         if username is not None:
             g.user = security_manager.find_user(username=username)
@@ -176,8 +175,10 @@ if feature_flags.get("VERSIONED_EXPORT"):
     def import_datasources(path: str) -> None:
         """Import datasources from ZIP file"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
         from superset.commands.importers.v1.utils import get_contents_from_bundle
+        from superset.datasets.commands.importers.dispatcher import (
+            ImportDatasetsCommand,
+        )
 
         if is_zipfile(path):
             with ZipFile(path) as bundle:
@@ -302,7 +303,7 @@ else:
     def import_dashboards(path: str, recursive: bool, username: str) -> None:
         """Import dashboards from JSON file"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
+        from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 
         path_object = Path(path)
         files: list[Path] = []
@@ -351,7 +352,7 @@ else:
     def import_datasources(path: str, sync: str, recursive: bool) -> None:
         """Import datasources from YAML"""
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dataset.importers.v0 import ImportDatasetsCommand
+        from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
 
         sync_array = sync.split(",")
         sync_columns = "columns" in sync_array

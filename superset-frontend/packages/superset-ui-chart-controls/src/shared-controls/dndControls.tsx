@@ -71,9 +71,8 @@ export const dndGroupByControl: SharedControlConfig<
   default: [],
   includeTime: false,
   description: t(
-    'Dimensions contain qualitative values such as names, dates, or geographical data. ' +
-      'Use dimensions to categorize, segment, and reveal the details in your data. ' +
-      'Dimensions affect the level of detail in the view.',
+    'One or many columns to group by. High cardinality groupings should include a sort by metric ' +
+      'and series limit to limit the number of fetched and rendered series.',
   ),
   optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
   valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
@@ -109,7 +108,7 @@ export const dndGroupByControl: SharedControlConfig<
 export const dndColumnsControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
   label: t('Columns'),
-  description: t('Add dataset columns here to group the pivot table columns.'),
+  description: t('One or many columns to pivot as columns'),
 };
 
 export const dndSeriesControl: typeof dndGroupByControl = {
@@ -119,7 +118,8 @@ export const dndSeriesControl: typeof dndGroupByControl = {
   default: null,
   description: t(
     'Defines the grouping of entities. ' +
-      'Each series is represented by a specific color in the chart.',
+      'Each series is shown as a specific color on the chart and ' +
+      'has a legend toggle',
   ),
 };
 
@@ -166,29 +166,21 @@ export const dndAdhocMetricsControl: SharedControlConfig<
     datasource,
     datasourceType: datasource?.type,
   }),
-  description: t(
-    'Select one or many metrics to display. ' +
-      'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.',
-  ),
+  description: t('One or many metrics to display'),
 };
 
 export const dndAdhocMetricControl: typeof dndAdhocMetricsControl = {
   ...dndAdhocMetricsControl,
   multi: false,
   label: t('Metric'),
-  description: t(
-    'Select a metric to display. ' +
-      'You can use an aggregation function on a column ' +
-      'or write custom SQL to create a metric.',
-  ),
+  description: t('Metric'),
 };
 
 export const dndAdhocMetricControl2: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('Right Axis Metric'),
   clearable: true,
-  description: t('Select a metric to display on the right axis'),
+  description: t('Choose a metric for right axis'),
 };
 
 export const dndSortByControl: SharedControlConfig<
@@ -198,8 +190,8 @@ export const dndSortByControl: SharedControlConfig<
   label: t('Sort by'),
   default: null,
   description: t(
-    'This metric is used to define row selection criteria (how the rows are sorted) if a series or row limit is present. ' +
-      'If not defined, it reverts to the first metric (where appropriate).',
+    'Metric used to define how the top series are sorted if a series or row limit is present. ' +
+      'If undefined reverts to the first metric (where appropriate).',
   ),
   mapStateToProps: ({ datasource }) => ({
     columns: datasource?.columns || [],
@@ -219,18 +211,14 @@ export const dndSizeControl: typeof dndAdhocMetricControl = {
 export const dndXControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('X Axis'),
-  description: t(
-    "The dataset column/metric that returns the values on your chart's x-axis.",
-  ),
+  description: t('Metric assigned to the [X] axis'),
   default: null,
 };
 
 export const dndYControl: typeof dndAdhocMetricControl = {
   ...dndAdhocMetricControl,
   label: t('Y Axis'),
-  description: t(
-    "The dataset column/metric that returns the values on your chart's y-axis.",
-  ),
+  description: t('Metric assigned to the [Y] axis'),
   default: null,
 };
 

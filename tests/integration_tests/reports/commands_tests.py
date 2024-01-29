@@ -39,7 +39,11 @@ from slack_sdk.errors import (
 from sqlalchemy.sql import func
 
 from superset import db
-from superset.commands.report.exceptions import (
+from superset.exceptions import SupersetException
+from superset.models.core import Database
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.reports.commands.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
@@ -54,15 +58,11 @@ from superset.commands.report.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleWorkingTimeoutError,
 )
-from superset.commands.report.execute import (
+from superset.reports.commands.execute import (
     AsyncExecuteReportScheduleCommand,
     BaseReportState,
 )
-from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
-from superset.exceptions import SupersetException
-from superset.models.core import Database
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
+from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,
@@ -1607,7 +1607,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
     """
     from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.commands.report.exceptions import AlertQueryTimeout
+    from superset.reports.commands.exceptions import AlertQueryTimeout
 
     with patch.object(
         create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
@@ -1748,7 +1748,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     """
     from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.commands.report.exceptions import AlertQueryTimeout
+    from superset.reports.commands.exceptions import AlertQueryTimeout
 
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
@@ -1919,6 +1919,7 @@ def test_grace_period_error_flap(
     # Change report_schedule to valid
     create_invalid_sql_alert_email_chart.sql = "SELECT 1 AS metric"
     create_invalid_sql_alert_email_chart.grace_period = 0
+    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     with freeze_time("2020-01-01T00:31:00Z"):
@@ -1935,6 +1936,7 @@ def test_grace_period_error_flap(
 
     create_invalid_sql_alert_email_chart.sql = "SELECT 'first'"
     create_invalid_sql_alert_email_chart.grace_period = 10
+    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     # assert that after a success, when back to error we send the error notification
@@ -1963,8 +1965,8 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
 
 
-@patch("superset.commands.report.execute.logger")
-@patch("superset.commands.report.execute.create_notification")
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
 def test__send_with_client_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
@@ -1978,8 +1980,8 @@ def test__send_with_client_errors(notification_mock, logger_mock):
     )
 
 
-@patch("superset.commands.report.execute.logger")
-@patch("superset.commands.report.execute.create_notification")
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
 def test__send_with_multiple_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com", "test2@bar.com"]
@@ -2005,8 +2007,8 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
     )
 
 
-@patch("superset.commands.report.execute.logger")
-@patch("superset.commands.report.execute.create_notification")
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
 def test__send_with_server_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]

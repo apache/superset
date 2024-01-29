@@ -215,7 +215,7 @@ const config = {
               },
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/apache-superset',
+                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
               },
             ],
           },
@@ -246,16 +246,13 @@ const config = {
           <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
           <p>
             <small>
-              <a href="https://superset.apache.org/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
               <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
             </small>
-          </p>
-          <!-- telemetry/analytics pixel: -->
-          <img referrerPolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=39ae6855-95fc-4566-86e5-360d542b0a68" />
-          `,
+          </p>`,
       },
       prism: {
         theme: lightCodeTheme,

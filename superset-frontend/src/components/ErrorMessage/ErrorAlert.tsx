@@ -21,7 +21,6 @@ import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import { isCurrentUserBot } from 'src/utils/isBot';
 
 import Icons from 'src/components/Icons';
 import { ErrorLevel, ErrorSource } from './types';
@@ -103,10 +102,9 @@ export default function ErrorAlert({
   const theme = useTheme();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isBodyExpanded, setIsBodyExpanded] = useState(isCurrentUserBot());
+  const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
-  const isExpandable =
-    isCurrentUserBot() || ['explore', 'sqllab'].includes(source);
+  const isExpandable = ['explore', 'sqllab'].includes(source);
   const iconColor = theme.colors[level].base;
 
   return (
@@ -183,7 +181,6 @@ export default function ErrorAlert({
           level={level}
           show={isModalOpen}
           onHide={() => setIsModalOpen(false)}
-          destroyOnClose
           title={
             <div className="header">
               {level === 'error' ? (

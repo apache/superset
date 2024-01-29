@@ -97,8 +97,6 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
-RATELIMIT_ENABLED = False
-
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
@@ -133,10 +131,11 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 
 class CeleryConfig:
-    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab",)
-    result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
-    concurrency = 1
+    BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
+    CELERY_IMPORTS = ("superset.sql_lab",)
+    CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
+    CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
+    CONCURRENCY = 1
 
 
 CELERY_CONFIG = CeleryConfig

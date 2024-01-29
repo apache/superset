@@ -21,6 +21,7 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
+import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
@@ -62,14 +63,8 @@ describe('Dashboard', () => {
     loadStats: {},
   };
 
-  const ChildrenComponent = () => <div>Test</div>;
-
   function setup(overrideProps) {
-    const wrapper = shallow(
-      <Dashboard {...props} {...overrideProps}>
-        <ChildrenComponent />
-      </Dashboard>,
-    );
+    const wrapper = shallow(<Dashboard {...props} {...overrideProps} />);
     return wrapper;
   }
 
@@ -81,9 +76,9 @@ describe('Dashboard', () => {
     '3_country_name': { values: ['USA'], scope: [] },
   };
 
-  it('should render the children component', () => {
+  it('should render a DashboardBuilder', () => {
     const wrapper = setup();
-    expect(wrapper.find(ChildrenComponent)).toExist();
+    expect(wrapper.find(DashboardBuilder)).toExist();
   });
 
   describe('UNSAFE_componentWillReceiveProps', () => {

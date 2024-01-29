@@ -106,7 +106,7 @@ report_schedule_user = Table(
 )
 
 
-class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
+class ReportSchedule(Model, AuditMixinNullable, ExtraJSONMixin):
 
     """
     Report Schedules, supports alerts and reports

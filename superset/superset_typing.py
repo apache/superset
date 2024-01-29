@@ -16,9 +16,9 @@
 # under the License.
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, Optional, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING, Union
 
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
@@ -83,8 +83,6 @@ class ResultSetColumnType(TypedDict):
     precision: NotRequired[Any]
     scale: NotRequired[Any]
     max_length: NotRequired[Any]
-
-    query_as: NotRequired[Any]
 
 
 CacheConfig = dict[str, Any]

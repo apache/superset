@@ -17,6 +17,7 @@
 
 import logging
 import time
+from contextlib import closing
 from typing import Any, Optional
 
 from superset import app, security_manager
@@ -157,14 +158,20 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         statements = parsed_query.get_statements()
 
         logger.info("Validating %i statement(s)", len(statements))
-        with database.get_cursor(schema, source=QuerySource.SQL_LAB) as cursor:
+        # todo(hughhh): update this to use new database.get_raw_connection()
+        # this function keeps stalling CI
+        with database.get_sqla_engine_with_context(
+            schema, source=QuerySource.SQL_LAB
+        ) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
             annotations: list[SQLValidationAnnotation] = []
-            for statement in parsed_query.get_statements():
-                annotation = cls.validate_statement(statement, database, cursor)
-                if annotation:
-                    annotations.append(annotation)
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                for statement in parsed_query.get_statements():
+                    annotation = cls.validate_statement(statement, database, cursor)
+                    if annotation:
+                        annotations.append(annotation)
             logger.debug("Validation found %i error(s)", len(annotations))
 
         return annotations

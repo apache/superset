@@ -17,32 +17,25 @@
  * under the License.
  */
 
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
-import React, { useCallback, useMemo, useState } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
+import moment from 'moment';
 import {
-  createErrorHandler,
-  createFetchDistinct,
   createFetchRelated,
+  createFetchDistinct,
+  createErrorHandler,
 } from 'src/views/CRUD/utils';
-import { useSelector } from 'react-redux';
 import Popover from 'src/components/Popover';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import handleResourceExport from 'src/utils/export';
-import SubMenu, { ButtonProps, SubMenuProps } from 'src/features/home/SubMenu';
+import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import ListView, {
-  FilterOperator,
-  Filters,
   ListViewProps,
+  Filters,
+  FilterOperator,
 } from 'src/components/ListView';
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
@@ -50,16 +43,14 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
-import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
+import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
+import { isFeatureEnabled } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
-import { ModifiedInfo } from 'src/components/AuditInfo';
-import { loadTags } from 'src/components/Tags/utils';
 import Icons from 'src/components/Icons';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
-import { findPermission } from 'src/utils/findPermission';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -78,11 +69,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
+  user: BootstrapUser;
 }
 
 const StyledTableLabel = styled.div`
@@ -101,7 +88,6 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
-  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -119,10 +105,6 @@ function SavedQueryList({
     t('Saved queries'),
     addDangerToast,
   );
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
-  );
-  const canReadTag = findPermission('can_read', 'Tag', roles);
   const [queryCurrentlyDeleting, setQueryCurrentlyDeleting] =
     useState<SavedQueryObject | null>(null);
   const [savedQueryCurrentlyPreviewing, setSavedQueryCurrentlyPreviewing] =
@@ -140,7 +122,6 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
-  const history = useHistory();
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -161,6 +142,10 @@ function SavedQueryList({
   const canDelete = hasPerm('can_write');
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+
+  const openNewQuery = () => {
+    window.open(`${window.location.origin}/superset/sqllab?new=true`);
+  };
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
@@ -197,10 +182,11 @@ function SavedQueryList({
 
   subMenuButtons.push({
     name: (
-      <Link to="/sqllab?new=true">
+      <>
         <i className="fa fa-plus" /> {t('Query')}
-      </Link>
+      </>
     ),
+    onClick: openNewQuery,
     buttonStyle: 'primary',
   });
 
@@ -225,18 +211,16 @@ function SavedQueryList({
   menuData.buttons = subMenuButtons;
 
   // Action methods
-  const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    if (openInNewWindow) {
-      window.open(`/sqllab?savedQueryId=${id}`);
-    } else {
-      history.push(`/sqllab?savedQueryId=${id}`);
-    }
+  const openInSqlLab = (id: number) => {
+    window.open(`${window.location.origin}/superset/sqllab?savedQueryId=${id}`);
   };
 
   const copyQueryLink = useCallback(
     (id: number) => {
       copyTextToClipboard(() =>
-        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
+        Promise.resolve(
+          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+        ),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -354,6 +338,41 @@ function SavedQueryList({
       {
         Cell: ({
           row: {
+            original: { created_on: createdOn },
+          },
+        }: any) => {
+          const date = new Date(createdOn);
+          const utc = new Date(
+            Date.UTC(
+              date.getFullYear(),
+              date.getMonth(),
+              date.getDate(),
+              date.getHours(),
+              date.getMinutes(),
+              date.getSeconds(),
+              date.getMilliseconds(),
+            ),
+          );
+
+          return moment(utc).fromNow();
+        },
+        Header: t('Created on'),
+        accessor: 'created_on',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => changedOn,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
             original: { tags = [] },
           },
         }: any) => (
@@ -366,25 +385,11 @@ function SavedQueryList({
         hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
       },
       {
-        Cell: ({
-          row: {
-            original: {
-              changed_by: changedBy,
-              changed_on_delta_humanized: changedOn,
-            },
-          },
-        }: any) => <ModifiedInfo user={changedBy} date={changedOn} />,
-        Header: t('Last modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
-      },
-      {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = ({ metaKey }: React.MouseEvent) =>
-            openInSqlLab(original.id, Boolean(metaKey));
+          const handleEdit = () => openInSqlLab(original.id);
           const handleCopy = () => copyQueryLink(original.id);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
@@ -433,23 +438,12 @@ function SavedQueryList({
         id: 'actions',
         disableSortBy: true,
       },
-      {
-        accessor: QueryObjectColumns.changed_by,
-        hidden: true,
-      },
     ],
     [canDelete, canEdit, canExport, copyQueryLink, handleSavedQueryPreview],
   );
 
   const filters: Filters = useMemo(
     () => [
-      {
-        Header: t('Name'),
-        id: 'label',
-        key: 'search',
-        input: 'search',
-        operator: FilterOperator.allText,
-      },
       {
         Header: t('Database'),
         key: 'database',
@@ -489,37 +483,19 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-      ...((isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
-        ? [
-            {
-              Header: t('Tag'),
-              id: 'tags',
-              key: 'tags',
-              input: 'select',
-              operator: FilterOperator.savedQueryTags,
-              fetchSelects: loadTags,
-            },
-          ]
-        : []) as Filters),
       {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'saved_query',
-          'changed_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
+        Header: t('Tags'),
+        id: 'tags',
+        key: 'tags',
+        input: 'search',
+        operator: FilterOperator.savedQueryTags,
+      },
+      {
+        Header: t('Search'),
+        id: 'label',
+        key: 'search',
+        input: 'search',
+        operator: FilterOperator.allText,
       },
     ],
     [addDangerToast],
@@ -588,14 +564,9 @@ function SavedQueryList({
               loading={loading}
               pageSize={PAGE_SIZE}
               bulkActions={bulkActions}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
-              enableBulkTag
-              bulkTagResourceName="query"
-              refreshData={refreshData}
             />
           );
         }}

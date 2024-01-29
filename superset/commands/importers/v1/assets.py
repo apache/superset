@@ -22,27 +22,29 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import delete, insert
 
 from superset import db
+from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.base import BaseCommand
-from superset.commands.chart.importers.v1.utils import import_chart
-from superset.commands.dashboard.importers.v1.utils import (
-    find_chart_uuids,
-    import_dashboard,
-    update_id_refs,
-)
-from superset.commands.database.importers.v1.utils import import_database
-from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.v1.utils import (
     load_configs,
     load_metadata,
     validate_metadata_type,
 )
-from superset.commands.query.importers.v1.utils import import_saved_query
+from superset.dashboards.commands.importers.v1.utils import (
+    find_chart_uuids,
+    import_dashboard,
+    update_id_refs,
+)
 from superset.dashboards.schemas import ImportV1DashboardSchema
+from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
+from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
+from superset.queries.saved_queries.commands.importers.v1.utils import (
+    import_saved_query,
+)
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 
 
@@ -77,7 +79,6 @@ class ImportAssetsCommand(BaseCommand):
         )
         self._configs: dict[str, Any] = {}
 
-    # pylint: disable=too-many-locals
     @staticmethod
     def _import(session: Session, configs: dict[str, Any]) -> None:
         # import databases first
@@ -109,13 +110,7 @@ class ImportAssetsCommand(BaseCommand):
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
-                dataset_dict = dataset_info[config["dataset_uuid"]]
-                config.update(dataset_dict)
-                # pylint: disable=line-too-long
-                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
-                config["params"].update({"datasource": dataset_uid})
-                if "query_context" in config:
-                    config["query_context"] = None
+                config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(session, config, overwrite=True)
                 chart_ids[str(chart.uuid)] = chart.id
 

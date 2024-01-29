@@ -19,18 +19,17 @@ import os
 from typing import Any, Callable, Optional
 
 import celery
+from cachelib.base import BaseCache
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
-from flask_caching.backends.base import BaseCache
 from flask_migrate import Migrate
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-from superset.async_events.async_query_manager import AsyncQueryManager
-from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
+from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
@@ -115,10 +114,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
-async_query_manager_factory = AsyncQueryManagerFactory()
-async_query_manager: AsyncQueryManager = LocalProxy(
-    async_query_manager_factory.instance
-)
+async_query_manager = AsyncQueryManager()
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()

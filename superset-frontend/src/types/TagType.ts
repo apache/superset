@@ -27,7 +27,6 @@ export interface TagType {
   onClick?: MouseEventHandler<HTMLSpanElement>;
   name: string;
   index?: number | undefined;
-  toolTipTitle?: string;
 }
 
 export default TagType;

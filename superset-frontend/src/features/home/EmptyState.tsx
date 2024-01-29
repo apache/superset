@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
@@ -82,7 +81,7 @@ export default function EmptyState({
   const mineRedirects: Redirects = {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
+    [WelcomeTable.SavedQueries]: '/superset/sqllab?new=true',
   };
   const favRedirects: Redirects = {
     [WelcomeTable.Charts]: '/chart/list',
@@ -141,17 +140,20 @@ export default function EmptyState({
         >
           {tableName !== WelcomeTable.Recents && (
             <ButtonContainer>
-              <Link to={mineRedirects[tableName]}>
-                <Button buttonStyle="primary">
-                  <i className="fa fa-plus" />
-                  {tableName === WelcomeTable.SavedQueries
-                    ? t('SQL query')
-                    : tableName
-                        .split('')
-                        .slice(0, tableName.length - 1)
-                        .join('')}
-                </Button>
-              </Link>
+              <Button
+                buttonStyle="primary"
+                onClick={() => {
+                  window.location.href = mineRedirects[tableName];
+                }}
+              >
+                <i className="fa fa-plus" />
+                {tableName === WelcomeTable.SavedQueries
+                  ? t('SQL query')
+                  : tableName
+                      .split('')
+                      .slice(0, tableName.length - 1)
+                      .join('')}
+              </Button>
             </ButtonContainer>
           )}
         </Empty>

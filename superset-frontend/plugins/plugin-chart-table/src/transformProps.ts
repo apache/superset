@@ -118,10 +118,9 @@ const processColumns = memoizeOne(function processColumns(
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
-      const label =
-        isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
-          ? `%${verboseMap[key.replace('%', '')]}`
-          : verboseMap?.[key] || key;
+      const label = isPercentMetric
+        ? `%${verboseMap?.[key.replace('%', '')] || key}`
+        : verboseMap?.[key] || key;
       const isTime = dataType === GenericDataType.TEMPORAL;
       const isNumber = dataType === GenericDataType.NUMERIC;
       const savedFormat = columnFormats?.[key];
@@ -160,7 +159,7 @@ const processColumns = memoizeOne(function processColumns(
       } else if (isPercentMetric) {
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
-      } else if (isMetric || (isNumber && (numberFormat || currency))) {
+      } else if (isMetric || (isNumber && numberFormat)) {
         formatter = currency
           ? new CurrencyFormatter({
               d3Format: numberFormat,

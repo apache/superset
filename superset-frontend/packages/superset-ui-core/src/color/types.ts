@@ -24,10 +24,3 @@ export interface ColorsInitLookup {
 export interface ColorsLookup {
   [key: string]: string;
 }
-
-export interface RgbaColor {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}

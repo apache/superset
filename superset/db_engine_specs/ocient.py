@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import contextlib
 import re
 import threading
 from re import Pattern
@@ -25,7 +24,8 @@ from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import Session
 
-with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be installed
+# Need to try-catch here because pyocient may not be installed
+try:
     # Ensure pyocient inherits Superset's logging level
     import geojson
     import pyocient
@@ -35,6 +35,8 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
 
     superset_log_level = app.config["LOG_LEVEL"]
     pyocient.logger.setLevel(superset_log_level)
+except (ImportError, RuntimeError):
+    pass
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec

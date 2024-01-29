@@ -254,7 +254,7 @@ msgstr "%s Erreur"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1355
 #, fuzzy, python-format
 msgid "%s PASSWORD"
-msgstr "%s Mot de passe"
+msgstr "Mot de passe"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:318
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1373
@@ -457,7 +457,7 @@ msgstr "jour"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:112
 msgid "1 day ago"
-msgstr "Il y a 1 jour"
+msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/src/explore/controls.jsx:260
@@ -500,7 +500,7 @@ msgstr "semaine"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:113
 msgid "1 week ago"
-msgstr "Il y a 1 semaine"
+msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:62
 #, fuzzy
@@ -522,7 +522,7 @@ msgstr "année"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:117
 msgid "1 year ago"
-msgstr "Il y a 1 an"
+msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:243
@@ -613,7 +613,7 @@ msgstr "année"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:119
 msgid "2 years ago"
-msgstr "Il y a 2 ans"
+msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:97
 msgid "2/98 percentiles"
@@ -657,7 +657,7 @@ msgstr "année"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:121
 msgid "3 years ago"
-msgstr "Il y a 3 ans"
+msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:309
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:191
@@ -1204,6 +1204,7 @@ msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
 msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:197
+#, fuzzy
 msgid "Add cross-filter"
 msgstr "Ajouter un filtre"
 
@@ -1836,7 +1837,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/hooks.ts:308
 #, fuzzy, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr "Une erreur s'est produite durant la récupération des jeux de données %ss: %s"
+msgstr "Une erreur s'est produite durant la récupération des jeux de données : %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1530
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1552
@@ -1868,7 +1869,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/hooks.ts:106
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr "Une erreur s'est produite durant la récupération des tableaux de bord %s : %s"
+msgstr "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:174
 #: superset-frontend/src/views/CRUD/hooks.ts:265
@@ -2399,14 +2400,14 @@ msgid "Applied cross-filters (%d)"
 msgstr "Filtres croisés appliqués (%d)"
 
 #: superset-frontend/src/dashboard/components/FiltersBadge/DetailsPanel/index.tsx:149
-#, python-format
+#, fuzzy, python-format
 msgid "Applied filters (%d)"
 msgstr "Filtres appliqués (%d)"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:260
-#, python-format
+#, fuzzy, python-format
 msgid "Applied filters: %s"
-msgstr "Filtres appliqué: %s"
+msgstr "Filtres appliqués (%d)"
 
 #: superset/viz.py:250
 msgid ""
@@ -2796,6 +2797,7 @@ msgstr "Faites attention."
 
 #: superset-frontend/src/components/AlteredSliceTag/index.jsx:178
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:75
+#, fuzzy
 msgid "Before"
 msgstr "Avant"
 
@@ -4919,7 +4921,7 @@ msgstr "Action"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:152
 msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr "Le filtre va être appliqué à tous les graphiques qui utilise cet ensemble de données"
+msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:164
 #, fuzzy
@@ -4954,6 +4956,7 @@ msgid "Currently rendered: %s"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
+#, fuzzy
 msgid "Custom"
 msgstr "Personnalisée"
 
@@ -5595,7 +5598,7 @@ msgid "Day (freq=D)"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
-#, python-format
+#, fuzzy, python-format
 msgid "Days %s"
 msgstr "Jours %s"
 
@@ -6255,8 +6258,9 @@ msgstr "Édité"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:482
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:292
+#, fuzzy
 msgid "Download"
-msgstr "Télécharger"
+msgstr "télécharger en CSV"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:317
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:512
@@ -6331,7 +6335,7 @@ msgid "Drill by is not yet supported for this chart type"
 msgstr ""
 
 #: superset-frontend/src/components/Chart/DrillBy/DrillByModal.tsx:420
-#, python-format
+#, fuzzy, python-format
 msgid "Drill by: %s"
 msgstr "Trier par %s"
 
@@ -7308,21 +7312,24 @@ msgstr "Exporter la requête"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:487
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:316
+#, fuzzy
 msgid "Export to .CSV"
-msgstr "Exporter au format CSV"
+msgstr "Exporter en YAML"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:323
+#, fuzzy
 msgid "Export to .JSON"
-msgstr "Exporter au format JSON"
+msgstr "Exporter en YAML"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:506
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:335
+#, fuzzy
 msgid "Export to Excel"
-msgstr "Exporter vers Excel"
+msgstr "Exporter en YAML"
 
 #: superset/views/base.py:607
 msgid "Export to YAML"
-msgstr "Exporter au format YAML"
+msgstr "Exporter en YAML"
 
 #: superset/views/base.py:607
 msgid "Export to YAML?"
@@ -8244,7 +8251,7 @@ msgid "Hour"
 msgstr "Heure"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:64
-#, python-format
+#, fuzzy, python-format
 msgid "Hours %s"
 msgstr "Heures %s"
 
@@ -9031,8 +9038,9 @@ msgstr "Partage de requête"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:190
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:31
+#, fuzzy
 msgid "Last"
-msgstr "Dernier"
+msgstr "à"
 
 #: superset/connectors/sqla/views.py:388 superset/views/database/mixins.py:190
 msgid "Last Changed"
@@ -9048,7 +9056,7 @@ msgid "Last Updated %s"
 msgstr "Dernière mise à jour %s"
 
 #: superset-frontend/src/dashboard/components/OverwriteConfirm/OverwriteConfirmModal.tsx:182
-#, python-format
+#, fuzzy, python-format
 msgid "Last Updated %s by %s"
 msgstr "Dernière mise à jour %s"
 
@@ -9566,6 +9574,10 @@ msgstr "Donner un nom à la base de données"
 msgid "Mandatory"
 msgstr "Obligatoire"
 
+#: superset/views/database/forms.py:360
+msgid "Mangle Duplicate Columns"
+msgstr "Supprimer les colonnes en double"
+
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:297
 msgid "Manually set min/max values for the y-axis."
 msgstr ""
@@ -10028,7 +10040,7 @@ msgid "Minute"
 msgstr "Minute"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:63
-#, python-format
+#, fuzzy, python-format
 msgid "Minutes %s"
 msgstr "Minutes %s"
 
@@ -10094,7 +10106,7 @@ msgid "Month"
 msgstr "Mois"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:67
-#, python-format
+#, fuzzy, python-format
 msgid "Months %s"
 msgstr "Mois %s"
 
@@ -10559,6 +10571,7 @@ msgid "No global filters are currently added"
 msgstr "Aucun filtre ajouté"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:204
+#, fuzzy
 msgid "No matching records found"
 msgstr "Aucun enregistrement trouvé"
 
@@ -10779,6 +10792,7 @@ msgid "November"
 msgstr "Novembre"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:89
+#, fuzzy
 msgid "Now"
 msgstr "Maintenant"
 
@@ -12194,7 +12208,7 @@ msgid "Quarter"
 msgstr "Trimestre"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:68
-#, python-format
+#, fuzzy, python-format
 msgid "Quarters %s"
 msgstr "Trimestres %s"
 
@@ -12572,8 +12586,9 @@ msgid "Refresh the default values"
 msgstr "Rafraichir les valeurs par défaut"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:163
+#, fuzzy
 msgid "Refreshing charts"
-msgstr "Rafraîchissement en cours"
+msgstr "Une erreur s'est produite durant la récupération des tableaux de bord : %s"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:175
 #, fuzzy
@@ -12621,6 +12636,7 @@ msgid "Relationships between community channels"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:88
+#, fuzzy
 msgid "Relative Date/Time"
 msgstr "Date/Heure Relative"
 
@@ -12915,7 +12931,7 @@ msgstr "Résultats"
 #: superset-frontend/src/components/Chart/DrillBy/useResultsTableView.tsx:58
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:212
 #: superset-frontend/src/explore/components/DataTablesPane/components/ResultsPaneOnDashboard.tsx:84
-#, python-format
+#, fuzzy, python-format
 msgid "Results %s"
 msgstr "Résultats"
 
@@ -13786,9 +13802,9 @@ msgid "Secondary y-axis title"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:62
-#, python-format
+#, fuzzy, python-format
 msgid "Seconds %s"
-msgstr "Secondes %s"
+msgstr "%s secondes"
 
 #: superset/views/database/mixins.py:194
 msgid "Secure Extra"
@@ -13853,7 +13869,7 @@ msgstr "Choisir la méthode de livraison"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:94
 msgid "Select Viz Type"
-msgstr "Sélectionner un type de visualisation"
+msgstr "Selectionner un type de visualisation"
 
 #: superset/views/database/forms.py:425
 msgid "Select a Columnar file to be uploaded to a database."
@@ -13914,7 +13930,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:130
 msgid "Select a visualization type"
-msgstr "Sélectionner un type de visualisation"
+msgstr "Selectionner un type de visualisation"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:331
 msgid "Select aggregate options"
@@ -13995,7 +14011,7 @@ msgstr "Selectionner un filtre"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:318
 #: superset-frontend/src/filters/components/Select/index.ts:28
 msgid "Select filter"
-msgstr "Sélectionner un filtre"
+msgstr "Selectionner un filtre"
 
 #: superset-frontend/src/filters/components/Select/index.ts:29
 msgid "Select filter plugin using AntD"
@@ -14003,7 +14019,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:104
 msgid "Select first filter value by default"
-msgstr "Sélectionne la première valeur du filtre par défaut"
+msgstr "Selectionne la première valeur du filtre par défaut"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:362
 msgid "Select operator"
@@ -14040,7 +14056,7 @@ msgstr "Sélectionner un schéma de couleurs"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:307
 msgid "Select start and end date"
-msgstr "Sélectionner la date de début et la date de fin"
+msgstr "Selectionner la date de début et la date de fin"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:334
 msgid "Select subject"
@@ -14097,7 +14113,7 @@ msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
 msgid "Send as CSV"
-msgstr "Envoyer au format CSV"
+msgstr "Envoyer comme CSV"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
 msgid "Send as PNG"
@@ -14815,7 +14831,7 @@ msgid "Sort by"
 msgstr "Trier par"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:362
-#, python-format
+#, fuzzy, python-format
 msgid "Sort by %s"
 msgstr "Trier par %s"
 
@@ -14903,6 +14919,7 @@ msgid "Spatial"
 msgstr "Spatial"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:87
+#, fuzzy
 msgid "Specific Date/Time"
 msgstr "Date/Heure Spécifique"
 
@@ -15211,7 +15228,7 @@ msgstr ""
 #: superset/charts/post_processing.py:161
 #: superset/charts/post_processing.py:178
 msgid "Subtotal"
-msgstr "Sous-Total"
+msgstr ""
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:127
 #: superset-frontend/src/pages/AlertReportList/index.tsx:62
@@ -16801,8 +16818,7 @@ msgstr ""
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
-msgstr "Ce graphique filtre automatiquement les graphiques ayant des colonnes de même nom dans leurs"
-" ensembles de données."
+msgstr ""
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:260
 msgid "This chart has been moved to a different filter scope."
@@ -17061,8 +17077,9 @@ msgid "This value should be smaller than the right target value"
 msgstr "Cette valeur devrait être plus petite que la valeur cible de droite"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:171
+#, fuzzy
 msgid "This visualization type does not support cross-filtering."
-msgstr "Ce type de visualisation ne supporte pas le cross-filtering."
+msgstr "Ce type de visualisation n'est pas supporté."
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:64
 msgid "This visualization type is not supported."
@@ -17914,9 +17931,9 @@ msgid "Unexpected error: "
 msgstr "Erreur inattendue"
 
 #: superset/views/api.py:108
-#, python-format
+#, fuzzy, python-format
 msgid "Unexpected time range: %s"
-msgstr "Intervalle de temps inattendu: %s"
+msgstr "Erreur inattendue"
 
 #: superset-frontend/src/features/home/ActivityTable.tsx:86
 msgid "Unknown"
@@ -18684,7 +18701,7 @@ msgid "Weekly seasonality"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
-#, python-format
+#, fuzzy, python-format
 msgid "Weeks %s"
 msgstr "Semaines %s"
 
@@ -19333,7 +19350,7 @@ msgid "Yearly seasonality"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
-#, python-format
+#, fuzzy, python-format
 msgid "Years %s"
 msgstr "Année %s"
 
@@ -19435,7 +19452,7 @@ msgstr "Vous pouvez ajouter les composants via mode edition"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:157
 msgid "You can also just click on the chart to apply cross-filter."
-msgstr "Vous pouvez juste cliquer sur le graphique pour appliquer le filtre"
+msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:386
 msgid ""
@@ -19460,7 +19477,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:178
 msgid "You can't apply cross-filter on this data point."
-msgstr "Vous ne pouvez pas ajouter de filtre sur ce point de donnée"
+msgstr ""
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:501
 msgid ""
@@ -19810,6 +19827,7 @@ msgstr "alertes"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:160
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:205
 #: superset-frontend/src/explore/controls.jsx:254
+#, fuzzy
 msgid "all"
 msgstr "Tous"
 
@@ -20403,22 +20421,27 @@ msgid "label"
 msgstr "Label"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
+#, fuzzy
 msgid "last day"
 msgstr "hier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
+#, fuzzy
 msgid "last month"
 msgstr "le mois dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
+#, fuzzy
 msgid "last quarter"
 msgstr "le trimestre dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
+#, fuzzy
 msgid "last week"
-msgstr "la semaine dernière"
+msgstr "la semaine derniere"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
+#, fuzzy
 msgid "last year"
 msgstr "l'année dernière"
 
@@ -20488,7 +20511,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
 #, fuzzy
 msgid "metric"
-msgstr "métrique"
+msgstr "Métrique"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:63
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:188
@@ -20983,24 +21006,3 @@ msgstr "année"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/transformProps.ts:521
 msgid "zoom area"
 msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:28
-#: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
-msgid "metric"
-msgstr "métrique"
-
-#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
-msgid "10 seconds"
-msgstr "10 secondes"
-
-#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
-msgid "6 hours"
-msgstr "6 heures"
-
-#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
-msgid "12 hours"
-msgstr "12 heures"
-
-#: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:29
-msgid "24 hours"
-msgstr "24 heures"

@@ -19,7 +19,7 @@
 
 describe('SqlLab view', () => {
   beforeEach(() => {
-    cy.visit('/sqllab');
+    cy.visit('/superset/sqllab');
   });
 
   it('should load the SqlLab', () => {

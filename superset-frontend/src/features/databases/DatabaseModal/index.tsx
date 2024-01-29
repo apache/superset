@@ -32,7 +32,6 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
-import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -142,6 +141,7 @@ interface DatabaseModalProps {
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
   dbEngine: string | undefined; // if included goto step 2 with engine already set
+  history?: any;
 }
 
 export enum ActionType {
@@ -202,7 +202,6 @@ export type DBReducerActionType =
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
         driver?: string;
-        sqlalchemy_uri_placeholder?: string;
       };
     }
   | {
@@ -303,18 +302,6 @@ export function dbReducer(
               connect_args: {
                 [action.payload.name]: action.payload.value?.trim(),
               },
-            },
-          }),
-        };
-      }
-      if (action.payload.name === 'expand_rows') {
-        return {
-          ...trimmedState,
-          extra: JSON.stringify({
-            ...extraJson,
-            schema_options: {
-              ...extraJson?.schema_options,
-              [action.payload.name]: !!action.payload.value,
             },
           }),
         };
@@ -538,6 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   show,
   databaseId,
   dbEngine,
+  history,
 }) => {
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
@@ -638,7 +626,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
-  const history = useHistory();
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -679,7 +666,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {
-      return t('e.g. world_population');
+      switch (db?.engine) {
+        case Engines.Snowflake:
+          return t('e.g. xy12345.us-east-2.aws');
+        default:
+          return t('e.g. world_population');
+      }
     }
     return undefined;
   };
@@ -712,7 +704,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const redirectURL = (url: string) => {
-    history.push(url);
+    /* TODO (lyndsiWilliams): This check and passing history
+      as a prop can be removed once SQL Lab is in the SPA */
+    if (!isEmpty(history)) {
+      history?.push(url);
+    } else {
+      window.location.href = url;
+    }
   };
 
   // Database import logic
@@ -948,13 +946,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const {
-        engine,
-        parameters,
-        engine_information,
-        default_driver,
-        sqlalchemy_uri_placeholder,
-      } = selectedDbModel;
+      const { engine, parameters, engine_information, default_driver } =
+        selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -966,7 +959,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
           driver: default_driver,
-          sqlalchemy_uri_placeholder,
         },
       });
 
@@ -1589,7 +1581,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/sqllab?db=true`);
+          redirectURL(`/superset/sqllab/?db=true`);
         }}
       >
         {t('QUERY DATA IN SQL LAB')}

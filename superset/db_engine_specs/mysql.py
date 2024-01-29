@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import contextlib
 import re
 from datetime import datetime
-from decimal import Decimal
 from re import Pattern
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -62,7 +60,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
+class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64
@@ -127,9 +125,6 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             GenericDataType.STRING,
         ),
     )
-    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
-        DECIMAL: lambda val: Decimal(val) if isinstance(val, str) else val
-    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -263,9 +258,11 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     def _extract_error_message(cls, ex: Exception) -> str:
         """Extract error message for queries"""
         message = str(ex)
-        with contextlib.suppress(AttributeError, KeyError):
+        try:
             if isinstance(ex.args, tuple) and len(ex.args) > 1:
                 message = ex.args[1]
+        except (AttributeError, KeyError):
+            pass
         return message
 
     @classmethod

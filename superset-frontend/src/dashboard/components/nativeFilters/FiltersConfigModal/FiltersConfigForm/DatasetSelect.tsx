@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, ReactNode } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import rison from 'rison';
-import { t, JsonResponse } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { AsyncSelect } from 'src/components';
 import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import {
-  Dataset,
-  DatasetSelectLabel,
-} from 'src/features/datasets/DatasetSelectLabel';
+import { datasetToSelectOption } from './utils';
 
 interface DatasetSelectProps {
   onChange: (value: { label: string; value: number }) => void;
@@ -52,29 +49,24 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
     page: number,
     pageSize: number,
   ) => {
+    const searchColumn = 'table_name';
     const query = rison.encode({
-      columns: ['id', 'table_name', 'database.database_name', 'schema'],
-      filters: [{ col: 'table_name', opr: 'ct', value: search }],
+      filters: [{ col: searchColumn, opr: 'ct', value: search }],
       page,
       page_size: pageSize,
-      order_column: 'table_name',
+      order_column: searchColumn,
       order_direction: 'asc',
     });
     return cachedSupersetGet({
       endpoint: `/api/v1/dataset/?q=${query}`,
     })
-      .then((response: JsonResponse) => {
-        const list: {
-          customLabel: ReactNode;
+      .then(response => {
+        const data: {
           label: string;
           value: string | number;
-        }[] = response.json.result.map((item: Dataset) => ({
-          customLabel: DatasetSelectLabel(item),
-          label: item.table_name,
-          value: item.id,
-        }));
+        }[] = response.json.result.map(datasetToSelectOption);
         return {
-          data: list,
+          data,
           totalCount: response.json.count,
         };
       })
@@ -91,7 +83,6 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       options={loadDatasetOptions}
       onChange={onChange}
       notFoundContent={t('No compatible datasets found')}
-      placeholder={t('Select a dataset')}
     />
   );
 };

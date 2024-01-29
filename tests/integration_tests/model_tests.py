@@ -296,8 +296,7 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        with db.get_sqla_engine_with_context() as engine:
-            quote = engine.dialect.identifier_preparer.quote_identifier
+        quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
         expected = (
             textwrap.dedent(
                 f"""\

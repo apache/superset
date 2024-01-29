@@ -434,6 +434,7 @@ function PropertiesModal({
                 <AsyncSelect
                   ariaLabel="Tags"
                   mode="multiple"
+                  allowNewOptions
                   value={tagsAsSelectValues}
                   options={loadTags}
                   onChange={handleChangeTags}

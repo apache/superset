@@ -16,31 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { isEqual } from 'lodash';
-import { Layer } from 'deck.gl/typed';
-import {
-  Datasource,
-  QueryFormData,
-  JsonObject,
-  HandlerFunction,
-  usePrevious,
-} from '@superset-ui/core';
+import { Datasource, QueryFormData, JsonObject } from '@superset-ui/core';
 
 import {
   DeckGLContainerStyledWrapper,
-  DeckGLContainerHandle,
+  DeckGLContainer,
 } from './DeckGLContainer';
 import CategoricalDeckGLContainer from './CategoricalDeckGLContainer';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import { Point } from './types';
-import { TooltipProps } from './components/Tooltip';
 
 type deckGLComponentProps = {
   datasource: Datasource;
   formData: QueryFormData;
   height: number;
-  onAddFilter: HandlerFunction;
+  onAddFilter: () => void;
   payload: JsonObject;
   setControlValue: () => void;
   viewport: Viewport;
@@ -50,86 +42,103 @@ export interface getLayerType<T> {
   (
     formData: QueryFormData,
     payload: JsonObject,
-    onAddFilter: HandlerFunction | undefined,
-    setTooltip: (tooltip: TooltipProps['tooltip']) => void,
-    datasource?: Datasource,
+    onAddFilter: () => void,
+    setTooltip: (tooltip: string) => void,
   ): T;
 }
-interface getPointsType {
-  (data: JsonObject[]): Point[];
+interface getPointsType<T> {
+  (point: number[]): T;
 }
+type deckGLComponentState = {
+  viewport: Viewport;
+  layer: unknown;
+};
 
 export function createDeckGLComponent(
   getLayer: getLayerType<unknown>,
-  getPoints: getPointsType,
-) {
+  getPoints: getPointsType<Point[]>,
+): React.ComponentClass<deckGLComponentProps> {
   // Higher order component
-  return memo((props: deckGLComponentProps) => {
-    const containerRef = useRef<DeckGLContainerHandle>();
-    const prevFormData = usePrevious(props.formData);
-    const prevPayload = usePrevious(props.payload);
-    const getAdjustedViewport = () => {
+  class Component extends React.PureComponent<
+    deckGLComponentProps,
+    deckGLComponentState
+  > {
+    containerRef: React.RefObject<DeckGLContainer> = React.createRef();
+
+    constructor(props: deckGLComponentProps) {
+      super(props);
+
       const { width, height, formData } = props;
+      let { viewport } = props;
       if (formData.autozoom) {
-        return fitViewport(props.viewport, {
+        viewport = fitViewport(viewport, {
           width,
           height,
           points: getPoints(props.payload.data.features),
         }) as Viewport;
       }
-      return props.viewport;
-    };
 
-    const [viewport, setViewport] = useState(getAdjustedViewport());
+      this.state = {
+        viewport,
+        layer: this.computeLayer(props),
+      };
+      this.onViewportChange = this.onViewportChange.bind(this);
+    }
 
-    const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
-      const { current } = containerRef;
+    UNSAFE_componentWillReceiveProps(nextProps: deckGLComponentProps) {
+      // Only recompute the layer if anything BUT the viewport has changed
+      const nextFdNoVP = { ...nextProps.formData, viewport: null };
+      const currFdNoVP = { ...this.props.formData, viewport: null };
+      if (
+        !isEqual(nextFdNoVP, currFdNoVP) ||
+        nextProps.payload !== this.props.payload
+      ) {
+        this.setState({ layer: this.computeLayer(nextProps) });
+      }
+    }
+
+    onViewportChange(viewport: Viewport) {
+      this.setState({ viewport });
+    }
+
+    computeLayer(props: deckGLComponentProps) {
+      const { formData, payload, onAddFilter } = props;
+
+      return getLayer(formData, payload, onAddFilter, this.setTooltip);
+    }
+
+    setTooltip = (tooltip: string) => {
+      const { current } = this.containerRef;
       if (current) {
         current?.setTooltip(tooltip);
       }
-    }, []);
+    };
 
-    const computeLayer = useCallback(
-      (props: deckGLComponentProps) => {
-        const { formData, payload, onAddFilter } = props;
+    render() {
+      const { formData, payload, setControlValue, height, width } = this.props;
+      const { layer, viewport } = this.state;
 
-        return getLayer(formData, payload, onAddFilter, setTooltip) as Layer;
-      },
-      [setTooltip],
-    );
-
-    const [layer, setLayer] = useState(computeLayer(props));
-
-    useEffect(() => {
-      // Only recompute the layer if anything BUT the viewport has changed
-      const prevFdNoVP = { ...prevFormData, viewport: null };
-      const currFdNoVP = { ...props.formData, viewport: null };
-      if (!isEqual(prevFdNoVP, currFdNoVP) || prevPayload !== props.payload) {
-        setLayer(computeLayer(props));
-      }
-    }, [computeLayer, prevFormData, prevPayload, props]);
-
-    const { formData, payload, setControlValue, height, width } = props;
-
-    return (
-      <DeckGLContainerStyledWrapper
-        ref={containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
-        viewport={viewport}
-        layers={[layer]}
-        mapStyle={formData.mapbox_style}
-        setControlValue={setControlValue}
-        width={width}
-        height={height}
-        onViewportChange={setViewport}
-      />
-    );
-  });
+      return (
+        <DeckGLContainerStyledWrapper
+          ref={this.containerRef}
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          viewport={viewport}
+          layers={[layer]}
+          mapStyle={formData.mapbox_style}
+          setControlValue={setControlValue}
+          width={width}
+          height={height}
+          onViewportChange={this.onViewportChange}
+        />
+      );
+    }
+  }
+  return Component;
 }
 
 export function createCategoricalDeckGLComponent(
-  getLayer: getLayerType<Layer>,
-  getPoints: getPointsType,
+  getLayer: getLayerType<unknown>,
+  getPoints: getPointsType<Point[]>,
 ) {
   return function Component(props: deckGLComponentProps) {
     const {

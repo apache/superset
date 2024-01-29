@@ -202,7 +202,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer css={no_margin_bottom}>
+            <StyledInputContainer>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="disable_data_preview"
@@ -216,22 +216,6 @@ const ExtraOptions = ({
                     'Disable data preview when fetching table metadata in SQL Lab. ' +
                       ' Useful to avoid browser performance issues when using ' +
                       ' databases with very wide tables.',
-                  )}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="input-container">
-                <IndeterminateCheckbox
-                  id="expand_rows"
-                  indeterminate={false}
-                  checked={!!extraJson?.schema_options?.expand_rows}
-                  onChange={onExtraInputChange}
-                  labelText={t('Enable row expansion in schemas')}
-                />
-                <InfoTooltip
-                  tooltip={t(
-                    'For Trino, describe full schemas of nested ROW types, expanding them with dotted paths',
                   )}
                 />
               </div>
@@ -557,7 +541,7 @@ const ExtraOptions = ({
           </div>
           <div className="input-container" data-test="version-spinbutton-test">
             <input
-              type="text"
+              type="number"
               name="version"
               placeholder={t('Version number')}
               onChange={onExtraInputChange}
@@ -566,8 +550,8 @@ const ExtraOptions = ({
           </div>
           <div className="helper">
             {t(
-              'Specify the database version. This is used with Presto for query cost ' +
-                'estimation, and Dremio for syntax changes, among others.',
+              'Specify the database version. This should be used with ' +
+                'Presto in order to enable query cost estimation.',
             )}
           </div>
         </StyledInputContainer>

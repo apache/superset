@@ -257,7 +257,7 @@ class NewTable(AuxiliaryColumnsMixin, Base):
     )
 
 
-class NewDataset(AuxiliaryColumnsMixin, Base):
+class NewDataset(Base, AuxiliaryColumnsMixin):
     __tablename__ = "sl_datasets"
 
     id = sa.Column(sa.Integer, primary_key=True)

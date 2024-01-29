@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from os import environ
 from typing import TYPE_CHECKING
 
 from superset.app import create_app
@@ -24,11 +23,7 @@ if TYPE_CHECKING:
 
     from flask.testing import FlaskClient
 
-
-superset_config_module = environ.get(
-    "SUPERSET_CONFIG", "tests.integration_tests.superset_test_config"
-)
-app = create_app(superset_config_module=superset_config_module)
+app = create_app()
 
 
 def login(

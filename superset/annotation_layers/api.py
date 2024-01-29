@@ -23,16 +23,9 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 
-from superset.annotation_layers.filters import AnnotationLayerAllTextFilter
-from superset.annotation_layers.schemas import (
-    AnnotationLayerPostSchema,
-    AnnotationLayerPutSchema,
-    get_delete_ids_schema,
-    openapi_spec_methods_override,
-)
-from superset.commands.annotation_layer.create import CreateAnnotationLayerCommand
-from superset.commands.annotation_layer.delete import DeleteAnnotationLayerCommand
-from superset.commands.annotation_layer.exceptions import (
+from superset.annotation_layers.commands.create import CreateAnnotationLayerCommand
+from superset.annotation_layers.commands.delete import DeleteAnnotationLayerCommand
+from superset.annotation_layers.commands.exceptions import (
     AnnotationLayerCreateFailedError,
     AnnotationLayerDeleteFailedError,
     AnnotationLayerDeleteIntegrityError,
@@ -40,7 +33,14 @@ from superset.commands.annotation_layer.exceptions import (
     AnnotationLayerNotFoundError,
     AnnotationLayerUpdateFailedError,
 )
-from superset.commands.annotation_layer.update import UpdateAnnotationLayerCommand
+from superset.annotation_layers.commands.update import UpdateAnnotationLayerCommand
+from superset.annotation_layers.filters import AnnotationLayerAllTextFilter
+from superset.annotation_layers.schemas import (
+    AnnotationLayerPostSchema,
+    AnnotationLayerPutSchema,
+    get_delete_ids_schema,
+    openapi_spec_methods_override,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
@@ -99,7 +99,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
     ]
 
     search_filters = {"name": [AnnotationLayerAllTextFilter]}
-    allowed_rel_fields = {"created_by", "changed_by"}
+    allowed_rel_fields = {"created_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

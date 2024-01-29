@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useMemo, useState, useCallback, ReactElement } from 'react';
-import { Link, useHistory } from 'react-router-dom';
 import {
   QueryState,
   styled,
@@ -34,7 +33,6 @@ import {
 } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import Label from 'src/components/Label';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import Popover from 'src/components/Popover';
 import { commonMenuData } from 'src/features/home/commonMenuData';
@@ -52,8 +50,6 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
-import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import getOwnerName from 'src/utils/getOwnerName';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -90,11 +86,6 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const TimerLabel = styled(Label)`
-  text-align: left;
-  font-family: ${({ theme }) => theme.typography.families.monospace};
-`;
-
 function QueryList({ addDangerToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
@@ -110,7 +101,6 @@ function QueryList({ addDangerToast }: QueryListProps) {
     useState<QueryObject>();
 
   const theme = useTheme();
-  const history = useHistory();
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -211,7 +201,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         size: 'xl',
         Cell: ({
           row: {
-            original: { start_time },
+            original: { start_time, end_time },
           },
         }: any) => {
           const startMoment = moment.utc(start_time).local();
@@ -225,25 +215,19 @@ function QueryList({ addDangerToast }: QueryListProps) {
               {formattedStartTimeData[1]}
             </>
           );
-          return formattedStartTime;
-        },
-      },
-      {
-        Header: t('Duration'),
-        size: 'xl',
-        Cell: ({
-          row: {
-            original: { status, start_time, end_time },
-          },
-        }: any) => {
-          const timerType = status === QueryState.FAILED ? 'danger' : status;
-          const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
-            : '00:00:00.000';
-          return (
-            <TimerLabel type={timerType} role="timer">
-              {timerTime}
-            </TimerLabel>
+
+          return end_time ? (
+            <Tooltip
+              title={t(
+                'Duration: %s',
+                moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS),
+              )}
+              placement="bottom"
+            >
+              <span>{formattedStartTime}</span>
+            </Tooltip>
+          ) : (
+            formattedStartTime
           );
         },
       },
@@ -312,7 +296,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => getOwnerName(user),
+        }: any) => (user ? `${user.first_name} ${user.last_name}` : ''),
       },
       {
         accessor: QueryObjectColumns.user,
@@ -349,9 +333,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <Link to={`/sqllab?queryId=${id}`}>
+            <a href={`/superset/sqllab?queryId=${id}`}>
               <Icons.Full iconColor={theme.colors.grayscale.base} />
-            </Link>
+            </a>
           </Tooltip>
         ),
       },
@@ -442,7 +426,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           query={queryCurrentlyPreviewing}
           queries={queries}
           fetchData={handleQueryPreview}
-          openInSqlLab={(id: number) => history.push(`/sqllab?queryId=${id}`)}
+          openInSqlLab={(id: number) =>
+            window.location.assign(`/superset/sqllab?queryId=${id}`)
+          }
           show
         />
       )}
@@ -457,9 +443,6 @@ function QueryList({ addDangerToast }: QueryListProps) {
         loading={loading}
         pageSize={PAGE_SIZE}
         highlightRowId={queryCurrentlyPreviewing?.id}
-        refreshData={() => {}}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
       />
     </>
   );

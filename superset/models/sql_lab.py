@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Query(
-    ExtraJSONMixin, ExploreMixin, Model
+    Model, ExtraJSONMixin, ExploreMixin
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -355,7 +355,7 @@ class Query(
         return self.make_sqla_column_compatible(sqla_column, label)
 
 
-class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
+class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
@@ -408,7 +408,7 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/sqllab?savedQueryId={self.id}">
+            <a href="/superset/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -423,7 +423,7 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return f"/sqllab?savedQueryId={self.id}"
+        return f"/superset/sqllab?savedQueryId={self.id}"
 
     @property
     def sql_tables(self) -> list[Table]:
@@ -442,7 +442,7 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
         return self._last_run_delta_humanized
 
 
-class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
+class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     __tablename__ = "tab_state"
 
     # basic info
@@ -505,7 +505,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
         }
 
 
-class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
+class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
     __tablename__ = "table_schema"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

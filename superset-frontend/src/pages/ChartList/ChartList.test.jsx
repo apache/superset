@@ -20,9 +20,9 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import * as reactRedux from 'react-redux';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
@@ -38,6 +38,9 @@ import ListViewCard from 'src/components/ListViewCard';
 import FaveStar from 'src/components/FaveStar';
 import TableCollection from 'src/components/TableCollection';
 import CardCollection from 'src/components/ListView/CardCollection';
+// store needed for withToasts(ChartTable)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
@@ -96,43 +99,14 @@ fetchMock.get(datasetEndpoint, {});
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
-const user = {
-  createdOn: '2021-04-27T18:12:38.952304',
-  email: 'admin',
-  firstName: 'admin',
-  isActive: true,
-  lastName: 'admin',
-  permissions: {},
-  roles: {
-    Admin: [
-      ['can_sqllab', 'Superset'],
-      ['can_write', 'Dashboard'],
-      ['can_write', 'Chart'],
-    ],
-  },
-  userId: 1,
-  username: 'admin',
-};
-
-// store needed for withToasts(DatabaseList)
-const mockStore = configureStore([thunk]);
-const store = mockStore({ user });
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-
 describe('ChartList', () => {
   const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
+    .spyOn(featureFlags, 'isFeatureEnabled')
     .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
 
   afterAll(() => {
     isFeatureEnabledMock.restore();
   });
-
-  beforeEach(() => {
-    // setup a DOM element as a render target
-    useSelectorMock.mockClear();
-  });
-
   const mockedProps = {};
 
   let wrapper;
@@ -140,9 +114,9 @@ describe('ChartList', () => {
   beforeAll(async () => {
     wrapper = mount(
       <MemoryRouter>
-        <reactRedux.Provider store={store}>
+        <Provider store={store}>
           <ChartList {...mockedProps} user={mockUser} />
-        </reactRedux.Provider>
+        </Provider>
       </MemoryRouter>,
     );
 
@@ -225,7 +199,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
+      .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });
@@ -257,9 +231,9 @@ describe('ChartList - anonymous view', () => {
     fetchMock.resetHistory();
     wrapper = mount(
       <MemoryRouter>
-        <reactRedux.Provider store={store}>
+        <Provider store={store}>
           <ChartList {...mockedProps} user={mockUserLoggedOut} />
-        </reactRedux.Provider>
+        </Provider>
       </MemoryRouter>,
     );
 

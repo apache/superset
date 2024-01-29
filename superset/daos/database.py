@@ -14,10 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from superset.daos.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
@@ -39,8 +37,8 @@ class DatabaseDAO(BaseDAO[Database]):
     @classmethod
     def update(
         cls,
-        item: Database | None = None,
-        attributes: dict[str, Any] | None = None,
+        model: Database,
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> Database:
         """
@@ -52,14 +50,13 @@ class DatabaseDAO(BaseDAO[Database]):
 
         The masked values should be unmasked before the database is updated.
         """
-
-        if item and attributes and "encrypted_extra" in attributes:
-            attributes["encrypted_extra"] = item.db_engine_spec.unmask_encrypted_extra(
-                item.encrypted_extra,
-                attributes["encrypted_extra"],
+        if "encrypted_extra" in properties:
+            properties["encrypted_extra"] = model.db_engine_spec.unmask_encrypted_extra(
+                model.encrypted_extra,
+                properties["encrypted_extra"],
             )
 
-        return super().update(item, attributes, commit)
+        return super().update(model, properties, commit)
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -77,7 +74,7 @@ class DatabaseDAO(BaseDAO[Database]):
         return not db.session.query(database_query.exists()).scalar()
 
     @staticmethod
-    def get_database_by_name(database_name: str) -> Database | None:
+    def get_database_by_name(database_name: str) -> Optional[Database]:
         return (
             db.session.query(Database)
             .filter(Database.database_name == database_name)
@@ -132,7 +129,7 @@ class DatabaseDAO(BaseDAO[Database]):
         }
 
     @classmethod
-    def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel | None:
+    def get_ssh_tunnel(cls, database_id: int) -> Optional[SSHTunnel]:
         ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == database_id)
@@ -146,8 +143,8 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod
     def update(
         cls,
-        item: SSHTunnel | None = None,
-        attributes: dict[str, Any] | None = None,
+        model: SSHTunnel,
+        properties: dict[str, Any],
         commit: bool = True,
     ) -> SSHTunnel:
         """
@@ -159,9 +156,7 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         The masked values should be unmasked before the ssh tunnel is updated.
         """
         # ID cannot be updated so we remove it if present in the payload
+        properties.pop("id", None)
+        properties = unmask_password_info(properties, model)
 
-        if item and attributes:
-            attributes.pop("id", None)
-            attributes = unmask_password_info(attributes, item)
-
-        return super().update(item, attributes, commit)
+        return super().update(model, properties, commit)

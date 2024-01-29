@@ -19,8 +19,6 @@
 import json
 import pytest
 import prison
-from datetime import datetime
-from freezegun import freeze_time
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app
@@ -191,27 +189,20 @@ class TestCssTemplateApi(SupersetTestCase):
         """
         CSS Template API: Test get CSS Template
         """
-        with freeze_time(datetime.now()):
-            css_template = (
-                db.session.query(CssTemplate)
-                .filter(CssTemplate.template_name == "template_name1")
-                .one_or_none()
-            )
-            self.login(username="admin")
-            uri = f"api/v1/css_template/{css_template.id}"
-            rv = self.get_assert_metric(uri, "get")
+        css_template = (
+            db.session.query(CssTemplate)
+            .filter(CssTemplate.template_name == "template_name1")
+            .one_or_none()
+        )
+        self.login(username="admin")
+        uri = f"api/v1/css_template/{css_template.id}"
+        rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
 
         expected_result = {
             "id": css_template.id,
             "template_name": "template_name1",
             "css": "css1",
-            "changed_by": {
-                "first_name": css_template.created_by.first_name,
-                "id": css_template.created_by.id,
-                "last_name": css_template.created_by.last_name,
-            },
-            "changed_on_delta_humanized": "now",
             "created_by": {
                 "first_name": css_template.created_by.first_name,
                 "id": css_template.created_by.id,

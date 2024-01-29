@@ -172,16 +172,15 @@ def upgrade(
                 if (
                     isinstance(value, dict)
                     and value["type"] == "CHART"
-                    and (meta := value.get("meta"))
-                    and meta["chartId"] in filter_boxes_by_id
+                    and value["meta"]["chartId"] in filter_boxes_by_id
                 ):
-                    slc = filter_boxes_by_id[meta["chartId"]]
+                    slc = filter_boxes_by_id[value["meta"]["chartId"]]
                     mapping[key] = key.replace("CHART-", "MARKDOWN-")
 
                     value["id"] = mapping[key]
                     value["type"] = "MARKDOWN"
 
-                    meta["code"] = dedent(
+                    value["meta"]["code"] = dedent(
                         f"""
                         &#9888; The <a href="/superset/slice/{slc.id}/">{slc.slice_name}
                         </a> filter-box chart has been migrated to a native filter.
@@ -193,14 +192,14 @@ def upgrade(
                     )
 
                     # Save the filter-box info for recovery purposes.
-                    meta["native_filter_migration"] = {
-                        key: meta.pop(key)
+                    value["meta"]["native_filter_migration"] = {
+                        key: value["meta"].pop(key)
                         for key in (
                             "chartId",
                             "sliceName",
                             "sliceNameOverride",
                         )
-                        if key in meta
+                        if key in value["meta"]
                     }
 
                     position_json[mapping[key]] = value
@@ -292,14 +291,13 @@ def downgrade(
                 if (
                     isinstance(value, dict)
                     and value["type"] == "MARKDOWN"
-                    and (meta := value.get("meta"))
-                    and "native_filter_migration" in meta
+                    and "native_filter_migration" in value["meta"]
                 ):
-                    meta.update(meta.pop("native_filter_migration"))
-                    slice_ids.add(meta["chartId"])
+                    value["meta"].update(value["meta"].pop("native_filter_migration"))
+                    slice_ids.add(value["meta"]["chartId"])
                     mapping[key] = key.replace("MARKDOWN-", "CHART-")
                     value["id"] = mapping[key]
-                    del meta["code"]
+                    del value["meta"]["code"]
                     value["type"] = "CHART"
                     position_json[mapping[key]] = value
                     del position_json[key]
@@ -370,20 +368,21 @@ def cleanup(
             json_metadata = json.loads(dashboard.json_metadata or "{}")
             position_json = json.loads(dashboard.position_json or "{}")
 
+            if "native_filter_migration" not in json_metadata:
+                click.echo(f"{str(dashboard)} has not been upgraded")
+                continue
+
             # Remove the saved filter configurations.
-            if "native_filter_migration" in json_metadata:
-                del json_metadata["native_filter_migration"]
-                dashboard.json_metadata = json.dumps(json_metadata)
+            del json_metadata["native_filter_migration"]
+            dashboard.json_metadata = json.dumps(json_metadata)
 
             for value in position_json.values():
                 if (
                     isinstance(value, dict)
-                    and value["type"] == "MARKDOWN"
-                    and (meta := value.get("meta"))
-                    and "native_filter_migration" in meta
+                    and "native_filter_migration" in value["meta"]
                 ):
-                    slice_ids.add(meta["native_filter_migration"]["chartId"])
-                    del meta["native_filter_migration"]
+                    slice_ids.add(value["meta"]["native_filter_migration"]["chartId"])
+                    del value["meta"]["native_filter_migration"]
 
             dashboard.json_metadata = json.dumps(json_metadata)
             dashboard.position_json = json.dumps(position_json)

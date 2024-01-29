@@ -18,13 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  createContext,
-  useRef,
-} from 'react';
+import React, { useEffect, useState, useCallback, createContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DataMaskStateWithId,
@@ -44,10 +38,7 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
-import { logEvent } from 'src/logger/actions';
-import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { checkIsApplyDisabled } from './utils';
 import { FiltersBarProps } from './types';
 import {
@@ -150,15 +141,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-  const user: UserWithPermissionsAndRoles = useSelector<
-    RootState,
-    UserWithPermissionsAndRoles
-  >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
-  const dataMaskSelectedRef = useRef(dataMaskSelected);
-  dataMaskSelectedRef.current = dataMaskSelected;
   const handleFilterSelectionChange = useCallback(
     (
       filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -169,19 +154,19 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         if (
           // filterState.value === undefined - means that value not initialized
           dataMask.filterState?.value !== undefined &&
-          dataMaskSelectedRef.current[filter.id]?.filterState?.value ===
-            undefined &&
+          dataMaskSelected[filter.id]?.filterState?.value === undefined &&
           filter.requiredFirst
         ) {
           dispatch(updateDataMask(filter.id, dataMask));
         }
+
         draft[filter.id] = {
           ...(getInitialDataMask(filter.id) as DataMaskWithId),
           ...dataMask,
         };
       });
     },
-    [dispatch, setDataMaskSelected],
+    [dataMaskSelected, dispatch, setDataMaskSelected],
   );
 
   useEffect(() => {
@@ -225,15 +210,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dataMaskAppliedText, setDataMaskSelected]);
 
   useEffect(() => {
-    // embedded users can't persist filter combinations
-    if (user?.userId) {
-      publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
-    }
+    publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
   const handleApply = useCallback(() => {
-    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
     filterIds.forEach(filterId => {

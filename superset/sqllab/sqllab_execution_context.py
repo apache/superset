@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 from dataclasses import dataclass
@@ -176,10 +175,12 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         )
 
     def get_query_details(self) -> str:
-        with contextlib.suppress(DetachedInstanceError):
+        try:
             if hasattr(self, "query"):
                 if self.query.id:
                     return f"query '{self.query.id}' - '{self.query.sql}'"
+        except DetachedInstanceError:
+            pass
         return f"query '{self.sql}'"
 
 

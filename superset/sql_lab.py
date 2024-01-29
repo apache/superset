@@ -47,12 +47,7 @@ from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import (
-    CtasMethod,
-    insert_rls_as_subquery,
-    insert_rls_in_predicate,
-    ParsedQuery,
-)
+from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.celery import session_scope
@@ -195,7 +190,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 return handle_query_error(ex, query, session)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-locals
+def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statements
     sql_statement: str,
     query: Query,
     session: Session,
@@ -209,16 +204,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-local
 
     parsed_query = ParsedQuery(sql_statement)
     if is_feature_enabled("RLS_IN_SQLLAB"):
-        # There are two ways to insert RLS: either replacing the table with a subquery
-        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-        # safer, but not supported in all databases.
-        insert_rls = (
-            insert_rls_as_subquery
-            if database.db_engine_spec.allows_subqueries
-            and database.db_engine_spec.allows_alias_in_select
-            else insert_rls_in_predicate
-        )
-
         # Insert any applicable RLS predicates
         parsed_query = ParsedQuery(
             str(
@@ -231,7 +216,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-local
         )
 
     sql = parsed_query.stripped()
-
     # This is a test to see if the query is being
     # limited by either the dropdown or the sql.
     # We are testing to see if more rows exist than the limit.
@@ -285,7 +269,10 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments, too-many-local
             )
         session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            db_engine_spec.execute_with_cursor(cursor, sql, query, session)
+            logger.debug("Query %d: Running query: %s", query.id, sql)
+            db_engine_spec.execute(cursor, sql, async_=True)
+            logger.debug("Query %d: Handling cursor", query.id)
+            db_engine_spec.handle_cursor(cursor, query, session)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
@@ -525,13 +512,8 @@ def execute_sql_statements(
                     ex, query, session, payload, prefix_message
                 )
                 return payload
-
-        # Commit the connection so CTA queries will create the table and any DML.
-        should_commit = (
-            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
-            or apply_ctas
-        )
-        if should_commit:
+        # Commit the connection so CTA queries will create the table.
+        if apply_ctas:
             conn.commit()
 
     # Success, updating the query entry in database

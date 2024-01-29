@@ -95,11 +95,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     def get_payloads(self) -> list[dict[str, int]]:
         session = db.create_scoped_session()
-
-        try:
-            charts = session.query(Slice).all()
-        finally:
-            session.close()
+        charts = session.query(Slice).all()
 
         return [get_payload(chart) for chart in charts]
 
@@ -133,24 +129,20 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         payloads = []
         session = db.create_scoped_session()
 
-        try:
-            records = (
-                session.query(Log.dashboard_id, func.count(Log.dashboard_id))
-                .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
-                .group_by(Log.dashboard_id)
-                .order_by(func.count(Log.dashboard_id).desc())
-                .limit(self.top_n)
-                .all()
-            )
-            dash_ids = [record.dashboard_id for record in records]
-            dashboards = (
-                session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
-            )
-            for dashboard in dashboards:
-                for chart in dashboard.slices:
-                    payloads.append(get_payload(chart, dashboard))
-        finally:
-            session.close()
+        records = (
+            session.query(Log.dashboard_id, func.count(Log.dashboard_id))
+            .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
+            .group_by(Log.dashboard_id)
+            .order_by(func.count(Log.dashboard_id).desc())
+            .limit(self.top_n)
+            .all()
+        )
+        dash_ids = [record.dashboard_id for record in records]
+        dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids)).all()
+        for dashboard in dashboards:
+            for chart in dashboard.slices:
+                payloads.append(get_payload(chart, dashboard))
+
         return payloads
 
 
@@ -180,46 +172,42 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         payloads = []
         session = db.create_scoped_session()
 
-        try:
-            tags = session.query(Tag).filter(Tag.name.in_(self.tags)).all()
-            tag_ids = [tag.id for tag in tags]
+        tags = session.query(Tag).filter(Tag.name.in_(self.tags)).all()
+        tag_ids = [tag.id for tag in tags]
 
-            # add dashboards that are tagged
-            tagged_objects = (
-                session.query(TaggedObject)
-                .filter(
-                    and_(
-                        TaggedObject.object_type == "dashboard",
-                        TaggedObject.tag_id.in_(tag_ids),
-                    )
+        # add dashboards that are tagged
+        tagged_objects = (
+            session.query(TaggedObject)
+            .filter(
+                and_(
+                    TaggedObject.object_type == "dashboard",
+                    TaggedObject.tag_id.in_(tag_ids),
                 )
-                .all()
             )
-            dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-            tagged_dashboards = session.query(Dashboard).filter(
-                Dashboard.id.in_(dash_ids)
-            )
-            for dashboard in tagged_dashboards:
-                for chart in dashboard.slices:
-                    payloads.append(get_payload(chart))
-
-            # add charts that are tagged
-            tagged_objects = (
-                session.query(TaggedObject)
-                .filter(
-                    and_(
-                        TaggedObject.object_type == "chart",
-                        TaggedObject.tag_id.in_(tag_ids),
-                    )
-                )
-                .all()
-            )
-            chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
-            tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
-            for chart in tagged_charts:
+            .all()
+        )
+        dash_ids = [tagged_object.object_id for tagged_object in tagged_objects]
+        tagged_dashboards = session.query(Dashboard).filter(Dashboard.id.in_(dash_ids))
+        for dashboard in tagged_dashboards:
+            for chart in dashboard.slices:
                 payloads.append(get_payload(chart))
-        finally:
-            session.close()
+
+        # add charts that are tagged
+        tagged_objects = (
+            session.query(TaggedObject)
+            .filter(
+                and_(
+                    TaggedObject.object_type == "chart",
+                    TaggedObject.tag_id.in_(tag_ids),
+                )
+            )
+            .all()
+        )
+        chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
+        tagged_charts = session.query(Slice).filter(Slice.id.in_(chart_ids))
+        for chart in tagged_charts:
+            payloads.append(get_payload(chart))
+
         return payloads
 
 

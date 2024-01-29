@@ -63,7 +63,7 @@ Create chart name and version as used by the chart label.
 
 {{- define "superset-config" }}
 import os
-from flask_caching.backends.rediscache import RedisCache
+from cachelib.redis import RedisCache
 
 def env(key, default=None):
     return os.getenv(key, default)
@@ -82,15 +82,17 @@ DATA_CACHE_CONFIG = CACHE_CONFIG
 
 SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
 SQLALCHEMY_TRACK_MODIFICATIONS = True
+SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 
-class CeleryConfig:
-  imports  = ("superset.sql_lab", )
+class CeleryConfig(object):
+  CELERY_IMPORTS = ('superset.sql_lab', )
+  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
   {{- if .Values.supersetNode.connections.redis_password }}
-  broker_url = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  result_backend = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   {{- else }}
-  broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   {{- end }}
 
 CELERY_CONFIG = CeleryConfig

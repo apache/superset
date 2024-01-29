@@ -19,7 +19,6 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
-import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
@@ -241,10 +240,6 @@ const expectDrillToDetailByAll = async (
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
   await expectDrillToDetailModal(menuItemName, filters);
 };
-
-beforeAll(() => {
-  setupPlugins();
-});
 
 test('dropdown menu for unsupported chart', async () => {
   renderMenu({ formData: unsupportedChartFormData });

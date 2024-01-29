@@ -106,7 +106,7 @@ export default styled(ParallelCoordinates)`
       height: 18px;
       margin: 0px;
     }
-    .parcoords .row:nth-of-type(odd) {
+    .parcoords .row:nth-child(odd) {
       background: ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
     }
     .parcoords .header {

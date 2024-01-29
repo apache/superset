@@ -21,6 +21,7 @@ import {
   DASHBOARD_ROOT_ID,
 } from 'src/dashboard/util/constants';
 import { DashboardLayout } from 'src/dashboard/types';
+import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 export const getRootLevelTabsComponent = (dashboardLayout: DashboardLayout) => {
   const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -37,3 +38,15 @@ export const shouldFocusTabs = (
   // don't focus the tabs when we click on a tab
   event.target.className === 'ant-tabs-nav-wrap' ||
   container.contains(event.target);
+
+export const getRootLevelTabIndex = (
+  dashboardLayout: DashboardLayout,
+  directPathToChild: string[],
+): number =>
+  Math.max(
+    0,
+    findTabIndexByComponentId({
+      currentComponent: getRootLevelTabsComponent(dashboardLayout),
+      directPathToChild,
+    }),
+  );

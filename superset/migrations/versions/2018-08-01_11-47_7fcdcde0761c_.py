@@ -76,6 +76,7 @@ def upgrade():
                     dashboard.id, len(original_text), len(text)
                 )
             )
+            session.merge(dashboard)
             session.commit()
 
 

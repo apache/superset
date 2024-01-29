@@ -27,7 +27,6 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
-  isFeatureEnabled,
   FeatureFlag,
   Filter,
   GenericDataType,
@@ -72,6 +71,7 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import {
   ClientErrorObject,
@@ -82,7 +82,6 @@ import {
   getFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
-import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -355,9 +354,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const dashboardId = useSelector<RootState, number>(
-    state => state.dashboardInfo.id,
-  );
+
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -482,7 +479,6 @@ const FiltersConfigForm = (
       }
       const formData = getFormData({
         datasetId: formFilter?.dataset?.value,
-        dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
       });
@@ -496,6 +492,7 @@ const FiltersConfigForm = (
       getChartDataRequest({
         formData,
         force,
+        requestParams: { dashboardId: 0 },
       })
         .then(({ response, json }) => {
           if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
@@ -884,15 +881,7 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: DatasetSelectLabel({
-                          id: datasetDetails.id,
-                          table_name: datasetDetails.table_name,
-                          schema: datasetDetails.schema,
-                          database: {
-                            database_name:
-                              datasetDetails.database.database_name,
-                          },
-                        }),
+                        label: datasetDetails.table_name,
                         value: datasetDetails.id,
                       }
                     : undefined

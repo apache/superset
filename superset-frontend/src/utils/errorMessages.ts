@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 // Error messages used in many places across applications
 const COMMON_ERR_MESSAGES = {
   SESSION_TIMED_OUT:

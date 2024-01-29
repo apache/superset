@@ -33,9 +33,7 @@ import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
-import { ModifiedInfo } from 'src/components/AuditInfo';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -45,7 +43,7 @@ interface RLSProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   user: {
-    userId: string | number;
+    userId?: string | number;
     firstName: string;
     lastName: string;
   };
@@ -148,13 +146,10 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         Cell: ({
           row: {
-            original: {
-              changed_on_delta_humanized: changedOn,
-              changed_by: changedBy,
-            },
+            original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
-        Header: t('Last modified'),
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
@@ -223,10 +218,6 @@ function RowLevelSecurityList(props: RLSProps) {
         hidden: !canEdit && !canWrite && !canExport,
         disableSortBy: true,
       },
-      {
-        accessor: QueryObjectColumns.changed_by,
-        hidden: true,
-      },
     ],
     [
       user.userId,
@@ -278,26 +269,6 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'group_key',
         input: 'search',
         operator: FilterOperator.startsWith,
-      },
-      {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'rowlevelsecurity',
-          'changed_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
       },
     ],
     [user],
@@ -366,9 +337,6 @@ function RowLevelSecurityList(props: RLSProps) {
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
-                addDangerToast={addDangerToast}
-                addSuccessToast={addSuccessToast}
-                refreshData={() => {}}
                 pageSize={PAGE_SIZE}
               />
             </>

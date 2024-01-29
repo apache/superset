@@ -62,7 +62,7 @@ const dropdownItems = [
   },
   {
     label: 'SQL query',
-    url: '/sqllab?new=true',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',
@@ -295,11 +295,7 @@ test('should render the environment tag', async () => {
   const {
     data: { environment_tag },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-    useRouter: true,
-  });
+  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
   expect(await screen.findByText(environment_tag.text)).toBeInTheDocument();
 });
 

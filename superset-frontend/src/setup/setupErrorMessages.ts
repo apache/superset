@@ -20,7 +20,6 @@ import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErr
 import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
 import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessage';
-import MarshmallowErrorMessage from 'src/components/ErrorMessage/MarshmallowErrorMessage';
 import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMessage';
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
 
@@ -144,10 +143,6 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
     DatasetNotFoundErrorMessage,
-  );
-  errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.MARSHMALLOW_ERROR,
-    MarshmallowErrorMessage,
   );
   setupErrorMessagesExtra();
 }

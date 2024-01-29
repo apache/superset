@@ -124,9 +124,7 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   ...sharedControls.metrics,
   label: t('Percentage metrics'),
   description: t(
-    'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
-      'Percentage metrics will be calculated only from data within the row limit. ' +
-      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
+    'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
   ),
   visibility: isAggMode,
   resetOnHide: false,
@@ -353,9 +351,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Sort descending'),
               default: true,
-              description: t(
-                'If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.',
-              ),
+              description: t('Whether to sort descending or ascending'),
               visibility: isAggMode,
               resetOnHide: false,
             },
@@ -459,7 +455,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Whether to colorize numeric values by whether they are positive or negative',
+                'Whether to colorize numeric values by if they are positive or negative',
               ),
             },
           },

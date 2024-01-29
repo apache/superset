@@ -168,6 +168,7 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, groupBy } = treeNode;
       const name = formatSeriesName(nodeName, {
+        numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],

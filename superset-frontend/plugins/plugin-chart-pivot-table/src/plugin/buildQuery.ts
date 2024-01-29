@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import omit from 'lodash/omit';
+
 import {
   AdhocColumn,
   buildQueryContext,
@@ -70,7 +72,9 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     }
     return [
       {
-        ...baseQueryObject,
+        ...(hasGenericChartAxes
+          ? omit(baseQueryObject, ['extras.time_grain_sqla'])
+          : baseQueryObject),
         orderby: orderBy,
         columns,
       },

@@ -25,7 +25,7 @@ function parseClockStr(node: JQuery) {
 
 describe('SqlLab query panel', () => {
   beforeEach(() => {
-    cy.visit('/sqllab');
+    cy.visit('/superset/sqllab');
   });
 
   it.skip('supports entering and running a query', () => {

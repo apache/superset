@@ -39,6 +39,7 @@ function mapStateToProps(state: RootState) {
   const {
     datasources,
     sliceEntities,
+    charts,
     dataMask,
     dashboardInfo,
     dashboardState,
@@ -53,6 +54,7 @@ function mapStateToProps(state: RootState) {
     userId: dashboardInfo.userId,
     dashboardInfo,
     dashboardState,
+    charts,
     datasources,
     // filters prop: a map structure for all the active filter_box's values and scope in this dashboard,
     // for each filter field. map key is [chartId_column]

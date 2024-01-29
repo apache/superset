@@ -18,16 +18,16 @@
  */
 import React from 'react';
 import thunk from 'redux-thunk';
-import * as reactRedux from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/pages/SavedQueryList';
 import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
@@ -37,6 +37,10 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+
+// store needed for withToasts(DatabaseList)
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 const queriesInfoEndpoint = 'glob:*/api/v1/saved_query/_info*';
 const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
@@ -70,30 +74,6 @@ const mockqueries = [...new Array(3)].map((_, i) => ({
     },
   ],
 }));
-
-const user = {
-  createdOn: '2021-04-27T18:12:38.952304',
-  email: 'admin',
-  firstName: 'admin',
-  isActive: true,
-  lastName: 'admin',
-  permissions: {},
-  roles: {
-    Admin: [
-      ['can_sqllab', 'Superset'],
-      ['can_write', 'Dashboard'],
-      ['can_write', 'Chart'],
-    ],
-  },
-  userId: 1,
-  username: 'admin',
-};
-
-// store needed for withToasts(DatabaseList)
-const mockStore = configureStore([thunk]);
-const store = mockStore({ user });
-
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
 // ---------- For import testing ----------
 // Create an one more mocked query than the original mocked query array
@@ -157,15 +137,10 @@ jest.mock('src/views/CRUD/utils');
 
 describe('SavedQueryList', () => {
   const wrapper = mount(
-    <reactRedux.Provider store={store}>
+    <Provider store={store}>
       <SavedQueryList />
-    </reactRedux.Provider>,
+    </Provider>,
   );
-
-  beforeEach(() => {
-    // setup a DOM element as a render target
-    useSelectorMock.mockClear();
-  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -286,7 +261,7 @@ describe('RTL', () => {
   let isFeatureEnabledMock;
   beforeEach(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
+      .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(() => true);
     await renderAndWait();
   });

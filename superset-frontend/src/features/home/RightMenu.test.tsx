@@ -73,7 +73,7 @@ const dropdownItems = [
   },
   {
     label: 'SQL query',
-    url: '/sqllab?new=true',
+    url: '/superset/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',

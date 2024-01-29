@@ -52,7 +52,7 @@ export const getCrossFiltersConfiguration = (
     return undefined;
   }
 
-  const globalChartConfiguration = metadata.global_chart_configuration?.scope
+  const globalChartConfiguration = metadata.global_chart_configuration
     ? {
         scope: metadata.global_chart_configuration.scope,
         chartsInScope: getChartIdsInFilterScope(

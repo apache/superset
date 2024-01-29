@@ -23,16 +23,16 @@ import yaml
 from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
-from superset.commands.dashboard.export import (
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.connectors.sqla.models import SqlaTable
+from superset.dashboards.commands.exceptions import DashboardNotFoundError
+from superset.dashboards.commands.export import (
     append_charts,
     ExportDashboardsCommand,
     get_default_position,
 )
-from superset.commands.dashboard.importers import v0, v1
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.sqla.models import SqlaTable
+from superset.dashboards.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -92,16 +92,19 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description": None,
             "css": None,
             "slug": "world_health",
-            "certified_by": None,
-            "certification_details": None,
-            "published": False,
             "uuid": str(example_dashboard.uuid),
             "position": {
+                "CHART-36bfc934": {
+                    "children": [],
+                    "id": "CHART-36bfc934",
+                    "meta": {"height": 25, "sliceName": "Region Filter", "width": 2},
+                    "type": "CHART",
+                },
                 "CHART-37982887": {
                     "children": [],
                     "id": "CHART-37982887",
                     "meta": {
-                        "height": 52,
+                        "height": 25,
                         "sliceName": "World's Population",
                         "width": 2,
                     },
@@ -174,7 +177,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                     "type": "COLUMN",
                 },
                 "COLUMN-fe3914b8": {
-                    "children": ["CHART-37982887"],
+                    "children": ["CHART-36bfc934", "CHART-37982887"],
                     "id": "COLUMN-fe3914b8",
                     "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 2},
                     "type": "COLUMN",
@@ -276,9 +279,6 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "description",
             "css",
             "slug",
-            "certified_by",
-            "certification_details",
-            "published",
             "uuid",
             "position",
             "metadata",
@@ -286,16 +286,14 @@ class TestExportDashboardsCommand(SupersetTestCase):
         ]
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.commands.dashboard.export.suffix")
+    @patch("superset.dashboards.commands.export.suffix")
     def test_append_charts(self, mock_suffix):
         """Test that orphaned charts are added to the dashboard position"""
         # return deterministic IDs
         mock_suffix.side_effect = (str(i) for i in itertools.count(1))
 
         position = get_default_position("example")
-        chart_1 = (
-            db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        )
+        chart_1 = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
         new_position = append_charts(position, {chart_1})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
@@ -324,7 +322,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "World's Population",
+                    "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -371,7 +369,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "World's Population",
+                    "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -402,7 +400,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "meta": {
                     "chartId": chart_1.id,
                     "height": 50,
-                    "sliceName": "World's Population",
+                    "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
                     "width": 4,
                 },
@@ -486,7 +484,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.commands.dashboard.importers.v1.utils.g")
+    @patch("superset.dashboards.commands.importers.v1.utils.g")
     @patch("superset.security.manager.g")
     def test_import_v1_dashboard(self, sm_g, utils_g):
         """Test that we can import a dashboard"""

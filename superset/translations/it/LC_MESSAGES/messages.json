@@ -1755,6 +1755,7 @@
       ],
       "Manage": ["Gestisci"],
       "Mandatory": [""],
+      "Mangle Duplicate Columns": [""],
       "Manually set min/max values for the y-axis.": [""],
       "Map Style": [""],
       "Mapbox": ["Mapbox"],

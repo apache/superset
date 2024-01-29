@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import { FeatureFlag } from '@superset-ui/core';
 import TableElement, { Column } from 'src/SqlLab/components/TableElement';
 import { table, initialState } from 'src/SqlLab/fixtures';
@@ -140,7 +140,7 @@ test('removes the table', async () => {
   const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*';
   fetchMock.delete(updateTableSchemaEndpoint, {});
   const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
+    .spyOn(featureFlags, 'isFeatureEnabled')
     .mockImplementation(
       featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
     );

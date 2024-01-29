@@ -39,7 +39,6 @@ describe('Advanced analytics', () => {
 
     cy.get('[data-test=time_compare]')
       .find('input[type=search]')
-      .clear()
       .type('1 year{enter}');
 
     cy.get('button[data-test="run-query-button"]').click();

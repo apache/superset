@@ -48,7 +48,6 @@ if TYPE_CHECKING:
 def get_physical_table_metadata(
     database: Database,
     table_name: str,
-    normalize_columns: bool,
     schema_name: str | None = None,
 ) -> list[ResultSetColumnType]:
     """Use SQLAlchemy inspector to get table metadata"""
@@ -68,10 +67,7 @@ def get_physical_table_metadata(
     for col in cols:
         try:
             if isinstance(col["type"], TypeEngine):
-                name = col["column_name"]
-                if not normalize_columns:
-                    name = db_engine_spec.denormalize_name(db_dialect, name)
-
+                name = db_engine_spec.denormalize_name(db_dialect, col["column_name"])
                 db_type = db_engine_spec.column_datatype_to_string(
                     col["type"], db_dialect
                 )

@@ -47,7 +47,7 @@ class ImportMixin:
     uuid = sa.Column(UUIDType(binary=True), primary_key=False, default=uuid4)
 
 
-class SavedQuery(ImportMixin, Base):
+class SavedQuery(Base, ImportMixin):
     __tablename__ = "saved_query"
 
 

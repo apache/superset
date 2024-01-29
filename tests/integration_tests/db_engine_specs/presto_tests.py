@@ -925,11 +925,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_create_view_database_error(self):
         from pyhive.exc import DatabaseError
 
-        mock_execute = mock.MagicMock()
-        mock_fetch_data = mock.MagicMock(side_effect=DatabaseError())
+        mock_execute = mock.MagicMock(side_effect=DatabaseError())
         database = mock.MagicMock()
         database.get_cursor().__enter__().execute = mock_execute
-        database.get_cursor().__enter__().fetchall = mock_fetch_data
         schema = "schema"
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)

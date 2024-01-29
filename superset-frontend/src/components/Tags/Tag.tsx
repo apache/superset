@@ -31,8 +31,6 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-const MAX_DISPLAY_CHAR = 20;
-
 const Tag = ({
   name,
   id,
@@ -40,47 +38,49 @@ const Tag = ({
   onDelete = undefined,
   editable = false,
   onClick = undefined,
-  toolTipTitle = name,
 }: TagType) => {
-  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
-  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+  const isLongTag = useMemo(() => name.length > 20, [name]);
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
   const tagElem = (
     <>
       {editable ? (
-        <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag
-            key={id}
-            closable={editable}
-            onClose={handleClose}
-            color="blue"
-          >
-            {tagDisplay}
-          </StyledTag>
-        </Tooltip>
+        <StyledTag
+          key={id}
+          closable={editable}
+          onClose={handleClose}
+          color="blue"
+        >
+          {isLongTag ? `${name.slice(0, 20)}...` : name}
+        </StyledTag>
       ) : (
-        <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
-            {id ? (
-              <a
-                href={`/superset/all_entities/?id=${id}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {tagDisplay}
-              </a>
-            ) : (
-              tagDisplay
-            )}
-          </StyledTag>
-        </Tooltip>
+        <StyledTag role="link" key={id} onClick={onClick}>
+          {id ? (
+            <a
+              href={`/superset/all_entities/?tags=${name}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {isLongTag ? `${name.slice(0, 20)}...` : name}
+            </a>
+          ) : isLongTag ? (
+            `${name.slice(0, 20)}...`
+          ) : (
+            name
+          )}
+        </StyledTag>
       )}
     </>
   );
 
-  return tagElem;
+  return isLongTag ? (
+    <Tooltip title={name} key={name}>
+      {tagElem}
+    </Tooltip>
+  ) : (
+    tagElem
+  );
 };
 
 export default Tag;

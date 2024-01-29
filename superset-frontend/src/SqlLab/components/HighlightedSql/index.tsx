@@ -25,7 +25,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
-export interface HighlightedSqlProps {
+interface HighlightedSqlProps {
   sql: string;
   rawSql?: string;
   maxWidth?: number;

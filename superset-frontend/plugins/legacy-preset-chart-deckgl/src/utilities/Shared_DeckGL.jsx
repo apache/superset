@@ -25,7 +25,6 @@ import {
   isFeatureEnabled,
   t,
   validateNonEmpty,
-  validateMapboxStylesUrl,
 } from '@superset-ui/core';
 import { D3_FORMAT_OPTIONS, sharedControls } from '@superset-ui/chart-controls';
 import { columnChoices, PRIMARY_COLOR } from './controls';
@@ -40,7 +39,7 @@ const DEFAULT_VIEWPORT = {
 
 const sandboxUrl =
   'https://github.com/apache/superset/' +
-  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.ts';
+  'blob/master/superset-frontend/plugins/legacy-preset-chart-deckgl/src/utils/sandbox.js';
 const jsFunctionInfo = (
   <div>
     {t(
@@ -371,8 +370,6 @@ export const mapboxStyle = {
     label: t('Map Style'),
     clearable: false,
     renderTrigger: true,
-    freeForm: true,
-    validators: [validateMapboxStylesUrl],
     choices: [
       ['mapbox://styles/mapbox/streets-v9', t('Streets')],
       ['mapbox://styles/mapbox/dark-v9', t('Dark')],
@@ -382,10 +379,7 @@ export const mapboxStyle = {
       ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
     ],
     default: 'mapbox://styles/mapbox/light-v9',
-    description: t(
-      'Base layer map style. See Mapbox documentation: %s',
-      'https://docs.mapbox.com/help/glossary/style-url/',
-    ),
+    description: t('Base layer map style'),
   },
 };
 

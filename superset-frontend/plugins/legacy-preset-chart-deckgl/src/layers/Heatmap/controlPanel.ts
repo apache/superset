@@ -99,8 +99,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       controlSetRows: [
-        [mapboxStyle],
-        [viewport],
+        [mapboxStyle, viewport],
         ['linear_color_scheme'],
         [autozoom],
         [

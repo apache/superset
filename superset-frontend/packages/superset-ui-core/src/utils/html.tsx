@@ -28,9 +28,7 @@ export function sanitizeHtml(htmlString: string) {
 }
 
 export function isProbablyHTML(text: string) {
-  return Array.from(
-    new DOMParser().parseFromString(text, 'text/html').body.childNodes,
-  ).some(({ nodeType }) => nodeType === 1);
+  return /<[^>]+>/.test(text);
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {

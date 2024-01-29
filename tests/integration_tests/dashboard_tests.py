@@ -27,6 +27,7 @@ from sqlalchemy import func
 from tests.integration_tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -78,8 +79,8 @@ class TestDashboard(SupersetTestCase):
             hidden_dash.slices = [slice]
             hidden_dash.published = False
 
-            db.session.add(published_dash)
-            db.session.add(hidden_dash)
+            db.session.merge(published_dash)
+            db.session.merge(hidden_dash)
             yield db.session.commit()
 
             self.revoke_public_access_to_table(table)
@@ -137,6 +138,8 @@ class TestDashboard(SupersetTestCase):
         # Make the births dash published so it can be seen
         births_dash = db.session.query(Dashboard).filter_by(slug="births").one()
         births_dash.published = True
+
+        db.session.merge(births_dash)
         db.session.commit()
 
         # Try access before adding appropriate permissions.
@@ -178,6 +181,7 @@ class TestDashboard(SupersetTestCase):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
         dash.owners = [security_manager.find_user("admin")]
         dash.created_by = security_manager.find_user("admin")
+        db.session.merge(dash)
         db.session.commit()
 
         res: Response = self.client.get("/superset/dashboard/births/")
@@ -203,10 +207,12 @@ class TestDashboard(SupersetTestCase):
         dash.dashboard_title = "My Dashboard"
         dash.slug = my_dash_slug
         dash.owners = [user]
+        dash.slices = []
 
         hidden_dash = Dashboard()
         hidden_dash.dashboard_title = "Not My Dashboard"
         hidden_dash.slug = not_my_dash_slug
+        hidden_dash.slices = []
 
         db.session.add(dash)
         db.session.add(hidden_dash)
@@ -223,6 +229,44 @@ class TestDashboard(SupersetTestCase):
         self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
         self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
+    def test_users_can_view_favorited_dashboards(self):
+        user = security_manager.find_user("gamma")
+        fav_dash_slug = f"my_favorite_dash_{random()}"
+        regular_dash_slug = f"regular_dash_{random()}"
+
+        favorite_dash = Dashboard()
+        favorite_dash.dashboard_title = "My Favorite Dashboard"
+        favorite_dash.slug = fav_dash_slug
+
+        regular_dash = Dashboard()
+        regular_dash.dashboard_title = "A Plain Ol Dashboard"
+        regular_dash.slug = regular_dash_slug
+
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
+        db.session.commit()
+
+        dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
+
+        favorites = models.FavStar()
+        favorites.obj_id = dash.id
+        favorites.class_name = "Dashboard"
+        favorites.user_id = user.id
+
+        db.session.add(favorites)
+        db.session.commit()
+
+        self.login(user.username)
+
+        resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(favorites)
+        db.session.delete(regular_dash)
+        db.session.delete(favorite_dash)
+        db.session.commit()
+
+        self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
+
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
         gamma_user = security_manager.find_user("gamma")
@@ -233,6 +277,7 @@ class TestDashboard(SupersetTestCase):
         dash.dashboard_title = "My Dashboard"
         dash.slug = slug
         dash.owners = [admin_user]
+        dash.slices = []
         dash.published = False
         db.session.add(dash)
         db.session.commit()

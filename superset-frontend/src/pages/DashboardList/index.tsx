@@ -16,17 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  styled,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
-import { useSelector } from 'react-redux';
+import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   createFetchRelated,
   createErrorHandler,
@@ -57,17 +51,11 @@ import { Tooltip } from 'src/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
-import {
-  Dashboard as CRUDDashboard,
-  QueryObjectColumns,
-} from 'src/views/CRUD/types';
+import { Dashboard as CRUDDashboard } from 'src/views/CRUD/types';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { loadTags } from 'src/components/Tags/utils';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { findPermission } from 'src/utils/findPermission';
-import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -93,7 +81,7 @@ interface DashboardListProps {
   };
 }
 
-export interface Dashboard {
+interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
@@ -112,12 +100,11 @@ const Actions = styled.div`
 `;
 
 function DashboardList(props: DashboardListProps) {
-  const { addDangerToast, addSuccessToast, user } = props;
-
-  const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
-  );
-  const canReadTag = findPermission('can_read', 'Tag', roles);
+  const {
+    addDangerToast,
+    addSuccessToast,
+    user: { userId },
+  } = props;
 
   const {
     state: {
@@ -178,7 +165,7 @@ function DashboardList(props: DashboardListProps) {
   };
 
   // TODO: Fix usage of localStorage keying on the user id
-  const userKey = dangerouslyGetItemDoNotUse(user?.userId?.toString(), null);
+  const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -274,7 +261,7 @@ function DashboardList(props: DashboardListProps) {
             original: { id },
           },
         }: any) =>
-          user?.userId && (
+          userId && (
             <FaveStar
               itemId={id}
               saveFaveStar={saveFavoriteStatus}
@@ -285,7 +272,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'id',
         disableSortBy: true,
         size: 'xs',
-        hidden: !user?.userId,
+        hidden: !userId,
       },
       {
         Cell: ({
@@ -310,8 +297,19 @@ function DashboardList(props: DashboardListProps) {
             {dashboardTitle}
           </Link>
         ),
-        Header: t('Name'),
+        Header: t('Title'),
         accessor: 'dashboard_title',
+      },
+
+      {
+        Cell: ({
+          row: {
+            original: { changed_by_name: changedByName },
+          },
+        }: any) => <>{changedByName}</>,
+        Header: t('Modified by'),
+        accessor: 'changed_by.first_name',
+        size: 'xl',
       },
       {
         Cell: ({
@@ -322,6 +320,39 @@ function DashboardList(props: DashboardListProps) {
           status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
         Header: t('Status'),
         accessor: 'published',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+        Header: t('Created by'),
+        accessor: 'created_by',
+        disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { owners = [] },
+          },
+        }: any) => <FacePile users={owners} />,
+        Header: t('Owners'),
+        accessor: 'owners',
+        disableSortBy: true,
         size: 'xl',
       },
       {
@@ -348,30 +379,6 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
-      },
-      {
-        Cell: ({
-          row: {
-            original: { owners = [] },
-          },
-        }: any) => <FacePile users={owners} />,
-        Header: t('Owners'),
-        accessor: 'owners',
-        disableSortBy: true,
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: {
-              changed_on_delta_humanized: changedOn,
-              changed_by: changedBy,
-            },
-          },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
-        Header: t('Last modified'),
-        accessor: 'changed_on_delta_humanized',
-        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -456,13 +463,9 @@ function DashboardList(props: DashboardListProps) {
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },
-      {
-        accessor: QueryObjectColumns.changed_by,
-        hidden: true,
-      },
     ],
     [
-      user?.userId,
+      userId,
       canEdit,
       canDelete,
       canExport,
@@ -494,37 +497,12 @@ function DashboardList(props: DashboardListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
-        Header: t('Name'),
+        Header: t('Search'),
         key: 'search',
         id: 'dashboard_title',
         input: 'search',
         operator: FilterOperator.titleOrSlug,
       },
-      {
-        Header: t('Status'),
-        key: 'published',
-        id: 'published',
-        input: 'select',
-        operator: FilterOperator.equals,
-        unfilteredLabel: t('Any'),
-        selects: [
-          { label: t('Published'), value: true },
-          { label: t('Draft'), value: false },
-        ],
-      },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
-        ? [
-            {
-              Header: t('Tag'),
-              key: 'tags',
-              id: 'tags',
-              input: 'select',
-              operator: FilterOperator.dashboardTags,
-              unfilteredLabel: t('All'),
-              fetchSelects: loadTags,
-            },
-          ]
-        : []),
       {
         Header: t('Owner'),
         key: 'owner',
@@ -547,7 +525,41 @@ function DashboardList(props: DashboardListProps) {
         ),
         paginate: true,
       },
-      ...(user?.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Created by'),
+        key: 'created_by',
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'dashboard',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching dashboard created by values: %s',
+                errMsg,
+              ),
+            ),
+          ),
+          props.user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Status'),
+        key: 'published',
+        id: 'published',
+        input: 'select',
+        operator: FilterOperator.equals,
+        unfilteredLabel: t('Any'),
+        selects: [
+          { label: t('Published'), value: true },
+          { label: t('Draft'), value: false },
+        ],
+      },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
         key: 'certified',
@@ -561,27 +573,18 @@ function DashboardList(props: DashboardListProps) {
           { label: t('No'), value: false },
         ],
       },
-      {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'dashboard',
-          'changed_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
-      },
     ] as Filters;
+    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+      filters_list.push({
+        Header: t('Tags'),
+        key: 'tags',
+        id: 'tags',
+        input: 'select',
+        operator: FilterOperator.dashboardTags,
+        unfilteredLabel: t('All'),
+        fetchSelects: loadTags,
+      });
+    }
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 
@@ -617,7 +620,7 @@ function DashboardList(props: DashboardListProps) {
             ? userKey.thumbnails
             : isFeatureEnabled(FeatureFlag.THUMBNAILS)
         }
-        userId={user?.userId}
+        userId={userId}
         loading={loading}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
@@ -631,7 +634,7 @@ function DashboardList(props: DashboardListProps) {
       favoriteStatus,
       hasPerm,
       loading,
-      user?.userId,
+      userId,
       saveFavoriteStatus,
       userKey,
     ],
@@ -728,7 +731,7 @@ function DashboardList(props: DashboardListProps) {
                       addSuccessToast,
                       addDangerToast,
                       undefined,
-                      user?.userId,
+                      userId,
                     );
                     setDashboardToDelete(null);
                   }}
@@ -747,13 +750,10 @@ function DashboardList(props: DashboardListProps) {
                 data={dashboards}
                 disableBulkSelect={toggleBulkSelect}
                 fetchData={fetchData}
-                refreshData={refreshData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
                 pageSize={PAGE_SIZE}
-                addSuccessToast={addSuccessToast}
-                addDangerToast={addDangerToast}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
@@ -765,8 +765,6 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag
-                bulkTagResourceName="dashboard"
               />
             </>
           );

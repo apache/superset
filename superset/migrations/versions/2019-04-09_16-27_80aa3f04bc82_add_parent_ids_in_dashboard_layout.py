@@ -80,6 +80,7 @@ def upgrade():
             dashboard.position_json = json.dumps(
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
+            session.merge(dashboard)
         except Exception as ex:
             logging.exception(ex)
 
@@ -109,6 +110,7 @@ def downgrade():
             dashboard.position_json = json.dumps(
                 layout, indent=None, separators=(",", ":"), sort_keys=True
             )
+            session.merge(dashboard)
         except Exception as ex:
             logging.exception(ex)
 

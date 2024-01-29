@@ -71,12 +71,6 @@ interface TableSize {
   height: number;
 }
 
-const ACTION_KEYS = {
-  enter: 'Enter',
-  spacebar: 'Spacebar',
-  space: ' ',
-};
-
 /**
  * Return sortType based on data type
  */
@@ -415,15 +409,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const {
-        key,
-        label,
-        isNumeric,
-        dataType,
-        isMetric,
-        isPercentMetric,
-        config = {},
-      } = column;
+      const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -452,7 +438,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
-        (isMetric || isRawRecords || isPercentMetric) &&
+        (isMetric || isRawRecords) &&
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
@@ -475,10 +461,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
-                const formatterResult =
-                  value || value === 0
-                    ? formatter.getColorFromValue(value as number)
-                    : false;
+                const formatterResult = value
+                  ? formatter.getColorFromValue(value as number)
+                  : false;
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }
@@ -596,13 +581,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             style={{
               ...sharedStyle,
               ...style,
-            }}
-            tabIndex={0}
-            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
-              // programatically sort column on keypress
-              if (Object.values(ACTION_KEYS).includes(e.key)) {
-                col.toggleSortBy();
-              }
             }}
             onClick={onClick}
             data-column-name={col.id}

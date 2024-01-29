@@ -92,14 +92,14 @@ export class TableRenderer extends React.Component {
 
     const colSubtotalDisplay = {
       displayOnTop: false,
-      enabled: tableOptions.colSubTotals,
+      enabled: rowTotals,
       hideOnExpand: false,
       ...subtotalOptions.colSubtotalDisplay,
     };
 
     const rowSubtotalDisplay = {
       displayOnTop: false,
-      enabled: tableOptions.rowSubTotals,
+      enabled: colTotals,
       hideOnExpand: false,
       ...subtotalOptions.rowSubtotalDisplay,
     };

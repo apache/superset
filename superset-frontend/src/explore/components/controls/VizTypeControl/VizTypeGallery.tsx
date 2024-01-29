@@ -101,7 +101,6 @@ const DEFAULT_ORDER = [
   'cal_heatmap',
   'rose',
   'bubble',
-  'bubble_v2',
   'deck_geojson',
   'horizon',
   'deck_multi',
@@ -854,7 +853,6 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             <Examples>
               {(selectedVizMetadata?.exampleGallery || []).map(example => (
                 <img
-                  key={example.url}
                   src={example.url}
                   alt={example.caption}
                   title={example.caption}

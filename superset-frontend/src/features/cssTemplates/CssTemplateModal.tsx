@@ -105,9 +105,6 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
-        delete currentCssTemplate.changed_by;
-        delete currentCssTemplate.changed_on_delta_humanized;
-
         updateResource(update_id, currentCssTemplate).then(response => {
           if (!response) {
             return;
@@ -238,7 +235,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('Name')}
+          {t('CSS template name')}
           <span className="required">*</span>
         </div>
         <input

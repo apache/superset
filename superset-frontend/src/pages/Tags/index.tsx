@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState } from 'react';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { FeatureFlag, t } from '@superset-ui/core';
+import React, { useMemo, useCallback } from 'react';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
-  Actions,
-  createErrorHandler,
   createFetchRelated,
+  createErrorHandler,
+  Actions,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -35,13 +36,28 @@ import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import FacePile from 'src/components/FacePile';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
 import { Tag as AntdTag } from 'antd';
-import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
-import TagModal from 'src/features/tags/TagModal';
+import { Tag } from 'src/views/CRUD/types';
+import TagCard from 'src/features/tags/TagCard';
 import FaveStar from 'src/components/FaveStar';
-import { ModifiedInfo } from 'src/components/AuditInfo';
+
+const emptyState = {
+  title: t('No Tags created'),
+  image: 'dashboard.svg',
+  description:
+    'Create a new tag and assign it to existing entities like charts or dashboards',
+  buttonAction: () => {},
+  // todo(hughhh): Add this back once Tag modal is functional
+  // buttonText: (
+  //   <>
+  //     <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
+  //     {'Create a new Tag'}{' '}
+  //   </>
+  // ),
+};
 
 const PAGE_SIZE = 25;
 
@@ -56,8 +72,11 @@ interface TagListProps {
 }
 
 function TagList(props: TagListProps) {
-  const { addDangerToast, addSuccessToast, user } = props;
-  const { userId } = user;
+  const {
+    addDangerToast,
+    addSuccessToast,
+    user: { userId },
+  } = props;
 
   const {
     state: {
@@ -72,8 +91,6 @@ function TagList(props: TagListProps) {
     refreshData,
   } = useListViewResource<Tag>('tag', t('tag'), addDangerToast);
 
-  const [showTagModal, setShowTagModal] = useState<boolean>(false);
-  const [tagToEdit, setTagToEdit] = useState<Tag | null>(null);
   const tagIds = useMemo(() => tags.map(c => c.id), [tags]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'tag',
@@ -85,42 +102,18 @@ function TagList(props: TagListProps) {
   const userKey = dangerouslyGetItemDoNotUse(userId?.toString(), null);
 
   const canDelete = hasPerm('can_write');
-  const canEdit = hasPerm('can_write');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleTagsDelete(tags: Tag[]) {
-    deleteTags(
-      tags,
-      (msg: string) => {
-        addSuccessToast(msg);
-        refreshData();
-      },
-      msg => {
-        addDangerToast(msg);
-        refreshData();
-      },
-    );
+  function handleTagsDelete(
+    tags: Tag[],
+    callback: (text: string) => void,
+    error: (text: string) => void,
+  ) {
+    // TODO what permissions need to be checked here?
+    deleteTags(tags, callback, error);
+    refreshData();
   }
-
-  const handleTagEdit = (tag: Tag) => {
-    setShowTagModal(true);
-    setTagToEdit(tag);
-  };
-
-  const emptyState = {
-    title: t('No Tags created'),
-    image: 'dashboard.svg',
-    description:
-      'Create a new tag and assign it to existing entities like charts or dashboards',
-    buttonAction: () => setShowTagModal(true),
-    buttonText: (
-      <>
-        <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
-        {'Create a new Tag'}{' '}
-      </>
-    ),
-  };
 
   const columns = useMemo(
     () => [
@@ -146,11 +139,13 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: { id, name: tagName },
+            original: { name: tagName },
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
+            <Link to={`/superset/all_entities/?tags=${tagName}`}>
+              {tagName}
+            </Link>
           </AntdTag>
         ),
         Header: t('Name'),
@@ -159,19 +154,28 @@ function TagList(props: TagListProps) {
       {
         Cell: ({
           row: {
-            original: {
-              changed_on_delta_humanized: changedOn,
-              changed_by: changedBy,
-            },
+            original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
-        Header: t('Last modified'),
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) => (createdBy ? <FacePile users={[createdBy]} /> : ''),
+        Header: t('Created by'),
+        accessor: 'created_by',
+        disableSortBy: true,
+        size: 'xl',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleTagEdit(original);
+          const handleDelete = () =>
+            handleTagsDelete([original], addSuccessToast, addDangerToast);
           return (
             <Actions className="actions">
               {canDelete && (
@@ -183,7 +187,7 @@ function TagList(props: TagListProps) {
                       <b>{original.dashboard_title}</b>?
                     </>
                   }
-                  onConfirm={() => handleTagsDelete([original])}
+                  onConfirm={handleDelete}
                 >
                   {confirmDelete => (
                     <Tooltip
@@ -203,22 +207,6 @@ function TagList(props: TagListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
-              {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditAlt data-test="edit-alt" />
-                  </span>
-                </Tooltip>
-              )}
             </Actions>
           );
         },
@@ -227,10 +215,6 @@ function TagList(props: TagListProps) {
         hidden: !canDelete,
         disableSortBy: true,
       },
-      {
-        accessor: QueryObjectColumns.changed_by,
-        hidden: true,
-      },
     ],
     [userId, canDelete, refreshData, addSuccessToast, addDangerToast],
   );
@@ -238,30 +222,31 @@ function TagList(props: TagListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
-        Header: t('Name'),
-        id: 'name',
-        input: 'search',
-        operator: FilterOperator.contains,
-      },
-      {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
+        Header: t('Created by'),
+        id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'tag',
-          'changed_by',
+          'created_by',
           createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
+            addDangerToast(
+              t(
+                'An error occurred while fetching tag created by values: %s',
+                errMsg,
+              ),
             ),
           ),
-          user,
+          props.user,
         ),
         paginate: true,
+      },
+      {
+        Header: t('Search'),
+        id: 'name',
+        input: 'search',
+        operator: FilterOperator.contains,
       },
     ] as Filters;
     return filters_list;
@@ -288,8 +273,37 @@ function TagList(props: TagListProps) {
     },
   ];
 
-  const subMenuButtons: SubMenuProps['buttons'] = [];
+  const renderCard = useCallback(
+    (tag: Tag) => (
+      <TagCard
+        tag={tag}
+        hasPerm={hasPerm}
+        bulkSelectEnabled={bulkSelectEnabled}
+        refreshData={refreshData}
+        showThumbnails={
+          userKey
+            ? userKey.thumbnails
+            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+        }
+        userId={userId}
+        loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+      />
+    ),
+    [
+      addDangerToast,
+      addSuccessToast,
+      bulkSelectEnabled,
+      hasPerm,
+      loading,
+      userId,
+      refreshData,
+      userKey,
+    ],
+  );
 
+  const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
@@ -299,35 +313,11 @@ function TagList(props: TagListProps) {
     });
   }
 
-  // render new 'New Tag' btn
-  subMenuButtons.push({
-    name: (
-      <>
-        <i className="fa fa-plus" /> {t('Tag')}
-      </>
-    ),
-    buttonStyle: 'primary',
-    'data-test': 'bulk-select',
-    onClick: () => setShowTagModal(true),
-  });
-
   const handleBulkDelete = (tagsToDelete: Tag[]) =>
-    handleTagsDelete(tagsToDelete);
+    handleTagsDelete(tagsToDelete, addSuccessToast, addDangerToast);
 
   return (
     <>
-      <TagModal
-        show={showTagModal}
-        onHide={() => {
-          setShowTagModal(false);
-          setTagToEdit(null);
-        }}
-        editTag={tagToEdit}
-        refreshData={refreshData}
-        addSuccessToast={addSuccessToast}
-        addDangerToast={addDangerToast}
-        clearOnHide
-      />
       <SubMenu name={t('Tags')} buttons={subMenuButtons} />
       <ConfirmStatusChange
         title={t('Please confirm')}
@@ -350,25 +340,23 @@ function TagList(props: TagListProps) {
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}
-                className="tags-list-view"
+                className="dashboard-list-view"
                 columns={columns}
                 count={tagCount}
-                data={tags}
+                data={tags.filter(tag => !tag.name.includes(':'))}
                 disableBulkSelect={toggleBulkSelect}
-                refreshData={refreshData}
                 emptyState={emptyState}
                 fetchData={fetchData}
                 filters={filters}
                 initialSort={initialSort}
                 loading={loading}
-                addDangerToast={addDangerToast}
-                addSuccessToast={addSuccessToast}
                 pageSize={PAGE_SIZE}
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
                     : isFeatureEnabled(FeatureFlag.THUMBNAILS)
                 }
+                renderCard={renderCard}
                 defaultViewMode={
                   isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
                     ? 'card'

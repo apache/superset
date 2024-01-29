@@ -22,7 +22,6 @@ import Button from 'src/components/Button';
 import {
   FeatureFlag,
   isDefined,
-  isFeatureEnabled,
   Metric,
   styled,
   SupersetClient,
@@ -31,11 +30,11 @@ import {
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import { SupersetError } from 'src/components/ErrorMessage/types';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { isFeatureEnabled } from 'src/featureFlags';
+
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -130,8 +129,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         schema,
         description: currentDatasource.description,
         main_dttm_col: currentDatasource.main_dttm_col,
-        normalize_columns: currentDatasource.normalize_columns,
-        always_filter_main_dttm: currentDatasource.always_filter_main_dttm,
         offset: currentDatasource.offset,
         default_endpoint: currentDatasource.default_endpoint,
         cache_timeout:
@@ -205,26 +202,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       })
       .catch(response => {
         setIsSaving(false);
-        getClientErrorObject(response).then(error => {
-          let errorResponse: SupersetError | undefined;
-          let errorText: string | undefined;
-          // sip-40 error response
-          if (error?.errors?.length) {
-            errorResponse = error.errors[0];
-          } else if (typeof error.error === 'string') {
-            // backward compatible with old error messages
-            errorText = error.error;
-          }
+        getClientErrorObject(response).then(({ error }) => {
           modal.error({
-            title: t('Error saving dataset'),
+            title: t('Error'),
+            content: error || t('An error has occurred'),
             okButtonProps: { danger: true, className: 'btn-danger' },
-            content: (
-              <ErrorMessageWithStackTrace
-                error={errorResponse}
-                source="crud"
-                fallback={errorText}
-              />
-            ),
           });
         });
       });

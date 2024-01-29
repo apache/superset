@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   styled,
@@ -31,12 +30,9 @@ import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
+import { isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import {
-  createErrorHandler,
-  createFetchRelated,
-  uploadUserPerms,
-} from 'src/views/CRUD/utils';
+import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -52,8 +48,6 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
-import { ModifiedInfo } from 'src/components/AuditInfo';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -73,11 +67,6 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-    firstName: string;
-    lastName: string;
-  };
 }
 
 const IconCheck = styled(Icons.Check)`
@@ -101,11 +90,7 @@ function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconCheck /> : <IconCancelX />;
 }
 
-function DatabaseList({
-  addDangerToast,
-  addSuccessToast,
-  user,
-}: DatabaseListProps) {
+function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const {
     state: {
       loading,
@@ -120,7 +105,7 @@ function DatabaseList({
     t('database'),
     addDangerToast,
   );
-  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
+  const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
@@ -138,11 +123,11 @@ function DatabaseList({
     null,
   );
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
-  const isAdmin = isUserAdmin(fullUser);
+  const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
 
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const { roles } = fullUser;
+  const { roles } = user;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -328,7 +313,7 @@ function DatabaseList({
     () => [
       {
         accessor: 'database_name',
-        Header: t('Name'),
+        Header: t('Database'),
       },
       {
         accessor: 'backend',
@@ -395,14 +380,23 @@ function DatabaseList({
         size: 'md',
       },
       {
+        accessor: 'created_by',
+        disableSortBy: true,
+        Header: t('Created by'),
         Cell: ({
           row: {
-            original: {
-              changed_by: changedBy,
-              changed_on_delta_humanized: changedOn,
-            },
+            original: { created_by: createdBy },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        }: any) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => changedOn,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -476,23 +470,12 @@ function DatabaseList({
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
-      {
-        accessor: QueryObjectColumns.changed_by,
-        hidden: true,
-      },
     ],
     [canDelete, canEdit, canExport],
   );
 
   const filters: Filters = useMemo(
     () => [
-      {
-        Header: t('Name'),
-        key: 'search',
-        id: 'database_name',
-        input: 'search',
-        operator: FilterOperator.contains,
-      },
       {
         Header: t('Expose in SQL Lab'),
         key: 'expose_in_sql_lab',
@@ -526,24 +509,11 @@ function DatabaseList({
         ],
       },
       {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
-        input: 'select',
-        operator: FilterOperator.relationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'database',
-          'changed_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
-          ),
-          user,
-        ),
-        paginate: true,
+        Header: t('Search'),
+        key: 'search',
+        id: 'database_name',
+        input: 'search',
+        operator: FilterOperator.contains,
       },
     ],
     [],
@@ -600,9 +570,6 @@ function DatabaseList({
         filters={filters}
         initialSort={initialSort}
         loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
 

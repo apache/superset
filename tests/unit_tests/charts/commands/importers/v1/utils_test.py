@@ -17,7 +17,7 @@
 
 import json
 
-from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.charts.commands.importers.v1.utils import migrate_chart
 
 
 def test_migrate_chart_area() -> None:
@@ -31,21 +31,12 @@ def test_migrate_chart_area() -> None:
         "description": None,
         "certified_by": None,
         "certification_details": None,
-        "viz_type": "echarts_area",
-        "query_context": None,
+        "viz_type": "area",
         "params": json.dumps(
             {
-                "adhoc_filters": [
-                    {
-                        "clause": "WHERE",
-                        "subject": "ds",
-                        "operator": "TEMPORAL_RANGE",
-                        "comparator": "No filter",
-                        "expressionType": "SIMPLE",
-                    }
-                ],
+                "adhoc_filters": [],
                 "annotation_layers": [],
-                "x_axis_title_margin": "auto",
+                "bottom_margin": "auto",
                 "color_scheme": "supersetColors",
                 "comparison_type": "values",
                 "dashboards": [],

@@ -287,7 +287,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">
-          {t('Name')}
+          {t('Annotation name')}
           <span className="required">*</span>
         </div>
         <input

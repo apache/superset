@@ -32,12 +32,12 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
 )
 from tests.integration_tests.test_app import app
-from superset.commands.dashboard.importers.v0 import decode_dashboards
+from superset.dashboards.commands.importers.v0 import decode_dashboards
 from superset import db, security_manager
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.commands.dashboard.importers.v0 import import_chart, import_dashboard
-from superset.commands.dataset.importers.v0 import import_dataset
+from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
+from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
@@ -117,16 +117,12 @@ class TestImportExport(SupersetTestCase):
             position_json='{"size_y": 2, "size_x": 2}',
             slug=f"{title.lower()}_imported",
             json_metadata=json.dumps(json_metadata),
-            published=False,
         )
 
     def create_table(self, name, schema=None, id=0, cols_names=[], metric_names=[]):
         params = {"remote_id": id, "database_name": "examples"}
         table = SqlaTable(
-            id=id,
-            schema=schema,
-            table_name=name,
-            params=json.dumps(params),
+            id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
         for col_name in cols_names:
             table.columns.append(TableColumn(column_name=col_name))

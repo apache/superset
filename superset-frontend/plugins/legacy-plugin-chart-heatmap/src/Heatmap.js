@@ -99,16 +99,9 @@ function Heatmap(element, props) {
     xScaleInterval,
     yScaleInterval,
     yAxisBounds,
-    xAxisFormatter,
-    yAxisFormatter,
   } = props;
 
-  const { extents } = data;
-  const records = data.records.map(record => ({
-    ...record,
-    x: xAxisFormatter(record.x),
-    y: yAxisFormatter(record.y),
-  }));
+  const { records, extents } = data;
 
   const margin = {
     top: 10,

@@ -109,7 +109,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     filter-box charts whereas native hierarchical filters are defined via explicit
     parental relationships, i.e., the inverse.
 
-    :param json_metadata: The dashboard metadata
+    :param json_metata: The dashboard metadata
     :param position_json: The dashboard layout
     :param filter_boxes: The filter-box charts associated with the dashboard
     :returns: The native filter configuration
@@ -142,7 +142,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
             **(filter_scopes.get(key, {})),
         }
 
-    # Construct the native filters.
+    # Contruct the native filters.
     for filter_box in filter_boxes:
         key = str(filter_box.id)
         params = json.loads(filter_box.params or "{}")
@@ -298,16 +298,13 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
 
     for filter_box in filter_boxes:
         for value in position_json.values():
-            try:
-                if (
-                    isinstance(value, dict)
-                    and value["type"] == "CHART"
-                    and value["meta"]["chartId"] == filter_box.id
-                    and value["parents"]  # Misnomer as this the complete ancestry.
-                ):
-                    ancestors_by_id[filter_box.id] = set(value["parents"])
-            except KeyError:
-                pass
+            if (
+                isinstance(value, dict)
+                and value["type"] == "CHART"
+                and value["meta"]["chartId"] == filter_box.id
+                and value["parents"]  # Misnomer as this the the complete ancestry.
+            ):
+                ancestors_by_id[filter_box.id] = set(value["parents"])
 
     # Wire up the hierarchical filters.
     for this in filter_boxes:

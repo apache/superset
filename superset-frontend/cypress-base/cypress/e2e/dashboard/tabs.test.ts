@@ -25,6 +25,7 @@ import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
+const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
 const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
@@ -40,6 +41,7 @@ function topLevelTabs() {
 function resetTabs() {
   topLevelTabs();
   cy.get('@top-level-tabs').first().click();
+  waitForChartLoad(FILTER_BOX);
   waitForChartLoad(TREEMAP);
   waitForChartLoad(BIG_NUMBER);
   waitForChartLoad(TABLE);
@@ -94,6 +96,7 @@ describe('Dashboard tabs', () => {
 
   it.skip('should send new queries when tab becomes visible', () => {
     // landing in first tab
+    waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);
 
     getChartAliasBySpec(TREEMAP).then(treemapAlias => {

@@ -20,32 +20,32 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
-  buildCustomFormatters,
   CategoricalColorNamespace,
-  CurrencyFormatter,
-  ensureIsArray,
   GenericDataType,
-  getCustomFormatter,
   getNumberFormatter,
-  getXAxisLabel,
-  isDefined,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
-  isPhysicalColumn,
   isTimeseriesAnnotationLayer,
   QueryFormData,
-  QueryFormMetric,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
+  getXAxisLabel,
+  isPhysicalColumn,
+  isDefined,
+  ensureIsArray,
+  buildCustomFormatters,
   ValueFormatter,
+  QueryFormMetric,
+  getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import { getOriginalSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA,
-  EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesFormData,
+  EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesProps,
 } from './types';
 import {
@@ -53,17 +53,16 @@ import {
   ForecastSeriesEnum,
   Refs,
 } from '../types';
-import { parseAxisBound } from '../utils/controls';
+import { parseYAxisBound } from '../utils/controls';
 import {
+  getOverMaxHiddenFormatter,
   dedupSeries,
-  extractDataTotalValues,
   extractSeries,
-  extractShowValueIndexes,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
-  getMinAndMaxFromBounds,
-  getOverMaxHiddenFormatter,
+  extractDataTotalValues,
+  extractShowValueIndexes,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -79,19 +78,17 @@ import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
+  getTooltipTimeFormatter,
+  getXAxisFormatter,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
+import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  getTooltipTimeFormatter,
-  getXAxisFormatter,
-  getYAxisFormatter,
-} from '../utils/formatters';
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -160,7 +157,6 @@ export default function transformProps(
     opacity,
     opacityB,
     minorSplitLine,
-    minorTicks,
     seriesType,
     seriesTypeB,
     showLegend,
@@ -168,7 +164,6 @@ export default function transformProps(
     showValueB,
     stack,
     stackB,
-    truncateXAxis,
     truncateYAxis,
     tooltipTimeFormat,
     yAxisFormat,
@@ -184,7 +179,6 @@ export default function transformProps(
     zoomable,
     richTooltip,
     tooltipSortByMetric,
-    xAxisBounds,
     xAxisLabelRotation,
     groupby,
     groupbyB,
@@ -227,7 +221,7 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisDataType);
+  const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
@@ -349,10 +343,9 @@ export default function transformProps(
     });
 
   // yAxisBounds need to be parsed to replace incompatible values with undefined
-  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
-  let [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
+  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
   let [minSecondary, maxSecondary] = (yAxisBoundsSecondary || []).map(
-    parseAxisBound,
+    parseYAxisBound,
   );
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
@@ -391,7 +384,7 @@ export default function transformProps(
         formatter:
           seriesType === EchartsTimeseriesSeriesType.Bar
             ? getOverMaxHiddenFormatter({
-                max: yAxisMax,
+                max,
                 formatter: seriesFormatter,
               })
             : seriesFormatter,
@@ -452,8 +445,8 @@ export default function transformProps(
 
   // default to 0-100% range when doing row-level contribution chart
   if (contributionMode === 'row' && stack) {
-    if (yAxisMin === undefined) yAxisMin = 0;
-    if (yAxisMax === undefined) yAxisMax = 1;
+    if (min === undefined) min = 0;
+    if (max === undefined) max = 1;
     if (minSecondary === undefined) minSecondary = 0;
     if (maxSecondary === undefined) maxSecondary = 1;
   }
@@ -500,29 +493,18 @@ export default function transformProps(
         formatter: xAxisFormatter,
         rotate: xAxisLabelRotation,
       },
-      minorTick: { show: minorTicks },
       minInterval:
         xAxisType === 'time' && timeGrainSqla
           ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
           : 0,
-      ...getMinAndMaxFromBounds(
-        xAxisType,
-        truncateXAxis,
-        xAxisMin,
-        xAxisMax,
-        seriesType === EchartsTimeseriesSeriesType.Bar ||
-          seriesTypeB === EchartsTimeseriesSeriesType.Bar
-          ? EchartsTimeseriesSeriesType.Bar
-          : undefined,
-      ),
     },
     yAxis: [
       {
         ...defaultYAxis,
         type: logAxis ? 'log' : 'value',
-        min: yAxisMin,
-        max: yAxisMax,
-        minorTick: { show: minorTicks },
+        min,
+        max,
+        minorTick: { show: true },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {
           formatter: getYAxisFormatter(
@@ -543,7 +525,7 @@ export default function transformProps(
         type: logAxisSecondary ? 'log' : 'value',
         min: minSecondary,
         max: maxSecondary,
-        minorTick: { show: minorTicks },
+        minorTick: { show: true },
         splitLine: { show: false },
         minorSplitLine: { show: minorSplitLine },
         axisLabel: {

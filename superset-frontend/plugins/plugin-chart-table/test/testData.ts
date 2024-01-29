@@ -21,7 +21,6 @@ import {
   ChartProps,
   DatasourceType,
   GenericDataType,
-  QueryMode,
   supersetTheme,
 } from '@superset-ui/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
@@ -174,33 +173,6 @@ const advanced: TableChartProps = {
   ],
 };
 
-const raw = {
-  ...advanced,
-  rawFormData: {
-    ...advanced.rawFormData,
-    query_mode: QueryMode.raw,
-    columns: ['num'],
-  },
-  queriesData: [
-    {
-      ...basicQueryResult,
-      colnames: ['num'],
-      coltypes: [GenericDataType.NUMERIC],
-      data: [
-        {
-          num: 1234,
-        },
-        {
-          num: 10000,
-        },
-        {
-          num: 0,
-        },
-      ],
-    },
-  ],
-};
-
 const advancedWithCurrency = {
   ...advanced,
   datasource: {
@@ -226,5 +198,4 @@ export default {
   advanced,
   advancedWithCurrency,
   empty,
-  raw,
 };

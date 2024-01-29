@@ -18,7 +18,6 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useHistory } from 'react-router-dom';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
@@ -28,12 +27,8 @@ import {
   QueryState,
   styled,
   t,
-  tn,
   useTheme,
   usePrevious,
-  css,
-  getNumberFormatter,
-  getExtensionsRegistry,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -47,9 +42,6 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
-import Card from 'src/components/Card';
-import Label from 'src/components/Label';
-import { Tooltip } from 'src/components/Tooltip';
 import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -63,7 +55,6 @@ import {
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
 import { URL_PARAMS } from 'src/constants';
-import Icons from 'src/components/Icons';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -85,7 +76,6 @@ export interface ResultSetProps {
   query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
-  showSqlInline?: boolean;
   visualize?: boolean;
   user: UserWithPermissionsAndRoles;
   defaultQueryLimit: number;
@@ -120,7 +110,7 @@ const MonospaceDiv = styled.div`
 
 const ReturnedRows = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  line-height: 1;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
 const ResultSetControls = styled.div`
@@ -134,10 +124,10 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const ROWS_CHIP_WIDTH = 100;
-const GAP = 8;
-
-const extensionsRegistry = getExtensionsRegistry();
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
 
 const ResultSet = ({
   cache = false,
@@ -148,21 +138,16 @@ const ResultSet = ({
   query,
   search = true,
   showSql = false,
-  showSqlInline = false,
   visualize = true,
   user,
   defaultQueryLimit,
 }: ResultSetProps) => {
-  const ResultTable =
-    extensionsRegistry.get('sqleditor.extension.resultTable') ??
-    FilterableTable;
   const theme = useTheme();
   const [searchText, setSearchText] = useState('');
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
 
-  const history = useHistory();
   const dispatch = useDispatch();
 
   const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
@@ -217,10 +202,8 @@ const ResultSet = ({
     setSearchText(event.target.value);
   };
 
-  const createExploreResultsOnClick = async (clickEvent: React.MouseEvent) => {
+  const createExploreResultsOnClick = async () => {
     const { results } = query;
-
-    const openInNewWindow = clickEvent.metaKey;
 
     if (results?.query_id) {
       const key = await postFormData(results.query_id, 'query', {
@@ -233,11 +216,7 @@ const ResultSet = ({
       const url = mountExploreUrl(null, {
         [URL_PARAMS.formDataKey.name]: key,
       });
-      if (openInNewWindow) {
-        window.open(url, '_blank', 'noreferrer');
-      } else {
-        history.push(url);
-      }
+      window.open(url, '_blank', 'noreferrer');
     } else {
       addDangerToast(t('Unable to create chart without a query id.'));
     }
@@ -315,9 +294,9 @@ const ResultSet = ({
     return <div />;
   };
 
-  const renderRowsReturned = (alertMessage: boolean) => {
+  const renderRowsReturned = () => {
     const { results, rows, queryLimit, limitingFactor } = query;
-    let limitMessage = '';
+    let limitMessage;
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
     const isAdmin = !!user?.roles?.Admin;
@@ -360,77 +339,49 @@ const ResultSet = ({
         { rows },
       );
     }
-    const formattedRowCount = getNumberFormatter()(rows);
+
     const rowsReturnedMessage = t('%(rows)d rows returned', {
       rows,
     });
 
     const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
 
-    if (alertMessage) {
-      return (
-        <>
-          {!limitReached && shouldUseDefaultDropdownAlert && (
-            <div ref={calculateAlertRefHeight}>
-              <Alert
-                type="warning"
-                message={t('%(rows)d rows returned', { rows })}
-                onClose={() => setAlertIsOpen(false)}
-                description={t(
-                  'The number of rows displayed is limited to %(rows)d by the dropdown.',
-                  { rows },
-                )}
-              />
-            </div>
-          )}
-          {limitReached && (
-            <div ref={calculateAlertRefHeight}>
-              <Alert
-                type="warning"
-                onClose={() => setAlertIsOpen(false)}
-                message={t('%(rows)d rows returned', { rows: rowsCount })}
-                description={
-                  isAdmin
-                    ? displayMaxRowsReachedMessage.withAdmin
-                    : displayMaxRowsReachedMessage.withoutAdmin
-                }
-              />
-            </div>
-          )}
-        </>
-      );
-    }
-    const showRowsReturned =
-      showSqlInline || (!limitReached && !shouldUseDefaultDropdownAlert);
-
     return (
-      <>
-        {showRowsReturned && (
-          <ReturnedRows>
-            <Tooltip
-              id="sqllab-rowcount-tooltip"
-              title={tooltipText}
-              placement="left"
-            >
-              <Label
-                css={css`
-                  line-height: ${theme.typography.sizes.l}px;
-                `}
-              >
-                {limitMessage && (
-                  <Icons.ExclamationCircleOutlined
-                    css={css`
-                      font-size: ${theme.typography.sizes.m}px;
-                      margin-right: ${theme.gridUnit}px;
-                    `}
-                  />
-                )}
-                {tn('%s row', '%s rows', rows, formattedRowCount)}
-              </Label>
-            </Tooltip>
-          </ReturnedRows>
+      <ReturnedRows>
+        {!limitReached && !shouldUseDefaultDropdownAlert && (
+          <span title={tooltipText}>
+            {rowsReturnedMessage}
+            <LimitMessage>{limitMessage}</LimitMessage>
+          </span>
         )}
-      </>
+        {!limitReached && shouldUseDefaultDropdownAlert && (
+          <div ref={calculateAlertRefHeight}>
+            <Alert
+              type="warning"
+              message={t('%(rows)d rows returned', { rows })}
+              onClose={() => setAlertIsOpen(false)}
+              description={t(
+                'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                { rows },
+              )}
+            />
+          </div>
+        )}
+        {limitReached && (
+          <div ref={calculateAlertRefHeight}>
+            <Alert
+              type="warning"
+              onClose={() => setAlertIsOpen(false)}
+              message={t('%(rows)d rows returned', { rows: rowsCount })}
+              description={
+                isAdmin
+                  ? displayMaxRowsReachedMessage.withAdmin
+                  : displayMaxRowsReachedMessage.withoutAdmin
+              }
+            />
+          </div>
+        )}
+      </ReturnedRows>
     );
   };
 
@@ -462,12 +413,7 @@ const ResultSet = ({
   }
 
   if (showSql) {
-    sql = (
-      <HighlightedSql
-        sql={query.sql}
-        {...(showSqlInline && { maxLines: 1, maxWidth: 60 })}
-      />
-    );
+    sql = <HighlightedSql sql={query.sql} />;
   }
 
   if (query.state === QueryState.STOPPED) {
@@ -555,46 +501,10 @@ const ResultSet = ({
       return (
         <ResultContainer>
           {renderControls()}
-          {showSql && showSqlInline ? (
-            <>
-              <div
-                css={css`
-                  display: flex;
-                  justify-content: space-between;
-                  gap: ${GAP}px;
-                `}
-              >
-                <Card
-                  css={[
-                    css`
-                      height: 28px;
-                      width: calc(100% - ${ROWS_CHIP_WIDTH + GAP}px);
-                      code {
-                        width: 100%;
-                        overflow: hidden;
-                        white-space: nowrap !important;
-                        text-overflow: ellipsis;
-                        display: block;
-                      }
-                    `,
-                  ]}
-                >
-                  {sql}
-                </Card>
-                {renderRowsReturned(false)}
-              </div>
-              {renderRowsReturned(true)}
-            </>
-          ) : (
-            <>
-              {renderRowsReturned(false)}
-              {renderRowsReturned(true)}
-              {sql}
-            </>
-          )}
-          <ResultTable
+          {renderRowsReturned()}
+          {sql}
+          <FilterableTable
             data={data}
-            queryId={query.id}
             orderedColumnKeys={results.columns.map(col => col.column_name)}
             height={rowsHeight}
             filterText={searchText}

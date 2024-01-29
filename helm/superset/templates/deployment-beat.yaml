@@ -42,7 +42,6 @@ spec:
     metadata:
       annotations:
         checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
-        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
@@ -120,9 +119,6 @@ spec:
             {{- else }}
               {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
-        {{- if .Values.supersetCeleryBeat.extraContainers }}
-            {{- toYaml .Values.supersetCeleryBeat.extraContainers | nindent 8 }}
-        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

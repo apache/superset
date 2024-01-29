@@ -51,7 +51,7 @@ const propTypes = {
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setActiveTab: PropTypes.func,
+  setActiveTabs: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -75,7 +75,7 @@ const defaultProps = {
   columnWidth: 0,
   activeTabs: [],
   directPathToChild: [],
-  setActiveTab() {},
+  setActiveTabs() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -125,12 +125,12 @@ export class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTab(this.state.activeKey);
+    this.props.setActiveTabs(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeKey !== this.state.activeKey) {
-      this.props.setActiveTab(this.state.activeKey, prevState.activeKey);
+      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
     }
   }
 

@@ -20,7 +20,6 @@ import React, { useEffect, useState } from 'react';
 import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
 import {
-  isFeatureEnabled,
   FeatureFlag,
   hasGenericChartAxes,
   isDefined,
@@ -44,6 +43,7 @@ import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilt
 import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
+import { isFeatureEnabled } from 'src/featureFlags';
 import {
   ColumnMeta,
   Dataset,

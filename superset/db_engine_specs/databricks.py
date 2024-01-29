@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, TYPE_CHECKING
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -27,6 +27,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from typing_extensions import TypedDict
 
 from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
@@ -145,7 +146,7 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
         return HiveEngineSpec.epoch_to_dttm()
 
 
-class DatabricksNativeEngineSpec(BasicParametersMixin, DatabricksODBCEngineSpec):
+class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin):
     engine_name = "Databricks"
 
     engine = "databricks"

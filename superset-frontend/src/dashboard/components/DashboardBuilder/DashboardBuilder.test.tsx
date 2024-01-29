@@ -16,23 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Store } from 'redux';
 import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
 import { fireEvent, within } from '@testing-library/react';
-import * as uiCore from '@superset-ui/core';
+import { FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled } from 'src/featureFlags';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
-  setActiveTab,
+  setActiveTabs,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
 } from 'spec/fixtures/mockDashboardLayout';
-import { storeWithState } from 'spec/fixtures/mockStore';
+import { mockStoreWithTabs, storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
@@ -41,9 +43,10 @@ fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),
-  setActiveTab: jest.fn(),
+  setActiveTabs: jest.fn(),
   setDirectPathToChild: jest.fn(),
 }));
+jest.mock('src/featureFlags');
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependant components to fix the prop warnings
@@ -90,13 +93,14 @@ describe('DashboardBuilder', () => {
     favStarStub = (fetchFaveStar as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    activeTabsStub = (setActiveTab as jest.Mock).mockReturnValue({
+    activeTabsStub = (setActiveTabs as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
     (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       100,
       jest.fn(),
     ]);
+    (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
   });
 
   afterAll(() => {
@@ -105,7 +109,7 @@ describe('DashboardBuilder', () => {
     (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
-  function setup(overrideState = {}) {
+  function setup(overrideState = {}, overrideStore?: Store) {
     return render(<DashboardBuilder />, {
       useRedux: true,
       store: storeWithState({
@@ -138,9 +142,10 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
-    const { findAllByTestId } = setup({
-      dashboardLayout: undoableDashboardLayoutWithTabs,
-    });
+    const { findAllByTestId } = setup(
+      { dashboardLayout: undoableDashboardLayoutWithTabs },
+      mockStoreWithTabs,
+    );
     const sticky = await findAllByTestId('nav-list');
 
     expect(sticky.length).toBe(1);
@@ -224,9 +229,12 @@ describe('DashboardBuilder', () => {
       type: 'type',
       arg0,
     }));
-    const { findByRole } = setup({
-      dashboardLayout: undoableDashboardLayoutWithTabs,
-    });
+    const { findByRole } = setup(
+      {
+        dashboardLayout: undoableDashboardLayoutWithTabs,
+      },
+      mockStoreWithTabs,
+    );
     const tabList = await findByRole('tablist');
     const tabs = within(tabList).getAllByRole('tab');
     expect(setDirectPathToChild).toHaveBeenCalledTimes(0);
@@ -254,17 +262,13 @@ describe('DashboardBuilder', () => {
   });
 
   describe('when nativeFiltersEnabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          flag => flag === uiCore.FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-        );
+    beforeEach(() => {
+      (isFeatureEnabled as jest.Mock).mockImplementation(
+        flag => flag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
+      );
     });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
+    afterEach(() => {
+      (isFeatureEnabled as jest.Mock).mockReset();
     });
 
     it('should set FilterBar width by useStoredSidebarWidth', () => {

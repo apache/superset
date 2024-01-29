@@ -59,6 +59,7 @@ def upgrade():
             params["metrics"] = [params.get("metric")]
             del params["metric"]
             slc.params = json.dumps(params, indent=2, sort_keys=True)
+            session.merge(slc)
             session.commit()
             print(f"Upgraded ({i}/{slice_len}): {slc.slice_name}")
         except Exception as ex:

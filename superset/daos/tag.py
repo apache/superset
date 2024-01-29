@@ -21,21 +21,20 @@ from typing import Any, Optional
 from flask import g
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.commands.tag.exceptions import TagNotFoundError
-from superset.commands.tag.utils import to_object_type
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.exceptions import MissingUserContextException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
+from superset.tags.commands.exceptions import TagNotFoundError
 from superset.tags.models import (
     get_tag,
-    ObjectType,
+    ObjectTypes,
     Tag,
     TaggedObject,
-    TagType,
+    TagTypes,
     user_favorite_tag_table,
 )
 from superset.utils.core import get_user_id
@@ -47,12 +46,24 @@ class TagDAO(BaseDAO[Tag]):
     # base_filter = TagAccessFilter
 
     @staticmethod
+    def validate_tag_name(tag_name: str) -> bool:
+        invalid_characters = [":", ","]
+        for invalid_character in invalid_characters:
+            if invalid_character in tag_name:
+                return False
+        return True
+
+    @staticmethod
     def create_custom_tagged_objects(
-        object_type: ObjectType, object_id: int, tag_names: list[str]
+        object_type: ObjectTypes, object_id: int, tag_names: list[str]
     ) -> None:
         tagged_objects = []
         for name in tag_names:
-            type_ = TagType.custom
+            if not TagDAO.validate_tag_name(name):
+                raise DAOCreateFailedError(
+                    message="Invalid Tag Name (cannot contain ':' or ',')"
+                )
+            type_ = TagTypes.custom
             tag_name = name.strip()
             tag = TagDAO.get_by_name(tag_name, type_)
             tagged_objects.append(
@@ -64,7 +75,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def delete_tagged_object(
-        object_type: ObjectType, object_id: int, tag_name: str
+        object_type: ObjectTypes, object_id: int, tag_name: str
     ) -> None:
         """
         deletes a tagged object by the object_id, object_type, and tag_name
@@ -116,7 +127,7 @@ class TagDAO(BaseDAO[Tag]):
                 raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def get_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
+    def get_by_name(name: str, type_: TagTypes = TagTypes.custom) -> Tag:
         """
         returns a tag if one exists by that name, none otherwise.
         important!: Creates a tag by that name if the tag is not found.
@@ -140,7 +151,7 @@ class TagDAO(BaseDAO[Tag]):
 
     @staticmethod
     def find_tagged_object(
-        object_type: ObjectType, object_id: int, tag_id: int
+        object_type: ObjectTypes, object_id: int, tag_id: int
     ) -> TaggedObject:
         """
         returns a tagged object if one exists by that name, none otherwise.
@@ -156,14 +167,6 @@ class TagDAO(BaseDAO[Tag]):
         )
 
     @staticmethod
-    def get_tagged_objects_by_tag_id(
-        tag_ids: Optional[list[int]], obj_types: Optional[list[str]] = None
-    ) -> list[dict[str, Any]]:
-        tags = db.session.query(Tag).filter(Tag.id.in_(tag_ids)).all()
-        tag_names = [tag.name for tag in tags]
-        return TagDAO.get_tagged_objects_for_tags(tag_names, obj_types)
-
-    @staticmethod
     def get_tagged_objects_for_tags(
         tags: Optional[list[str]] = None, obj_types: Optional[list[str]] = None
     ) -> list[dict[str, Any]]:
@@ -171,6 +174,16 @@ class TagDAO(BaseDAO[Tag]):
         returns a list of tagged objects filtered by tag names and object types
         if no filters applied returns all tagged objects
         """
+        # id = fields.Int()
+        # type = fields.String()
+        # name = fields.String()
+        # url = fields.String()
+        # changed_on = fields.DateTime()
+        # created_by = fields.Nested(UserSchema)
+        # creator = fields.String(
+
+        # filter types
+
         results: list[dict[str, Any]] = []
 
         # dashboards
@@ -181,7 +194,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Dashboard.id,
-                        TaggedObject.object_type == ObjectType.dashboard,
+                        TaggedObject.object_type == ObjectTypes.dashboard,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -191,14 +204,12 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.dashboard.name,
+                    "type": ObjectTypes.dashboard.name,
                     "name": obj.dashboard_title,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": obj.owners,
                 }
                 for obj in dashboards
             )
@@ -211,7 +222,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Slice.id,
-                        TaggedObject.object_type == ObjectType.chart,
+                        TaggedObject.object_type == ObjectTypes.chart,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -220,14 +231,12 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.chart.name,
+                    "type": ObjectTypes.chart.name,
                     "name": obj.slice_name,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": obj.owners,
                 }
                 for obj in charts
             )
@@ -240,7 +249,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == SavedQuery.id,
-                        TaggedObject.object_type == ObjectType.query,
+                        TaggedObject.object_type == ObjectTypes.query,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -249,14 +258,12 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.query.name,
+                    "type": ObjectTypes.query.name,
                     "name": obj.label,
                     "url": obj.url(),
                     "changed_on": obj.changed_on,
                     "created_by": obj.created_by_fk,
                     "creator": obj.creator(),
-                    "tags": obj.tags,
-                    "owners": [obj.creator()],
                 }
                 for obj in saved_queries
             )
@@ -356,58 +363,3 @@ class TagDAO(BaseDAO[Tag]):
             )
             .all()
         ]
-
-    @staticmethod
-    def create_tag_relationship(
-        objects_to_tag: list[tuple[ObjectType, int]],
-        tag: Tag,
-        bulk_create: bool = False,
-    ) -> None:
-        """
-        Creates a tag relationship between the given objects and the specified tag.
-        This function iterates over a list of objects, each specified by a type
-        and an id, and creates a TaggedObject for each one, associating it with
-        the provided tag. All created TaggedObjects are collected in a list.
-        Args:
-            objects_to_tag (List[Tuple[ObjectType, int]]): A list of tuples, each
-            containing an ObjectType and an id, representing the objects to be tagged.
-
-            tag (Tag): The tag to be associated with the specified objects.
-        Returns:
-            None.
-        """
-        tagged_objects = []
-        if not tag:
-            raise TagNotFoundError()
-
-        current_tagged_objects = {
-            (obj.object_type, obj.object_id) for obj in tag.objects
-        }
-        updated_tagged_objects = {
-            (to_object_type(obj[0]), obj[1]) for obj in objects_to_tag
-        }
-
-        tagged_objects_to_delete = (
-            current_tagged_objects
-            if not objects_to_tag
-            else current_tagged_objects - updated_tagged_objects
-        )
-
-        for object_type, object_id in updated_tagged_objects:
-            # create rows for new objects, and skip tags that already exist
-            if (object_type, object_id) not in current_tagged_objects:
-                tagged_objects.append(
-                    TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
-                )
-
-        if not bulk_create:
-            # delete relationships that aren't retained from single tag create
-            for object_type, object_id in tagged_objects_to_delete:
-                # delete objects that were removed
-                TagDAO.delete_tagged_object(
-                    object_type,  # type: ignore
-                    object_id,
-                    tag.name,
-                )
-
-        db.session.add_all(tagged_objects)

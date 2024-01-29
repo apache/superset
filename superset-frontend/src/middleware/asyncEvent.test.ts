@@ -19,7 +19,7 @@
 import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
 import sinon from 'sinon';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import { parseErrorJson } from 'src/utils/getClientErrorObject';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 
@@ -92,7 +92,7 @@ describe('asyncEvent middleware', () => {
   let featureEnabledStub: any;
 
   beforeEach(async () => {
-    featureEnabledStub = sinon.stub(uiCore, 'isFeatureEnabled');
+    featureEnabledStub = sinon.stub(featureFlags, 'isFeatureEnabled');
     featureEnabledStub.withArgs('GLOBAL_ASYNC_QUERIES').returns(true);
   });
 

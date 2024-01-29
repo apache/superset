@@ -141,9 +141,6 @@ class TestImportAssetsCommand(SupersetTestCase):
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        assert chart.query_context is None
-        assert json.loads(chart.params)["datasource"] == dataset.uid
-
         database = dataset.database
         assert str(database.uuid) == database_config["uuid"]
 

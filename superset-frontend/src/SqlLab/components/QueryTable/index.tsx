@@ -25,7 +25,7 @@ import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
 import {
-  queryEditorSetSql,
+  queryEditorSetAndSaveSql,
   cloneQueryToNewTab,
   fetchQueryResults,
   clearQueryResults,
@@ -61,7 +61,7 @@ interface QueryTableProps {
 }
 
 const openQuery = (id: number) => {
-  const url = `/sqllab?queryId=${id}`;
+  const url = `/superset/sqllab?queryId=${id}`;
   window.open(url);
 };
 
@@ -105,13 +105,11 @@ const QueryTable = ({
     [columns],
   );
 
-  const user = useSelector<SqlLabRootState, User>(state => state.user);
+  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
 
   const data = useMemo(() => {
     const restoreSql = (query: QueryResponse) => {
-      dispatch(
-        queryEditorSetSql({ id: query.sqlEditorId }, query.sql, query.id),
-      );
+      dispatch(queryEditorSetAndSaveSql({ id: query.sqlEditorId }, query.sql));
     };
 
     const openQueryInNewTab = (query: QueryResponse) => {
@@ -215,7 +213,7 @@ const QueryTable = ({
             {q.db}
           </Button>
         );
-        q.started = moment(q.startDttm).format('L HH:mm:ss');
+        q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
           <Button
             buttonSize="small"

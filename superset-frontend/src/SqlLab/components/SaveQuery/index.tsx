@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import type { DatabaseObject } from 'src/features/databases/types';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -40,10 +39,10 @@ interface SaveQueryProps {
   onSave: (arg0: QueryPayload, id: string) => void;
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
-  database: Partial<DatabaseObject> | undefined;
+  database: Record<string, any>;
 }
 
-export type QueryPayload = {
+type QueryPayload = {
   name: string;
   description?: string;
   id?: string;
@@ -66,7 +65,7 @@ const SaveQuery = ({
   queryEditorId,
   onSave = () => {},
   onUpdate,
-  saveQueryWarning,
+  saveQueryWarning = null,
   database,
   columns,
 }: SaveQueryProps) => {
@@ -99,8 +98,6 @@ const SaveQuery = ({
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const isSaved = !!query.remoteId;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
-  const shouldShowSaveButton =
-    database?.allows_virtual_table_explore !== undefined;
 
   const overlayMenu = (
     <Menu>
@@ -183,12 +180,10 @@ const SaveQuery = ({
 
   return (
     <Styles className="SaveQuery">
-      {shouldShowSaveButton && (
-        <SaveDatasetActionButton
-          setShowSave={setShowSave}
-          overlayMenu={canExploreDatabase ? overlayMenu : null}
-        />
-      )}
+      <SaveDatasetActionButton
+        setShowSave={setShowSave}
+        overlayMenu={canExploreDatabase ? overlayMenu : null}
+      />
       <SaveDatasetModal
         visible={showSaveDatasetModal}
         onHide={() => setShowSaveDatasetModal(false)}

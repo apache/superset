@@ -17,22 +17,20 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import type { IAceEditor } from 'react-ace/lib/types';
 import { useDispatch } from 'react-redux';
 import { css, styled, usePrevious } from '@superset-ui/core';
 
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
-import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
 type HotKey = {
-  key: KeyboardShortcut;
-  descr?: string;
+  key: string;
+  descr: string;
   name: string;
-  func: (aceEditor: IAceEditor) => void;
+  func: () => void;
 };
 
 type AceEditorWrapperProps = {
@@ -146,10 +144,8 @@ const AceEditorWrapper = ({
   };
 
   const onChangeText = (text: string) => {
-    if (text !== sql) {
-      setSql(text);
-      onChange(text);
-    }
+    setSql(text);
+    onChange(text);
   };
 
   const { data: annotations } = useAnnotations({

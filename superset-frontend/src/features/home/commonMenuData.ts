@@ -30,7 +30,7 @@ export const commonMenuData = {
     {
       name: 'Query history',
       label: t('Query history'),
-      url: '/sqllab/history/',
+      url: '/superset/sqllab/history/',
       usesRouter: true,
     },
   ],

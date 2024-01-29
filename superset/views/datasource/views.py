@@ -18,27 +18,29 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import redirect, request
+from flask import current_app, redirect, request
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
-from sqlalchemy.exc import NoResultFound, NoSuchTableError
+from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db, event_logger, security_manager
-from superset.commands.dataset.exceptions import (
-    DatasetForbiddenError,
-    DatasetNotFoundError,
-)
 from superset.commands.utils import populate_owners
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.datasource import DatasourceDAO
+from superset.datasets.commands.exceptions import (
+    DatasetForbiddenError,
+    DatasetNotFoundError,
+)
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType
+from superset.utils.urls import is_safe_url
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -75,13 +77,23 @@ class Datasource(BaseSupersetView):
             return json_error_response(_("Request missing data field."), status=500)
 
         datasource_dict = json.loads(data)
-        normalize_columns = datasource_dict.get("normalize_columns", False)
-        always_filter_main_dttm = datasource_dict.get("always_filter_main_dttm", False)
-        datasource_dict["normalize_columns"] = normalize_columns
-        datasource_dict["always_filter_main_dttm"] = always_filter_main_dttm
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
+        default_endpoint = datasource_dict["default_endpoint"]
+        if (
+            default_endpoint
+            and not is_safe_url(default_endpoint)
+            and current_app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"]
+        ):
+            return json_error_response(
+                _(
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                ),
+                status=400,
+            )
+
         orm_datasource = DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id
         )
@@ -184,7 +196,6 @@ class Datasource(BaseSupersetView):
                     database=database,
                     table_name=params["table_name"],
                     schema_name=params["schema_name"],
-                    normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex

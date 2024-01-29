@@ -21,11 +21,12 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from flask_appbuilder import Model
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from superset.daos.base import BaseDAO
-from superset.daos.exceptions import DAODeleteFailedError
+from superset.daos.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -134,74 +135,67 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         return found_id is None or found_id == expect_id
 
     @classmethod
-    def create(
-        cls,
-        item: ReportSchedule | None = None,
-        attributes: dict[str, Any] | None = None,
-        commit: bool = True,
-    ) -> ReportSchedule:
+    def create(cls, properties: dict[str, Any], commit: bool = True) -> ReportSchedule:
         """
-        Create a report schedule with nested recipients.
-
-        :param item: The object to create
-        :param attributes: The attributes associated with the object to create
-        :param commit: Whether to commit the transaction
-        :raises: DAOCreateFailedError: If the creation failed
+        create a report schedule and nested recipients
+        :raises: DAOCreateFailedError
         """
 
-        # TODO(john-bodley): Determine why we need special handling for recipients.
-        if not item:
-            item = ReportSchedule()
-
-        if attributes:
-            if recipients := attributes.pop("recipients", None):
-                attributes["recipients"] = [
+        try:
+            model = ReportSchedule()
+            for key, value in properties.items():
+                if key != "recipients":
+                    setattr(model, key, value)
+            recipients = properties.get("recipients", [])
+            for recipient in recipients:
+                model.recipients.append(  # pylint: disable=no-member
                     ReportRecipients(
                         type=recipient["type"],
                         recipient_config_json=json.dumps(
                             recipient["recipient_config_json"]
                         ),
-                        report_schedule=item,
                     )
-                    for recipient in recipients
-                ]
-
-        return super().create(item, attributes, commit)
+                )
+            db.session.add(model)
+            if commit:
+                db.session.commit()
+            return model
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @classmethod
     def update(
-        cls,
-        item: ReportSchedule | None = None,
-        attributes: dict[str, Any] | None = None,
-        commit: bool = True,
+        cls, model: Model, properties: dict[str, Any], commit: bool = True
     ) -> ReportSchedule:
         """
-        Update a report schedule with nested recipients.
-
-        :param item: The object to update
-        :param attributes: The attributes associated with the object to update
-        :param commit: Whether to commit the transaction
-        :raises: DAOUpdateFailedError: If the update failed
+        create a report schedule and nested recipients
+        :raises: DAOCreateFailedError
         """
 
-        # TODO(john-bodley): Determine why we need special handling for recipients.
-        if not item:
-            item = ReportSchedule()
-
-        if attributes:
-            if recipients := attributes.pop("recipients", None):
-                attributes["recipients"] = [
+        try:
+            for key, value in properties.items():
+                if key != "recipients":
+                    setattr(model, key, value)
+            if "recipients" in properties:
+                recipients = properties["recipients"]
+                model.recipients = [
                     ReportRecipients(
                         type=recipient["type"],
                         recipient_config_json=json.dumps(
                             recipient["recipient_config_json"]
                         ),
-                        report_schedule=item,
+                        report_schedule=model,
                     )
                     for recipient in recipients
                 ]
-
-        return super().update(item, attributes, commit)
+            db.session.merge(model)
+            if commit:
+                db.session.commit()
+            return model
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            raise DAOCreateFailedError(str(ex)) from ex
 
     @staticmethod
     def find_active(session: Session | None = None) -> list[ReportSchedule]:

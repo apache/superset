@@ -20,9 +20,11 @@ from uuid import uuid4
 
 from flask import current_app
 
-from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
+from superset.dashboards.permalink.commands.create import (
+    CreateDashboardPermalinkCommand,
+)
 from superset.models.dashboard import Dashboard
+from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.models import ReportSourceFormat
 from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import create_dashboard_report
@@ -30,10 +32,10 @@ from tests.integration_tests.reports.utils import create_dashboard_report
 
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch(
-    "superset.commands.report.execute.DashboardScreenshot",
+    "superset.reports.commands.execute.DashboardScreenshot",
 )
 @patch(
-    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+    "superset.dashboards.permalink.commands.create.CreateDashboardPermalinkCommand.run"
 )
 def test_report_for_dashboard_with_tabs(
     create_dashboard_permalink_mock: MagicMock,
@@ -68,10 +70,10 @@ def test_report_for_dashboard_with_tabs(
 
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch(
-    "superset.commands.report.execute.DashboardScreenshot",
+    "superset.reports.commands.execute.DashboardScreenshot",
 )
 @patch(
-    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+    "superset.dashboards.permalink.commands.create.CreateDashboardPermalinkCommand.run"
 )
 def test_report_with_header_data(
     create_dashboard_permalink_mock: MagicMock,

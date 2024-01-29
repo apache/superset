@@ -24,7 +24,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, getExtensionsRegistry, styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
@@ -37,8 +37,6 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-
-const extensionsRegistry = getExtensionsRegistry();
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -163,7 +161,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   width,
   height,
 }) => {
-  const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
@@ -242,12 +239,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-controls">
         {!editMode && (
           <>
-            {SliceHeaderExtension && (
-              <SliceHeaderExtension
-                sliceId={slice.slice_id}
-                dashboardId={dashboardId}
-              />
-            )}
             {crossFilterValue && (
               <Tooltip
                 placement="top"

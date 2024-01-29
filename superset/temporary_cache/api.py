@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import contextlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -24,13 +23,13 @@ from apispec.exceptions import DuplicateComponentNameError
 from flask import request, Response
 from marshmallow import ValidationError
 
-from superset.commands.temporary_cache.exceptions import (
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.key_value.types import JsonKeyValueCodec
+from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.commands.temporary_cache.parameters import CommandParameters
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.key_value.types import JsonKeyValueCodec
+from superset.temporary_cache.commands.parameters import CommandParameters
 from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
     TemporaryCachePutSchema,
@@ -55,7 +54,7 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
     allow_browser_login = True
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-        with contextlib.suppress(DuplicateComponentNameError):
+        try:
             api_spec.components.schema(
                 TemporaryCachePostSchema.__name__,
                 schema=TemporaryCachePostSchema,
@@ -64,6 +63,8 @@ class TemporaryCacheRestApi(BaseSupersetApi, ABC):
                 TemporaryCachePutSchema.__name__,
                 schema=TemporaryCachePutSchema,
             )
+        except DuplicateComponentNameError:
+            pass
         super().add_apispec_components(api_spec)
 
     @requires_json

@@ -167,7 +167,7 @@ class CsvToDatabaseView(CustomFormView):
         form.overwrite_duplicate.data = True
         form.skip_initial_space.data = False
         form.skip_blank_lines.data = True
-        form.day_first.data = False
+        form.infer_datetime_format.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
@@ -198,7 +198,7 @@ class CsvToDatabaseView(CustomFormView):
                     filepath_or_buffer=form.csv_file.data,
                     header=form.header.data if form.header.data else 0,
                     index_col=form.index_col.data,
-                    dayfirst=form.day_first.data,
+                    infer_datetime_format=form.infer_datetime_format.data,
                     iterator=True,
                     keep_default_na=not form.null_values.data,
                     usecols=form.use_cols.data if form.use_cols.data else None,
@@ -307,6 +307,7 @@ class ExcelToDatabaseView(SimpleFormView):
 
     def form_get(self, form: ExcelToDatabaseForm) -> None:
         form.header.data = 0
+        form.mangle_dupe_cols.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
         form.sheet_name.data = ""
@@ -342,7 +343,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 index_col=form.index_col.data,
                 io=form.excel_file.data,
                 keep_default_na=not form.null_values.data,
-                na_values=form.null_values.data if form.null_values.data else [],
+                na_values=form.null_values.data if form.null_values.data else None,
                 parse_dates=form.parse_dates.data,
                 skiprows=form.skiprows.data,
                 sheet_name=form.sheet_name.data if form.sheet_name.data else 0,

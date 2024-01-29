@@ -17,13 +17,9 @@
 from typing import Optional
 
 from superset import security_manager
-from superset.commands.chart.exceptions import (
+from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
-)
-from superset.commands.dataset.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
 )
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
@@ -33,6 +29,10 @@ from superset.commands.exceptions import (
 from superset.daos.chart import ChartDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.query import QueryDAO
+from superset.datasets.commands.exceptions import (
+    DatasetAccessDeniedError,
+    DatasetNotFoundError,
+)
 from superset.utils.core import DatasourceType
 
 

@@ -23,7 +23,7 @@ import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
-import * as uiCore from '@superset-ui/core';
+import * as featureFlags from 'src/featureFlags';
 import Welcome from 'src/pages/Home';
 import { ReactWrapper } from 'enzyme';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -109,7 +109,7 @@ const mockedProps = {
     isAnonymous: false,
     permissions: {},
     roles: {
-      sql_lab: [['can_read', 'SavedQuery']],
+      sql_lab: [],
     },
   },
 };
@@ -211,7 +211,7 @@ describe('Welcome page with toggle switch', () => {
 
   beforeAll(async () => {
     isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
+      .spyOn(featureFlags, 'isFeatureEnabled')
       .mockReturnValue(true);
     await act(async () => {
       wrapper = await mountAndWait();

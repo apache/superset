@@ -17,8 +17,6 @@
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
-from superset.commands.exceptions import CommandException, UpdateFailedError
-
 
 class InvalidTagNameError(ValidationError):
     """
@@ -29,11 +27,3 @@ class InvalidTagNameError(ValidationError):
         super().__init__(
             [_("Tag name is invalid (cannot contain ':')")], field_name="name"
         )
-
-
-class TagUpdateFailedError(UpdateFailedError):
-    message = _("Tag could not be updated.")
-
-
-class TagNotFoundError(CommandException):
-    message = _("Tag could not be found.")

@@ -20,17 +20,17 @@ from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.commands.chart.exceptions import (
+from superset.charts.commands.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
-from superset.commands.dataset.exceptions import (
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.datasets.commands.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
-from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
+from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
 from superset.explore.permalink.schemas import ExplorePermalinkStateSchema
 from superset.extensions import event_logger
@@ -68,7 +68,7 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ExplorePermalinkStateSchema'
+                  $ref: '#/components/schemas/ExplorePermalinkPostSchema'
           responses:
             201:
               description: The permanent link was stored successfully.

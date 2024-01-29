@@ -19,6 +19,10 @@
 import React from 'react';
 import { isFrontendRoute, routes } from './routes';
 
+jest.mock('src/featureFlags', () => ({
+  ...jest.requireActual<object>('src/featureFlags'),
+  isFeatureEnabled: jest.fn().mockReturnValue(true),
+}));
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 
 describe('isFrontendRoute', () => {

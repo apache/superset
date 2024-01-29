@@ -24,7 +24,7 @@ from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 
-from superset.commands.dashboard.embedded.exceptions import (
+from superset.embedded_dashboard.commands.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.extensions import event_logger

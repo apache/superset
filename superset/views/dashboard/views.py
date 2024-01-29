@@ -78,7 +78,7 @@ class DashboardModelView(
     @expose("/export_dashboards_form")
     def download_dashboards(self) -> FlaskResponse:
         if request.args.get("action") == "go":
-            ids = set(request.args.getlist("id"))
+            ids = request.args.getlist("id")
             return Response(
                 DashboardModel.export_dashboards(ids),
                 headers=generate_download_headers("json"),
@@ -151,7 +151,7 @@ class Dashboard(BaseSupersetView):
         )
 
         bootstrap_data = {
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
             "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 

@@ -56,11 +56,7 @@ interface ExecutionLogProps {
   isReportEnabled: boolean;
 }
 
-function ExecutionLog({
-  addDangerToast,
-  addSuccessToast,
-  isReportEnabled,
-}: ExecutionLogProps) {
+function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
   const { alertId }: any = useParams();
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
@@ -195,9 +191,6 @@ function ExecutionLog({
         fetchData={fetchData}
         initialSort={initialSort}
         loading={loading}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
     </>

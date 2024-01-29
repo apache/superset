@@ -64,7 +64,7 @@ table_column_association_table = sa.Table(
 )
 
 
-class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
+class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """
     A table/view in a database.
     """

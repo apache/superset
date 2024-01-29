@@ -18,18 +18,13 @@
  */
 import { SupersetClient, logging, ClientConfig } from '@superset-ui/core';
 import parseCookie from 'src/utils/parseCookie';
-import getBootstrapData from 'src/utils/getBootstrapData';
-
-const bootstrapData = getBootstrapData();
 
 function getDefaultConfiguration(): ClientConfig {
   const csrfNode = document.querySelector<HTMLInputElement>('#csrf_token');
   const csrfToken = csrfNode?.value;
 
   // when using flask-jwt-extended csrf is set in cookies
-  const jwtAccessCsrfCookieName =
-    bootstrapData.common.conf.JWT_ACCESS_CSRF_COOKIE_NAME;
-  const cookieCSRFToken = parseCookie()[jwtAccessCsrfCookieName] || '';
+  const cookieCSRFToken = parseCookie().csrf_access_token || '';
 
   return {
     protocol: ['http:', 'https:'].includes(window?.location?.protocol)

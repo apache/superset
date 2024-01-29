@@ -307,7 +307,6 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
     extras: {
       having: '',
       where: "(foo in ('a', 'b'))",
-      time_grain_sqla: 'P1W',
     },
     applied_time_extras: {},
     columns: [

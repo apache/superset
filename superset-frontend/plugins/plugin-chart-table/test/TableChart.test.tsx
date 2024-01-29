@@ -76,7 +76,6 @@ describe('plugin-chart-table', () => {
       wrap = mount(
         <TableChart {...transformProps(testData.basic)} sticky={false} />,
       );
-
       tree = wrap.render(); // returns a CheerioWrapper with jQuery-like API
       const cells = tree.find('td');
       expect(cells).toHaveLength(12);
@@ -122,48 +121,6 @@ describe('plugin-chart-table', () => {
       expect(cells[0]).toHaveTextContent('Michael');
       expect(cells[2]).toHaveTextContent('12.346%');
       expect(cells[4]).toHaveTextContent('$ 2.47k');
-    });
-
-    it('render raw data', () => {
-      const props = transformProps({
-        ...testData.raw,
-        rawFormData: { ...testData.raw.rawFormData },
-      });
-      render(
-        ProviderWrapper({
-          children: <TableChart {...props} sticky={false} />,
-        }),
-      );
-      const cells = document.querySelectorAll('td');
-      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('1234');
-      expect(cells[1]).toHaveTextContent('10000');
-      expect(cells[1]).toHaveTextContent('0');
-    });
-
-    it('render raw data with currencies', () => {
-      const props = transformProps({
-        ...testData.raw,
-        rawFormData: {
-          ...testData.raw.rawFormData,
-          column_config: {
-            num: {
-              currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
-            },
-          },
-        },
-      });
-      render(
-        ProviderWrapper({
-          children: <TableChart {...props} sticky={false} />,
-        }),
-      );
-      const cells = document.querySelectorAll('td');
-
-      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('$ 1.23k');
-      expect(cells[1]).toHaveTextContent('$ 10k');
-      expect(cells[2]).toHaveTextContent('$ 0');
     });
 
     it('render empty data', () => {
@@ -242,63 +199,6 @@ describe('plugin-chart-table', () => {
         '',
       );
       expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
-    });
-  });
-
-  it('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
-    const props = transformProps({
-      ...testData.raw,
-      rawFormData: { ...testData.raw.rawFormData },
-    });
-
-    props.columns[0].isMetric = true;
-
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    let cells = document.querySelectorAll('div.cell-bar');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('positive');
-    });
-    props.columns[0].isMetric = false;
-    props.columns[0].isPercentMetric = true;
-
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('div.cell-bar');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('positive');
-    });
-
-    props.showCellBars = false;
-
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('td');
-
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
-    });
-
-    props.columns[0].isPercentMetric = false;
-    props.columns[0].isMetric = true;
-
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('td');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
     });
   });
 });

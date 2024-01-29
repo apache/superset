@@ -24,7 +24,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -154,29 +154,6 @@ const globalStyles = (theme: SupersetTheme) => css`
       margin-left: ${theme.gridUnit * 1.75}px;
     }
   }
-  .ant-menu-item-selected {
-    background-color: transparent;
-    &:not(.ant-menu-item-active) {
-      color: inherit;
-      border-bottom-color: transparent;
-      & > a {
-        color: inherit;
-      }
-    }
-  }
-  .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
-    color: ${theme.colors.primary.base};
-    border-bottom-color: ${theme.colors.primary.base};
-    & > a {
-      color: ${theme.colors.primary.base};
-    }
-  }
-  .ant-menu-vertical > .ant-menu-item:has(> .is-active) {
-    background-color: ${theme.colors.primary.light5};
-    & > a {
-      color: ${theme.colors.primary.base};
-    }
-  }
 `;
 const { SubMenu } = DropdownMenu;
 
@@ -209,33 +186,6 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  enum paths {
-    EXPLORE = '/explore',
-    DASHBOARD = '/dashboard',
-    CHART = '/chart',
-    DATASETS = '/tablemodelview',
-  }
-
-  const defaultTabSelection: string[] = [];
-  const [activeTabs, setActiveTabs] = useState(defaultTabSelection);
-  const location = useLocation();
-  useEffect(() => {
-    const path = location.pathname;
-    switch (true) {
-      case path.startsWith(paths.DASHBOARD):
-        setActiveTabs(['Dashboards']);
-        break;
-      case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
-        setActiveTabs(['Charts']);
-        break;
-      case path.startsWith(paths.DATASETS):
-        setActiveTabs(['Datasets']);
-        break;
-      default:
-        setActiveTabs(defaultTabSelection);
-    }
-  }, [location.pathname]);
-
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
 
@@ -249,9 +199,9 @@ export function Menu({
     if (url && isFrontendRoute) {
       return (
         <DropdownMenu.Item key={label} role="presentation">
-          <NavLink role="button" to={url} activeClassName="is-active">
+          <Link role="button" to={url}>
             {label}
-          </NavLink>
+          </Link>
         </DropdownMenu.Item>
       );
     }
@@ -276,13 +226,7 @@ export function Menu({
             return (
               <DropdownMenu.Item key={`${child.label}`}>
                 {child.isFrontendRoute ? (
-                  <NavLink
-                    to={child.url || ''}
-                    exact
-                    activeClassName="is-active"
-                  >
-                    {child.label}
-                  </NavLink>
+                  <Link to={child.url || ''}>{child.label}</Link>
                 ) : (
                   <a href={child.url}>{child.label}</a>
                 )}
@@ -324,7 +268,6 @@ export function Menu({
             mode={showMenu}
             data-test="navbar-top"
             className="main-nav"
-            selectedKeys={activeTabs}
           >
             {menu.map((item, index) => {
               const props = {

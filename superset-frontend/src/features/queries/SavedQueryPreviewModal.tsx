@@ -65,7 +65,7 @@ type SavedQueryObject = {
 interface SavedQueryPreviewModalProps extends ToastProps {
   fetchData: (id: number) => {};
   onHide: () => void;
-  openInSqlLab: (id: number, openInNewWindow: boolean) => {};
+  openInSqlLab: (id: number) => {};
   queries: Array<SavedQueryObject>;
   savedQuery: SavedQueryObject;
   show: boolean;
@@ -117,9 +117,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> =
                 data-test="open-in-sql-lab"
                 key="open-in-sql-lab"
                 buttonStyle="primary"
-                onClick={({ metaKey }) =>
-                  openInSqlLab(savedQuery.id, Boolean(metaKey))
-                }
+                onClick={() => openInSqlLab(savedQuery.id)}
               >
                 {t('Open in SQL Lab')}
               </Button>

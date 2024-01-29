@@ -220,18 +220,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'rowSubTotals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show rows subtotal'),
-              default: false,
-              renderTrigger: true,
-              description: t('Display row level subtotal'),
-            },
-          },
-        ],
-        [
-          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -239,18 +227,6 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t('Display column level total'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'colSubTotals',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Show columns subtotal'),
-              default: false,
-              renderTrigger: true,
-              description: t('Display column level subtotal'),
             },
           },
         ],

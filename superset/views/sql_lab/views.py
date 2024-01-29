@@ -17,11 +17,11 @@
 import logging
 
 import simplejson as json
-from flask import redirect, request, Response
+from flask import g, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from sqlalchemy import and_
 
 from superset import db
@@ -40,24 +40,67 @@ from superset.views.base import (
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(BaseSupersetView):
-    route_base = "/savedqueryview"
+class SavedQueryView(  # pylint: disable=too-many-ancestors
+    SupersetModelView,
+    DeleteMixin,
+):
+    datamodel = SQLAInterface(SavedQuery)
+    include_route_methods = RouteMethod.CRUD_SET
+
     class_permission_name = "SavedQuery"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+    list_title = _("List Saved Query")
+    show_title = _("Show Saved Query")
+    add_title = _("Add Saved Query")
+    edit_title = _("Edit Saved Query")
+
+    list_columns = [
+        "label",
+        "user",
+        "database",
+        "schema",
+        "description",
+        "modified",
+        "pop_tab_link",
+    ]
+    order_columns = ["label", "schema", "description", "modified"]
+    show_columns = [
+        "id",
+        "label",
+        "user",
+        "database",
+        "description",
+        "sql",
+        "pop_tab_link",
+    ]
+    search_columns = ("label", "user", "database", "schema", "changed_on")
+    add_columns = ["label", "database", "description", "sql"]
+    edit_columns = add_columns
+    base_order = ("changed_on", "desc")
+    label_columns = {
+        "label": _("Label"),
+        "user": _("User"),
+        "database": _("Database"),
+        "description": _("Description"),
+        "modified": _("Modified"),
+        "end_time": _("End Time"),
+        "pop_tab_link": _("Pop Tab Link"),
+        "changed_on": _("Changed on"),
+    }
 
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
 
+    def pre_add(self, item: "SavedQueryView") -> None:
+        item.user = g.user
 
-class SavedQueryViewApi(
-    SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(SavedQuery)
-    include_route_methods = RouteMethod.CRUD_SET
-    route_base = "/savedqueryviewapi"
-    class_permission_name = "SavedQuery"
+    def pre_update(self, item: "SavedQueryView") -> None:
+        self.pre_add(item)
 
+
+class SavedQueryViewApi(SavedQueryView):  # pylint: disable=too-many-ancestors
     include_route_methods = {
         RouteMethod.API_READ,
         RouteMethod.API_CREATE,
@@ -65,8 +108,20 @@ class SavedQueryViewApi(
         RouteMethod.API_GET,
     }
 
+    class_permission_name = "SavedQuery"
     method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
+    list_columns = [
+        "id",
+        "label",
+        "sqlalchemy_uri",
+        "user_email",
+        "schema",
+        "description",
+        "sql",
+        "extra_json",
+        "extra",
+    ]
     add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
     edit_columns = add_columns
     show_columns = add_columns + ["id"]
@@ -90,7 +145,7 @@ class TabStateView(BaseSupersetView):
             user_id=get_user_id(),
             # This is for backward compatibility
             label=query_editor.get("name")
-            or query_editor.get("title", __("Untitled Query")),
+            or query_editor.get("title", _("Untitled Query")),
             active=True,
             database_id=query_editor["dbId"],
             schema=query_editor.get("schema"),
@@ -161,10 +216,6 @@ class TabStateView(BaseSupersetView):
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
-        if client_id := fields.get("latest_query_id"):
-            query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
-            if not query:
-                return self.json_response({"error": "Bad request"}, status=400)
         db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
         db.session.commit()
         return json_success(json.dumps(tab_state_id))

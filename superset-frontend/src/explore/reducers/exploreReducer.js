@@ -112,7 +112,7 @@ export default function exploreReducer(state = {}, action) {
       const vizType = new_form_data.viz_type;
 
       // if the controlName is metrics, and the metric column name is updated,
-      // need to update column config as well to keep the previous config.
+      // need to update column config as well to keep the previou config.
       if (controlName === 'metrics' && old_metrics_data && new_column_config) {
         value.forEach((item, index) => {
           if (
@@ -129,11 +129,11 @@ export default function exploreReducer(state = {}, action) {
       }
 
       // Use the processed control config (with overrides and everything)
-      // if `controlName` does not exist in current controls,
+      // if `controlName` does not existing in current controls,
       const controlConfig =
         state.controls[action.controlName] ||
         getControlConfig(action.controlName, vizType) ||
-        null;
+        {};
 
       // will call validators again
       const control = {
@@ -149,7 +149,7 @@ export default function exploreReducer(state = {}, action) {
         ...state,
         controls: {
           ...state.controls,
-          ...(controlConfig && { [controlName]: control }),
+          [controlName]: control,
           ...(controlName === 'metrics' && { column_config }),
         },
       };
@@ -196,12 +196,10 @@ export default function exploreReducer(state = {}, action) {
         triggerRender: control.renderTrigger && !hasErrors,
         controls: {
           ...currentControlsState,
-          ...(controlConfig && {
-            [action.controlName]: {
-              ...control,
-              validationErrors: errors,
-            },
-          }),
+          [action.controlName]: {
+            ...control,
+            validationErrors: errors,
+          },
           ...rerenderedControls,
         },
       };

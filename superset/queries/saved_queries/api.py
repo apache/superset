@@ -32,17 +32,19 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.query.delete import DeleteSavedQueryCommand
-from superset.commands.query.exceptions import (
-    SavedQueryDeleteFailedError,
-    SavedQueryNotFoundError,
-)
-from superset.commands.query.export import ExportSavedQueriesCommand
-from superset.commands.query.importers.dispatcher import ImportSavedQueriesCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
+from superset.queries.saved_queries.commands.delete import DeleteSavedQueryCommand
+from superset.queries.saved_queries.commands.exceptions import (
+    SavedQueryDeleteFailedError,
+    SavedQueryNotFoundError,
+)
+from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
+from superset.queries.saved_queries.commands.importers.dispatcher import (
+    ImportSavedQueriesCommand,
+)
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
@@ -82,11 +84,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", SavedQueryFilter, lambda: []]]
 
     show_columns = [
-        "changed_on",
         "changed_on_delta_humanized",
-        "changed_by.first_name",
-        "changed_by.id",
-        "changed_by.last_name",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -101,11 +99,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "template_parameters",
     ]
     list_columns = [
-        "changed_on",
         "changed_on_delta_humanized",
-        "changed_by.first_name",
-        "changed_by.id",
-        "changed_by.last_name",
         "created_on",
         "created_by.first_name",
         "created_by.id",
@@ -148,7 +142,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "last_run_delta_humanized",
     ]
 
-    search_columns = ["id", "database", "label", "schema", "created_by", "changed_by"]
+    search_columns = ["id", "database", "label", "schema", "created_by"]
     if is_feature_enabled("TAGGING_SYSTEM"):
         search_columns += ["tags"]
     search_filters = {
@@ -169,7 +163,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "database": "database_name",
     }
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
-    allowed_rel_fields = {"database", "changed_by", "created_by"}
+    allowed_rel_fields = {"database"}
     allowed_distinct_fields = {"schema"}
 
     def pre_add(self, item: SavedQuery) -> None:

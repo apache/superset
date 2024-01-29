@@ -56,6 +56,7 @@ def upgrade():
     for slc in session.query(Slice).all():
         if slc.datasource:
             slc.perm = slc.datasource.perm
+            session.merge(slc)
             session.commit()
     db.session.close()
 

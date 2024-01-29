@@ -43,9 +43,11 @@ def table_has_column(table: str, column: str) -> bool:
     :param column: A column name
     :returns: True iff the column exists in the table
     """
-
-    insp = inspect(op.get_context().bind)
-
+    config = op.get_context().config
+    engine = engine_from_config(
+        config.get_section(config.config_ini_section), prefix="sqlalchemy."
+    )
+    insp = reflection.Inspector.from_engine(engine)
     try:
         return any(col["name"] == column for col in insp.get_columns(table))
     except NoSuchTableError:

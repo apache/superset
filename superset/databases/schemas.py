@@ -28,13 +28,13 @@ from marshmallow.validate import Length, ValidationError
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
-from superset.commands.database.exceptions import DatabaseInvalidError
-from superset.commands.database.ssh_tunnel.exceptions import (
+from superset.constants import PASSWORD_MASK
+from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidCredentials,
     SSHTunnelMissingCredentials,
 )
-from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -422,7 +422,7 @@ class DatabaseSSHTunnel(Schema):
     private_key_password = fields.String(required=False)
 
 
-class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
+class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -479,7 +479,7 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
-class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
+class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -536,7 +536,7 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     uuid = fields.String(required=False)
 
 
-class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
+class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -750,7 +750,6 @@ class ImportV1DatabaseExtraSchema(Schema):
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
-    version = fields.String(required=False, allow_none=True)
 
 
 class ImportV1DatabaseSchema(Schema):

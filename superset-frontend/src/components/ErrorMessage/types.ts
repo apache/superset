@@ -55,7 +55,6 @@ export const ErrorTypeEnum = {
   DATABASE_SECURITY_ACCESS_ERROR: 'DATABASE_SECURITY_ACCESS_ERROR',
   QUERY_SECURITY_ACCESS_ERROR: 'QUERY_SECURITY_ACCESS_ERROR',
   MISSING_OWNERSHIP_ERROR: 'MISSING_OWNERSHIP_ERROR',
-  DASHBOARD_SECURITY_ACCESS_ERROR: 'DASHBOARD_SECURITY_ACCESS_ERROR',
 
   // Other errors
   BACKEND_TIMEOUT_ERROR: 'BACKEND_TIMEOUT_ERROR',
@@ -79,7 +78,6 @@ export const ErrorTypeEnum = {
   // API errors
   INVALID_PAYLOAD_FORMAT_ERROR: 'INVALID_PAYLOAD_FORMAT_ERROR',
   INVALID_PAYLOAD_SCHEMA_ERROR: 'INVALID_PAYLOAD_SCHEMA_ERROR',
-  MARSHMALLOW_ERROR: 'MARSHMALLOW_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];
@@ -89,7 +87,7 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 // Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
-export type ErrorSource = 'dashboard' | 'explore' | 'sqllab' | 'crud';
+export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
 
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;

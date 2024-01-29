@@ -21,12 +21,9 @@ import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
-  buildCustomFormatters,
   CategoricalColorNamespace,
-  CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
-  getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
@@ -38,6 +35,9 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
+  buildCustomFormatters,
+  getCustomFormatter,
+  CurrencyFormatter,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -49,12 +49,12 @@ import { ZRLineType } from 'echarts/types/src/util/types';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
-  OrientationType,
   TimeseriesChartTransformedProps,
+  OrientationType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
-import { parseAxisBound } from '../utils/controls';
+import { parseYAxisBound } from '../utils/controls';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -64,7 +64,6 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
-  getMinAndMaxFromBounds,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -82,6 +81,8 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
+  getTooltipTimeFormatter,
+  getXAxisFormatter,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -90,15 +91,11 @@ import {
 } from './transformers';
 import {
   StackControlsValue,
-  TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
+  TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  getTooltipTimeFormatter,
-  getXAxisFormatter,
-  getYAxisFormatter,
-} from '../utils/formatters';
+import { getYAxisFormatter } from '../utils/getYAxisFormatter';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -146,7 +143,6 @@ export default function transformProps(
     markerSize,
     metrics,
     minorSplitLine,
-    minorTicks,
     onlyTotal,
     opacity,
     orientation,
@@ -163,10 +159,8 @@ export default function transformProps(
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
-    truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
-    xAxisBounds,
     xAxisLabelRotation,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
@@ -248,7 +242,7 @@ export default function transformProps(
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
-  const xAxisType = getAxisType(stack, xAxisDataType);
+  const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
@@ -392,20 +386,15 @@ export default function transformProps(
       }
     });
 
-  // axis bounds need to be parsed to replace incompatible values with undefined
-  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
-  let [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
+  // yAxisBounds need to be parsed to replace incompatible values with undefined
+  let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
   if ((contributionMode === 'row' || isAreaExpand) && stack) {
-    if (yAxisMin === undefined) yAxisMin = 0;
-    if (yAxisMax === undefined) yAxisMax = 1;
-  } else if (
-    logAxis &&
-    yAxisMin === undefined &&
-    minPositiveValue !== undefined
-  ) {
-    yAxisMin = calculateLowerLogTick(minPositiveValue);
+    if (min === undefined) min = 0;
+    if (max === undefined) max = 1;
+  } else if (logAxis && min === undefined && minPositiveValue !== undefined) {
+    min = calculateLowerLogTick(minPositiveValue);
   }
 
   const tooltipFormatter =
@@ -457,26 +446,27 @@ export default function transformProps(
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
     },
-    minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
-    ...getMinAndMaxFromBounds(
-      xAxisType,
-      truncateXAxis,
-      xAxisMin,
-      xAxisMax,
-      seriesType,
-    ),
   };
+
+  if (xAxisType === AxisType.time) {
+    /**
+     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Not including this in the initial declaration above so if echarts changes the default
+     * behavior for other axist types we won't unintentionally override it
+     */
+    xAxis.axisLabel.showMaxLabel = null;
+  }
 
   let yAxis: any = {
     ...defaultYAxis,
     type: logAxis ? AxisType.log : AxisType.value,
-    min: yAxisMin,
-    max: yAxisMax,
-    minorTick: { show: minorTicks },
+    min,
+    max,
+    minorTick: { show: true },
     minorSplitLine: { show: minorSplitLine },
     axisLabel: {
       formatter: getYAxisFormatter(

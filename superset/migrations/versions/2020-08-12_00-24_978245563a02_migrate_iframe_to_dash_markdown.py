@@ -163,6 +163,7 @@ def upgrade():
                     separators=(",", ":"),
                     sort_keys=True,
                 )
+                session.merge(dashboard)
 
         # remove iframe, separator and markup charts
         slices_to_remove = (

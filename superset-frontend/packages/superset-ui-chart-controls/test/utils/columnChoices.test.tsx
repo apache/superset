@@ -27,7 +27,7 @@ describe('columnChoices()', () => {
         metrics: [],
         type: DatasourceType.Table,
         main_dttm_col: 'test',
-        time_grain_sqla: [],
+        time_grain_sqla: 'P1D',
         columns: [
           {
             column_name: 'fiz',

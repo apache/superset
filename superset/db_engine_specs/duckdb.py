@@ -80,10 +80,3 @@ class DuckDBEngineSpec(BaseEngineSpec):
         cls, database: Database, inspector: Inspector, schema: str | None
     ) -> set[str]:
         return set(inspector.get_table_names(schema))
-
-
-class MotherDuckEngineSpec(DuckDBEngineSpec):
-    engine = "duckdb"
-    engine_name = "MotherDuck"
-
-    sqlalchemy_uri_placeholder = "duckdb:///md:{SERVICE_TOKEN}@{database_name}"

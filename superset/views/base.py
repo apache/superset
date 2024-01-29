@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from __future__ import annotations
-
 import dataclasses
 import functools
 import logging
@@ -23,7 +21,7 @@ import os
 import traceback
 from datetime import datetime
 from importlib.resources import files
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional, Union
 
 import simplejson as json
 import yaml
@@ -58,12 +56,14 @@ from superset import (
     app as superset_app,
     appbuilder,
     conf,
+    db,
     get_feature_flags,
     is_feature_enabled,
     security_manager,
 )
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.connectors.sqla import models
+from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -95,7 +95,6 @@ FRONTEND_CONF_KEYS = (
     "SQL_MAX_ROW",
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
-    "SQLLAB_DEFAULT_DBID",
     "DISPLAY_MAX_ROW",
     "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
@@ -121,8 +120,6 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
-    "PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET",
-    "JWT_ACCESS_CSRF_COOKIE_NAME",
 )
 
 logger = logging.getLogger(__name__)
@@ -142,11 +139,15 @@ def get_error_msg() -> str:
 
 
 def json_error_response(
-    msg: str | None = None,
+    msg: Optional[str] = None,
     status: int = 500,
-    payload: dict[str, Any] | None = None,
+    payload: Optional[dict[str, Any]] = None,
+    link: Optional[str] = None,
 ) -> FlaskResponse:
-    payload = payload or {"error": f"{msg}"}
+    if not payload:
+        payload = {"error": f"{msg}"}
+    if link:
+        payload["link"] = link
 
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser, ignore_nan=True),
@@ -158,9 +159,10 @@ def json_error_response(
 def json_errors_response(
     errors: list[SupersetError],
     status: int = 500,
-    payload: dict[str, Any] | None = None,
+    payload: Optional[dict[str, Any]] = None,
 ) -> FlaskResponse:
-    payload = payload or {}
+    if not payload:
+        payload = {}
 
     payload["errors"] = [dataclasses.asdict(error) for error in errors]
     return Response(
@@ -180,7 +182,7 @@ def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskRe
 
 
 def generate_download_headers(
-    extension: str, filename: str | None = None
+    extension: str, filename: Optional[str] = None
 ) -> dict[str, Any]:
     filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = f"attachment; filename={filename}.{extension}"
@@ -190,7 +192,7 @@ def generate_download_headers(
 
 def deprecated(
     eol_version: str = "4.0.0",
-    new_target: str | None = None,
+    new_target: Optional[str] = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """
     A decorator to set an API endpoint from SupersetView has deprecated.
@@ -198,8 +200,8 @@ def deprecated(
     """
 
     def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
-        def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
-            message = (
+        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+            messsage = (
                 "%s.%s "
                 "This API endpoint is deprecated and will be removed in version %s"
             )
@@ -209,9 +211,9 @@ def deprecated(
                 eol_version,
             ]
             if new_target:
-                message += " . Use the following API endpoint instead: %s"
+                messsage += " . Use the following API endpoint instead: %s"
                 logger_args.append(new_target)
-            logger.warning(message, *logger_args)
+            logger.warning(messsage, *logger_args)
             return f(self, *args, **kwargs)
 
         return functools.update_wrapper(wraps, f)
@@ -225,7 +227,7 @@ def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     return the response in the JSON format
     """
 
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except NoAuthorizationError:
@@ -247,7 +249,7 @@ def handle_api_exception(
     exceptions.
     """
 
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -282,6 +284,34 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
+def validate_sqlatable(table: models.SqlaTable) -> None:
+    """Checks the table existence in the database."""
+    with db.session.no_autoflush:
+        table_query = db.session.query(models.SqlaTable).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database.id,
+        )
+        if db.session.query(table_query.exists()).scalar():
+            raise Exception(  # pylint: disable=broad-exception-raised
+                get_dataset_exist_error_msg(table.full_name)
+            )
+
+    # Fail before adding if the table can't be found
+    try:
+        table.get_sqla_table_object()
+    except Exception as ex:
+        logger.exception("Got an error in pre_add for %s", table.name)
+        raise Exception(  # pylint: disable=broad-exception-raised
+            _(
+                "Table [%{table}s] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name, error: {}"
+            ).format(table.name, str(ex))
+        ) from ex
+
+
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(obj: Any, status: int = 200) -> FlaskResponse:
@@ -291,13 +321,10 @@ class BaseSupersetView(BaseView):
             mimetype="application/json",
         )
 
-    def render_app_template(
-        self, extra_bootstrap_data: dict[str, Any] | None = None
-    ) -> FlaskResponse:
+    def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
-            **(extra_bootstrap_data or {}),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -333,16 +360,21 @@ def get_environment_tag() -> dict[str, Any]:
 
 
 def menu_data(user: User) -> dict[str, Any]:
-    languages = {
-        lang: {**appbuilder.languages[lang], "url": appbuilder.get_url_for_locale(lang)}
-        for lang in appbuilder.languages
-    }
+    menu = appbuilder.menu.get_data()
 
-    if callable(brand_text := appbuilder.app.config["LOGO_RIGHT_TEXT"]):
+    languages = {}
+    for lang in appbuilder.languages:
+        languages[lang] = {
+            **appbuilder.languages[lang],
+            "url": appbuilder.get_url_for_locale(lang),
+        }
+    brand_text = appbuilder.app.config["LOGO_RIGHT_TEXT"]
+    if callable(brand_text):
         brand_text = brand_text()
+    build_number = appbuilder.app.config["BUILD_NUMBER"]
 
     return {
-        "menu": appbuilder.menu.get_data(),
+        "menu": menu,
         "brand": {
             "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
             "icon": appbuilder.app_icon,
@@ -362,9 +394,9 @@ def menu_data(user: User) -> dict[str, Any]:
             "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
-            "build_number": appbuilder.app.config["BUILD_NUMBER"],
+            "build_number": build_number,
             "languages": languages,
-            "show_language_picker": len(languages) > 1,
+            "show_language_picker": len(languages.keys()) > 1,
             "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
             if is_feature_enabled("MENU_HIDE_USER_INFO")
@@ -373,16 +405,14 @@ def menu_data(user: User) -> dict[str, Any]:
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
             if user.is_anonymous or is_feature_enabled("MENU_HIDE_USER_INFO")
-            else "/profile/",
+            else "/superset/profile/",
             "locale": session.get("locale", "en"),
         },
     }
 
 
 @cache_manager.cache.memoize(timeout=60)
-def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: str
-) -> dict[str, Any]:
+def cached_common_bootstrap_data(user: User, locale: str) -> dict[str, Any]:
     """Common data always sent to the client
 
     The function is memoized as the return value only changes when user permissions
@@ -419,15 +449,15 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(g.user),
+        "menu_data": menu_data(user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
 
 
-def common_bootstrap_payload() -> dict[str, Any]:
+def common_bootstrap_payload(user: User) -> dict[str, Any]:
     return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        **cached_common_bootstrap_data(user, get_locale()),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
@@ -537,7 +567,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -555,7 +585,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -590,11 +620,11 @@ class YamlExportMixin:  # pylint: disable=too-few-public-methods
     Used on DatabaseView for cli compatibility
     """
 
-    yaml_dict_key: str | None = None
+    yaml_dict_key: Optional[str] = None
 
     @action("yaml_export", __("Export to YAML"), __("Export to YAML?"), "fa-download")
     def yaml_export(
-        self, items: ImportExportMixin | list[ImportExportMixin]
+        self, items: Union[ImportExportMixin, list[ImportExportMixin]]
     ) -> FlaskResponse:
         if not isinstance(items, list):
             items = [items]
