@@ -23,7 +23,7 @@ jobs:
           yarn install --check-cache
       - name: yarn typecheck
         run: |
-          yarn buitypecheck
+          yarn typecheck
       - name: yarn build
         run: |
           yarn build
