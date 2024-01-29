@@ -468,13 +468,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        canExploreOrView && (
-          <DrillDetailMenuItems
-            chartId={slice.slice_id}
-            formData={props.formData}
-          />
-        )}
+      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExploreOrView && (
+        <DrillDetailMenuItems
+          chartId={slice.slice_id}
+          formData={props.formData}
+        />
+      )}
 
       {(slice.description || canExploreOrView) && <Menu.Divider />}
 
