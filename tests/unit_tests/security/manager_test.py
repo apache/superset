@@ -18,6 +18,7 @@
 import pytest
 from pytest_mock import MockFixture
 
+from superset.common.query_object import QueryObject
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.security.manager import SupersetSecurityManager
@@ -29,6 +30,81 @@ def test_security_manager(app_context: None) -> None:
     """
     sm = SupersetSecurityManager(appbuilder)
     assert sm
+
+
+def test_raise_for_access_guest_user(
+    mocker: MockFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that guest user can't modify chart payload.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    stored_metrics = [
+        {
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 1",
+            "optionName": "metric_ssa1gwimio_cxpyjc7vj3s",
+            "sqlExpression": "COUNT(*) + 1",
+        }
+    ]
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    # normal request
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    sm.raise_for_access(query_context=query_context)
+
+    # tampered requests
+    query_context.form_data = {
+        "slice_id": 43,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+    tampered_metrics = [
+        {
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 2",
+            "optionName": "metric_ssa1gwimio_cxpyjc7vj3s",
+            "sqlExpression": "COUNT(*) + 2",
+        }
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": tampered_metrics,
+    }
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=tampered_metrics)]  # type: ignore
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
 
 
 def test_raise_for_access_query_default_schema(
