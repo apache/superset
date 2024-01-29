@@ -54,6 +54,7 @@ import {
   LOG_ACTIONS_DRILL_BY_MODAL_OPENED,
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
+import { findPermission } from 'src/utils/findPermission';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -75,6 +76,7 @@ interface ModalFooterProps {
 const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
+  const theme = useTheme();
   const [url, setUrl] = useState('');
   const dashboardPageId = useContext(DashboardPageIdContext);
   const onEditChartClick = useCallback(() => {
@@ -84,6 +86,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
       }),
     );
   }, [dispatch, formData.slice_id]);
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
+  );
 
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
@@ -103,13 +108,20 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
     datasource_type,
     formData,
   ]);
+  const isEditDisabled = !url || !canExplore;
+
   return (
     <>
       <Button
         buttonStyle="secondary"
         buttonSize="small"
         onClick={onEditChartClick}
-        disabled={!url}
+        disabled={isEditDisabled}
+        tooltip={
+          isEditDisabled
+            ? t('You do not have sufficient permissions to edit the chart')
+            : undefined
+        }
       >
         <Link
           css={css`
@@ -128,6 +140,9 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drill-by-modal"
+        css={css`
+          margin-left: ${theme.gridUnit * 2}px;
+        `}
       >
         {t('Close')}
       </Button>

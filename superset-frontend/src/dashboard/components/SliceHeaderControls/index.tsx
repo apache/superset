@@ -57,6 +57,7 @@ import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
 const MENU_KEYS = {
@@ -170,11 +171,13 @@ const dropdownIconsStyles = css`
 `;
 
 const ViewResultsModalTrigger = ({
+  canExplore,
   exploreUrl,
   triggerNode,
   modalTitle,
   modalBody,
 }: {
+  canExplore?: boolean;
   exploreUrl: string;
   triggerNode: ReactChild;
   modalTitle: ReactChild;
@@ -214,6 +217,14 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="secondary"
                 buttonSize="small"
                 onClick={exploreChart}
+                disabled={!canExplore}
+                tooltip={
+                  !canExplore
+                    ? t(
+                        'You do not have sufficient permissions to edit the chart',
+                      )
+                    : undefined
+                }
               >
                 {t('Edit chart')}
               </Button>
@@ -221,6 +232,9 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="primary"
                 buttonSize="small"
                 onClick={closeModal}
+                css={css`
+                  margin-left: ${theme.gridUnit * 2}px;
+                `}
               >
                 {t('Close')}
               </Button>
@@ -259,7 +273,13 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
-
+  const canViewDrill = useSelector((state: RootState) =>
+    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
+  );
+  const canExploreOrView = props.supersetCanExplore || canViewDrill;
+  const canDatasourceSamples = useSelector((state: RootState) =>
+    findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -428,7 +448,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {props.supersetCanExplore && (
+      {canExploreOrView && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -443,9 +463,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {canExploreOrView && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
+            canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
             triggerNode={
               <span data-test="view-query-menu-item">{t('View as table')}</span>
@@ -465,14 +486,15 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        props.supersetCanExplore && (
+        canExploreOrView &&
+        canDatasourceSamples && (
           <DrillDetailMenuItems
             chartId={slice.slice_id}
             formData={props.formData}
           />
         )}
 
-      {(slice.description || props.supersetCanExplore) && <Menu.Divider />}
+      {(slice.description || canExploreOrView) && <Menu.Divider />}
 
       {supersetCanShare && (
         <Menu.SubMenu title={t('Share')}>

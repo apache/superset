@@ -99,13 +99,23 @@ const createProps = (viz_type = 'sunburst_v2') =>
     exploreUrl: '/explore',
   } as SliceHeaderControlsProps);
 
-const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+const renderWrapper = (
+  overrideProps?: SliceHeaderControlsProps,
+  roles?: Record<string, string[][]>,
+) => {
   const props = overrideProps || createProps();
   const store = getMockStore();
+  const mockState = store.getState();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
-    store,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: roles ?? mockState.user.roles,
+      },
+    },
   });
 };
 
@@ -295,13 +305,48 @@ test('Drill to detail modal is under featureflag', () => {
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show the "Drill to detail"', () => {
+test('Should show "Drill to detail"', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.DRILL_TO_DETAIL]: true,
   };
   const props = createProps();
   props.slice.slice_id = 18;
-  renderWrapper(props);
+  renderWrapper(props, {
+    Admin: [
+      ['can_view_and_drill', 'Dashboard'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show menu items tied to can_view_and_drill permission', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DRILL_TO_DETAIL]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_and_drill', 'Dashboard']],
+  });
+  expect(screen.getByText('View query')).toBeInTheDocument();
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" without proper permissions', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_and_drill', 'Dashboard']],
+  });
+  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

@@ -38,10 +38,12 @@ const setup = ({
   onSelection = noOp,
   displayedItems = ContextMenuItem.All,
   additionalConfig = {},
+  roles = undefined,
 }: {
   onSelection?: () => void;
   displayedItems?: ContextMenuItem | ContextMenuItem[];
   additionalConfig?: Record<string, any>;
+  roles?: Record<string, string[][]>;
 } = {}) => {
   const { result } = renderHook(() =>
     useContextMenu(
@@ -58,7 +60,12 @@ const setup = ({
       ...mockState,
       user: {
         ...mockState.user,
-        roles: { Admin: [['can_explore', 'Superset']] },
+        roles: roles ?? {
+          Admin: [
+            ['can_explore', 'Superset'],
+            ['can_samples', 'Datasource'],
+          ],
+        },
       },
     },
   });
@@ -75,7 +82,7 @@ test('Context menu renders', () => {
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
-test('Context menu contains all items only', () => {
+test('Context menu contains all displayed items only', () => {
   const result = setup({
     displayedItems: [ContextMenuItem.DrillToDetail, ContextMenuItem.DrillBy],
   });
@@ -83,4 +90,29 @@ test('Context menu contains all items only', () => {
   expect(screen.queryByText('Add cross-filter')).not.toBeInTheDocument();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
   expect(screen.getByText('Drill by')).toBeInTheDocument();
+});
+
+test('Context menu shows all items tied to can_view_and_drill permission', () => {
+  const result = setup({
+    roles: {
+      Admin: [
+        ['can_view_and_drill', 'Dashboard'],
+        ['can_samples', 'Datasource'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+  expect(screen.getByText('Drill by')).toBeInTheDocument();
+  expect(screen.getByText('Add cross-filter')).toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill to detail" without proper permissions', () => {
+  const result = setup({
+    roles: { Admin: [['can_view_and_drill', 'Dashboard']] },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+  expect(screen.getByText('Drill by')).toBeInTheDocument();
+  expect(screen.getByText('Add cross-filter')).toBeInTheDocument();
 });
