@@ -55,7 +55,7 @@
     "react-error-boundary": "^1.2.5",
     "react-markdown": "^8.0.3",
     "rehype-raw": "^6.1.1",
-    "rehype-sanitize": "^5.0.1",
+    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^3.0.1",
     "reselect": "^4.0.0",
     "rison": "^0.1.1",
