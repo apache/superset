@@ -350,6 +350,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   );
 
   const useStickyWrap = (renderer: TableRenderer) => {
+    // @ts-ignore
     const { width, height } =
       useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
