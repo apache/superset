@@ -435,6 +435,7 @@ export default function transformProps(
     yAxisTitlePosition,
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
+    isHorizontal,
   );
 
   const legendData = rawSeries
