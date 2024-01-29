@@ -1,6 +1,5 @@
 # Note: these patterns are applied to single files or directories, not full paths
 .gitignore
-docs/README.md
 .gitattributes
 .gitkeep
 .coverage
@@ -62,3 +61,6 @@ tsconfig.tsbuildinfo
 .prettierignore
 generator-superset/*
 temporary_superset_ui/*
+
+# docs overrides for third party logos
+docs/static/img/databases/*
