@@ -62,4 +62,9 @@ generator-superset/*
 temporary_superset_ui/*
 
 # docs overrides for third party logos
-databases/*.svg
+docs/static/img/databases/apache-pinot.svg
+docs/static/img/databases/csv.svg
+docs/static/img/databases/google-big-query.svg
+docs/static/img/databases/google-sheets.svg
+docs/static/img/databases/postgresql.svg
+docs/static/img/databases/snowflake.svg
