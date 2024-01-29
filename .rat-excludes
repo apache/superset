@@ -62,4 +62,4 @@ generator-superset/*
 temporary_superset_ui/*
 
 # docs overrides for third party logos
-docs/static/img/databases/*.svg
+databases/*.svg
