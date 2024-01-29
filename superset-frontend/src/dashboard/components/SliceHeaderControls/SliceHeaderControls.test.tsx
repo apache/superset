@@ -316,7 +316,7 @@ test('Should show the "Drill to detail"', () => {
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show the can_view_drill_dashboard permission related items', () => {
+test('Should show the can_view_and_drill permission related items', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.DRILL_TO_DETAIL]: true,
@@ -327,21 +327,21 @@ test('Should show the can_view_drill_dashboard permission related items', () => 
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_view_drill_dashboard', 'Superset']],
+    Admin: [['can_view_and_drill', 'Dashboard']],
   });
   expect(screen.getByText('View query')).toBeInTheDocument();
   expect(screen.getByText('View as table')).toBeInTheDocument();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should not show the "Edit chart" with can_view_drill_dashboard permission', () => {
+test('Should not show the "Edit chart" with can_view_and_drill permission', () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_view_drill_dashboard', 'Superset']],
+    Admin: [['can_view_and_drill', 'Dashboard']],
   });
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

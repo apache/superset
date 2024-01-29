@@ -87,9 +87,9 @@ test('Context menu contains all displayed items only', () => {
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
-test('Context menu contains all items for can_view_drill_dashboard permission', () => {
+test('Context menu contains all items for can_view_and_drill permission', () => {
   const result = setup({
-    roles: { Admin: [['can_view_drill_dashboard', 'Superset']] },
+    roles: { Admin: [['can_view_and_drill', 'Dashboard']] },
   });
   result.current.onContextMenu(0, 0, {});
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();

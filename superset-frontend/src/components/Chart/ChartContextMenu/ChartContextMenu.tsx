@@ -91,7 +91,7 @@ const ChartContextMenu = (
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
   const canViewDrill = useSelector((state: RootState) =>
-    findPermission('can_view_drill_dashboard', 'Superset', state.user?.roles),
+    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
   );
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
