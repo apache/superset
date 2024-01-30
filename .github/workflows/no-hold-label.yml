@@ -14,7 +14,7 @@ jobs:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
           const payload = context.payload.pull_request
-          const label = !!payload.labels.find(label => label.name.includes('hold'))
-          if (label) {
+          const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
+          if (holdLabelPresent) {
             core.setFailed('Hold label is present, merge is blocked.')
           }
