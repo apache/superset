@@ -72,6 +72,7 @@
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
+    "update-maps": "jupyter nbconvert --to notebook --execute --inplace 'plugins/legacy-plugin-chart-country-map/scripts/Country Map GeoJSON Generator.ipynb' -Xfrozen_modules=off",
     "validate-release": "../RELEASING/validate_this_release.sh"
   },
   "browserslist": [
