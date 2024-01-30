@@ -152,18 +152,3 @@ superset run -p 8088 --with-threads --reload --debugger
 
 If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
 locally by default at `localhost:8088`) and login using the username and password you created.
-
-### Installing Superset with Helm in Kubernetes
-
-You can install Superset into Kubernetes with [Helm](https://helm.sh/). The chart is located in
-the `helm/` directory.
-
-To install Superset in your Kubernetes cluster with Helm 3, run:
-
-```
-helm dep up ./helm/superset
-helm upgrade --install superset ./helm/superset
-```
-
-Note that the above command will install Superset into `default` namespace of your Kubernetes
-cluster.
