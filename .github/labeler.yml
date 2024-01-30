@@ -1,0 +1,20 @@
+"risk:db-migration":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/migrations/**'
+
+"dependencies:python":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/requirements/**'
+
+"dependencies:npm":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/package.json'
+    - 'superset-frontend/package-lock.json'
+
+"doc":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docs/**'
