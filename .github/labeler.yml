@@ -1,0 +1,4 @@
+"risk:db-migration":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/migrations/**'
