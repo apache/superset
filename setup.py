@@ -79,7 +79,7 @@ setup(
         "cron-descriptor",
         "cryptography>=39.0.1, <40",
         "deprecation>=2.1.0, <2.2.0",
-        "flask>=2.2.5, <3.0.0",
+        "flask>=2.0.3, <3.0.0",
         "flask-appbuilder>=4.3.7, <5.0.0",
         "flask-caching>=1.11.1, <2.0",
         "flask-compress>=1.13, <2.0",
