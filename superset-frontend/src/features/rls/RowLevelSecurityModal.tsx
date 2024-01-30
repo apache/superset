@@ -124,7 +124,7 @@ export interface RowLevelSecurityModalProps {
 
 const DEAFULT_RULE = {
   name: '',
-  filter_type: FilterType.REGULAR,
+  filter_type: FilterType.Regular,
   tables: [],
   roles: [],
   clause: '',
@@ -418,7 +418,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {currentRule.filter_type === FilterType.BASE
+              {currentRule.filter_type === FilterType.Base
                 ? t('Excluded roles')
                 : t('Roles')}{' '}
               <InfoTooltip

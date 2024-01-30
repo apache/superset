@@ -58,11 +58,11 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+enum Sections {
+  AllCharts = 'ALL_CHARTS',
+  Category = 'CATEGORY',
+  Tags = 'TAGS',
+  RecommendedTags = 'RECOMMENDED_TAGS',
 }
 
 const DEFAULT_ORDER = [
@@ -573,8 +573,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const [activeSection, setActiveSection] = useState<string>(() =>
     selectedVizMetadata?.category
-      ? SECTIONS.CATEGORY
-      : SECTIONS.RECOMMENDED_TAGS,
+      ? Sections.CATEGORY
+      : Sections.RECOMMENDED_TAGS,
   );
 
   // get a fuse instance for fuzzy search
@@ -666,17 +666,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [SECTIONS.RECOMMENDED_TAGS]: {
+      [Sections.RECOMMENDED_TAGS]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      [SECTIONS.CATEGORY]: {
+      [Sections.CATEGORY]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      [SECTIONS.TAGS]: {
+      [Sections.TAGS]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -691,19 +691,19 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     }
     if (
       activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
+      activeSection === Sections.ALL_CHARTS
     ) {
       return sortedMetadata;
     }
     if (
-      activeSection === SECTIONS.CATEGORY &&
+      activeSection === Sections.CATEGORY &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
     if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
+      (activeSection === Sections.TAGS ||
+        activeSection === Sections.RECOMMENDED_TAGS) &&
       chartsByTags[activeSelector]
     ) {
       return chartsByTags[activeSelector];
@@ -725,13 +725,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
-          sectionId={SECTIONS.ALL_CHARTS}
+          sectionId={Sections.ALL_CHARTS}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            SECTIONS.ALL_CHARTS === activeSection
+            Sections.ALL_CHARTS === activeSection
           }
           onClick={clickSelector}
         />

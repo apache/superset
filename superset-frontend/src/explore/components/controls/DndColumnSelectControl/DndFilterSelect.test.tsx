@@ -37,7 +37,7 @@ import {
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { EXPRESSION_TYPES } from '../FilterControl/types';
+import { ExpressionTypes } from '../FilterControl/types';
 
 const defaultProps: DndFilterSelectProps = {
   type: 'DndFilterSelect',
@@ -91,7 +91,7 @@ test('renders with default props', async () => {
 test('renders with value', async () => {
   const value = new AdhocFilter({
     sqlExpression: 'COUNT(*)',
-    expressionType: EXPRESSION_TYPES.SQL,
+    expressionType: ExpressionTypes.Sql,
   });
   render(setup({ value }), {
     useDnd: true,
@@ -124,7 +124,7 @@ test('renders options with column', async () => {
         {
           id: 1,
           type: 'VARCHAR',
-          type_generic: GenericDataType.STRING,
+          type_generic: GenericDataType.String,
           column_name: 'Column',
         },
       ],

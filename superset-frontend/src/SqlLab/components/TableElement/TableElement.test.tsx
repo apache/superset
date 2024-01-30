@@ -142,7 +142,7 @@ test('removes the table', async () => {
   const isFeatureEnabledMock = jest
     .spyOn(uiCore, 'isFeatureEnabled')
     .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
+      featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
     );
   const { getAllByTestId, getByText } = render(
     <TableElement {...mockedProps} />,

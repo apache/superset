@@ -224,7 +224,7 @@ function RowLevelSecurityList(props: RLSProps) {
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -258,14 +258,14 @@ function RowLevelSecurityList(props: RLSProps) {
         key: 'search',
         id: 'name',
         input: 'search',
-        operator: FilterOperator.startsWith,
+        operator: FilterOperator.StartsWith,
       },
       {
         Header: t('Filter Type'),
         key: 'filter_type',
         id: 'filter_type',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Regular'), value: 'Regular' },
@@ -277,14 +277,14 @@ function RowLevelSecurityList(props: RLSProps) {
         key: 'search',
         id: 'group_key',
         input: 'search',
-        operator: FilterOperator.startsWith,
+        operator: FilterOperator.StartsWith,
       },
       {
         Header: t('Modified by'),
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'rowlevelsecurity',

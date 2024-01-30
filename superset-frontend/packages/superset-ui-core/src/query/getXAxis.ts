@@ -31,7 +31,7 @@ export const isXAxisSet = (formData: QueryFormData) =>
   isQueryFormColumn(formData.x_axis);
 
 export const hasGenericChartAxes = isFeatureEnabled(
-  FeatureFlag.GENERIC_CHART_AXES,
+  FeatureFlag.GenericChartAxes,
 );
 
 export const getXAxisColumn = (

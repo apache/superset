@@ -224,7 +224,7 @@ export const queries = [
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
-    state: QueryState.SUCCESS,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql: null,
@@ -282,7 +282,7 @@ export const queries = [
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
-    state: QueryState.SUCCESS,
+    state: QueryState.Success,
     tempTable: null,
     userId: 1,
     executedSql:
@@ -315,7 +315,7 @@ export const queryWithNoQueryLimit = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempTable: null,
   userId: 1,
   executedSql: null,
@@ -487,7 +487,7 @@ export const stoppedQuery = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.STOPPED,
+  state: QueryState.Stopped,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -505,7 +505,7 @@ export const failedQueryWithErrorMessage = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -530,7 +530,7 @@ export const failedQueryWithErrors = {
   sql: 'SELECT ...',
   sqlEditorId: 'rJaf5u9WZ',
   startDttm: 1497400851936,
-  state: QueryState.FAILED,
+  state: QueryState.Failed,
   tab: 'Untitled Query 2',
   tempTable: '',
 };
@@ -546,7 +546,7 @@ const baseQuery: QueryResponse = {
   id: 'BkA1CLrJg',
   progress: 100,
   startDttm: 1476910566092.96,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempSchema: null,
   tempTable: 'temp',
   userId: 1,
@@ -582,13 +582,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
-        type_generic: GenericDataType.STRING,
+        type_generic: GenericDataType.String,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
-        type_generic: GenericDataType.STRING,
+        type_generic: GenericDataType.String,
       },
     ],
     selected_columns: [
@@ -596,13 +596,13 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
-        type_generic: GenericDataType.TEMPORAL,
+        type_generic: GenericDataType.Temporal,
       },
       {
         is_dttm: false,
         column_name: 'gender',
         type: 'STRING',
-        type_generic: GenericDataType.STRING,
+        type_generic: GenericDataType.String,
       },
     ],
     expanded_columns: [
@@ -610,7 +610,7 @@ const baseQuery: QueryResponse = {
         is_dttm: true,
         column_name: 'ds',
         type: 'STRING',
-        type_generic: GenericDataType.STRING,
+        type_generic: GenericDataType.String,
       },
     ],
     data: [
@@ -627,7 +627,7 @@ export const runningQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 90,
-  state: QueryState.RUNNING,
+  state: QueryState.Running,
   startDttm: Date.now() - 500,
 };
 
@@ -638,7 +638,7 @@ export const successfulQuery: QueryResponse = {
   ctas: false,
   id: 'ryhMUZCGb',
   progress: 100,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   startDttm: Date.now() - 500,
 };
 

@@ -91,8 +91,8 @@ const DropdownItemExtension = extensionsRegistry.get(
 );
 
 export enum CreationMethod {
-  CHARTS = 'charts',
-  DASHBOARDS = 'dashboards',
+  Charts = 'charts',
+  Dashboards = 'dashboards',
 }
 export interface HeaderReportProps {
   dashboardId?: number;
@@ -119,8 +119,8 @@ export default function HeaderReportDropDown({
   const dispatch = useDispatch();
   const report = useSelector<any, AlertObject>(state => {
     const resourceType = dashboardId
-      ? CreationMethod.DASHBOARDS
-      : CreationMethod.CHARTS;
+      ? CreationMethod.Dashboards
+      : CreationMethod.Charts;
     return (
       reportSelector(state, resourceType, dashboardId || chart?.id) ||
       EMPTY_OBJECT
@@ -133,7 +133,7 @@ export default function HeaderReportDropDown({
     UserWithPermissionsAndRoles
   >(state => state.user);
   const canAddReports = () => {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
+    if (!isFeatureEnabled(FeatureFlag.AlertReports)) {
       return false;
     }
 
@@ -323,7 +323,7 @@ export default function HeaderReportDropDown({
             dashboardId={dashboardId}
             chart={chart}
             creationMethod={
-              dashboardId ? CreationMethod.DASHBOARDS : CreationMethod.CHARTS
+              dashboardId ? CreationMethod.Dashboards : CreationMethod.Charts
             }
           />
           {useTextMenu ? textMenu() : iconMenu()}

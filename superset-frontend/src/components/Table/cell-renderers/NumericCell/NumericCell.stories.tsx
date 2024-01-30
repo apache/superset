@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
-import { CurrencyCode, LocaleCode, NumericCell, Style } from './index';
+import { NumericCell, Style } from './index';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/NumericCell',
@@ -39,9 +39,9 @@ export const FrenchLocale: ComponentStory<typeof NumericCell> = args => (
 
 FrenchLocale.args = {
   value: 5678943,
-  locale: LocaleCode.fr,
+  locale: 'fr',
   options: {
-    style: Style.CURRENCY,
-    currency: CurrencyCode.EUR,
+    style: Style.Currency,
+    currency: 'EUR',
   },
 };

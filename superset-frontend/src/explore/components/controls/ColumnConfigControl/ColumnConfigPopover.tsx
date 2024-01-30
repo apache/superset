@@ -69,7 +69,7 @@ export default function ColumnConfigPopover({
 
   const layout =
     configFormLayout[
-      column.type === undefined ? GenericDataType.STRING : column.type
+      column.type === undefined ? GenericDataType.String : column.type
     ];
 
   if (isTabLayoutItem(layout[0])) {

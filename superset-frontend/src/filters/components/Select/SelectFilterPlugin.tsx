@@ -147,7 +147,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 .join(', ')}${suffix}`
             : undefined,
           value:
-            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
+            appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
         },
@@ -168,7 +168,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
 
   const isDisabled =
-    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
+    appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
   const onSearch = useMemo(
     () =>
@@ -316,7 +316,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
+          oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
           invertSelection={inverseSelection}
           options={options}
           sortComparator={sortComparator}

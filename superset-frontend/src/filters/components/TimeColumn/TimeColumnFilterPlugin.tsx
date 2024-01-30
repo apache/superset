@@ -77,7 +77,7 @@ export default function PluginFilterTimeColumn(
   }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
-    row => row.dtype === GenericDataType.TEMPORAL,
+    row => row.dtype === GenericDataType.Temporal,
   );
 
   const placeholderText =

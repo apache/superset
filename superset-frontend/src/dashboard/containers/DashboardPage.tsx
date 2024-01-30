@@ -187,7 +187,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   useEffect(() => {
     const sharedLabelColor = getSharedLabelColor();
-    sharedLabelColor.source = SharedLabelColorSource.dashboard;
+    sharedLabelColor.source = SharedLabelColorSource.Dashboard;
     return () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(

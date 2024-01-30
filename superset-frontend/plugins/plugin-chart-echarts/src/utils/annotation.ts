@@ -46,7 +46,7 @@ export function evalFormula(
 
   return data.map(row => {
     let value = row[xAxis];
-    if (xAxisType === 'time') {
+    if (xAxisType === 'Time') {
       value = new Date(value as string).getTime();
     }
     return [value, evalExpression(expression, (value || 0) as number)];

@@ -61,7 +61,7 @@ const extractAdhocFiltersFromFormData = formDataToHandle =>
 
 const hasTemporalRangeFilter = formData =>
   (formData?.adhoc_filters || []).some(
-    filter => filter.operator === Operators.TEMPORAL_RANGE,
+    filter => filter.operator === Operators.TemporalRange,
   );
 
 export const getSlicePayload = (
@@ -84,7 +84,7 @@ export const getSlicePayload = (
     Object.keys(adhocFilters || {}).forEach(adhocFilterKey => {
       if (isEmpty(adhocFilters[adhocFilterKey])) {
         formDataFromSlice?.[adhocFilterKey]?.forEach(filter => {
-          if (filter.operator === Operators.TEMPORAL_RANGE && !filter.isExtra) {
+          if (filter.operator === Operators.TemporalRange && !filter.isExtra) {
             adhocFilters[adhocFilterKey].push({
               ...filter,
               comparator: 'No filter',
@@ -101,7 +101,7 @@ export const getSlicePayload = (
   // TEMPORAL_RANGE filters are converted to 'No filter' when saving a chart.
   if (!hasTemporalRangeFilter(adhocFilters)) {
     formDataWithNativeFilters?.adhoc_filters?.forEach(filter => {
-      if (filter.operator === Operators.TEMPORAL_RANGE && filter.isExtra) {
+      if (filter.operator === Operators.TemporalRange && filter.isExtra) {
         adhocFilters.adhoc_filters.push({ ...filter, comparator: 'No filter' });
       }
     });

@@ -136,7 +136,7 @@ describe('extractQueryFields', () => {
         columns: ['a'],
         groupby: ['b'],
         metric: ['m'],
-        query_mode: QueryMode.raw,
+        query_mode: QueryMode.Raw,
       }),
     ).toEqual({
       columns: ['a'],
@@ -151,7 +151,7 @@ describe('extractQueryFields', () => {
         columns: ['a'],
         groupby: [],
         metric: ['m'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
       }),
     ).toEqual({
       metrics: ['m'],
@@ -163,7 +163,7 @@ describe('extractQueryFields', () => {
         columns: ['a'],
         groupby: ['b'],
         metric: ['m'],
-        query_mode: QueryMode.aggregate,
+        query_mode: QueryMode.Aggregate,
       }),
     ).toEqual({
       metrics: ['m'],
