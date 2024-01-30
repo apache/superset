@@ -573,8 +573,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const [activeSection, setActiveSection] = useState<string>(() =>
     selectedVizMetadata?.category
-      ? Sections.CATEGORY
-      : Sections.RECOMMENDED_TAGS,
+      ? Sections.Category
+      : Sections.RecommendedTags,
   );
 
   // get a fuse instance for fuzzy search
@@ -666,17 +666,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [Sections.RECOMMENDED_TAGS]: {
+      [Sections.RecommendedTags]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      [Sections.CATEGORY]: {
+      [Sections.Category]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      [Sections.TAGS]: {
+      [Sections.Tags]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -689,21 +689,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (isActivelySearching) {
       return searchResults;
     }
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === Sections.ALL_CHARTS
-    ) {
+    if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
     if (
-      activeSection === Sections.CATEGORY &&
+      activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
     if (
-      (activeSection === Sections.TAGS ||
-        activeSection === Sections.RECOMMENDED_TAGS) &&
+      (activeSection === Sections.Tags ||
+        activeSection === Sections.RecommendedTags) &&
       chartsByTags[activeSelector]
     ) {
       return chartsByTags[activeSelector];
@@ -725,13 +722,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
-          sectionId={Sections.ALL_CHARTS}
+          sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            Sections.ALL_CHARTS === activeSection
+            Sections.AllCharts === activeSection
           }
           onClick={clickSelector}
         />

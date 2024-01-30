@@ -125,7 +125,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
 
-    if (operator && operator === Operators.LATEST_PARTITION) {
+    if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
       return partitionColumn && subject && subject === partitionColumn;
     }

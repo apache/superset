@@ -324,7 +324,7 @@ test('Should show "Drill to detail"', () => {
 test('Should show menu items tied to can_view_and_drill permission', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+    [FeatureFlag.DrillToDetail]: true,
   };
   const props = {
     ...createProps(),

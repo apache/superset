@@ -83,7 +83,7 @@ const simpleCustomFilter = new AdhocFilter({
   expressionType: ExpressionTypes.Simple,
   subject: 'ds',
   operator: 'LATEST PARTITION',
-  operatorId: Operators.LATEST_PARTITION,
+  operatorId: Operators.LatestPartition,
 });
 
 const options = [
@@ -218,11 +218,11 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       adhocFilter: simpleMultiAdhocFilter,
     });
     const { onOperatorChange } = useSimpleTabFilterProps(props);
-    onOperatorChange(Operators.LESS_THAN);
+    onOperatorChange(Operators.LessThan);
     expect(props.onChange.calledOnce).toBe(true);
     expect(props.onChange.lastCall.args[0]).toEqual(
       simpleMultiAdhocFilter.duplicateWith({
-        operatorId: Operators.LESS_THAN,
+        operatorId: Operators.LessThan,
         operator: '<',
         comparator: '10',
       }),
@@ -256,8 +256,8 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       partitionColumn: 'ds',
     });
     const { isOperatorRelevant } = useSimpleTabFilterProps(props);
-    expect(isOperatorRelevant(Operators.LATEST_PARTITION, 'ds')).toBe(true);
-    expect(isOperatorRelevant(Operators.LATEST_PARTITION, 'value')).toBe(false);
+    expect(isOperatorRelevant(Operators.LatestPartition, 'ds')).toBe(true);
+    expect(isOperatorRelevant(Operators.LatestPartition, 'value')).toBe(false);
   });
 
   it('will generate custom sqlExpression for LATEST PARTITION operator', () => {
@@ -275,13 +275,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
       partitionColumn: 'ds',
     });
     const { onOperatorChange } = useSimpleTabFilterProps(props);
-    onOperatorChange(Operators.LATEST_PARTITION);
+    onOperatorChange(Operators.LatestPartition);
     expect(props.onChange.calledOnce).toBe(true);
     expect(props.onChange.lastCall.args[0]).toEqual(
       testAdhocFilter.duplicateWith({
         subject: 'ds',
         operator: 'LATEST PARTITION',
-        operatorId: Operators.LATEST_PARTITION,
+        operatorId: Operators.LatestPartition,
         comparator: null,
         clause: 'WHERE',
         expressionType: 'SQL',

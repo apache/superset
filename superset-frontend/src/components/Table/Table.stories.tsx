@@ -645,7 +645,7 @@ export const HeaderRenderers: ComponentStory<typeof Table> = () => {
             { label: 'Brazilian Real', value: 'pt_BR' },
           ]}
           value={priceLocale}
-          onChange={value => setPriceLocale(value as LocaleCode)}
+          onChange={value => setPriceLocale(value)}
         />
       ),
       dataIndex: 'price',
