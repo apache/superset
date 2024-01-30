@@ -83,7 +83,6 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
                 setScheduleFormat(e);
               }}
               options={SCHEDULE_TYPE_OPTIONS}
-              //   sortComparator={propertyComparator('value')}
             />
           </div>
         </StyledInputContainer>
