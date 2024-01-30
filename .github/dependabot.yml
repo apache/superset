@@ -1,6 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
+    ignore:
+      - dependency-name: "css-minimizer-webpack-plugin"
     directory: "/superset-frontend/"
     schedule:
       interval: "monthly"
