@@ -313,7 +313,7 @@
     "jest-websocket-mock": "^2.2.0",
     "jsdom": "^20.0.0",
     "lerna": "^6.6.2",
-    "less": "^3.12.2",
+    "less": "^4.2.0",
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.7.6",
     "mock-socket": "^9.0.3",
