@@ -16,51 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, createRef } from 'react';
-import { styled } from '@superset-ui/core';
-import { PopKPIProps, PopKPIStylesProps } from './types';
+import React, { createRef } from 'react';
+import { css, styled, useTheme } from '@superset-ui/core';
+import { PopKPIComparisonValueStyleProps, PopKPIProps } from './types';
 
-// The following Styles component is a <div> element, which has been styled using Emotion
-// For docs, visit https://emotion.sh/docs/styled
-
-// Theming variables are provided for your use via a ThemeProvider
-// imported from @superset-ui/core. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
-
-const Styles = styled.div<PopKPIStylesProps>`
-  font-family: ${({ theme }) => theme.typography.families.sansSerif};
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: ${({ theme }) => theme.tdUnit * 4}px;
-  border-radius: ${({ theme }) => theme.tdUnit * 2}px;
-  height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
-`;
-
-const BigValueContainer = styled.div`
-  font-size: ${props => (props.headerFontSize ? props.headerFontSize : 60)}px;
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
-  text-align: center;
-`;
-
-const TableContainer = styled.div`
-  width: 100%;
-  display: table;
-`;
-
-const ComparisonContainer = styled.div`
-  display: table-row;
-`;
-
-const ComparisonValue = styled.div`
-  font-weight: ${({ theme }) => theme.typography.weights.light};
-  width: 33%;
-  display: table-cell;
-  font-size: ${props =>
-    props.subheaderFontSize ? props.subheaderFontSize : 20}px;
-  text-align: center;
+const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
+  ${({ theme, subheaderFontSize }) => `
+    font-weight: ${theme.typography.weights.light};
+    width: 33%;
+    display: table-cell;
+    font-size: ${subheaderFontSize || 20}px;
+    text-align: center;
+  `}
 `;
 
 export default function PopKPI(props: PopKPIProps) {
@@ -76,24 +43,40 @@ export default function PopKPI(props: PopKPIProps) {
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
+  const theme = useTheme();
 
-  useEffect(() => {
-    const root = rootElem.current as HTMLElement;
-  });
+  const wrapperDivStyles = css`
+    font-family: ${theme.typography.families.sansSerif};
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: ${theme.gridUnit * 4}px;
+    border-radius: ${theme.gridUnit * 2}px;
+    height: ${height}px;
+    width: ${width}px;
+  `;
+
+  const bigValueContainerStyles = css`
+    font-size: ${headerFontSize || 60}px;
+    font-weight: ${theme.typography.weights.normal};
+    text-align: center;
+  `;
 
   return (
-    <Styles
-      ref={rootElem}
-      boldText={props.boldText}
-      headerFontSize={props.headerFontSize}
-      height={height}
-      width={width}
-    >
-      <BigValueContainer headerFontSize={headerFontSize}>
-        {bigNumber}
-      </BigValueContainer>
-      <TableContainer>
-        <ComparisonContainer>
+    <div ref={rootElem} css={wrapperDivStyles}>
+      <div css={bigValueContainerStyles}>{bigNumber}</div>
+      <div
+        css={css`
+          width: 100%;
+          display: table;
+        `}
+      >
+        <div
+          css={css`
+            display: table-row;
+          `}
+        >
           <ComparisonValue subheaderFontSize={subheaderFontSize}>
             {' '}
             #: {prevNumber}
@@ -106,8 +89,8 @@ export default function PopKPI(props: PopKPIProps) {
             {' '}
             %: {percentDifference}
           </ComparisonValue>
-        </ComparisonContainer>
-      </TableContainer>
-    </Styles>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -35,6 +35,10 @@ interface PopKPICustomizeProps {
   headerText: string;
 }
 
+export interface PopKPIComparisonValueStyleProps {
+  subheaderFontSize?: keyof typeof supersetTheme.typography.sizes;
+}
+
 export type PopKPIQueryFormData = QueryFormData &
   PopKPIStylesProps &
   PopKPICustomizeProps;

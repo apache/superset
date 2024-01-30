@@ -16,14 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import moment from 'moment';
 import {
   ChartProps,
-  TimeseriesDataRecord,
   getMetricLabel,
   getValueFormatter,
   NumberFormats,
   getNumberFormatter,
 } from '@superset-ui/core';
+
+export const parseMetricValue = (metricValue: number | string | null) => {
+  if (typeof metricValue === 'string') {
+    const dateObject = moment.utc(metricValue, moment.ISO_8601, true);
+    if (dateObject.isValid()) {
+      return dateObject.valueOf();
+    }
+    return 0;
+  }
+  return metricValue ?? 0;
+};
 
 export default function transformProps(chartProps: ChartProps) {
   /**
@@ -71,12 +82,14 @@ export default function transformProps(chartProps: ChartProps) {
     currencyFormat,
     subheaderFontSize,
   } = formData;
-  const dataA = queriesData[0].data as TimeseriesDataRecord[];
-  const dataB = queriesData[1].data as TimeseriesDataRecord[];
+  const { data: dataA = [] } = queriesData[0];
+  const { data: dataB = [] } = queriesData[1];
   const data = dataA;
   const metricName = getMetricLabel(metrics[0]);
-  let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let prevNumber = dataB.length === 0 ? null : dataB[0][metricName];
+  let bigNumber: number | string =
+    data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
+  let prevNumber: number | string =
+    data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
 
   const numberFormatter = getValueFormatter(
     metrics[0],
@@ -97,7 +110,7 @@ export default function transformProps(chartProps: ChartProps) {
     NumberFormats.PERCENT_SIGNED_1_POINT,
   );
 
-  let valueDifference = bigNumber - prevNumber;
+  let valueDifference: number | string = bigNumber - prevNumber;
 
   const percentDifferenceNum = prevNumber
     ? (bigNumber - prevNumber) / Math.abs(prevNumber)

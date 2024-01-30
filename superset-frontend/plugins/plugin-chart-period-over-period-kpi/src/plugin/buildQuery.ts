@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  AdhocFilter,
+  buildQueryContext,
+  QueryFormData,
+} from '@superset-ui/core';
 import moment, { Moment } from 'moment';
 
 /**
@@ -42,8 +46,8 @@ function getSinceUntil(
   relativeEnd: string | null = null,
 ): MomentTuple {
   const separator = ' : ';
-  const _relativeStart = relativeStart || 'today';
-  const _relativeEnd = relativeEnd || 'today';
+  const effectiveRelativeStart = relativeStart || 'today';
+  const effectiveRelativeEnd = relativeEnd || 'today';
 
   if (!timeRange) {
     return [null, null];
@@ -56,11 +60,11 @@ function getSinceUntil(
   }
 
   if (timeRange?.startsWith('last') && !timeRange.includes(separator)) {
-    modTimeRange = timeRange + separator + _relativeEnd;
+    modTimeRange = timeRange + separator + effectiveRelativeEnd;
   }
 
   if (timeRange?.startsWith('next') && !timeRange.includes(separator)) {
-    modTimeRange = _relativeStart + separator + timeRange;
+    modTimeRange = effectiveRelativeStart + separator + timeRange;
   }
 
   if (
@@ -222,21 +226,32 @@ export default function buildQuery(formData: QueryFormData) {
     },
   ]);
 
-  const timeFilter: any = formData.adhoc_filters?.find(
-    ({ operator }: { operator: string }) => operator === 'TEMPORAL_RANGE',
-  );
+  const timeFilterIndex: number =
+    formData.adhoc_filters?.findIndex(
+      filter => 'operator' in filter && filter.operator === 'TEMPORAL_RANGE',
+    ) ?? -1;
 
-  const timeFilterIndex: any = formData.adhoc_filters?.findIndex(
-    ({ operator }: { operator: string }) => operator === 'TEMPORAL_RANGE',
-  );
+  const timeFilter: AdhocFilter | null =
+    timeFilterIndex !== -1 && formData.adhoc_filters
+      ? formData.adhoc_filters[timeFilterIndex]
+      : null;
 
-  const [testSince, testUntil] = getSinceUntil(
-    timeFilter.comparator.toLowerCase(),
-  );
+  let testSince = null;
+  let testUntil = null;
+
+  if (
+    timeFilter &&
+    'comparator' in timeFilter &&
+    typeof timeFilter.comparator === 'string'
+  ) {
+    [testSince, testUntil] = getSinceUntil(
+      timeFilter.comparator.toLocaleLowerCase(),
+    );
+  }
 
   let formDataB: QueryFormData;
 
-  if (timeComparison != 'c') {
+  if (timeComparison !== 'c') {
     const [prevStartDateMoment, prevEndDateMoment] = calculatePrev(
       testSince,
       testUntil,
@@ -247,7 +262,7 @@ export default function buildQuery(formData: QueryFormData) {
       'YYYY-MM-DDTHH:mm:ss',
     )} : ${prevEndDateMoment?.format('YYYY-MM-DDTHH:mm:ss')}`;
 
-    const queryBFilter = {
+    const queryBFilter: any = {
       ...timeFilter,
       comparator: queryBComparator.replace(/Z/g, ''),
     };
