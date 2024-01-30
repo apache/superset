@@ -31,6 +31,7 @@ These features are considered **unfinished** and should only be used on developm
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
+- CHART_PLUGINS_EXPERIMENTAL
 
 ## In Testing
 
