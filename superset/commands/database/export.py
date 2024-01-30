@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-
+import functools
 import json
 import logging
 from typing import Any, Callable
@@ -127,4 +127,6 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["version"] = EXPORT_VERSION
                 payload["database_uuid"] = str(model.uuid)
 
-                yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
+                yield file_path, functools.partial(
+                    yaml.safe_dump, payload, sort_keys=False
+                )

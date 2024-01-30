@@ -111,7 +111,6 @@ class ExportDashboardsCommand(ExportModelsCommand):
         file_name = get_filename(model.dashboard_title, model.id)
         return f"dashboards/{file_name}.yaml"
 
-    # pylint: disable=too-many-locals
     @staticmethod
     def _file_content(model: Dashboard) -> str:
         payload = model.export_to_dict(
