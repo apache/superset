@@ -78,7 +78,10 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 import TimeTableChartPlugin from '../TimeTable';
+<<<<<<< HEAD
 import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
+=======
+>>>>>>> Period Over Period Plugin:
 
 export default class MainPreset extends Preset {
   constructor() {
