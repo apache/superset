@@ -127,6 +127,6 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["version"] = EXPORT_VERSION
                 payload["database_uuid"] = str(model.uuid)
 
-                yield file_path, functools.partial(
+                yield file_path, lambda: functools.partial(
                     yaml.safe_dump, payload, sort_keys=False
                 )
