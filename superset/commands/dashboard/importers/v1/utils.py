@@ -157,7 +157,7 @@ def import_dashboard(
     )
     existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if overwrite and can_write:
+        if overwrite and can_write and hasattr(g, "user") and g.user:
             if not security_manager.can_access_dashboard(existing):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
