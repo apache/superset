@@ -17,21 +17,25 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
 import {
+  ColumnsType,
+  ETableAction,
+  OnChangeFunction,
+  SUPERSET_TABLE_COLUMN,
   Table,
   TableSize,
-  SUPERSET_TABLE_COLUMN,
-  ColumnsType,
-  OnChangeFunction,
-  ETableAction,
 } from './index';
-import { numericalSort, alphabeticalSort } from './sorters';
+import { alphabeticalSort, numericalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';
 import { exampleMenuOptions } from './cell-renderers/ActionCell/fixtures';
-import NumericCell, { Style } from './cell-renderers/NumericCell';
+import NumericCell, {
+  CurrencyCode,
+  LocaleCode,
+  Style,
+} from './cell-renderers/NumericCell';
 import HeaderWithRadioGroup from './header-renderers/HeaderWithRadioGroup';
 import TimeCell from './cell-renderers/TimeCell';
 
@@ -84,9 +88,9 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
       width: 90,
       render: (value: number) => (
         <NumericCell
-          options={{ style: Style.Currency, currency: 'EUR' }}
+          options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
           value={value}
-          locale="en_US"
+          locale={LocaleCode.en_US}
         />
       ),
       sorter: (a: BasicData, b: BasicData) => numericalSort(`col-${i}`, a, b),
@@ -234,9 +238,9 @@ const rendererColumns: ColumnsType<RendererData> = [
     key: 'euroCell',
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.Currency, currency: 'EUR' }}
+        options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
         value={value}
-        locale="en_US"
+        locale={LocaleCode.en_US}
       />
     ),
   },
@@ -246,9 +250,9 @@ const rendererColumns: ColumnsType<RendererData> = [
     key: 'dollarCell',
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.Currency, currency: 'USD' }}
+        options={{ style: Style.Currency, currency: CurrencyCode.USD }}
         value={value}
-        locale="en_US"
+        locale={LocaleCode.en_US}
       />
     ),
   },
@@ -373,9 +377,9 @@ const paginationColumns: ColumnsType<BasicData> = [
     width: 100,
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.Currency, currency: 'EUR' }}
+        options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
         value={value}
-        locale="en_US"
+        locale={LocaleCode.en_US}
       />
     ),
     sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
@@ -608,7 +612,7 @@ const shoppingData: ShoppingData[] = [
 
 export const HeaderRenderers: ComponentStory<typeof Table> = () => {
   const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
-  const [priceLocale, setPriceLocale] = useState('en_US');
+  const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
   const shoppingColumns: ColumnsType<ShoppingData> = [
     {
       title: 'Item',
@@ -641,11 +645,11 @@ export const HeaderRenderers: ComponentStory<typeof Table> = () => {
           headerTitle="Price"
           groupTitle="Currency"
           groupOptions={[
-            { label: 'US Dollar', value: 'en_US' },
-            { label: 'Brazilian Real', value: 'pt_BR' },
+            { label: 'US Dollar', value: LocaleCode.en_US },
+            { label: 'Brazilian Real', value: LocaleCode.pt_BR },
           ]}
           value={priceLocale}
-          onChange={value => setPriceLocale(value)}
+          onChange={value => setPriceLocale(value as LocaleCode)}
         />
       ),
       dataIndex: 'price',
@@ -656,7 +660,10 @@ export const HeaderRenderers: ComponentStory<typeof Table> = () => {
           value={value}
           options={{
             style: Style.Currency,
-            currency: priceLocale === 'en_US' ? 'USD' : 'BRL',
+            currency:
+              priceLocale === LocaleCode.en_US
+                ? CurrencyCode.USD
+                : CurrencyCode.BRL,
           }}
           locale={priceLocale}
         />

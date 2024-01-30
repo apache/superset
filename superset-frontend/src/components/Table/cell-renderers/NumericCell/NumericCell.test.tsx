@@ -18,16 +18,16 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import NumericCell, { Style } from './index';
+import NumericCell, { CurrencyCode, LocaleCode, Style } from './index';
 
 test('renders with French locale and Euro currency format', () => {
   render(
     <NumericCell
       value={5678943}
-      locale="fr"
+      locale={LocaleCode.fr}
       options={{
         style: Style.Currency,
-        currency: 'EUR',
+        currency: CurrencyCode.EUR,
       }}
     />,
   );
@@ -38,10 +38,10 @@ test('renders with English US locale and USD currency format', () => {
   render(
     <NumericCell
       value={5678943}
-      locale="en_US"
+      locale={LocaleCode.en_US}
       options={{
         style: Style.Currency,
-        currency: 'USD',
+        currency: CurrencyCode.USD,
       }}
     />,
   );
