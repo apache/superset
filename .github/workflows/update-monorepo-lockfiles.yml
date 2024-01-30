@@ -1,0 +1,39 @@
+name: Update Lockfiles for Dependabot Monorepo PRs
+
+on:
+  pull_request:
+    paths:
+      - 'superset-frontend/packages/**/package.json'
+      - 'superset-frontend/plugins/**/package.json'
+    # Trigger this workflow when Dependabot creates a pull request
+    types: [opened]
+
+jobs:
+  update-lock-file:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' # Ensure it only runs for Dependabot PRs
+    defaults:
+      run:
+        working-directory: superset-frontend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }} # Checkout the branch that made the PR
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install Dependencies and Update Lock File
+        run: |
+          npm install
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "GitHub-Actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "Update lock file for Dependabot PR" -a # Commit the changes
+          git push # Push the changes back to the branch
