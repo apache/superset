@@ -76,8 +76,8 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 import TimeTableChartPlugin from '../TimeTable';
-import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi'
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -156,7 +156,7 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
-        new PopKPIPlugin().configure({ key: 'pop_kpi'}),
+        new PopKPIPlugin().configure({ key: 'pop_kpi' }),
       ],
     });
   }
