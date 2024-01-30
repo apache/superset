@@ -1,0 +1,20 @@
+name: Hold Label Check
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+jobs:
+  check-hold-label:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check for 'hold' label
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const payload = context.payload.pull_request
+          const label = !!payload.labels.find(label => label.name.includes('hold'))
+          if (label) {
+            core.setFailed('Hold label is present, merge is blocked.')
+          }

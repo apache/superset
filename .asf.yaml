@@ -61,6 +61,7 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
+          - check-hold-label
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
