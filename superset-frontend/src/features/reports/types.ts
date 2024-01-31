@@ -32,8 +32,8 @@ export enum ReportType {
 
 export enum NotificationFormats {
   Text = 'TEXT',
-  Png = 'PNG',
-  Csv = 'CSV',
+  PNG = 'PNG',
+  CSV = 'CSV',
 }
 export interface ReportObject {
   id?: number;

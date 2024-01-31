@@ -121,7 +121,7 @@ function ReportModal({
     isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
   const defaultNotificationFormat = isTextBasedChart
     ? NotificationFormats.Text
-    : NotificationFormats.Png;
+    : NotificationFormats.PNG;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -257,10 +257,10 @@ function ReportModal({
               {t('Text embedded in email')}
             </StyledRadio>
           )}
-          <StyledRadio value={NotificationFormats.Png}>
+          <StyledRadio value={NotificationFormats.PNG}>
             {t('Image (PNG) embedded in email')}
           </StyledRadio>
-          <StyledRadio value={NotificationFormats.Csv}>
+          <StyledRadio value={NotificationFormats.CSV}>
             {t('Formatted CSV attached in email')}
           </StyledRadio>
         </StyledRadioGroup>
