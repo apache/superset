@@ -149,7 +149,7 @@ jobs:
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
   ephemeral-env-up:
-    needs: ephemeral-docker-build
+    needs: [ephemeral-env-comment, ephemeral-docker-build]
     if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
