@@ -16,32 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { select, withKnobs } from '@storybook/addon-knobs';
-import {
-  EchartsBoxPlotChartPlugin,
-  BoxPlotTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { EchartsBoxPlotChartPlugin, BoxPlotTransformProps } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsBoxPlotChartPlugin()
-  .configure({ key: 'echarts-boxplot' })
-  .register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-boxplot',
-  BoxPlotTransformProps,
-);
+new EchartsBoxPlotChartPlugin().configure({ key: 'echarts-boxplot' }).register();
+getChartTransformPropsRegistry().registerValue('echarts-boxplot', BoxPlotTransformProps);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  argTypes: {
+    xTicksLayout: {
+      control: 'select',
+      options: ['auto', 'flat', '45°', '90°', 'staggered'],
+      defaultValue: '45°',
+    },
+  },
 };
 
-export const BoxPlot = ({ width, height }) => (
+const BoxPlotTemplate = ({ xTicksLayout, width, height }) => (
   <SuperChart
     chartType="echarts-boxplot"
     width={width}
@@ -52,12 +48,10 @@ export const BoxPlot = ({ width, height }) => (
       groupby: ['type', 'region'],
       metrics: ['AVG(averageprice)'],
       whiskerOptions: 'Tukey',
-      xTicksLayout: select(
-        'X Tick Layout',
-        ['auto', 'flat', '45°', '90°', 'staggered'],
-        '45°',
-      ),
+      xTicksLayout,
       yAxisFormat: 'SMART_NUMBER',
     }}
   />
 );
+
+export const BoxPlot = BoxPlotTemplate.bind({});

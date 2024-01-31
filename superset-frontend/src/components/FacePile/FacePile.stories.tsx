@@ -17,36 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import { withKnobs, number } from '@storybook/addon-knobs';
 import FacePile from '.';
 
 export default {
   title: 'FacePile',
   component: FacePile,
-  decorators: [withKnobs],
+  argTypes: {
+    maxCount: { control: 'number', defaultValue: 4 },
+  },
 };
 
 const firstNames = [
-  'James',
-  'Mary',
-  'John',
-  'Patricia',
-  'Mohamed',
-  'Venkat',
-  'Lao',
-  'Robert',
-  'Jennifer',
-  'Michael',
-  'Linda',
+  'James', 'Mary', 'John', 'Patricia', 'Mohamed', 'Venkat', 'Lao', 'Robert', 'Jennifer', 'Michael', 'Linda',
 ];
 const lastNames = [
-  'Smith',
-  'Johnson',
-  'Williams',
-  'Saeed',
-  'Jones',
-  'Brown',
-  'Tzu',
+  'Smith', 'Johnson', 'Williams', 'Saeed', 'Jones', 'Brown', 'Tzu',
 ];
 
 const users = [...new Array(10)].map((_, i) => ({
@@ -55,6 +40,8 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
-export const SupersetFacePile = () => (
-  <FacePile users={users} maxCount={number('maxCount', 4)} />
+const SupersetFacePileTemplate = ({ maxCount }) => (
+  <FacePile users={users} maxCount={maxCount} />
 );
+
+export const SupersetFacePile = SupersetFacePileTemplate.bind({});

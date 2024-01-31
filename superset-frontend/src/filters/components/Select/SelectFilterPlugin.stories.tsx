@@ -18,28 +18,23 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { mockQueryDataForCountries } from 'spec/fixtures/mockNativeFilters';
 import SelectFilterPlugin from './index';
 import transformProps from './transformProps';
 
 new SelectFilterPlugin().configure({ key: 'filter_select' }).register();
-
 getChartTransformPropsRegistry().registerValue('filter_select', transformProps);
 
 export default {
   title: 'Filter Plugins',
-  decorators: [withKnobs],
+  argTypes: {
+    multiSelect: { control: 'boolean', defaultValue: true },
+    inverseSelection: { control: 'boolean', defaultValue: false },
+  },
 };
 
-export const Select = ({
-  width,
-  height,
-}: {
-  width: number;
-  height: number;
-}) => (
+const SelectTemplate = ({ multiSelect, inverseSelection, width, height }) => (
   <SuperChart
     chartType="filter_select"
     width={width}
@@ -48,8 +43,8 @@ export const Select = ({
     formData={{
       adhoc_filters: [],
       extra_filters: [],
-      multiSelect: boolean('Multi select', true),
-      inverseSelection: boolean('Inverse selection', false),
+      multiSelect,
+      inverseSelection,
       row_limit: 1000,
       viz_type: 'filter_select',
       groupby: ['country_name'],
@@ -60,3 +55,5 @@ export const Select = ({
     }}
   />
 );
+
+export const Select = SelectTemplate.bind({});

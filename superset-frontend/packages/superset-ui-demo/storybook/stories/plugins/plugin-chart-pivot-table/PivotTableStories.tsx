@@ -18,41 +18,24 @@
  */
 
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/core';
 import { PivotTableChartPlugin } from '@superset-ui/plugin-chart-pivot-table';
 import { basicFormData, basicData } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
-export default {
-  title: 'Chart Plugins/plugin-chart-pivot-table',
-  decorators: [withKnobs, withResizableChartDemo],
-};
-
 new PivotTableChartPlugin().configure({ key: 'pivot_table_v2' }).register();
 
-export const basic = ({ width, height }) => (
-  <SuperChart
-    chartType="pivot_table_v2"
-    datasource={{
-      columnFormats: {},
-    }}
-    width={width}
-    height={height}
-    queriesData={[basicData]}
-    formData={basicFormData}
-  />
-);
-basic.story = {
-  parameters: {
-    initialSize: {
-      width: 680,
-      height: 420,
-    },
+export default {
+  title: 'Chart Plugins/plugin-chart-pivot-table',
+  decorators: [withResizableChartDemo],
+  argTypes: {
+    width: { control: 'text', defaultValue: '680' },
+    height: { control: 'text', defaultValue: '420' },
+    // Add any other args here if there are other dynamic properties
   },
 };
 
-export const MaximumAggregation = ({ width, height }) => (
+const PivotTableTemplate = ({ width, height, aggregateFunction }) => (
   <SuperChart
     chartType="pivot_table_v2"
     datasource={{
@@ -61,14 +44,16 @@ export const MaximumAggregation = ({ width, height }) => (
     width={width}
     height={height}
     queriesData={[basicData]}
-    formData={{ ...basicFormData, aggregateFunction: 'Maximum' }}
+    formData={{ ...basicFormData, aggregateFunction }}
   />
 );
-basic.story = {
-  parameters: {
-    initialSize: {
-      width: 680,
-      height: 420,
-    },
-  },
+
+export const basic = PivotTableTemplate.bind({});
+basic.args = {
+  aggregateFunction: undefined, // Default value for the basic story
+};
+
+export const MaximumAggregation = PivotTableTemplate.bind({});
+MaximumAggregation.args = {
+  aggregateFunction: 'Maximum',
 };

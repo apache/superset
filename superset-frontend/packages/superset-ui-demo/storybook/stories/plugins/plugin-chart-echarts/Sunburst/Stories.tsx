@@ -16,32 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
-import {
-  EchartsSunburstChartPlugin,
-  SunburstTransformProps,
-} from '@superset-ui/plugin-chart-echarts';
+import { EchartsSunburstChartPlugin, SunburstTransformProps } from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 import data from './data';
 
-new EchartsSunburstChartPlugin()
-  .configure({ key: 'echarts-sunburst' })
-  .register();
-
-getChartTransformPropsRegistry().registerValue(
-  'echarts-sunburst',
-  SunburstTransformProps,
-);
+new EchartsSunburstChartPlugin().configure({ key: 'echarts-sunburst' }).register();
+getChartTransformPropsRegistry().registerValue('echarts-sunburst', SunburstTransformProps);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Sunburst',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  argTypes: {
+    width: { control: 'text', defaultValue: '100%' },
+    height: { control: 'text', defaultValue: '100%' },
+    showLabels: { control: 'boolean', defaultValue: true },
+    showTotal: { control: 'boolean', defaultValue: true },
+  },
 };
 
-export const Sunburst = ({ width, height }) => (
+const SunburstTemplate = ({ width, height, showLabels, showTotal }) => (
   <SuperChart
     chartType="echarts-sunburst"
     width={width}
@@ -50,8 +45,10 @@ export const Sunburst = ({ width, height }) => (
     formData={{
       columns: ['genre', 'platform'],
       metric: 'count',
-      showLabels: boolean('Show labels', true),
-      showTotal: boolean('Show total', true),
+      showLabels,
+      showTotal,
     }}
   />
 );
+
+export const Sunburst = SunburstTemplate.bind({});

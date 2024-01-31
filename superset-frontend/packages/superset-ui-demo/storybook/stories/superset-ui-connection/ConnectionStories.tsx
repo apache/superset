@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
-import { select, text, withKnobs } from '@storybook/addon-knobs';
-import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
-
-import VerifyCORS, {
-  Props as VerifyCORSProps,
-} from '../../shared/components/VerifyCORS';
+// import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
+import VerifyCORS, { Props as VerifyCORSProps } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
 
 const REQUEST_METHODS = ['GET', 'POST'];
@@ -34,25 +29,24 @@ const ENDPOINTS = {
 
 export default {
   title: 'Core Packages/@superset-ui-connection',
-  decorators: [
-    withKnobs({
-      escapeHTML: false,
-    }),
-  ],
+  argTypes: {
+    host: { control: 'text', defaultValue: 'localhost:8088' },
+    selectEndpoint: { control: 'select', options: Object.keys(ENDPOINTS), defaultValue: '' },
+    customEndpoint: { control: 'text', defaultValue: '' },
+    method: { control: 'select', options: REQUEST_METHODS },
+    postPayload: { control: 'text' },
+  },
 };
 
-export const configureCORS = () => {
-  const host = text('Superset App host for CORS request', 'localhost:8088');
-  const selectEndpoint = select('Endpoint', ENDPOINTS, '');
-  const customEndpoint = text('Custom Endpoint (override above)', '');
+const ConfigureCORS = ({
+  host,
+  selectEndpoint,
+  customEndpoint,
+  method,
+  postPayload,
+}) => {
   const endpoint = customEndpoint || selectEndpoint;
-  const method = endpoint
-    ? select('Request method', REQUEST_METHODS, 'POST')
-    : undefined;
-  const postPayload =
-    endpoint && method === 'POST'
-      ? text('POST payload', JSON.stringify({ form_data: bigNumberFormData }))
-      : undefined;
+  const postPayloadProcessed = endpoint && method === 'POST' ? postPayload : undefined;
 
   return (
     <div style={{ margin: 16 }}>
@@ -60,7 +54,7 @@ export const configureCORS = () => {
         host={host}
         endpoint={endpoint}
         method={method as VerifyCORSProps['method']}
-        postPayload={`${postPayload}`}
+        postPayload={`${postPayloadProcessed}`}
       >
         {({ payload }) => (
           <>
@@ -81,6 +75,4 @@ export const configureCORS = () => {
   );
 };
 
-configureCORS.parameters = {
-  chromatic: { disable: true },
-};
+export const ConfigureCORSStory = ConfigureCORS.bind({});
