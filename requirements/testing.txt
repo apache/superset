@@ -7,7 +7,7 @@
 #
 -r development.txt
 -r integration.txt
--e file:///Users/max/code/superset
+-e file:.
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
@@ -105,8 +105,6 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via -r requirements/testing.in
-pyhive[presto]==0.7.0
-    # via apache-superset
 pytest==8.0.0
     # via
     #   -r requirements/testing.in
