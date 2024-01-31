@@ -245,11 +245,10 @@ def test_migrate_role(
     logger.info(description)
     with create_old_role(pvm_map, external_pvms) as old_role:
         role_name = old_role.name
-        session = db.session
 
         # Run migrations
-        add_pvms(session, new_pvms)
-        migrate_roles(session, pvm_map)
+        add_pvms(db.session, new_pvms)
+        migrate_roles(db.session, pvm_map)
 
         role = db.session.query(Role).filter(Role.name == role_name).one_or_none()
         for old_pvm, new_pvms in pvm_map.items():

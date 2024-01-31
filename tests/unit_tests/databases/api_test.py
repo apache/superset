@@ -28,6 +28,8 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
 
 def test_filter_by_uuid(
     session: Session,
@@ -49,14 +51,14 @@ def test_filter_by_uuid(
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-    session.add(
+    db.session.add(
         Database(
             database_name="my_db",
             sqlalchemy_uri="sqlite://",
             uuid=UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"),
         )
     )
-    session.commit()
+    db.session.commit()
 
     response = client.get(
         "/api/v1/database/?q=(filters:!((col:uuid,opr:eq,value:"
@@ -96,7 +98,7 @@ def test_post_with_uuid(
     payload = response.json
     assert payload["result"]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
 
-    database = session.query(Database).one()
+    database = db.session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 
 
@@ -139,8 +141,8 @@ def test_password_mask(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     # mock the lookup so that we don't need to include the driver
     mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -195,8 +197,8 @@ def test_database_connection(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     # mock the lookup so that we don't need to include the driver
     mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -331,8 +333,8 @@ def test_update_with_password_mask(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     client.put(
         "/api/v1/database/1",
@@ -347,7 +349,7 @@ def test_update_with_password_mask(
             ),
         },
     )
-    database = session.query(Database).one()
+    database = db.session.query(Database).one()
     assert (
         database.encrypted_extra
         == '{"service_account_info": {"project_id": "yellow-unicorn-314419", "private_key": "SECRET"}}'
@@ -429,8 +431,8 @@ def test_delete_ssh_tunnel(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -446,8 +448,8 @@ def test_delete_ssh_tunnel(
             database=database,
         )
 
-        session.add(tunnel)
-        session.commit()
+        db.session.add(tunnel)
+        db.session.commit()
 
         # Get our recently created SSHTunnel
         response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
@@ -505,8 +507,8 @@ def test_delete_ssh_tunnel_not_found(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -522,8 +524,8 @@ def test_delete_ssh_tunnel_not_found(
             database=database,
         )
 
-        session.add(tunnel)
-        session.commit()
+        db.session.add(tunnel)
+        db.session.commit()
 
         # Delete the recently created SSHTunnel
         response_delete_tunnel = client.delete("/api/v1/database/2/ssh_tunnel/")
@@ -576,8 +578,8 @@ def test_apply_dynamic_database_filter(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # Create our Second Database
         database = Database(
@@ -592,8 +594,8 @@ def test_apply_dynamic_database_filter(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")

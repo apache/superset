@@ -214,7 +214,7 @@ def legacy_export_dashboards(
     # pylint: disable=import-outside-toplevel
     from superset.utils import dashboard_import_export
 
-    data = dashboard_import_export.export_dashboards(db.session)
+    data = dashboard_import_export.export_dashboards()
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
@@ -263,7 +263,6 @@ def legacy_export_datasources(
     from superset.utils import dict_import_export
 
     data = dict_import_export.export_to_dict(
-        session=db.session,
         recursive=True,
         back_references=back_references,
         include_defaults=include_defaults,

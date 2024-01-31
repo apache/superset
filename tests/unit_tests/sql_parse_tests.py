@@ -1759,8 +1759,7 @@ def test_get_rls_for_table(mocker: MockerFixture) -> None:
     Tests for ``get_rls_for_table``.
     """
     candidate = Identifier([Token(Name, "some_table")])
-    db = mocker.patch("superset.db")
-    dataset = db.session.query().filter().one_or_none()
+    dataset = mocker.patch("superset.db").session.query().filter().one_or_none()
     dataset.__str__.return_value = "some_table"
 
     dataset.get_sqla_row_level_filters.return_value = [text("organization_id = 1")]

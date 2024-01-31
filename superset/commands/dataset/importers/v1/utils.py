@@ -25,10 +25,9 @@ import pandas as pd
 from flask import current_app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -103,7 +102,6 @@ def validate_data_uri(data_uri: str) -> None:
 
 
 def import_dataset(
-    session: Session,
     config: dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
@@ -113,7 +111,7 @@ def import_dataset(
         "can_write",
         "Dataset",
     )
-    existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
             return existing
@@ -150,7 +148,7 @@ def import_dataset(
 
     # import recursively to include columns and metrics
     try:
-        dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
+        dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
@@ -160,10 +158,10 @@ def import_dataset(
         # `examples.public.users`, resulting in a conflict.
         #
         # When that happens, we return the original dataset, unmodified.
-        dataset = session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+        dataset = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
 
     if dataset.id is None:
-        session.flush()
+        db.session.flush()
 
     try:
         table_exists = dataset.database.has_table_by_name(dataset.table_name)
@@ -175,7 +173,7 @@ def import_dataset(
         table_exists = True
 
     if data_uri and (not table_exists or force_data):
-        load_data(data_uri, dataset, dataset.database, session)
+        load_data(data_uri, dataset, dataset.database)
 
     if user := get_user():
         dataset.owners.append(user)
@@ -183,9 +181,7 @@ def import_dataset(
     return dataset
 
 
-def load_data(
-    data_uri: str, dataset: SqlaTable, database: Database, session: Session
-) -> None:
+def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
 
@@ -208,7 +204,7 @@ def load_data(
     # reuse session when loading data if possible, to make import atomic
     if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
-        connection = session.connection()
+        connection = db.session.connection()
         df.to_sql(
             dataset.table_name,
             con=connection,

@@ -47,9 +47,7 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
-    def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -66,7 +64,7 @@ class ImportChartsCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -77,7 +75,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(config, overwrite=False)
                 datasets[str(dataset.uuid)] = dataset
 
         # import charts with the correct parent ref
@@ -101,4 +99,4 @@ class ImportChartsCommand(ImportModelsCommand):
                 if "query_context" in config:
                     config["query_context"] = None
 
-                import_chart(session, config, overwrite=overwrite)
+                import_chart(config, overwrite=overwrite)

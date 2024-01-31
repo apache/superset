@@ -125,7 +125,7 @@ def test_sql_lab_insert_rls_as_subquery(
     from superset.sql_lab import execute_sql_statement
     from superset.utils.core import RowLevelSecurityFilterType
 
-    engine = session.connection().engine
+    engine = db.session.connection().engine
     Query.metadata.create_all(engine)  # pylint: disable=no-member
 
     connection = engine.raw_connection()
@@ -143,8 +143,8 @@ def test_sql_lab_insert_rls_as_subquery(
         limit=5,
         select_as_cta_used=False,
     )
-    session.add(query)
-    session.commit()
+    db.session.add(query)
+    db.session.commit()
 
     admin = User(
         first_name="Alice",
@@ -185,8 +185,8 @@ def test_sql_lab_insert_rls_as_subquery(
         group_key=None,
         clause="c > 5",
     )
-    session.add(rls)
-    session.flush()
+    db.session.add(rls)
+    db.session.flush()
     mocker.patch.object(SupersetSecurityManager, "find_user", return_value=admin)
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
 

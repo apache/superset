@@ -898,7 +898,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -956,7 +956,7 @@ class TestUtils(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
