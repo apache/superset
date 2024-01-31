@@ -143,7 +143,7 @@
     "googleapis": "^130.0.0",
     "html-webpack-plugin": "^5.3.2",
     "immer": "^9.0.6",
-    "interweave": "^13.0.0",
+    "interweave": "^13.1.0",
     "jquery": "^3.5.1",
     "js-levenshtein": "^1.1.6",
     "js-yaml-loader": "^1.2.2",
