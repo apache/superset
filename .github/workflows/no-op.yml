@@ -52,3 +52,17 @@ jobs:
         run: |
           echo "This is a no-op step for python-lint to ensure a successful status."
           exit 0
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: |
+          echo "This is a no-op step for frontend-build to ensure a successful status."
+          exit 0
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: |
+          echo "This is a no-op step for frontend-build to ensure a successful status."
+          exit 0

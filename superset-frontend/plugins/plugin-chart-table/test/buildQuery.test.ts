@@ -17,7 +17,6 @@
  * under the License.
  */
 import { QueryMode, TimeGranularity } from '@superset-ui/core';
-import * as supersetCoreModule from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -83,9 +82,6 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
     it('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-        value: true,
-      });
       const query = buildQuery({
         ...basicFormData,
         groupby: ['col1'],
@@ -103,9 +99,6 @@ describe('plugin-chart-table', () => {
       });
     });
     it('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-        value: true,
-      });
       const query = buildQuery({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,

@@ -44,19 +44,19 @@ export enum FeatureFlag {
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
-  GenericChartAxes = 'GENERIC_CHART_AXES',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
   HorizontalFilterBar = 'HORIZONTAL_FILTER_BAR',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ScheduledQueries = 'SCHEDULED_QUERIES',
   ShareQueriesViaKvStore = 'SHARE_QUERIES_VIA_KV_STORE',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
-  SqlValidatorsByEngine = 'SQLLAB_BACKEND_PERSISTENCE',
+  SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
   SshTunneling = 'SSH_TUNNELING',
   TaggingSystem = 'TAGGING_SYSTEM',
   Thumbnails = 'THUMBNAILS',
   UseAnalagousColors = 'USE_ANALAGOUS_COLORS',
 }
+
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
     [key: string]: string;

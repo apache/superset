@@ -18,7 +18,6 @@
  */
 import { t } from '../translation';
 import { removeDuplicates } from '../utils';
-import { DTTM_ALIAS } from './constants';
 import getColumnLabel from './getColumnLabel';
 import getMetricLabel from './getMetricLabel';
 import {
@@ -30,7 +29,6 @@ import {
   FormDataResidual,
   QueryMode,
 } from './types/QueryFormData';
-import { hasGenericChartAxes } from './getXAxis';
 
 /**
  * Extra SQL query related fields from chart form data.
@@ -57,11 +55,7 @@ export default function extractQueryFields(
     order_by_cols: 'orderby',
     ...aliases,
   };
-  const {
-    query_mode: queryMode,
-    include_time: includeTime,
-    ...restFormData
-  } = formData;
+  const { query_mode: queryMode, ...restFormData } = formData;
 
   let columns: QueryFormColumn[] = [];
   let metrics: QueryFormMetric[] = [];
@@ -105,10 +99,6 @@ export default function extractQueryFields(
       orderby = orderby.concat(value);
     }
   });
-
-  if (!hasGenericChartAxes && includeTime && !columns.includes(DTTM_ALIAS)) {
-    columns.unshift(DTTM_ALIAS);
-  }
 
   return {
     columns: removeDuplicates(

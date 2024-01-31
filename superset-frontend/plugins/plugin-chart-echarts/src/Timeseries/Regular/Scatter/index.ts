@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -60,13 +55,9 @@ export default class EchartsTimeseriesScatterChartPlugin extends EchartsChartPlu
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
-            )
-          : t(
-              'Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
-            ),
+        description: t(
+          'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
+        ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -74,9 +65,7 @@ export default class EchartsTimeseriesScatterChartPlugin extends EchartsChartPlu
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Scatter Plot')
-          : t('Time-series Scatter Plot'),
+        name: t('Scatter Plot'),
         tags: [
           t('ECharts'),
           t('Predictive'),

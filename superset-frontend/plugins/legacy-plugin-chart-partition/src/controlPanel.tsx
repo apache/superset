@@ -26,13 +26,11 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

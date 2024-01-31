@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
@@ -62,11 +57,9 @@ export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t('Bar Charts are used to show metrics as a series of bars.')
-          : t(
-              'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
-            ),
+        description: t(
+          'Bar Charts are used to show metrics as a series of bars.',
+        ),
         exampleGallery: [
           { url: example1 },
           { url: example2 },
@@ -78,7 +71,7 @@ export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes ? t('Bar Chart') : t('Time-series Bar Chart'),
+        name: t('Bar Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),

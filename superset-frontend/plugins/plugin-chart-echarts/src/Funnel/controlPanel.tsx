@@ -26,7 +26,6 @@ import {
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   getStandardizedControls,
-  sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
@@ -44,7 +43,6 @@ funnelLegendSection.splice(2, 1);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
