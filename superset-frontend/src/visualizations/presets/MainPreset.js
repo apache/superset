@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -76,10 +76,17 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
   constructor() {
+    const experimentalPlugins = isFeatureEnabled(
+      FeatureFlag.CHART_PLUGINS_EXPERIMENTAL,
+    )
+      ? [new PopKPIPlugin().configure({ key: 'pop_kpi' })]
+      : [];
+
     super({
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
@@ -155,6 +162,7 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
+        ...experimentalPlugins,
       ],
     });
   }
