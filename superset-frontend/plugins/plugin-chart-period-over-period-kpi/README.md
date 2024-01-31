@@ -40,7 +40,7 @@ npm run dev
 To add the package to Superset, go to the `superset-frontend` subdirectory in your Superset source folder (assuming both the `custom-viz` plugin and `superset` repos are in the same root directory) and run
 
 ```
-npm i -S ../../custom-viz
+npm i -S ../../plugin-chart-period-over-period-kpi
 ```
 
 If your Superset plugin exists in the `superset-frontend` directory and you wish to resolve TypeScript errors about `@superset-ui/core` not being resolved correctly, add the following to your `tsconfig.json` file:
@@ -71,13 +71,13 @@ Finally, if you wish to ensure your plugin `tsconfig.json` is aligned with the r
 After this edit the `superset-frontend/src/visualizations/presets/MainPreset.js` and make the following changes:
 
 ```js
-import { CustomViz } from 'custom-viz';
+import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 ```
 
 to import the plugin and later add the following to the array that's passed to the `plugins` property:
 
 ```js
-new CustomViz().configure({ key: 'custom-viz' }),
+new PopKPIPlugin().configure({ key: 'pop_kpi' }),
 ```
 
 After that the plugin should show up when you run Superset, e.g. the development server:
