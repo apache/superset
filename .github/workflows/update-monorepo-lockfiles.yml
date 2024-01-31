@@ -36,4 +36,3 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           git diff --staged --quiet || (git commit -m "Update lock file for Dependabot PR" -a && git push https://${{ github.token }}@github.com/${{ github.repository }}.git)
-  
