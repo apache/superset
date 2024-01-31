@@ -82,7 +82,7 @@
     "last 3 edge versions"
   ],
   "dependencies": {
-    "@ant-design/icons": "^5.0.1",
+    "@ant-design/icons": "^5.2.6",
     "@emotion/babel-preset-css-prop": "^11.11.0",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
