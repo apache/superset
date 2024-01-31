@@ -20,7 +20,7 @@
 
 # custom-viz
 
-This is the Custom Viz Superset Chart Plugin.
+This plugin provides a BigNumber visualization with period over period time comparisons
 
 ### Usage
 
