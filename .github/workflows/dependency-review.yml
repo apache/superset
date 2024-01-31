@@ -17,7 +17,7 @@ jobs:
       - name: "Checkout Repository"
         uses: actions/checkout@v3
       - name: "Dependency Review"
-        uses: actions/dependency-review-action@v2
+        uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: critical
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html
