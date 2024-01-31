@@ -66,6 +66,7 @@ import {
   EchartsTreeChartPlugin,
   EchartsSunburstChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
+import { SupersetPluginSummaryPanel } from 'superset-plugin-summary-panel';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -78,7 +79,6 @@ import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/p
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
-import { SupersetPluginSummaryPanel } from 'superset-plugin-summary-panel';
 
 export default class MainPreset extends Preset {
   constructor() {
