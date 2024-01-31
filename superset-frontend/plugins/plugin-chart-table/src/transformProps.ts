@@ -226,34 +226,13 @@ const transformProps = (
     emitCrossFilters,
   } = chartProps;
 
-  if (Number(formData.server_page_length) > 10000) {
-    formData.server_page_length = 10000;
-  }
-
-  const {
-    align_pn: alignPositiveNegative = true,
-    color_pn: colorPositiveNegative = true,
-    show_cell_bars: showCellBars = true,
-    include_search: includeSearch = false,
-    page_length: pageLength,
-    server_pagination: serverPagination = false,
-    server_page_length: serverPageLength = 10,
-    server_page_length_options: serverPageLengthOptions = [],
-    order_desc: sortDesc = false,
-    query_mode: queryMode,
-    show_totals: showTotals,
-    conditional_formatting: conditionalFormatting,
-    allow_rearrange_columns: allowRearrangeColumns,
-  } = formData;
-  const timeGrain = extractTimegrain(formData);
-
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
 
   let baseQuery;
   let countQuery;
   let totalQuery;
   let rowCount;
-  if (serverPagination) {
+  if (formData.server_pagination) {
     [baseQuery, countQuery, totalQuery] = queriesData;
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
@@ -262,20 +241,45 @@ const transformProps = (
   }
   const data = processDataRecords(baseQuery?.data, columns);
 
+  if (Number(formData.server_page_length) > 10000) {
+    formData.server_page_length = 10000;
+  }
+
   if (
-    serverPagination &&
-    !Number.isNaN(serverPageLength) &&
-    serverPageLength <= data.length &&
-    !serverPageLengthOptions?.some(
-      (option: [number, string]) => option[0] === serverPageLength,
+    formData.server_pagination &&
+    !Number.isNaN(formData.server_page_length) &&
+    (formData.server_page_length || 0) <= data.length &&
+    !formData.server_page_length_options?.some(
+      (option: [number, string]) => option[0] == formData.server_page_length,
     )
   ) {
-    serverPageLengthOptions?.push([
-      serverPageLength,
-      serverPageLength === 0 ? 'All' : String(serverPageLength),
+    formData.server_page_length_options?.push([
+      Number(formData.server_page_length),
+      formData.server_page_length === 0
+        ? 'All'
+        : String(formData.server_page_length),
     ]);
-    serverPageLengthOptions.sort((a: any[], b: any[]) => a[0] - b[0]);
+    formData.server_page_length_options?.sort(
+      (a: any[], b: any[]) => a[0] - b[0],
+    );
   }
+
+  const {
+    align_pn: alignPositiveNegative = true,
+    color_pn: colorPositiveNegative = true,
+    show_cell_bars: showCellBars = true,
+    include_search: includeSearch = false,
+    page_length: pageLength,
+    order_desc: sortDesc = false,
+    query_mode: queryMode,
+    show_totals: showTotals,
+    conditional_formatting: conditionalFormatting,
+    allow_rearrange_columns: allowRearrangeColumns,
+    server_pagination: serverPagination = false,
+    server_page_length: serverPageLength = 10,
+    server_page_length_options: serverPageLengthOptions = [],
+  } = formData;
+  const timeGrain = extractTimegrain(formData);
 
   const totals =
     showTotals && queryMode === QueryMode.aggregate
