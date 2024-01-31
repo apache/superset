@@ -66,7 +66,6 @@ github:
           - cypress-matrix (1, chrome)
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
-          - docker-build
           - frontend-build
           - pre-commit (3.9)
           - python-lint (3.9)
