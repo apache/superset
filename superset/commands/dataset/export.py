@@ -121,5 +121,4 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
             payload["version"] = EXPORT_VERSION
 
-            file_content = yaml.safe_dump(payload, sort_keys=False)
-            yield file_path, lambda: file_content
+            yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
