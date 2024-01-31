@@ -6,7 +6,7 @@ on:
       - 'superset-frontend/packages/**/package.json'
       - 'superset-frontend/plugins/**/package.json'
     # Trigger this workflow when Dependabot creates a pull request
-    types: [opened]
+    types: [opened, synchronize, reopened]
 
 jobs:
   update-lock-file:
