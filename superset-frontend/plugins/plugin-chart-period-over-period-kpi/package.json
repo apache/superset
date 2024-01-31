@@ -1,7 +1,7 @@
 {
   "name": "@superset-ui/plugin-chart-period-over-period-kpi",
   "version": "0.1.0",
-  "description": "Period Over Period KPI",
+  "description": "Big Number with Time Period Comparison",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
