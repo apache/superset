@@ -407,7 +407,6 @@ export enum CurrencyDisplay {
 export function NumericCell(props: NumericCellProps) {
   const { value, locale = 'en-US', options } = props;
   let displayValue = value?.toString() ?? value;
-  console.log(props);
   try {
     displayValue = value?.toLocaleString?.(locale, options);
   } catch (e) {

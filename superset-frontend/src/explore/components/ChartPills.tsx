@@ -21,19 +21,17 @@ import { css, QueryData, SupersetTheme } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import CachedLabel from 'src/components/CachedLabel';
 import Timer from 'src/components/Timer';
+import { Type } from 'src/components/Label';
 
-enum ChartStatusMap {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  failed = 'danger',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  loading = 'warning',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  success = 'success',
-}
+const CHART_STATUS_MAP = {
+  failed: 'danger' as Type,
+  loading: 'warning' as Type,
+  success: 'success' as Type,
+};
 
 export type ChartPillsProps = {
   queriesResponse: QueryData[];
-  chartStatus: keyof typeof ChartStatusMap;
+  chartStatus: keyof typeof CHART_STATUS_MAP;
   chartUpdateStartTime: number;
   chartUpdateEndTime: number;
   refreshCachedQuery: () => void;
@@ -82,7 +80,7 @@ export const ChartPills = forwardRef(
             startTime={chartUpdateStartTime}
             endTime={chartUpdateEndTime}
             isRunning={isLoading}
-            status={ChartStatusMap[chartStatus]}
+            status={CHART_STATUS_MAP[chartStatus]}
           />
         </div>
       </div>
