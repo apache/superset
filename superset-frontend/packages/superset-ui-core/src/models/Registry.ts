@@ -17,9 +17,9 @@
  * under the License.
  */
 export enum OverwritePolicy {
-  Allow = 'Allow',
-  Prohibit = 'Prohibit',
-  Warn = 'Warn',
+  Allow = 'ALLOW',
+  Prohibit = 'PROHIBIT',
+  Warn = 'WARN',
 }
 
 interface ItemWithValue<T> {

@@ -23,15 +23,15 @@ import { JsonObject } from '../..';
 export type HandlerFunction = (...args: unknown[]) => void;
 
 export enum Behavior {
-  InteractiveChart = 'InteractiveChart',
-  NativeFilter = 'NativeFilter',
+  InteractiveChart = 'INTERACTIVE_CHART',
+  NativeFilter = 'NATIVE_FILTER',
 
   /**
    * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
    * when dimensions are right-clicked on.
    */
-  DrillToDetail = 'DrillToDetail',
-  DrillBy = 'DrillBy',
+  DrillToDetail = 'DRILL_TO_DETAIL',
+  DrillBy = 'DRILL_BY',
 }
 
 export interface ContextMenuFilters {
@@ -48,11 +48,11 @@ export interface ContextMenuFilters {
 }
 
 export enum AppSection {
-  Explore = 'Explore',
-  Dashboard = 'Dashboard',
-  FilterBar = 'FilterBar',
-  FilterConfigModal = 'FilterConfigModal',
-  Embedded = 'Embedded',
+  Explore = 'EXPLORE',
+  Dashboard = 'DASHBOARD',
+  FilterBar = 'FILTER_BAR',
+  FilterConfigModal = 'FILTER_CONFIG_MODAL',
+  Embedded = 'EMBEDDED',
 }
 
 export type FilterState = { value?: any; [key: string]: any };
@@ -73,8 +73,8 @@ export interface PlainObject {
 }
 
 export enum ChartLabel {
-  Deprecated = 'Deprecated',
-  Featured = 'Featured',
+  Deprecated = 'DEPRECATED',
+  Featured = 'FEATURED',
 }
 
 export const chartLabelExplanations: Record<ChartLabel, string> = {
@@ -94,10 +94,10 @@ export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
 };
 
 export enum AxisType {
-  Category = 'Category',
-  Value = 'Value',
-  Time = 'Time',
-  Log = 'Log',
+  Category = 'category',
+  Value = 'value',
+  Time = 'time',
+  Log = 'log',
 }
 
 export interface LegendState {
