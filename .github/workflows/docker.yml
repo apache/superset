@@ -7,20 +7,24 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   docker-build:
     name: docker-build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
         exclude:
           # disabling because slow! no python wheels for arm/py39 and
           # QEMU is slow!
-          - target: "dev"
+          - build_preset: "dev"
             platform: "linux/arm64"
-          - target: "lean"
+          - build_preset: "lean"
             platform: "linux/arm64"
       fail-fast: false
     steps:
@@ -41,11 +45,11 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
+          pip install click
+          ./scripts/build_docker.py ${{ matrix.build_preset }} ${{ github.event_name }} --platform ${{ matrix.platform }}
 
 
   ephemeral-docker-build:
-    name: docker-build
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -61,19 +65,16 @@ jobs:
 
       - name: Build ephemeral env image
         if: github.event_name == 'pull_request'
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          pip install click
+          ./scripts/build_docker.py "ci" "pull_request" --platform linux/amd64
           mkdir -p ./build
           echo ${{ github.sha }} > ./build/SHA
           echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          docker buildx build --target ci \
-            --load \
-            --cache-from=type=registry,ref=apache/superset:lean \
-            -t ${{ github.sha }} \
-            -t "pr-${{ github.event.pull_request.number }}" \
-            --platform linux/amd64 \
-            --label "build_actor=${GITHUB_ACTOR}" \
-            .
-          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
+          docker save ${{ github.sha }}-ci | gzip > ./build/${{ github.sha }}.tar.gz
 
       - name: Upload build artifacts
         if: github.event_name == 'pull_request'

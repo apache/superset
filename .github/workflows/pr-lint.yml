@@ -9,7 +9,7 @@ on:
     types: [opened, edited, reopened, synchronize]
 
 jobs:
-  check:
+  lint-check:
     runs-on: ubuntu-latest
     permissions:
       contents: read
