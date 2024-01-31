@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@algolia/client-search": "^4.22.1",
-    "@ant-design/icons": "^4.7.0",
+    "@ant-design/icons": "^5.3.0",
     "@docsearch/react": "^3.5.2",
     "@docusaurus/core": "^2.4.1",
     "@docusaurus/plugin-client-redirects": "^2.4.3",
