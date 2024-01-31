@@ -477,6 +477,7 @@ export function migrateQueryEditorFromLocalStorage(
         const newQueryEditor = {
           ...queryEditor,
           id: json.id.toString(),
+          inLocalStorage: false,
         };
         dispatch({
           type: MIGRATE_QUERY_EDITOR,
