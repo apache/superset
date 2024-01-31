@@ -134,7 +134,7 @@
     "d3-scale": "^2.1.2",
     "dom-to-image-more": "^3.2.0",
     "dom-to-pdf": "^0.3.2",
-    "emotion-rgba": "0.0.9",
+    "emotion-rgba": "0.0.12",
     "fast-glob": "^3.2.7",
     "fontsource-fira-code": "^4.0.0",
     "fs-extra": "^10.0.0",
