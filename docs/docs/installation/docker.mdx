@@ -1,0 +1,51 @@
+# Docker Images and Tags
+
+The Apache Superset community extensively uses Docker for development, release,
+and productionizing Superset. This page details our Docker builds and tag naming
+schemes to help users navigate our offerings.
+
+Images are built and pushed to the [Superset Docker Hub repository](
+https://hub.docker.com/r/apache/superset). Different sets of images are created for:
+- Published releases, with tags like `3.0.0` and the `latest` tag.
+- Pull request iterations, each identified by tags starting with a SHA like
+  `8a2f7d378ab13c156fa183d9284b607ed69f5ecc`, and `pr-3454`, referencing the pull
+  request ID.
+- Merges to the main branch (`master`), resulting in new SHAs, with tags
+  prefixed with `master` for the latest `master` version.
+
+Each code version has multiple builds for different purposes, identified by suffixes:
+- **Build Preset:** We offer various images for different needs:
+  - **Lean:** The default Docker image, including both frontend and backend. Tags
+    without a build_preset are lean builds, e.g., `latest`.
+  - **Dev:** For development, with a headless browser and root access.
+  - **Py310:** Similar to lean but with Python 3.10.
+  - **CI:** For certain CI workloads.
+  - **WebSocket:** For Superset clusters supporting advanced features.
+  - **Dockerize:** Used by Helm.
+- **Platform:** We build for `linux/arm64` and `linux/amd64`. The `-arm` suffix
+  indicates ARM builds (e.g., `latest-arm`), while tags without a suffix are for
+  AMD (e.g., `latest`).
+
+## Key Image Tags and Examples
+
+- `latest`: The latest official release build, implicitly the lean build on
+  `linux/amd64`.
+- `latest-dev`
+- `master`: The latest build from the `master` branch, implicitly lean on
+  `linux/amd64`.
+- `master-dev`: Similar to `master` but includes a headless browser and root access.
+- `PR-5252`: The latest commit in PR 5252.
+- `30948dc401b40982cb7c0dbf6ebbe443b2748c1b-dev-arm`: A `linux/arm64` build for
+  this specific SHA, which could be from a pull request, master merge, or release.
+- `30948dc-dev-arm`: Same as above, but SHA truncated to 7 characters for a
+  shorter handle on the same image
+- `websocket-latest`: The WebSocket image for use in a Superset cluster.
+
+For insights or modifications to the build matrix and tagging conventions,
+check the [build_docker.py](https://github.com/apache/superset/blob/master/scripts/build_docker.py)
+script and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
+GitHub action.
+
+## Caching
+
+To accelerate builds, we follow Docker best practices and use `apache/superset-cache`.

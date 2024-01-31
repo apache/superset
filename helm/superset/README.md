@@ -77,7 +77,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | hostAliases | list | `[]` | Custom hostAliases for all superset pods # https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/ |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"apachesuperset.docker.scarf.sh/apache/superset"` |  |
-| image.tag | string | `""` |  |
+| image.tag | string | `"latest"` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
 | ingress.enabled | bool | `false` |  |
