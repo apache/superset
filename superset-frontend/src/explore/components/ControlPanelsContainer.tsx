@@ -190,9 +190,7 @@ const ControlPanelsTabs = styled(Tabs)`
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
-  !!section.label &&
-  (sections.legacyRegularTime.label === section.label ||
-    sections.legacyTimeseriesTime.label === section.label);
+  !!section.label && sections.legacyTimeseriesTime.label === section.label;
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
   datasource?.columns?.some(c => c.is_dttm);

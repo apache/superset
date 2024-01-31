@@ -22,7 +22,6 @@ import { Select } from 'src/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  hasGenericChartAxes,
   isDefined,
   styled,
   SupersetClient,
@@ -177,7 +176,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       comparator = undefined;
     }
 
-    if (hasGenericChartAxes && isTemporalColumn(id, props.datasource)) {
+    if (isTemporalColumn(id, props.datasource)) {
       subject = id;
       operator = Operators.TEMPORAL_RANGE;
       operatorId = Operators.TEMPORAL_RANGE;

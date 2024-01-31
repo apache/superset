@@ -21,13 +21,11 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { ColorBy } from './utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

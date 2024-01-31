@@ -401,7 +401,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           ref={labelRef}
         />
       </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
+      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
       <Modal
         title={title}
         show={show}
