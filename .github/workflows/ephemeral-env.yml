@@ -19,7 +19,7 @@ jobs:
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
-  ephemeral_env_comment:
+  ephemeral-env-comment:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
@@ -80,8 +80,8 @@ jobs:
           core.setFailed(errMsg)
 
   ephemeral-docker-build:
-    needs: ephemeral_env_comment
-    name: docker-build
+    needs: ephemeral-env-comment
+    name: ephemeral-docker-build
     runs-on: ubuntu-latest
     steps:
       - name: Get Info from comment
@@ -148,9 +148,9 @@ jobs:
           docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
-  ephemeral_env_up:
-    needs: ephemeral_env_comment
-    if: needs.ephemeral_env_comment.outputs.slash-command == 'up'
+  ephemeral-env-up:
+    needs: [ephemeral-env-comment, ephemeral-docker-build]
+    if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
     permissions:
@@ -207,7 +207,7 @@ jobs:
 
     - name: Update env vars in the Amazon ECS task definition
       run: |
-        cat <<< "$(jq '.containerDefinitions[0].environment += ${{ needs.ephemeral_env_comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
+        cat <<< "$(jq '.containerDefinitions[0].environment += ${{ needs.ephemeral-env-comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
 
     - name: Describe ECS service
       id: describe-services
