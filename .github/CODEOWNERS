@@ -21,3 +21,7 @@
 # Notify PMC members of changes to GitHub Actions
 
 /.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
+
+# Notify PMC members of changes to required Github Actions
+
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
