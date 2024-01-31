@@ -1,0 +1,176 @@
+🔎 checking possible migrations..
+[Superset Plugin] Use symlink source for @superset-ui/chart-controls @ ./packages/superset-ui-chart-controls
+[Superset Plugin] Use symlink source for @superset-ui/core @ ./packages/superset-ui-core
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-calendar @ ./plugins/legacy-plugin-chart-calendar
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-chord @ ./plugins/legacy-plugin-chart-chord
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-country-map @ ./plugins/legacy-plugin-chart-country-map
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-event-flow @ ./plugins/legacy-plugin-chart-event-flow
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-heatmap @ ./plugins/legacy-plugin-chart-heatmap
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-histogram @ ./plugins/legacy-plugin-chart-histogram
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-horizon @ ./plugins/legacy-plugin-chart-horizon
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-map-box @ ./plugins/legacy-plugin-chart-map-box
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-paired-t-test @ ./plugins/legacy-plugin-chart-paired-t-test
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-parallel-coordinates @ ./plugins/legacy-plugin-chart-parallel-coordinates
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-partition @ ./plugins/legacy-plugin-chart-partition
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-rose @ ./plugins/legacy-plugin-chart-rose
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-sankey @ ./plugins/legacy-plugin-chart-sankey
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-sankey-loop @ ./plugins/legacy-plugin-chart-sankey-loop
+[Superset Plugin] Use symlink source for @superset-ui/legacy-plugin-chart-world-map @ ./plugins/legacy-plugin-chart-world-map
+[Superset Plugin] Use symlink source for @superset-ui/legacy-preset-chart-deckgl @ ./plugins/legacy-preset-chart-deckgl
+[Superset Plugin] Use symlink source for @superset-ui/legacy-preset-chart-nvd3 @ ./plugins/legacy-preset-chart-nvd3
+[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-echarts @ ./plugins/plugin-chart-echarts
+[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-handlebars @ ./plugins/plugin-chart-handlebars
+[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-pivot-table @ ./plugins/plugin-chart-pivot-table
+[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-table @ ./plugins/plugin-chart-table
+[Superset Plugin] Use symlink source for @superset-ui/plugin-chart-word-cloud @ ./plugins/plugin-chart-word-cloud
+[Superset Plugin] Use symlink source for @superset-ui/switchboard @ ./packages/superset-ui-switchboard
+
+
+🔎 found a 'removedglobalclientapis' migration:
+╭ Manual migration detected ─────────────────────────────────────────────────────────────────────╮
+│                                                                                                │
+│   Attention: We could not automatically make this change. You'll need to do it manually.       │
+│                                                                                                │
+│   The following APIs (used in ".storybook/preview.jsx") have been removed from Storybook:      │
+│                                                                                                │
+│   - addDecorator                                                                               │
+│   - addParameters                                                                              │
+│                                                                                                │
+│   Please see the migration guide for more information:                                         │
+│   https://github.com/storybookjs/storybook/blob/next/MIGRATION.md#removed-global-client-apis   │
+│                                                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+? Select continue once you have made the required changes, or quit to exit the migration process › quit / continue✔ Select continue once you have made the required changes, or quit to exit the migration process … quit / continue
+
+🔎 found a 'mdx1to2' migration:
+╭ Automigration detected ──────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                  │
+│   We've found 3 '.stories.mdx' files in your project.                                                            │
+│                                                                                                                  │
+│   Storybook has upgraded to MDX2 (https://mdxjs.com/blog/v2/), which contains breaking changes from MDX1.        │
+│   We can try to automatically upgrade your MDX files to MDX2 format using some common patterns.                  │
+│                                                                                                                  │
+│   After this install completes, and before you start Storybook, we strongly recommend reading the MDX2 section   │
+│   of the 7.0 migration guide. It contains useful tools for detecting and fixing any remaining issues.            │
+│                                                                                                                  │
+│   https://storybook.js.org/migration-guides/7.0                                                                  │
+│                                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+? Do you want to run the 'mdx1to2' migration on your project? › (Y/n)✔ Do you want to run the 'mdx1to2' migration on your project? … yes
+🆗 Unmodified MetadataBar.stories.mdx
+🆗 Unmodified Overview.stories.mdx
+🆗 Unmodified DesignSystem.stories.mdx
+✅ ran mdx1to2 migration
+
+🔎 found a 'github-flavored-markdown-mdx' migration:
+╭ Automigration detected ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                │
+│   In MDX1 you had the option of using GitHub flavored markdown.                                                                                │
+│                                                                                                                                                │
+│   Storybook 7.0 uses MDX2 for compiling MDX, and thus no longer supports GFM out of the box.                                                   │
+│   Because of this you need to explicitly add the GFM plugin in the addon-docs options:                                                         │
+│   https://storybook.js.org/docs/react/writing-docs/mdx#lack-of-github-flavored-markdown-gfm                                                    │
+│                                                                                                                                                │
+│   We recommend you follow the guide on the link above, however we can add a temporary storybook addon that helps make this migration easier.   │
+│   We'll install the addon and add it to your storybook config.                                                                                 │
+│                                                                                                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+? Do you want to run the 'github-flavored-markdown-mdx' migration on your project? › (Y/n)✔ Do you want to run the 'github-flavored-markdown-mdx' migration on your project? … yes
+✅ Adding "@storybook/addon-mdx-gfm" addon
+✅ ran github-flavored-markdown-mdx migration
+
+⚠️  failed to check fix missing-babelrc
+
+Error: Cannot find package '@babel/plugin-proposal-private-methods' imported from /Users/evan/GitHub/superset/superset-frontend/babel-virtual-resolve-base.js
+    at __node_internal_ (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:224:9)
+    at new NodeError (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:194:5)
+    at packageResolve (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:908:9)
+    at moduleResolve (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:937:20)
+    at defaultResolve (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:1007:15)
+    at resolve (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/vendor/import-meta-resolve.js:1020:12)
+    at tryImportMetaResolve (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/files/plugins.js:142:45)
+    at resolveStandardizedNameForImport (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/files/plugins.js:164:19)
+    at resolveStandardizedName (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/files/plugins.js:173:22)
+    at loadPlugin (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/files/plugins.js:52:20)
+    at loadPlugin.next (<anonymous>)
+    at createDescriptor (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-descriptors.js:140:16)
+    at createDescriptor.next (<anonymous>)
+    at step (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:261:32)
+    at evaluateAsync (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:291:5)
+    at /Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:44:11
+    at Array.forEach (<anonymous>)
+    at Function.async (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:43:15)
+    at Function.all (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:216:13)
+    at Generator.next (<anonymous>)
+    at createDescriptors (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-descriptors.js:102:41)
+    at createDescriptors.next (<anonymous>)
+    at createPluginDescriptors (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-descriptors.js:99:17)
+    at createPluginDescriptors.next (<anonymous>)
+    at /Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/gensync-utils/functional.js:39:27
+    at Generator.next (<anonymous>)
+    at mergeChainOpts (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-chain.js:349:34)
+    at mergeChainOpts.next (<anonymous>)
+    at chainWalker (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-chain.js:316:14)
+    at chainWalker.next (<anonymous>)
+    at loadFileChain (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-chain.js:191:24)
+    at loadFileChain.next (<anonymous>)
+    at buildRootChain (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/config-chain.js:77:27)
+    at buildRootChain.next (<anonymous>)
+    at loadPrivatePartialConfig (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/partial.js:72:62)
+    at loadPrivatePartialConfig.next (<anonymous>)
+    at loadPartialConfig (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/partial.js:115:25)
+    at loadPartialConfig.next (<anonymous>)
+    at step (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:269:25)
+    at evaluateAsync (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:291:5)
+    at /Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:93:9
+    at new Promise (<anonymous>)
+    at async (/Users/evan/GitHub/superset/superset-frontend/node_modules/gensync/index.js:92:14)
+    at stopHiding - secret - don't use this - v1 (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+    at loadPartialConfigAsync (/Users/evan/GitHub/superset/superset-frontend/node_modules/@babel/core/lib/config/index.js:34:85)
+    at Object.check (/Users/evan/GitHub/superset/superset-frontend/node_modules/@storybook/cli/dist/generate.js:356:1014)
+    at async runFixes (/Users/evan/GitHub/superset/superset-frontend/node_modules/@storybook/cli/dist/generate.js:427:1239)
+    at async automigrate (/Users/evan/GitHub/superset/superset-frontend/node_modules/@storybook/cli/dist/generate.js:424:676)
+    at async Command.<anonymous> (/Users/evan/GitHub/superset/superset-frontend/node_modules/@storybook/cli/dist/generate.js:528:3205)
+
+🔎 found a 'wrap-require' migration:
+╭ Automigration detected ─────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                             │
+│   We have detected that you're using Storybook 7.6.11 in a monorepo project.                                                │
+│   For Storybook to work correctly, some fields in your main config must be updated. We can do this for you automatically.   │
+│                                                                                                                             │
+│   More info: https://storybook.js.org/docs/react/faq#how-do-i-fix-module-resolution-in-special-environments                 │
+│                                                                                                                             │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+? Do you want to run the 'wrap-require' migration on your project? › (Y/n)✔ Do you want to run the 'wrap-require' migration on your project? … yes
+✅ ran wrap-require migration
+WARN An issue occurred while trying to find dependencies metadata using npm.
+
+╭ Migration check ran with failures ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                                                                               │
+│   Successful migrations:                                                                                                                                      │
+│                                                                                                                                                               │
+│   mdx1to2, github-flavored-markdown-mdx, wrap-require                                                                                                         │
+│                                                                                                                                                               │
+│   Failed migrations:                                                                                                                                          │
+│                                                                                                                                                               │
+│   missing-babelrc:                                                                                                                                            │
+│   Cannot find package '@babel/plugin-proposal-private-methods' imported from /Users/evan/GitHub/superset/superset-frontend/babel-virtual-resolve-base.js      │
+│                                                                                                                                                               │
+│   You can find the full logs in /Users/evan/GitHub/superset/superset-frontend/migration-storybook.log                                                         │
+│                                                                                                                                                               │
+│   Manual migrations:                                                                                                                                          │
+│                                                                                                                                                               │
+│   removedglobalclientapis                                                                                                                                     │
+│                                                                                                                                                               │
+│   ─────────────────────────────────────────────────                                                                                                           │
+│                                                                                                                                                               │
+│   If you'd like to run the migrations again, you can do so by running 'npx storybook@next automigrate'                                                        │
+│                                                                                                                                                               │
+│   The automigrations try to migrate common patterns in your project, but might not contain everything needed to migrate to the latest version of Storybook.   │
+│                                                                                                                                                               │
+│   Please check the changelog and migration guide for manual migrations and more information: https://storybook.js.org/migration-guides/7.0                    │
+│   And reach out on Discord if you need help: https://discord.gg/storybook                                                                                     │
+│                                                                                                                                                               │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+

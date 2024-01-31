@@ -26,7 +26,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const createMdxCompiler = require('@storybook/addon-docs/mdx-compiler-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -446,23 +445,23 @@ const config = {
         type: 'asset/resource',
       },
       {
-        test: /\.mdx$/,
+        test: /\.mdx?$/,
         use: [
           {
-            loader: 'babel-loader',
-            // may or may not need this line depending on your app's setup
+            loader: 'esbuild-loader',
             options: {
-              plugins: ['@babel/plugin-transform-react-jsx'],
+              loader: 'tsx', // Or 'jsx' if you're not using TypeScript
+              target: 'es2015', // Adjust target as per requirements
             },
           },
           {
-            loader: '@mdx-js/loader',
+            loader: 'xdm/webpack.cjs',
             options: {
-              compilers: [createMdxCompiler({})],
+              // xdm options here (if needed)
             },
           },
         ],
-      },
+      }      
     ],
   },
   externals: {

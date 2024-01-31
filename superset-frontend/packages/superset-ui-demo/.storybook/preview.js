@@ -1,4 +1,3 @@
-import { addParameters, addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
 import {
   configure,
@@ -16,10 +15,9 @@ import themeDecorator from './themeDecorator';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './storybook.css';
 
-addDecorator(jsxDecorator);
-addDecorator(themeDecorator);
+export const decorators = [jsxDecorator, themeDecorator];
 
-addParameters({
+export const parameters = {
   passArgsFirst: false,
   options: {
     name: '✨ Superset UI',
@@ -54,7 +52,7 @@ addParameters({
       return a[1].id.localeCompare(b[1].id, undefined, { numeric: true });
     },
   },
-});
+};
 
 // Superset setup
 

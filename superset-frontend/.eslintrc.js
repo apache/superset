@@ -37,13 +37,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 module.exports = {
-  extends: [
-    'airbnb',
-    'prettier',
-    'prettier/react',
-    'plugin:react-hooks/recommended',
-    'plugin:react-prefer-function-component/recommended',
-  ],
+  extends: ['airbnb', 'prettier', 'prettier/react', 'plugin:react-hooks/recommended', 'plugin:react-prefer-function-component/recommended', 'plugin:storybook/recommended'],
   parser: '@babel/eslint-parser',
   parserOptions: {
     ecmaFeatures: {
