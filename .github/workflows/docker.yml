@@ -47,38 +47,3 @@ jobs:
         run: |
           pip install click
           ./scripts/build_docker.py ${{ matrix.build_preset }} ${{ github.event_name }} --platform ${{ matrix.platform }}
-
-
-  ephemeral-docker-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build ephemeral env image
-        if: github.event_name == 'pull_request'
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          pip install click
-          ./scripts/build_docker.py "ci" "pull_request" --platform linux/amd64
-          mkdir -p ./build
-          echo ${{ github.sha }} > ./build/SHA
-          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          docker save ${{ github.sha }}-ci | gzip > ./build/${{ github.sha }}.tar.gz
-
-      - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: build/
