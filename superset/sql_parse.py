@@ -286,7 +286,7 @@ class ParsedQuery:
         Note: this uses sqlglot, since it's better at catching more edge cases.
         """
         try:
-            statements = parse(self.sql.strip('\t\r\n '), dialect=self._dialect)
+            statements = parse(self.sql.strip("\t\r\n "), dialect=self._dialect)
         except ParseError:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             return set()
