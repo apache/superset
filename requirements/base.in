@@ -17,3 +17,8 @@
 # under the License.
 #
 -e file:.
+
+# pinning these two dependencies that pip-compile-multi complained about
+# please oh please python overlords can you add support for diamond deps!
+urllib3[socks]==1.26.18
+referencing==0.31.0
