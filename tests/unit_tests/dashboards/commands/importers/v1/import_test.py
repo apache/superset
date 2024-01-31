@@ -23,6 +23,7 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset.commands.exceptions import ImportFailedError
+from superset.utils.core import override_user
 
 
 def test_import_dashboard(mocker: MockFixture, session: Session) -> None:
@@ -142,7 +143,7 @@ def test_import_existing_dashboard_without_permission(
         uuid="c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",
     )
     session.add(dashboard_obj)
-    session.merge(dashboard_obj)
+    session.flush()
     config = copy.deepcopy(dashboard_config)
 
     with pytest.raises(ImportFailedError) as excinfo:
@@ -164,22 +165,26 @@ def test_import_existing_dashboard_with_permission(
     """
     Test importing a dashboard when a user doesn't have permissions to create.
     """
+    from flask_appbuilder.security.sqla.models import Role, User
+
     from superset import security_manager
-    from superset.commands.dashboard.importers.v1.utils import g, import_dashboard
+    from superset.commands.dashboard.importers.v1.utils import import_dashboard
     from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
     from tests.integration_tests.fixtures.importexport import dashboard_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
-    mock_g = mocker.patch(
-        "superset.commands.dashboard.importers.v1.utils.g"
-    )  # Replace with the actual path to g
-    mock_g.user = mocker.MagicMock(return_value=True)
 
     engine = session.get_bind()
-    Slice.metadata.create_all(engine)  # pylint: disable=no-member
     Dashboard.metadata.create_all(engine)  # pylint: disable=no-member
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
 
     dashboard_obj = Dashboard(
         id=100,
@@ -190,10 +195,11 @@ def test_import_existing_dashboard_with_permission(
         uuid="c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",
     )
     session.add(dashboard_obj)
-    session.merge(dashboard_obj)
+    session.flush()
     config = copy.deepcopy(dashboard_config)
 
-    import_dashboard(session, config, overwrite=True)
+    with override_user(admin):
+        import_dashboard(session, config, overwrite=True)
     # Assert that the can write to dashboard was checked
     security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
     security_manager.can_access_dashboard.assert_called_once_with(dashboard_obj)
