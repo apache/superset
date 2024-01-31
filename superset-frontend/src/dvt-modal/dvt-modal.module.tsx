@@ -19,7 +19,7 @@
 import { styled } from '@superset-ui/core';
 
 interface StyledModalProps {
-  size: 'small' | 'medium';
+  size: 'small' | 'medium' | 'xsmall';
 }
 
 const StyledModal = styled.div`
@@ -38,8 +38,10 @@ const StyledModal = styled.div`
 const StyledModalCard = styled.div<StyledModalProps>`
   position: relative;
   border-radius: 12px;
-  width: ${({ size }) => (size === 'small' ? '919px' : '1150.68px')};
-  height: ${({ size }) => (size === 'small' ? '683px' : '621.428px')};
+  width: ${({ size }) =>
+    size === 'small' ? '919px' : size === 'medium' ? '1150.68px' : '500px'};
+  height: ${({ size }) =>
+    size === 'small' ? '683px' : size === 'medium' ? '621.428px' : '250px'};
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 

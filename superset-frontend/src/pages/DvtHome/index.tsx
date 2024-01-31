@@ -33,6 +33,7 @@ import {
   DataContainer,
   CalendarContainer,
 } from './dvt-home.module';
+import { useAppSelector } from 'src/hooks/useAppSelector';
 
 type ApiData = {
   result: any[];
@@ -103,6 +104,7 @@ function DvtWelcome() {
   const [dashboardData, setDashboardData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [savedQueriesData, setSavedQueriesData] = useState<CardDataProps[]>([]);
+  const component = useAppSelector(state => state.dvtModal.component);
 
   const handleSetFavorites = (
     id: number,
@@ -149,7 +151,7 @@ function DvtWelcome() {
       formatRecentData,
       setRecentData,
     );
-  }, []);
+  }, [component]);
 
   const handleEditDashboard = async (item: any) => {
     try {
@@ -178,6 +180,15 @@ function DvtWelcome() {
     );
   };
 
+  const handleDelete = async (type: string, item: any) => {
+    dispatch(
+      openModal({
+        component: 'delete-modal',
+        meta: { item, type },
+      }),
+    );
+  };
+
   return (
     <StyledDvtWelcome>
       <DataContainer>
@@ -203,7 +214,13 @@ function DvtWelcome() {
                 handleBulkExport('dashboard', item);
               },
             },
-            { label: 'Delete', icon: 'trash', onClick: () => {} },
+            {
+              label: 'Delete',
+              icon: 'trash',
+              onClick: (item: any) => {
+                handleDelete('dashboard', item);
+              },
+            },
           ]}
         />
         <DvtTitleCardList
@@ -221,7 +238,13 @@ function DvtWelcome() {
                 handleBulkExport('chart', item);
               },
             },
-            { label: t('Delete'), icon: 'trash', onClick: () => {} },
+            {
+              label: t('Delete'),
+              icon: 'trash',
+              onClick: (item: any) => {
+                handleDelete('chart', item);
+              },
+            },
           ]}
         />
         <DvtTitleCardList
