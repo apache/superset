@@ -74,7 +74,6 @@ github:
           - test-postgres (3.9)
           - test-postgres (3.10)
           - test-sqlite (3.9)
-          - ephemeral-docker-build
           - docker-build (dev, linux/amd64)
           - docker-build (lean, linux/amd64)
           - docker-build (py310, linux/arm64)
