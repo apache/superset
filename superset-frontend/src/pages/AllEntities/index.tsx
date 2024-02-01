@@ -224,16 +224,14 @@ function AllEntities() {
             </div>
           }
           rightPanelAdditionalItems={
-            <>
-              <Button
-                data-test="bulk-select-action"
-                buttonStyle="secondary"
-                onClick={() => setShowTagModal(true)}
-                showMarginRight={false}
-              >
-                {t('Edit Tag')}{' '}
-              </Button>
-            </>
+            <Button
+              data-test="bulk-select-action"
+              buttonStyle="secondary"
+              onClick={() => setShowTagModal(true)}
+              showMarginRight={false}
+            >
+              {t('Edit Tag')}{' '}
+            </Button>
           }
           menuDropdownProps={{
             disabled: true,

@@ -89,7 +89,7 @@ type Props = {
   overwriteConfirmMetadata: DashboardState['overwriteConfirmMetadata'];
 };
 
-const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
+function OverrideConfirmModal({ overwriteConfirmMetadata }: Props) {
   const [bottomRef, hasReviewed] = useInView({ triggerOnce: true });
   const dispatch = useDispatch();
   const onHide = useCallback(
@@ -204,6 +204,6 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
       )}
     </Modal>
   );
-};
+}
 
 export default OverrideConfirmModal;

@@ -38,12 +38,12 @@ export interface DetailsPanelProps {
   children: JSX.Element;
 }
 
-const DetailsPanelPopover = ({
+function DetailsPanelPopover({
   appliedCrossFilterIndicators = [],
   appliedIndicators = [],
   onHighlightFilterSource,
   children,
-}: DetailsPanelProps) => {
+}: DetailsPanelProps) {
   const [visible, setVisible] = useState(false);
   const activeTabs = useSelector<RootState>(
     state => state.dashboardState?.activeTabs,
@@ -175,6 +175,6 @@ const DetailsPanelPopover = ({
       {children}
     </Popover>
   );
-};
+}
 
 export default DetailsPanelPopover;

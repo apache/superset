@@ -24,17 +24,13 @@ export default {
   component: BoundsControl,
 };
 
-export const InteractiveBoundsControl = (
+export function InteractiveBoundsControl(
   args: BoundsControlProps & { initialMin: number; initialMax: number },
-) => {
+) {
   const { initialMin, initialMax, ...props } = args;
 
-  return (
-    <>
-      <BoundsControl {...props} value={[initialMin, initialMax]} />
-    </>
-  );
-};
+  return <BoundsControl {...props} value={[initialMin, initialMax]} />;
+}
 
 InteractiveBoundsControl.args = {
   initialMin: 0,

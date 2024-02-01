@@ -26,7 +26,7 @@ export interface RefreshLabelProps {
   tooltipContent: string;
 }
 
-const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
+function RefreshLabel({ onClick, tooltipContent }: RefreshLabelProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
     <Icons.Refresh {...props} />
@@ -45,6 +45,6 @@ const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
       />
     </Tooltip>
   );
-};
+}
 
 export default RefreshLabel;

@@ -26,14 +26,14 @@ export default {
   component: LabeledErrorBoundInput,
 };
 
-export const InteractiveLabeledErrorBoundInput = ({
+export function InteractiveLabeledErrorBoundInput({
   name,
   value,
   placeholder,
   type,
   id,
   tooltipText,
-}: LabeledErrorBoundInputProps) => {
+}: LabeledErrorBoundInputProps) {
   const [currentValue, setCurrentValue] = useState(value);
 
   const validateFunctionality: (value: any) => string = value => {
@@ -63,7 +63,7 @@ export const InteractiveLabeledErrorBoundInput = ({
       tooltipText={tooltipText}
     />
   );
-};
+}
 
 InteractiveLabeledErrorBoundInput.args = {
   name: 'Username',

@@ -80,14 +80,14 @@ export interface FilterableTableProps {
   allowHTML?: boolean;
 }
 
-const FilterableTable = ({
+function FilterableTable({
   orderedColumnKeys,
   data,
   height,
   filterText = '',
   expandedColumns = [],
   allowHTML = true,
-}: FilterableTableProps) => {
+}: FilterableTableProps) {
   const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
     data.map(row => {
       const newRow = {};
@@ -265,6 +265,6 @@ const FilterableTable = ({
       )}
     </StyledFilterableTable>
   );
-};
+}
 
 export default FilterableTable;

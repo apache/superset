@@ -291,24 +291,22 @@ export default function HeaderReportDropDown({
         <Icons.Calendar />
       </span>
     ) : (
-      <>
-        <NoAnimationDropdown
-          overlay={menu()}
-          overlayStyle={dropdownOverlayStyle}
-          trigger={['click']}
-          getPopupContainer={(triggerNode: any) =>
-            triggerNode.closest('.action-button')
-          }
+      <NoAnimationDropdown
+        overlay={menu()}
+        overlayStyle={dropdownOverlayStyle}
+        trigger={['click']}
+        getPopupContainer={(triggerNode: any) =>
+          triggerNode.closest('.action-button')
+        }
+      >
+        <span
+          role="button"
+          className="action-button action-schedule-report"
+          tabIndex={0}
         >
-          <span
-            role="button"
-            className="action-button action-schedule-report"
-            tabIndex={0}
-          >
-            <Icons.Calendar />
-          </span>
-        </NoAnimationDropdown>
-      </>
+          <Icons.Calendar />
+        </span>
+      </NoAnimationDropdown>
     );
 
   return (

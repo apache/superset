@@ -26,10 +26,10 @@ import { FilterCardRowProps } from './types';
 import { FilterConfigurationLink } from '../FilterBar/FilterConfigurationLink';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
-export const NameRow = ({
+export function NameRow({
   filter,
   hidePopover,
-}: FilterCardRowProps & { hidePopover: () => void }) => {
+}: FilterCardRowProps & { hidePopover: () => void }) {
   const theme = useTheme();
   const filterNameRef = useRef<HTMLElement>(null);
   const [elementsTruncated] = useTruncation(filterNameRef);
@@ -69,4 +69,4 @@ export const NameRow = ({
       )}
     </Row>
   );
-};
+}

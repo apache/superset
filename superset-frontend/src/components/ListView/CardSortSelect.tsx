@@ -39,13 +39,13 @@ interface CardViewSelectSortProps {
   pageSize: number;
 }
 
-export const CardSortSelect = ({
+export function CardSortSelect({
   initialSort,
   onChange,
   options,
   pageIndex,
   pageSize,
-}: CardViewSelectSortProps) => {
+}: CardViewSelectSortProps) {
   const defaultSort =
     (initialSort && options.find(({ id }) => id === initialSort[0].id)) ||
     options[0];
@@ -89,4 +89,4 @@ export const CardSortSelect = ({
       />
     </SortContainer>
   );
-};
+}

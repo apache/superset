@@ -72,7 +72,7 @@ const renderModal = async (
   modalProps: Partial<DrillByModalProps> = {},
   overrideState: Record<string, any> = {},
 ) => {
-  const DrillByModalWrapper = () => {
+  function DrillByModalWrapper() {
     const [showModal, setShowModal] = useState(false);
 
     return (
@@ -91,7 +91,7 @@ const renderModal = async (
         )}
       </DashboardPageIdContext.Provider>
     );
-  };
+  }
   render(<DrillByModalWrapper />, {
     useDnd: true,
     useRedux: true,

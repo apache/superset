@@ -35,7 +35,7 @@ interface DatasetSelectProps {
   value?: { label: string; value: number };
 }
 
-const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
+function DatasetSelect({ onChange, value }: DatasetSelectProps) {
   const getErrorMessage = useCallback(
     ({ error, message }: ClientErrorObject) => {
       let errorText = message || error || t('An error has occurred');
@@ -94,7 +94,7 @@ const DatasetSelect = ({ onChange, value }: DatasetSelectProps) => {
       placeholder={t('Select a dataset')}
     />
   );
-};
+}
 
 const MemoizedSelect = (props: DatasetSelectProps) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps

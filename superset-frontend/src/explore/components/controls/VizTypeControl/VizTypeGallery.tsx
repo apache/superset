@@ -805,66 +805,63 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             DetailsPopulated(theme),
           ]}
         >
-          <>
-            <SectionTitle
-              css={css`
-                grid-area: viz-name;
-                position: relative;
-              `}
-            >
-              {selectedVizMetadata?.name}
-              {selectedVizMetadata?.label && (
-                <Tooltip
-                  id="viz-badge-tooltip"
-                  placement="top"
-                  title={
-                    selectedVizMetadata.labelExplanation ??
-                    chartLabelExplanations[selectedVizMetadata.label]
-                  }
-                >
-                  <TitleLabelWrapper>
-                    <HighlightLabel>
-                      <div>{t(selectedVizMetadata.label)}</div>
-                    </HighlightLabel>
-                  </TitleLabelWrapper>
-                </Tooltip>
-              )}
-            </SectionTitle>
-            <TagsWrapper>
-              {selectedVizMetadata?.tags.map(tag => (
-                <Label key={tag}>{tag}</Label>
-              ))}
-            </TagsWrapper>
-            <Description>
-              {selectedVizMetadata?.description ||
-                t('No description available.')}
-            </Description>
-            <SectionTitle
-              css={css`
-                grid-area: examples-header;
-              `}
-            >
-              {t('Examples')}
-            </SectionTitle>
-            <Examples>
-              {(selectedVizMetadata?.exampleGallery?.length
-                ? selectedVizMetadata.exampleGallery
-                : [
-                    {
-                      url: selectedVizMetadata?.thumbnail,
-                      caption: selectedVizMetadata?.name,
-                    },
-                  ]
-              ).map(example => (
-                <img
-                  key={example.url}
-                  src={example.url}
-                  alt={example.caption}
-                  title={example.caption}
-                />
-              ))}
-            </Examples>
-          </>
+          <SectionTitle
+            css={css`
+              grid-area: viz-name;
+              position: relative;
+            `}
+          >
+            {selectedVizMetadata?.name}
+            {selectedVizMetadata?.label && (
+              <Tooltip
+                id="viz-badge-tooltip"
+                placement="top"
+                title={
+                  selectedVizMetadata.labelExplanation ??
+                  chartLabelExplanations[selectedVizMetadata.label]
+                }
+              >
+                <TitleLabelWrapper>
+                  <HighlightLabel>
+                    <div>{t(selectedVizMetadata.label)}</div>
+                  </HighlightLabel>
+                </TitleLabelWrapper>
+              </Tooltip>
+            )}
+          </SectionTitle>
+          <TagsWrapper>
+            {selectedVizMetadata?.tags.map(tag => (
+              <Label key={tag}>{tag}</Label>
+            ))}
+          </TagsWrapper>
+          <Description>
+            {selectedVizMetadata?.description || t('No description available.')}
+          </Description>
+          <SectionTitle
+            css={css`
+              grid-area: examples-header;
+            `}
+          >
+            {t('Examples')}
+          </SectionTitle>
+          <Examples>
+            {(selectedVizMetadata?.exampleGallery?.length
+              ? selectedVizMetadata.exampleGallery
+              : [
+                  {
+                    url: selectedVizMetadata?.thumbnail,
+                    caption: selectedVizMetadata?.name,
+                  },
+                ]
+            ).map(example => (
+              <img
+                key={example.url}
+                src={example.url}
+                alt={example.caption}
+                title={example.caption}
+              />
+            ))}
+          </Examples>
         </div>
       ) : null}
     </VizPickerLayout>

@@ -77,7 +77,7 @@ export interface DndFilterSelectProps
   ) => true | string;
 }
 
-const DndFilterSelect = (props: DndFilterSelectProps) => {
+function DndFilterSelect(props: DndFilterSelectProps) {
   const {
     datasource,
     onChange = () => {},
@@ -416,6 +416,6 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       />
     </>
   );
-};
+}
 
 export { DndFilterSelect };

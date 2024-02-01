@@ -127,11 +127,11 @@ const DEFAULT_CONTOUR = {
   strokeWidth: undefined,
 };
 
-const ContourPopoverControl = ({
+function ContourPopoverControl({
   value: initialValue,
   onSave,
   onClose,
-}: ContourPopoverControlProps) => {
+}: ContourPopoverControlProps) {
   const [currentTab, setCurrentTab] = useState(getTabKey(initialValue));
   const [contour, setContour] = useState(initialValue || DEFAULT_CONTOUR);
   const [validationErrors, setValidationErrors] = useState(
@@ -346,6 +346,6 @@ const ContourPopoverControl = ({
       </ContourActionsContainer>
     </>
   );
-};
+}
 
 export default ContourPopoverControl;

@@ -28,66 +28,75 @@ export default {
   component: FilterDivider,
 };
 
-export const VerticalFilterDivider = (props: FilterDividerProps) => (
-  <div
-    css={css`
-      background-color: #ddd;
-      padding: 50px;
-    `}
-  >
+export function VerticalFilterDivider(props: FilterDividerProps) {
+  return (
     <div
       css={css`
-        display: flex;
-        flex-direction: column;
-        width: 259px;
-        padding: 16px;
-        background-color: white;
+        background-color: #ddd;
+        padding: 50px;
       `}
     >
-      <FilterDivider {...props} />
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          width: 259px;
+          padding: 16px;
+          background-color: white;
+        `}
+      >
+        <FilterDivider {...props} />
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
-export const HorizontalFilterDivider = (props: FilterDividerProps) => (
-  <div
-    css={css`
-      background-color: #ddd;
-      padding: 50px;
-    `}
-  >
+export function HorizontalFilterDivider(props: FilterDividerProps) {
+  return (
     <div
       css={css`
-        height: 48px;
-        padding: 0 16px;
-        display: flex;
-        align-items: center;
-        background-color: white;
+        background-color: #ddd;
+        padding: 50px;
       `}
     >
-      <FilterDivider orientation={FilterBarOrientation.Horizontal} {...props} />
+      <div
+        css={css`
+          height: 48px;
+          padding: 0 16px;
+          display: flex;
+          align-items: center;
+          background-color: white;
+        `}
+      >
+        <FilterDivider
+          orientation={FilterBarOrientation.Horizontal}
+          {...props}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
-export const HorizontalOverflowFilterDivider = (props: FilterDividerProps) => (
-  <div
-    css={css`
-      background-color: #ddd;
-      padding: 50px;
-    `}
-  >
+export function HorizontalOverflowFilterDivider(props: FilterDividerProps) {
+  return (
     <div
       css={css`
-        width: 224px;
-        padding: 16px;
-        background-color: white;
+        background-color: #ddd;
+        padding: 50px;
       `}
     >
-      <FilterDivider {...props} />
+      <div
+        css={css`
+          width: 224px;
+          padding: 16px;
+          background-color: white;
+        `}
+      >
+        <FilterDivider {...props} />
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 const args = {
   title: 'Sample title',

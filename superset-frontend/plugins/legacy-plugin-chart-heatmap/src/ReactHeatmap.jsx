@@ -28,71 +28,73 @@ function componentWillUnmount() {
 
 const ReactComponent = reactify(Component, { componentWillUnmount });
 
-const Heatmap = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <Global
-      styles={theme => css`
-        .d3-tip {
-          line-height: 1;
-          padding: ${theme.gridUnit * 3}px;
-          background: ${theme.colors.grayscale.dark2};
-          color: ${theme.colors.grayscale.light5};
-          border-radius: 4px;
-          pointer-events: none;
-          z-index: 1000;
-          font-size: ${theme.typography.sizes.s}px;
-        }
+function Heatmap({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <Global
+        styles={theme => css`
+          .d3-tip {
+            line-height: 1;
+            padding: ${theme.gridUnit * 3}px;
+            background: ${theme.colors.grayscale.dark2};
+            color: ${theme.colors.grayscale.light5};
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: ${theme.typography.sizes.s}px;
+          }
 
-        /* Creates a small triangle extender for the tooltip */
-        .d3-tip:after {
-          box-sizing: border-box;
-          display: inline;
-          font-size: ${theme.typography.sizes.xs};
-          width: 100%;
-          line-height: 1;
-          color: ${theme.colors.grayscale.dark2};
-          position: absolute;
-          pointer-events: none;
-        }
+          /* Creates a small triangle extender for the tooltip */
+          .d3-tip:after {
+            box-sizing: border-box;
+            display: inline;
+            font-size: ${theme.typography.sizes.xs};
+            width: 100%;
+            line-height: 1;
+            color: ${theme.colors.grayscale.dark2};
+            position: absolute;
+            pointer-events: none;
+          }
 
-        /* Northward tooltips */
-        .d3-tip.n:after {
-          content: '\\25BC';
-          margin: -${theme.gridUnit}px 0 0 0;
-          top: 100%;
-          left: 0;
-          text-align: center;
-        }
+          /* Northward tooltips */
+          .d3-tip.n:after {
+            content: '\\25BC';
+            margin: -${theme.gridUnit}px 0 0 0;
+            top: 100%;
+            left: 0;
+            text-align: center;
+          }
 
-        /* Eastward tooltips */
-        .d3-tip.e:after {
-          content: '\\25C0';
-          margin: -${theme.gridUnit}px 0 0 0;
-          top: 50%;
-          left: -${theme.gridUnit * 2}px;
-        }
+          /* Eastward tooltips */
+          .d3-tip.e:after {
+            content: '\\25C0';
+            margin: -${theme.gridUnit}px 0 0 0;
+            top: 50%;
+            left: -${theme.gridUnit * 2}px;
+          }
 
-        /* Southward tooltips */
-        .d3-tip.s:after {
-          content: '\\25B2';
-          margin: 0;
-          top: -${theme.gridUnit * 2}px;
-          left: 0;
-          text-align: center;
-        }
+          /* Southward tooltips */
+          .d3-tip.s:after {
+            content: '\\25B2';
+            margin: 0;
+            top: -${theme.gridUnit * 2}px;
+            left: 0;
+            text-align: center;
+          }
 
-        /* Westward tooltips */
-        .d3-tip.w:after {
-          content: '\\25B6';
-          margin: -${theme.gridUnit}px 0 0 0px;
-          top: 50%;
-          left: 100%;
-        }
-      `}
-    />
-    <ReactComponent {...otherProps} />
-  </div>
-);
+          /* Westward tooltips */
+          .d3-tip.w:after {
+            content: '\\25B6';
+            margin: -${theme.gridUnit}px 0 0 0px;
+            top: 50%;
+            left: 100%;
+          }
+        `}
+      />
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 export default styled(Heatmap)`
   ${({ theme }) => `

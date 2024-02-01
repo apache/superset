@@ -28,10 +28,10 @@ export interface HandlebarsViewerProps {
   data: any;
 }
 
-export const HandlebarsViewer = ({
+export function HandlebarsViewer({
   templateSource,
   data,
-}: HandlebarsViewerProps) => {
+}: HandlebarsViewerProps) {
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
   const appContainer = document.getElementById('app');
@@ -72,7 +72,7 @@ export const HandlebarsViewer = ({
     );
   }
   return <p>{t('Loading...')}</p>;
-};
+}
 
 //  usage: {{dateFormat my_date format="MMMM YYYY"}}
 Handlebars.registerHelper('dateFormat', function (context, block) {

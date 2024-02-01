@@ -39,11 +39,11 @@ interface TelemetryPixelProps {
 
 const PIXEL_ID = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
 
-const TelemetryPixel = ({
+function TelemetryPixel({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
-}: TelemetryPixelProps): React.ReactElement | null => {
+}: TelemetryPixelProps): React.ReactElement | null {
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
   return process.env.SCARF_ANALYTICS === 'false' ? null : (
     <img
@@ -54,5 +54,5 @@ const TelemetryPixel = ({
       alt=""
     />
   );
-};
+}
 export default TelemetryPixel;

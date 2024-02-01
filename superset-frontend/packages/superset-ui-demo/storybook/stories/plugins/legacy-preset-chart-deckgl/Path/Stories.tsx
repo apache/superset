@@ -31,7 +31,7 @@ export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/PathChartPlugin',
 };
 
-export const PathChartViz = () => {
+export function PathChartViz() {
   const theme = useTheme();
   return (
     <SuperChart
@@ -81,4 +81,4 @@ export const PathChartViz = () => {
       }}
     />
   );
-};
+}

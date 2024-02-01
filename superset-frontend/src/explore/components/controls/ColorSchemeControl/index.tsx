@@ -57,14 +57,14 @@ const DASHBOARD_ALERT = t(
         Edit the color scheme in the dashboard properties.`,
 );
 
-const Label = ({
+function Label({
   label,
   hasCustomLabelColors,
   dashboardId,
 }: Pick<
   ColorSchemeControlProps,
   'label' | 'hasCustomLabelColors' | 'dashboardId'
->) => {
+>) {
   if (hasCustomLabelColors || dashboardId) {
     const alertTitle = hasCustomLabelColors
       ? CUSTOM_LABEL_ALERT
@@ -79,9 +79,9 @@ const Label = ({
     );
   }
   return <>{label}</>;
-};
+}
 
-const ColorSchemeControl = ({
+function ColorSchemeControl({
   hasCustomLabelColors = false,
   dashboardId,
   label = t('Color scheme'),
@@ -94,7 +94,7 @@ const ColorSchemeControl = ({
   schemes = {},
   isLinear,
   ...rest
-}: ColorSchemeControlProps) => {
+}: ColorSchemeControlProps) {
   const currentScheme = useMemo(() => {
     if (dashboardId) {
       return 'dashboard';
@@ -184,6 +184,6 @@ const ColorSchemeControl = ({
       value={currentScheme}
     />
   );
-};
+}
 
 export default ColorSchemeControl;

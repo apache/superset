@@ -41,14 +41,14 @@ export const TableControlsWrapper = styled.div`
   `}
 `;
 
-export const TableControls = ({
+export function TableControls({
   data,
   datasourceId,
   onInputChange,
   columnNames,
   columnTypes,
   isLoading,
-}: TableControlsProps) => {
+}: TableControlsProps) {
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
     columnNames,
@@ -79,4 +79,4 @@ export const TableControls = ({
       </div>
     </TableControlsWrapper>
   );
-};
+}

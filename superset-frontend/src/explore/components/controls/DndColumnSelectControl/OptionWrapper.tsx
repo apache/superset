@@ -127,7 +127,7 @@ export default function OptionWrapper(
       labelRef.current.scrollWidth > labelRef.current.clientWidth) ||
     (!isDragging && tooltipOverlay);
 
-  const LabelContent = () => {
+  function LabelContent() {
     if (!shouldShowTooltip) {
       return <span>{label}</span>;
     }
@@ -143,9 +143,9 @@ export default function OptionWrapper(
         <span>{label}</span>
       </Tooltip>
     );
-  };
+  }
 
-  const ColumnOption = () => {
+  function ColumnOption() {
     const transformedCol =
       column && isAdhocColumn(column)
         ? { verbose_name: column.label, expression: column.sqlExpression }
@@ -157,9 +157,9 @@ export default function OptionWrapper(
         showType
       />
     );
-  };
+  }
 
-  const Label = () => {
+  function Label() {
     if (label) {
       return (
         <OptionLabel ref={labelRef}>
@@ -175,7 +175,7 @@ export default function OptionWrapper(
       );
     }
     return null;
-  };
+  }
 
   drag(drop(ref));
 

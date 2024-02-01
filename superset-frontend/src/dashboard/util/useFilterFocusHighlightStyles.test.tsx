@@ -26,11 +26,11 @@ import { screen, render } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
 
-const TestComponent = ({ chartId }: { chartId: number }) => {
+function TestComponent({ chartId }: { chartId: number }) {
   const styles = useFilterFocusHighlightStyles(chartId);
 
   return <div data-test="test-component" style={styles} />;
-};
+}
 
 describe('useFilterFocusHighlightStyles', () => {
   const createMockStore = (customState: any = {}) =>

@@ -22,10 +22,10 @@ interface ControlHeaderProps {
   children: ReactNode;
 }
 
-export const ControlHeader = ({
-  children,
-}: ControlHeaderProps): JSX.Element => (
-  <div className="ControlHeader">
-    <div className="pull-left">{children}</div>
-  </div>
-);
+export function ControlHeader({ children }: ControlHeaderProps): JSX.Element {
+  return (
+    <div className="ControlHeader">
+      <div className="pull-left">{children}</div>
+    </div>
+  );
+}

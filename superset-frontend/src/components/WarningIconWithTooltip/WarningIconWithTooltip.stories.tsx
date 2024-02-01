@@ -24,11 +24,13 @@ export default {
   component: WarningIconWithTooltip,
 };
 
-export const InteractiveWarningIcon = (args: WarningIconWithTooltipProps) => (
-  <div css={{ margin: 40 }}>
-    <WarningIconWithTooltip {...args} />
-  </div>
-);
+export function InteractiveWarningIcon(args: WarningIconWithTooltipProps) {
+  return (
+    <div css={{ margin: 40 }}>
+      <WarningIconWithTooltip {...args} />
+    </div>
+  );
+}
 
 InteractiveWarningIcon.args = {
   warningMarkdown: 'Markdown example',

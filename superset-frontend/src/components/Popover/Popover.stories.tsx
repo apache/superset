@@ -26,18 +26,20 @@ export default {
   component: Popover,
 };
 
-export const InteractivePopover = (args: PopoverProps) => (
-  <Popover {...args}>
-    <Button
-      style={{
-        display: 'block',
-        margin: '80px auto',
-      }}
-    >
-      I am a button
-    </Button>
-  </Popover>
-);
+export function InteractivePopover(args: PopoverProps) {
+  return (
+    <Popover {...args}>
+      <Button
+        style={{
+          display: 'block',
+          margin: '80px auto',
+        }}
+      >
+        I am a button
+      </Button>
+    </Popover>
+  );
+}
 
 const PLACEMENTS = {
   label: 'placement',

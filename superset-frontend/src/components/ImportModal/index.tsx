@@ -390,20 +390,18 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     }
 
     return (
-      <>
-        <StyledInputContainer>
-          <div className="confirm-overwrite">{confirmOverwriteMessage}</div>
-          <div className="control-label">
-            {t('Type "%s" to confirm', t('OVERWRITE'))}
-          </div>
-          <input
-            data-test="overwrite-modal-input"
-            id="overwrite"
-            type="text"
-            onChange={confirmOverwrite}
-          />
-        </StyledInputContainer>
-      </>
+      <StyledInputContainer>
+        <div className="confirm-overwrite">{confirmOverwriteMessage}</div>
+        <div className="control-label">
+          {t('Type "%s" to confirm', t('OVERWRITE'))}
+        </div>
+        <input
+          data-test="overwrite-modal-input"
+          id="overwrite"
+          type="text"
+          onChange={confirmOverwrite}
+        />
+      </StyledInputContainer>
     );
   };
 

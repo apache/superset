@@ -24,9 +24,9 @@ export default {
   component: EditableTitle,
 };
 
-export const InteractiveEditableTitle = (props: EditableTitleProps) => (
-  <EditableTitle {...props} />
-);
+export function InteractiveEditableTitle(props: EditableTitleProps) {
+  return <EditableTitle {...props} />;
+}
 
 InteractiveEditableTitle.args = {
   canEdit: true,

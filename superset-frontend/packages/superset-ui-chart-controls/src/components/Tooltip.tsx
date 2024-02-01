@@ -25,7 +25,7 @@ import { Global } from '@emotion/react';
 
 export type { TooltipProps } from 'antd/lib/tooltip';
 
-export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
+export function Tooltip({ overlayStyle, color, ...props }: TooltipProps) {
   const theme = useTheme();
   const defaultColor = `${theme.colors.grayscale.dark2}e6`;
   return (
@@ -61,6 +61,6 @@ export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
       />
     </>
   );
-};
+}
 
 export default Tooltip;

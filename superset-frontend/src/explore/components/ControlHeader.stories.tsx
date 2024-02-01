@@ -40,20 +40,22 @@ const options: {
   },
 };
 
-export const ControlHeaderGallery = () => (
-  <>
-    {Object.entries(options).map(([name, props]) => (
-      <>
-        <h4>{name}</h4>
-        <ControlHeader {...props} />
-      </>
-    ))}
-  </>
-);
+export function ControlHeaderGallery() {
+  return (
+    <>
+      {Object.entries(options).map(([name, props]) => (
+        <>
+          <h4>{name}</h4>
+          <ControlHeader {...props} />
+        </>
+      ))}
+    </>
+  );
+}
 
-export const InteractiveControlHeader = (props: ControlHeaderProps) => (
-  <ControlHeader {...props} />
-);
+export function InteractiveControlHeader(props: ControlHeaderProps) {
+  return <ControlHeader {...props} />;
+}
 
 InteractiveControlHeader.args = {
   label: 'example label',

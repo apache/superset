@@ -80,14 +80,14 @@ const StyledButton = styled.span`
   }
 `;
 
-const RunQueryActionButton = ({
+function RunQueryActionButton({
   allowAsync = false,
   queryEditorId,
   queryState,
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}: RunQueryActionButtonProps) => {
+}: RunQueryActionButtonProps) {
   const theme = useTheme();
   const userOS = detectOS();
 
@@ -154,6 +154,6 @@ const RunQueryActionButton = ({
       </ButtonComponent>
     </StyledButton>
   );
-};
+}
 
 export default RunQueryActionButton;

@@ -35,7 +35,7 @@ const StyledCalculatorIcon = styled(CalculatorOutlined)`
   `}
 `;
 
-export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
+export function SQLPopover(props: PopoverProps & { sqlExpression: string }) {
   const theme = useTheme();
   return (
     <Popover
@@ -67,4 +67,4 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
       <StyledCalculatorIcon />
     </Popover>
   );
-};
+}

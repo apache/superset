@@ -77,11 +77,13 @@ import {
 } from './constants';
 import { customTagRender } from './CustomTag';
 
-const Error = ({ error }: { error: string }) => (
-  <StyledError>
-    <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
-  </StyledError>
-);
+function Error({ error }: { error: string }) {
+  return (
+    <StyledError>
+      <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
+    </StyledError>
+  );
+}
 
 const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
   `${value};${page};${pageSize}`;

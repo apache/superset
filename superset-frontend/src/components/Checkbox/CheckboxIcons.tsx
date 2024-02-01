@@ -19,7 +19,7 @@
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
 
-export const CheckboxChecked = () => {
+export function CheckboxChecked() {
   const theme = useTheme();
   return (
     <svg
@@ -39,9 +39,9 @@ export const CheckboxChecked = () => {
       />
     </svg>
   );
-};
+}
 
-export const CheckboxHalfChecked = () => {
+export function CheckboxHalfChecked() {
   const theme = useTheme();
   return (
     <svg
@@ -58,9 +58,9 @@ export const CheckboxHalfChecked = () => {
       <path d="M14 10H4V8H14V10Z" fill="white" />
     </svg>
   );
-};
+}
 
-export const CheckboxUnchecked = () => {
+export function CheckboxUnchecked() {
   const theme = useTheme();
   return (
     <svg
@@ -77,4 +77,4 @@ export const CheckboxUnchecked = () => {
       <path d="M16 2V16H2V2H16V2Z" fill="white" />
     </svg>
   );
-};
+}

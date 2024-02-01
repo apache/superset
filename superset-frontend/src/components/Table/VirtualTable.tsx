@@ -72,9 +72,9 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
 const SMALL = 39;
 const MIDDLE = 47;
 
-const VirtualTable = <RecordType extends object>(
+function VirtualTable<RecordType extends object>(
   props: VirtualTableProps<RecordType>,
-) => {
+) {
   const {
     columns,
     pagination,
@@ -267,6 +267,6 @@ const VirtualTable = <RecordType extends object>(
       />
     </div>
   );
-};
+}
 
 export default VirtualTable;

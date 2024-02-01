@@ -134,95 +134,103 @@ const getImageHeight = (size: EmptyStateSize) => {
   }
 };
 
-const ImageContainer = ({ image, size }: ImageContainerProps) => (
-  <Empty
-    description={false}
-    image={getImage(image)}
-    imageStyle={getImageHeight(size)}
-  />
-);
+function ImageContainer({ image, size }: ImageContainerProps) {
+  return (
+    <Empty
+      description={false}
+      image={getImage(image)}
+      imageStyle={getImageHeight(size)}
+    />
+  );
+}
 
 const handleMouseDown = (e: SyntheticEvent) => {
   e.preventDefault();
   e.stopPropagation();
 };
 
-export const EmptyStateBig = ({
+export function EmptyStateBig({
   title,
   image,
   description,
   buttonAction,
   buttonText,
   className,
-}: EmptyStateProps) => (
-  <EmptyStateContainer className={className}>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
-    <TextContainer
-      css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 150}px;
-      `}
-    >
-      <BigTitle>{title}</BigTitle>
-      {description && <BigDescription>{description}</BigDescription>}
-      {buttonAction && buttonText && (
-        <ActionButton
-          buttonStyle="primary"
-          onClick={buttonAction}
-          onMouseDown={handleMouseDown}
-        >
-          {buttonText}
-        </ActionButton>
-      )}
-    </TextContainer>
-  </EmptyStateContainer>
-);
+}: EmptyStateProps) {
+  return (
+    <EmptyStateContainer className={className}>
+      {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
+      <TextContainer
+        css={(theme: SupersetTheme) => css`
+          max-width: ${theme.gridUnit * 150}px;
+        `}
+      >
+        <BigTitle>{title}</BigTitle>
+        {description && <BigDescription>{description}</BigDescription>}
+        {buttonAction && buttonText && (
+          <ActionButton
+            buttonStyle="primary"
+            onClick={buttonAction}
+            onMouseDown={handleMouseDown}
+          >
+            {buttonText}
+          </ActionButton>
+        )}
+      </TextContainer>
+    </EmptyStateContainer>
+  );
+}
 
-export const EmptyStateMedium = ({
+export function EmptyStateMedium({
   title,
   image,
   description,
   buttonAction,
   buttonText,
-}: EmptyStateProps) => (
-  <EmptyStateContainer>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
-    <TextContainer
-      css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 100}px;
-      `}
-    >
-      <Title>{title}</Title>
-      {description && <Description>{description}</Description>}
-      {buttonText && buttonAction && (
-        <ActionButton
-          buttonStyle="primary"
-          onClick={buttonAction}
-          onMouseDown={handleMouseDown}
-        >
-          {buttonText}
-        </ActionButton>
-      )}
-    </TextContainer>
-  </EmptyStateContainer>
-);
+}: EmptyStateProps) {
+  return (
+    <EmptyStateContainer>
+      {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
+      <TextContainer
+        css={(theme: SupersetTheme) => css`
+          max-width: ${theme.gridUnit * 100}px;
+        `}
+      >
+        <Title>{title}</Title>
+        {description && <Description>{description}</Description>}
+        {buttonText && buttonAction && (
+          <ActionButton
+            buttonStyle="primary"
+            onClick={buttonAction}
+            onMouseDown={handleMouseDown}
+          >
+            {buttonText}
+          </ActionButton>
+        )}
+      </TextContainer>
+    </EmptyStateContainer>
+  );
+}
 
-export const EmptyStateSmall = ({
+export function EmptyStateSmall({
   title,
   image,
   description,
-}: EmptyStateSmallProps) => (
-  <EmptyStateContainer>
-    {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
-    <TextContainer
-      css={(theme: SupersetTheme) => css`
-        max-width: ${theme.gridUnit * 75}px;
-      `}
-    >
-      <Title>{title}</Title>
-      {description && <SmallDescription>{description}</SmallDescription>}
-    </TextContainer>
-  </EmptyStateContainer>
-);
+}: EmptyStateSmallProps) {
+  return (
+    <EmptyStateContainer>
+      {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
+      <TextContainer
+        css={(theme: SupersetTheme) => css`
+          max-width: ${theme.gridUnit * 75}px;
+        `}
+      >
+        <Title>{title}</Title>
+        {description && <SmallDescription>{description}</SmallDescription>}
+      </TextContainer>
+    </EmptyStateContainer>
+  );
+}
 
 const TRANSLATIONS = {
   NO_DATABASES_MATCH_TITLE: t('No databases match your search'),

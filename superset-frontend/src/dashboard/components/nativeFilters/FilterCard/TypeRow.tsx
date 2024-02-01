@@ -21,7 +21,7 @@ import { getChartMetadataRegistry, t } from '@superset-ui/core';
 import { Row, RowLabel, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 
-export const TypeRow = ({ filter }: FilterCardRowProps) => {
+export function TypeRow({ filter }: FilterCardRowProps) {
   const metadata = useMemo(
     () => getChartMetadataRegistry().get(filter.filterType),
     [filter.filterType],
@@ -32,4 +32,4 @@ export const TypeRow = ({ filter }: FilterCardRowProps) => {
       <RowValue>{metadata?.name}</RowValue>
     </Row>
   );
-};
+}

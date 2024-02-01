@@ -56,11 +56,11 @@ const StyledTag = styled(Tag)`
   `}
 `;
 
-const CrossFilterTag = (props: {
+function CrossFilterTag(props: {
   filter: CrossFilterIndicator;
   orientation: FilterBarOrientation;
   removeCrossFilter: (filterId: number) => void;
-}) => {
+}) {
   const { filter, orientation, removeCrossFilter } = props;
   const theme = useTheme();
   const [columnRef, columnIsTruncated] =
@@ -94,6 +94,6 @@ const CrossFilterTag = (props: {
       </Tooltip>
     </StyledTag>
   );
-};
+}
 
 export default CrossFilterTag;

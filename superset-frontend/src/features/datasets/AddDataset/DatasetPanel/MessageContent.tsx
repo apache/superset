@@ -76,7 +76,7 @@ interface MessageContentProps {
   hasColumns: boolean;
 }
 
-export const MessageContent = (props: MessageContentProps) => {
+export function MessageContent(props: MessageContentProps) {
   const { hasError, tableName, hasColumns } = props;
   let currentImage: string | undefined = 'empty-dataset.svg';
   let currentTitle = SELECT_TABLE_TITLE;
@@ -99,6 +99,6 @@ export const MessageContent = (props: MessageContentProps) => {
       />
     </StyledContainer>
   );
-};
+}
 
 export default MessageContent;

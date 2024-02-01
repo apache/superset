@@ -569,7 +569,7 @@ export function getOverMaxHiddenFormatter(
 
 export function calculateLowerLogTick(minPositiveValue: number) {
   const logBase10 = Math.floor(Math.log10(minPositiveValue));
-  return Math.pow(10, logBase10);
+  return 10 ** logBase10;
 }
 
 type BoundsType = {

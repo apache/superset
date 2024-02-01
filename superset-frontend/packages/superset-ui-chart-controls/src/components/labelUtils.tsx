@@ -47,18 +47,20 @@ const TooltipSectionLabel = styled.span`
   `}
 `;
 
-const TooltipSection = ({
+function TooltipSection({
   label,
   text,
 }: {
   label: ReactNode;
   text: ReactNode;
-}) => (
-  <TooltipSectionWrapper>
-    <TooltipSectionLabel>{label}</TooltipSectionLabel>
-    <span>{text}</span>
-  </TooltipSectionWrapper>
-);
+}) {
+  return (
+    <TooltipSectionWrapper>
+      <TooltipSectionLabel>{label}</TooltipSectionLabel>
+      <span>{text}</span>
+    </TooltipSectionWrapper>
+  );
+}
 
 export const isLabelTruncated = (labelRef?: React.RefObject<any>): boolean =>
   !!(labelRef?.current?.scrollWidth > labelRef?.current?.clientWidth);

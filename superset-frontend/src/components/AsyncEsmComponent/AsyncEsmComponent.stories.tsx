@@ -23,20 +23,22 @@ export default {
   title: 'AsyncEsmComponent',
 };
 
-const Placeholder = () => <span>Loading...</span>;
+function Placeholder() {
+  return <span>Loading...</span>;
+}
 
-const AsyncComponent = ({ bold }: { bold: boolean }) => (
-  <span style={{ fontWeight: bold ? 700 : 400 }}>AsyncComponent</span>
-);
+function AsyncComponent({ bold }: { bold: boolean }) {
+  return <span style={{ fontWeight: bold ? 700 : 400 }}>AsyncComponent</span>;
+}
 
 const Component = AsyncEsmComponent(
   new Promise(resolve => setTimeout(() => resolve(AsyncComponent), 3000)),
   Placeholder,
 );
 
-export const InteractiveEsmComponent = (args: PlaceholderProps) => (
-  <Component {...args} showLoadingForImport />
-);
+export function InteractiveEsmComponent(args: PlaceholderProps) {
+  return <Component {...args} showLoadingForImport />;
+}
 
 InteractiveEsmComponent.args = {
   bold: true,

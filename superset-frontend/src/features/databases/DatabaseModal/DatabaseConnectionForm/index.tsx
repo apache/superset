@@ -137,7 +137,7 @@ interface DatabaseConnectionFormProps {
   getPlaceholder?: (field: string) => string | undefined;
 }
 
-const DatabaseConnectionForm = ({
+function DatabaseConnectionForm({
   dbModel: { parameters },
   db,
   editNewDb,
@@ -154,47 +154,49 @@ const DatabaseConnectionForm = ({
   sslForced,
   validationErrors,
   clearValidationErrors,
-}: DatabaseConnectionFormProps) => (
-  <Form>
-    <div
-      // @ts-ignore
-      css={(theme: SupersetTheme) => [
-        formScrollableStyles,
-        validatedFormStyles(theme),
-      ]}
-    >
-      {parameters &&
-        FormFieldOrder.filter(
-          (key: string) =>
-            Object.keys(parameters.properties).includes(key) ||
-            key === 'database_name',
-        ).map(field =>
-          FORM_FIELD_MAP[field]({
-            required: parameters.required?.includes(field),
-            changeMethods: {
-              onParametersChange,
-              onChange,
-              onQueryChange,
-              onParametersUploadFileChange,
-              onAddTableCatalog,
-              onRemoveTableCatalog,
-              onExtraInputChange,
-            },
-            validationErrors,
-            getValidation,
-            clearValidationErrors,
-            db,
-            key: field,
-            field,
-            isEditMode,
-            sslForced,
-            editNewDb,
-            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-          }),
-        )}
-    </div>
-  </Form>
-);
+}: DatabaseConnectionFormProps) {
+  return (
+    <Form>
+      <div
+        // @ts-ignore
+        css={(theme: SupersetTheme) => [
+          formScrollableStyles,
+          validatedFormStyles(theme),
+        ]}
+      >
+        {parameters &&
+          FormFieldOrder.filter(
+            (key: string) =>
+              Object.keys(parameters.properties).includes(key) ||
+              key === 'database_name',
+          ).map(field =>
+            FORM_FIELD_MAP[field]({
+              required: parameters.required?.includes(field),
+              changeMethods: {
+                onParametersChange,
+                onChange,
+                onQueryChange,
+                onParametersUploadFileChange,
+                onAddTableCatalog,
+                onRemoveTableCatalog,
+                onExtraInputChange,
+              },
+              validationErrors,
+              getValidation,
+              clearValidationErrors,
+              db,
+              key: field,
+              field,
+              isEditMode,
+              sslForced,
+              editNewDb,
+              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
+            }),
+          )}
+      </div>
+    </Form>
+  );
+}
 export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;

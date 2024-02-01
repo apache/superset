@@ -39,7 +39,7 @@ function setTooltipContent(
   formData: QueryFormData,
   verboseMap?: Record<string, string>,
 ) {
-  return (o: JsonObject) => {
+  return function (o: JsonObject) {
     const label =
       verboseMap?.[formData.point_radius_fixed.value] ||
       getMetricLabel(formData.point_radius_fixed?.value);

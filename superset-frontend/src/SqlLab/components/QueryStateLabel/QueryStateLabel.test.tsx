@@ -21,7 +21,13 @@ import type { QueryState } from '@superset-ui/core';
 import { render } from 'spec/helpers/testing-library';
 import QueryStateLabel from '.';
 
-jest.mock('src/components/Label', () => () => <div data-test="mock-label" />);
+jest.mock(
+  'src/components/Label',
+  () =>
+    function () {
+      return <div data-test="mock-label" />;
+    },
+);
 
 const mockedProps = {
   query: {

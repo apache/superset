@@ -59,7 +59,9 @@ const SIZES = {
   defaultValue: undefined,
 };
 
-export const InteractiveBadge = (args: BadgeProps) => <Badge {...args} />;
+export function InteractiveBadge(args: BadgeProps) {
+  return <Badge {...args} />;
+}
 
 InteractiveBadge.args = {
   count: null,
@@ -111,37 +113,41 @@ InteractiveBadge.story = {
   },
 };
 
-export const BadgeGallery = () => (
-  <>
-    {SIZES.options.map(size => (
-      <div key={size} style={{ marginBottom: 40 }}>
-        <h4>{size}</h4>
-        {COLORS.options.map(color => (
-          <Badge
-            count={9}
-            textColor={color}
-            size={size}
-            key={`${color}_${size}`}
-            style={{ marginRight: '15px' }}
-          />
-        ))}
-      </div>
-    ))}
-  </>
-);
+export function BadgeGallery() {
+  return (
+    <>
+      {SIZES.options.map(size => (
+        <div key={size} style={{ marginBottom: 40 }}>
+          <h4>{size}</h4>
+          {COLORS.options.map(color => (
+            <Badge
+              count={9}
+              textColor={color}
+              size={size}
+              key={`${color}_${size}`}
+              style={{ marginRight: '15px' }}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
 
-export const BadgeTextGallery = () => (
-  <>
-    {COLORS.options.map(color => (
-      <Badge
-        text="Hello"
-        color={color}
-        key={color}
-        style={{ marginRight: '15px' }}
-      />
-    ))}
-  </>
-);
+export function BadgeTextGallery() {
+  return (
+    <>
+      {COLORS.options.map(color => (
+        <Badge
+          text="Hello"
+          color={color}
+          key={color}
+          style={{ marginRight: '15px' }}
+        />
+      ))}
+    </>
+  );
+}
 
 BadgeGallery.story = {
   parameters: {

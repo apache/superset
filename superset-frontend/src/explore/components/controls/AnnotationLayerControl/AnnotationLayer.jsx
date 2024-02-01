@@ -109,27 +109,29 @@ const NotFoundContentWrapper = styled.div`
   }
 `;
 
-const NotFoundContent = () => (
-  <NotFoundContentWrapper>
-    <EmptyStateSmall
-      title={t('No annotation layers')}
-      description={
-        <span>
-          {t('Add an annotation layer')}{' '}
-          <a
-            href="/annotationlayer/list"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('here')}
-          </a>
-          .
-        </span>
-      }
-      image="empty.svg"
-    />
-  </NotFoundContentWrapper>
-);
+function NotFoundContent() {
+  return (
+    <NotFoundContentWrapper>
+      <EmptyStateSmall
+        title={t('No annotation layers')}
+        description={
+          <span>
+            {t('Add an annotation layer')}{' '}
+            <a
+              href="/annotationlayer/list"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('here')}
+            </a>
+            .
+          </span>
+        }
+        image="empty.svg"
+      />
+    </NotFoundContentWrapper>
+  );
+}
 
 class AnnotationLayer extends React.PureComponent {
   constructor(props) {

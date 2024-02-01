@@ -142,18 +142,20 @@ const WelcomeNav = styled.div`
 
 const bootstrapData = getBootstrapData();
 
-export const LoadingCards = ({ cover }: LoadingProps) => (
-  <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map((_, index) => (
-      <ListViewCard
-        key={index}
-        cover={cover ? false : <></>}
-        description=""
-        loading
-      />
-    ))}
-  </CardContainer>
-);
+export function LoadingCards({ cover }: LoadingProps) {
+  return (
+    <CardContainer showThumbnails={cover} className="loading-cards">
+      {[...new Array(loadingCardCount)].map((_, index) => (
+        <ListViewCard
+          key={index}
+          cover={cover ? false : <></>}
+          description=""
+          loading
+        />
+      ))}
+    </CardContainer>
+  );
+}
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
@@ -358,74 +360,72 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         {WelcomeTopExtension && <WelcomeTopExtension />}
         {WelcomeMainExtension && <WelcomeMainExtension />}
         {(!WelcomeTopExtension || !WelcomeMainExtension) && (
-          <>
-            <Collapse
-              activeKey={activeState}
-              onChange={handleCollapse}
-              ghost
-              bigger
-            >
-              <Collapse.Panel header={t('Recents')} key="1">
-                {activityData &&
-                (activityData[TableTab.Viewed] ||
-                  activityData[TableTab.Other] ||
-                  activityData[TableTab.Created]) &&
-                activeChild !== 'Loading' ? (
-                  <ActivityTable
-                    user={{ userId: user.userId! }} // user is definitely not a guest user on this page
-                    activeChild={activeChild}
-                    setActiveChild={setActiveChild}
-                    activityData={activityData}
-                    isFetchingActivityData={isFetchingActivityData}
-                  />
-                ) : (
-                  <LoadingCards />
-                )}
-              </Collapse.Panel>
-              <Collapse.Panel header={t('Dashboards')} key="2">
-                {!dashboardData || isRecentActivityLoading ? (
-                  <LoadingCards cover={checked} />
-                ) : (
-                  <DashboardTable
-                    user={user}
-                    mine={dashboardData}
-                    showThumbnails={checked}
-                    otherTabData={activityData?.[TableTab.Other]}
-                    otherTabFilters={otherTabFilters}
-                    otherTabTitle={otherTabTitle}
-                  />
-                )}
-              </Collapse.Panel>
-              <Collapse.Panel header={t('Charts')} key="3">
-                {!chartData || isRecentActivityLoading ? (
-                  <LoadingCards cover={checked} />
-                ) : (
-                  <ChartTable
-                    showThumbnails={checked}
-                    user={user}
-                    mine={chartData}
-                    otherTabData={activityData?.[TableTab.Other]}
-                    otherTabFilters={otherTabFilters}
-                    otherTabTitle={otherTabTitle}
-                  />
-                )}
-              </Collapse.Panel>
-              {canReadSavedQueries && (
-                <Collapse.Panel header={t('Saved queries')} key="4">
-                  {!queryData ? (
-                    <LoadingCards cover={checked} />
-                  ) : (
-                    <SavedQueries
-                      showThumbnails={checked}
-                      user={user}
-                      mine={queryData}
-                      featureFlag={isThumbnailsEnabled}
-                    />
-                  )}
-                </Collapse.Panel>
+          <Collapse
+            activeKey={activeState}
+            onChange={handleCollapse}
+            ghost
+            bigger
+          >
+            <Collapse.Panel header={t('Recents')} key="1">
+              {activityData &&
+              (activityData[TableTab.Viewed] ||
+                activityData[TableTab.Other] ||
+                activityData[TableTab.Created]) &&
+              activeChild !== 'Loading' ? (
+                <ActivityTable
+                  user={{ userId: user.userId! }} // user is definitely not a guest user on this page
+                  activeChild={activeChild}
+                  setActiveChild={setActiveChild}
+                  activityData={activityData}
+                  isFetchingActivityData={isFetchingActivityData}
+                />
+              ) : (
+                <LoadingCards />
               )}
-            </Collapse>
-          </>
+            </Collapse.Panel>
+            <Collapse.Panel header={t('Dashboards')} key="2">
+              {!dashboardData || isRecentActivityLoading ? (
+                <LoadingCards cover={checked} />
+              ) : (
+                <DashboardTable
+                  user={user}
+                  mine={dashboardData}
+                  showThumbnails={checked}
+                  otherTabData={activityData?.[TableTab.Other]}
+                  otherTabFilters={otherTabFilters}
+                  otherTabTitle={otherTabTitle}
+                />
+              )}
+            </Collapse.Panel>
+            <Collapse.Panel header={t('Charts')} key="3">
+              {!chartData || isRecentActivityLoading ? (
+                <LoadingCards cover={checked} />
+              ) : (
+                <ChartTable
+                  showThumbnails={checked}
+                  user={user}
+                  mine={chartData}
+                  otherTabData={activityData?.[TableTab.Other]}
+                  otherTabFilters={otherTabFilters}
+                  otherTabTitle={otherTabTitle}
+                />
+              )}
+            </Collapse.Panel>
+            {canReadSavedQueries && (
+              <Collapse.Panel header={t('Saved queries')} key="4">
+                {!queryData ? (
+                  <LoadingCards cover={checked} />
+                ) : (
+                  <SavedQueries
+                    showThumbnails={checked}
+                    user={user}
+                    mine={queryData}
+                    featureFlag={isThumbnailsEnabled}
+                  />
+                )}
+              </Collapse.Panel>
+            )}
+          </Collapse>
         )}
       </WelcomeContainer>
     </>

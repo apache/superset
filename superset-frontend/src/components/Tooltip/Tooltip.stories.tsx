@@ -43,11 +43,13 @@ const PLACEMENTS: TooltipPlacement[] = [
 
 const TRIGGERS = ['hover', 'focus', 'click', 'contextMenu'];
 
-export const InteractiveTooltip = (args: TooltipProps) => (
-  <Tooltip {...args}>
-    <Button style={{ margin: '50px 100px' }}>Hover me</Button>
-  </Tooltip>
-);
+export function InteractiveTooltip(args: TooltipProps) {
+  return (
+    <Tooltip {...args}>
+      <Button style={{ margin: '50px 100px' }}>Hover me</Button>
+    </Tooltip>
+  );
+}
 
 InteractiveTooltip.story = {
   parameters: {

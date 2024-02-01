@@ -24,16 +24,18 @@ export default {
   component: IconButton,
 };
 
-export const InteractiveIconButton = (args: IconButtonProps) => (
-  <IconButton
-    buttonText={args.buttonText}
-    altText={args.altText}
-    icon={args.icon}
-    href={args.href}
-    target={args.target}
-    htmlType={args.htmlType}
-  />
-);
+export function InteractiveIconButton(args: IconButtonProps) {
+  return (
+    <IconButton
+      buttonText={args.buttonText}
+      altText={args.altText}
+      icon={args.icon}
+      href={args.href}
+      target={args.target}
+      htmlType={args.htmlType}
+    />
+  );
+}
 
 InteractiveIconButton.args = {
   buttonText: 'This is the IconButton text',

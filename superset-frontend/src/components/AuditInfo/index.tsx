@@ -28,7 +28,7 @@ export type ModifiedInfoProps = {
   date: string;
 };
 
-export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
+export function ModifiedInfo({ user, date }: ModifiedInfoProps) {
   const dateSpan = (
     <span className="no-wrap" data-test="audit-info-date">
       {date}
@@ -45,4 +45,4 @@ export const ModifiedInfo = ({ user, date }: ModifiedInfoProps) => {
     );
   }
   return dateSpan;
-};
+}

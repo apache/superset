@@ -114,7 +114,7 @@ basic.story = {
   },
 };
 
-export const BigTable = ({ width, height }) => {
+export function BigTable({ width, height }) {
   const rows = number('Records', 2046, { range: true, min: 0, max: 50000 });
   const cols = number('Columns', 8, { range: true, min: 1, max: 20 });
   const pageLength = number('Page size', 50, { range: true, min: 0, max: 100 });
@@ -142,7 +142,7 @@ export const BigTable = ({ width, height }) => {
       height={height}
     />
   );
-};
+}
 BigTable.story = {
   parameters: {
     initialSize: {

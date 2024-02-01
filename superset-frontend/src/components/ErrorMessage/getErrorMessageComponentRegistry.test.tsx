@@ -21,14 +21,14 @@ import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErr
 import { ErrorMessageComponentProps } from 'src/components/ErrorMessage/types';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (
-  <div>Test error</div>
-);
+function ERROR_MESSAGE_COMPONENT(_: ErrorMessageComponentProps) {
+  return <div>Test error</div>;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const OVERRIDE_ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (
-  <div>Custom error</div>
-);
+function OVERRIDE_ERROR_MESSAGE_COMPONENT(_: ErrorMessageComponentProps) {
+  return <div>Custom error</div>;
+}
 
 test('should return undefined for a non existent key', () => {
   expect(getErrorMessageComponentRegistry().get('INVALID_KEY')).toEqual(

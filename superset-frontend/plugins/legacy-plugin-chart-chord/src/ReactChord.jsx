@@ -23,11 +23,13 @@ import Component from './Chord';
 
 const ReactComponent = reactify(Component);
 
-const Chord = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function Chord({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 Chord.defaultProps = {
   otherProps: {},

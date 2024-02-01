@@ -148,7 +148,9 @@ describe('ResultsPaneOnDashboard', () => {
   });
 
   test('multiple results pane', async () => {
-    const FakeChart = () => <span>test</span>;
+    function FakeChart() {
+      return <span>test</span>;
+    }
     const metadata = new ChartMetadata({
       name: 'test-chart',
       thumbnail: '',

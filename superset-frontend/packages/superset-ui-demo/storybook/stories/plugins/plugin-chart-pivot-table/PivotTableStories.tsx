@@ -52,18 +52,20 @@ basic.story = {
   },
 };
 
-export const MaximumAggregation = ({ width, height }) => (
-  <SuperChart
-    chartType="pivot_table_v2"
-    datasource={{
-      columnFormats: {},
-    }}
-    width={width}
-    height={height}
-    queriesData={[basicData]}
-    formData={{ ...basicFormData, aggregateFunction: 'Maximum' }}
-  />
-);
+export function MaximumAggregation({ width, height }) {
+  return (
+    <SuperChart
+      chartType="pivot_table_v2"
+      datasource={{
+        columnFormats: {},
+      }}
+      width={width}
+      height={height}
+      queriesData={[basicData]}
+      formData={{ ...basicFormData, aggregateFunction: 'Maximum' }}
+    />
+  );
+}
 basic.story = {
   parameters: {
     initialSize: {

@@ -25,7 +25,7 @@ export default {
   title: 'FormRow',
 };
 
-export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
+export function InteractiveFormRow({ isCheckbox, ...rest }: any) {
   const control = isCheckbox ? (
     <CheckboxControl label="Checkbox" />
   ) : (
@@ -36,7 +36,7 @@ export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
       <FormRow {...rest} control={control} isCheckbox={isCheckbox} />
     </div>
   );
-};
+}
 
 InteractiveFormRow.args = {
   label: 'Label',

@@ -30,45 +30,51 @@ export default {
   component: ListViewCard,
 };
 
-export const SupersetListViewCard = () => (
-  <ListViewCard
-    title="Superset Card Title"
-    loading={boolean('loading', false)}
-    url="/superset/dashboard/births/"
-    imgURL={text(
-      'imgURL',
-      'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
-    )}
-    imgFallbackURL={text(
-      'imgURL',
-      'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
-    )}
-    description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
-    coverLeft="Left Section"
-    coverRight="Right Section"
-    actions={
-      <ListViewCard.Actions>
-        <FaveStar
-          itemId={0}
-          fetchFaveStar={action('fetchFaveStar')}
-          saveFaveStar={action('saveFaveStar')}
-          isStarred={boolean('isStarred', false)}
-        />
-        <AntdDropdown
-          overlay={
-            <Menu>
-              <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
-                <Icons.Trash /> Delete
-              </Menu.Item>
-              <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditAlt /> Edit
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <Icons.MoreHoriz />
-        </AntdDropdown>
-      </ListViewCard.Actions>
-    }
-  />
-);
+export function SupersetListViewCard() {
+  return (
+    <ListViewCard
+      title="Superset Card Title"
+      loading={boolean('loading', false)}
+      url="/superset/dashboard/births/"
+      imgURL={text(
+        'imgURL',
+        'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+      )}
+      imgFallbackURL={text(
+        'imgURL',
+        'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+      )}
+      description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
+      coverLeft="Left Section"
+      coverRight="Right Section"
+      actions={
+        <ListViewCard.Actions>
+          <FaveStar
+            itemId={0}
+            fetchFaveStar={action('fetchFaveStar')}
+            saveFaveStar={action('saveFaveStar')}
+            isStarred={boolean('isStarred', false)}
+          />
+          <AntdDropdown
+            overlay={
+              <Menu>
+                <Menu.Item
+                  role="button"
+                  tabIndex={0}
+                  onClick={action('Delete')}
+                >
+                  <Icons.Trash /> Delete
+                </Menu.Item>
+                <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
+                  <Icons.EditAlt /> Edit
+                </Menu.Item>
+              </Menu>
+            }
+          >
+            <Icons.MoreHoriz />
+          </AntdDropdown>
+        </ListViewCard.Actions>
+      }
+    />
+  );
+}

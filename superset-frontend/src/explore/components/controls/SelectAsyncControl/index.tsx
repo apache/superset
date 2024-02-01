@@ -45,7 +45,7 @@ function isLabeledValue(arg: any): arg is LabeledValue {
   return arg.value !== undefined;
 }
 
-const SelectAsyncControl = ({
+function SelectAsyncControl({
   addDangerToast,
   allowClear = true,
   ariaLabel,
@@ -56,7 +56,7 @@ const SelectAsyncControl = ({
   placeholder,
   value,
   ...props
-}: SelectAsyncControlProps) => {
+}: SelectAsyncControlProps) {
   const [options, setOptions] = useState<SelectOptionsType>([]);
 
   const handleOnChange = (val: SelectValue) => {
@@ -112,6 +112,6 @@ const SelectAsyncControl = ({
       placeholder={placeholder}
     />
   );
-};
+}
 
 export default withToasts(SelectAsyncControl);

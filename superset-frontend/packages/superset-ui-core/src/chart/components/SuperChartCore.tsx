@@ -37,7 +37,9 @@ function IDENTITY<T>(x: T) {
   return x;
 }
 
-const EMPTY = () => null;
+function EMPTY() {
+  return null;
+}
 
 const defaultProps = {
   id: '',

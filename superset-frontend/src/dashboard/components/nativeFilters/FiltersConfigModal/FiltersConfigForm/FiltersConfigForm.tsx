@@ -332,7 +332,7 @@ const FILTER_TYPE_NAME_MAPPING = {
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
  */
-const FiltersConfigForm = (
+function FiltersConfigForm(
   {
     filterId,
     filterToEdit,
@@ -348,7 +348,7 @@ const FiltersConfigForm = (
     isActive,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
-) => {
+) {
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -1312,7 +1312,7 @@ const FiltersConfigForm = (
       </TabPane>
     </StyledTabs>
   );
-};
+}
 
 export default React.memo(
   forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(

@@ -51,14 +51,18 @@ const OptionContainer = styled.div`
   }
 `;
 
-export const StyledMetricOption = (props: MetricOptionProps) => (
-  <OptionContainer>
-    <MetricOption {...props} />
-  </OptionContainer>
-);
+export function StyledMetricOption(props: MetricOptionProps) {
+  return (
+    <OptionContainer>
+      <MetricOption {...props} />
+    </OptionContainer>
+  );
+}
 
-export const StyledColumnOption = (props: ColumnOptionProps) => (
-  <OptionContainer>
-    <ColumnOption {...props} />
-  </OptionContainer>
-);
+export function StyledColumnOption(props: ColumnOptionProps) {
+  return (
+    <OptionContainer>
+      <ColumnOption {...props} />
+    </OptionContainer>
+  );
+}

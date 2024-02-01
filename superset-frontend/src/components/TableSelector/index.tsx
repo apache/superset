@@ -113,7 +113,7 @@ export interface TableOption {
   value: string;
 }
 
-export const TableOption = ({ table }: { table: Table }) => {
+export function TableOption({ table }: { table: Table }) {
   const { value, type, extra } = table;
   return (
     <TableLabel title={value}>
@@ -139,7 +139,7 @@ export const TableOption = ({ table }: { table: Table }) => {
       {value}
     </TableLabel>
   );
-};
+}
 
 function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
   return (

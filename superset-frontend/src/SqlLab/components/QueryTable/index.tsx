@@ -65,14 +65,14 @@ const openQuery = (id: number) => {
   window.open(url);
 };
 
-const QueryTable = ({
+function QueryTable({
   columns = ['started', 'duration', 'rows'],
   queries = [],
   onUserClicked = () => undefined,
   onDbClicked = () => undefined,
   displayLimit,
   latestQueryId,
-}: QueryTableProps) => {
+}: QueryTableProps) {
   const theme = useTheme();
   const dispatch = useDispatch();
 
@@ -323,6 +323,6 @@ const QueryTable = ({
       />
     </div>
   );
-};
+}
 
 export default QueryTable;

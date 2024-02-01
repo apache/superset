@@ -40,13 +40,13 @@ const ColorPatch = styled.div<{ formattedColor: string }>`
   margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
-const ContourOption = ({
+function ContourOption({
   contour,
   index,
   saveContour,
   onClose,
   onShift,
-}: ContourOptionProps) => {
+}: ContourOptionProps) {
   const { lowerThreshold, upperThreshold, color, strokeWidth } = contour;
 
   const isIsoband = upperThreshold;
@@ -102,6 +102,6 @@ const ContourOption = ({
       />
     </ContourPopoverTrigger>
   );
-};
+}
 
 export default ContourOption;

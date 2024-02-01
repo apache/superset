@@ -41,11 +41,11 @@ interface ModalFooterProps {
   exploreChart: () => void;
 }
 
-const ModalFooter = ({
+function ModalFooter({
   canExplore,
   closeModal,
   exploreChart,
-}: ModalFooterProps) => {
+}: ModalFooterProps) {
   const theme = useTheme();
 
   return (
@@ -76,7 +76,7 @@ const ModalFooter = ({
       </Button>
     </>
   );
-};
+}
 
 interface DrillDetailModalProps {
   chartId: number;

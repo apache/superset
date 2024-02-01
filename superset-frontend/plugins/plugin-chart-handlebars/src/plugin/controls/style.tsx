@@ -32,7 +32,7 @@ interface StyleCustomControlProps {
   value: string;
 }
 
-const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
+function StyleControl(props: CustomControlConfig<StyleCustomControlProps>) {
   const theme = useTheme();
 
   const defaultValue = props?.value
@@ -65,7 +65,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
       />
     </div>
   );
-};
+}
 
 export const styleControlSetItem: ControlSetItem = {
   name: 'styleTemplate',

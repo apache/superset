@@ -26,7 +26,7 @@ import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
-import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
+import { configure as configureTranslation } from '@superset-ui/core/src/translation/translation';
 import { Worker } from './Worker';
 import { IntersectionObserver } from './IntersectionObserver';
 import { ResizeObserver } from './ResizeObserver';
@@ -85,7 +85,13 @@ jest.mock('src/hooks/useTabId', () => ({
 }));
 
 // Check https://github.com/remarkjs/react-markdown/issues/635
-jest.mock('react-markdown', () => (props: any) => <>{props.children}</>);
+jest.mock(
+  'react-markdown',
+  () =>
+    function (props: any) {
+      return <>{props.children}</>;
+    },
+);
 jest.mock('rehype-sanitize', () => () => jest.fn());
 jest.mock('rehype-raw', () => () => jest.fn());
 

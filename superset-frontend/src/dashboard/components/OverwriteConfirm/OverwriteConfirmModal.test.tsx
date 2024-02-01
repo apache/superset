@@ -29,9 +29,13 @@ import OverwriteConfirmModal from './OverwriteConfirmModal';
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('react-diff-viewer-continued', () => () => (
-  <div data-test="mock-diff-viewer" />
-));
+jest.mock(
+  'react-diff-viewer-continued',
+  () =>
+    function () {
+      return <div data-test="mock-diff-viewer" />;
+    },
+);
 
 test('renders diff viewer when it contains overwriteConfirmMetadata', async () => {
   const { queryByText, findAllByTestId } = render(

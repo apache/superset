@@ -20,11 +20,13 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import ControlSetRow from 'src/explore/components/ControlRow';
 
-const MockControl = (props: {
+function MockControl(props: {
   children: React.ReactElement;
   type?: string;
   isVisible?: boolean;
-}) => <div>{props.children}</div>;
+}) {
+  return <div>{props.children}</div>;
+}
 describe('ControlSetRow', () => {
   it('renders a single row with one element', () => {
     render(<ControlSetRow controls={[<p>My Control 1</p>]} />);

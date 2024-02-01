@@ -45,7 +45,7 @@ const Wrapper = styled.div`
   }
 `;
 
-export const ResultsPaneOnDashboard = ({
+export function ResultsPaneOnDashboard({
   isRequest,
   queryFormData,
   queryForce,
@@ -54,7 +54,7 @@ export const ResultsPaneOnDashboard = ({
   actions,
   isVisible,
   dataSize = 50,
-}: ResultsPaneProps) => {
+}: ResultsPaneProps) {
   const resultsPanes = useResultsPane({
     errorMessage,
     queryFormData,
@@ -94,4 +94,4 @@ export const ResultsPaneOnDashboard = ({
       <Tabs fullWidth={false}>{panes}</Tabs>
     </Wrapper>
   );
-};
+}

@@ -218,26 +218,24 @@ function ListViewCard({
       {loading && (
         <AntdCard.Meta
           title={
-            <>
-              <TitleContainer>
-                <Skeleton.Input
+            <TitleContainer>
+              <Skeleton.Input
+                active
+                size="small"
+                css={{
+                  width: Math.trunc(theme.gridUnit * 62.5),
+                }}
+              />
+              <div className="card-actions">
+                <Skeleton.Button active shape="circle" />{' '}
+                <Skeleton.Button
                   active
-                  size="small"
                   css={{
-                    width: Math.trunc(theme.gridUnit * 62.5),
+                    width: theme.gridUnit * 10,
                   }}
                 />
-                <div className="card-actions">
-                  <Skeleton.Button active shape="circle" />{' '}
-                  <Skeleton.Button
-                    active
-                    css={{
-                      width: theme.gridUnit * 10,
-                    }}
-                  />
-                </div>
-              </TitleContainer>
-            </>
+              </div>
+            </TitleContainer>
           }
           description={
             <ThinSkeleton

@@ -182,45 +182,49 @@ const ToolTipContainer = styled.div`
   display: flex;
 `;
 
-const RequiredFieldIndicator = () => (
-  <span
-    css={(theme: SupersetTheme) => ({
-      color: theme.colors.error.base,
-      fontSize: `${theme.typography.sizes.s}px`,
-      paddingLeft: '1px',
-    })}
-  >
-    *
-  </span>
-);
-
-const DescriptionToolTip = ({ description }: { description: string }) => (
-  <ToolTipContainer>
-    <Tooltip
-      title={description}
-      placement="right"
-      overlayInnerStyle={{
-        display: '-webkit-box',
-        WebkitLineClamp: 10,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'normal',
-      }}
-      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
+function RequiredFieldIndicator() {
+  return (
+    <span
+      css={(theme: SupersetTheme) => ({
+        color: theme.colors.error.base,
+        fontSize: `${theme.typography.sizes.s}px`,
+        paddingLeft: '1px',
+      })}
     >
-      <i
-        className="fa fa-info-circle text-muted"
-        css={(theme: SupersetTheme) => ({
-          paddingLeft: `${theme.gridUnit}px`,
-          cursor: 'pointer',
-        })}
-      />
-    </Tooltip>
-  </ToolTipContainer>
-);
+      *
+    </span>
+  );
+}
 
-const FilterControl = ({
+function DescriptionToolTip({ description }: { description: string }) {
+  return (
+    <ToolTipContainer>
+      <Tooltip
+        title={description}
+        placement="right"
+        overlayInnerStyle={{
+          display: '-webkit-box',
+          WebkitLineClamp: 10,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'normal',
+        }}
+        getPopupContainer={trigger => trigger.parentElement as HTMLElement}
+      >
+        <i
+          className="fa fa-info-circle text-muted"
+          css={(theme: SupersetTheme) => ({
+            paddingLeft: `${theme.gridUnit}px`,
+            cursor: 'pointer',
+          })}
+        />
+      </Tooltip>
+    </ToolTipContainer>
+  );
+}
+
+function FilterControl({
   dataMaskSelected,
   filter,
   icon,
@@ -230,7 +234,7 @@ const FilterControl = ({
   parentRef,
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
-}: FilterControlProps) => {
+}: FilterControlProps) {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
@@ -325,6 +329,6 @@ const FilterControl = ({
       </FilterControlContainer>
     </>
   );
-};
+}
 
 export default React.memo(FilterControl);

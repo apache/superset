@@ -48,7 +48,7 @@ const StyledInputPassword = styled(AntdInput.Password)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
-const SSHTunnelForm = ({
+function SSHTunnelForm({
   db,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
@@ -58,7 +58,7 @@ const SSHTunnelForm = ({
     ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   >;
   setSSHTunnelLoginMethod: (method: AuthType) => void;
-}) => {
+}) {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
 
   return (
@@ -223,5 +223,5 @@ const SSHTunnelForm = ({
       )}
     </Form>
   );
-};
+}
 export default SSHTunnelForm;

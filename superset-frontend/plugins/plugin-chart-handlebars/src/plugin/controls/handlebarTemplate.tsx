@@ -31,9 +31,9 @@ interface HandlebarsCustomControlProps {
   value: string;
 }
 
-const HandlebarsTemplateControl = (
+function HandlebarsTemplateControl(
   props: CustomControlConfig<HandlebarsCustomControlProps>,
-) => {
+) {
   const val = String(
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
@@ -50,7 +50,7 @@ const HandlebarsTemplateControl = (
       />
     </div>
   );
-};
+}
 
 export const handlebarsTemplateControlSetItem: ControlSetItem = {
   name: 'handlebarsTemplate',

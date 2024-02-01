@@ -73,11 +73,11 @@ const UnpaddedModal = styled(Modal)`
 `;
 
 /** Manages the viz type and the viz picker modal */
-const VizTypeControl = ({
+function VizTypeControl({
   value: initialValue,
   onChange = noOp,
   isModalOpenInit,
-}: VizTypeControlProps) => {
+}: VizTypeControlProps) {
   const [showModal, setShowModal] = useState(!!isModalOpenInit);
   // a trick to force re-initialization of the gallery each time the modal opens,
   // ensuring that the modal always opens to the correct category.
@@ -145,6 +145,6 @@ const VizTypeControl = ({
       </UnpaddedModal>
     </>
   );
-};
+}
 
 export default VizTypeControl;

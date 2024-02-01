@@ -24,9 +24,9 @@ export default {
   title: 'ConfirmStatusChange',
 };
 
-export const InteractiveConfirmStatusChange = (
-  args: ConfirmStatusChangeProps,
-) => <ConfirmStatusChange {...args} />;
+export function InteractiveConfirmStatusChange(args: ConfirmStatusChangeProps) {
+  return <ConfirmStatusChange {...args} />;
+}
 
 InteractiveConfirmStatusChange.args = {
   title: 'Delete confirmation',

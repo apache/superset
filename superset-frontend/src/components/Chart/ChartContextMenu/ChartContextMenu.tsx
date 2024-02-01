@@ -168,23 +168,17 @@ const ChartContextMenu = (
       );
     } else if (!crossFiltersEnabled) {
       crossFilteringTooltipTitle = (
-        <>
-          <div>{t('Cross-filtering is not enabled for this dashboard.')}</div>
-        </>
+        <div>{t('Cross-filtering is not enabled for this dashboard.')}</div>
       );
     } else if (!isCrossFilteringSupportedByChart) {
       crossFilteringTooltipTitle = (
-        <>
-          <div>
-            {t('This visualization type does not support cross-filtering.')}
-          </div>
-        </>
+        <div>
+          {t('This visualization type does not support cross-filtering.')}
+        </div>
       );
     } else if (!filters?.crossFilter) {
       crossFilteringTooltipTitle = (
-        <>
-          <div>{t(`You can't apply cross-filter on this data point.`)}</div>
-        </>
+        <div>{t(`You can't apply cross-filter on this data point.`)}</div>
       );
     }
     menuItems.push(

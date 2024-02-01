@@ -28,7 +28,7 @@ export default {
   component: CopyToClipboard,
 };
 
-export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
+export function InteractiveCopyToClipboard({ copyNode, ...rest }: any) {
   const theme = useTheme();
   let node = <Button>Copy</Button>;
   if (copyNode === 'Icon') {
@@ -42,7 +42,7 @@ export const InteractiveCopyToClipboard = ({ copyNode, ...rest }: any) => {
       <ToastContainer />
     </>
   );
-};
+}
 
 InteractiveCopyToClipboard.args = {
   shouldShowText: true,

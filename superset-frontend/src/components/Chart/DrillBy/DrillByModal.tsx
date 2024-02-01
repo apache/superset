@@ -73,7 +73,7 @@ interface ModalFooterProps {
   formData: BaseFormData;
 }
 
-const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
+function ModalFooter({ formData, closeModal }: ModalFooterProps) {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
   const theme = useTheme();
@@ -148,7 +148,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
       </Button>
     </>
   );
-};
+}
 
 export interface DrillByModalProps {
   column?: Column;

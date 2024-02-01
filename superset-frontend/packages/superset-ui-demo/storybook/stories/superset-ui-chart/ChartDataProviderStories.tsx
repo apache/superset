@@ -34,7 +34,7 @@ import {
   sankeyFormData,
   sunburstFormData,
   wordCloudFormData,
-} from '../../../../superset-ui-core/test/chart/fixtures/formData';
+} from '@superset-ui/core/test/chart/fixtures/formData';
 
 import Expandable from '../../shared/components/Expandable';
 import VerifyCORS, { renderError } from '../../shared/components/VerifyCORS';

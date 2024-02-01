@@ -24,7 +24,7 @@ export default {
   component: InfoTooltip,
 };
 
-export const InteractiveInfoTooltip = (props: InfoTooltipProps) => {
+export function InteractiveInfoTooltip(props: InfoTooltipProps) {
   const styles = {
     padding: '100px 0 0 200px',
   };
@@ -34,7 +34,7 @@ export const InteractiveInfoTooltip = (props: InfoTooltipProps) => {
       <InfoTooltip {...props} />
     </div>
   );
-};
+}
 
 InteractiveInfoTooltip.args = {
   tooltip: 'This is the text that will display!',

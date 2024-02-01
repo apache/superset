@@ -88,22 +88,26 @@ const RenderIcon = (
   return component;
 };
 
-export const Dropdown = ({
+export function Dropdown({
   overlay,
   iconOrientation = IconOrientation.Vertical,
   ...rest
-}: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
-    <MenuDotsWrapper data-test="dropdown-trigger">
-      {RenderIcon(iconOrientation)}
-    </MenuDotsWrapper>
-  </AntdDropdown>
-);
+}: DropdownProps) {
+  return (
+    <AntdDropdown overlay={overlay} {...rest}>
+      <MenuDotsWrapper data-test="dropdown-trigger">
+        {RenderIcon(iconOrientation)}
+      </MenuDotsWrapper>
+    </AntdDropdown>
+  );
+}
 
 interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-export const NoAnimationDropdown = (
+export function NoAnimationDropdown(
   props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;
+) {
+  return <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;
+}

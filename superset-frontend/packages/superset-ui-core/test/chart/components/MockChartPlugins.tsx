@@ -34,7 +34,7 @@ const DIMENSION_STYLE = {
   alignItems: 'center',
 };
 
-export const TestComponent = ({
+export function TestComponent({
   formData,
   message,
   width,
@@ -44,7 +44,7 @@ export const TestComponent = ({
   message?: string;
   width?: number;
   height?: number;
-}) => {
+}) {
   const theme = useTheme();
   return (
     <div
@@ -73,7 +73,7 @@ export const TestComponent = ({
       </div>
     </div>
   );
-};
+}
 
 export const ChartKeys = {
   DILIGENT: 'diligent-chart',

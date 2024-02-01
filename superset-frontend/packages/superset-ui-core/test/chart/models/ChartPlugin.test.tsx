@@ -35,7 +35,9 @@ import {
 } from '@superset-ui/core';
 
 describe('ChartPlugin', () => {
-  const FakeChart = () => <span>test</span>;
+  function FakeChart() {
+    return <span>test</span>;
+  }
 
   const metadata = new ChartMetadata({
     name: 'test-chart',

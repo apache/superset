@@ -153,7 +153,7 @@ const USERS = [
   'Ilenia',
 ].sort();
 
-export const AsynchronousSelect = ({
+export function AsynchronousSelect({
   fetchOnlyOnSearch,
   withError,
   withInitialValue,
@@ -163,7 +163,7 @@ export const AsynchronousSelect = ({
   withError: boolean;
   withInitialValue: boolean;
   responseTime: number;
-}) => {
+}) {
   const [requests, setRequests] = useState<ReactNode[]>([]);
   const ref = useRef<AsyncSelectRef>(null);
 
@@ -280,7 +280,7 @@ export const AsynchronousSelect = ({
       </Button>
     </>
   );
-};
+}
 
 AsynchronousSelect.args = {
   allowClear: false,

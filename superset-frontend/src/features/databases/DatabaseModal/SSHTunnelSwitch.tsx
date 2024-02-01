@@ -24,15 +24,15 @@ import { isEmpty } from 'lodash';
 import { ActionType } from '.';
 import { infoTooltip, toggleStyle } from './styles';
 
-const SSHTunnelSwitch = ({
+function SSHTunnelSwitch({
   isEditMode,
   dbFetched,
   useSSHTunneling,
   setUseSSHTunneling,
   setDB,
   isSSHTunneling,
-}: SwitchProps) =>
-  isSSHTunneling ? (
+}: SwitchProps) {
+  return isSSHTunneling ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
       <AntdSwitch
         disabled={isEditMode && !isEmpty(dbFetched?.ssh_tunnel)}
@@ -55,4 +55,5 @@ const SSHTunnelSwitch = ({
       />
     </div>
   ) : null;
+}
 export default SSHTunnelSwitch;

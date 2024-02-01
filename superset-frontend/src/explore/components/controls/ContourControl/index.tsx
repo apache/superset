@@ -52,7 +52,7 @@ const NewContourFormatPlaceholder = styled('div')`
   left: 0;
 `;
 
-const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
+function ContourControl({ onChange, ...props }: ContourControlProps) {
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [contours, setContours] = useState<ContourType[]>(
     props?.value ? props?.value : DEFAULT_CONTOURS,
@@ -138,6 +138,6 @@ const ContourControl = ({ onChange, ...props }: ContourControlProps) => {
       </ContourPopoverTrigger>
     </>
   );
-};
+}
 
 export default ContourControl;

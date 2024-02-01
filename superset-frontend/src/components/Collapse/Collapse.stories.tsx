@@ -25,7 +25,7 @@ export default {
   component: Collapse,
 };
 
-export const InteractiveCollapse = (args: CollapseProps) => {
+export function InteractiveCollapse(args: CollapseProps) {
   const theme = useTheme();
   return (
     <Collapse
@@ -43,7 +43,7 @@ export const InteractiveCollapse = (args: CollapseProps) => {
       </Collapse.Panel>
     </Collapse>
   );
-};
+}
 
 InteractiveCollapse.args = {
   ghost: false,

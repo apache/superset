@@ -29,11 +29,13 @@ type IProps = {
   width: number;
 };
 
-export const InteractiveTooltip = (args: IProps) => (
-  <div style={{ width: `${args.width}px`, margin: '50px 100px' }}>
-    <TooltipParagraph>{args.title}</TooltipParagraph>
-  </div>
-);
+export function InteractiveTooltip(args: IProps) {
+  return (
+    <div style={{ width: `${args.width}px`, margin: '50px 100px' }}>
+      <TooltipParagraph>{args.title}</TooltipParagraph>
+    </div>
+  );
+}
 
 InteractiveTooltip.story = {
   parameters: {

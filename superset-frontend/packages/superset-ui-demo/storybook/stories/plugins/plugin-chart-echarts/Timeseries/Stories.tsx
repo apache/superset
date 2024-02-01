@@ -44,7 +44,7 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Timeseries = ({ width, height }) => {
+export function Timeseries({ width, height }) {
   const forecastEnabled = boolean('Enable forecast', true);
   const queryData = data
     .map(row =>
@@ -91,82 +91,88 @@ export const Timeseries = ({ width, height }) => {
       }}
     />
   );
-};
+}
 
-export const WithNegativeNumbers = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-timeseries"
-    width={width}
-    height={height}
-    queriesData={[
-      { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
-    ]}
-    formData={{
-      color_scheme: 'supersetColors',
-      seriesType: select(
-        'Line type',
-        ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-        'line',
-      ),
-      y_axis_format: '$,.2f',
-      stack: boolean('Stack', true),
-      show_value: true,
-      show_legend: true,
-      only_total: boolean('Only Total', true),
-      orientation: select(
-        'Orientation',
-        ['vertical', 'horizontal'],
-        'vertical',
-      ),
-      x_axis: '__timestamp',
-    }}
-  />
-);
+export function WithNegativeNumbers({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-timeseries"
+      width={width}
+      height={height}
+      queriesData={[
+        { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
+      ]}
+      formData={{
+        color_scheme: 'supersetColors',
+        seriesType: select(
+          'Line type',
+          ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+          'line',
+        ),
+        y_axis_format: '$,.2f',
+        stack: boolean('Stack', true),
+        show_value: true,
+        show_legend: true,
+        only_total: boolean('Only Total', true),
+        orientation: select(
+          'Orientation',
+          ['vertical', 'horizontal'],
+          'vertical',
+        ),
+        x_axis: '__timestamp',
+      }}
+    />
+  );
+}
 
-export const ConfidenceBand = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-timeseries"
-    width={width}
-    height={height}
-    queriesData={[
-      {
-        data: confbandData,
-        colnames: [
-          'ds',
-          'SUM(num)',
-          'SUM(num)__yhat_lower',
-          'SUM(num)__yhat_upper',
-        ],
-        coltypes: [2, 0, 0, 0],
-      },
-    ]}
-    formData={{
-      color_scheme: 'supersetColors',
-      series_type: 'line',
-      x_axis_time_format: 'smart_date',
-      x_axis: 'ds',
-    }}
-  />
-);
+export function ConfidenceBand({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-timeseries"
+      width={width}
+      height={height}
+      queriesData={[
+        {
+          data: confbandData,
+          colnames: [
+            'ds',
+            'SUM(num)',
+            'SUM(num)__yhat_lower',
+            'SUM(num)__yhat_upper',
+          ],
+          coltypes: [2, 0, 0, 0],
+        },
+      ]}
+      formData={{
+        color_scheme: 'supersetColors',
+        series_type: 'line',
+        x_axis_time_format: 'smart_date',
+        x_axis: 'ds',
+      }}
+    />
+  );
+}
 
-export const StackWithNulls = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-timeseries"
-    width={width}
-    height={height}
-    queriesData={[
-      {
-        data: stackWithNullsData,
-        colnames: ['ds', '1', '2'],
-        coltypes: [2, 0, 0],
-      },
-    ]}
-    formData={{
-      color_scheme: 'supersetColors',
-      series_type: 'bar',
-      stack: true,
-      x_axis_time_format: 'smart_date',
-      x_axis: 'ds',
-    }}
-  />
-);
+export function StackWithNulls({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-timeseries"
+      width={width}
+      height={height}
+      queriesData={[
+        {
+          data: stackWithNullsData,
+          colnames: ['ds', '1', '2'],
+          coltypes: [2, 0, 0],
+        },
+      ]}
+      formData={{
+        color_scheme: 'supersetColors',
+        series_type: 'bar',
+        stack: true,
+        x_axis_time_format: 'smart_date',
+        x_axis: 'ds',
+      }}
+    />
+  );
+}

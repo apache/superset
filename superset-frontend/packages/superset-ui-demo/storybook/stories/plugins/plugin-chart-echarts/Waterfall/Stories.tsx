@@ -40,30 +40,32 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Waterfall = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-waterfall"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      metric: `SUM(decomp_volume)`,
-      columns: 'due_to_group',
-      series: 'period',
-      x_ticks_layout: '45°',
-      adhocFilters: [
-        {
-          clause: 'WHERE',
-          comparator: '0',
-          expressionType: 'SIMPLE',
-          filterOptionName: 'filter_8ix98su8zu4_t4767ixmbp9',
-          isExtra: false,
-          isNew: false,
-          operator: '!=',
-          sqlExpression: null,
-          subject: 'period',
-        },
-      ],
-    }}
-  />
-);
+export function Waterfall({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-waterfall"
+      width={width}
+      height={height}
+      queriesData={[{ data }]}
+      formData={{
+        metric: `SUM(decomp_volume)`,
+        columns: 'due_to_group',
+        series: 'period',
+        x_ticks_layout: '45°',
+        adhocFilters: [
+          {
+            clause: 'WHERE',
+            comparator: '0',
+            expressionType: 'SIMPLE',
+            filterOptionName: 'filter_8ix98su8zu4_t4767ixmbp9',
+            isExtra: false,
+            isNew: false,
+            operator: '!=',
+            sqlExpression: null,
+            subject: 'period',
+          },
+        ],
+      }}
+    />
+  );
+}

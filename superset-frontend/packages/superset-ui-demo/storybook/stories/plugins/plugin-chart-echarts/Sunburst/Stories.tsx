@@ -41,17 +41,19 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Sunburst = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-sunburst"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      columns: ['genre', 'platform'],
-      metric: 'count',
-      showLabels: boolean('Show labels', true),
-      showTotal: boolean('Show total', true),
-    }}
-  />
-);
+export function Sunburst({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-sunburst"
+      width={width}
+      height={height}
+      queriesData={[{ data }]}
+      formData={{
+        columns: ['genre', 'platform'],
+        metric: 'count',
+        showLabels: boolean('Show labels', true),
+        showTotal: boolean('Show total', true),
+      }}
+    />
+  );
+}

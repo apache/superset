@@ -186,28 +186,30 @@ const generateOptions = (opts: SelectOptionsType, count: number) => {
   return generated.slice(0, count);
 };
 
-export const InteractiveSelect = ({
+export function InteractiveSelect({
   header,
   options,
   optionsCount,
   ...args
-}: SelectProps & { header: string; optionsCount: number }) => (
-  <div
-    style={{
-      width: DEFAULT_WIDTH,
-    }}
-  >
-    <Select
-      {...args}
-      options={
-        Array.isArray(options)
-          ? generateOptions(options, optionsCount)
-          : options
-      }
-      header={mountHeader(header)}
-    />
-  </div>
-);
+}: SelectProps & { header: string; optionsCount: number }) {
+  return (
+    <div
+      style={{
+        width: DEFAULT_WIDTH,
+      }}
+    >
+      <Select
+        {...args}
+        options={
+          Array.isArray(options)
+            ? generateOptions(options, optionsCount)
+            : options
+        }
+        header={mountHeader(header)}
+      />
+    </div>
+  );
+}
 
 InteractiveSelect.args = {
   autoFocus: true,
@@ -258,32 +260,35 @@ InteractiveSelect.story = {
   },
 };
 
-export const AtEveryCorner = () => (
-  <>
-    {selectPositions.map(position => (
-      <div
-        key={position.id}
-        style={{
-          ...position.style,
-          margin: 30,
-          width: DEFAULT_WIDTH,
-          position: 'absolute',
-        }}
-      >
-        <Select
-          ariaLabel={`gallery-${position.id}`}
-          options={options}
-          labelInValue
-        />
-      </div>
-    ))}
-    <p style={{ position: 'absolute', top: '40%', left: '33%', width: 500 }}>
-      The objective of this panel is to show how the Select behaves when in
-      touch with the viewport extremities. In particular, how the drop-down is
-      displayed and if the tooltips of truncated items are correctly positioned.
-    </p>
-  </>
-);
+export function AtEveryCorner() {
+  return (
+    <>
+      {selectPositions.map(position => (
+        <div
+          key={position.id}
+          style={{
+            ...position.style,
+            margin: 30,
+            width: DEFAULT_WIDTH,
+            position: 'absolute',
+          }}
+        >
+          <Select
+            ariaLabel={`gallery-${position.id}`}
+            options={options}
+            labelInValue
+          />
+        </div>
+      ))}
+      <p style={{ position: 'absolute', top: '40%', left: '33%', width: 500 }}>
+        The objective of this panel is to show how the Select behaves when in
+        touch with the viewport extremities. In particular, how the drop-down is
+        displayed and if the tooltips of truncated items are correctly
+        positioned.
+      </p>
+    </>
+  );
+}
 
 AtEveryCorner.story = {
   parameters: {
@@ -299,41 +304,48 @@ AtEveryCorner.story = {
   },
 };
 
-export const PageScroll = () => (
-  <div style={{ height: 2000, overflowY: 'auto' }}>
-    <div
-      style={{
-        width: DEFAULT_WIDTH,
-        position: 'absolute',
-        top: 30,
-        right: 30,
-      }}
-    >
-      <Select ariaLabel="page-scroll-select-1" options={options} labelInValue />
+export function PageScroll() {
+  return (
+    <div style={{ height: 2000, overflowY: 'auto' }}>
+      <div
+        style={{
+          width: DEFAULT_WIDTH,
+          position: 'absolute',
+          top: 30,
+          right: 30,
+        }}
+      >
+        <Select
+          ariaLabel="page-scroll-select-1"
+          options={options}
+          labelInValue
+        />
+      </div>
+      <div
+        style={{
+          width: DEFAULT_WIDTH,
+          position: 'absolute',
+          bottom: 30,
+          right: 30,
+        }}
+      >
+        <Select ariaLabel="page-scroll-select-2" options={options} />
+      </div>
+      <p
+        style={{
+          position: 'absolute',
+          top: '40%',
+          left: 30,
+          width: 500,
+        }}
+      >
+        The objective of this panel is to show how the Select behaves when
+        there's a scroll on the page. In particular, how the drop-down is
+        displayed.
+      </p>
     </div>
-    <div
-      style={{
-        width: DEFAULT_WIDTH,
-        position: 'absolute',
-        bottom: 30,
-        right: 30,
-      }}
-    >
-      <Select ariaLabel="page-scroll-select-2" options={options} />
-    </div>
-    <p
-      style={{
-        position: 'absolute',
-        top: '40%',
-        left: 30,
-        width: 500,
-      }}
-    >
-      The objective of this panel is to show how the Select behaves when there's
-      a scroll on the page. In particular, how the drop-down is displayed.
-    </p>
-  </div>
-);
+  );
+}
 
 PageScroll.story = {
   parameters: {

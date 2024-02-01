@@ -27,11 +27,11 @@ import { updateDataMask } from 'src/dataMask/actions';
 import CrossFilterTag from './CrossFilterTag';
 import CrossFilterTitle from './CrossFilterTitle';
 
-const CrossFilter = (props: {
+function CrossFilter(props: {
   filter: CrossFilterIndicator;
   orientation: FilterBarOrientation;
   last?: boolean;
-}) => {
+}) {
   const { filter, orientation, last } = props;
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -109,6 +109,6 @@ const CrossFilter = (props: {
       )}
     </div>
   );
-};
+}
 
 export default CrossFilter;

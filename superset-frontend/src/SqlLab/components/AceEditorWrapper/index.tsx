@@ -66,7 +66,7 @@ const StyledAceEditor = styled(AceEditor)`
   `}
 `;
 
-const AceEditorWrapper = ({
+function AceEditorWrapper({
   autocomplete,
   onBlur = () => {},
   onChange = () => {},
@@ -74,7 +74,7 @@ const AceEditorWrapper = ({
   onCursorPositionChange,
   height,
   hotkeys,
-}: AceEditorWrapperProps) => {
+}: AceEditorWrapperProps) {
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
@@ -195,6 +195,6 @@ const AceEditorWrapper = ({
       annotations={annotations}
     />
   );
-};
+}
 
 export default AceEditorWrapper;

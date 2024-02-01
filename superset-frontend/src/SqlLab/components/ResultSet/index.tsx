@@ -139,7 +139,7 @@ const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
 
-const ResultSet = ({
+function ResultSet({
   cache = false,
   csv = true,
   database = {},
@@ -152,7 +152,7 @@ const ResultSet = ({
   visualize = true,
   user,
   defaultQueryLimit,
-}: ResultSetProps) => {
+}: ResultSetProps) {
   const ResultTable =
     extensionsRegistry.get('sqleditor.extension.resultTable') ??
     FilterableTable;
@@ -659,6 +659,6 @@ const ResultSet = ({
       {trackingUrl && <div>{trackingUrl}</div>}
     </ResultlessStyles>
   );
-};
+}
 
 export default ResultSet;

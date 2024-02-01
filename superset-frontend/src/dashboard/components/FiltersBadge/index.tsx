@@ -100,7 +100,7 @@ const sortByStatus = (indicators: Indicator[]): Indicator[] => {
 
 const indicatorsInitialState: Indicator[] = [];
 
-export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
+export function FiltersBadge({ chartId }: FiltersBadgeProps) {
   const dispatch = useDispatch();
   const datasources = useSelector<RootState, any>(state => state.datasources);
   const dashboardFilters = useSelector<RootState, any>(
@@ -277,6 +277,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       </StyledFilterCount>
     </DetailsPanelPopover>
   );
-};
+}
 
 export default React.memo(FiltersBadge);

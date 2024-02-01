@@ -51,7 +51,7 @@ const AddButtonContainer = styled.div`
   `}
 `;
 
-const ScopingTitle = ({
+function ScopingTitle({
   isActive,
   onClick,
   id,
@@ -63,7 +63,7 @@ const ScopingTitle = ({
   id: number;
   label: ReactNode;
   onRemove: (id: number) => void;
-}) => {
+}) {
   const theme = useTheme();
   return (
     <FilterTitle
@@ -83,7 +83,7 @@ const ScopingTitle = ({
       />
     </FilterTitle>
   );
-};
+}
 
 export interface ChartsScopingListPanelProps {
   activeChartId: number | undefined;
@@ -92,13 +92,13 @@ export interface ChartsScopingListPanelProps {
   removeCustomScope: (chartId: number) => void;
   addNewCustomScope: () => void;
 }
-export const ChartsScopingListPanel = ({
+export function ChartsScopingListPanel({
   activeChartId,
   chartConfigs,
   setCurrentChartId,
   removeCustomScope,
   addNewCustomScope,
-}: ChartsScopingListPanelProps) => {
+}: ChartsScopingListPanelProps) {
   const theme = useTheme();
   const layout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -174,4 +174,4 @@ export const ChartsScopingListPanel = ({
       )}
     </>
   );
-};
+}

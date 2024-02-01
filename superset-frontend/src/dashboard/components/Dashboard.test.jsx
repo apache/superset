@@ -62,7 +62,9 @@ describe('Dashboard', () => {
     loadStats: {},
   };
 
-  const ChildrenComponent = () => <div>Test</div>;
+  function ChildrenComponent() {
+    return <div>Test</div>;
+  }
 
   function setup(overrideProps) {
     const wrapper = shallow(

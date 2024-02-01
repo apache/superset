@@ -114,14 +114,14 @@ const QueryContainer = styled.div`
   }
 `;
 
-const SavedQueries = ({
+function SavedQueries({
   user,
   addDangerToast,
   addSuccessToast,
   mine,
   showThumbnails,
   featureFlag,
-}: SavedQueriesProps) => {
+}: SavedQueriesProps) {
   const {
     state: { loading, resourceCollection: queries },
     hasPerm,
@@ -332,6 +332,6 @@ const SavedQueries = ({
       )}
     </>
   );
-};
+}
 
 export default withToasts(SavedQueries);

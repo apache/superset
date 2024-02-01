@@ -26,7 +26,7 @@ export default {
   component: CronPicker,
 };
 
-export const InteractiveCronPicker = (props: CronProps) => {
+export function InteractiveCronPicker(props: CronProps) {
   // @ts-ignore
   const inputRef = useRef<Input>(null);
   const [value, setValue] = useState(props.value);
@@ -58,7 +58,7 @@ export const InteractiveCronPicker = (props: CronProps) => {
       {error && <p style={{ marginTop: 20 }}>Error: {error.description}</p>}
     </div>
   );
-};
+}
 
 InteractiveCronPicker.args = {
   clearButton: false,

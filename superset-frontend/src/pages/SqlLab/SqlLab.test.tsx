@@ -66,9 +66,13 @@ beforeEach(() => {
   fetchMock.get(sqlLabInitialStateApiRoute, fakeApiResult);
 });
 
-jest.mock('src/SqlLab/components/App', () => () => (
-  <div data-test="mock-sqllab-app" />
-));
+jest.mock(
+  'src/SqlLab/components/App',
+  () =>
+    function () {
+      return <div data-test="mock-sqllab-app" />;
+    },
+);
 
 test('is valid', () => {
   expect(React.isValidElement(<SqlLab />)).toBe(true);

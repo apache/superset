@@ -62,14 +62,14 @@ export type LegendProps = {
   showSingleCategory?: (key: string) => void;
 };
 
-const Legend = ({
+function Legend({
   format: d3Format = null,
   forceCategorical = false,
   position = 'tr',
   categories: categoriesObject = {},
   toggleCategory = () => {},
   showSingleCategory = () => {},
-}: LegendProps) => {
+}: LegendProps) {
   const format = (value: string) => {
     if (!d3Format || forceCategorical) {
       return value;
@@ -128,6 +128,6 @@ const Legend = ({
       <ul>{categories}</ul>
     </StyledLegend>
   );
-};
+}
 
 export default memo(Legend);

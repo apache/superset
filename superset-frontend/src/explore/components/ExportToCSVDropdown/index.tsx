@@ -44,11 +44,11 @@ const MenuItemContent = styled.div`
   }
 `;
 
-export const ExportToCSVDropdown = ({
+export function ExportToCSVDropdown({
   exportCSVOriginal,
   exportCSVPivoted,
   children,
-}: ExportToCSVButtonProps) => {
+}: ExportToCSVButtonProps) {
   const handleMenuClick = useCallback(
     ({ key }: { key: React.Key }) => {
       switch (key) {
@@ -88,4 +88,4 @@ export const ExportToCSVDropdown = ({
       {children}
     </AntdDropdown>
   );
-};
+}

@@ -84,7 +84,7 @@ const Label = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const Row = ({
+function Row({
   availableFilters,
   selection,
   onChange,
@@ -94,7 +94,7 @@ const Row = ({
   selection: string;
   onChange: (id: string, value: string) => void;
   onDelete: (id: string) => void;
-}) => {
+}) {
   let value = availableFilters.find(e => e.value === selection);
   let options = availableFilters;
   if (!value) {
@@ -115,13 +115,13 @@ const Row = ({
       <DeleteFilter iconSize="xl" onClick={() => onDelete(selection)} />
     </RowPanel>
   );
-};
+}
 
-const List = ({
+function List({
   availableFilters = [],
   dependencies = [],
   onDependenciesChange,
-}: DependencyListProps) => {
+}: DependencyListProps) {
   const [rows, setRows] = useState<string[]>(dependencies);
 
   const updateRows = (newRows: string[]) => {
@@ -178,15 +178,15 @@ const List = ({
       )}
     </>
   );
-};
+}
 
-const DependencyList = ({
+function DependencyList({
   availableFilters = [],
   dependencies = [],
   onDependenciesChange,
   getDependencySuggestion,
   children,
-}: DependencyListProps) => {
+}: DependencyListProps) {
   const hasAvailableFilters = availableFilters.length > 0;
   const hasDependencies = dependencies.length > 0;
 
@@ -219,6 +219,6 @@ const DependencyList = ({
       </CollapsibleControl>
     </MainPanel>
   );
-};
+}
 
 export default DependencyList;

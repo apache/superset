@@ -74,26 +74,28 @@ const HREFS = {
   defaultValue: null,
 };
 
-export const ButtonGallery = () => (
-  <>
-    {SIZES.options.map(size => (
-      <div key={size} style={{ marginBottom: 40 }}>
-        <h4>{size}</h4>
-        {Object.values(STYLES.options).map(style => (
-          <Button
-            buttonStyle={style}
-            buttonSize={size}
-            onClick={() => true}
-            key={`${style}_${size}`}
-            style={{ marginRight: 20, marginBottom: 10 }}
-          >
-            {style}
-          </Button>
-        ))}
-      </div>
-    ))}
-  </>
-);
+export function ButtonGallery() {
+  return (
+    <>
+      {SIZES.options.map(size => (
+        <div key={size} style={{ marginBottom: 40 }}>
+          <h4>{size}</h4>
+          {Object.values(STYLES.options).map(style => (
+            <Button
+              buttonStyle={style}
+              buttonSize={size}
+              onClick={() => true}
+              key={`${style}_${size}`}
+              style={{ marginRight: 20, marginBottom: 10 }}
+            >
+              {style}
+            </Button>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
 
 ButtonGallery.story = {
   parameters: {
@@ -109,10 +111,10 @@ ButtonGallery.story = {
   },
 };
 
-export const InteractiveButton = (args: ButtonProps & { label: string }) => {
+export function InteractiveButton(args: ButtonProps & { label: string }) {
   const { label, ...btnArgs } = args;
   return <Button {...btnArgs}>{label}</Button>;
-};
+}
 
 InteractiveButton.story = {
   parameters: {

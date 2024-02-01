@@ -99,7 +99,7 @@ export type DeckGLScreenGridProps = {
   onAddFilter: () => void;
 };
 
-const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
+function DeckGLScreenGrid(props: DeckGLScreenGridProps) {
   const containerRef = useRef<DeckGLContainerHandle>();
 
   const getAdjustedViewport = useCallback(() => {
@@ -156,6 +156,6 @@ const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
       />
     </div>
   );
-};
+}
 
 export default memo(DeckGLScreenGrid);

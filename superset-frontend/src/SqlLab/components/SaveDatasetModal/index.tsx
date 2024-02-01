@@ -146,7 +146,7 @@ const updateDataset = async (
 
 const UNTITLED = t('Untitled Dataset');
 
-export const SaveDatasetModal = ({
+export function SaveDatasetModal({
   visible,
   onHide,
   buttonTextOnSave,
@@ -155,7 +155,7 @@ export const SaveDatasetModal = ({
   datasource,
   openWindow = true,
   formData = {},
-}: SaveDatasetModalProps) => {
+}: SaveDatasetModalProps) {
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );
@@ -434,4 +434,4 @@ export const SaveDatasetModal = ({
       </Styles>
     </StyledModal>
   );
-};
+}

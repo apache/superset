@@ -47,22 +47,24 @@ const IconBlock = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-export const InteractiveIcons = ({
+export function InteractiveIcons({
   showNames,
   ...rest
-}: IconType & { showNames: boolean }) => (
-  <IconSet>
-    {Object.keys(Icons).map(k => {
-      const IconComponent = Icons[k];
-      return (
-        <IconBlock key={k}>
-          <IconComponent {...rest} />
-          {showNames && k}
-        </IconBlock>
-      );
-    })}
-  </IconSet>
-);
+}: IconType & { showNames: boolean }) {
+  return (
+    <IconSet>
+      {Object.keys(Icons).map(k => {
+        const IconComponent = Icons[k];
+        return (
+          <IconBlock key={k}>
+            <IconComponent {...rest} />
+            {showNames && k}
+          </IconBlock>
+        );
+      })}
+    </IconSet>
+  );
+}
 
 InteractiveIcons.argTypes = {
   showNames: {

@@ -22,13 +22,13 @@ import Popover from 'src/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
 import { FilterCardProps } from './types';
 
-export const FilterCard = ({
+export function FilterCard({
   children,
   filter,
   getPopupContainer,
   isVisible: externalIsVisible = true,
   placement,
-}: FilterCardProps) => {
+}: FilterCardProps) {
   const [internalIsVisible, setInternalIsVisible] = useState(false);
 
   const hidePopover = () => {
@@ -56,4 +56,4 @@ export const FilterCard = ({
       {children}
     </Popover>
   );
-};
+}

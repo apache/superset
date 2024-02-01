@@ -51,24 +51,28 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbeddedRoute = () => (
-  <Suspense fallback={<Loading />}>
-    <RootContextProviders>
-      <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
-      </ErrorBoundary>
-      <ToastContainer position="top" />
-    </RootContextProviders>
-  </Suspense>
-);
+function EmbeddedRoute() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <RootContextProviders>
+        <ErrorBoundary>
+          <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+        </ErrorBoundary>
+        <ToastContainer position="top" />
+      </RootContextProviders>
+    </Suspense>
+  );
+}
 
-const EmbeddedApp = () => (
-  <Router>
-    {/* todo (embedded) remove this line after uuids are deployed */}
-    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
-    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
-  </Router>
-);
+function EmbeddedApp() {
+  return (
+    <Router>
+      {/* todo (embedded) remove this line after uuids are deployed */}
+      <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
+      <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
+    </Router>
+  );
+}
 
 const appMountPoint = document.getElementById('app')!;
 

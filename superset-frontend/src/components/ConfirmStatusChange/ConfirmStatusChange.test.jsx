@@ -32,11 +32,7 @@ describe('ConfirmStatusChange', () => {
   };
   const wrapper = mount(
     <ConfirmStatusChange {...mockedProps}>
-      {confirm => (
-        <>
-          <Button id="btn1" onClick={confirm} />
-        </>
-      )}
+      {confirm => <Button id="btn1" onClick={confirm} />}
     </ConfirmStatusChange>,
     {
       wrappingComponent: ThemeProvider,

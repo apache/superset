@@ -41,24 +41,26 @@ function getPoints(data: JsonObject[]) {
 }
 
 function setTooltipContent(formData: QueryFormData) {
-  return (o: JsonObject) => (
-    <div className="deckgl-tooltip">
-      <TooltipRow
-        label={t('Start (Longitude, Latitude): ')}
-        value={`${o.object?.sourcePosition?.[0]}, ${o.object?.sourcePosition?.[1]}`}
-      />
-      <TooltipRow
-        label={t('End (Longitude, Latitude): ')}
-        value={`${o.object?.targetPosition?.[0]}, ${o.object?.targetPosition?.[1]}`}
-      />
-      {formData.dimension && (
+  return function (o: JsonObject) {
+    return (
+      <div className="deckgl-tooltip">
         <TooltipRow
-          label={`${formData?.dimension}: `}
-          value={`${o.object?.cat_color}`}
+          label={t('Start (Longitude, Latitude): ')}
+          value={`${o.object?.sourcePosition?.[0]}, ${o.object?.sourcePosition?.[1]}`}
         />
-      )}
-    </div>
-  );
+        <TooltipRow
+          label={t('End (Longitude, Latitude): ')}
+          value={`${o.object?.targetPosition?.[0]}, ${o.object?.targetPosition?.[1]}`}
+        />
+        {formData.dimension && (
+          <TooltipRow
+            label={`${formData?.dimension}: `}
+            value={`${o.object?.cat_color}`}
+          />
+        )}
+      </div>
+    );
+  };
 }
 
 export function getLayer(

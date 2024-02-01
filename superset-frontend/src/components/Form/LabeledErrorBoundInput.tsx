@@ -98,7 +98,7 @@ const iconReset = css`
   }
 `;
 
-const LabeledErrorBoundInput = ({
+function LabeledErrorBoundInput({
   label,
   validationMethods,
   errorMessage,
@@ -110,47 +110,49 @@ const LabeledErrorBoundInput = ({
   className,
   visibilityToggle,
   ...props
-}: LabeledErrorBoundInputProps) => (
-  <StyledFormGroup className={className}>
-    <StyledAlignment>
-      <StyledFormLabel htmlFor={id} required={required}>
-        {label}
-      </StyledFormLabel>
-      {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
-    </StyledAlignment>
-    <FormItem
-      css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
-      validateTrigger={Object.keys(validationMethods)}
-      validateStatus={errorMessage ? 'error' : 'success'}
-      help={errorMessage || helpText}
-      hasFeedback={!!errorMessage}
-    >
-      {visibilityToggle || props.name === 'password' ? (
-        <StyledInputPassword
-          {...props}
-          {...validationMethods}
-          iconRender={visible =>
-            visible ? (
-              <Tooltip title={t('Hide password.')}>
-                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
-              </Tooltip>
-            ) : (
-              <Tooltip title={t('Show password.')}>
-                <Icons.EyeOutlined
-                  iconSize="m"
-                  css={iconReset}
-                  data-test="icon-eye"
-                />
-              </Tooltip>
-            )
-          }
-          role="textbox"
-        />
-      ) : (
-        <StyledInput {...props} {...validationMethods} />
-      )}
-    </FormItem>
-  </StyledFormGroup>
-);
+}: LabeledErrorBoundInputProps) {
+  return (
+    <StyledFormGroup className={className}>
+      <StyledAlignment>
+        <StyledFormLabel htmlFor={id} required={required}>
+          {label}
+        </StyledFormLabel>
+        {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
+      </StyledAlignment>
+      <FormItem
+        css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
+        validateTrigger={Object.keys(validationMethods)}
+        validateStatus={errorMessage ? 'error' : 'success'}
+        help={errorMessage || helpText}
+        hasFeedback={!!errorMessage}
+      >
+        {visibilityToggle || props.name === 'password' ? (
+          <StyledInputPassword
+            {...props}
+            {...validationMethods}
+            iconRender={visible =>
+              visible ? (
+                <Tooltip title={t('Hide password.')}>
+                  <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
+                </Tooltip>
+              ) : (
+                <Tooltip title={t('Show password.')}>
+                  <Icons.EyeOutlined
+                    iconSize="m"
+                    css={iconReset}
+                    data-test="icon-eye"
+                  />
+                </Tooltip>
+              )
+            }
+            role="textbox"
+          />
+        ) : (
+          <StyledInput {...props} {...validationMethods} />
+        )}
+      </FormItem>
+    </StyledFormGroup>
+  );
+}
 
 export default LabeledErrorBoundInput;

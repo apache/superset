@@ -24,9 +24,9 @@ export default {
   component: AnchorLink,
 };
 
-export const InteractiveAnchorLink = (args: any) => (
-  <AnchorLink id="link" {...args} />
-);
+export function InteractiveAnchorLink(args: any) {
+  return <AnchorLink id="link" {...args} />;
+}
 
 const PLACEMENTS = ['right', 'left', 'top', 'bottom'];
 

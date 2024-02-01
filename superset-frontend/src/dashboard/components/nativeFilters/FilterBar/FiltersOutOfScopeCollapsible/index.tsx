@@ -29,72 +29,74 @@ export interface FiltersOutOfScopeCollapsibleProps {
   forceRender?: boolean;
 }
 
-export const FiltersOutOfScopeCollapsible = ({
+export function FiltersOutOfScopeCollapsible({
   filtersOutOfScope,
   renderer,
   hasTopMargin,
   horizontalOverflow,
   forceRender = false,
-}: FiltersOutOfScopeCollapsibleProps) => (
-  <AntdCollapse
-    ghost
-    bordered
-    expandIconPosition="right"
-    collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
-    css={(theme: SupersetTheme) =>
-      horizontalOverflow
-        ? css`
-            &.ant-collapse > .ant-collapse-item {
-              & > .ant-collapse-header {
-                padding: 0;
-
-                & > .ant-collapse-arrow {
-                  right: 0;
-                  padding: 0;
-                }
-              }
-
-              & .ant-collapse-content-box {
-                padding: ${theme.gridUnit * 4}px 0 0;
-                margin-bottom: ${theme.gridUnit * -4}px;
-              }
-            }
-          `
-        : css`
-            &.ant-collapse {
-              margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
-              & > .ant-collapse-item {
+}: FiltersOutOfScopeCollapsibleProps) {
+  return (
+    <AntdCollapse
+      ghost
+      bordered
+      expandIconPosition="right"
+      collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
+      css={(theme: SupersetTheme) =>
+        horizontalOverflow
+          ? css`
+              &.ant-collapse > .ant-collapse-item {
                 & > .ant-collapse-header {
-                  padding-left: 0;
-                  padding-bottom: ${theme.gridUnit * 2}px;
+                  padding: 0;
 
                   & > .ant-collapse-arrow {
-                    right: ${theme.gridUnit}px;
+                    right: 0;
+                    padding: 0;
                   }
                 }
 
                 & .ant-collapse-content-box {
                   padding: ${theme.gridUnit * 4}px 0 0;
+                  margin-bottom: ${theme.gridUnit * -4}px;
                 }
               }
-            }
-          `
-    }
-  >
-    <AntdCollapse.Panel
-      forceRender={forceRender}
-      header={
-        <span
-          css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.s}px;
-          `}
-        >
-          {t('Filters out of scope (%d)', filtersOutOfScope.length)}
-        </span>
+            `
+          : css`
+              &.ant-collapse {
+                margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
+                & > .ant-collapse-item {
+                  & > .ant-collapse-header {
+                    padding-left: 0;
+                    padding-bottom: ${theme.gridUnit * 2}px;
+
+                    & > .ant-collapse-arrow {
+                      right: ${theme.gridUnit}px;
+                    }
+                  }
+
+                  & .ant-collapse-content-box {
+                    padding: ${theme.gridUnit * 4}px 0 0;
+                  }
+                }
+              }
+            `
       }
-      key="1"
     >
-      {filtersOutOfScope.map(renderer)}
-    </AntdCollapse.Panel>
-  </AntdCollapse>
-);
+      <AntdCollapse.Panel
+        forceRender={forceRender}
+        header={
+          <span
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.typography.sizes.s}px;
+            `}
+          >
+            {t('Filters out of scope (%d)', filtersOutOfScope.length)}
+          </span>
+        }
+        key="1"
+      >
+        {filtersOutOfScope.map(renderer)}
+      </AntdCollapse.Panel>
+    </AntdCollapse>
+  );
+}

@@ -42,12 +42,12 @@ const CostEstimateModalStyles = styled.div`
   `}
 `;
 
-const EstimateQueryCostButton = ({
+function EstimateQueryCostButton({
   getEstimate,
   queryEditorId,
   tooltip = '',
   disabled = false,
-}: EstimateQueryCostButtonProps) => {
+}: EstimateQueryCostButtonProps) {
   const queryCostEstimate = useSelector<
     SqlLabRootState,
     QueryCostEstimate | undefined
@@ -117,6 +117,6 @@ const EstimateQueryCostButton = ({
       />
     </span>
   );
-};
+}
 
 export default EstimateQueryCostButton;

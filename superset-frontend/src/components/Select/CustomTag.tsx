@@ -38,7 +38,7 @@ const StyledTag = styled(AntdTag)`
 `;
 
 // TODO: use antd Tag props instead of any. Currently it's causing a typescript error
-const Tag = (props: any) => {
+function Tag(props: any) {
   const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
@@ -49,7 +49,7 @@ const Tag = (props: any) => {
       </StyledTag>
     </Tooltip>
   );
-};
+}
 
 /**
  * Custom tag renderer

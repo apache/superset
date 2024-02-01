@@ -49,7 +49,7 @@ describe('FilterScope', () => {
     validateDependencies: jest.fn(),
   };
 
-  const MockModal = ({ scope }: { scope?: object }) => {
+  function MockModal({ scope }: { scope?: object }) {
     const [newForm] = AntdForm.useForm<NativeFiltersForm>();
     form = newForm;
     if (scope) {
@@ -68,7 +68,7 @@ describe('FilterScope', () => {
         </AntdForm>
       </Provider>
     );
-  };
+  }
 
   const getTreeSwitcher = (order = 0) =>
     document.querySelectorAll('.ant-tree-switcher')[order];

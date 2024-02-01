@@ -29,11 +29,11 @@ export type MenuItemWithTruncationProps = {
   onClick?: MenuProps['onClick'];
 };
 
-export const MenuItemWithTruncation = ({
+export function MenuItemWithTruncation({
   tooltipText,
   children,
   ...props
-}: MenuItemWithTruncationProps) => {
+}: MenuItemWithTruncationProps) {
   const [itemRef, itemIsTruncated] = useCSSTextTruncation<HTMLDivElement>();
 
   return (
@@ -56,4 +56,4 @@ export const MenuItemWithTruncation = ({
       </Tooltip>
     </Menu.Item>
   );
-};
+}

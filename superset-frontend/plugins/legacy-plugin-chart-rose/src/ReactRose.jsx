@@ -23,25 +23,27 @@ import Component from './Rose';
 
 const ReactComponent = reactify(Component);
 
-const Rose = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <Global
-      styles={theme => css`
-        .tooltip {
-          line-height: 1;
-          padding: ${theme.gridUnit * 3}px;
-          background: ${theme.colors.grayscale.dark2};
-          color: ${theme.colors.grayscale.light5};
-          border-radius: 4px;
-          pointer-events: none;
-          z-index: 1000;
-          font-size: ${theme.typography.sizes.s}px;
-        }
-      `}
-    />
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function Rose({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <Global
+        styles={theme => css`
+          .tooltip {
+            line-height: 1;
+            padding: ${theme.gridUnit * 3}px;
+            background: ${theme.colors.grayscale.dark2};
+            color: ${theme.colors.grayscale.light5};
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: ${theme.typography.sizes.s}px;
+          }
+        `}
+      />
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 export default styled(Rose)`
   ${({ theme }) => `

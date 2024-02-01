@@ -26,68 +26,70 @@ export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
 }
 
-const StyledTabs = ({
+function StyledTabs({
   animated = false,
   fullWidth = true,
   allowOverflow = true,
   ...props
-}: TabsProps) => (
-  <AntdTabs
-    animated={animated}
-    {...props}
-    css={theme => css`
-      overflow: ${allowOverflow ? 'visible' : 'hidden'};
+}: TabsProps) {
+  return (
+    <AntdTabs
+      animated={animated}
+      {...props}
+      css={theme => css`
+        overflow: ${allowOverflow ? 'visible' : 'hidden'};
 
-      .ant-tabs-content-holder {
-        overflow: ${allowOverflow ? 'visible' : 'auto'};
-      }
-      .ant-tabs-tab {
-        flex: 1 1 auto;
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: inherit;
+        .ant-tabs-content-holder {
+          overflow: ${allowOverflow ? 'visible' : 'auto'};
         }
-        &:hover {
-          .anchor-link-container {
-            cursor: pointer;
-            .fa.fa-link {
-              visibility: visible;
+        .ant-tabs-tab {
+          flex: 1 1 auto;
+          &.ant-tabs-tab-active .ant-tabs-tab-btn {
+            color: inherit;
+          }
+          &:hover {
+            .anchor-link-container {
+              cursor: pointer;
+              .fa.fa-link {
+                visibility: visible;
+              }
+            }
+          }
+          .short-link-trigger.btn {
+            padding: 0 ${theme.gridUnit}px;
+            & > .fa.fa-link {
+              top: 0;
             }
           }
         }
-        .short-link-trigger.btn {
-          padding: 0 ${theme.gridUnit}px;
-          & > .fa.fa-link {
-            top: 0;
+        ${fullWidth &&
+        css`
+          .ant-tabs-nav-list {
+            width: 100%;
+          }
+        `};
+
+        .ant-tabs-tab-btn {
+          display: flex;
+          flex: 1 1 auto;
+          align-items: center;
+          justify-content: center;
+          font-size: ${theme.typography.sizes.s}px;
+          text-align: center;
+          text-transform: uppercase;
+          user-select: none;
+          .required {
+            margin-left: ${theme.gridUnit / 2}px;
+            color: ${theme.colors.error.base};
           }
         }
-      }
-      ${fullWidth &&
-      css`
-        .ant-tabs-nav-list {
-          width: 100%;
+        .ant-tabs-ink-bar {
+          background: ${theme.colors.secondary.base};
         }
-      `};
-
-      .ant-tabs-tab-btn {
-        display: flex;
-        flex: 1 1 auto;
-        align-items: center;
-        justify-content: center;
-        font-size: ${theme.typography.sizes.s}px;
-        text-align: center;
-        text-transform: uppercase;
-        user-select: none;
-        .required {
-          margin-left: ${theme.gridUnit / 2}px;
-          color: ${theme.colors.error.base};
-        }
-      }
-      .ant-tabs-ink-bar {
-        background: ${theme.colors.secondary.base};
-      }
-    `}
-  />
-);
+      `}
+    />
+  );
+}
 
 const StyledTabPane = styled(AntdTabs.TabPane)``;
 

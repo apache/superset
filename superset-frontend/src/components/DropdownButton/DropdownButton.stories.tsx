@@ -47,11 +47,13 @@ const PLACEMENTS = [
   'topRight',
 ];
 
-export const InteractiveDropdownButton = (args: DropdownButtonProps) => (
-  <div style={{ margin: '50px 100px' }}>
-    <DropdownButton {...args}>Hover</DropdownButton>
-  </div>
-);
+export function InteractiveDropdownButton(args: DropdownButtonProps) {
+  return (
+    <div style={{ margin: '50px 100px' }}>
+      <DropdownButton {...args}>Hover</DropdownButton>
+    </div>
+  );
+}
 
 InteractiveDropdownButton.args = {
   tooltip: 'Tooltip',

@@ -20,11 +20,13 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 
-const Placeholder = () => <span>Loading...</span>;
+function Placeholder() {
+  return <span>Loading...</span>;
+}
 
-const AsyncComponent = ({ bold }: { bold: boolean }) => (
-  <span style={{ fontWeight: bold ? 700 : 400 }}>AsyncComponent</span>
-);
+function AsyncComponent({ bold }: { bold: boolean }) {
+  return <span style={{ fontWeight: bold ? 700 : 400 }}>AsyncComponent</span>;
+}
 
 const ComponentPromise = new Promise(resolve =>
   setTimeout(() => resolve(AsyncComponent), 500),

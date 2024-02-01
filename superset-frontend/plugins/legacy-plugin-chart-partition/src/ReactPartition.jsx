@@ -22,11 +22,13 @@ import Component from './Partition';
 
 const ReactComponent = reactify(Component);
 
-const Partition = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function Partition({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 export default styled(Partition)`
   ${({ theme }) => `

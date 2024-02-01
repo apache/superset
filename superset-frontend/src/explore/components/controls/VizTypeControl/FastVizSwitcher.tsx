@@ -76,12 +76,7 @@ const antdIconProps = {
   `,
 };
 
-const VizTile = ({
-  isActive,
-  isRendered,
-  vizMeta,
-  onTileClick,
-}: VizTileProps) => {
+function VizTile({ isActive, isRendered, vizMeta, onTileClick }: VizTileProps) {
   const { mountedPluginMetadata } = usePluginContext();
   const chartNameRef = useRef<HTMLSpanElement>(null);
   const theme = useTheme();
@@ -193,7 +188,7 @@ const VizTile = ({
       </div>
     </Tooltip>
   );
-};
+}
 
 export const FastVizSwitcher = React.memo(
   ({ currentSelection, onChange }: FastVizSwitcherProps) => {

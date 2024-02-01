@@ -24,9 +24,9 @@ export default {
   component: RunQueryButton,
 };
 
-export const InteractiveRunQueryButtonProps = (args: RunQueryButtonProps) => (
-  <RunQueryButton {...args} />
-);
+export function InteractiveRunQueryButtonProps(args: RunQueryButtonProps) {
+  return <RunQueryButton {...args} />;
+}
 
 InteractiveRunQueryButtonProps.args = {
   canStopQuery: true,

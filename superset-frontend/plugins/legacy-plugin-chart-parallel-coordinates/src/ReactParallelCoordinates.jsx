@@ -23,11 +23,13 @@ import Component from './ParallelCoordinates';
 
 const ReactComponent = reactify(Component);
 
-const ParallelCoordinates = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function ParallelCoordinates({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 ParallelCoordinates.propTypes = {
   className: PropTypes.string.isRequired,

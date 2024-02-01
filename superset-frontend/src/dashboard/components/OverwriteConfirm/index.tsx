@@ -23,7 +23,7 @@ import { DashboardState, RootState } from 'src/dashboard/types';
 
 const Modal = AsyncEsmComponent(() => import('./OverwriteConfirmModal'));
 
-const OverrideConfirm = () => {
+function OverrideConfirm() {
   const overwriteConfirmMetadata = useSelector<
     RootState,
     DashboardState['overwriteConfirmMetadata']
@@ -36,6 +36,6 @@ const OverrideConfirm = () => {
       )}
     </>
   );
-};
+}
 
 export default OverrideConfirm;

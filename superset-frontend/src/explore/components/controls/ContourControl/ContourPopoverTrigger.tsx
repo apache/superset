@@ -21,14 +21,14 @@ import ContourPopoverControl from './ContourPopoverControl';
 import ControlPopover from '../ControlPopover/ControlPopover';
 import { ContourPopoverTriggerProps } from './types';
 
-const ContourPopoverTrigger = ({
+function ContourPopoverTrigger({
   value: initialValue,
   saveContour,
   isControlled,
   visible: controlledVisibility,
   toggleVisibility,
   ...props
-}: ContourPopoverTriggerProps) => {
+}: ContourPopoverTriggerProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   const visible = isControlled ? controlledVisibility : isVisible;
@@ -55,6 +55,6 @@ const ContourPopoverTrigger = ({
       {props.children}
     </ControlPopover>
   );
-};
+}
 
 export default ContourPopoverTrigger;

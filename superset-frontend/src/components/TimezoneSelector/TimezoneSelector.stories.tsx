@@ -26,7 +26,7 @@ export default {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const InteractiveTimezoneSelector = (args: TimezoneSelectorProps) => {
+export function InteractiveTimezoneSelector(args: TimezoneSelectorProps) {
   const [{ timezone }, updateArgs] = useArgs();
   const onTimezoneChange = (value: string) => {
     updateArgs({ timezone: value });
@@ -34,7 +34,7 @@ export const InteractiveTimezoneSelector = (args: TimezoneSelectorProps) => {
   return (
     <TimezoneSelector timezone={timezone} onTimezoneChange={onTimezoneChange} />
   );
-};
+}
 
 InteractiveTimezoneSelector.args = {
   timezone: 'America/Los_Angeles',

@@ -19,7 +19,13 @@
 import React from 'react';
 import { isFrontendRoute, routes } from './routes';
 
-jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
+jest.mock(
+  'src/pages/Home',
+  () =>
+    function () {
+      return <div data-test="mock-home" />;
+    },
+);
 
 describe('isFrontendRoute', () => {
   it('returns true if a route matches', () => {

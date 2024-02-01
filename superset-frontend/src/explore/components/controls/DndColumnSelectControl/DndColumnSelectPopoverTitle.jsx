@@ -27,12 +27,12 @@ const StyledInput = styled(Input)`
   padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
 `;
 
-export const DndColumnSelectPopoverTitle = ({
+export function DndColumnSelectPopoverTitle({
   title,
   onChange,
   isEditDisabled,
   hasCustomLabel,
-}) => {
+}) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -98,4 +98,4 @@ export const DndColumnSelectPopoverTitle = ({
       </span>
     </Tooltip>
   );
-};
+}

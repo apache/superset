@@ -116,7 +116,7 @@ const PaginationStyles = styled.div<{
   }
 `;
 
-const TableView = ({
+function TableView({
   columns,
   data,
   pageSize: initialPageSize,
@@ -133,7 +133,7 @@ const TableView = ({
   onServerPagination = () => {},
   scrollTopOnPagination = false,
   ...props
-}: TableViewProps) => {
+}: TableViewProps) {
   const initialState = {
     pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
     pageIndex: initialPageIndex ?? 0,
@@ -169,13 +169,15 @@ const TableView = ({
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
     case EmptyWrapperType.Small:
-      EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
+      EmptyWrapperComponent = function ({ children }: any) {
+        return <>{children}</>;
+      };
       break;
     case EmptyWrapperType.Default:
     default:
-      EmptyWrapperComponent = ({ children }: any) => (
-        <EmptyWrapper>{children}</EmptyWrapper>
-      );
+      EmptyWrapperComponent = function ({ children }: any) {
+        return <EmptyWrapper>{children}</EmptyWrapper>;
+      };
   }
 
   const isEmpty = !loading && content.length === 0;
@@ -257,6 +259,6 @@ const TableView = ({
       )}
     </>
   );
-};
+}
 
 export default React.memo(TableView);

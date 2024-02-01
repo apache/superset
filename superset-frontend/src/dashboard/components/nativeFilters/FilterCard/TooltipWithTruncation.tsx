@@ -21,17 +21,19 @@ import { TooltipProps } from 'antd/lib/tooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipTrigger } from './Styles';
 
-export const TooltipWithTruncation = ({
+export function TooltipWithTruncation({
   title,
   children,
   ...props
-}: TooltipProps) => (
-  <Tooltip
-    title={title}
-    placement="bottom"
-    overlayClassName="filter-card-tooltip"
-    {...props}
-  >
-    <TooltipTrigger>{children}</TooltipTrigger>
-  </Tooltip>
-);
+}: TooltipProps) {
+  return (
+    <Tooltip
+      title={title}
+      placement="bottom"
+      overlayClassName="filter-card-tooltip"
+      {...props}
+    >
+      <TooltipTrigger>{children}</TooltipTrigger>
+    </Tooltip>
+  );
+}

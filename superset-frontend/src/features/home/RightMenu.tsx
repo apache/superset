@@ -111,7 +111,7 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 
 const { SubMenu } = Menu;
 
-const RightMenu = ({
+function RightMenu({
   align,
   settings,
   navbarRight,
@@ -126,7 +126,7 @@ const RightMenu = ({
     databaseAdded?: boolean;
     datasetAdded?: boolean;
   }) => void;
-}) => {
+}) {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -565,7 +565,7 @@ const RightMenu = ({
       />
     </StyledDiv>
   );
-};
+}
 
 const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({

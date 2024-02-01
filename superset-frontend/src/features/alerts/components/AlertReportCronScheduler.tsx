@@ -65,41 +65,39 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
     const [error, onError] = useState<CronError>();
 
     return (
-      <>
-        <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
-          <div className="inline-container add-margin">
-            <Radio data-test="picker" value="picker" />
-            <CronPicker
-              clearButton={false}
-              value={value}
-              setValue={customSetValue}
-              disabled={scheduleFormat !== 'picker'}
-              displayError={scheduleFormat === 'picker'}
-              onError={onError}
-            />
-          </div>
-          <div className="inline-container add-margin">
-            <Radio data-test="input" value="input" />
-            <span className="input-label">{t('CRON Schedule')}</span>
-            <StyledInputContainer
-              data-test="input-content"
-              className="styled-input"
-            >
-              <div className="input-container">
-                <Input
-                  type="text"
-                  name="crontab"
-                  ref={inputRef}
-                  style={error ? { borderColor: theme.colors.error.base } : {}}
-                  placeholder={t('CRON expression')}
-                  disabled={scheduleFormat !== 'input'}
-                  onBlur={handleBlur}
-                  onPressEnter={handlePressEnter}
-                />
-              </div>
-            </StyledInputContainer>
-          </div>
-        </Radio.Group>
-      </>
+      <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
+        <div className="inline-container add-margin">
+          <Radio data-test="picker" value="picker" />
+          <CronPicker
+            clearButton={false}
+            value={value}
+            setValue={customSetValue}
+            disabled={scheduleFormat !== 'picker'}
+            displayError={scheduleFormat === 'picker'}
+            onError={onError}
+          />
+        </div>
+        <div className="inline-container add-margin">
+          <Radio data-test="input" value="input" />
+          <span className="input-label">{t('CRON Schedule')}</span>
+          <StyledInputContainer
+            data-test="input-content"
+            className="styled-input"
+          >
+            <div className="input-container">
+              <Input
+                type="text"
+                name="crontab"
+                ref={inputRef}
+                style={error ? { borderColor: theme.colors.error.base } : {}}
+                placeholder={t('CRON expression')}
+                disabled={scheduleFormat !== 'input'}
+                onBlur={handleBlur}
+                onPressEnter={handlePressEnter}
+              />
+            </div>
+          </StyledInputContainer>
+        </div>
+      </Radio.Group>
     );
   };

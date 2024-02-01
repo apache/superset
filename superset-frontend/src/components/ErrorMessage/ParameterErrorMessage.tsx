@@ -70,41 +70,39 @@ function ParameterErrorMessage({
   );
 
   const body = (
-    <>
-      <p>
-        {Object.keys(matches).length > 0 && (
-          <>
-            <p>{t('Did you mean:')}</p>
-            <ul>
-              {Object.entries(matches).map(
-                ([undefinedParameter, templateKeys]) => (
-                  <li>
-                    {tn(
-                      '%(suggestion)s instead of "%(undefinedParameter)s?"',
-                      '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
-                      templateKeys.length,
-                      {
-                        suggestion: templateKeys.join(', '),
-                        firstSuggestions: templateKeys.slice(0, -1).join(', '),
-                        lastSuggestion: templateKeys[templateKeys.length - 1],
-                        undefinedParameter,
-                      },
-                    )}
-                  </li>
-                ),
-              )}
-            </ul>
-            <br />
-          </>
-        )}
-        {triggerMessage}
-        <br />
-        {extra.issue_codes.length > 0 &&
-          extra.issue_codes
-            .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
-            .reduce((prev, curr) => [prev, <br />, curr])}
-      </p>
-    </>
+    <p>
+      {Object.keys(matches).length > 0 && (
+        <>
+          <p>{t('Did you mean:')}</p>
+          <ul>
+            {Object.entries(matches).map(
+              ([undefinedParameter, templateKeys]) => (
+                <li>
+                  {tn(
+                    '%(suggestion)s instead of "%(undefinedParameter)s?"',
+                    '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
+                    templateKeys.length,
+                    {
+                      suggestion: templateKeys.join(', '),
+                      firstSuggestions: templateKeys.slice(0, -1).join(', '),
+                      lastSuggestion: templateKeys[templateKeys.length - 1],
+                      undefinedParameter,
+                    },
+                  )}
+                </li>
+              ),
+            )}
+          </ul>
+          <br />
+        </>
+      )}
+      {triggerMessage}
+      <br />
+      {extra.issue_codes.length > 0 &&
+        extra.issue_codes
+          .map<React.ReactNode>(issueCode => <IssueCode {...issueCode} />)
+          .reduce((prev, curr) => [prev, <br />, curr])}
+    </p>
   );
 
   const copyText = `${message}

@@ -29,14 +29,16 @@ interface FilterCardContentProps {
   hidePopover: () => void;
 }
 
-export const FilterCardContent = ({
+export function FilterCardContent({
   filter,
   hidePopover,
-}: FilterCardContentProps) => (
-  <div>
-    <NameRow filter={filter} hidePopover={hidePopover} />
-    <TypeRow filter={filter} />
-    <ScopeRow filter={filter} />
-    <DependenciesRow filter={filter} />
-  </div>
-);
+}: FilterCardContentProps) {
+  return (
+    <div>
+      <NameRow filter={filter} hidePopover={hidePopover} />
+      <TypeRow filter={filter} />
+      <ScopeRow filter={filter} />
+      <DependenciesRow filter={filter} />
+    </div>
+  );
+}

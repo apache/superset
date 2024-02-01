@@ -33,13 +33,15 @@ const options = {
   },
 };
 
-export const SliderControlGallery = () => (
-  <>
-    {Object.keys(options).map(name => (
-      <>
-        <h4>{name}</h4>
-        <SliderControl {...options[name]} />
-      </>
-    ))}
-  </>
-);
+export function SliderControlGallery() {
+  return (
+    <>
+      {Object.keys(options).map(name => (
+        <>
+          <h4>{name}</h4>
+          <SliderControl {...options[name]} />
+        </>
+      ))}
+    </>
+  );
+}

@@ -29,7 +29,7 @@ export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-map-box',
 };
 
-export const Basic = () => {
+export function Basic() {
   const theme = useTheme();
   return (
     <SuperChart
@@ -55,4 +55,4 @@ export const Basic = () => {
       }}
     />
   );
-};
+}

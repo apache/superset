@@ -25,7 +25,9 @@ export default {
   component: Timer,
 };
 
-export const InteractiveTimer = (args: TimerProps) => <Timer {...args} />;
+export function InteractiveTimer(args: TimerProps) {
+  return <Timer {...args} />;
+}
 
 InteractiveTimer.args = {
   isRunning: false,

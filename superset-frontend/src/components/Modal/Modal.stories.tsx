@@ -26,9 +26,9 @@ export default {
   component: Modal,
 };
 
-export const InteractiveModal = (props: ModalProps) => (
-  <Modal {...props}>Hi</Modal>
-);
+export function InteractiveModal(props: ModalProps) {
+  return <Modal {...props}>Hi</Modal>;
+}
 
 InteractiveModal.args = {
   disablePrimaryButton: false,
@@ -53,13 +53,15 @@ InteractiveModal.story = {
   },
 };
 
-export const ModalFunctions = (props: ModalFuncProps) => (
-  <div>
-    <Button onClick={() => Modal.error(props)}>Error</Button>
-    <Button onClick={() => Modal.warning(props)}>Warning</Button>
-    <Button onClick={() => Modal.confirm(props)}>Confirm</Button>
-  </div>
-);
+export function ModalFunctions(props: ModalFuncProps) {
+  return (
+    <div>
+      <Button onClick={() => Modal.error(props)}>Error</Button>
+      <Button onClick={() => Modal.warning(props)}>Warning</Button>
+      <Button onClick={() => Modal.confirm(props)}>Confirm</Button>
+    </div>
+  );
+}
 
 ModalFunctions.args = {
   title: 'Modal title',

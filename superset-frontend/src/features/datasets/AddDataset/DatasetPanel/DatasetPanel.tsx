@@ -254,13 +254,13 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
   />
 );
 
-const DatasetPanel = ({
+function DatasetPanel({
   tableName,
   columnList,
   loading,
   hasError,
   datasets,
-}: IDatasetPanelProps) => {
+}: IDatasetPanelProps) {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
   const datasetNames = datasets?.map(dataset => dataset.table_name);
@@ -348,6 +348,6 @@ const DatasetPanel = ({
       {loader}
     </>
   );
-};
+}
 
 export default DatasetPanel;

@@ -22,11 +22,13 @@ import Component from './CountryMap';
 
 const ReactComponent = reactify(Component);
 
-const CountryMap = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function CountryMap({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 export default styled(CountryMap)`
   ${({ theme }) => `

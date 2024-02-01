@@ -72,7 +72,7 @@ const additionalItemsStyles = theme => css`
   }
 `;
 
-export const ExploreChartHeader = ({
+export function ExploreChartHeader({
   dashboardId,
   slice,
   actions,
@@ -86,7 +86,7 @@ export const ExploreChartHeader = ({
   sliceName,
   saveDisabled,
   metadata,
-}) => {
+}) {
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
@@ -297,7 +297,7 @@ export const ExploreChartHeader = ({
       )}
     </>
   );
-};
+}
 
 ExploreChartHeader.propTypes = propTypes;
 

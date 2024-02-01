@@ -85,7 +85,7 @@ const SouthPane = styled.div`
   `}
 `;
 
-export const DataTablesPane = ({
+export function DataTablesPane({
   queryFormData,
   datasource,
   queryForce,
@@ -94,7 +94,7 @@ export const DataTablesPane = ({
   ownState,
   errorMessage,
   actions,
-}: DataTablesPaneProps) => {
+}: DataTablesPaneProps) {
   const theme = useTheme();
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
   const [isRequest, setIsRequest] = useState<Record<ResultTypes, boolean>>({
@@ -245,4 +245,4 @@ export const DataTablesPane = ({
       </Tabs>
     </SouthPane>
   );
-};
+}

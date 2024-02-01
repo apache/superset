@@ -64,7 +64,7 @@ export const CURRENCY_SYMBOL_POSITION_OPTIONS = [
   { value: 'suffix', label: t('Suffix') },
 ];
 
-export const CurrencyControl = ({
+export function CurrencyControl({
   onChange,
   value: currency = {},
   symbolSelectOverrideProps = {},
@@ -72,7 +72,7 @@ export const CurrencyControl = ({
   symbolSelectAdditionalStyles,
   currencySelectAdditionalStyles,
   ...props
-}: CurrencyControlProps) => {
+}: CurrencyControlProps) {
   const currencies = useSelector<ViewState, string[]>(
     state => state.common?.currencies,
   );
@@ -128,4 +128,4 @@ export const CurrencyControl = ({
       </CurrencyControlContainer>
     </>
   );
-};
+}

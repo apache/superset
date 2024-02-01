@@ -37,32 +37,34 @@ export const options: Type[] = [
   'secondary',
 ];
 
-export const LabelGallery = () => (
-  <>
-    <h4>Non-interactive</h4>
-    {Object.values(options).map((opt: Type) => (
-      <Label key={opt} type={opt}>
-        {`style: "${opt}"`}
-      </Label>
-    ))}
-    <br />
-    <h4>Interactive</h4>
-    {Object.values(options).map((opt: Type) => (
-      <Label key={opt} type={opt} onClick={action('clicked')}>
-        {`style: "${opt}"`}
-      </Label>
-    ))}
-  </>
-);
+export function LabelGallery() {
+  return (
+    <>
+      <h4>Non-interactive</h4>
+      {Object.values(options).map((opt: Type) => (
+        <Label key={opt} type={opt}>
+          {`style: "${opt}"`}
+        </Label>
+      ))}
+      <br />
+      <h4>Interactive</h4>
+      {Object.values(options).map((opt: Type) => (
+        <Label key={opt} type={opt} onClick={action('clicked')}>
+          {`style: "${opt}"`}
+        </Label>
+      ))}
+    </>
+  );
+}
 
-export const InteractiveLabel = (args: any) => {
+export function InteractiveLabel(args: any) {
   const { hasOnClick, label, ...rest } = args;
   return (
     <Label onClick={hasOnClick ? action('clicked') : undefined} {...rest}>
       {label}
     </Label>
   );
-};
+}
 
 InteractiveLabel.args = {
   hasOnClick: true,

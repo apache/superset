@@ -29,7 +29,13 @@ jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => () => <span />);
+jest.mock(
+  'src/features/databases/DatabaseModal',
+  () =>
+    function () {
+      return <span />;
+    },
+);
 
 const dropdownItems = [
   {

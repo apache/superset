@@ -48,15 +48,17 @@ const customOverlay = (
   </div>
 );
 
-export const InteractiveDropdown = ({
+export function InteractiveDropdown({
   overlayType,
   ...rest
-}: DropdownProps & { overlayType: string }) => (
-  <Dropdown
-    {...rest}
-    overlay={overlayType === 'custom' ? customOverlay : menu}
-  />
-);
+}: DropdownProps & { overlayType: string }) {
+  return (
+    <Dropdown
+      {...rest}
+      overlay={overlayType === 'custom' ? customOverlay : menu}
+    />
+  );
+}
 
 InteractiveDropdown.argTypes = {
   overlayType: {

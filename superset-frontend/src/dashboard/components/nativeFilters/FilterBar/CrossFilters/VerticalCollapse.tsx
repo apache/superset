@@ -48,9 +48,9 @@ const StyledCrossFiltersTitle = styled.span`
   `}
 `;
 
-const CrossFiltersVerticalCollapse = (props: {
+function CrossFiltersVerticalCollapse(props: {
   crossFilters: CrossFilterIndicator[];
-}) => {
+}) {
   const { crossFilters } = props;
   const theme = useTheme();
   const crossFiltersIndicators = useMemo(
@@ -97,6 +97,6 @@ const CrossFiltersVerticalCollapse = (props: {
       </Collapse.Panel>
     </StyledCollapse>
   );
-};
+}
 
 export default CrossFiltersVerticalCollapse;

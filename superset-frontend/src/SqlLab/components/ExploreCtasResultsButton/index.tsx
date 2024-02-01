@@ -36,12 +36,12 @@ export interface ExploreCtasResultsButtonProps {
   templateParams?: string;
 }
 
-const ExploreCtasResultsButton = ({
+function ExploreCtasResultsButton({
   table,
   schema,
   dbId,
   templateParams,
-}: ExploreCtasResultsButtonProps) => {
+}: ExploreCtasResultsButtonProps) {
   const errorMessage = useSelector(
     (state: SqlLabRootState) => state.sqlLab.errorMessage,
   );
@@ -91,6 +91,6 @@ const ExploreCtasResultsButton = ({
       {t('Explore')}
     </Button>
   );
-};
+}
 
 export default ExploreCtasResultsButton;

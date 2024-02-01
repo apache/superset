@@ -39,16 +39,18 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Gauge = ({ width, height }) => (
-  <SuperChart
-    chartType="echarts-gauge"
-    width={width}
-    height={height}
-    queriesData={[{ data: speed }]}
-    formData={{
-      columns: [],
-      groupby: ['name'],
-      metric: 'value',
-    }}
-  />
-);
+export function Gauge({ width, height }) {
+  return (
+    <SuperChart
+      chartType="echarts-gauge"
+      width={width}
+      height={height}
+      queriesData={[{ data: speed }]}
+      formData={{
+        columns: [],
+        groupby: ['name'],
+        metric: 'value',
+      }}
+    />
+  );
+}

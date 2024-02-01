@@ -24,11 +24,13 @@ export default {
   component: FilterableTable,
 };
 
-export const InteractiveTable = (args: FilterableTableProps) => (
-  <div css={{ maxWidth: 700 }}>
-    <FilterableTable {...args} />
-  </div>
-);
+export function InteractiveTable(args: FilterableTableProps) {
+  return (
+    <div css={{ maxWidth: 700 }}>
+      <FilterableTable {...args} />
+    </div>
+  );
+}
 
 InteractiveTable.args = {
   filterText: '',

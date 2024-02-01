@@ -29,14 +29,18 @@ import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FilterDividerProps } from './types';
 
-const VerticalDivider = ({ title, description }: FilterDividerProps) => (
-  <div>
-    <h3>{title}</h3>
-    {description ? <p data-test="divider-description">{description}</p> : null}
-  </div>
-);
+function VerticalDivider({ title, description }: FilterDividerProps) {
+  return (
+    <div>
+      <h3>{title}</h3>
+      {description ? (
+        <p data-test="divider-description">{description}</p>
+      ) : null}
+    </div>
+  );
+}
 
-const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
+function HorizontalDivider({ title, description }: FilterDividerProps) {
   const theme = useTheme();
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>();
@@ -87,12 +91,9 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
       ) : null}
     </div>
   );
-};
+}
 
-const HorizontalOverflowDivider = ({
-  title,
-  description,
-}: FilterDividerProps) => {
+function HorizontalOverflowDivider({ title, description }: FilterDividerProps) {
   const theme = useTheme();
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>();
@@ -142,14 +143,14 @@ const HorizontalOverflowDivider = ({
       ) : null}
     </div>
   );
-};
+}
 
-const FilterDivider = ({
+function FilterDivider({
   title,
   description,
   orientation = FilterBarOrientation.Vertical,
   overflow = false,
-}: FilterDividerProps) => {
+}: FilterDividerProps) {
   if (orientation === FilterBarOrientation.Horizontal) {
     if (overflow) {
       return (
@@ -161,6 +162,6 @@ const FilterDivider = ({
   }
 
   return <VerticalDivider title={title} description={description} />;
-};
+}
 
 export default FilterDivider;

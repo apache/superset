@@ -121,7 +121,7 @@ const Styles = styled.div`
   }
 `;
 
-const ExploreChartPanel = ({
+function ExploreChartPanel({
   chart,
   slice,
   vizType,
@@ -137,7 +137,7 @@ const ExploreChartPanel = ({
   standalone,
   chartIsStale,
   chartAlert,
-}) => {
+}) {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
@@ -464,7 +464,7 @@ const ExploreChartPanel = ({
       )}
     </Styles>
   );
-};
+}
 
 ExploreChartPanel.propTypes = propTypes;
 

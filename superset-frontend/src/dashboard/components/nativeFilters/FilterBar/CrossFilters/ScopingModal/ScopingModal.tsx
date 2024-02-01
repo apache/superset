@@ -70,11 +70,11 @@ export interface ScopingModalProps {
   closeModal: () => void;
 }
 
-export const ScopingModal = ({
+export function ScopingModal({
   initialChartId,
   isVisible,
   closeModal,
-}: ScopingModalProps) => {
+}: ScopingModalProps) {
   const dispatch = useDispatch();
   const layout = useSelector<RootState, Layout>(
     state => state.dashboardLayout.present,
@@ -321,4 +321,4 @@ export const ScopingModal = ({
       />
     </Modal>
   );
-};
+}

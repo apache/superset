@@ -32,41 +32,43 @@ export default {
     'Legacy Chart Plugins/legacy-preset-chart-deckgl/ScreengridChartPlugin',
 };
 
-export const ScreengridChartViz = () => (
-  <SuperChart
-    chartType="deck_screengrid"
-    width={400}
-    height={400}
-    datasource={dummyDatasource}
-    queriesData={[payload]}
-    formData={{
-      datasource: '5__table',
-      viz_type: 'deck_screengrid',
-      slice_id: 67,
-      url_params: {},
-      granularity_sqla: 'dttm',
-      time_grain_sqla: null,
-      time_range: '+:+',
-      spatial: { latCol: 'LAT', lonCol: 'LON', type: 'latlong' },
-      size: 'count',
-      row_limit: 5000,
-      filter_nulls: true,
-      adhoc_filters: [],
-      mapbox_style: 'mapbox://styles/mapbox/dark-v9',
-      viewport: {
-        bearing: -4.952916738791771,
-        latitude: 37.76024135844065,
-        longitude: -122.41827069521386,
-        pitch: 4.750411100577438,
-        zoom: 14.161641703941438,
-      },
-      autozoom: true,
-      grid_size: 20,
-      color_picker: { a: 1, b: 0, g: 255, r: 14 },
-      js_columns: [],
-      js_data_mutator: '',
-      js_tooltip: '',
-      js_onclick_href: '',
-    }}
-  />
-);
+export function ScreengridChartViz() {
+  return (
+    <SuperChart
+      chartType="deck_screengrid"
+      width={400}
+      height={400}
+      datasource={dummyDatasource}
+      queriesData={[payload]}
+      formData={{
+        datasource: '5__table',
+        viz_type: 'deck_screengrid',
+        slice_id: 67,
+        url_params: {},
+        granularity_sqla: 'dttm',
+        time_grain_sqla: null,
+        time_range: '+:+',
+        spatial: { latCol: 'LAT', lonCol: 'LON', type: 'latlong' },
+        size: 'count',
+        row_limit: 5000,
+        filter_nulls: true,
+        adhoc_filters: [],
+        mapbox_style: 'mapbox://styles/mapbox/dark-v9',
+        viewport: {
+          bearing: -4.952916738791771,
+          latitude: 37.76024135844065,
+          longitude: -122.41827069521386,
+          pitch: 4.750411100577438,
+          zoom: 14.161641703941438,
+        },
+        autozoom: true,
+        grid_size: 20,
+        color_picker: { a: 1, b: 0, g: 255, r: 14 },
+        js_columns: [],
+        js_data_mutator: '',
+        js_tooltip: '',
+        js_onclick_href: '',
+      }}
+    />
+  );
+}

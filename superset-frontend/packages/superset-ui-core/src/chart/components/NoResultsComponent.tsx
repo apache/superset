@@ -57,7 +57,7 @@ type Props = {
   width: number | string;
 };
 
-const NoResultsComponent = ({ className, height, id, width }: Props) => {
+function NoResultsComponent({ className, height, id, width }: Props) {
   // render the body if the width is auto/100% or greater than 250 pixels
   const shouldRenderBody =
     typeof width === 'string' || width > MIN_WIDTH_FOR_BODY;
@@ -82,6 +82,6 @@ const NoResultsComponent = ({ className, height, id, width }: Props) => {
       </div>
     </Container>
   );
-};
+}
 
 export default NoResultsComponent;

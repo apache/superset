@@ -19,7 +19,7 @@
 
 import React from 'react';
 import { select, text, withKnobs } from '@storybook/addon-knobs';
-import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
+import { bigNumberFormData } from '@superset-ui/core/test/chart/fixtures/formData';
 
 import VerifyCORS, {
   Props as VerifyCORSProps,

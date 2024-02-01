@@ -25,12 +25,14 @@ export default {
   component: DropdownSelectableIcon,
 };
 
-export const Component = (props: DropDownSelectableProps) => (
-  <DropdownSelectableIcon
-    {...props}
-    icon={<Icons.Gear name="gear" iconColor="#000000" />}
-  />
-);
+export function Component(props: DropDownSelectableProps) {
+  return (
+    <DropdownSelectableIcon
+      {...props}
+      icon={<Icons.Gear name="gear" iconColor="#000000" />}
+    />
+  );
+}
 
 Component.story = {
   parameters: {

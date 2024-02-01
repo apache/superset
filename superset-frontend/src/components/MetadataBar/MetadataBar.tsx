@@ -118,7 +118,7 @@ const TootipContent = styled.div`
   text-overflow: ellipsis;
 `;
 
-const Item = ({
+function Item({
   barWidth,
   contentType,
   collapsed,
@@ -130,7 +130,7 @@ const Item = ({
   collapsed: boolean;
   last?: boolean;
   tooltipPlacement: TooltipPlacement;
-}) => {
+}) {
   const { icon, title, tooltip = title } = config(contentType);
   const [isTruncated, setIsTruncated] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -167,7 +167,7 @@ const Item = ({
   ) : (
     content
   );
-};
+}
 
 export interface MetadataBarProps {
   /**
@@ -190,7 +190,7 @@ export interface MetadataBarProps {
  * To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
-const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
+function MetadataBar({ items, tooltipPlacement = 'top' }: MetadataBarProps) {
   const [width, setWidth] = useState<number>();
   const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
@@ -233,6 +233,6 @@ const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
       ))}
     </Bar>
   );
-};
+}
 
 export default MetadataBar;

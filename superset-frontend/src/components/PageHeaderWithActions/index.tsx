@@ -120,7 +120,7 @@ export type PageHeaderWithActionsProps = {
   };
 };
 
-export const PageHeaderWithActions = ({
+export function PageHeaderWithActions({
   editableTitleProps,
   showTitlePanelItems,
   certificatiedBadgeProps,
@@ -132,7 +132,7 @@ export const PageHeaderWithActions = ({
   menuDropdownProps,
   showMenuDropdown = true,
   tooltipProps,
-}: PageHeaderWithActionsProps) => {
+}: PageHeaderWithActionsProps) {
   const theme = useTheme();
   return (
     <div css={headerStyles} className="header-with-actions">
@@ -176,4 +176,4 @@ export const PageHeaderWithActions = ({
       </div>
     </div>
   );
-};
+}

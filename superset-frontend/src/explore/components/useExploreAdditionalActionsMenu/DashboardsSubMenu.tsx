@@ -32,11 +32,11 @@ const WIDTH = 220;
 const HEIGHT = 300;
 const SEARCH_THRESHOLD = 10;
 
-const DashboardsSubMenu = ({
+function DashboardsSubMenu({
   chartId,
   dashboards = [],
   ...menuProps
-}: DashboardsSubMenuProps) => {
+}: DashboardsSubMenuProps) {
   const theme = useTheme();
   const [dashboardSearch, setDashboardSearch] = useState<string>();
   const [hoveredItem, setHoveredItem] = useState<number | null>();
@@ -141,6 +141,6 @@ const DashboardsSubMenu = ({
       </div>
     </>
   );
-};
+}
 
 export default DashboardsSubMenu;

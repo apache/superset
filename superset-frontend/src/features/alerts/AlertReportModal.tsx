@@ -1477,26 +1477,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             )}
             {formatOptionEnabled && (
-              <>
-                <div className="inline-container">
-                  <StyledRadioGroup
-                    onChange={onFormatChange}
-                    value={reportFormat}
-                  >
-                    <StyledRadio value="PNG">
-                      {TRANSLATIONS.SEND_AS_PNG_TEXT}
+              <div className="inline-container">
+                <StyledRadioGroup
+                  onChange={onFormatChange}
+                  value={reportFormat}
+                >
+                  <StyledRadio value="PNG">
+                    {TRANSLATIONS.SEND_AS_PNG_TEXT}
+                  </StyledRadio>
+                  <StyledRadio value="CSV">
+                    {TRANSLATIONS.SEND_AS_CSV_TEXT}
+                  </StyledRadio>
+                  {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
+                    <StyledRadio value="TEXT">
+                      {TRANSLATIONS.SEND_AS_TEXT}
                     </StyledRadio>
-                    <StyledRadio value="CSV">
-                      {TRANSLATIONS.SEND_AS_CSV_TEXT}
-                    </StyledRadio>
-                    {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                      <StyledRadio value="TEXT">
-                        {TRANSLATIONS.SEND_AS_TEXT}
-                      </StyledRadio>
-                    )}
-                  </StyledRadioGroup>
-                </div>
-              </>
+                  )}
+                </StyledRadioGroup>
+              </div>
             )}
             {isScreenshot && (
               <StyledInputContainer>

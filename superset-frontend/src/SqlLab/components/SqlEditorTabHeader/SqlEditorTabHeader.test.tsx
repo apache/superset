@@ -42,12 +42,20 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
-jest.mock('src/components/Select/Select', () => () => (
-  <div data-test="mock-deprecated-select-select" />
-));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
-  <div data-test="mock-async-select" />
-));
+jest.mock(
+  'src/components/Select/Select',
+  () =>
+    function () {
+      return <div data-test="mock-deprecated-select-select" />;
+    },
+);
+jest.mock(
+  'src/components/Select/AsyncSelect',
+  () =>
+    function () {
+      return <div data-test="mock-async-select" />;
+    },
+);
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);

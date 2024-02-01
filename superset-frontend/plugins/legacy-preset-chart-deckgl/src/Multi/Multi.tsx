@@ -53,7 +53,7 @@ export type DeckMultiProps = {
   onSelect: () => void;
 };
 
-const DeckMulti = (props: DeckMultiProps) => {
+function DeckMulti(props: DeckMultiProps) {
   const containerRef = useRef<DeckGLContainerHandle>();
 
   const [viewport, setViewport] = useState<Viewport>();
@@ -144,6 +144,6 @@ const DeckMulti = (props: DeckMultiProps) => {
       width={width}
     />
   );
-};
+}
 
 export default memo(DeckMulti);

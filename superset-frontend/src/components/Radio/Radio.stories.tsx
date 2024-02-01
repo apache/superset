@@ -37,7 +37,7 @@ export default {
   },
 };
 
-export const SupersetRadio = () => {
+export function SupersetRadio() {
   const [{ checked, ...rest }, updateArgs] = useArgs();
   return (
     <Radio
@@ -48,7 +48,7 @@ export const SupersetRadio = () => {
       Example
     </Radio>
   );
-};
+}
 
 SupersetRadio.args = {
   checked: false,

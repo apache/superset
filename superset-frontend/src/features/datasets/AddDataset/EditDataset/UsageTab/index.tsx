@@ -223,7 +223,7 @@ const useDatasetChartRecords = (datasetId: string) => {
   };
 };
 
-const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
+function DatasetUsage({ datasetId }: DatasetUsageProps) {
   const { loading, recordCount, data, onChange } =
     useDatasetChartRecords(datasetId);
 
@@ -258,6 +258,6 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
       ) : null}
     </div>
   );
-};
+}
 
 export default DatasetUsage;

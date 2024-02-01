@@ -226,10 +226,8 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
-              <>
-                {crossFilters}
-                {filterControls}
-              </>
+              {crossFilters}
+              {filterControls}
             </div>
           )}
           {actions}

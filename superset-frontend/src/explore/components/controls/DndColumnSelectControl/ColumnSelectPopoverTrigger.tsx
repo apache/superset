@@ -41,7 +41,7 @@ interface ColumnSelectPopoverTriggerProps {
 const defaultPopoverLabel = t('My column');
 const editableTitleTab = 'sqlExpression';
 
-const ColumnSelectPopoverTrigger = ({
+function ColumnSelectPopoverTrigger({
   columns,
   editedColumn,
   onColumnEdit,
@@ -49,7 +49,7 @@ const ColumnSelectPopoverTrigger = ({
   children,
   isTemporal,
   ...props
-}: ColumnSelectPopoverTriggerProps) => {
+}: ColumnSelectPopoverTriggerProps) {
   // @ts-ignore
   const datasource = useSelector(state => state.explore.datasource);
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
@@ -170,6 +170,6 @@ const ColumnSelectPopoverTrigger = ({
       </ControlPopover>
     </>
   );
-};
+}
 
 export default ColumnSelectPopoverTrigger;

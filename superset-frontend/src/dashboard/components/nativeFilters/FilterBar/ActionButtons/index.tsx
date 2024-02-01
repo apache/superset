@@ -102,7 +102,7 @@ const horizontalStyle = (theme: SupersetTheme) => css`
   }
 `;
 
-const ActionButtons = ({
+function ActionButtons({
   width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
@@ -110,7 +110,7 @@ const ActionButtons = ({
   dataMaskSelected,
   isApplyDisabled,
   filterBarOrientation = FilterBarOrientation.Vertical,
-}: ActionButtonsProps) => {
+}: ActionButtonsProps) {
   const isClearAllEnabled = useMemo(
     () =>
       Object.values(dataMaskApplied).some(
@@ -153,6 +153,6 @@ const ActionButtons = ({
       </Button>
     </div>
   );
-};
+}
 
 export default ActionButtons;

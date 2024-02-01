@@ -98,20 +98,22 @@ export interface DatabaseSelectorProps {
   sqlLabMode?: boolean;
 }
 
-const SelectLabel = ({
+function SelectLabel({
   backend,
   databaseName,
 }: {
   backend?: string;
   databaseName: string;
-}) => (
-  <LabelStyle>
-    <Label className="backend">{backend || ''}</Label>
-    <span className="name" title={databaseName}>
-      {databaseName}
-    </span>
-  </LabelStyle>
-);
+}) {
+  return (
+    <LabelStyle>
+      <Label className="backend">{backend || ''}</Label>
+      <span className="name" title={databaseName}>
+        {databaseName}
+      </span>
+    </LabelStyle>
+  );
+}
 
 const EMPTY_SCHEMA_OPTIONS: SchemaOption[] = [];
 

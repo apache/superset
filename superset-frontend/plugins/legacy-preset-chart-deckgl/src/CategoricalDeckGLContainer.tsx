@@ -83,7 +83,7 @@ export type CategoricalDeckGLContainerProps = {
   setControlValue: (control: string, value: JsonValue) => void;
 };
 
-const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
+function CategoricalDeckGLContainer(props: CategoricalDeckGLContainerProps) {
   const containerRef = useRef<DeckGLContainerHandle>(null);
 
   const getAdjustedViewport = useCallback(() => {
@@ -234,6 +234,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       />
     </div>
   );
-};
+}
 
 export default memo(CategoricalDeckGLContainer);

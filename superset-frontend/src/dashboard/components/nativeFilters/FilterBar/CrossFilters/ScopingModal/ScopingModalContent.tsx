@@ -43,7 +43,7 @@ const ModalContentContainer = styled.div`
   `}
 `;
 
-export const ScopingModalContent = ({
+export function ScopingModalContent({
   chartId,
   currentScope,
   onScopeUpdate,
@@ -52,7 +52,7 @@ export const ScopingModalContent = ({
   setCurrentChartId,
   removeCustomScope,
   addNewCustomScope,
-}: ScopingModalContentProps) => {
+}: ScopingModalContentProps) {
   const theme = useTheme();
   return (
     <ModalContentContainer>
@@ -80,4 +80,4 @@ export const ScopingModalContent = ({
       />
     </ModalContentContainer>
   );
-};
+}

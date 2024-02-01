@@ -69,7 +69,7 @@ const CROSS_FILTERS_SCOPING_MENU_KEY = 'cross-filters-scoping-menu-key';
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
-const FilterBarSettings = () => {
+function FilterBarSettings() {
   const dispatch = useDispatch();
   const theme = useTheme();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
@@ -223,6 +223,6 @@ const FilterBarSettings = () => {
       {scopingModal}
     </>
   );
-};
+}
 
 export default FilterBarSettings;

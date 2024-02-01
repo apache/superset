@@ -111,13 +111,15 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => (
-  <VerticalDotsContainer>
-    <span className="dot" />
-    <span className="dot" />
-    <span className="dot" />
-  </VerticalDotsContainer>
-);
+function VerticalDotsTrigger() {
+  return (
+    <VerticalDotsContainer>
+      <span className="dot" />
+      <span className="dot" />
+      <span className="dot" />
+    </VerticalDotsContainer>
+  );
+}
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -170,7 +172,7 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const ViewResultsModalTrigger = ({
+function ViewResultsModalTrigger({
   canExplore,
   exploreUrl,
   triggerNode,
@@ -182,7 +184,7 @@ const ViewResultsModalTrigger = ({
   triggerNode: ReactChild;
   modalTitle: ReactChild;
   modalBody: ReactChild;
-}) => {
+}) {
   const [showModal, setShowModal] = useState(false);
   const openModal = useCallback(() => setShowModal(true), []);
   const closeModal = useCallback(() => setShowModal(false), []);
@@ -258,9 +260,9 @@ const ViewResultsModalTrigger = ({
       ))()}
     </>
   );
-};
+}
 
-const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
+function SliceHeaderControls(props: SliceHeaderControlsPropsWithRouter) {
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
@@ -587,6 +589,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       {canEditCrossFilters && scopingModal}
     </>
   );
-};
+}
 
 export default withRouter(SliceHeaderControls);

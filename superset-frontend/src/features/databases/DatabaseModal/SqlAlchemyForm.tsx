@@ -23,7 +23,7 @@ import Button from 'src/components/Button';
 import { StyledInputContainer, wideButton } from './styles';
 import { DatabaseObject } from '../types';
 
-const SqlAlchemyTab = ({
+function SqlAlchemyTab({
   db,
   onInputChange,
   testConnection,
@@ -37,7 +37,7 @@ const SqlAlchemyTab = ({
   conf: { SQLALCHEMY_DOCS_URL: string; SQLALCHEMY_DISPLAY_TEXT: string };
   testInProgress?: boolean;
   children?: ReactNode;
-}) => {
+}) {
   const fallbackDocsUrl =
     SupersetText?.DB_MODAL_SQLALCHEMY_FORM?.SQLALCHEMY_DOCS_URL ||
     'https://docs.sqlalchemy.org/en/13/core/engines.html';
@@ -109,5 +109,5 @@ const SqlAlchemyTab = ({
       </Button>
     </>
   );
-};
+}
 export default SqlAlchemyTab;

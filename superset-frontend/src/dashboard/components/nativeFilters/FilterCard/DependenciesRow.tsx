@@ -33,10 +33,7 @@ import { useFilterDependencies } from './useFilterDependencies';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
-const DependencyValue = ({
-  dependency,
-  hasSeparator,
-}: DependencyValueProps) => {
+function DependencyValue({ dependency, hasSeparator }: DependencyValueProps) {
   const dispatch = useDispatch();
   const handleClick = useCallback(() => {
     dispatch(setDirectPathToChild([dependency.id]));
@@ -49,7 +46,7 @@ const DependencyValue = ({
       </DependencyItem>
     </span>
   );
-};
+}
 
 export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);

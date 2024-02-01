@@ -46,15 +46,27 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependant components to fix the prop warnings
-jest.mock('src/components/Select/Select', () => () => (
-  <div data-test="mock-select" />
-));
-jest.mock('src/components/Select/AsyncSelect', () => () => (
-  <div data-test="mock-async-select" />
-));
-jest.mock('src/dashboard/components/Header/HeaderActionsDropdown', () => () => (
-  <div data-test="mock-header-actions-dropdown" />
-));
+jest.mock(
+  'src/components/Select/Select',
+  () =>
+    function () {
+      return <div data-test="mock-select" />;
+    },
+);
+jest.mock(
+  'src/components/Select/AsyncSelect',
+  () =>
+    function () {
+      return <div data-test="mock-async-select" />;
+    },
+);
+jest.mock(
+  'src/dashboard/components/Header/HeaderActionsDropdown',
+  () =>
+    function () {
+      return <div data-test="mock-header-actions-dropdown" />;
+    },
+);
 jest.mock('src/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (
     <div data-test="mock-page-header-with-actions" />
@@ -62,17 +74,32 @@ jest.mock('src/components/PageHeaderWithActions', () => ({
 }));
 jest.mock(
   'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal',
-  () => () => <div data-test="mock-filters-config-modal" />,
+  () =>
+    function () {
+      return <div data-test="mock-filters-config-modal" />;
+    },
 );
-jest.mock('src/dashboard/components/BuilderComponentPane', () => () => (
-  <div data-test="mock-builder-component-pane" />
-));
-jest.mock('src/dashboard/components/nativeFilters/FilterBar', () => () => (
-  <div data-test="mock-filter-bar" />
-));
-jest.mock('src/dashboard/containers/DashboardGrid', () => () => (
-  <div data-test="mock-dashboard-grid" />
-));
+jest.mock(
+  'src/dashboard/components/BuilderComponentPane',
+  () =>
+    function () {
+      return <div data-test="mock-builder-component-pane" />;
+    },
+);
+jest.mock(
+  'src/dashboard/components/nativeFilters/FilterBar',
+  () =>
+    function () {
+      return <div data-test="mock-filter-bar" />;
+    },
+);
+jest.mock(
+  'src/dashboard/containers/DashboardGrid',
+  () =>
+    function () {
+      return <div data-test="mock-dashboard-grid" />;
+    },
+);
 
 describe('DashboardBuilder', () => {
   let favStarStub: jest.Mock;

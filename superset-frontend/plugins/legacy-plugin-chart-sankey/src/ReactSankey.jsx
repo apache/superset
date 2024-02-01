@@ -23,11 +23,13 @@ import SanKey from './Sankey';
 
 const ReactSanKey = reactify(SanKey);
 
-const SankeyComponent = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactSanKey {...otherProps} />
-  </div>
-);
+function SankeyComponent({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactSanKey {...otherProps} />
+    </div>
+  );
+}
 
 SankeyComponent.propTypes = {
   className: PropTypes.string.isRequired,

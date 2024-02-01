@@ -167,7 +167,7 @@ interface DragItem {
   type: string;
 }
 
-export const OptionControlLabel = ({
+export function OptionControlLabel({
   label,
   savedMetric,
   adhocMetric,
@@ -199,7 +199,7 @@ export const OptionControlLabel = ({
   datasourceWarningMessage?: string;
   tooltipTitle?: string;
   multi?: boolean;
-}) => {
+}) {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
@@ -340,4 +340,4 @@ export const OptionControlLabel = ({
 
   drag(drop(ref));
   return <DragContainer ref={ref}>{getOptionControlContent()}</DragContainer>;
-};
+}

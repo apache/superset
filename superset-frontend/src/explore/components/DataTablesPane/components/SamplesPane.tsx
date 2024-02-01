@@ -35,14 +35,14 @@ const Error = styled.pre`
 
 const cache = new WeakSet();
 
-export const SamplesPane = ({
+export function SamplesPane({
   isRequest,
   datasource,
   queryForce,
   actions,
   dataSize = 50,
   isVisible,
-}: SamplesPaneProps) => {
+}: SamplesPaneProps) {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
   const [colnames, setColnames] = useState<string[]>([]);
@@ -145,4 +145,4 @@ export const SamplesPane = ({
       />
     </>
   );
-};
+}

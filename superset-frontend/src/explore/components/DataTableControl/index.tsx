@@ -64,13 +64,13 @@ export const CopyButton = styled(Button)`
   }
 `;
 
-export const CopyToClipboardButton = ({
+export function CopyToClipboardButton({
   data,
   columns,
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => {
+}) {
   const theme = useTheme();
   return (
     <CopyToClipboard
@@ -93,13 +93,13 @@ export const CopyToClipboardButton = ({
       }
     />
   );
-};
+}
 
-export const FilterInput = ({
+export function FilterInput({
   onChangeHandler,
 }: {
   onChangeHandler(filterText: string): void;
-}) => {
+}) {
   const theme = useTheme();
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
@@ -116,35 +116,39 @@ export const FilterInput = ({
       `}
     />
   );
-};
+}
 
-export const RowCount = ({
+export function RowCount({
   data,
   loading,
 }: {
   data?: Record<string, any>[];
   loading: boolean;
-}) => <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
+}) {
+  return <RowCountLabel rowcount={data?.length ?? 0} loading={loading} />;
+}
 
 enum FormatPickerValue {
   Formatted = 'formatted',
   Original = 'original',
 }
 
-const FormatPicker = ({
+function FormatPicker({
   onChange,
   value,
 }: {
   onChange: any;
   value: FormatPickerValue;
-}) => (
-  <Radio.Group value={value} onChange={onChange}>
-    <Space direction="vertical">
-      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
-      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
-    </Space>
-  </Radio.Group>
-);
+}) {
+  return (
+    <Radio.Group value={value} onChange={onChange}>
+      <Space direction="vertical">
+        <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
+        <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
+      </Space>
+    </Radio.Group>
+  );
+}
 
 const FormatPickerContainer = styled.div`
   display: flex;
@@ -160,7 +164,7 @@ const FormatPickerLabel = styled.span`
   text-transform: uppercase;
 `;
 
-const DataTableTemporalHeaderCell = ({
+function DataTableTemporalHeaderCell({
   columnName,
   onTimeColumnChange,
   datasourceId,
@@ -173,7 +177,7 @@ const DataTableTemporalHeaderCell = ({
   ) => void;
   datasourceId?: string;
   isOriginalTimeColumn: boolean;
-}) => {
+}) {
   const theme = useTheme();
 
   const onChange = (e: any) => {
@@ -227,7 +231,7 @@ const DataTableTemporalHeaderCell = ({
   ) : (
     <span>{columnName}</span>
   );
-};
+}
 
 export const useFilteredTableData = (
   filterText: string,

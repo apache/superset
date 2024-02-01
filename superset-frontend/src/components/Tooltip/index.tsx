@@ -27,7 +27,7 @@ import { Global } from '@emotion/react';
 
 export type TooltipPlacement = AntdTooltipPlacement;
 
-export const Tooltip = (props: TooltipProps) => {
+export function Tooltip(props: TooltipProps) {
   const theme = useTheme();
   return (
     <>
@@ -60,4 +60,4 @@ export const Tooltip = (props: TooltipProps) => {
       />
     </>
   );
-};
+}

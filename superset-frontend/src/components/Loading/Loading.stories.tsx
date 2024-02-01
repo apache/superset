@@ -27,24 +27,26 @@ export default {
 
 export const POSITIONS: PositionOption[] = ['normal', 'floating', 'inline'];
 
-export const LoadingGallery = () => (
-  <>
-    {POSITIONS.map(position => (
-      <div
-        key={position}
-        style={{
-          marginBottom: 60,
-          borderBottom: '1px solid #000',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
-        <h4>{position}</h4>
-        <Loading position={position} />
-      </div>
-    ))}
-  </>
-);
+export function LoadingGallery() {
+  return (
+    <>
+      {POSITIONS.map(position => (
+        <div
+          key={position}
+          style={{
+            marginBottom: 60,
+            borderBottom: '1px solid #000',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <h4>{position}</h4>
+          <Loading position={position} />
+        </div>
+      ))}
+    </>
+  );
+}
 
 LoadingGallery.story = {
   parameters: {
@@ -60,7 +62,9 @@ LoadingGallery.story = {
   },
 };
 
-export const InteractiveLoading = (args: Props) => <Loading {...args} />;
+export function InteractiveLoading(args: Props) {
+  return <Loading {...args} />;
+}
 
 InteractiveLoading.story = {
   parameters: {

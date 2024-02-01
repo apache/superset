@@ -24,9 +24,9 @@ export default {
   component: TableView,
 };
 
-export const InteractiveTableView = (args: TableViewProps) => (
-  <TableView {...args} />
-);
+export function InteractiveTableView(args: TableViewProps) {
+  return <TableView {...args} />;
+}
 
 InteractiveTableView.args = {
   columns: [

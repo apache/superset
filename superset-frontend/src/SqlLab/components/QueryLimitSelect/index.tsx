@@ -81,11 +81,11 @@ function renderQueryLimit(
   );
 }
 
-const QueryLimitSelect = ({
+function QueryLimitSelect({
   queryEditorId,
   maxRow,
   defaultQueryLimit,
-}: QueryLimitSelectProps) => {
+}: QueryLimitSelectProps) {
   const theme = useTheme();
   const dispatch = useDispatch();
 
@@ -110,6 +110,6 @@ const QueryLimitSelect = ({
       </AntdDropdown>
     </LimitSelectStyled>
   );
-};
+}
 
 export default QueryLimitSelect;

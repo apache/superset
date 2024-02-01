@@ -182,7 +182,7 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
     </Row>
   );
 
-export const FormattingPopoverContent = ({
+export function FormattingPopoverContent({
   config,
   onChange,
   columns = [],
@@ -190,7 +190,7 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
-}) => {
+}) {
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
   return (
@@ -234,4 +234,4 @@ export const FormattingPopoverContent = ({
       </FormItem>
     </Form>
   );
-};
+}

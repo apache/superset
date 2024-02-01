@@ -97,13 +97,13 @@ const StyledEmptyStateWrapper = styled.div`
   }
 `;
 
-const SouthPane = ({
+function SouthPane({
   queryEditorId,
   latestQueryId,
   height,
   displayLimit,
   defaultQueryLimit,
-}: SouthPaneProps) => {
+}: SouthPaneProps) {
   const dispatch = useDispatch();
   const user = useSelector(({ user }: SqlLabRootState) => user, shallowEqual);
   const { databases, offline, queries, tables } = useSelector(
@@ -256,6 +256,6 @@ const SouthPane = ({
       </Tabs>
     </StyledPane>
   );
-};
+}
 
 export default SouthPane;

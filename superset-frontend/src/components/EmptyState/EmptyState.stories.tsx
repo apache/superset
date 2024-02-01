@@ -28,46 +28,56 @@ export default {
   component: EmptyStateMedium,
 };
 
-export const SmallEmptyState = () => (
-  <EmptyStateSmall
-    image={<FilterImage />}
-    title="Small empty state"
-    description="This is an example of a small empty state"
-  />
-);
+export function SmallEmptyState() {
+  return (
+    <EmptyStateSmall
+      image={<FilterImage />}
+      title="Small empty state"
+      description="This is an example of a small empty state"
+    />
+  );
+}
 
-export const MediumEmptyState = () => (
-  <EmptyStateMedium
-    image={<ChartImage />}
-    title="Medium empty state"
-    description="This is an example of a medium empty state"
-  />
-);
+export function MediumEmptyState() {
+  return (
+    <EmptyStateMedium
+      image={<ChartImage />}
+      title="Medium empty state"
+      description="This is an example of a medium empty state"
+    />
+  );
+}
 
-export const MediumEmptyStateWithButton = () => (
-  <EmptyStateMedium
-    image={<EmptyImage />}
-    title="Medium empty state"
-    description="This is an example of a medium empty state with a button"
-    buttonAction={() => {}}
-    buttonText="Click!"
-  />
-);
+export function MediumEmptyStateWithButton() {
+  return (
+    <EmptyStateMedium
+      image={<EmptyImage />}
+      title="Medium empty state"
+      description="This is an example of a medium empty state with a button"
+      buttonAction={() => {}}
+      buttonText="Click!"
+    />
+  );
+}
 
-export const BigEmptyState = () => (
-  <EmptyStateBig
-    image={<EmptyImage />}
-    title="Big empty state"
-    description="This is an example of a big empty state"
-  />
-);
+export function BigEmptyState() {
+  return (
+    <EmptyStateBig
+      image={<EmptyImage />}
+      title="Big empty state"
+      description="This is an example of a big empty state"
+    />
+  );
+}
 
-export const BigEmptyStateWithButton = () => (
-  <EmptyStateBig
-    image={<ChartImage />}
-    title="Big empty state"
-    description="This is an example of a big empty state with a button"
-    buttonText="Click!"
-    buttonAction={() => {}}
-  />
-);
+export function BigEmptyStateWithButton() {
+  return (
+    <EmptyStateBig
+      image={<ChartImage />}
+      title="Big empty state"
+      description="This is an example of a big empty state with a button"
+      buttonText="Click!"
+      buttonAction={() => {}}
+    />
+  );
+}

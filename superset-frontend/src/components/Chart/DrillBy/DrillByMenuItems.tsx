@@ -67,7 +67,7 @@ export interface DrillByMenuItemsProps {
   excludedColumns?: Column[];
 }
 
-export const DrillByMenuItems = ({
+export function DrillByMenuItems({
   drillByConfig,
   formData,
   contextMenuY = 0,
@@ -77,7 +77,7 @@ export const DrillByMenuItems = ({
   excludedColumns,
   openNewModal = true,
   ...rest
-}: DrillByMenuItemsProps) => {
+}: DrillByMenuItemsProps) {
   const theme = useTheme();
   const { addDangerToast } = useToasts();
   const [isLoadingColumns, setIsLoadingColumns] = useState(true);
@@ -288,4 +288,4 @@ export const DrillByMenuItems = ({
       )}
     </>
   );
-};
+}

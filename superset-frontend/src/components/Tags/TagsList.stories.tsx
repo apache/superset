@@ -26,9 +26,9 @@ export default {
   component: TagsList,
 };
 
-export const InteractiveTags = ({ tags, editable, maxTags }: TagsListProps) => (
-  <TagsList tags={tags} editable={editable} maxTags={maxTags} />
-);
+export function InteractiveTags({ tags, editable, maxTags }: TagsListProps) {
+  return <TagsList tags={tags} editable={editable} maxTags={maxTags} />;
+}
 
 const tags: TagType[] = [
   { name: 'tag1' },

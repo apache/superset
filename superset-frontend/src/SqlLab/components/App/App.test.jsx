@@ -31,12 +31,20 @@ import {
   LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
 } from 'src/logger/LogUtils';
 
-jest.mock('src/SqlLab/components/TabbedSqlEditors', () => () => (
-  <div data-test="mock-tabbed-sql-editors" />
-));
-jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
-  <div data-test="mock-query-auto-refresh" />
-));
+jest.mock(
+  'src/SqlLab/components/TabbedSqlEditors',
+  () =>
+    function () {
+      return <div data-test="mock-tabbed-sql-editors" />;
+    },
+);
+jest.mock(
+  'src/SqlLab/components/QueryAutoRefresh',
+  () =>
+    function () {
+      return <div data-test="mock-query-auto-refresh" />;
+    },
+);
 
 const sqlLabReducer = combineReducers(reducers);
 

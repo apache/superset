@@ -33,7 +33,7 @@ const StyledTag = styled(AntdTag)`
 
 const MAX_DISPLAY_CHAR = 20;
 
-const Tag = ({
+function Tag({
   name,
   id,
   index = undefined,
@@ -41,7 +41,7 @@ const Tag = ({
   editable = false,
   onClick = undefined,
   toolTipTitle = name,
-}: TagType) => {
+}: TagType) {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
   const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
@@ -81,6 +81,6 @@ const Tag = ({
   );
 
   return tagElem;
-};
+}
 
 export default Tag;

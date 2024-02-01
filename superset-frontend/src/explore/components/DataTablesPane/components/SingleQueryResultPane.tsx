@@ -26,14 +26,14 @@ import {
 import { TableControls } from './DataTableControls';
 import { SingleQueryResultPaneProp } from '../types';
 
-export const SingleQueryResultPane = ({
+export function SingleQueryResultPane({
   data,
   colnames,
   coltypes,
   datasourceId,
   dataSize = 50,
   isVisible,
-}: SingleQueryResultPaneProp) => {
+}: SingleQueryResultPaneProp) {
   const [filterText, setFilterText] = useState('');
 
   // this is to preserve the order of the columns, even if there are integer values,
@@ -72,4 +72,4 @@ export const SingleQueryResultPane = ({
       />
     </>
   );
-};
+}

@@ -38,12 +38,12 @@ const StyledEmptyStateWrapper = styled.div`
   }
 `;
 
-const QueryHistory = ({
+function QueryHistory({
   queries,
   displayLimit,
   latestQueryId,
-}: QueryHistoryProps) =>
-  queries.length > 0 ? (
+}: QueryHistoryProps) {
+  return queries.length > 0 ? (
     <QueryTable
       columns={[
         'state',
@@ -67,5 +67,6 @@ const QueryHistory = ({
       />
     </StyledEmptyStateWrapper>
   );
+}
 
 export default QueryHistory;

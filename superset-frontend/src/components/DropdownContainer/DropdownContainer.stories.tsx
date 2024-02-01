@@ -59,7 +59,7 @@ const generateItems = (overflowingState?: OverflowingState) =>
     ),
   }));
 
-export const Component = (props: DropdownContainerProps) => {
+export function Component(props: DropdownContainerProps) {
   const [items, setItems] = useState<ItemsType>([]);
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
   const containerRef = React.useRef<Ref>(null);
@@ -106,4 +106,4 @@ export const Component = (props: DropdownContainerProps) => {
       </span>
     </div>
   );
-};
+}

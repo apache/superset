@@ -57,21 +57,19 @@ export const portField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <>
-    <ValidatedInput
-      id="port"
-      name="port"
-      type="number"
-      required={required}
-      value={db?.parameters?.port as number}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.port}
-      placeholder={t('e.g. 5432')}
-      className="form-group-w-50"
-      label={t('Port')}
-      onChange={changeMethods.onParametersChange}
-    />
-  </>
+  <ValidatedInput
+    id="port"
+    name="port"
+    type="number"
+    required={required}
+    value={db?.parameters?.port as number}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.port}
+    placeholder={t('e.g. 5432')}
+    className="form-group-w-50"
+    label={t('Port')}
+    onChange={changeMethods.onParametersChange}
+  />
 );
 export const httpPath = ({
   required,
@@ -184,22 +182,20 @@ export const displayField = ({
   validationErrors,
   db,
 }: FieldPropTypes) => (
-  <>
-    <ValidatedInput
-      id="database_name"
-      name="database_name"
-      required
-      value={db?.database_name}
-      validationMethods={{ onBlur: getValidation }}
-      errorMessage={validationErrors?.database_name}
-      placeholder=""
-      label={t('Display Name')}
-      onChange={changeMethods.onChange}
-      helpText={t(
-        'Pick a nickname for how the database will display in Superset.',
-      )}
-    />
-  </>
+  <ValidatedInput
+    id="database_name"
+    name="database_name"
+    required
+    value={db?.database_name}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.database_name}
+    placeholder=""
+    label={t('Display Name')}
+    onChange={changeMethods.onChange}
+    helpText={t(
+      'Pick a nickname for how the database will display in Superset.',
+    )}
+  />
 );
 
 export const queryField = ({
@@ -253,34 +249,36 @@ export const forceSSLField = ({
   </div>
 );
 
-export const SSHTunnelSwitch = ({
+export function SSHTunnelSwitch({
   isEditMode,
   changeMethods,
   clearValidationErrors,
   db,
-}: FieldPropTypes) => (
-  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <AntdSwitch
-      disabled={isEditMode && !isEmpty(db?.ssh_tunnel)}
-      checked={db?.parameters?.ssh}
-      onChange={changed => {
-        changeMethods.onParametersChange({
-          target: {
-            type: 'toggle',
-            name: 'ssh',
-            checked: true,
-            value: changed,
-          },
-        });
-        clearValidationErrors();
-      }}
-      data-test="ssh-tunnel-switch"
-    />
-    <span css={toggleStyle}>{t('SSH Tunnel')}</span>
-    <InfoTooltip
-      tooltip={t('SSH Tunnel configuration parameters')}
-      placement="right"
-      viewBox="0 -5 24 24"
-    />
-  </div>
-);
+}: FieldPropTypes) {
+  return (
+    <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
+      <AntdSwitch
+        disabled={isEditMode && !isEmpty(db?.ssh_tunnel)}
+        checked={db?.parameters?.ssh}
+        onChange={changed => {
+          changeMethods.onParametersChange({
+            target: {
+              type: 'toggle',
+              name: 'ssh',
+              checked: true,
+              value: changed,
+            },
+          });
+          clearValidationErrors();
+        }}
+        data-test="ssh-tunnel-switch"
+      />
+      <span css={toggleStyle}>{t('SSH Tunnel')}</span>
+      <InfoTooltip
+        tooltip={t('SSH Tunnel configuration parameters')}
+        placement="right"
+        viewBox="0 -5 24 24"
+      />
+    </div>
+  );
+}

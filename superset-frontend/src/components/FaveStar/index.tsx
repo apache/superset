@@ -38,13 +38,13 @@ const StyledLink = styled.a`
   `};
 `;
 
-const FaveStar = ({
+function FaveStar({
   itemId,
   isStarred,
   showTooltip,
   saveFaveStar,
   fetchFaveStar,
-}: FaveStarProps) => {
+}: FaveStarProps) {
   useEffect(() => {
     fetchFaveStar?.(itemId);
   }, [fetchFaveStar, itemId]);
@@ -81,5 +81,5 @@ const FaveStar = ({
   }
 
   return content;
-};
+}
 export default FaveStar;

@@ -52,7 +52,7 @@ const ChildrenContainer = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
-const CollapsibleControl = (props: CollapsibleControlProps) => {
+function CollapsibleControl(props: CollapsibleControlProps) {
   const {
     checked,
     disabled,
@@ -98,6 +98,6 @@ const CollapsibleControl = (props: CollapsibleControlProps) => {
       {isChecked && <ChildrenContainer>{children}</ChildrenContainer>}
     </StyledContainer>
   );
-};
+}
 
 export { CollapsibleControl, CollapsibleControlProps };

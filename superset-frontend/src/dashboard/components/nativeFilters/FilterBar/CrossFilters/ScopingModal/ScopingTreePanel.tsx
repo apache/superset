@@ -58,7 +58,7 @@ const InfoText = styled.div`
   `}
 `;
 
-const ChartSelect = ({
+function ChartSelect({
   value,
   onSelectChange,
   chartConfigs,
@@ -66,7 +66,7 @@ const ChartSelect = ({
   value: number | undefined;
   onSelectChange: (chartId: number) => void;
   chartConfigs: ChartConfiguration;
-}) => {
+}) {
   const theme = useTheme();
   const layout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
@@ -138,15 +138,15 @@ const ChartSelect = ({
       />
     </div>
   );
-};
+}
 
-export const ScopingTreePanel = ({
+export function ScopingTreePanel({
   onScopeUpdate,
   currentScope,
   chartId,
   onSelectChange,
   chartConfigs,
-}: ScopingTreePanelProps) => {
+}: ScopingTreePanelProps) {
   const theme = useTheme();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
@@ -201,4 +201,4 @@ export const ScopingTreePanel = ({
       />
     </div>
   );
-};
+}

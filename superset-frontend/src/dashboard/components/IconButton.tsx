@@ -38,18 +38,20 @@ const StyledSpan = styled.span`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const IconButton = ({ icon, label, onClick }: IconButtonProps) => (
-  <StyledDiv
-    tabIndex={0}
-    role="button"
-    onClick={e => {
-      e.preventDefault();
-      onClick(e);
-    }}
-  >
-    {icon}
-    {label && <StyledSpan>{label}</StyledSpan>}
-  </StyledDiv>
-);
+function IconButton({ icon, label, onClick }: IconButtonProps) {
+  return (
+    <StyledDiv
+      tabIndex={0}
+      role="button"
+      onClick={e => {
+        e.preventDefault();
+        onClick(e);
+      }}
+    >
+      {icon}
+      {label && <StyledSpan>{label}</StyledSpan>}
+    </StyledDiv>
+  );
+}
 
 export default IconButton;

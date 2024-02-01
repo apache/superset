@@ -35,13 +35,15 @@ import {
   SlowChartPlugin,
 } from './MockChartPlugins';
 
-const Wrapper = ({
+function Wrapper({
   theme,
   children,
 }: {
   theme: SupersetTheme;
   children: ReactNode;
-}) => <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+}) {
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+}
 
 const styledMount = (component: ReactElement) =>
   mount(component, {

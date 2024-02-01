@@ -24,7 +24,9 @@ export default {
   component: Card,
 };
 
-export const InteractiveCard = (args: CardProps) => <Card {...args} />;
+export function InteractiveCard(args: CardProps) {
+  return <Card {...args} />;
+}
 
 InteractiveCard.args = {
   padded: true,

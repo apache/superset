@@ -90,7 +90,7 @@ type DashboardInfo = {
   isManagedExternally: boolean;
 };
 
-const PropertiesModal = ({
+function PropertiesModal({
   addSuccessToast,
   addDangerToast,
   colorScheme: currentColorScheme,
@@ -101,7 +101,7 @@ const PropertiesModal = ({
   onlyApply = false,
   onSubmit = () => {},
   show = false,
-}: PropertiesModalProps) => {
+}: PropertiesModalProps) {
   const [form] = AntdForm.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -810,6 +810,6 @@ const PropertiesModal = ({
       </AntdForm>
     </Modal>
   );
-};
+}
 
 export default withToasts(PropertiesModal);

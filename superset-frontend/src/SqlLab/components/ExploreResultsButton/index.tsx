@@ -28,10 +28,10 @@ export interface ExploreResultsButtonProps {
   onClick: OnClickHandler;
 }
 
-const ExploreResultsButton = ({
+function ExploreResultsButton({
   database,
   onClick,
-}: ExploreResultsButtonProps) => {
+}: ExploreResultsButtonProps) {
   const allowsSubquery = database?.allows_subquery ?? false;
   return (
     <Button
@@ -49,6 +49,6 @@ const ExploreResultsButton = ({
       {t('Create Chart')}
     </Button>
   );
-};
+}
 
 export default ExploreResultsButton;

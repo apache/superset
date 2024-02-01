@@ -25,13 +25,7 @@ const Header = styled.div`
   font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
-const Info = ({
-  text,
-  header,
-}: {
-  text?: string | string[];
-  header?: string;
-}) => {
+function Info({ text, header }: { text?: string | string[]; header?: string }) {
   const values = ensureIsArray(text);
   return (
     <>
@@ -41,7 +35,7 @@ const Info = ({
       ))}
     </>
   );
-};
+}
 
 const config = (contentType: ContentType) => {
   const { type } = contentType;

@@ -41,12 +41,12 @@ const TagsDiv = styled.div`
   flex-wrap: wrap;
 `;
 
-const TagsList = ({
+function TagsList({
   tags,
   editable = false,
   onDelete,
   maxTags,
-}: TagsListProps) => {
+}: TagsListProps) {
   const [tempMaxTags, setTempMaxTags] = useState<number | undefined>(maxTags);
 
   const handleDelete = (index: number) => {
@@ -111,6 +111,6 @@ const TagsList = ({
       )}
     </TagsDiv>
   );
-};
+}
 
 export default TagsList;

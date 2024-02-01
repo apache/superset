@@ -21,16 +21,18 @@ import React from 'react';
 import { Global } from '@emotion/react';
 import { css } from '@superset-ui/core';
 
-export const SqlLabGlobalStyles = () => (
-  <Global
-    styles={theme => css`
-      body {
-        min-height: max(
-          100vh,
-          ${theme.gridUnit * 125}px
-        ); // Set a min height so the gutter is always visible when resizing
-        overflow: hidden;
-      }
-    `}
-  />
-);
+export function SqlLabGlobalStyles() {
+  return (
+    <Global
+      styles={theme => css`
+        body {
+          min-height: max(
+            100vh,
+            ${theme.gridUnit * 125}px
+          ); // Set a min height so the gutter is always visible when resizing
+          overflow: hidden;
+        }
+      `}
+    />
+  );
+}

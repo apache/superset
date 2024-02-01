@@ -61,7 +61,7 @@ function getElevation(
 }
 
 function setTooltipContent(formData: PolygonFormData) {
-  return (o: JsonObject) => {
+  return function (o: JsonObject) {
     const metricLabel = formData?.metric?.label || formData?.metric;
 
     return (
@@ -173,7 +173,7 @@ export type DeckGLPolygonProps = {
   height: number;
 };
 
-const DeckGLPolygon = (props: DeckGLPolygonProps) => {
+function DeckGLPolygon(props: DeckGLPolygonProps) {
   const containerRef = useRef<DeckGLContainerHandle>();
 
   const getAdjustedViewport = useCallback(() => {
@@ -301,6 +301,6 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
       )}
     </div>
   );
-};
+}
 
 export default memo(DeckGLPolygon);

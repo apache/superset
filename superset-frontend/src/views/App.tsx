@@ -51,7 +51,7 @@ let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);
 
-const LocationPathnameLogger = () => {
+function LocationPathnameLogger() {
   const location = useLocation();
   useEffect(() => {
     // This will log client side route changes for single page app user navigation
@@ -66,32 +66,34 @@ const LocationPathnameLogger = () => {
     lastLocationPathname = location.pathname;
   }, [location.pathname]);
   return <></>;
-};
+}
 
-const App = () => (
-  <Router>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <GlobalStyles />
-      <Menu
-        data={bootstrapData.common.menu_data}
-        isFrontendRoute={isFrontendRoute}
-      />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
-);
+function App() {
+  return (
+    <Router>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <GlobalStyles />
+        <Menu
+          data={bootstrapData.common.menu_data}
+          isFrontendRoute={isFrontendRoute}
+        />
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <ErrorBoundary>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
+  );
+}
 
 export default hot(App);

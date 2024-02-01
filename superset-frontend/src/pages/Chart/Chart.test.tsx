@@ -40,12 +40,13 @@ jest.mock('re-resizable', () => ({
 jest.mock(
   'src/explore/components/ExploreChartPanel',
   () =>
-    ({ exploreState }: { exploreState: JsonObject }) =>
-      (
+    function ({ exploreState }: { exploreState: JsonObject }) {
+      return (
         <div data-test="mock-explore-chart-panel">
           {JSON.stringify(exploreState)}
         </div>
-      ),
+      );
+    },
 );
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
 

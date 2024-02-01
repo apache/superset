@@ -25,13 +25,13 @@ import { FieldPropTypes } from '.';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject } from '../../types';
 
-export const TableCatalog = ({
+export function TableCatalog({
   required,
   changeMethods,
   getValidation,
   validationErrors,
   db,
-}: FieldPropTypes) => {
+}: FieldPropTypes) {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
   return (
@@ -109,4 +109,4 @@ export const TableCatalog = ({
       </div>
     </StyledCatalogTable>
   );
-};
+}

@@ -26,22 +26,24 @@ export default {
   component: ButtonGroup,
 };
 
-export const InteractiveButtonGroup = (args: ButtonProps) => (
-  <>
-    <ButtonGroup css={{ marginBottom: 40 }}>
-      <Button {...args}>Button 1</Button>
-    </ButtonGroup>
-    <ButtonGroup css={{ marginBottom: 40 }}>
-      <Button {...args}>Button 1</Button>
-      <Button {...args}>Button 2</Button>
-    </ButtonGroup>
-    <ButtonGroup>
-      <Button {...args}>Button 1</Button>
-      <Button {...args}>Button 2</Button>
-      <Button {...args}>Button 3</Button>
-    </ButtonGroup>
-  </>
-);
+export function InteractiveButtonGroup(args: ButtonProps) {
+  return (
+    <>
+      <ButtonGroup css={{ marginBottom: 40 }}>
+        <Button {...args}>Button 1</Button>
+      </ButtonGroup>
+      <ButtonGroup css={{ marginBottom: 40 }}>
+        <Button {...args}>Button 1</Button>
+        <Button {...args}>Button 2</Button>
+      </ButtonGroup>
+      <ButtonGroup>
+        <Button {...args}>Button 1</Button>
+        <Button {...args}>Button 2</Button>
+        <Button {...args}>Button 3</Button>
+      </ButtonGroup>
+    </>
+  );
+}
 InteractiveButtonGroup.args = {
   buttonStyle: 'tertiary',
   buttonSize: 'default',

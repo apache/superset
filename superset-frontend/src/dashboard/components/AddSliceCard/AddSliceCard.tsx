@@ -35,13 +35,13 @@ import { Theme } from '@emotion/react';
 
 const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
 
-const TruncatedTextWithTooltip = ({
+function TruncatedTextWithTooltip({
   children,
   tooltipText,
   ...props
 }: PropsWithChildren<{
   tooltipText?: string;
-}>) => {
+}>) {
   // Uses React.useState for testing purposes
   const [isTruncated, setIsTruncated] = React.useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -71,7 +71,7 @@ const TruncatedTextWithTooltip = ({
   ) : (
     div
   );
-};
+}
 
 const MetadataItem: React.FC<{
   label: ReactNode;

@@ -23,16 +23,16 @@ import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
-const AntdIconComponent = ({
+function AntdIconComponent({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconColor,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconSize,
   viewBox,
   ...rest
-}: Omit<IconType, 'ref' | 'css'>) => (
-  <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
-);
+}: Omit<IconType, 'ref' | 'css'>) {
+  return <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />;
+}
 
 export const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
@@ -46,7 +46,7 @@ export interface IconProps extends IconType {
   fileName: string;
 }
 
-export const Icon = (props: IconProps) => {
+export function Icon(props: IconProps) {
   const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
@@ -75,6 +75,6 @@ export const Icon = (props: IconProps) => {
       {...iconProps}
     />
   );
-};
+}
 
 export default Icon;

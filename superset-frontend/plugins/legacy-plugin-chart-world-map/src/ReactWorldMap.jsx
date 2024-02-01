@@ -23,14 +23,14 @@ import WorldMap from './WorldMap';
 
 const ReactWorldMap = reactify(WorldMap);
 
-const WorldMapComponent = ({ className, ...otherProps }) => {
+function WorldMapComponent({ className, ...otherProps }) {
   const theme = useTheme();
   return (
     <div className={className}>
       <ReactWorldMap {...otherProps} theme={theme} />
     </div>
   );
-};
+}
 
 WorldMapComponent.propTypes = {
   className: PropTypes.string.isRequired,

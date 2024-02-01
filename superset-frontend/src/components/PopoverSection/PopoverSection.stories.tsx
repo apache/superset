@@ -23,22 +23,24 @@ export default {
   title: 'PopoverSection',
 };
 
-export const InteractivePopoverSection = (args: any) => (
-  <PopoverSection {...args}>
-    <div
-      css={{
-        display: 'flex',
-        justifyContent: 'center',
-        border: '1px solid',
-        alignItems: 'center',
-        width: 100,
-        height: 100,
-      }}
-    >
-      Content
-    </div>
-  </PopoverSection>
-);
+export function InteractivePopoverSection(args: any) {
+  return (
+    <PopoverSection {...args}>
+      <div
+        css={{
+          display: 'flex',
+          justifyContent: 'center',
+          border: '1px solid',
+          alignItems: 'center',
+          width: 100,
+          height: 100,
+        }}
+      >
+        Content
+      </div>
+    </PopoverSection>
+  );
+}
 
 InteractivePopoverSection.args = {
   title: 'Title',

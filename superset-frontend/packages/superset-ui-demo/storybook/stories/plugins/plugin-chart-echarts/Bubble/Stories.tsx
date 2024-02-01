@@ -44,85 +44,87 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const SimpleBubble = ({ width, height }) => (
-  <SuperChart
-    chartType="bubble_v2"
-    width={width}
-    height={height}
-    queriesData={[{ data: simpleBubbleData }]}
-    formData={{
-      entity: 'customer_name',
-      x: 'count',
-      y: {
-        aggregate: 'SUM',
-        column: {
-          advanced_data_type: null,
-          certification_details: null,
-          certified_by: null,
-          column_name: 'price_each',
-          description: null,
-          expression: null,
-          filterable: true,
-          groupby: true,
-          id: 570,
-          is_certified: false,
-          is_dttm: false,
-          python_date_format: null,
-          type: 'DOUBLE PRECISION',
-          type_generic: 0,
-          verbose_name: null,
-          warning_markdown: null,
+export function SimpleBubble({ width, height }) {
+  return (
+    <SuperChart
+      chartType="bubble_v2"
+      width={width}
+      height={height}
+      queriesData={[{ data: simpleBubbleData }]}
+      formData={{
+        entity: 'customer_name',
+        x: 'count',
+        y: {
+          aggregate: 'SUM',
+          column: {
+            advanced_data_type: null,
+            certification_details: null,
+            certified_by: null,
+            column_name: 'price_each',
+            description: null,
+            expression: null,
+            filterable: true,
+            groupby: true,
+            id: 570,
+            is_certified: false,
+            is_dttm: false,
+            python_date_format: null,
+            type: 'DOUBLE PRECISION',
+            type_generic: 0,
+            verbose_name: null,
+            warning_markdown: null,
+          },
+          expressionType: 'SIMPLE',
+          hasCustomLabel: false,
+          isNew: false,
+          label: 'SUM(price_each)',
+          optionName: 'metric_d9rpclvys0a_fs4bs0m2l1f',
+          sqlExpression: null,
         },
-        expressionType: 'SIMPLE',
-        hasCustomLabel: false,
-        isNew: false,
-        label: 'SUM(price_each)',
-        optionName: 'metric_d9rpclvys0a_fs4bs0m2l1f',
-        sqlExpression: null,
-      },
-      adhocFilters: [],
-      size: {
-        aggregate: 'SUM',
-        column: {
-          advanced_data_type: null,
-          certification_details: null,
-          certified_by: null,
-          column_name: 'sales',
-          description: null,
-          expression: null,
-          filterable: true,
-          groupby: true,
-          id: 571,
-          is_certified: false,
-          is_dttm: false,
-          python_date_format: null,
-          type: 'DOUBLE PRECISION',
-          type_generic: 0,
-          verbose_name: null,
-          warning_markdown: null,
+        adhocFilters: [],
+        size: {
+          aggregate: 'SUM',
+          column: {
+            advanced_data_type: null,
+            certification_details: null,
+            certified_by: null,
+            column_name: 'sales',
+            description: null,
+            expression: null,
+            filterable: true,
+            groupby: true,
+            id: 571,
+            is_certified: false,
+            is_dttm: false,
+            python_date_format: null,
+            type: 'DOUBLE PRECISION',
+            type_generic: 0,
+            verbose_name: null,
+            warning_markdown: null,
+          },
+          expressionType: 'SIMPLE',
+          hasCustomLabel: false,
+          isNew: false,
+          label: 'SUM(sales)',
+          optionName: 'metric_itj9wncjxk_dp3yibib0q',
+          sqlExpression: null,
         },
-        expressionType: 'SIMPLE',
-        hasCustomLabel: false,
-        isNew: false,
-        label: 'SUM(sales)',
-        optionName: 'metric_itj9wncjxk_dp3yibib0q',
-        sqlExpression: null,
-      },
-      limit: 10,
-      colorScheme: 'supersetColors',
-      maxBubbleSize: select('Max bubble size', [5, 10, 25, 50, 100, 125], 10),
-      xAxisTitle: text('X axis title', ''),
-      xAxisTitleMargin: number('X axis title margin', 30),
-      yAxisTitle: text('Y axis title', ''),
-      yAxisTitleMargin: number('Y axis title margin', 30),
-      yAxisTitlePosition: 'Left',
-      xAxisFormat: null,
-      logYAxis: boolean('Log Y axis', false),
-      yAxisFormat: null,
-      logXAxis: boolean('Log X axis', false),
-      truncateYAxis: false,
-      yAxisBounds: [],
-      extraFormData: {},
-    }}
-  />
-);
+        limit: 10,
+        colorScheme: 'supersetColors',
+        maxBubbleSize: select('Max bubble size', [5, 10, 25, 50, 100, 125], 10),
+        xAxisTitle: text('X axis title', ''),
+        xAxisTitleMargin: number('X axis title margin', 30),
+        yAxisTitle: text('Y axis title', ''),
+        yAxisTitleMargin: number('Y axis title margin', 30),
+        yAxisTitlePosition: 'Left',
+        xAxisFormat: null,
+        logYAxis: boolean('Log Y axis', false),
+        yAxisFormat: null,
+        logXAxis: boolean('Log X axis', false),
+        truncateYAxis: false,
+        yAxisBounds: [],
+        extraFormData: {},
+      }}
+    />
+  );
+}

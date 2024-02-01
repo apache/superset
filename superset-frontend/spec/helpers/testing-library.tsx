@@ -64,7 +64,7 @@ export function createWrapper(options?: Options) {
     store,
   } = options || {};
 
-  return ({ children }: { children?: ReactNode }) => {
+  return function ({ children }: { children?: ReactNode }) {
     let result = (
       <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );

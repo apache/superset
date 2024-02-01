@@ -39,7 +39,7 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Timeseries = ({ width, height }) => {
+export function Timeseries({ width, height }) {
   const forecastEnabled = boolean('Enable forecast', true);
   const queryData = data
     .map(row =>
@@ -85,4 +85,4 @@ export const Timeseries = ({ width, height }) => {
       }}
     />
   );
-};
+}

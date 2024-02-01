@@ -54,7 +54,7 @@ const TRANSLATIONS = {
   METRICS_TEXT: t('Metrics'),
 };
 
-const EditPage = ({ id }: EditPageProps) => {
+function EditPage({ id }: EditPageProps) {
   const { usageCount } = useGetDatasetRelatedCounts(id);
 
   const usageTab = (
@@ -73,6 +73,6 @@ const EditPage = ({ id }: EditPageProps) => {
       </Tabs.TabPane>
     </StyledTabs>
   );
-};
+}
 
 export default EditPage;

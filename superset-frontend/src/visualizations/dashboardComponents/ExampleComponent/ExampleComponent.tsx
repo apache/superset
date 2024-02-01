@@ -20,14 +20,16 @@ import React from 'react';
 import { DashboardComponentMetadata, t } from '@superset-ui/core';
 
 // TODO: POC only component can be removed after PR approved
-const ExampleComponent = ({
+function ExampleComponent({
   metadata,
 }: {
   metadata: DashboardComponentMetadata;
-}) => (
-  <div>
-    {t('We have the following keys: %s', Object.keys(metadata).join(', '))}
-  </div>
-);
+}) {
+  return (
+    <div>
+      {t('We have the following keys: %s', Object.keys(metadata).join(', '))}
+    </div>
+  );
+}
 
 export default ExampleComponent;

@@ -48,7 +48,7 @@ export default {
   decorators: [withKnobs, withResizableChartDemo],
 };
 
-export const Timeseries = ({ width, height }) => {
+export function Timeseries({ width, height }) {
   const queriesData = [
     {
       data: data
@@ -117,57 +117,59 @@ export const Timeseries = ({ width, height }) => {
       }}
     />
   );
-};
+}
 
-export const WithNegativeNumbers = ({ width, height }) => (
-  <SuperChart
-    chartType="mixed-timeseries"
-    width={width}
-    height={height}
-    queriesData={[
-      {
-        data: negativeNumData,
-        colnames: ['__timestamp'],
-        coltypes: [2],
-      },
-      {
-        data: negativeNumData.map(({ __timestamp, Boston }) => ({
-          __timestamp,
-          avgRate: Boston / 100,
-        })),
-      },
-    ]}
-    formData={{
-      contributionMode: undefined,
-      colorScheme: 'supersetColors',
-      seriesType: select(
-        'Line type',
-        ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-        'line',
-      ),
-      xAxisTimeFormat: 'smart_date',
-      yAxisFormat: select(
-        'y-axis format',
+export function WithNegativeNumbers({ width, height }) {
+  return (
+    <SuperChart
+      chartType="mixed-timeseries"
+      width={width}
+      height={height}
+      queriesData={[
         {
-          'Original value': '~g',
-          'Smart number': 'SMART_NUMBER',
-          '(12345.432 => $12,345.43)': '$,.2f',
+          data: negativeNumData,
+          colnames: ['__timestamp'],
+          coltypes: [2],
         },
-        '$,.2f',
-      ),
-      stack: true,
-      showValue: boolean('Query 1: Show Value', true),
-      showValueB: boolean('Query 2: Show Value', false),
-      showLegend: true,
-      markerEnabledB: true,
-      yAxisIndexB: select(
-        'Query 2: Y Axis',
         {
-          Primary: 0,
-          Secondary: 1,
+          data: negativeNumData.map(({ __timestamp, Boston }) => ({
+            __timestamp,
+            avgRate: Boston / 100,
+          })),
         },
-        1,
-      ),
-    }}
-  />
-);
+      ]}
+      formData={{
+        contributionMode: undefined,
+        colorScheme: 'supersetColors',
+        seriesType: select(
+          'Line type',
+          ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+          'line',
+        ),
+        xAxisTimeFormat: 'smart_date',
+        yAxisFormat: select(
+          'y-axis format',
+          {
+            'Original value': '~g',
+            'Smart number': 'SMART_NUMBER',
+            '(12345.432 => $12,345.43)': '$,.2f',
+          },
+          '$,.2f',
+        ),
+        stack: true,
+        showValue: boolean('Query 1: Show Value', true),
+        showValueB: boolean('Query 2: Show Value', false),
+        showLegend: true,
+        markerEnabledB: true,
+        yAxisIndexB: select(
+          'Query 2: Y Axis',
+          {
+            Primary: 0,
+            Secondary: 1,
+          },
+          1,
+        ),
+      }}
+    />
+  );
+}

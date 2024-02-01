@@ -42,7 +42,7 @@ export const CheckboxGallery = () =>
     </div>
   ));
 
-export const InteractiveCheckbox = ({ checked, style }: CheckboxProps) => {
+export function InteractiveCheckbox({ checked, style }: CheckboxProps) {
   const [, updateArgs] = useArgs();
   const toggleCheckbox = () => {
     updateArgs({ checked: !checked });
@@ -54,7 +54,7 @@ export const InteractiveCheckbox = ({ checked, style }: CheckboxProps) => {
       I'm an interactive checkbox
     </>
   );
-};
+}
 
 InteractiveCheckbox.args = {
   checked: false,

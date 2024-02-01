@@ -55,6 +55,6 @@ const users = [...new Array(10)].map((_, i) => ({
   id: i,
 }));
 
-export const SupersetFacePile = () => (
-  <FacePile users={users} maxCount={number('maxCount', 4)} />
-);
+export function SupersetFacePile() {
+  return <FacePile users={users} maxCount={number('maxCount', 4)} />;
+}

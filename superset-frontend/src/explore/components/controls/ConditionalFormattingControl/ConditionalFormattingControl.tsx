@@ -65,14 +65,14 @@ export const CloseButton = styled.button`
   `}
 `;
 
-const ConditionalFormattingControl = ({
+function ConditionalFormattingControl({
   value,
   onChange,
   columnOptions,
   verboseMap,
   removeIrrelevantConditions,
   ...props
-}: ConditionalFormattingControlProps) => {
+}: ConditionalFormattingControlProps) {
   const theme = useTheme();
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
     useState<ConditionalFormattingConfig[]>(value ?? []);
@@ -179,6 +179,6 @@ const ConditionalFormattingControl = ({
       </FormattersContainer>
     </div>
   );
-};
+}
 
 export default ConditionalFormattingControl;

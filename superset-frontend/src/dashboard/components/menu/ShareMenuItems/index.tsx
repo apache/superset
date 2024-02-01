@@ -36,7 +36,7 @@ interface ShareMenuItemProps {
   dashboardComponentId?: string;
 }
 
-const ShareMenuItems = (props: ShareMenuItemProps) => {
+function ShareMenuItems(props: ShareMenuItemProps) {
   const {
     copyMenuItemTitle,
     emailMenuItemTitle,
@@ -99,6 +99,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
       </Menu.Item>
     </Menu>
   );
-};
+}
 
 export default ShareMenuItems;

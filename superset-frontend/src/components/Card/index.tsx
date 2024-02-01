@@ -24,17 +24,19 @@ export interface CardProps extends AntdCardProps {
   padded?: boolean;
 }
 
-const Card = ({ padded, ...props }: CardProps) => (
-  <AntdCard
-    {...props}
-    css={(theme: SupersetTheme) => ({
-      backgroundColor: theme.colors.grayscale.light4,
-      borderRadius: theme.borderRadius,
-      '.ant-card-body': {
-        padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
-      },
-    })}
-  />
-);
+function Card({ padded, ...props }: CardProps) {
+  return (
+    <AntdCard
+      {...props}
+      css={(theme: SupersetTheme) => ({
+        backgroundColor: theme.colors.grayscale.light4,
+        borderRadius: theme.borderRadius,
+        '.ant-card-body': {
+          padding: padded ? theme.gridUnit * 4 : theme.gridUnit,
+        },
+      })}
+    />
+  );
+}
 
 export default Card;

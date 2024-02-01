@@ -265,7 +265,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
   return value;
 }
 
-export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+export function ControlPanelsContainer(props: ControlPanelsContainerProps) {
   const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
 
@@ -558,36 +558,38 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? colors.error.base
       : colors.alert.base;
 
-    const PanelHeader = () => (
-      <span data-test="collapsible-control-panel-header">
-        <span
-          css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.m}px;
-            line-height: 1.3;
-          `}
-        >
-          {label}
-        </span>{' '}
-        {description && (
-          <Tooltip id={sectionId} title={description}>
-            <Icons.InfoCircleOutlined css={iconStyles} />
-          </Tooltip>
-        )}
-        {hasErrors && (
-          <Tooltip
-            id={`${kebabCase('validation-errors')}-tooltip`}
-            title={t('This section contains validation errors')}
+    function PanelHeader() {
+      return (
+        <span data-test="collapsible-control-panel-header">
+          <span
+            css={(theme: SupersetTheme) => css`
+              font-size: ${theme.typography.sizes.m}px;
+              line-height: 1.3;
+            `}
           >
-            <Icons.InfoCircleOutlined
-              css={css`
-                ${iconStyles};
-                color: ${errorColor};
-              `}
-            />
-          </Tooltip>
-        )}
-      </span>
-    );
+            {label}
+          </span>{' '}
+          {description && (
+            <Tooltip id={sectionId} title={description}>
+              <Icons.InfoCircleOutlined css={iconStyles} />
+            </Tooltip>
+          )}
+          {hasErrors && (
+            <Tooltip
+              id={`${kebabCase('validation-errors')}-tooltip`}
+              title={t('This section contains validation errors')}
+            >
+              <Icons.InfoCircleOutlined
+                css={css`
+                  ${iconStyles};
+                  color: ${errorColor};
+                `}
+              />
+            </Tooltip>
+          )}
+        </span>
+      );
+    }
 
     return (
       <Collapse.Panel
@@ -782,6 +784,6 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </div>
     </Styles>
   );
-};
+}
 
 export default ControlPanelsContainer;

@@ -47,10 +47,10 @@ const StyledIcon = styled(Icons.Link)`
   }
 `;
 
-const ShareSqlLabQuery = ({
+function ShareSqlLabQuery({
   queryEditorId,
   addDangerToast,
-}: ShareSqlLabQueryProps) => {
+}: ShareSqlLabQueryProps) {
   const theme = useTheme();
 
   const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
@@ -131,6 +131,6 @@ const ShareSqlLabQuery = ({
       )}
     </>
   );
-};
+}
 
 export default withToasts(ShareSqlLabQuery);

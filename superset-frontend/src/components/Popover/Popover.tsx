@@ -25,4 +25,6 @@ export interface PopoverProps extends AntdPopoverProps {
   forceRender?: boolean;
 }
 
-export const Popover = (props: PopoverProps) => <AntdPopover {...props} />;
+export function Popover(props: PopoverProps) {
+  return <AntdPopover {...props} />;
+}

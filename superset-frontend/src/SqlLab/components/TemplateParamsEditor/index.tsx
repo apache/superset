@@ -40,11 +40,11 @@ export type TemplateParamsEditorProps = {
   onChange: (params: any) => void;
 };
 
-const TemplateParamsEditor = ({
+function TemplateParamsEditor({
   queryEditorId,
   language,
   onChange = () => {},
-}: TemplateParamsEditorProps) => {
+}: TemplateParamsEditorProps) {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
 
@@ -121,6 +121,6 @@ const TemplateParamsEditor = ({
       modalBody={modalBody}
     />
   );
-};
+}
 
 export default TemplateParamsEditor;

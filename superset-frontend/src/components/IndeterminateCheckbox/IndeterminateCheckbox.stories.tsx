@@ -24,9 +24,11 @@ export default {
   component: IndeterminateCheckbox,
 };
 
-export const InteractiveIndeterminateCheckbox = (
+export function InteractiveIndeterminateCheckbox(
   args: IndeterminateCheckboxProps,
-) => <IndeterminateCheckbox {...args} />;
+) {
+  return <IndeterminateCheckbox {...args} />;
+}
 
 InteractiveIndeterminateCheckbox.args = {
   checked: false,

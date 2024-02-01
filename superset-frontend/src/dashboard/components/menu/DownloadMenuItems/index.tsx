@@ -29,7 +29,7 @@ export interface DownloadMenuItemProps {
   logEvent?: Function;
 }
 
-const DownloadMenuItems = (props: DownloadMenuItemProps) => {
+function DownloadMenuItems(props: DownloadMenuItemProps) {
   const {
     pdfMenuItemTitle,
     imageMenuItemTitle,
@@ -57,6 +57,6 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
       />
     </Menu>
   );
-};
+}
 
 export default DownloadMenuItems;

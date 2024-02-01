@@ -108,13 +108,13 @@ const LeftBarStyles = styled.div`
   `}
 `;
 
-const SqlEditorLeftBar = ({
+function SqlEditorLeftBar({
   database,
   queryEditorId,
   tables = [],
   height = 500,
   setEmptyState,
-}: SqlEditorLeftBarProps) => {
+}: SqlEditorLeftBarProps) {
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
 
@@ -287,6 +287,6 @@ const SqlEditorLeftBar = ({
       )}
     </LeftBarStyles>
   );
-};
+}
 
 export default SqlEditorLeftBar;

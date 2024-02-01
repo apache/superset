@@ -55,7 +55,7 @@ const documentationLink = (engine: string | undefined) => {
   return irregularDocumentationLinks[engine];
 };
 
-const ModalHeader = ({
+function ModalHeader({
   isLoading,
   isEditMode,
   useSqlAlchemyForm,
@@ -77,7 +77,7 @@ const ModalHeader = ({
   fileList?: UploadFile[];
   passwordFields?: string[];
   needsOverwriteConfirm?: boolean;
-}) => {
+}) {
   const fileCheck = fileList && fileList?.length > 0;
 
   const isEditHeader = (
@@ -198,6 +198,6 @@ const ModalHeader = ({
   if (db || editNewDb) return hasDbHeader;
 
   return noDbHeader;
-};
+}
 
 export default ModalHeader;

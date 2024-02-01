@@ -22,27 +22,29 @@ import { css, SupersetTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 
-export const MenuItemTooltip = ({
+export function MenuItemTooltip({
   title,
   color,
 }: {
   title: ReactNode;
   color?: string;
-}) => (
-  <Tooltip title={title} placement="top">
-    <Icons.InfoCircleOutlined
-      data-test="tooltip-trigger"
-      css={(theme: SupersetTheme) => css`
-        color: ${color || theme.colors.text.label};
-        margin-left: ${theme.gridUnit * 2}px;
-        &.anticon {
-          font-size: unset;
-          .anticon {
-            line-height: unset;
-            vertical-align: unset;
+}) {
+  return (
+    <Tooltip title={title} placement="top">
+      <Icons.InfoCircleOutlined
+        data-test="tooltip-trigger"
+        css={(theme: SupersetTheme) => css`
+          color: ${color || theme.colors.text.label};
+          margin-left: ${theme.gridUnit * 2}px;
+          &.anticon {
+            font-size: unset;
+            .anticon {
+              line-height: unset;
+              vertical-align: unset;
+            }
           }
-        }
-      `}
-    />
-  </Tooltip>
-);
+        `}
+      />
+    </Tooltip>
+  );
+}

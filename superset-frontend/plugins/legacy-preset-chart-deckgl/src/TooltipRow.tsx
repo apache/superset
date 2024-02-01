@@ -23,11 +23,13 @@ type TooltipRowProps = {
   value: string;
 };
 
-const TooltipRow = ({ label, value }: TooltipRowProps) => (
-  <div>
-    {label}
-    <strong>{value}</strong>
-  </div>
-);
+function TooltipRow({ label, value }: TooltipRowProps) {
+  return (
+    <div>
+      {label}
+      <strong>{value}</strong>
+    </div>
+  );
+}
 
 export default TooltipRow;

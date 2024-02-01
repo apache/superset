@@ -80,7 +80,7 @@ function isValidBoundValue(value?: number | string) {
   );
 }
 
-const SparklineCell = ({
+function SparklineCell({
   ariaLabel,
   dataKey,
   data,
@@ -91,7 +91,7 @@ const SparklineCell = ({
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
-}: Props) => {
+}: Props) {
   const theme = useTheme();
   const xyTheme = buildChartTheme({
     backgroundColor: `${theme.colors.grayscale.light5}`,
@@ -238,6 +238,6 @@ const SparklineCell = ({
       </style>
     </>
   );
-};
+}
 
 export default SparklineCell;

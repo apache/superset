@@ -24,7 +24,9 @@ export default {
   title: 'AlteredSliceTag',
 };
 
-export const InteractiveSliceTag = (args: any) => <AlteredSliceTag {...args} />;
+export function InteractiveSliceTag(args: any) {
+  return <AlteredSliceTag {...args} />;
+}
 
 InteractiveSliceTag.args = {
   origFormData: defaultProps.origFormData,

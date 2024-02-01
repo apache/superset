@@ -21,7 +21,7 @@ import { ClassNames } from '@emotion/react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 
-const StyledTooltip = (props: any) => {
+function StyledTooltip(props: any) {
   const theme = useTheme();
   return (
     <ClassNames>
@@ -47,7 +47,7 @@ const StyledTooltip = (props: any) => {
       )}
     </ClassNames>
   );
-};
+}
 
 const Hr = styled.hr`
   margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
@@ -79,7 +79,7 @@ const NowrapDiv = styled.div`
   white-space: nowrap;
 `;
 
-const ColumnElement = ({ column }: ColumnElementProps) => {
+function ColumnElement({ column }: ColumnElementProps) {
   let columnName: React.ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
@@ -114,6 +114,6 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
       </NowrapDiv>
     </div>
   );
-};
+}
 
 export default ColumnElement;

@@ -25,8 +25,9 @@ import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 jest.mock(
   'src/components/Icons/Icon',
   () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
+    function ({ fileName }: { fileName: string }) {
+      return <span role="img" aria-label={fileName.replace('_', '-')} />;
+    },
 );
 
 const mockedProps = {

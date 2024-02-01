@@ -86,11 +86,9 @@ const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
 
-const BaseModal = (props: AntdModalProps) => (
-  // Removes mask animation. Fixed in 4.6.0.
-  // https://github.com/ant-design/ant-design/issues/27192
-  <AntdModal {...props} maskTransitionName="" />
-);
+function BaseModal(props: AntdModalProps) {
+  return <AntdModal {...props} maskTransitionName="" />;
+}
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
   ${({ theme, responsive, maxWidth }) =>
@@ -229,7 +227,7 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   },
 });
 
-const CustomModal = ({
+function CustomModal({
   children,
   disablePrimaryButton = false,
   primaryButtonLoading = false,
@@ -253,7 +251,7 @@ const CustomModal = ({
   draggableConfig,
   destroyOnClose,
   ...rest
-}: ModalProps) => {
+}: ModalProps) {
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
@@ -307,8 +305,8 @@ const CustomModal = ({
     return resizableConfig;
   }, [hideFooter, resizableConfig]);
 
-  const ModalTitle = () =>
-    draggable ? (
+  function ModalTitle() {
+    return draggable ? (
       <div
         className="draggable-trigger"
         onMouseOver={() => dragDisabled && setDragDisabled(false)}
@@ -319,6 +317,7 @@ const CustomModal = ({
     ) : (
       <>{title}</>
     );
+  }
 
   return (
     <StyledModal
@@ -369,7 +368,7 @@ const CustomModal = ({
       {children}
     </StyledModal>
   );
-};
+}
 CustomModal.displayName = 'Modal';
 
 // Ant Design 4 does not allow overriding Modal's buttons when

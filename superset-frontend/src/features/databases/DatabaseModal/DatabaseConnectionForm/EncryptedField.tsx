@@ -40,12 +40,12 @@ export const encryptedCredentialsMap = {
 
 const castStringToBoolean = (optionValue: string) => optionValue === 'true';
 
-export const EncryptedField = ({
+export function EncryptedField({
   changeMethods,
   isEditMode,
   db,
   editNewDb,
-}: FieldPropTypes) => {
+}: FieldPropTypes) {
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
@@ -198,4 +198,4 @@ export const EncryptedField = ({
       )}
     </CredentialInfoForm>
   );
-};
+}

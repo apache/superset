@@ -45,7 +45,7 @@ const drillToDetailModalState = {
 };
 
 const renderModal = async (overrideState: Record<string, any> = {}) => {
-  const DrillDetailModalWrapper = () => {
+  function DrillDetailModalWrapper() {
     const [showModal, setShowModal] = useState(false);
     return (
       <>
@@ -61,7 +61,7 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
         />
       </>
     );
-  };
+  }
 
   render(<DrillDetailModalWrapper />, {
     useRouter: true,

@@ -363,37 +363,35 @@ function TagList(props: TagListProps) {
             });
           }
           return (
-            <>
-              <ListView<Tag>
-                bulkActions={bulkActions}
-                bulkSelectEnabled={bulkSelectEnabled}
-                cardSortSelectOptions={sortTypes}
-                className="tags-list-view"
-                columns={columns}
-                count={tagCount}
-                data={tags}
-                disableBulkSelect={toggleBulkSelect}
-                refreshData={refreshData}
-                emptyState={emptyState}
-                fetchData={fetchData}
-                filters={filters}
-                initialSort={initialSort}
-                loading={loading}
-                addDangerToast={addDangerToast}
-                addSuccessToast={addSuccessToast}
-                pageSize={PAGE_SIZE}
-                showThumbnails={
-                  userKey
-                    ? userKey.thumbnails
-                    : isFeatureEnabled(FeatureFlag.Thumbnails)
-                }
-                defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
-                    ? 'card'
-                    : 'table'
-                }
-              />
-            </>
+            <ListView<Tag>
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              cardSortSelectOptions={sortTypes}
+              className="tags-list-view"
+              columns={columns}
+              count={tagCount}
+              data={tags}
+              disableBulkSelect={toggleBulkSelect}
+              refreshData={refreshData}
+              emptyState={emptyState}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              addDangerToast={addDangerToast}
+              addSuccessToast={addSuccessToast}
+              pageSize={PAGE_SIZE}
+              showThumbnails={
+                userKey
+                  ? userKey.thumbnails
+                  : isFeatureEnabled(FeatureFlag.Thumbnails)
+              }
+              defaultViewMode={
+                isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
+                  ? 'card'
+                  : 'table'
+              }
+            />
           );
         }}
       </ConfirmStatusChange>

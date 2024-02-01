@@ -39,13 +39,15 @@ const PLACEMENTS = [
   'topRight',
 ];
 
-export const InteractiveIconTooltip = (args: Props) => (
-  <div css={{ margin: '40px 70px' }}>
-    <IconTooltip {...args}>
-      <Icons.Info />
-    </IconTooltip>
-  </div>
-);
+export function InteractiveIconTooltip(args: Props) {
+  return (
+    <div css={{ margin: '40px 70px' }}>
+      <IconTooltip {...args}>
+        <Icons.Info />
+      </IconTooltip>
+    </div>
+  );
+}
 
 InteractiveIconTooltip.args = {
   tooltip: 'Tooltip',

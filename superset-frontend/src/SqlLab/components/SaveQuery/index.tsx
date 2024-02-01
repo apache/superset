@@ -62,14 +62,14 @@ const Styles = styled.span`
   }
 `;
 
-const SaveQuery = ({
+function SaveQuery({
   queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning,
   database,
   columns,
-}: SaveQueryProps) => {
+}: SaveQueryProps) {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
     'name',
@@ -234,6 +234,6 @@ const SaveQuery = ({
       </Modal>
     </Styles>
   );
-};
+}
 
 export default SaveQuery;

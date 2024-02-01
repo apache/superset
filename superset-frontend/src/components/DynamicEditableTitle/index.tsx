@@ -75,13 +75,13 @@ const titleStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export const DynamicEditableTitle = ({
+export function DynamicEditableTitle({
   title,
   placeholder,
   onSave,
   canEdit,
   label,
-}: DynamicEditableTitleProps) => {
+}: DynamicEditableTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(title || '');
   const contentRef = useRef<HTMLInputElement>(null);
@@ -212,4 +212,4 @@ export const DynamicEditableTitle = ({
       <span ref={sizerRef} className="input-sizer" aria-hidden tabIndex={-1} />
     </div>
   );
-};
+}

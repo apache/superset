@@ -35,7 +35,7 @@ import {
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
 
-const ExtraOptions = ({
+function ExtraOptions({
   db,
   onInputChange,
   onTextChange,
@@ -51,7 +51,7 @@ const ExtraOptions = ({
   onExtraInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
-}) => {
+}) {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
@@ -574,6 +574,6 @@ const ExtraOptions = ({
       </Collapse.Panel>
     </Collapse>
   );
-};
+}
 
 export default ExtraOptions;

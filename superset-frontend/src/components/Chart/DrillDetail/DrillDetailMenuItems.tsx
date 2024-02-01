@@ -38,32 +38,34 @@ import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
 
 const DRILL_TO_DETAIL_TEXT = t('Drill to detail by');
 
-const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
-  <Menu.Item disabled {...props}>
-    <div
-      css={css`
-        white-space: normal;
-        max-width: 160px;
-      `}
-    >
-      {children}
-    </div>
-  </Menu.Item>
-);
+function DisabledMenuItem({ children, ...props }: { children: ReactNode }) {
+  return (
+    <Menu.Item disabled {...props}>
+      <div
+        css={css`
+          white-space: normal;
+          max-width: 160px;
+        `}
+      >
+        {children}
+      </div>
+    </Menu.Item>
+  );
+}
 
-const Filter = ({
+function Filter({
   children,
   stripHTML = false,
 }: {
   children: ReactNode;
   stripHTML: boolean;
-}) => {
+}) {
   const content =
     stripHTML && typeof children === 'string'
       ? removeHTMLTags(children)
       : children;
   return <span>{content}</span>;
-};
+}
 
 const StyledFilter = styled(Filter)`
   ${({ theme }) => `
@@ -83,7 +85,7 @@ export type DrillDetailMenuItemsProps = {
   submenuIndex?: number;
 };
 
-const DrillDetailMenuItems = ({
+function DrillDetailMenuItems({
   chartId,
   formData,
   filters = [],
@@ -93,7 +95,7 @@ const DrillDetailMenuItems = ({
   onClick = () => null,
   submenuIndex = 0,
   ...props
-}: DrillDetailMenuItemsProps) => {
+}: DrillDetailMenuItemsProps) {
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
   );
@@ -252,6 +254,6 @@ const DrillDetailMenuItems = ({
       />
     </>
   );
-};
+}
 
 export default DrillDetailMenuItems;

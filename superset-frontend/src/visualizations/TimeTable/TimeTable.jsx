@@ -107,7 +107,7 @@ const TimeTableStyles = styled.div`
   }
 `;
 
-const TimeTable = ({
+function TimeTable({
   className,
   height,
   data,
@@ -115,7 +115,7 @@ const TimeTable = ({
   rowType,
   rows,
   url,
-}) => {
+}) {
   const memoizedColumns = useMemo(
     () => [
       { accessor: 'metric', Header: t('Metric') },
@@ -332,7 +332,7 @@ const TimeTable = ({
       />
     </TimeTableStyles>
   );
-};
+}
 
 TimeTable.propTypes = propTypes;
 TimeTable.defaultProps = defaultProps;

@@ -31,7 +31,7 @@ export type RunQueryButtonProps = {
   chartIsStale: boolean;
 };
 
-export const RunQueryButton = ({
+export function RunQueryButton({
   loading,
   onQuery,
   onStop,
@@ -39,8 +39,8 @@ export const RunQueryButton = ({
   isNewChart,
   canStopQuery,
   chartIsStale,
-}: RunQueryButtonProps) =>
-  loading ? (
+}: RunQueryButtonProps) {
+  return loading ? (
     <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
       <i className="fa fa-stop" /> {t('Stop')}
     </Button>
@@ -54,3 +54,4 @@ export const RunQueryButton = ({
       {isNewChart ? t('Create chart') : t('Update chart')}
     </Button>
   );
+}

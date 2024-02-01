@@ -25,7 +25,7 @@ import crossFiltersSelector from './selectors';
 import VerticalCollapse from './VerticalCollapse';
 import { useChartsVerboseMaps } from '../utils';
 
-const CrossFiltersVertical = () => {
+function CrossFiltersVertical() {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -44,6 +44,6 @@ const CrossFiltersVertical = () => {
   });
 
   return <VerticalCollapse crossFilters={selectedCrossFilters} />;
-};
+}
 
 export default CrossFiltersVertical;

@@ -37,13 +37,12 @@ type Props = PopoverDropdownProps & {
   optionType: ElementType;
 };
 
-export const InteractivePopoverDropdown = (props: Props) => {
+export function InteractivePopoverDropdown(props: Props) {
   const { value, buttonType, optionType, ...rest } = props;
   const [currentValue, setCurrentValue] = useState(value);
 
-  const newElementHandler =
-    (type: ElementType) =>
-    ({ label, value }: OptionProps) => {
+  const newElementHandler = (type: ElementType) =>
+    function ({ label, value }: OptionProps) {
       if (type === 'button') {
         return (
           <button type="button" key={value}>
@@ -63,7 +62,7 @@ export const InteractivePopoverDropdown = (props: Props) => {
       onChange={selected => setCurrentValue(selected as string)}
     />
   );
-};
+}
 
 InteractivePopoverDropdown.argTypes = {
   buttonType: {

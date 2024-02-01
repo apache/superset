@@ -58,13 +58,13 @@ export interface IDatasetPanelWrapperProps {
   datasets?: DatasetObject[] | undefined;
 }
 
-const DatasetPanelWrapper = ({
+function DatasetPanelWrapper({
   tableName,
   dbId,
   schema,
   setHasColumns,
   datasets,
-}: IDatasetPanelWrapperProps) => {
+}: IDatasetPanelWrapperProps) {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -135,6 +135,6 @@ const DatasetPanelWrapper = ({
       datasets={datasets}
     />
   );
-};
+}
 
 export default DatasetPanelWrapper;

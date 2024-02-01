@@ -33,30 +33,26 @@ export default {
   decorators: [withKnobs],
 };
 
-export const Select = ({
-  width,
-  height,
-}: {
-  width: number;
-  height: number;
-}) => (
-  <SuperChart
-    chartType="filter_select"
-    width={width}
-    height={height}
-    queriesData={[{ data: mockQueryDataForCountries }]}
-    formData={{
-      adhoc_filters: [],
-      extra_filters: [],
-      multiSelect: boolean('Multi select', true),
-      inverseSelection: boolean('Inverse selection', false),
-      row_limit: 1000,
-      viz_type: 'filter_select',
-      groupby: ['country_name'],
-      metrics: ['SUM(SP_POP_TOTL)'],
-    }}
-    hooks={{
-      setDataMask: action('setDataMask'),
-    }}
-  />
-);
+export function Select({ width, height }: { width: number; height: number }) {
+  return (
+    <SuperChart
+      chartType="filter_select"
+      width={width}
+      height={height}
+      queriesData={[{ data: mockQueryDataForCountries }]}
+      formData={{
+        adhoc_filters: [],
+        extra_filters: [],
+        multiSelect: boolean('Multi select', true),
+        inverseSelection: boolean('Inverse selection', false),
+        row_limit: 1000,
+        viz_type: 'filter_select',
+        groupby: ['country_name'],
+        metrics: ['SUM(SP_POP_TOTL)'],
+      }}
+      hooks={{
+        setDataMask: action('setDataMask'),
+      }}
+    />
+  );
+}

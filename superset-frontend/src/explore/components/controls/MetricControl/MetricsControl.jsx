@@ -114,7 +114,7 @@ const getMetricsMatchingCurrentDataset = (value, columns, savedMetrics) =>
     );
   });
 
-const MetricsControl = ({
+function MetricsControl({
   onChange,
   multi,
   value: propsValue,
@@ -122,7 +122,7 @@ const MetricsControl = ({
   savedMetrics,
   datasource,
   ...props
-}) => {
+}) {
   const [value, setValue] = useState(coerceAdhocMetrics(propsValue));
   const theme = useTheme();
   const prevColumns = usePrevious(columns);
@@ -336,7 +336,7 @@ const MetricsControl = ({
       </LabelsContainer>
     </div>
   );
-};
+}
 
 MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;

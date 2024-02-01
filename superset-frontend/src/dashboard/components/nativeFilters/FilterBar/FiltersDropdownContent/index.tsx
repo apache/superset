@@ -37,7 +37,7 @@ export interface FiltersDropdownContentProps {
   forceRenderOutOfScope?: boolean;
 }
 
-export const FiltersDropdownContent = ({
+export function FiltersDropdownContent({
   overflowedCrossFilters,
   filtersInScope,
   filtersOutOfScope,
@@ -45,28 +45,30 @@ export const FiltersDropdownContent = ({
   rendererCrossFilter,
   showCollapsePanel,
   forceRenderOutOfScope,
-}: FiltersDropdownContentProps) => (
-  <div
-    css={(theme: SupersetTheme) => css`
-      width: ${theme.gridUnit * 56}px;
-      padding: ${theme.gridUnit}px 0;
-    `}
-  >
-    {overflowedCrossFilters.map(crossFilter =>
-      rendererCrossFilter(
-        crossFilter,
-        FilterBarOrientation.Vertical,
-        overflowedCrossFilters.at(-1) as CrossFilterIndicator,
-      ),
-    )}
-    {filtersInScope.map(renderer)}
-    {showCollapsePanel && (
-      <FiltersOutOfScopeCollapsible
-        filtersOutOfScope={filtersOutOfScope}
-        renderer={renderer}
-        forceRender={forceRenderOutOfScope}
-        horizontalOverflow
-      />
-    )}
-  </div>
-);
+}: FiltersDropdownContentProps) {
+  return (
+    <div
+      css={(theme: SupersetTheme) => css`
+        width: ${theme.gridUnit * 56}px;
+        padding: ${theme.gridUnit}px 0;
+      `}
+    >
+      {overflowedCrossFilters.map(crossFilter =>
+        rendererCrossFilter(
+          crossFilter,
+          FilterBarOrientation.Vertical,
+          overflowedCrossFilters.at(-1) as CrossFilterIndicator,
+        ),
+      )}
+      {filtersInScope.map(renderer)}
+      {showCollapsePanel && (
+        <FiltersOutOfScopeCollapsible
+          filtersOutOfScope={filtersOutOfScope}
+          renderer={renderer}
+          forceRender={forceRenderOutOfScope}
+          horizontalOverflow
+        />
+      )}
+    </div>
+  );
+}

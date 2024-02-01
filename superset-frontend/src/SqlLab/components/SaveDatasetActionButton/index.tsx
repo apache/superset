@@ -28,10 +28,10 @@ interface SaveDatasetActionButtonProps {
   overlayMenu: JSX.Element | null;
 }
 
-const SaveDatasetActionButton = ({
+function SaveDatasetActionButton({
   setShowSave,
   overlayMenu,
-}: SaveDatasetActionButtonProps) => {
+}: SaveDatasetActionButtonProps) {
   const theme = useTheme();
 
   const StyledDropdownButton = styled(
@@ -80,6 +80,6 @@ const SaveDatasetActionButton = ({
       {t('Save')}
     </StyledDropdownButton>
   );
-};
+}
 
 export default SaveDatasetActionButton;

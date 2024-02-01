@@ -23,9 +23,9 @@ export default {
   title: 'CertifiedBadgeWithTooltip',
 };
 
-export const InteractiveIcon = (args: CertifiedBadgeProps) => (
-  <CertifiedBadge {...args} />
-);
+export function InteractiveIcon(args: CertifiedBadgeProps) {
+  return <CertifiedBadge {...args} />;
+}
 
 InteractiveIcon.args = {
   certifiedBy: 'Trusted Authority',

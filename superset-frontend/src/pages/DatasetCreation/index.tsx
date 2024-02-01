@@ -94,38 +94,46 @@ export default function AddDataset() {
     }
   }, [id]);
 
-  const HeaderComponent = () => (
-    <Header setDataset={setDataset} title={dataset?.table_name} />
-  );
+  function HeaderComponent() {
+    return <Header setDataset={setDataset} title={dataset?.table_name} />;
+  }
 
-  const LeftPanelComponent = () => (
-    <LeftPanel
-      setDataset={setDataset}
-      dataset={dataset}
-      datasetNames={datasetNames}
-    />
-  );
+  function LeftPanelComponent() {
+    return (
+      <LeftPanel
+        setDataset={setDataset}
+        dataset={dataset}
+        datasetNames={datasetNames}
+      />
+    );
+  }
 
-  const EditPageComponent = () => <EditPage id={id} />;
+  function EditPageComponent() {
+    return <EditPage id={id} />;
+  }
 
-  const DatasetPanelComponent = () => (
-    <DatasetPanel
-      tableName={dataset?.table_name}
-      dbId={dataset?.db?.id}
-      schema={dataset?.schema}
-      setHasColumns={setHasColumns}
-      datasets={datasets}
-    />
-  );
+  function DatasetPanelComponent() {
+    return (
+      <DatasetPanel
+        tableName={dataset?.table_name}
+        dbId={dataset?.db?.id}
+        schema={dataset?.schema}
+        setHasColumns={setHasColumns}
+        datasets={datasets}
+      />
+    );
+  }
 
-  const FooterComponent = () => (
-    <Footer
-      url={prevUrl}
-      datasetObject={dataset}
-      hasColumns={hasColumns}
-      datasets={datasetNames}
-    />
-  );
+  function FooterComponent() {
+    return (
+      <Footer
+        url={prevUrl}
+        datasetObject={dataset}
+        hasColumns={hasColumns}
+        datasets={datasetNames}
+      />
+    );
+  }
 
   return (
     <DatasetLayout

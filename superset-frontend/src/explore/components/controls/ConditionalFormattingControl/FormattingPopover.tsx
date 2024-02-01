@@ -21,14 +21,14 @@ import Popover from 'src/components/Popover';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 import { ConditionalFormattingConfig, FormattingPopoverProps } from './types';
 
-export const FormattingPopover = ({
+export function FormattingPopover({
   title,
   columns,
   onChange,
   config,
   children,
   ...props
-}: FormattingPopoverProps) => {
+}: FormattingPopoverProps) {
   const [visible, setVisible] = useState(false);
 
   const handleSave = useCallback(
@@ -58,4 +58,4 @@ export const FormattingPopover = ({
       {children}
     </Popover>
   );
-};
+}

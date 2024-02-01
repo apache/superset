@@ -70,13 +70,13 @@ const parseEditorType = (editorType: EditorType) => {
   }
 };
 
-export const AsyncAceEditor = (
+export function AsyncAceEditor(
   args: AsyncAceEditorOptions & { editorType: EditorType },
-) => {
+) {
   const { editorType, ...props } = args;
   const Editor = parseEditorType(editorType);
   return <Editor {...props} />;
-};
+}
 
 AsyncAceEditor.args = {
   defaultTabSize: 2,

@@ -50,7 +50,7 @@ export default {
   },
 };
 
-export const DatasetSpecific = () => {
+export function DatasetSpecific() {
   SupersetClient.reset();
   SupersetClient.configure({ csrfToken: '1234' }).init();
   const { metadataBar } = useDatasetMetadataBar({ datasetId: 1 });
@@ -78,7 +78,7 @@ export const DatasetSpecific = () => {
       >{`${width}x${height}`}</span>
     </div>
   );
-};
+}
 
 DatasetSpecific.story = {
   parameters: {

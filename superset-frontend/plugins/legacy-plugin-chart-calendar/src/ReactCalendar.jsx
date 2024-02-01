@@ -24,7 +24,7 @@ import Component from './Calendar';
 
 const ReactComponent = reactify(Component);
 
-const Calendar = ({ className, ...otherProps }) => {
+function Calendar({ className, ...otherProps }) {
   const theme = useTheme();
   return (
     <div className={className}>
@@ -86,7 +86,7 @@ const Calendar = ({ className, ...otherProps }) => {
       <ReactComponent {...otherProps} theme={theme} />
     </div>
   );
-};
+}
 
 Calendar.defaultProps = {
   otherProps: {},

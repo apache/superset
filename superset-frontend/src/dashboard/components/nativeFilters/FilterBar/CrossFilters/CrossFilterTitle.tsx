@@ -55,11 +55,11 @@ const StyledIconSearch = styled(Icons.SearchOutlined)`
   `}
 `;
 
-const CrossFilterChartTitle = (props: {
+function CrossFilterChartTitle(props: {
   title: string;
   orientation: FilterBarOrientation;
   onHighlightFilterSource: () => void;
-}) => {
+}) {
   const { title, orientation, onHighlightFilterSource } = props;
   const [titleRef, titleIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   const theme = useTheme();
@@ -90,6 +90,6 @@ const CrossFilterChartTitle = (props: {
       </Tooltip>
     </StyledCrossFilterTitle>
   );
-};
+}
 
 export default CrossFilterChartTitle;

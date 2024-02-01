@@ -33,70 +33,72 @@ import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
 const BUILDER_PANE_WIDTH = 374;
 
-const BuilderComponentPane = ({ topOffset = 0 }) => (
-  <div
-    data-test="dashboard-builder-sidepane"
-    css={css`
-      position: sticky;
-      right: 0;
-      top: ${topOffset}px;
-      height: calc(100vh - ${topOffset}px);
-      width: ${BUILDER_PANE_WIDTH}px;
-    `}
-  >
+function BuilderComponentPane({ topOffset = 0 }) {
+  return (
     <div
-      css={(theme: SupersetTheme) => css`
-        position: absolute;
-        height: 100%;
+      data-test="dashboard-builder-sidepane"
+      css={css`
+        position: sticky;
+        right: 0;
+        top: ${topOffset}px;
+        height: calc(100vh - ${topOffset}px);
         width: ${BUILDER_PANE_WIDTH}px;
-        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
-        background-color: ${theme.colors.grayscale.light5};
       `}
     >
-      <Tabs
-        data-test="dashboard-builder-component-pane-tabs-navigation"
-        id="tabs"
+      <div
         css={(theme: SupersetTheme) => css`
-          line-height: inherit;
-          margin-top: ${theme.gridUnit * 2}px;
+          position: absolute;
           height: 100%;
-
-          & .ant-tabs-content-holder {
-            height: 100%;
-            & .ant-tabs-content {
-              height: 100%;
-            }
-          }
+          width: ${BUILDER_PANE_WIDTH}px;
+          box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
+          background-color: ${theme.colors.grayscale.light5};
         `}
       >
-        <Tabs.TabPane
-          key={1}
-          tab={t('Charts')}
-          css={css`
+        <Tabs
+          data-test="dashboard-builder-component-pane-tabs-navigation"
+          id="tabs"
+          css={(theme: SupersetTheme) => css`
+            line-height: inherit;
+            margin-top: ${theme.gridUnit * 2}px;
             height: 100%;
+
+            & .ant-tabs-content-holder {
+              height: 100%;
+              & .ant-tabs-content {
+                height: 100%;
+              }
+            }
           `}
         >
-          <SliceAdder />
-        </Tabs.TabPane>
-        <Tabs.TabPane key={2} tab={t('Layout elements')}>
-          <NewTabs />
-          <NewRow />
-          <NewColumn />
-          <NewHeader />
-          <NewMarkdown />
-          <NewDivider />
-          {dashboardComponents
-            .getAll()
-            .map(({ key: componentKey, metadata }) => (
-              <NewDynamicComponent
-                metadata={metadata}
-                componentKey={componentKey}
-              />
-            ))}
-        </Tabs.TabPane>
-      </Tabs>
+          <Tabs.TabPane
+            key={1}
+            tab={t('Charts')}
+            css={css`
+              height: 100%;
+            `}
+          >
+            <SliceAdder />
+          </Tabs.TabPane>
+          <Tabs.TabPane key={2} tab={t('Layout elements')}>
+            <NewTabs />
+            <NewRow />
+            <NewColumn />
+            <NewHeader />
+            <NewMarkdown />
+            <NewDivider />
+            {dashboardComponents
+              .getAll()
+              .map(({ key: componentKey, metadata }) => (
+                <NewDynamicComponent
+                  metadata={metadata}
+                  componentKey={componentKey}
+                />
+              ))}
+          </Tabs.TabPane>
+        </Tabs>
+      </div>
     </div>
-  </div>
-);
+  );
+}
 
 export default BuilderComponentPane;

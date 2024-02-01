@@ -28,12 +28,12 @@ export default {
 
 const A_WEEK_AGO = 'a week ago';
 
-export const Basic = ({
+export function Basic({
   items,
   onClick,
 }: MetadataBarProps & {
   onClick: (type: string) => void;
-}) => {
+}) {
   const { width, height, ref } = useResizeDetector();
   // eslint-disable-next-line no-param-reassign
   items[0].onClick = onClick;
@@ -59,7 +59,7 @@ export const Basic = ({
       >{`${width}x${height}`}</span>
     </div>
   );
-};
+}
 
 Basic.story = {
   parameters: {

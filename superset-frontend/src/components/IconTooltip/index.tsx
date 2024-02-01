@@ -48,14 +48,14 @@ const StyledSpan = styled.span`
   }
 `;
 
-const IconTooltip = ({
+function IconTooltip({
   children = null,
   className = '',
   onClick = () => undefined,
   placement = 'top',
   style = {},
   tooltip = null,
-}: Props) => {
+}: Props) {
   const iconTooltip = (
     <StyledSpan
       onClick={onClick}
@@ -79,6 +79,6 @@ const IconTooltip = ({
     );
   }
   return iconTooltip;
-};
+}
 
 export { IconTooltip };

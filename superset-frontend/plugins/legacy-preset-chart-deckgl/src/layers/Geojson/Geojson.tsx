@@ -164,7 +164,7 @@ export type DeckGLGeoJsonProps = {
   width: number;
 };
 
-const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
+function DeckGLGeoJson(props: DeckGLGeoJsonProps) {
   const containerRef = useRef<DeckGLContainerHandle>();
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
     const { current } = containerRef;
@@ -222,6 +222,6 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
       width={width}
     />
   );
-};
+}
 
 export default memo(DeckGLGeoJson);

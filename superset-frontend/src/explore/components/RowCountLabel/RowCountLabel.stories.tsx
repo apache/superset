@@ -42,17 +42,19 @@ const options: { [key in string]: RowCountLabelProps } = {
   },
 };
 
-export const RowCountLabelGallery = () => (
-  <>
-    {Object.keys(options).map(name => (
-      <>
-        <h4>{name}</h4>
-        <RowCountLabel
-          loading={options[name].loading}
-          rowcount={options[name].rowcount}
-          limit={options[name].limit}
-        />
-      </>
-    ))}
-  </>
-);
+export function RowCountLabelGallery() {
+  return (
+    <>
+      {Object.keys(options).map(name => (
+        <>
+          <h4>{name}</h4>
+          <RowCountLabel
+            loading={options[name].loading}
+            rowcount={options[name].rowcount}
+            limit={options[name].limit}
+          />
+        </>
+      ))}
+    </>
+  );
+}

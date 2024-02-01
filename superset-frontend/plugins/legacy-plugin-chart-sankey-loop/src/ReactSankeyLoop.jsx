@@ -22,11 +22,13 @@ import Component from './SankeyLoop';
 
 const ReactComponent = reactify(Component);
 
-const Sankey = ({ className, ...otherProps }) => (
-  <div className={className}>
-    <ReactComponent {...otherProps} />
-  </div>
-);
+function Sankey({ className, ...otherProps }) {
+  return (
+    <div className={className}>
+      <ReactComponent {...otherProps} />
+    </div>
+  );
+}
 
 export default styled(Sankey)`
   ${({ theme }) => `

@@ -24,9 +24,13 @@ import TableElement, { Column } from 'src/SqlLab/components/TableElement';
 import { table, initialState } from 'src/SqlLab/fixtures';
 import { render, waitFor, fireEvent } from 'spec/helpers/testing-library';
 
-jest.mock('src/components/Loading', () => () => (
-  <div data-test="mock-loading" />
-));
+jest.mock(
+  'src/components/Loading',
+  () =>
+    function () {
+      return <div data-test="mock-loading" />;
+    },
+);
 jest.mock('src/components/IconTooltip', () => ({
   IconTooltip: ({
     onClick,
@@ -43,8 +47,9 @@ jest.mock('src/components/IconTooltip', () => ({
 jest.mock(
   'src/SqlLab/components/ColumnElement',
   () =>
-    ({ column }: { column: Column }) =>
-      <div data-test="mock-column-element">{column.name}</div>,
+    function ({ column }: { column: Column }) {
+      return <div data-test="mock-column-element">{column.name}</div>;
+    },
 );
 const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
 const getExtraTableMetadataEndpoint =
