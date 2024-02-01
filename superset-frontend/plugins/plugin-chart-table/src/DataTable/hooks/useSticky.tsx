@@ -110,7 +110,6 @@ const fixedTableLayout: CSSProperties = { tableLayout: 'fixed' };
 /**
  * An HOC for generating sticky header and fixed-height scrollable area
  */
-
 function StickyWrap({
   sticky = {},
   width: maxWidth,
@@ -216,8 +215,7 @@ function StickyWrap({
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
-  let fullTable: ReactElement | undefined;
-
+  let bodyTable: ReactElement | undefined;
   if (needSizer) {
     const theadWithRef = React.cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
@@ -255,7 +253,6 @@ function StickyWrap({
         style={{
           overflow: 'hidden',
         }}
-        aria-hidden="true"
       >
         {React.cloneElement(
           table,
@@ -293,18 +290,20 @@ function StickyWrap({
         scrollFooterRef.current.scrollLeft = e.currentTarget.scrollLeft;
       }
     };
-
-    fullTable = (
+    bodyTable = (
       <div
-        key="full-table"
+        key="body"
         ref={scrollBodyRef}
+        style={{
+          height: bodyHeight,
+          overflow: 'auto',
+        }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
-          thead,
           tbody,
         )}
       </div>
@@ -316,11 +315,11 @@ function StickyWrap({
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
-        overflow: 'auto',
-        padding: '0',
+        overflow: 'hidden',
       }}
     >
-      {fullTable}
+      {headerTable}
+      {bodyTable}
       {footerTable}
       {sizerTable}
     </div>
