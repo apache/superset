@@ -54,7 +54,8 @@
 "api":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/**/api.py' # there are probably more globs to include here
+    - 'superset/**/api.py'
+    - 'superset/views/core.py'
 
 "i18n":
 - changed-files:
