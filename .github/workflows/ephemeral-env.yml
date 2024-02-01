@@ -76,7 +76,7 @@ jobs:
         github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
-          github.issues.createComment({
+          github.rest.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -100,7 +100,7 @@ jobs:
                 pull_number: ${{ github.event.issue.number }},
             }
             core.info(`Getting PR #${request.pull_number} from ${request.owner}/${request.repo}`)
-            const pr = await github.pulls.get(request);
+            const pr = await github.rest.pulls.get(request);
             return pr.data;
 
       - name: Debug
@@ -194,7 +194,7 @@ jobs:
         github-token: ${{github.token}}
         script: |
           const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
-          github.issues.createComment({
+          github.rest.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
