@@ -36,19 +36,19 @@ describe('columnChoices()', () => {
           {
             column_name: 'fiz',
             type: 'INT',
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           {
             column_name: 'about',
             verbose_name: 'right',
             type: 'VARCHAR',
-            type_generic: GenericDataType.STRING,
+            type_generic: GenericDataType.String,
           },
           {
             column_name: 'foo',
             verbose_name: undefined,
             type: 'TIMESTAMP',
-            type_generic: GenericDataType.TEMPORAL,
+            type_generic: GenericDataType.Temporal,
           },
         ],
         verbose_map: {},

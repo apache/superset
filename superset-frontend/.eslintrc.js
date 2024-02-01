@@ -93,6 +93,17 @@ module.exports = {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            selector: 'enum',
+            format: ['PascalCase'],
+          },
+          {
+            selector: 'enumMember',
+            format: ['PascalCase'],
+          },
+        ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily

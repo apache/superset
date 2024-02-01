@@ -50,14 +50,14 @@ import { PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
-  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+  if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
     | QueryFormColumn[]
     | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
-  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
+  return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
 /**
@@ -68,8 +68,8 @@ function isQueryMode(mode: QueryMode) {
     getQueryMode(controls) === mode;
 }
 
-const isAggMode = isQueryMode(QueryMode.aggregate);
-const isRawMode = isQueryMode(QueryMode.raw);
+const isAggMode = isQueryMode(QueryMode.Aggregate);
+const isRawMode = isQueryMode(QueryMode.Raw);
 
 const validateAggControlValues = (
   controls: ControlStateMapping,
@@ -86,8 +86,8 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   label: t('Query mode'),
   default: null,
   options: [
-    [QueryMode.aggregate, QueryModeLabel[QueryMode.aggregate]],
-    [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
+    [QueryMode.Aggregate, QueryModeLabel[QueryMode.Aggregate]],
+    [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
   rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
@@ -501,7 +501,7 @@ const config: ControlPanelConfig = {
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.NUMERIC,
+                            coltypes[index] === GenericDataType.Numeric,
                         )
                         .map(colname => ({
                           value: colname,

@@ -148,14 +148,14 @@ const ExploreChartPanel = ({
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
   const [splitSizes, setSplitSizes] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? INITIAL_SIZES
-      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+      : getItem(LocalStorageKeys.ChartSplitSizes, INITIAL_SIZES),
   );
   const [showSplite, setShowSplit] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
       ? false
-      : getItem(LocalStorageKeys.is_datapanel_open, false),
+      : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
@@ -202,7 +202,7 @@ const ExploreChartPanel = ({
   }, [updateQueryContext]);
 
   useEffect(() => {
-    setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
+    setItem(LocalStorageKeys.ChartSplitSizes, splitSizes);
   }, [splitSizes]);
 
   const onDragEnd = useCallback(sizes => {

@@ -269,10 +269,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
     ) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
-      ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
+      ?.behaviors?.includes(Behavior.InteractiveChart);
   const canViewDrill = useSelector((state: RootState) =>
     findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
   );
@@ -485,7 +485,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
+      {isFeatureEnabled(FeatureFlag.DrillToDetail) &&
         canExploreOrView &&
         canDatasourceSamples && (
           <DrillDetailMenuItems
@@ -526,7 +526,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             {t('Export to Excel')}
           </Menu.Item>
 
-          {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+          {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
             isTable && (
               <>

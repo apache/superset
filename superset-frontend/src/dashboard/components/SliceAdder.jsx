@@ -147,7 +147,7 @@ class SliceAdder extends React.Component {
       sortBy: DEFAULT_SORT_KEY,
       selectedSliceIdsSet: new Set(props.selectedSliceIds),
       showOnlyMyCharts: getItem(
-        LocalStorageKeys.dashboard__editor_show_only_my_charts,
+        LocalStorageKeys.DashboardEditorShowOnlyMyCharts,
         true,
       ),
     };
@@ -312,10 +312,7 @@ class SliceAdder extends React.Component {
         showOnlyMyCharts,
       ),
     }));
-    setItem(
-      LocalStorageKeys.dashboard__editor_show_only_my_charts,
-      showOnlyMyCharts,
-    );
+    setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
   }
 
   render() {

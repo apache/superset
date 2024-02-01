@@ -70,7 +70,7 @@ import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
-import { CLAUSES } from './controls/FilterControl/types';
+import { Clauses } from './controls/FilterControl/types';
 
 const { confirm } = Modal;
 
@@ -301,7 +301,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       const noFilter = !adhoc_filters?.find(
         filter =>
           filter.expressionType === 'SIMPLE' &&
-          filter.operator === Operators.TEMPORAL_RANGE &&
+          filter.operator === Operators.TemporalRange &&
           filter.subject === x_axis,
       );
       if (noFilter) {
@@ -314,9 +314,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
-                clause: CLAUSES.WHERE,
+                clause: Clauses.Where,
                 subject: x_axis,
-                operator: Operators.TEMPORAL_RANGE,
+                operator: Operators.TemporalRange,
                 comparator: defaultTimeFilter || NO_TIME_RANGE,
                 expressionType: 'SIMPLE',
               },
@@ -490,7 +490,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         values: Record<string, any>[],
       ) => {
         const isTemporalRange = (filter: Record<string, any>) =>
-          filter.operator === Operators.TEMPORAL_RANGE;
+          filter.operator === Operators.TemporalRange;
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {

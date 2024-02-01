@@ -81,7 +81,7 @@ describe('ChartPage', () => {
 
     beforeEach(() => {
       localStorage.setItem(
-        LocalStorageKeys.dashboard__explore_context,
+        LocalStorageKeys.DashboardExploreContext,
         JSON.stringify({
           [dashboardPageId]: {},
         }),

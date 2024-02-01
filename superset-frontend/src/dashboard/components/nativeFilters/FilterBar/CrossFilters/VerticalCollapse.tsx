@@ -59,7 +59,7 @@ const CrossFiltersVerticalCollapse = (props: {
         <CrossFilter
           key={filter.emitterId}
           filter={filter}
-          orientation={FilterBarOrientation.VERTICAL}
+          orientation={FilterBarOrientation.Vertical}
         />
       )),
     [crossFilters],

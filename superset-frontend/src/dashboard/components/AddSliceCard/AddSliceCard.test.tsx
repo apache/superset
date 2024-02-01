@@ -40,7 +40,7 @@ declare const global: {
 
 test('do not render thumbnail if feature flag is not set', async () => {
   global.featureFlags = {
-    [FeatureFlag.THUMBNAILS]: false,
+    [FeatureFlag.Thumbnails]: false,
   };
 
   await act(async () => {
@@ -52,7 +52,7 @@ test('do not render thumbnail if feature flag is not set', async () => {
 
 test('render thumbnail if feature flag is set', async () => {
   global.featureFlags = {
-    [FeatureFlag.THUMBNAILS]: true,
+    [FeatureFlag.Thumbnails]: true,
   };
 
   await act(async () => {

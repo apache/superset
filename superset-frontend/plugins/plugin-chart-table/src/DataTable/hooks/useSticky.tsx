@@ -56,8 +56,8 @@ export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
 
 export enum ReducerActions {
-  init = 'init', // this is from global reducer
-  setStickyState = 'setStickyState',
+  Init = 'init', // this is from global reducer
+  SetStickyState = 'setStickyState',
 }
 
 export type ReducerAction<
@@ -341,7 +341,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   const setStickyState = useCallback(
     (size?: Partial<StickyState>) => {
       dispatch({
-        type: ReducerActions.setStickyState,
+        type: ReducerActions.SetStickyState,
         size,
       });
     },
@@ -395,7 +395,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
       ReducerActions,
       { size: StickyState }
     >;
-    if (action.type === ReducerActions.init) {
+    if (action.type === ReducerActions.Init) {
       return {
         ...newState,
         sticky: {
@@ -403,7 +403,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
         },
       };
     }
-    if (action.type === ReducerActions.setStickyState) {
+    if (action.type === ReducerActions.SetStickyState) {
       const { size } = action;
       if (!size) {
         return { ...newState };

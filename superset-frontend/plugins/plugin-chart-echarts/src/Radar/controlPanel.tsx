@@ -165,7 +165,7 @@ const config: ControlPanelConfig = {
               description: t('Further customize how to display each metric'),
               renderTrigger: true,
               configFormLayout: {
-                [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
+                [GenericDataType.Numeric]: [[radarMetricMaxValue]],
               },
               shouldMapStateToProps() {
                 return true;

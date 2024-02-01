@@ -82,7 +82,7 @@ import TimeTableChartPlugin from '../TimeTable';
 export default class MainPreset extends Preset {
   constructor() {
     const experimentalPlugins = isFeatureEnabled(
-      FeatureFlag.CHART_PLUGINS_EXPERIMENTAL,
+      FeatureFlag.ChartPluginsExperimental,
     )
       ? [new PopKPIPlugin().configure({ key: 'pop_kpi' })]
       : [];

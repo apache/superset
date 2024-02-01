@@ -51,7 +51,7 @@ import {
 import useAdvancedDataTypes from './useAdvancedDataTypes';
 import { useDatePickerInAdhocFilter } from '../utils';
 import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -74,13 +74,13 @@ const SelectWithLabel = styled(Select)<{ labelText: string }>`
 `;
 
 export interface SimpleExpressionType {
-  expressionType: keyof typeof EXPRESSION_TYPES;
+  expressionType: keyof typeof ExpressionTypes;
   column: ColumnMeta;
   aggregate: keyof typeof AGGREGATES;
   label: string;
 }
 export interface SQLExpressionType {
-  expressionType: keyof typeof EXPRESSION_TYPES;
+  expressionType: keyof typeof ExpressionTypes;
   sqlExpression: string;
   label: string;
 }
@@ -124,24 +124,22 @@ export const useSimpleTabFilterProps = (props: Props) => {
       !!column && (column.type === 'INT' || column.type === 'INTEGER');
     const isColumnFunction = !!column && !!column.expression;
 
-    if (operator && operator === Operators.LATEST_PARTITION) {
+    if (operator && operator === Operators.LatestPartition) {
       const { partitionColumn } = props;
       return partitionColumn && subject && subject === partitionColumn;
     }
-    if (operator && operator === Operators.TEMPORAL_RANGE) {
+    if (operator && operator === Operators.TemporalRange) {
       // hide the TEMPORAL_RANGE operator
       return false;
     }
-    if (operator === Operators.IS_TRUE || operator === Operators.IS_FALSE) {
+    if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
       return isColumnBoolean || isColumnNumber || isColumnFunction;
     }
     if (isColumnBoolean) {
-      return (
-        operator === Operators.IS_NULL || operator === Operators.IS_NOT_NULL
-      );
+      return operator === Operators.IsNull || operator === Operators.IsNotNull;
     }
     return (
-      props.adhocFilter.clause !== CLAUSES.HAVING ||
+      props.adhocFilter.clause !== Clauses.Having ||
       HAVING_OPERATORS.indexOf(operator) !== -1
     );
   };
@@ -156,13 +154,13 @@ export const useSimpleTabFilterProps = (props: Props) => {
     // infer the new clause based on what subject was selected.
     if (option && 'column_name' in option) {
       subject = option.column_name;
-      clause = CLAUSES.WHERE;
+      clause = Clauses.Where;
     } else if (option && 'saved_metric_name' in option) {
       subject = option.saved_metric_name;
-      clause = CLAUSES.HAVING;
+      clause = Clauses.Having;
     } else if (option?.label) {
       subject = option.label;
-      clause = CLAUSES.HAVING;
+      clause = Clauses.Having;
     }
     let { operator, operatorId, comparator } = props.adhocFilter;
     operator =
@@ -171,15 +169,15 @@ export const useSimpleTabFilterProps = (props: Props) => {
         : null;
     if (!isDefined(operator)) {
       // if operator is `null`, use the `IN` and reset the comparator.
-      operator = Operators.IN;
-      operatorId = Operators.IN;
+      operator = Operators.In;
+      operatorId = Operators.In;
       comparator = undefined;
     }
 
     if (isTemporalColumn(id, props.datasource)) {
       subject = id;
-      operator = Operators.TEMPORAL_RANGE;
-      operatorId = Operators.TEMPORAL_RANGE;
+      operator = Operators.TemporalRange;
+      operatorId = Operators.TemporalRange;
       comparator = defaultTimeFilter;
     }
 
@@ -188,7 +186,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         subject,
         clause,
         operator,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
         operatorId,
         comparator,
       }),
@@ -208,17 +206,17 @@ export const useSimpleTabFilterProps = (props: Props) => {
         ? currentComparator[0]
         : currentComparator;
     }
-    if (operatorId === Operators.IS_TRUE || operatorId === Operators.IS_FALSE) {
-      newComparator = Operators.IS_TRUE === operatorId;
+    if (operatorId === Operators.IsTrue || operatorId === Operators.IsFalse) {
+      newComparator = Operators.IsTrue === operatorId;
     }
     if (operatorId && CUSTOM_OPERATORS.has(operatorId)) {
       props.onChange(
         props.adhocFilter.duplicateWith({
           subject: props.adhocFilter.subject,
-          clause: CLAUSES.WHERE,
+          clause: Clauses.Where,
           operatorId,
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
-          expressionType: EXPRESSION_TYPES.SQL,
+          expressionType: ExpressionTypes.Sql,
           datasource: props.datasource,
         }),
       );
@@ -228,7 +226,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           operatorId,
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           comparator: newComparator,
-          expressionType: EXPRESSION_TYPES.SIMPLE,
+          expressionType: ExpressionTypes.Simple,
         }),
       );
     }
@@ -237,7 +235,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     props.onChange(
       props.adhocFilter.duplicateWith({
         comparator,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
       }),
     );
   };
@@ -253,9 +251,9 @@ export const useSimpleTabFilterProps = (props: Props) => {
     props.onChange(
       props.adhocFilter.duplicateWith({
         subject: columnName,
-        operator: Operators.TEMPORAL_RANGE,
+        operator: Operators.TemporalRange,
         comparator: timeRange,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
       }),
     );
   };
@@ -341,7 +339,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   };
 
   subjectSelectProps.placeholder =
-    props.adhocFilter.clause === CLAUSES.WHERE
+    props.adhocFilter.clause === Clauses.Where
       ? t('%s column(s)', columns.length)
       : t('To filter on a metric, use Custom SQL tab.');
   columns = props.options.filter(
@@ -386,7 +384,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const datePicker = useDatePickerInAdhocFilter({
     columnName: props.adhocFilter.subject,
     timeRange:
-      props.adhocFilter.operator === Operators.TEMPORAL_RANGE
+      props.adhocFilter.operator === Operators.TemporalRange
         ? props.adhocFilter.comparator
         : undefined,
     datasource: props.datasource,
@@ -397,7 +395,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     const refreshComparatorSuggestions = () => {
       const { datasource } = props;
       const col = props.adhocFilter.subject;
-      const having = props.adhocFilter.clause === CLAUSES.HAVING;
+      const having = props.adhocFilter.clause === Clauses.Having;
 
       if (col && datasource && datasource.filter_select && !having) {
         const controller = new AbortController();
@@ -433,13 +431,13 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
       fetchSubjectAdvancedDataType(props);
     }
   }, [props.adhocFilter.subject]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
       fetchAdvancedDataTypeValueCallback(
         comparator === undefined ? '' : comparator,
         advancedDataTypesState,
@@ -449,7 +447,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)) {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
       setComparator(props.adhocFilter.comparator);
     }
   }, [props.adhocFilter.comparator]);

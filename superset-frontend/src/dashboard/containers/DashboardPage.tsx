@@ -106,7 +106,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // generated next time user opens a dashboard and the old one won't be reused
     const handleTabClose = () => {
       const dashboardsContexts = getDashboardContextLocalStorage();
-      setItem(LocalStorageKeys.dashboard__explore_context, {
+      setItem(LocalStorageKeys.DashboardExploreContext, {
         ...dashboardsContexts,
         [dashboardPageId]: {
           ...dashboardsContexts[dashboardPageId],
@@ -187,7 +187,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   useEffect(() => {
     const sharedLabelColor = getSharedLabelColor();
-    sharedLabelColor.source = SharedLabelColorSource.dashboard;
+    sharedLabelColor.source = SharedLabelColorSource.Dashboard;
     return () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(

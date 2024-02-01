@@ -59,9 +59,9 @@ const {
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
   const isXAxis = axis === 'x';
   const isVertical = (controls: ControlStateMapping) =>
-    Boolean(controls?.orientation.value === OrientationType.vertical);
+    Boolean(controls?.orientation.value === OrientationType.Vertical);
   const isHorizontal = (controls: ControlStateMapping) =>
-    Boolean(controls?.orientation.value === OrientationType.horizontal);
+    Boolean(controls?.orientation.value === OrientationType.Horizontal);
   return [
     [
       {
@@ -148,9 +148,9 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
 function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
   const isXAxis = axis === 'x';
   const isVertical = (controls: ControlStateMapping) =>
-    Boolean(controls?.orientation.value === OrientationType.vertical);
+    Boolean(controls?.orientation.value === OrientationType.Vertical);
   const isHorizontal = (controls: ControlStateMapping) =>
-    Boolean(controls?.orientation.value === OrientationType.horizontal);
+    Boolean(controls?.orientation.value === OrientationType.Horizontal);
   return [
     [
       {
@@ -272,8 +272,8 @@ const config: ControlPanelConfig = {
               label: t('Bar orientation'),
               default: orientation,
               options: [
-                [OrientationType.vertical, t('Vertical')],
-                [OrientationType.horizontal, t('Horizontal')],
+                [OrientationType.Vertical, t('Vertical')],
+                [OrientationType.Horizontal, t('Horizontal')],
               ],
               description: t('Orientation of bar chart'),
             },

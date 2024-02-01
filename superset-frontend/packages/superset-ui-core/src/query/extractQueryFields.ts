@@ -73,13 +73,13 @@ export default function extractQueryFields(
     // For charts that support both aggregate and raw records mode,
     // we store both `groupby` and `columns` in `formData`, so users can
     // switch between modes while retaining the selected options for each.
-    if (queryMode === QueryMode.aggregate && normalizedKey === 'columns') {
+    if (queryMode === QueryMode.Aggregate && normalizedKey === 'columns') {
       return;
     }
 
     // for the same reason, ignore groupby and metrics in raw records mode
     if (
-      queryMode === QueryMode.raw &&
+      queryMode === QueryMode.Raw &&
       (normalizedKey === 'groupby' || normalizedKey === 'metrics')
     ) {
       return;
@@ -106,7 +106,7 @@ export default function extractQueryFields(
       getColumnLabel,
     ),
     metrics:
-      queryMode === QueryMode.raw
+      queryMode === QueryMode.Raw
         ? undefined
         : removeDuplicates(metrics, getMetricLabel),
     orderby:

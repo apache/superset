@@ -115,7 +115,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
     state => state.dashboardLayout.present,
   );
   const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const verboseMaps = useChartsVerboseMaps();
 
