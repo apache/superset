@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js 16
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '16'
       - name: yarn install

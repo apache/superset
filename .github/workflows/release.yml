@@ -47,7 +47,7 @@ jobs:
 
       - name: Use Node.js ${{ matrix.node-version }}
         if: env.HAS_TAGS
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 

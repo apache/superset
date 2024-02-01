@@ -39,7 +39,7 @@ jobs:
           submodules: recursive
           ref: master
       - name: Set up Node.js
-        uses: actions/setup-node@v3.1.1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Install eyes-storybook dependencies
