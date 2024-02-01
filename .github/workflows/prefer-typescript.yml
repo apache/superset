@@ -10,6 +10,12 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
     paths:
       - "superset-frontend/src/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   prefer_typescript:
     if: github.ref == 'ref/heads/master' && github.event_name == 'pull_request'
