@@ -61,7 +61,7 @@ jobs:
         env:
           SUPERSET_TESTENV: true
         run: |
-          pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
+          ./scripts/python_tests.sh tests/unit_tests
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
