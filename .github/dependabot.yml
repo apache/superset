@@ -1,5 +1,11 @@
 version: 2
 updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
   - package-ecosystem: "npm"
     ignore:
       # not until  node >= 18.12.0

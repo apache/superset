@@ -26,6 +26,7 @@ export enum FeatureFlag {
   AlertReports = 'ALERT_REPORTS',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
+  ChartPluginsExperimental = 'ChartPluginsExperimental',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
   /** @deprecated */
   DashboardCrossFilters = 'DASHBOARD_CROSS_FILTERS',

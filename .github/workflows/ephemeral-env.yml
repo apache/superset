@@ -212,8 +212,7 @@ jobs:
     - name: Describe ECS service
       id: describe-services
       run: |
-        echo "::set-output name=active::$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.issue.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')"
-
+        echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.issue.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
     - name: Create ECS service
       if: steps.describe-services.outputs.active != 'true'
       id: create-service
@@ -244,17 +243,17 @@ jobs:
     - name: List tasks
       id: list-tasks
       run: |
-        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name pr-${{ github.event.issue.number }}-service | jq '.taskArns | first')"
+        echo "task=$(aws ecs list-tasks --cluster superset-ci --service-name pr-${{ github.event.issue.number }}-service | jq '.taskArns | first')" >> $GITHUB_OUTPUT
 
     - name: Get network interface
       id: get-eni
       run: |
-        echo "::set-output name=eni::$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks | .[0] | .attachments | .[0] | .details | map(select(.name=="networkInterfaceId")) | .[0] | .value')"
+        echo "eni=$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks | .[0] | .attachments | .[0] | .details | map(select(.name=="networkInterfaceId")) | .[0] | .value')" >> $GITHUB_OUTPUT
 
     - name: Get public IP
       id: get-ip
       run: |
-        echo "::set-output name=ip::$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')"
+        echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
 
     - name: Comment (success)
       if: ${{ success() }}

@@ -121,7 +121,7 @@ jobs:
         with:
           run: cypress-run-all
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: screenshots

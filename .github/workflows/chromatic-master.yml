@@ -61,7 +61,7 @@ jobs:
       # 👇 Build and publish Storybook to Chromatic
       - name: Build and publish Storybook to Chromatic
         id: chromatic-master
-        uses: chromaui/action@v1
+        uses: chromaui/action@v10
         # Required options for the Chromatic GitHub Action
         with:
           # 👇 Location of package.json from root of mono-repo

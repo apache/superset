@@ -64,7 +64,7 @@ jobs:
       - name: Get npm cache directory path
         if: env.HAS_TAGS
         id: npm-cache-dir-path
-        run: echo "::set-output name=dir::$(npm config get cache)"
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Cache npm
         if: env.HAS_TAGS
         uses: actions/cache@v1
