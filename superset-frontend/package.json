@@ -285,7 +285,7 @@
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.7",
     "eslint": "^7.32.0",
-    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.1.0",
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-cypress": "^2.11.2",
