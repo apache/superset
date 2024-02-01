@@ -36,7 +36,7 @@ jobs:
       - name: Describe ECS service
         id: describe-services
         run: |
-          echo "::set-output name=active::$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')"
+          echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
 
       - name: Delete ECS service
         if: steps.describe-services.outputs.active == 'true'

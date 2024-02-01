@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-} from '@superset-ui/core';
+import { t, AnnotationType, Behavior } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
@@ -56,13 +51,9 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
-            )
-          : t(
-              'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
-            ),
+        description: t(
+          'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
+        ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -70,9 +61,7 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes
-          ? t('Area Chart')
-          : t('Time-series Area Chart'),
+        name: t('Area Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),

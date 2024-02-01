@@ -7,6 +7,10 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   cypress-matrix:
     runs-on: ubuntu-20.04
@@ -117,7 +121,7 @@ jobs:
         with:
           run: cypress-run-all
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: screenshots

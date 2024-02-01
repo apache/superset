@@ -18,7 +18,6 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  hasGenericChartAxes,
   logging,
   Metric,
   QueryFormData,
@@ -373,7 +372,6 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       config.operatorId = Operators.IN;
     }
     if (
-      hasGenericChartAxes &&
       isColumnMeta(droppedItem) &&
       isTemporalColumn(droppedItem?.column_name, props.datasource)
     ) {

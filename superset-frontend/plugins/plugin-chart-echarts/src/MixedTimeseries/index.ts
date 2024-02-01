@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -60,13 +55,9 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
-            )
-          : t(
-              'Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
-            ),
+        description: t(
+          'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
+        ),
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
@@ -74,7 +65,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
           AnnotationType.Timeseries,
         ],
         exampleGallery: [{ url: example }],
-        name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
+        name: t('Mixed Chart'),
         thumbnail,
         tags: [
           t('Advanced-Analytics'),

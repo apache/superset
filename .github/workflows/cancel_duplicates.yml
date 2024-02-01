@@ -27,7 +27,7 @@ jobs:
           }
           count=$(( `get_count queued` + `get_count in_progress` ))
           echo "Found $count unfinished jobs."
-          echo "::set-output name=count::$count"
+          echo "count=$count" >> $GITHUB_OUTPUT
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         if: steps.check_queued.outputs.count >= 20
