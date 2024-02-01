@@ -17,3 +17,8 @@
 # under the License.
 #
 -e file:.
+
+# The following constraints are currently required as these packages resolved to
+# different versions in different environments due to differing sets of dependencies.
+referencing>=0.28.0,<0.32.0  # jsonschema-path 0.3.2
+urllib3>=1.25.4,<1.27  # botocore 1.34.32
