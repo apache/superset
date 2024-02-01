@@ -20,8 +20,9 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
-          java-version: 8
+          distribution: 'temurin'
+          java-version: '11'
       - name: Run license check
         run: ./scripts/check_license.sh
