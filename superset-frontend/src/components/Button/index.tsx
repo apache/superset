@@ -148,7 +148,14 @@ export default function Button(props: ButtonProps) {
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      className={cx(className, 'superset-button', { cta: !!cta })}
+      className={cx(
+        className,
+        'superset-button',
+        // A static class name containing the button style is available to
+        // support customizing button styles in embedded dashboards.
+        `superset-button-${buttonStyle}`,
+        { cta: !!cta },
+      )}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
