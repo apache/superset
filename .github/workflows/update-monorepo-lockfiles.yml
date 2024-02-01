@@ -8,6 +8,11 @@ on:
     # Trigger this workflow when Dependabot creates a pull request
     types: [opened, synchronize, reopened]
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   update-lock-file:
     runs-on: ubuntu-latest

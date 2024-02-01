@@ -5,6 +5,12 @@ on:
     paths:
       - "docs/**"
     types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   build-deploy:
     name: Build & Deploy
