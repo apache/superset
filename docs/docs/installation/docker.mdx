@@ -14,14 +14,14 @@ https://hub.docker.com/r/apache/superset). Different sets of images are created 
   prefixed with `master` for the latest `master` version.
 
 Each code version has multiple builds for different purposes, identified by suffixes:
-- **Build Preset:** We offer various images for different needs:
-  - **Lean:** The default Docker image, including both frontend and backend. Tags
+- **Build preset:** We offer various images for different needs:
+  - `lean`: The default Docker image, including both frontend and backend. Tags
     without a build_preset are lean builds, e.g., `latest`.
-  - **Dev:** For development, with a headless browser and root access.
-  - **PyXXX, e.g., Py310:** Similar to lean but with a different Python version (in this example, 3.10).
-  - **CI:** For certain CI workloads.
-  - **WebSocket:** For Superset clusters supporting advanced features.
-  - **Dockerize:** Used by Helm.
+  - `dev`: For development, with a headless browser and root access.
+  - `py310`, e.g., Py310: Similar to lean but with a different Python version (in this example, 3.10).
+  - `ci`: For certain CI workloads.
+  - `websocket`: For Superset clusters supporting advanced features.
+  - `dockerize`: Used by Helm.
 - **Platform:** We build for `linux/arm64` and `linux/amd64`. The `-arm` suffix
   indicates ARM builds (e.g., `latest-arm`), while tags without a suffix are for
   AMD (e.g., `latest`).
