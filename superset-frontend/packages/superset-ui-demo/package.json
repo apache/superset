@@ -41,7 +41,7 @@
     "@storybook/addon-links": "^6.3.12",
     "@storybook/addons": "^6.3.12",
     "@storybook/react": "^6.3.12",
-    "@types/react-loadable": "^5.5.3",
+    "@types/react-loadable": "^5.5.11",
     "antd": "4.10.3",
     "bootstrap": "^3.4.1",
     "core-js": "3.8.3",
