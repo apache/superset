@@ -53,7 +53,7 @@ To accelerate builds, we follow Docker best practices and use `apache/superset-c
 ## On ARM builds and working with Apple silicon
 
 Apple's current generation of computers uses ARM-based CPUs, and Docker
-running on MACs seem to require `linux/arm64/v8` (at least my M2 was
+running on MACs seem to require `linux/arm64/v8` (at least one user's M2 was
 configured in that way). From my experience, setting the envrionment
 variable `DOCKER_DEFAULT_PLATFORM` to `linux/amd64` seems to function in
 term of leveraging, and building upon the Superset builds provided here.
