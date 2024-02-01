@@ -208,7 +208,9 @@ def get_docker_command(
 )
 @click.option("--build_context_ref", help="a reference to the pr, release or branch")
 @click.option("--dry-run", is_flag=True, help="Run the command in dry-run mode.")
-@click.option("--force-latest", is_flag=True, help="Run the command in dry-run mode.")
+@click.option(
+    "--force-latest", is_flag=True, help="Force the 'latest' tag on the release"
+)
 def main(
     build_preset: str,
     build_context: str,
@@ -234,6 +236,11 @@ def main(
         build_context_ref,
         force_latest,
     )
+    if force_latest and build_context != "release":
+        print(
+            "--force-latest can only be applied if the build context is set to 'release'"
+        )
+        exit(1)
 
     if not dry_run:
         print("Executing Docker Build Command:")
