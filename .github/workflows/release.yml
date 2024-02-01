@@ -53,7 +53,7 @@ jobs:
 
       - name: Cache npm
         if: env.HAS_TAGS
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
           key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -67,7 +67,7 @@ jobs:
         run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
       - name: Cache npm
         if: env.HAS_TAGS
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.npm-cache-dir-path.outputs.dir }}
