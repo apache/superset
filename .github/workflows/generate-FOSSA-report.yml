@@ -33,8 +33,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin' # Specify the distribution here
-          java-version: '11'       # Specify the Java version here
+          distribution: 'temurin'
+          java-version: '11'
       - name: Generate fossa report
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
