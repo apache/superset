@@ -47,10 +47,15 @@ const map_object_type_to_id = (objectType: string) => {
 };
 
 export function fetchAllTags(
+  // fetch all tags (excluding system tags)
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  SupersetClient.get({ endpoint: `/api/v1/tag` })
+  SupersetClient.get({
+    endpoint: `/api/v1/tag/?q=${rison.encode({
+      filters: [{ col: 'type', opr: 'custom_tag', value: true }],
+    })}`,
+  })
     .then(({ json }) => callback(json))
     .catch(response => error(response));
 }
