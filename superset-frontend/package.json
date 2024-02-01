@@ -121,7 +121,7 @@
     "@visx/grid": "^3.5.0",
     "@visx/responsive": "^3.0.0",
     "@visx/scale": "^3.0.0",
-    "@visx/xychart": "^3.0.0",
+    "@visx/xychart": "^3.8.0",
     "abortcontroller-polyfill": "^1.1.9",
     "ace-builds": "^1.4.14",
     "antd": "4.10.3",
