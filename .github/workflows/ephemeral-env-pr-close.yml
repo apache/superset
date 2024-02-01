@@ -50,7 +50,7 @@ jobs:
       - name: Login to Amazon ECR
         if: steps.describe-services.outputs.active == 'true'
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Delete ECR image tag
         if: steps.describe-services.outputs.active == 'true'
