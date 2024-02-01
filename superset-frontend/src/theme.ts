@@ -20,5 +20,5 @@ import './assets/stylesheets/superset.less';
 
 // Importing Antd under its own stylesheet to prevent unintentional theming.
 import './assets/stylesheets/antd/index.less';
-// Importing custom theme.
-import './assets/stylesheets/custom/theme.less';
+// Uncomment the below line, for having a custom theme to Superset UI
+// import './assets/stylesheets/custom/theme.less';

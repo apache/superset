@@ -20,7 +20,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import Loader from 'src/assets/images/custom/loading.gif';
+import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
   | 'floating'
