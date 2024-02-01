@@ -318,7 +318,7 @@
     "less": "^4.2.0",
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.7.6",
-    "mock-socket": "^9.0.3",
+    "mock-socket": "^9.3.1",
     "node-fetch": "^2.6.7",
     "prettier": "^2.4.1",
     "prettier-plugin-packagejson": "^2.4.9",
