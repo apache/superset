@@ -91,7 +91,7 @@ def test_update_command_success(session_with_data: Session, mocker: MockerFixtur
     )
 
     objects_to_tag = [
-        (ObjectType.dashboard, dashboard.id),
+        (ObjectType.DASHBOARD, dashboard.id),
     ]
 
     tag_to_update = TagDAO.find_by_name("test_name")
@@ -132,7 +132,7 @@ def test_update_command_success_duplicates(
     )
 
     objects_to_tag = [
-        (ObjectType.dashboard, dashboard.id),
+        (ObjectType.DASHBOARD, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
@@ -142,7 +142,7 @@ def test_update_command_success_duplicates(
     tag_to_update = TagDAO.find_by_name("test_tag")
 
     objects_to_tag = [
-        (ObjectType.chart, chart.id),
+        (ObjectType.CHART, chart.id),
     ]
     changed_model = UpdateTagCommand(
         tag_to_update.id,
@@ -174,7 +174,7 @@ def test_update_command_failed_validation(
     dashboard = db.session.query(Dashboard).first()
     chart = db.session.query(Slice).first()
     objects_to_tag = [
-        (ObjectType.chart, chart.id),
+        (ObjectType.CHART, chart.id),
     ]
 
     mocker.patch(
