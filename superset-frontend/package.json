@@ -225,7 +225,7 @@
     "@emotion/jest": "^11.3.0",
     "@hot-loader/react-dom": "^16.13.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@storybook/addon-actions": "^6.4.22",
+    "@storybook/addon-actions": "^7.6.12",
     "@storybook/addon-docs": "^6.5.10",
     "@storybook/addon-essentials": "^6.4.22",
     "@storybook/addon-knobs": "^6.3.1",
