@@ -77,7 +77,7 @@ REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- end }}
 
 # Redis URL Params
-{{- if .Values.supersetNode.connections.use_redis_ssl }}
+{{- if .Values.supersetNode.connections.redis_ssl.enabled }}
 REDIS_URL_PARAMS = f"?ssl_cert_req={env('REDIS_SSL_CERT_REQS')}"
 {{- else }}
 REDIS_URL_PARAMS = ""
@@ -92,7 +92,7 @@ CACHE_CONFIG = {
       'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
-      'CACHE_REDIS_URL': f"{CACHE_REDIS_URL}",
+      'CACHE_REDIS_URL': CACHE_REDIS_URL,
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
@@ -101,8 +101,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 class CeleryConfig:
   imports  = ("superset.sql_lab", )
-  broker_url = f"{CELERY_REDIS_URL}"
-  result_backend = f"{CELERY_REDIS_URL}"
+  broker_url = CELERY_REDIS_URL
+  result_backend = CELERY_REDIS_URL
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
