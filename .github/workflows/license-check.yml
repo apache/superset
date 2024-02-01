@@ -15,7 +15,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
           java-version: 8
       - name: Run license check
