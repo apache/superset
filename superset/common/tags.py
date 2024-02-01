@@ -35,7 +35,7 @@ def add_types_to_charts(
             [
                 tag.c.id.label("tag_id"),
                 slices.c.id.label("object_id"),
-                literal(ObjectType.chart.name).label("object_type"),
+                literal(ObjectType.CHART.name).label("object_type"),
             ]
         )
         .select_from(
@@ -67,7 +67,7 @@ def add_types_to_dashboards(
             [
                 tag.c.id.label("tag_id"),
                 dashboard_table.c.id.label("object_id"),
-                literal(ObjectType.dashboard.name).label("object_type"),
+                literal(ObjectType.DASHBOARD.name).label("object_type"),
             ]
         )
         .select_from(
@@ -99,7 +99,7 @@ def add_types_to_saved_queries(
             [
                 tag.c.id.label("tag_id"),
                 saved_query.c.id.label("object_id"),
-                literal(ObjectType.query.name).label("object_type"),
+                literal(ObjectType.QUERY.name).label("object_type"),
             ]
         )
         .select_from(
@@ -131,7 +131,7 @@ def add_types_to_datasets(
             [
                 tag.c.id.label("tag_id"),
                 tables.c.id.label("object_id"),
-                literal(ObjectType.dataset.name).label("object_type"),
+                literal(ObjectType.DATASET.name).label("object_type"),
             ]
         )
         .select_from(
@@ -223,7 +223,7 @@ def add_types(metadata: MetaData) -> None:
     insert = tag.insert()
     for type_ in ObjectType.__members__:
         with contextlib.suppress(IntegrityError):  # already exists
-            db.session.execute(insert, name=f"type:{type_}", type=TagType.type)
+            db.session.execute(insert, name=f"type:{type_}", type=TagType.TYPE)
 
     add_types_to_charts(metadata, tag, tagged_object, columns)
     add_types_to_dashboards(metadata, tag, tagged_object, columns)
@@ -241,7 +241,7 @@ def add_owners_to_charts(
             [
                 tag.c.id.label("tag_id"),
                 slices.c.id.label("object_id"),
-                literal(ObjectType.chart.name).label("object_type"),
+                literal(ObjectType.CHART.name).label("object_type"),
             ]
         )
         .select_from(
@@ -277,7 +277,7 @@ def add_owners_to_dashboards(
             [
                 tag.c.id.label("tag_id"),
                 dashboard_table.c.id.label("object_id"),
-                literal(ObjectType.dashboard.name).label("object_type"),
+                literal(ObjectType.DASHBOARD.name).label("object_type"),
             ]
         )
         .select_from(
@@ -313,7 +313,7 @@ def add_owners_to_saved_queries(
             [
                 tag.c.id.label("tag_id"),
                 saved_query.c.id.label("object_id"),
-                literal(ObjectType.query.name).label("object_type"),
+                literal(ObjectType.QUERY.name).label("object_type"),
             ]
         )
         .select_from(
@@ -349,7 +349,7 @@ def add_owners_to_datasets(
             [
                 tag.c.id.label("tag_id"),
                 tables.c.id.label("object_id"),
-                literal(ObjectType.dataset.name).label("object_type"),
+                literal(ObjectType.DATASET.name).label("object_type"),
             ]
         )
         .select_from(
@@ -444,7 +444,7 @@ def add_owners(metadata: MetaData) -> None:
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         with contextlib.suppress(IntegrityError):  # already exists
-            db.session.execute(insert, name=f"owner:{id_}", type=TagType.owner)
+            db.session.execute(insert, name=f"owner:{id_}", type=TagType.OWNER)
     add_owners_to_charts(metadata, tag, tagged_object, columns)
     add_owners_to_dashboards(metadata, tag, tagged_object, columns)
     add_owners_to_saved_queries(metadata, tag, tagged_object, columns)
@@ -482,7 +482,7 @@ def add_favorites(metadata: MetaData) -> None:
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         with contextlib.suppress(IntegrityError):  # already exists
-            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagType.type)
+            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagType.TYPE)
     favstars = (
         select(
             [
