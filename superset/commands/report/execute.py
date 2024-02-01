@@ -347,7 +347,6 @@ class BaseReportState:
         screenshot_data = []
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
-        prefix = app.config["EMAIL_REPORTS_SUBJECT_PREFIX"]
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
