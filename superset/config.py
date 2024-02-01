@@ -154,10 +154,6 @@ FILTER_SELECT_ROW_LIMIT = 10000
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
 
-SUPERSET_WEBSERVER_PROTOCOL = "http"
-SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
-SUPERSET_WEBSERVER_PORT = 8088
-
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
 # You should also make sure to configure your WSGI server
