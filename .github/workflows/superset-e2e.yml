@@ -47,13 +47,13 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout (pull) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: github.event_name == 'push'
         with:
           persist-credentials: false
           submodules: recursive
       - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
