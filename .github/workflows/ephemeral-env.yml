@@ -41,7 +41,7 @@ jobs:
         echo "Comment on PR #${{ github.event.issue.number }} by ${{ github.event.issue.user.login }}, ${{ github.event.comment.author_association }}"
 
     - name: Eval comment body for /testenv slash command
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       id: eval-body
       with:
         result-encoding: string
@@ -51,7 +51,7 @@ jobs:
           return result === null ? 'noop' : result[1]
 
     - name: Eval comment body for feature flags
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       id: eval-feature-flags
       with:
         script: |
@@ -71,7 +71,7 @@ jobs:
         steps.eval-body.outputs.result != 'noop' &&
         github.event.comment.author_association != 'MEMBER' &&
         github.event.comment.author_association != 'OWNER'
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
         script: |
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get Info from comment
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7
         id: get-pr-info
         with:
           script: |
@@ -189,7 +189,7 @@ jobs:
 
     - name: Fail on missing container image
       if: steps.check-image.outcome == 'failure'
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
         script: |
@@ -262,7 +262,7 @@ jobs:
 
     - name: Comment (success)
       if: ${{ success() }}
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
         script: |
@@ -275,7 +275,7 @@ jobs:
 
     - name: Comment (failure)
       if: ${{ failure() }}
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       with:
         github-token: ${{github.token}}
         script: |
