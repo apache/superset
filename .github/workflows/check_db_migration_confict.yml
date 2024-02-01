@@ -24,7 +24,7 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check and notify
         uses: actions/github-script@v7
         with:

@@ -22,7 +22,7 @@ jobs:
         working-directory: superset-frontend
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }} # Checkout the branch that made the PR
 
