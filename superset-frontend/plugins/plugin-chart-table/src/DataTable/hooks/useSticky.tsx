@@ -226,6 +226,7 @@ function StickyWrap({
           height: maxHeight,
           overflow: 'auto',
           visibility: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(table, {}, theadWithRef, tbody, tfootWithRef)}
@@ -252,6 +253,7 @@ function StickyWrap({
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(
@@ -270,6 +272,7 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(
@@ -297,6 +300,7 @@ function StickyWrap({
         style={{
           height: bodyHeight,
           overflow: 'auto',
+          scrollbarGutter: 'stable',
         }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
