@@ -29,9 +29,9 @@ const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
 
 // @ts-ignore
 global.featureFlags = {
-  [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
-  [FeatureFlag.DRILL_TO_DETAIL]: true,
-  [FeatureFlag.DRILL_BY]: true,
+  [FeatureFlag.DashboardCrossFilters]: true,
+  [FeatureFlag.DrillToDetail]: true,
+  [FeatureFlag.DrillBy]: true,
 };
 
 const setup = ({

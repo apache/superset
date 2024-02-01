@@ -24,7 +24,7 @@ class ChartTransformPropsRegistry extends Registry<TransformProps<any>> {
   constructor() {
     super({
       name: 'ChartTransformProps',
-      overwritePolicy: OverwritePolicy.WARN,
+      overwritePolicy: OverwritePolicy.Warn,
     });
   }
 }

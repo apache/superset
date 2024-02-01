@@ -114,23 +114,23 @@ const ChartContextMenu = (
   const canExploreOrView = canExplore || canViewDrill;
 
   const showDrillToDetail =
-    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
+    isFeatureEnabled(FeatureFlag.DrillToDetail) &&
     canExploreOrView &&
     canDatasourceSamples &&
     isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
-    isFeatureEnabled(FeatureFlag.DRILL_BY) &&
+    isFeatureEnabled(FeatureFlag.DrillBy) &&
     canExploreOrView &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     isDisplayed(ContextMenuItem.CrossFilter);
 
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
-    ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
+    ?.behaviors?.includes(Behavior.InteractiveChart);
 
   let itemsCount = 0;
   if (showCrossFilters) {

@@ -26,7 +26,7 @@ test('stores the dashboard info with local storages', () => {
   render(<SyncDashboardState dashboardPageId={testDashboardPageId} />, {
     useRedux: true,
   });
-  expect(getItem(LocalStorageKeys.dashboard__explore_context, {})).toEqual({
+  expect(getItem(LocalStorageKeys.DashboardExploreContext, {})).toEqual({
     [testDashboardPageId]: expect.objectContaining({
       dashboardPageId: testDashboardPageId,
     }),

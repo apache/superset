@@ -54,7 +54,7 @@ export function formatFunnelLabel({
   params,
   labelType,
   numberFormatter,
-  percentCalculationType = PercentCalcType.FIRST_STEP,
+  percentCalculationType = PercentCalcType.FirstStep,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent' | 'data'>;
@@ -72,9 +72,9 @@ export function formatFunnelLabel({
   };
   let percent;
 
-  if (percentCalculationType === PercentCalcType.TOTAL) {
+  if (percentCalculationType === PercentCalcType.Total) {
     percent = (totalPercent ?? 0) / 100;
-  } else if (percentCalculationType === PercentCalcType.PREV_STEP) {
+  } else if (percentCalculationType === PercentCalcType.PreviousStep) {
     percent = prevStepPercent ?? 0;
   } else {
     percent = firstStepPercent ?? 0;

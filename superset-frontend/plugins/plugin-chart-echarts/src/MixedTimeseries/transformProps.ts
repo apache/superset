@@ -20,6 +20,7 @@
 import { invert } from 'lodash';
 import {
   AnnotationLayer,
+  AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
   CurrencyFormatter,
@@ -460,11 +461,11 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
@@ -503,7 +504,7 @@ export default function transformProps(
       },
       minorTick: { show: minorTicks },
       minInterval:
-        xAxisType === 'time' && timeGrainSqla
+        xAxisType === AxisType.Time && timeGrainSqla
           ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
           : 0,
       ...getMinAndMaxFromBounds(

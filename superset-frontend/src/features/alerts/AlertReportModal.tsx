@@ -504,7 +504,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     contentType === 'chart' &&
-    (isFeatureEnabled(FeatureFlag.ALERTS_ATTACH_REPORTS) || isReport);
+    (isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport);
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');

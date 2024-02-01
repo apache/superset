@@ -286,7 +286,7 @@ class ParsedQuery:
         Note: this uses sqlglot, since it's better at catching more edge cases.
         """
         try:
-            statements = parse(self.sql, dialect=self._dialect)
+            statements = parse(self.stripped(), dialect=self._dialect)
         except ParseError:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             return set()
@@ -494,7 +494,7 @@ class ParsedQuery:
         return self._parsed[0].get_type() == "UNKNOWN"
 
     def stripped(self) -> str:
-        return self.sql.strip(" \t\n;")
+        return self.sql.strip(" \t\r\n;")
 
     def strip_comments(self) -> str:
         return sqlparse.format(self.stripped(), strip_comments=True)

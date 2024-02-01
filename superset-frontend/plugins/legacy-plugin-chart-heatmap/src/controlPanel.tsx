@@ -21,7 +21,6 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptionsForRange,
-  sections,
   sharedControls,
   getStandardizedControls,
   D3_TIME_FORMAT_DOCS,
@@ -41,7 +40,6 @@ const dndAllColumns = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

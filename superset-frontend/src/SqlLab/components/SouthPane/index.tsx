@@ -164,7 +164,7 @@ const SouthPane = ({
         latestQuery.errors = latestQuery.extra.errors;
       }
       if (
-        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
         latestQuery.state === 'success' &&
         !latestQuery.resultsKey &&
         !latestQuery.results

@@ -34,7 +34,7 @@ const chartEndpoint = 'glob:*api/v1/chart/*';
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
-  [FeatureFlag.EMBEDDABLE_CHARTS]: true,
+  [FeatureFlag.EmbeddableCharts]: true,
 };
 
 const createProps = (additionalProps = {}) => ({

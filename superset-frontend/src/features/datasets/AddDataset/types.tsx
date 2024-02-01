@@ -19,10 +19,10 @@
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 
 export enum DatasetActionType {
-  selectDatabase,
-  selectSchema,
-  selectTable,
-  changeDataset,
+  SelectDatabase,
+  SelectSchema,
+  SelectTable,
+  ChangeDataset,
 }
 
 export interface DatasetObject {
@@ -44,13 +44,13 @@ export type Schema = {
 
 export type DSReducerActionType =
   | {
-      type: DatasetActionType.selectDatabase;
+      type: DatasetActionType.SelectDatabase;
       payload: Partial<DatasetObject>;
     }
   | {
       type:
-        | DatasetActionType.changeDataset
-        | DatasetActionType.selectSchema
-        | DatasetActionType.selectTable;
+        | DatasetActionType.ChangeDataset
+        | DatasetActionType.SelectSchema
+        | DatasetActionType.SelectTable;
       payload: DatasetReducerPayloadType;
     };

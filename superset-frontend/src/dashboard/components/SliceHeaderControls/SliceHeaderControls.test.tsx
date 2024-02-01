@@ -196,7 +196,7 @@ test('Should "export to Excel"', async () => {
 test('Export full CSV is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -208,7 +208,7 @@ test('Export full CSV is under featureflag', async () => {
 test('Should "export full CSV"', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -222,7 +222,7 @@ test('Should "export full CSV"', async () => {
 test('Should not show export full CSV if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -233,7 +233,7 @@ test('Should not show export full CSV if report is not table', async () => {
 test('Export full Excel is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -245,7 +245,7 @@ test('Export full Excel is under featureflag', async () => {
 test('Should "export full Excel"', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -259,7 +259,7 @@ test('Should "export full Excel"', async () => {
 test('Should not show export full Excel if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -298,7 +298,7 @@ test('Should "Enter fullscreen"', () => {
 test('Drill to detail modal is under featureflag', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: false,
+    [FeatureFlag.DrillToDetail]: false,
   };
   const props = createProps();
   renderWrapper(props);
@@ -308,7 +308,7 @@ test('Drill to detail modal is under featureflag', () => {
 test('Should show "Drill to detail"', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+    [FeatureFlag.DrillToDetail]: true,
   };
   const props = createProps();
   props.slice.slice_id = 18;
@@ -324,7 +324,7 @@ test('Should show "Drill to detail"', () => {
 test('Should show menu items tied to can_view_and_drill permission', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+    [FeatureFlag.DrillToDetail]: true,
   };
   const props = {
     ...createProps(),

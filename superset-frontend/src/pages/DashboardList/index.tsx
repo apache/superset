@@ -346,7 +346,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
       },
       {
         Cell: ({
@@ -456,7 +456,7 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -480,7 +480,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperator.dashboardIsFav,
+      operator: FilterOperator.DashboardIsFav,
       unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
@@ -497,28 +497,28 @@ function DashboardList(props: DashboardListProps) {
         key: 'search',
         id: 'dashboard_title',
         input: 'search',
-        operator: FilterOperator.titleOrSlug,
+        operator: FilterOperator.TitleOrSlug,
       },
       {
         Header: t('Status'),
         key: 'published',
         id: 'published',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Published'), value: true },
           { label: t('Draft'), value: false },
         ],
       },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
             {
               Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.dashboardTags,
+              operator: FilterOperator.DashboardTags,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },
@@ -529,7 +529,7 @@ function DashboardList(props: DashboardListProps) {
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'dashboard',
@@ -553,7 +553,7 @@ function DashboardList(props: DashboardListProps) {
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.dashboardIsCertified,
+        operator: FilterOperator.DashboardIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
@@ -565,7 +565,7 @@ function DashboardList(props: DashboardListProps) {
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'dashboard',
@@ -614,7 +614,7 @@ function DashboardList(props: DashboardListProps) {
         showThumbnails={
           userKey
             ? userKey.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+            : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
         userId={user?.userId}
         loading={loading}
@@ -754,11 +754,11 @@ function DashboardList(props: DashboardListProps) {
                 showThumbnails={
                   userKey
                     ? userKey.thumbnails
-                    : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+                    : isFeatureEnabled(FeatureFlag.Thumbnails)
                 }
                 renderCard={renderCard}
                 defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                  isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                     ? 'card'
                     : 'table'
                 }

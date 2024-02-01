@@ -21,9 +21,9 @@ import { makeApi } from '@superset-ui/core';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export enum ResourceStatus {
-  LOADING = 'loading',
-  COMPLETE = 'complete',
-  ERROR = 'error',
+  Loading = 'loading',
+  Complete = 'complete',
+  Error = 'error',
 }
 
 /**
@@ -44,25 +44,25 @@ export type Resource<T> = LoadingState | CompleteState<T> | ErrorState;
 // }
 
 type LoadingState = {
-  status: ResourceStatus.LOADING;
+  status: ResourceStatus.Loading;
   result: null;
   error: null;
 };
 
 type CompleteState<T> = {
-  status: ResourceStatus.COMPLETE;
+  status: ResourceStatus.Complete;
   result: T;
   error: null;
 };
 
 type ErrorState = {
-  status: ResourceStatus.ERROR;
+  status: ResourceStatus.Error;
   result: null;
   error: Error;
 };
 
 const initialState: LoadingState = {
-  status: ResourceStatus.LOADING,
+  status: ResourceStatus.Loading,
   result: null,
   error: null,
 };
@@ -112,7 +112,7 @@ export function useApiResourceFullBody<RESULT>(
       .then(result => {
         if (!cancelled) {
           setResource({
-            status: ResourceStatus.COMPLETE,
+            status: ResourceStatus.Complete,
             result,
             error: null,
           });
@@ -121,7 +121,7 @@ export function useApiResourceFullBody<RESULT>(
       .catch(error => {
         if (!cancelled) {
           setResource({
-            status: ResourceStatus.ERROR,
+            status: ResourceStatus.Error,
             result: null,
             error,
           });
@@ -149,7 +149,7 @@ export function useTransformedResource<IN, OUT>(
   transformFn: (result: IN) => OUT,
 ): Resource<OUT> {
   return useMemo(() => {
-    if (resource.status !== ResourceStatus.COMPLETE) {
+    if (resource.status !== ResourceStatus.Complete) {
       // While incomplete, there is no result - no need to transform.
       return resource;
     }
@@ -160,7 +160,7 @@ export function useTransformedResource<IN, OUT>(
       };
     } catch (e) {
       return {
-        status: ResourceStatus.ERROR,
+        status: ResourceStatus.Error,
         result: null,
         error: e,
       };
