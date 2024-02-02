@@ -373,6 +373,7 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         item: EmbeddedDashboardDAO | None = None,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
+        add: bool = True,
     ) -> Any:
         """
         Use EmbeddedDashboardDAO.upsert() instead.

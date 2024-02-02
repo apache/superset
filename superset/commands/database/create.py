@@ -84,13 +84,14 @@ class CreateDatabaseCommand(BaseCommand):
                 if not is_feature_enabled("SSH_TUNNELING"):
                     raise SSHTunnelingNotEnabledError()
 
-                database = self._do_create_database(commit=False)
+                database = self._do_create_database()
                 ssh_tunnel = CreateSSHTunnelCommand(
                     database, ssh_tunnel_properties
                 ).run()
             else:
-                database = self._do_create_database(commit=False)
+                database = self._do_create_database()
 
+            db.session.add(database)
             db.session.commit()
 
             # adding a new database we always want to force refresh schema list
@@ -152,5 +153,5 @@ class CreateDatabaseCommand(BaseCommand):
             )
             raise exception
 
-    def _do_create_database(self, commit: bool = False) -> Database:
-        return DatabaseDAO.create(attributes=self._properties, commit=commit)
+    def _do_create_database(self) -> Database:
+        return DatabaseDAO.create(attributes=self._properties, commit=False, add=False)

@@ -133,6 +133,7 @@ class BaseDAO(Generic[T]):
         item: T | None = None,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
+        add: bool = True,
     ) -> T:
         """
         Create an object from the specified item and/or attributes.
@@ -151,9 +152,10 @@ class BaseDAO(Generic[T]):
                 setattr(item, key, value)
 
         try:
-            db.session.add(item)
+            if add:
+                db.session.add(item)
 
-            if commit:
+            if add and commit:
                 db.session.commit()
         except SQLAlchemyError as ex:  # pragma: no cover
             db.session.rollback()
