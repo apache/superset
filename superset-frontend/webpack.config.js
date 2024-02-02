@@ -26,6 +26,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const remarkGfm = require('remark-gfm');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -34,6 +35,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
+
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -448,20 +450,16 @@ const config = {
         test: /\.mdx?$/,
         use: [
           {
-            loader: 'esbuild-loader',
+            loader: require.resolve('@storybook/mdx2-csf/loader'),
             options: {
-              loader: 'tsx', // Or 'jsx' if you're not using TypeScript
-              target: 'es2015', // Adjust target as per requirements
-            },
-          },
-          {
-            loader: 'xdm/webpack.cjs',
-            options: {
-              // xdm options here (if needed)
+              skipCsf: false,
+              mdxCompileOptions: {
+                remarkPlugins: [remarkGfm],
+              },
             },
           },
         ],
-      }      
+      },     
     ],
   },
   externals: {
