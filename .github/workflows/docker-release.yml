@@ -63,6 +63,7 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
             GITHUB_RELEASE_TAG_NAME="${{ github.event.inputs.release }}"
@@ -70,8 +71,6 @@ jobs:
             cp ./scripts/build_docker.py /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
             cp /tmp/build_docker.py scripts/
-          else
-            GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
           fi
           pip install click
-          ./scripts/build_docker.py ${{ matrix.build_preset }} ${{GITHUB_RELEASE_TAG_NAME}} --platform ${{ matrix.platform }}
+          ./scripts/build_docker.py ${{ matrix.build_preset }} $GITHUB_RELEASE_TAG_NAME --platform ${{ matrix.platform }}
