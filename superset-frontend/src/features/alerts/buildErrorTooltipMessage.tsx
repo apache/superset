@@ -19,12 +19,13 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { ValidationObject } from './types';
+import { theme } from 'src/preamble';
 
 const StyledList = styled.ul`
   margin: 0;
   padding: 0;
   li {
-    padding-left: 12px;
+    padding-left: ${({ theme }) => theme.gridUnit * 3}px;
   }
 `;
 

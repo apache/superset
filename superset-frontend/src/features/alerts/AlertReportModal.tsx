@@ -173,16 +173,13 @@ const FORMAT_OPTIONS = {
   },
 };
 
-// Style Constants
-const MODAL_BODY_HEIGHT = 180.5;
-
-// Apply to collapse panels as 'style' prop value
-const panelBorder = {
-  borderBottom: 'none',
-};
+// Apply to collapse panels as 'css' prop value
+const panelBorder = css`
+  borderbottom: 'none';
+`;
 
 // Apply to final text input components of each collapse panel
-const no_margin_bottom = css`
+const noMarginBottom = css`
   margin-bottom: 0;
 `;
 
@@ -196,8 +193,7 @@ and value inputs.
  */
 const StyledModal = styled(Modal)`
   .ant-modal-body {
-    height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
-    height: ${({ theme }) => theme.gridUnit * MODAL_BODY_HEIGHT}px;
+    height: 720px;
   }
 
   .control-label {
@@ -229,88 +225,87 @@ const StyledSwitchContainer = styled.div`
 `;
 
 export const StyledInputContainer = styled.div`
-  flex: 1;
-  margin-top: 0px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-top: 0px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => css`
+    flex: 1;
+    margin-top: 0px;
+    margin-bottom: ${theme.gridUnit * 4}px;
 
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  input[type='number'] {
-    -moz-appearance: textfield;
-  }
-
-  .helper {
-    display: block;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    padding: ${({ theme }) => theme.gridUnit}px 0;
-    text-align: left;
-  }
-
-  .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
-  }
-
-  .input-container {
-    display: flex;
-    align-items: center;
-
-    > div {
-      width: 100%;
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type='number'] {
+      -moz-appearance: textfield;
     }
 
-    label {
+    .helper {
+      display: block;
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.s}px;
+      padding: ${theme.gridUnit}px 0;
+      text-align: left;
+    }
+
+    .required {
+      margin-left: ${theme.gridUnit / 2}px;
+      color: ${theme.colors.error.base};
+    }
+
+    .input-container {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      align-items: center;
+
+      > div {
+        width: 100%;
+      }
+
+      label {
+        display: flex;
+        margin-right: ${theme.gridUnit * 2}px;
+      }
+
+      i {
+        margin: 0 ${theme.gridUnit}px;
+      }
     }
 
-    i {
-      margin: 0 ${({ theme }) => theme.gridUnit}px;
-    }
-  }
-
-  input,
-  textarea {
-    flex: 1 1 auto;
-  }
-
-  input[disabled] {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-  }
-
-  textarea {
-    height: 300px;
-    resize: none;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-  }
-
-  textarea,
-  input[type='text'],
-  input[type='number'] {
-    padding: ${({ theme }) => theme.gridUnit}px
-      ${({ theme }) => theme.gridUnit * 2}px;
-    border-style: none;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-
-    &[name='description'] {
+    input,
+    textarea {
       flex: 1 1 auto;
     }
-  }
 
-  .input-label {
-    margin-left: 10px;
-  }
+    input[disabled] {
+      color: ${theme.colors.grayscale.base};
+    }
+
+    textarea {
+      height: 300px;
+      resize: none;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: ${theme.colors.grayscale.light1};
+    }
+
+    textarea,
+    input[type='text'],
+    input[type='number'] {
+      padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+      border-style: none;
+      border: 1px solid ${theme.colors.grayscale.light2};
+      border-radius: ${theme.gridUnit}px;
+
+      &[name='description'] {
+        flex: 1 1 auto;
+      }
+    }
+
+    .input-label {
+      margin-left: 10px;
+    }
+  `}
 `;
 
 const StyledCheckbox = styled(AntdCheckbox)`
@@ -323,17 +318,19 @@ const StyledTooltip = styled(InfoTooltipWithTrigger)`
 
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  cursor: pointer;
+  ${({ theme }) => css`
+    color: ${theme.colors.primary.dark1};
+    cursor: pointer;
 
-  i {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
-  }
+    i {
+      margin-right: ${theme.gridUnit * 2}px;
+    }
 
-  &.disabled {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-    cursor: default;
-  }
+    &.disabled {
+      color: ${theme.colors.grayscale.light1};
+      cursor: default;
+    }
+  `}
 `;
 
 const StyledNotificationMethodWrapper = styled.div`
@@ -410,7 +407,7 @@ export const TRANSLATIONS = {
   SELECT_CHART_PLACEHOLDER: t('Select chart to use'),
   DASHBOARD_TEXT: t('Dashboard'),
   CHART_TEXT: t('Chart'),
-  FORMAT_TYPE_LABEL: t('Content Format'),
+  FORMAT_TYPE_LABEL: t('Content format'),
   FORMAT_TYPE_PLACEHOLDER: t('Select format'),
   IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
   CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
@@ -1317,7 +1314,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         expandIconPosition="right"
         defaultActiveKey="1"
         accordion
-        style={{ border: 'none' }}
+        css={css`
+          border: 'none';
+        `}
       >
         <StyledPanel
           header={
@@ -1329,8 +1328,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               testId="general-information-panel"
             />
           }
-          key="1"
-          style={panelBorder}
+          key="general"
+          css={panelBorder}
         >
           <div className="header-section">
             <StyledInputContainer>
@@ -1420,8 +1419,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 testId="alert-condition-panel"
               />
             }
-            key="2"
-            style={{ borderBottom: 'none' }}
+            key="condition"
+            css={panelBorder}
           >
             <StyledInputContainer>
               <div className="control-label">
@@ -1466,7 +1465,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             </StyledInputContainer>
             <div className="inline-container wrap">
-              <StyledInputContainer css={no_margin_bottom}>
+              <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label" css={inputSpacer}>
                   {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
                   <span className="required">*</span>
@@ -1482,7 +1481,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   />
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer css={no_margin_bottom}>
+              <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label">
                   {TRANSLATIONS.VALUE_TEXT} <span className="required">*</span>
                 </div>
@@ -1519,8 +1518,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               testId="contents-panel"
             />
           }
-          key="3"
-          style={{ borderBottom: 'none' }}
+          key="contents"
+          css={panelBorder}
         >
           <StyledInputContainer>
             <div className="control-label">
@@ -1584,7 +1583,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             )}
           </StyledInputContainer>
           <StyledInputContainer
-            css={['TEXT', 'CSV'].includes(reportFormat) && no_margin_bottom}
+            css={['TEXT', 'CSV'].includes(reportFormat) && noMarginBottom}
           >
             {formatOptionEnabled && (
               <>
@@ -1610,7 +1609,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </StyledInputContainer>
           {isScreenshot && (
             <StyledInputContainer
-              css={!isReport && contentType === 'chart' && no_margin_bottom}
+              css={!isReport && contentType === 'chart' && noMarginBottom}
             >
               <div className="control-label">
                 {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
@@ -1651,8 +1650,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               testId="schedule-panel"
             />
           }
-          key="4"
-          style={{ borderBottom: 'none' }}
+          key="schedule"
+          css={panelBorder}
         >
           <AlertReportCronScheduler
             value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
@@ -1688,7 +1687,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             </div>
           </StyledInputContainer>
-          <StyledInputContainer css={no_margin_bottom}>
+          <StyledInputContainer css={noMarginBottom}>
             {isReport ? (
               <>
                 <div className="control-label">
@@ -1737,8 +1736,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               testId="notification-method-panel"
             />
           }
-          key="5"
-          style={{ borderBottom: 'none' }}
+          key="notification"
+          css={panelBorder}
         >
           {notificationSettings.map((notificationSetting, i) => (
             <StyledNotificationMethodWrapper>

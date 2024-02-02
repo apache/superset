@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { ConfigProvider } from 'antd';
-import { styled, t } from '@superset-ui/core';
+import { styled, css, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
 
 export * from 'react-js-cron';
@@ -110,81 +110,86 @@ export const CronPicker = styled((props: CronProps) => (
     <ReactCronPicker locale={LOCALE} {...props} />
   </ConfigProvider>
 ))`
-:has(.react-js-cron-months){
-  display: grid !important;
-  grid-template-columns: repeat(2, 50%);
-  grid-column-gap: ${({ theme }) => theme.gridUnit}px;
-  grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
-  div:has(.react-js-cron-hours) {
-    grid-column: span 2;
-    display: flex;
-    justify-content: space-between;
+  ${({ theme }) => css`
+    :has(.react-js-cron-months) {
+      display: grid !important;
+      grid-template-columns: repeat(2, 50%);
+      column-gap: ${theme.gridUnit}px;
+      row-gap: ${theme.gridUnit * 2}px;
+      div:has(.react-js-cron-hours) {
+        grid-column: span 2;
+        display: flex;
+        justify-content: space-between;
+        .react-js-cron-field {
+          width: 50%;
+        }
+      }
+    }
+
+    :not(:has(.react-js-cron-months)) {
+      display: grid;
+      grid-template-columns: repeat(2, 50%);
+      column-gap: ${theme.gridUnit}px;
+      row-gap: ${theme.gridUnit * 2}px;
+      .react-js-cron-period {
+        grid-column: span 2;
+      }
+      div:has(.react-js-cron-hours) {
+        grid-column: span 2;
+        display: flex;
+        justify-content: space-between;
+        .react-js-cron-field {
+          width: 50%;
+        }
+      }
+    }
+
+    :not(:has(.react-js-cron-month-days)) {
+      .react-js-cron-week-days {
+        grid-column: span 2;
+      }
+    }
+
+    .react-js-cron-minutes > span {
+      padding-left: ${theme.gridUnit}px;
+    }
+
+    div:has(.react-js-cron-hours) {
+      width: 100%;
+    }
+
+    :not(div:has(.react-js-cron-hours)) {
+      display: flex;
+      flex-wrap: nowrap;
+    }
+
+    .react-js-cron-select.ant-select {
+      width: 100%;
+      .ant-select-selector {
+        flex-wrap: nowrap;
+      }
+    }
+
     .react-js-cron-field {
-      width:50%;
+      width: 100%;
+      margin-bottom: 0px;
+      > span {
+        margin-left: 0px;
+      }
     }
-  }
-}
 
-:not(:has(.react-js-cron-months)) {
-  display: grid;
-  grid-template-columns: repeat(2, 50%);
-  grid-column-gap: ${({ theme }) => theme.gridUnit}px;
-  grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
-  .react-js-cron-period {
-    grid-column: span 2;
-  }
-  div:has(.react-js-cron-hours) {
-    grid-column: span 2;
-    display: flex;
-    justify-content: space-between;
-    .react-js-cron-field {
-      width: 50%;
+    .react-js-cron-custom-select .ant-select-selection-placeholder {
+      flex: auto;
+      border-radius: ${theme.gridUnit}px;
     }
-  }
-}
 
-:not(:has(.react-js-cron-month-days)) {
-  .react-js-cron-week-days {
-    grid-column: span 2;
-  }
-}
-
-.react-js-cron-minutes > span {
-  padding-left: ${({ theme }) => theme.gridUnit}px;
-}
-grid-template-columns: repeat(1, 100%);
-grid-column-gap: ${({ theme }) => theme.gridUnit}px;
-grid-row-gap: ${({ theme }) => theme.gridUnit * 2}px;
-div:has(.react-js-cron-hours) {
-  width: 100%;
-}
-:not(div:has(.react-js-cron-hours)) {
-  display: flex;
-  flex-wrap: nowrap;
-}
-.react-js-cron-select {
-  width: 100%;
-  .ant-select-selector {
-    flex-wrap: nowrap !important;
-  }
-}
-.react-js-cron-field {
-  width: 100%;
-    margin-bottom:0px;
-    > span {
-      margin-left: 0px;
+    .react-js-cron-custom-select .ant-select-selection-overflow-item {
+      align-self: center;
     }
-}
-  .react-js-cron-custom-select .ant-select-selection-placeholder {
-    flex: auto;
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-  }
-  .react-js-cron-custom-select .ant-select-selection-overflow-item {
-    align-self: center;
-  }
-  .react-js-cron-select > div:first-of-type,
-  .react-js-cron-custom-select {
-    border-radius: ${({ theme }) => theme.gridUnit}px;
-  }
-  }
+
+    .react-js-cron-select > div:first-of-type,
+    .react-js-cron-custom-select {
+      border-radius: ${theme.gridUnit}px;
+    }
+  `}
 `;

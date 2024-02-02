@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { Children, ReactElement, ReactNode } from 'react';
-// import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
 import { AntdButton } from 'src/components';
@@ -214,11 +213,7 @@ export default function Button(props: ButtonProps) {
 
   if (tooltip) {
     return (
-      <Tooltip
-        placement={placement}
-        // id={`${kebabCase(tooltip)}-tooltip`}
-        title={tooltip}
-      >
+      <Tooltip placement={placement} title={tooltip}>
         {/* wrap the button in a span so that the tooltip shows up
         when the button is disabled. */}
         {disabled ? (
