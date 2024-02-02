@@ -29,19 +29,31 @@ export default {
   component: ListViewCard,
   argTypes: {
     loading: { control: 'boolean', defaultValue: false },
-    imgURL: { 
-      control: 'text', 
-      defaultValue: 'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80' 
+    imgURL: {
+      control: 'text',
+      defaultValue:
+        'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
     },
-    imgFallbackURL: { 
-      control: 'text', 
-      defaultValue: 'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80' 
+    imgFallbackURL: {
+      control: 'text',
+      defaultValue:
+        'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
     },
     isStarred: { control: 'boolean', defaultValue: false },
   },
 };
 
-export const SupersetListViewCard = ({loading, imgURL, imgFallbackURL, isStarred}: {loading: boolean, imgURL: string, imgFallbackURL: string, isStarred: boolean}) => (
+export const SupersetListViewCard = ({
+  loading,
+  imgURL,
+  imgFallbackURL,
+  isStarred,
+}: {
+  loading: boolean;
+  imgURL: string;
+  imgFallbackURL: string;
+  isStarred: boolean;
+}) => (
   <ListViewCard
     title="Superset Card Title"
     loading={loading}

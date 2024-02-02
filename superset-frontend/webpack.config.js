@@ -36,7 +36,6 @@ const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package');
 
-
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
@@ -459,7 +458,7 @@ const config = {
             },
           },
         ],
-      },     
+      },
     ],
   },
   externals: {

@@ -1,4 +1,4 @@
-import { dirname, join } from "path";
+import { dirname, join } from 'path';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,11 +28,11 @@ module.exports = {
   ],
 
   addons: [
-    getAbsolutePath("@storybook/addon-essentials"),
-    getAbsolutePath("@storybook/addon-links"),
-    getAbsolutePath("storybook-addon-jsx"),
-    getAbsolutePath("@storybook/addon-controls"),
-    getAbsolutePath("@storybook/addon-mdx-gfm"),
+    getAbsolutePath('@storybook/addon-essentials'),
+    getAbsolutePath('@storybook/addon-links'),
+    getAbsolutePath('storybook-addon-jsx'),
+    getAbsolutePath('@storybook/addon-controls'),
+    getAbsolutePath('@storybook/addon-mdx-gfm'),
   ],
 
   staticDirs: ['../src/assets/images'],
@@ -55,15 +55,15 @@ module.exports = {
   },
 
   framework: {
-    name: getAbsolutePath("@storybook/react-webpack5"),
-    options: {}
+    name: getAbsolutePath('@storybook/react-webpack5'),
+    options: {},
   },
 
   docs: {
-    autodocs: false
-  }
+    autodocs: false,
+  },
 };
 
 function getAbsolutePath(value) {
-  return dirname(require.resolve(join(value, "package.json")));
+  return dirname(require.resolve(join(value, 'package.json')));
 }

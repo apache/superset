@@ -50,7 +50,7 @@ export default {
     },
     colorSchema: {
       control: 'select',
-      options: SequentialD3.map((x) => x.id),
+      options: SequentialD3.map(x => x.id),
     },
   },
 };
@@ -62,7 +62,17 @@ function generateData(geojson: JsonObject) {
   }));
 }
 
- export const BasicCountryMapStory = ({ width, height, country, colorSchema }: { width: number, height: number, country: string, colorSchema: string }) => {
+export const BasicCountryMapStory = ({
+  width,
+  height,
+  country,
+  colorSchema,
+}: {
+  width: number;
+  height: number;
+  country: string;
+  colorSchema: string;
+}) => {
   const theme = useTheme();
   const [data, setData] = useState<JsonObject>();
 

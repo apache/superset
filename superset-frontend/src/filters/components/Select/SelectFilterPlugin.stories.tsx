@@ -35,7 +35,17 @@ export default {
   },
 };
 
-export const Select = ({multiSeelct, inverseSelection, width, height}: {multiSeelct: boolean, inverseSelection: boolean, width: number, height: number}) => (
+export const Select = ({
+  multiSeelct,
+  inverseSelection,
+  width,
+  height,
+}: {
+  multiSeelct: boolean;
+  inverseSelection: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="filter_select"
     width={width}
@@ -44,7 +54,7 @@ export const Select = ({multiSeelct, inverseSelection, width, height}: {multiSee
     formData={{
       adhoc_filters: [],
       extra_filters: [],
-      multiSelect: {multiSeelct},
+      multiSelect: { multiSeelct },
       inverseSelection: { inverseSelection },
       row_limit: 1000,
       viz_type: 'filter_select',
