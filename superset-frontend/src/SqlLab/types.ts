@@ -29,7 +29,19 @@ export type QueryDictionary = {
   [id: string]: QueryResponse;
 };
 
+export enum QueryEditorVersion {
+  V1 = 1,
+}
+
+export const LatestQueryEditorVersion = QueryEditorVersion.V1;
+
+export interface CursorPosition {
+  row: number;
+  column: number;
+}
+
 export interface QueryEditor {
+  version: QueryEditorVersion;
   id: string;
   dbId?: number;
   name: string;
@@ -48,6 +60,8 @@ export interface QueryEditor {
   inLocalStorage?: boolean;
   northPercent?: number;
   southPercent?: number;
+  updatedAt?: number;
+  cursorPosition?: CursorPosition;
 }
 
 export type toastState = {
@@ -86,7 +100,7 @@ export type SqlLabRootState = {
     errorMessage: string | null;
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
-    editorTabLastUpdatedAt?: number;
+    editorTabLastUpdatedAt: number;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
@@ -98,8 +112,8 @@ export type SqlLabRootState = {
 };
 
 export enum DatasetRadioState {
-  SAVE_NEW = 1,
-  OVERWRITE_DATASET = 2,
+  SaveNew = 1,
+  OverwriteDataset = 2,
 }
 
 export const EXPLORE_CHART_DEFAULT = {

@@ -121,6 +121,7 @@ class TestQueryContext(SupersetTestCase):
 
         cached = cache_manager.cache.get(cache_key)
         assert cached is not None
+        assert "form_data" in cached["data"]
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]
@@ -144,7 +145,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )
@@ -168,7 +168,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )
@@ -836,9 +835,11 @@ def test_special_chars_in_column_name(app_context, physical_dataset):
 
     query_object = qc.queries[0]
     df = qc.get_df_payload(query_object)["df"]
-
-    # sqlite doesn't have timestamp columns
-    if query_object.datasource.database.backend != "sqlite":
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+    else:
         assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
         assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
 

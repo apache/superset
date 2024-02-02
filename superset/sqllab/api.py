@@ -19,12 +19,18 @@ from typing import Any, cast, Optional
 from urllib import parse
 
 import simplejson as json
+import sqlparse
 from flask import request, Response
+from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
+from superset.commands.sql_lab.estimate import QueryEstimationCommand
+from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
+from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -33,10 +39,6 @@ from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.commands.estimate import QueryEstimationCommand
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
-from superset.sqllab.commands.export import SqlResultExportCommand
-from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
@@ -46,6 +48,7 @@ from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.schemas import (
     EstimateQueryCostSchema,
     ExecutePayloadSchema,
+    FormatQueryPayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
@@ -78,6 +81,7 @@ class SqlLabRestApi(BaseSupersetApi):
 
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
+    format_model_schema = FormatQueryPayloadSchema()
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
@@ -184,6 +188,52 @@ class SqlLabRestApi(BaseSupersetApi):
         command = QueryEstimationCommand(model)
         result = command.run()
         return self.response(200, result=result)
+
+    @expose("/format_sql/", methods=("POST",))
+    @statsd_metrics
+    @protect()
+    @permission_name("read")
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
+        log_to_statsd=False,
+    )
+    def format_sql(self) -> FlaskResponse:
+        """Format the SQL query.
+        ---
+        post:
+          summary: Format SQL code
+          requestBody:
+            description: SQL query
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FormatQueryPayloadSchema'
+          responses:
+            200:
+              description: Format SQL result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.format_model_schema.load(request.json)
+            result = sqlparse.format(model["sql"], reindent=True, keyword_case="upper")
+            return self.response(200, result=result)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
 
     @expose("/export/<string:client_id>/")
     @protect()

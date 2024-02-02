@@ -100,7 +100,7 @@
       "1H": [""],
       "1M": [""],
       "1T": [""],
-      "2 years ago": ["il y a 2 ans"],
+      "2 years ago": ["Il y a 2 ans"],
       "2/98 percentiles": [""],
       "28 days ago": [""],
       "2D": [""],
@@ -226,6 +226,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add cross-filter": ["Ajouter un filtre"],
       "Add custom scoping": [""],
       "Add delivery method": ["Ajouter méthode de livraison"],
       "Add filter": ["Ajouter un filtre"],
@@ -556,6 +557,8 @@
         ""
       ],
       "Append": ["Ajouter"],
+      "Applied filters (%d)": ["Filtres appliqués (%d)"],
+      "Applied filters: %s": ["Filtres appliqué: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         "La fenêtre glissante appliquée n'a pas retourné de données. Assurez-vous que la requête source satisfasse les périodes minimum définies dans la fenêtre glissante."
       ],
@@ -630,6 +633,7 @@
       "Batch editing %d filters:": ["Edition Batch %d filtres:"],
       "Battery level over time": [""],
       "Be careful.": ["Faites attention."],
+      "Before": ["Avant"],
       "Big Number": ["Gros nombre"],
       "Big Number Font Size": [""],
       "Big Number with Trendline": ["Gros nombre avec tendance"],
@@ -1088,9 +1092,10 @@
       ],
       "Creator": ["Créateur"],
       "Cross-filter will be applied to all of the charts that use this dataset.": [
-        ""
+        "Le filtre va être appliqué à tous les graphiques qui utilise cet ensemble de données"
       ],
       "Currently rendered: %s": [""],
+      "Custom": ["Personnalisée"],
       "Custom Plugin": ["Plugin custom"],
       "Custom Plugins": ["Plugins custom"],
       "Custom SQL": ["SQL personnalisé"],
@@ -1259,6 +1264,7 @@
       "Datetime format": ["Format Datetime"],
       "Day": ["Jour"],
       "Day (freq=D)": [""],
+      "Days %s": ["Jours %s"],
       "Db engine did not return all queried columns": [
         "La base de données n'a pas retourné toutes les colonnes demandées"
       ],
@@ -1415,6 +1421,7 @@
       "Divider": ["Diviseur"],
       "Do you want a donut or a pie?": [""],
       "Documentation": ["Documentation"],
+      "Download": ["Télécharger"],
       "Download as image": ["Télécharger comme image"],
       "Download to CSV": ["Télécharger en CSV"],
       "Draft": ["Brouillon"],
@@ -1429,6 +1436,7 @@
       "Drill by": [""],
       "Drill by is not available for this data point": [""],
       "Drill by is not yet supported for this chart type": [""],
+      "Drill by: %s": ["Trier par %s"],
       "Drill to detail": [""],
       "Drill to detail by": [""],
       "Drill to detail by value is not yet supported for this chart type.": [
@@ -1635,7 +1643,10 @@
       "Export": ["Exporter"],
       "Export dashboards?": ["Exporter les tableaux de bords ?"],
       "Export query": ["Exporter la requête"],
-      "Export to YAML": ["Exporter en YAML"],
+      "Export to .CSV": ["Exporter au format CSV"],
+      "Export to .JSON": ["Exporter au format JSON"],
+      "Export to Excel": ["Exporter vers Excel"],
+      "Export to YAML": ["Exporter au format YAML"],
       "Export to YAML?": ["Exporter en YAML?"],
       "Export to original .CSV": [""],
       "Export to pivoted .CSV": [""],
@@ -1818,6 +1829,7 @@
       "Host": [""],
       "Hostname or IP address": ["Nom d'hôte ou adresse IP"],
       "Hour": ["Heure"],
+      "Hours %s": ["Heures %s"],
       "Hours offset": ["Offset des heures"],
       "How do you want to enter service account credentials?": [
         "Comment voulez-vous entrer les informations de connexion du compte de service ?"
@@ -1981,9 +1993,11 @@
       "Labels for the marker lines": [""],
       "Labels for the markers": [""],
       "Labels for the ranges": [""],
+      "Last": ["Dernier"],
       "Last Changed": ["Dernière modification"],
       "Last Modified": ["Dernière modification"],
       "Last Updated %s": ["Dernière mise à jour %s"],
+      "Last Updated %s by %s": ["Dernière mise à jour %s"],
       "Last modified": ["Dernière modification"],
       "Last modified by %s": ["Dernière modification par %s"],
       "Last run": ["Dernière exécution"],
@@ -2065,7 +2079,6 @@
       ],
       "Manage": ["Gestion"],
       "Mandatory": ["Obligatoire"],
-      "Mangle Duplicate Columns": ["Supprimer les colonnes en double"],
       "Manually set min/max values for the y-axis.": [""],
       "Mapbox": ["Mapbox"],
       "March": ["Mars"],
@@ -2142,6 +2155,7 @@
       "Minimum value on the gauge axis": [""],
       "Minor Split Line": [""],
       "Minute": ["Minute"],
+      "Minutes %s": ["Minutes %s"],
       "Missing dataset": ["Jeu de données manquant"],
       "Mixed Time-Series": [""],
       "Modified": ["Modifié"],
@@ -2150,6 +2164,7 @@
       "Modified columns: %s": ["Colonnes modifiées : %s"],
       "Monday": ["Lundi"],
       "Month": ["Mois"],
+      "Months %s": ["Mois %s"],
       "Move only": [""],
       "Moves the given set of dates by a specified interval.": [
         "Décale l'ensemble de dates d'un intervalle spécifié."
@@ -2235,6 +2250,7 @@
       "No filter": ["Pas de filtre"],
       "No filter is selected.": ["Pas de filtre sélectionné."],
       "No form settings were maintained": [""],
+      "No matching records found": ["Aucun enregistrement trouvé"],
       "No records found": ["Aucun enregistrement trouvé"],
       "No results found": ["Aucun résultat trouvé"],
       "No results match your filter criteria": [""],
@@ -2265,6 +2281,7 @@
       "Nothing triggered": ["Rien déclenché"],
       "Notification method": ["Méthode de notification"],
       "November": ["Novembre"],
+      "Now": ["Maintenant"],
       "Null or Empty": ["Null ou Vide"],
       "Null values": ["Valeurs NULL"],
       "Number bounds used for color encoding from red to blue.\n               Reverse the numbers for blue to red. To get pure red or blue,\n               you can enter either only min or max.": [
@@ -2590,6 +2607,7 @@
       "Python datetime string pattern": ["Python datetime string pattern"],
       "QUERY DATA IN SQL LAB": [""],
       "Quarter": ["Trimestre"],
+      "Quarters %s": ["Trimestres %s"],
       "Query": ["Requête"],
       "Query %s: %s": [""],
       "Query History": ["Historiques des requêtes"],
@@ -2652,8 +2670,10 @@
       "Refresh frequency": ["Fréquence de rafraichissement"],
       "Refresh interval": ["Intervalle d'actualisation"],
       "Refresh the default values": ["Rafraichir les valeurs par défaut"],
+      "Refreshing charts": ["Rafraîchissement en cours"],
       "Regular": [""],
       "Relationships between community channels": [""],
+      "Relative Date/Time": ["Date/Heure Relative"],
       "Relative period": ["Période relative"],
       "Relative quantity": ["Quantité relative"],
       "Remind me in 24 hours": ["Me le rappeler dans 24 heures"],
@@ -2730,6 +2750,7 @@
       "Resource already has an attached report.": [""],
       "Restore Filter": ["Restaurer le Filtre"],
       "Results": ["Résultats"],
+      "Results %s": ["Résultats"],
       "Results backend is not configured.": [
         "Le backend des résultats n'est pas configuré."
       ],
@@ -2884,6 +2905,7 @@
       "Secondary y-axis Bounds": [""],
       "Secondary y-axis format": [""],
       "Secondary y-axis title": [""],
+      "Seconds %s": ["Secondes %s"],
       "Secure Extra": ["Sécurité"],
       "Secure extra": ["Sécurité"],
       "Security": ["Sécurité"],
@@ -2894,7 +2916,7 @@
       "Select": ["Sélectionner"],
       "Select ...": ["Sélectionner..."],
       "Select Delivery Method": ["Choisir la méthode de livraison"],
-      "Select Viz Type": ["Selectionner un type de visualisation"],
+      "Select Viz Type": ["Sélectionner un type de visualisation"],
       "Select a Columnar file to be uploaded to a database.": [
         "Sélectionner un fichier en colonne à téléverser dans une base de données."
       ],
@@ -2904,7 +2926,7 @@
       "Select a column": ["Sélectionner une colonne"],
       "Select a dashboard": ["Sélectionner un tableau de bord"],
       "Select a database to upload the file to": [""],
-      "Select a visualization type": ["Selectionner un type de visualisation"],
+      "Select a visualization type": ["Sélectionner un type de visualisation"],
       "Select aggregate options": ["Sélectionner les options d’agrégat"],
       "Select any columns for metadata inspection": [""],
       "Select color scheme": ["Sélectionner un schéma de couleurs"],
@@ -2912,17 +2934,17 @@
       "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
         ""
       ],
-      "Select filter": ["Selectionner un filtre"],
+      "Select filter": ["Sélectionner un filtre"],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [
-        "Selectionne la première valeur du filtre par défaut"
+        "Sélectionne la première valeur du filtre par défaut"
       ],
       "Select operator": ["Sélectionner l'opérateur"],
       "Select or type a value": ["Sélectionner ou renseigner une valeur"],
       "Select owners": ["Sélectionner les propriétaires"],
       "Select saved metrics": ["Sélectionner les métriques sauvegardées"],
       "Select start and end date": [
-        "Selectionner la date de début et la date de fin"
+        "Sélectionner la date de début et la date de fin"
       ],
       "Select subject": ["Sélectionner un objet"],
       "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
@@ -2936,7 +2958,7 @@
       "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
         ""
       ],
-      "Send as CSV": ["Envoyer comme CSV"],
+      "Send as CSV": ["Envoyer au format CSV"],
       "Send as PNG": ["Envoyer comme PNG"],
       "Send as text": ["Envoyer comme texte"],
       "Send range filter events to other charts": [""],
@@ -3082,6 +3104,7 @@
       "Sort ascending": ["Tri croissant"],
       "Sort bars by x labels.": [""],
       "Sort by": ["Trier par"],
+      "Sort by %s": ["Trier par %s"],
       "Sort columns alphabetically": ["Trier les colonnes alphabétiquement"],
       "Sort descending": ["Tri décroissant"],
       "Sort filter values": ["Trier les valeurs de filtre"],
@@ -3092,6 +3115,7 @@
       "Source SQL": ["SQL source"],
       "Sparkline": [""],
       "Spatial": ["Spatial"],
+      "Specific Date/Time": ["Date/Heure Spécifique"],
       "Specify a schema (if database flavor supports this).": [
         "Spécifier un schéma (si la base de données soutient cette fonctionnalités)."
       ],
@@ -3634,7 +3658,7 @@
         "Cela peut être soit une adresse IP (ex 127.0.0.1)  ou un nom de domaine (ex mydatabase.com)."
       ],
       "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
-        ""
+        "Ce graphique filtre automatiquement les graphiques ayant des colonnes de même nom dans leurs ensembles de données."
       ],
       "This chart has been moved to a different filter scope.": [
         "Ce graphique a été déplacé vers un autre champ d'application du filtre."
@@ -3739,6 +3763,9 @@
       ],
       "This value should be smaller than the right target value": [
         "Cette valeur devrait être plus petite que la valeur cible de droite"
+      ],
+      "This visualization type does not support cross-filtering.": [
+        "Ce type de visualisation ne supporte pas le cross-filtering."
       ],
       "This visualization type is not supported.": [
         "Ce type de visualisation n'est pas supporté."
@@ -3916,6 +3943,7 @@
       "Unexpected error occurred, please check your logs for details": [
         "Erreur inattendue, consultez les logs pour plus de détails"
       ],
+      "Unexpected time range: %s": ["Intervalle de temps inattendu: %s"],
       "Unknown": ["Erreur inconnue"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Hôte MySQL \"%(hostname)s\" inconnu."
@@ -4134,6 +4162,7 @@
       "Week_ending Sunday": ["Semaine terminant le dimanche"],
       "Weekly Report for %s": [""],
       "Weekly seasonality": [""],
+      "Weeks %s": ["Semaines %s"],
       "What should be shown on the label?": [""],
       "When `Calculation type` is set to \"Percentage change\", the Y Axis Format is forced to `.1%`": [
         "Lorsque `Type de calcul` vaut \"Pourcentage de changement\", le format de l'axe Y est à forcé à `.1%`"
@@ -4283,6 +4312,7 @@
       "Year": ["Année"],
       "Year (freq=AS)": [""],
       "Yearly seasonality": [""],
+      "Years %s": ["Année %s"],
       "Yes": ["Oui"],
       "Yes, cancel": ["Oui, annuler"],
       "Yes, overwrite changes": [""],
@@ -4304,7 +4334,9 @@
       "You can add the components in the": [
         "Vous pouvez ajouter les composants via le"
       ],
-      "You can also just click on the chart to apply cross-filter.": [""],
+      "You can also just click on the chart to apply cross-filter.": [
+        "Vous pouvez juste cliquer sur le graphique pour appliquer le filtre"
+      ],
       "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
         ""
       ],
@@ -4314,7 +4346,9 @@
       "You can preview the list of dashboards in the chart settings dropdown.": [
         ""
       ],
-      "You can't apply cross-filter on this data point.": [""],
+      "You can't apply cross-filter on this data point.": [
+        "Vous ne pouvez pas ajouter de filtre sur ce point de donnée"
+      ],
       "You cannot delete the last temporal filter as it's used for time range filters in dashboards.": [
         ""
       ],
@@ -4440,6 +4474,7 @@
       "aggregate": ["agrégat"],
       "alert": ["alerte"],
       "alerts": ["alertes"],
+      "all": ["Tous"],
       "also copy (duplicate) charts": [
         "copier également les graphiques (dupliquer)"
       ],
@@ -4525,6 +4560,11 @@
       "json isn't valid": ["le json n'est pas valide"],
       "key a-z": [""],
       "key z-a": [""],
+      "last day": ["hier"],
+      "last month": ["le mois dernier"],
+      "last quarter": ["le trimestre dernier"],
+      "last week": ["la semaine dernière"],
+      "last year": ["l'année dernière"],
       "latest partition:": ["dernière partition :"],
       "less than {min} {name}": [""],
       "log": ["log"],
@@ -4591,18 +4631,10 @@
       "y: values are normalized within each row": [""],
       "year": ["année"],
       "zoom area": [""],
-      "No matching records found": ["Aucun résultat trouvé"],
-      "Seconds %s": ["%s secondes"],
-      "Minutes %s": ["%s minutes "],
       "10 seconds": ["10 secondes"],
       "6 hours": ["6 heures"],
       "12 hours": ["12 heures"],
-      "24 hours": ["24 heures"],
-      "Last day": ["Hier"],
-      "Last week": ["La semaine derniere"],
-      "Last month": ["Le mois dernier"],
-      "Last quarter": ["Le trimestre dernier"],
-      "Last year": ["L'année dernière"]
+      "24 hours": ["24 heures"]
     }
   }
 }

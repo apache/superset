@@ -280,7 +280,6 @@ export type SelectControlType =
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl';
 
-// via react-select/src/filters
 export interface FilterOption<T extends SelectOption> {
   label: string;
   value: string;
@@ -421,29 +420,29 @@ export type SectionOverrides = {
 
 // Ref:
 //  - superset-frontend/src/explore/components/ConditionalFormattingControl.tsx
-export enum COMPARATOR {
-  NONE = 'None',
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
-  GREATER_OR_EQUAL = '≥',
-  LESS_OR_EQUAL = '≤',
-  EQUAL = '=',
-  NOT_EQUAL = '≠',
-  BETWEEN = '< x <',
-  BETWEEN_OR_EQUAL = '≤ x ≤',
-  BETWEEN_OR_LEFT_EQUAL = '≤ x <',
-  BETWEEN_OR_RIGHT_EQUAL = '< x ≤',
+export enum Comparator {
+  None = 'None',
+  GreaterThan = '>',
+  LessThan = '<',
+  GreaterOrEqual = '≥',
+  LessOrEqual = '≤',
+  Equal = '=',
+  NotEqual = '≠',
+  Between = '< x <',
+  BetweenOrEqual = '≤ x ≤',
+  BetweenOrLeftEqual = '≤ x <',
+  BetweenOrRightEqual = '< x ≤',
 }
 
-export const MULTIPLE_VALUE_COMPARATORS = [
-  COMPARATOR.BETWEEN,
-  COMPARATOR.BETWEEN_OR_EQUAL,
-  COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
-  COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
+export const MultipleValueComparators = [
+  Comparator.Between,
+  Comparator.BetweenOrEqual,
+  Comparator.BetweenOrLeftEqual,
+  Comparator.BetweenOrRightEqual,
 ];
 
 export type ConditionalFormattingConfig = {
-  operator?: COMPARATOR;
+  operator?: Comparator;
   targetValue?: number;
   targetValueLeft?: number;
   targetValueRight?: number;
@@ -479,13 +478,15 @@ export function isControlPanelSectionConfig(
 export function isDataset(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is Dataset {
-  return !!datasource && 'columns' in datasource;
+  return (
+    !!datasource && 'columns' in datasource && !('sqlEditorId' in datasource)
+  );
 }
 
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return !!datasource && 'results' in datasource && 'sql' in datasource;
+  return !!datasource && 'results' in datasource && 'sqlEditorId' in datasource;
 }
 
 export enum SortSeriesType {

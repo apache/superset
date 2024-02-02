@@ -36,7 +36,6 @@ from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import backend, override_user
-from superset.views.base import generate_download_headers
 
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -63,7 +62,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
+class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
 
     dashboards: list[Dashboard] = []
@@ -175,6 +174,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(actual_dataset_ids, expected_dataset_ids)
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         self.assertEqual(result[0]["column_types"], expected_values)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_datasets_as_guest(self, is_guest_user, has_guest_access):
+        self.login(username="admin")
+        uri = "api/v1/dashboard/world_health/datasets"
+        is_guest_user = True
+        has_guest_access = True
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        dashboard = Dashboard.get("world_health")
+        expected_dataset_ids = {s.datasource_id for s in dashboard.slices}
+        result = data["result"]
+        actual_dataset_ids = {dataset["id"] for dataset in result}
+        self.assertEqual(actual_dataset_ids, expected_dataset_ids)
+        for dataset in result:
+            for excluded_key in ["database", "owners"]:
+                assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_not_found(self):
@@ -405,6 +424,29 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 "changed_on_delta_humanized",
             ):
                 self.assertEqual(value, expected_result[key])
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    @patch("superset.dashboards.schemas.security_manager.has_guest_access")
+    @patch("superset.dashboards.schemas.security_manager.is_guest_user")
+    def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
+        """
+        Dashboard API: Test get dashboard as guest
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        is_guest_user.return_value = True
+        has_guest_access.return_value = True
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        rv = self.get_assert_metric(uri, "get")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        for excluded_key in ["changed_by", "changed_by_name", "owners"]:
+            assert excluded_key not in data["result"]
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -1379,55 +1421,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_update_dashboard_chart_owners(self):
-        """
-        Dashboard API: Test update chart owners
-        """
-        user_alpha1 = self.create_user(
-            "alpha1", "password", "Alpha", email="alpha1@superset.org"
-        )
-        user_alpha2 = self.create_user(
-            "alpha2", "password", "Alpha", email="alpha2@superset.org"
-        )
-        admin = self.get_user("admin")
-        slices = []
-        slices.append(
-            db.session.query(Slice).filter_by(slice_name="Girl Name Cloud").first()
-        )
-        slices.append(db.session.query(Slice).filter_by(slice_name="Trends").first())
-        slices.append(db.session.query(Slice).filter_by(slice_name="Boys").first())
-
-        dashboard = self.insert_dashboard(
-            "title1",
-            "slug1",
-            [admin.id],
-            slices=slices,
-        )
-        self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard.id}"
-        dashboard_data = {"owners": [user_alpha1.id, user_alpha2.id]}
-        rv = self.client.put(uri, json=dashboard_data)
-        self.assertEqual(rv.status_code, 200)
-
-        # verify slices owners include alpha1 and alpha2 users
-        slices_ids = [slice.id for slice in slices]
-        # Refetch Slices
-        slices = db.session.query(Slice).filter(Slice.id.in_(slices_ids)).all()
-        for slice in slices:
-            self.assertIn(user_alpha1, slice.owners)
-            self.assertIn(user_alpha2, slice.owners)
-            self.assertNotIn(admin, slice.owners)
-            # Revert owners on slice
-            slice.owners = []
-            db.session.commit()
-
-        # Rollback changes
-        db.session.delete(dashboard)
-        db.session.delete(user_alpha1)
-        db.session.delete(user_alpha2)
-        db.session.commit()
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_update_dashboard_chart_owners_propagation(self):
         """
         Dashboard API: Test update chart owners propagation
@@ -1658,11 +1651,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": False},
-        clear=True,
-    )
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
@@ -1677,8 +1665,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         rv = self.get_assert_metric(uri, "export")
-        headers = generate_download_headers("json")["Content-Disposition"]
 
+        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 

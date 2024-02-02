@@ -26,7 +26,7 @@ import { Input } from 'antd';
 import { Divider } from 'src/components';
 import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
-import { fetchObjects } from 'src/features/tags/tags';
+import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
@@ -88,6 +88,14 @@ const TagModal: React.FC<TagModalProps> = ({
     setSavedQueriesToTag([]);
   };
 
+  const clearTagForm = () => {
+    setTagName('');
+    setDescription('');
+    setDashboardsToTag([]);
+    setChartsToTag([]);
+    setSavedQueriesToTag([]);
+  };
+
   useEffect(() => {
     const resourceMap: { [key: string]: TaggableResourceOption[] } = {
       [TaggableResources.Dashboard]: [],
@@ -107,8 +115,8 @@ const TagModal: React.FC<TagModalProps> = ({
     };
     clearResources();
     if (isEditMode) {
-      fetchObjects(
-        { tags: editTag.name, types: null },
+      fetchObjectsByTagIds(
+        { tagIds: [editTag.id], types: null },
         (data: Tag[]) => {
           data.forEach(updateResourceOptions);
           setDashboardsToTag(resourceMap[TaggableResources.Dashboard]);
@@ -222,10 +230,16 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag updated'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          clearTagForm();
+          addSuccessToast(t('Tag updated'));
+          onHide();
+        })
+        .catch(err => {
+          addDangerToast(err.message || 'Error Updating Tag');
+        });
     } else {
       SupersetClient.post({
         endpoint: `/api/v1/tag/`,
@@ -234,25 +248,22 @@ const TagModal: React.FC<TagModalProps> = ({
           name: tagName,
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
-      }).then(({ json = {} }) => {
-        refreshData();
-        addSuccessToast(t('Tag created'));
-      });
+      })
+        .then(({ json = {} }) => {
+          refreshData();
+          clearTagForm();
+          addSuccessToast(t('Tag created'));
+          onHide();
+        })
+        .catch(err => addDangerToast(err.message || 'Error Creating Tag'));
     }
-    onHide();
   };
 
   return (
     <Modal
       title={modalTitle}
       onHide={() => {
-        if (clearOnHide) {
-          setTagName('');
-          setDescription('');
-          setDashboardsToTag([]);
-          setChartsToTag([]);
-          setSavedQueriesToTag([]);
-        }
+        if (clearOnHide) clearTagForm();
         onHide();
       }}
       show={show}

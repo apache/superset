@@ -89,6 +89,15 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["TESTING"] = True
 
     # loop over extra configs passed in by tests
+    # and update the app config
+    # to override the default configs use:
+    #
+    # @pytest.mark.parametrize(
+    #     "app",
+    #     [{"SOME_CONFIG": "SOME_VALUE"}],
+    #     indirect=True,
+    # )
+    # def test_some_test(app_context: None) -> None:
     if request and hasattr(request, "param"):
         for key, val in request.param.items():
             app.config[key] = val
@@ -163,7 +172,6 @@ def dummy_query_object(request, app_context):
             "ROW_LIMIT": 100,
         },
         _datasource_dao=unittest.mock.Mock(),
-        session_maker=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
 
 

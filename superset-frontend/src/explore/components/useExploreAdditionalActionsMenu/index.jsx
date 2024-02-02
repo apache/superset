@@ -280,7 +280,7 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           break;
         case MENU_KEYS.RUN_IN_SQL_LAB:
-          onOpenInEditor(latestQueryFormData);
+          onOpenInEditor(latestQueryFormData, domEvent.metaKey);
           setIsDropdownVisible(false);
           break;
         default:
@@ -373,7 +373,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
             {t('Share chart by email')}
           </Menu.Item>
-          {isFeatureEnabled(FeatureFlag.EMBEDDABLE_CHARTS) ? (
+          {isFeatureEnabled(FeatureFlag.EmbeddableCharts) ? (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={

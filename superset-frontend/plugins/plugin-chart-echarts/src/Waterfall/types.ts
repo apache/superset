@@ -19,16 +19,14 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
+  RgbaColor,
 } from '@superset-ui/core';
 import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
-import { OptionDataValue } from 'echarts/types/src/util/types';
-import {
-  BaseTransformedProps,
-  CrossFilterTransformedProps,
-  LegendFormData,
-} from '../types';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
+import { BaseTransformedProps, LegendFormData } from '../types';
 
 export type WaterfallFormXTicksLayout =
   | '45°'
@@ -37,20 +35,28 @@ export type WaterfallFormXTicksLayout =
   | 'flat'
   | 'staggered';
 
-export type ISeriesData =
-  | BarDataItemOption
-  | OptionDataValue
-  | OptionDataValue[];
+export type ISeriesData = {
+  originalValue?: number;
+  totalSum?: number;
+} & BarDataItemOption;
+
+export type ICallbackDataParams = CallbackDataParams & {
+  axisValueLabel: string;
+  data: ISeriesData;
+};
 
 export type EchartsWaterfallFormData = QueryFormData &
   LegendFormData & {
+    increaseColor: RgbaColor;
+    decreaseColor: RgbaColor;
+    totalColor: RgbaColor;
     metric: QueryFormMetric;
-    yAxisLabel: string;
+    xAxis: QueryFormColumn;
     xAxisLabel: string;
-    yAxisFormat: string;
+    xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
-    series: string;
-    columns?: string;
+    yAxisLabel: string;
+    yAxisFormat: string;
   };
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {
@@ -63,4 +69,4 @@ export interface EchartsWaterfallChartProps extends ChartProps {
 }
 
 export type WaterfallChartTransformedProps =
-  BaseTransformedProps<EchartsWaterfallFormData> & CrossFilterTransformedProps;
+  BaseTransformedProps<EchartsWaterfallFormData>;

@@ -3,10 +3,19 @@ name: Python Presto/Hive
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - 'master'
+    paths:
+      - "superset/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   test-postgres-presto:
@@ -45,7 +54,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -58,7 +67,7 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -113,7 +122,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -132,10 +141,10 @@ jobs:
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
         if: steps.check.outcome == 'failure'
-        run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
+        run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'

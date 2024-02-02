@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
@@ -88,7 +88,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
   componentDidMount() {
     // migrate query editor and associated tables state to server
-    if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
       const localStorageTables = this.props.tables.filter(
         table => table.inLocalStorage,
       );
@@ -183,7 +183,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const qe = this.activeQueryEditor();
       const latestQuery = this.props.queries[qe.latestQueryId];
       if (
-        isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) &&
+        isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
         latestQuery &&
         latestQuery.resultsKey
       ) {

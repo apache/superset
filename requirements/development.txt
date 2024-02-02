@@ -12,7 +12,7 @@
     #   -r requirements/development.in
 appnope==0.1.3
     # via ipython
-astroid==2.15.6
+astroid==2.15.8
     # via pylint
 asttokens==2.2.1
     # via stack-data
@@ -72,10 +72,8 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==9.5.0
+pillow==10.2.0
     # via apache-superset
-platformdirs==3.8.1
-    # via pylint
 progress==1.6
     # via -r requirements/development.in
 psycopg2-binary==2.9.6
@@ -84,31 +82,16 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
-pyasn1==0.5.0
-    # via
-    #   pyasn1-modules
-    #   python-ldap
-pyasn1-modules==0.3.0
-    # via python-ldap
 pydruid==0.6.5
     # via apache-superset
 pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
-pylint==2.17.4
+pylint==2.17.7
     # via -r requirements/development.in
 python-ldap==3.4.3
     # via -r requirements/development.in
-requests==2.31.0
-    # via
-    #   pydruid
-    #   tableschema
-    #   tabulator
 rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
@@ -122,14 +105,7 @@ tableschema==1.20.2
 tabulator==1.53.5
     # via tableschema
 thrift==0.16.0
-    # via
-    #   apache-superset
-    #   pyhive
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via pyhive
-tomli==2.0.1
-    # via pylint
+    # via apache-superset
 tomlkit==0.11.8
     # via pylint
 traitlets==5.9.0

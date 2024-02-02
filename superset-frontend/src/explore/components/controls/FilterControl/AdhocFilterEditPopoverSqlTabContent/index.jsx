@@ -26,7 +26,7 @@ import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -72,7 +72,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
         clause,
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
       }),
     );
   }
@@ -81,7 +81,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
         sqlExpression,
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
       }),
     );
   }
@@ -115,7 +115,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
         })
         .filter(Boolean),
     );
-    const selectOptions = Object.keys(CLAUSES).map(clause => ({
+    const selectOptions = Object.keys(Clauses).map(clause => ({
       label: clause,
       value: clause,
     }));
