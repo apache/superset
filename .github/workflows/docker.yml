@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
+        build_preset: ["dev", "lean", "py311", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
         exclude:
           # disabling because slow! no python wheels for arm/py39 and
