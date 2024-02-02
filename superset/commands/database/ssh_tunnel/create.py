@@ -40,20 +40,11 @@ class CreateSSHTunnelCommand(BaseCommand):
 
     def run(self) -> Model:
         try:
-            # Start nested transaction since we are always creating the tunnel
-            # through a DB command (Create or Update). Without this, we cannot
-            # safely rollback changes to databases if any, i.e, things like
-            # test_do_not_create_database_if_ssh_tunnel_creation_fails test will fail
-            db.session.begin_nested()
             self.validate()
             return SSHTunnelDAO.create(attributes=self._properties, commit=False)
         except DAOCreateFailedError as ex:
-            # Rollback nested transaction
-            db.session.rollback()
             raise SSHTunnelCreateFailedError() from ex
         except SSHTunnelInvalidError as ex:
-            # Rollback nested transaction
-            db.session.rollback()
             raise ex
 
     def validate(self) -> None:

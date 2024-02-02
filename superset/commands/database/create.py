@@ -80,14 +80,14 @@ class CreateDatabaseCommand(BaseCommand):
             database = DatabaseDAO.create(attributes=self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
+            db.session.add(database)
+
             ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 if not is_feature_enabled("SSH_TUNNELING"):
                     db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
                 try:
-                    # So database.id is not None
-                    db.session.flush()
                     ssh_tunnel = CreateSSHTunnelCommand(
                         database.id, ssh_tunnel_properties
                     ).run()
@@ -96,6 +96,7 @@ class CreateDatabaseCommand(BaseCommand):
                         action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
+                    db.session.rollback()
                     # So we can show the original message
                     raise ex
                 except Exception as ex:
@@ -103,6 +104,7 @@ class CreateDatabaseCommand(BaseCommand):
                         action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
                         engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
                     )
+                    db.session.rollback()
                     raise DatabaseCreateFailedError() from ex
 
             # adding a new database we always want to force refresh schema list
