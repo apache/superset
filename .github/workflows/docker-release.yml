@@ -90,6 +90,6 @@ jobs:
           pip install click
           ./scripts/build_docker.py \
             ${{ matrix.build_preset }} \
-            "${{ giithub.event_name }}" \
+            "${{ github.event_name }}" \
             --build_context_ref $RELEASE \
             --platform ${{ matrix.platform }} $FORCE_LATEST
