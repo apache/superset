@@ -18,42 +18,33 @@
  */
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { EchartsBubbleChartPlugin, BubbleTransformProps } from '@superset-ui/plugin-chart-echarts';
+import {
+  boolean,
+  number,
+  select,
+  text,
+  withKnobs,
+} from '@storybook/addon-knobs';
+import {
+  EchartsBubbleChartPlugin,
+  BubbleTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }).register();
-getChartTransformPropsRegistry().registerValue('bubble_v2', BubbleTransformProps);
+
+getChartTransformPropsRegistry().registerValue(
+  'bubble_v2',
+  BubbleTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Bubble',
-  decorators: [withResizableChartDemo],
-  argTypes: {
-    maxBubbleSize: {
-      control: 'select',
-      options: [5, 10, 25, 50, 100, 125],
-      defaultValue: 10,
-    },
-    xAxisTitle: { control: 'text', defaultValue: '' },
-    xAxisTitleMargin: { control: 'number', defaultValue: 30 },
-    yAxisTitle: { control: 'text', defaultValue: '' },
-    yAxisTitleMargin: { control: 'number', defaultValue: 30 },
-    logYAxis: { control: 'boolean', defaultValue: false },
-    logXAxis: { control: 'boolean', defaultValue: false },
-  },
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
-const SimpleBubbleTemplate = ({
-  maxBubbleSize,
-  xAxisTitle,
-  xAxisTitleMargin,
-  yAxisTitle,
-  yAxisTitleMargin,
-  logYAxis,
-  logXAxis,
-  width,
-  height
-}) => (
+export const SimpleBubble = ({ width, height }) => (
   <SuperChart
     chartType="bubble_v2"
     width={width}
@@ -119,21 +110,19 @@ const SimpleBubbleTemplate = ({
       },
       limit: 10,
       colorScheme: 'supersetColors',
-      maxBubbleSize,
-      xAxisTitle,
-      xAxisTitleMargin,
-      yAxisTitle,
-      yAxisTitleMargin,
+      maxBubbleSize: select('Max bubble size', [5, 10, 25, 50, 100, 125], 10),
+      xAxisTitle: text('X axis title', ''),
+      xAxisTitleMargin: number('X axis title margin', 30),
+      yAxisTitle: text('Y axis title', ''),
+      yAxisTitleMargin: number('Y axis title margin', 30),
       yAxisTitlePosition: 'Left',
       xAxisFormat: null,
-      logYAxis,
+      logYAxis: boolean('Log Y axis', false),
       yAxisFormat: null,
-      logXAxis,
+      logXAxis: boolean('Log X axis', false),
       truncateYAxis: false,
       yAxisBounds: [],
       extraFormData: {},
     }}
   />
 );
-
-export const SimpleBubble = SimpleBubbleTemplate.bind({});

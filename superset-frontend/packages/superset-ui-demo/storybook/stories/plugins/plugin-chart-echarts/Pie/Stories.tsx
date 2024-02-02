@@ -1,62 +1,108 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { EchartsPieChartPlugin, PieTransformProps } from '@superset-ui/plugin-chart-echarts';
+import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
+import {
+  EchartsPieChartPlugin,
+  PieTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import { weekday, population } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsPieChartPlugin().configure({ key: 'echarts-pie' }).register();
-getChartTransformPropsRegistry().registerValue('echarts-pie', PieTransformProps);
+
+getChartTransformPropsRegistry().registerValue(
+  'echarts-pie',
+  PieTransformProps,
+);
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Pie',
-  decorators: [withResizableChartDemo],
-  argTypes: {
-    width: { control: 'text', defaultValue: '100%' },
-    height: { control: 'text', defaultValue: '100%' },
-    donut: { control: 'boolean', defaultValue: false },
-    innerRadius: { control: 'number', defaultValue: 30 },
-    outerRadius: { control: 'number', defaultValue: 70 },
-    labelsOutside: { control: 'boolean', defaultValue: true },
-    labelLine: { control: 'boolean', defaultValue: true },
-    showLabels: { control: 'boolean', defaultValue: true },
-    showLegend: { control: 'boolean', defaultValue: false },
-    labelType: { control: 'select', options: ['key', 'value', 'percent', 'key_value', 'key_percent', 'key_value_percent'], defaultValue: 'key' },
-  },
+  decorators: [withKnobs, withResizableChartDemo],
 };
 
-const PieChartTemplate = ({ width, height, data, groupby, metric, donut, innerRadius, outerRadius, labelsOutside, labelLine, showLabels, showLegend, labelType }) => (
+export const WeekdayPie = ({ width, height }) => (
   <SuperChart
     chartType="echarts-pie"
     width={width}
     height={height}
-    queriesData={[{ data }]}
+    queriesData={[{ data: weekday }]}
     formData={{
       colorScheme: 'supersetColors',
-      groupby,
-      metric,
+      groupby: ['Day'],
+      metric: 'SUM(AIR_TIME)',
       numberFormat: 'SMART_NUMBER',
-      donut,
-      innerRadius,
-      outerRadius,
-      labelsOutside,
-      labelLine,
-      showLabels,
-      showLegend,
-      labelType,
+      donut: boolean('Donut', false),
+      innerRadius: number('Inner Radius', 30),
+      outerRadius: number('Outer Radius', 70),
+      labelsOutside: boolean('Labels outside', true),
+      labelLine: boolean('Label line', true),
+      showLabels: boolean('Show labels', true),
+      showLegend: boolean('Show legend', false),
+      labelType: select(
+        'Pie label type',
+        [
+          'key',
+          'value',
+          'percent',
+          'key_value',
+          'key_percent',
+          'key_value_percent',
+        ],
+        'key',
+      ),
     }}
   />
 );
 
-export const WeekdayPie = PieChartTemplate.bind({});
-WeekdayPie.args = {
-  data: weekday,
-  groupby: ['Day'],
-  metric: 'SUM(AIR_TIME)'
-};
-
-export const PopulationPie = PieChartTemplate.bind({});
-PopulationPie.args = {
-  data: population,
-  groupby: ['Country'],
-  metric: 'Population'
-};
+export const PopulationPie = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-pie"
+    width={width}
+    height={height}
+    queriesData={[{ data: population }]}
+    formData={{
+      colorScheme: 'supersetColors',
+      groupby: ['Country'],
+      metric: 'Population',
+      numberFormat: 'SMART_NUMBER',
+      donut: boolean('Donut', false),
+      innerRadius: number('Inner Radius', 30),
+      outerRadius: number('Outer Radius', 70),
+      labelsOutside: boolean('Labels outside', false),
+      labelLine: boolean('Label line', true),
+      showLabels: boolean('Show labels', true),
+      showLegend: boolean('Show legend', false),
+      labelType: select(
+        'Pie label type',
+        [
+          'key',
+          'value',
+          'percent',
+          'key_value',
+          'key_percent',
+          'key_value_percent',
+        ],
+        'key',
+      ),
+    }}
+  />
+);

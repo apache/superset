@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
+import { boolean, text } from '@storybook/addon-knobs';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -27,28 +28,21 @@ import ListViewCard from '.';
 export default {
   title: 'ListViewCard',
   component: ListViewCard,
-  argTypes: {
-    loading: { control: 'boolean', defaultValue: false },
-    imgURL: { 
-      control: 'text', 
-      defaultValue: 'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80' 
-    },
-    imgFallbackURL: { 
-      control: 'text', 
-      defaultValue: 'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80' 
-    },
-    isStarred: { control: 'boolean', defaultValue: false },
-    // Add any other controls you need for your story
-  },
 };
 
-const SupersetListViewCardTemplate = ({ loading, imgURL, imgFallbackURL, isStarred }) => (
+export const SupersetListViewCard = () => (
   <ListViewCard
     title="Superset Card Title"
-    loading={loading}
+    loading={boolean('loading', false)}
     url="/superset/dashboard/births/"
-    imgURL={imgURL}
-    imgFallbackURL={imgFallbackURL}
+    imgURL={text(
+      'imgURL',
+      'https://images.unsplash.com/photo-1658163724548-29ef00812a54?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+    )}
+    imgFallbackURL={text(
+      'imgURL',
+      'https://images.unsplash.com/photo-1658208193219-e859d9771912?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2670&q=80',
+    )}
     description="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
     coverLeft="Left Section"
     coverRight="Right Section"
@@ -58,7 +52,7 @@ const SupersetListViewCardTemplate = ({ loading, imgURL, imgFallbackURL, isStarr
           itemId={0}
           fetchFaveStar={action('fetchFaveStar')}
           saveFaveStar={action('saveFaveStar')}
-          isStarred={isStarred}
+          isStarred={boolean('isStarred', false)}
         />
         <AntdDropdown
           overlay={
@@ -78,6 +72,3 @@ const SupersetListViewCardTemplate = ({ loading, imgURL, imgFallbackURL, isStarr
     }
   />
 );
-
-export const SupersetListViewCard = SupersetListViewCardTemplate.bind({});
-
