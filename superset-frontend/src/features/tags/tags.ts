@@ -94,11 +94,7 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(
-        json.result.tags.filter(
-          (tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes,
-        ),
-      ),
+      callback(json.result.tags.filter((tag: Tag) => tag.type === 1)),
     )
     .catch(response => error(response));
 }
@@ -167,9 +163,6 @@ export function addTag(
 ) {
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
-  }
-  if (tag.indexOf(':') !== -1 && !includeTypes) {
-    return;
   }
   const objectTypeId = map_object_type_to_id(objectType);
   SupersetClient.post({
