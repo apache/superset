@@ -28,7 +28,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 )
 from superset.daos.database import SSHTunnelDAO
 from superset.daos.exceptions import DAOCreateFailedError
-from superset.extensions import db, event_logger
+from superset.extensions import event_logger
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
