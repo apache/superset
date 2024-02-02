@@ -19,7 +19,6 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { ValidationObject } from './types';
-import { theme } from 'src/preamble';
 
 const StyledList = styled.ul`
   margin: 0;
