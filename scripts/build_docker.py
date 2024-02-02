@@ -227,6 +227,16 @@ def main(
         True if os.getenv("DOCKERHUB_TOKEN") and os.getenv("DOCKERHUB_USER") else False
     )
 
+    if force_latest and build_context != "release":
+        print(
+            "--force-latest can only be applied if the build context is set to 'release'"
+        )
+        exit(1)
+
+    if build_context == "release" and not build_context_ref.strip():
+        print("Release number has to be provided")
+        exit(1)
+
     docker_build_command = get_docker_command(
         build_preset,
         platform,
@@ -236,11 +246,6 @@ def main(
         build_context_ref,
         force_latest,
     )
-    if force_latest and build_context != "release":
-        print(
-            "--force-latest can only be applied if the build context is set to 'release'"
-        )
-        exit(1)
 
     if not dry_run:
         print("Executing Docker Build Command:")
