@@ -98,8 +98,7 @@ class CreateDatabaseCommand(BaseCommand):
 
                     db.session.commit()
             else:
-                database = self._do_create_database()
-                db.session.commit()
+                database = self._do_create_database(commit=True)
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
@@ -120,7 +119,11 @@ class CreateDatabaseCommand(BaseCommand):
             )
             # So we can show the original message
             raise ex
-        except DAOCreateFailedError as ex:
+        except (
+            DAOCreateFailedError,
+            DatabaseInvalidError,
+            Exception,
+        ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
@@ -157,5 +160,5 @@ class CreateDatabaseCommand(BaseCommand):
             )
             raise exception
 
-    def _do_create_database(self) -> Database:
-        return DatabaseDAO.create(attributes=self._properties, commit=False)
+    def _do_create_database(self, commit: Optional[bool] = False) -> Database:
+        return DatabaseDAO.create(attributes=self._properties, commit=commit)

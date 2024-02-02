@@ -60,7 +60,7 @@ def test_create_ssh_tunnel_command_invalid_params() -> None:
         "private_key_password": "bar",
     }
 
-    command = CreateSSHTunnelCommand(db.id, properties)
+    command = CreateSSHTunnelCommand(db, properties)
 
     with pytest.raises(SSHTunnelInvalidError) as excinfo:
         command.run()
