@@ -83,6 +83,7 @@ def get_docker_tags(
     sha: str,
     build_context: str,
     build_context_ref: str,
+    force_latest: bool = False,
 ) -> set[str]:
     """
     Return a set of tags given a given build context
@@ -110,11 +111,13 @@ def get_docker_tags(
     if build_context == "release":
         # add a release tag
         tags.add(make_docker_tag([build_context_ref] + tag_chunks))
-        if is_latest:
+        if is_latest or force_latest:
             # add a latest tag
             tags.add(make_docker_tag(["latest"] + tag_chunks))
     elif build_context == "push" and build_context_ref == "master":
         tags.add(make_docker_tag(["master"] + tag_chunks))
+    elif build_context == "pull_request":
+        tags.add(make_docker_tag([f"pr-{build_context_ref}"] + tag_chunks))
     return tags
 
 
@@ -125,6 +128,7 @@ def get_docker_command(
     sha: str,
     build_context: str,
     build_context_ref: str,
+    force_latest: bool = False,
 ) -> str:
     tag = ""
     build_target = ""
@@ -160,6 +164,7 @@ def get_docker_command(
         sha,
         build_context,
         build_context_ref,
+        force_latest,
     )
     docker_tags = ("\\\n" + 8 * " ").join([f"-t {s} " for s in tags])
 
@@ -205,12 +210,16 @@ def get_docker_command(
 )
 @click.option("--build_context_ref", help="a reference to the pr, release or branch")
 @click.option("--dry-run", is_flag=True, help="Run the command in dry-run mode.")
+@click.option(
+    "--force-latest", is_flag=True, help="Force the 'latest' tag on the release"
+)
 def main(
     build_preset: str,
     build_context: str,
     build_context_ref: str,
     platform: str,
     dry_run: bool,
+    force_latest: bool,
 ) -> None:
     """
     This script executes docker build and push commands based on given arguments.
@@ -219,7 +228,16 @@ def main(
     is_authenticated = (
         True if os.getenv("DOCKERHUB_TOKEN") and os.getenv("DOCKERHUB_USER") else False
     )
-    build_context_ref = get_build_context_ref(build_context)
+
+    if force_latest and build_context != "release":
+        print(
+            "--force-latest can only be applied if the build context is set to 'release'"
+        )
+        exit(1)
+
+    if build_context == "release" and not build_context_ref.strip():
+        print("Release number has to be provided")
+        exit(1)
 
     docker_build_command = get_docker_command(
         build_preset,
@@ -227,7 +245,8 @@ def main(
         is_authenticated,
         get_git_sha(),
         build_context,
-        get_build_context_ref(build_context),
+        build_context_ref,
+        force_latest,
     )
 
     if not dry_run:

@@ -65,7 +65,7 @@ def test_is_latest_release(release, expected_bool):
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-arm", f"{REPO}:{SHA}-arm"],
+            [f"{REPO}:22e7c60-arm", f"{REPO}:{SHA}-arm", f"{REPO}:pr-{PR_ID}-arm"],
         ),
         (
             "ci",
@@ -73,7 +73,7 @@ def test_is_latest_release(release, expected_bool):
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-ci", f"{REPO}:{SHA}-ci"],
+            [f"{REPO}:22e7c60-ci", f"{REPO}:{SHA}-ci", f"{REPO}:pr-{PR_ID}-ci"],
         ),
         (
             "lean",
@@ -81,7 +81,7 @@ def test_is_latest_release(release, expected_bool):
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60", f"{REPO}:{SHA}"],
+            [f"{REPO}:22e7c60", f"{REPO}:{SHA}", f"{REPO}:pr-{PR_ID}"],
         ),
         (
             "dev",
@@ -89,7 +89,11 @@ def test_is_latest_release(release, expected_bool):
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-dev-arm", f"{REPO}:{SHA}-dev-arm"],
+            [
+                f"{REPO}:22e7c60-dev-arm",
+                f"{REPO}:{SHA}-dev-arm",
+                f"{REPO}:pr-{PR_ID}-dev-arm",
+            ],
         ),
         (
             "dev",
@@ -97,7 +101,7 @@ def test_is_latest_release(release, expected_bool):
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-dev", f"{REPO}:{SHA}-dev"],
+            [f"{REPO}:22e7c60-dev", f"{REPO}:{SHA}-dev", f"{REPO}:pr-{PR_ID}-dev"],
         ),
         # old releases
         (

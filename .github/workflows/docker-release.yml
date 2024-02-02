@@ -1,8 +1,26 @@
-name: Docker
+name: Docker Publish Release
 
 on:
   release:
     types: [published]
+
+  # Can be triggered manually
+  workflow_dispatch:
+    inputs:
+      release:
+        required: true
+        description: The version to generate
+      git-ref:
+        required: true
+        description: The git reference to checkout prior to running the docker build
+      force-latest:
+        required: true
+        type: choice
+        default: 'false'
+        description: Whether to force a latest tag on the release
+        options:
+          - true
+          - false
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -53,6 +71,22 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          RELEASE="${{ github.event.release.tag_name }}"
+          FORCE_LATEST=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # in the case of a manually-triggered run, read release from input
+            RELEASE ="${{ github.event.inputs.release }}"
+            if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
+              FORCE_LATEST="--force-latest"
+            fi
+            # build_docker.py may not exist on that SHA, let's switcharoo to /tmp
+            cp ./scripts/build_docker.py /tmp
+            git checkout "${{ github.event.inputs.git-ref }}"
+            cp /tmp/build_docker.py scripts/
+          fi
           pip install click
-          ./scripts/build_docker.py ${{ matrix.build_preset }} release --platform ${{ matrix.platform }}
+          ./scripts/build_docker.py \
+            ${{ matrix.build_preset }} \
+            "${{ github.event_name }}" \
+            --build_context_ref "$RELEASE" \
+            --platform ${{ matrix.platform }} $FORCE_LATEST

@@ -122,13 +122,7 @@ jobs:
 
       - name: Build ephemeral env image
         run: |
-          docker buildx build --target ci \
-            --load \
-            -t ${{ steps.get-sha.outputs.sha }} \
-            -t "pr-${{ github.event.issue.number }}" \
-            --platform linux/amd64 \
-            --label "build_actor=${GITHUB_ACTOR}" \
-            .
+          ./scripts/build_docker.py "ci" "pull_request"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -147,7 +141,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: superset-ci
           SHA: ${{ steps.get-sha.outputs.sha }}
-          IMAGE_TAG: pr-${{ github.event.issue.number }}
+          IMAGE_TAG: pr-${{ github.event.issue.number }}-ci
         run: |
           docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA

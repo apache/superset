@@ -179,7 +179,7 @@ extraConfigMountPath: "/app/configs"
 
 image:
   repository: apachesuperset.docker.scarf.sh/apache/superset
-  tag: ""
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
