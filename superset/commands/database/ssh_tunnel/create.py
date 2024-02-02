@@ -34,39 +34,6 @@ from superset.models.core import Database
 logger = logging.getLogger(__name__)
 
 
-def validate_ssh_tunnel(properties: dict[str, Any]) -> bool:
-    # TODO(hughhh): check to make sure the server port is not localhost
-    # using the config.SSH_TUNNEL_MANAGER
-
-    exceptions: list[ValidationError] = []
-    server_address: Optional[str] = properties.get("server_address")
-    server_port: Optional[int] = properties.get("server_port")
-    username: Optional[str] = properties.get("username")
-    private_key: Optional[str] = properties.get("private_key")
-    private_key_password: Optional[str] = properties.get("private_key_password")
-    if not server_address:
-        exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
-    if not server_port:
-        exceptions.append(SSHTunnelRequiredFieldValidationError("server_port"))
-    if not username:
-        exceptions.append(SSHTunnelRequiredFieldValidationError("username"))
-    if private_key_password and private_key is None:
-        exceptions.append(SSHTunnelRequiredFieldValidationError("private_key"))
-    if exceptions:
-        exception = SSHTunnelInvalidError()
-        exception.extend(exceptions)
-        event_logger.log_with_context(
-            # pylint: disable=consider-using-f-string
-            action="ssh_tunnel_creation_failed.{}.{}".format(
-                exception.__class__.__name__,
-                ".".join(exception.get_list_classnames()),
-            )
-        )
-        raise exception
-
-    return True
-
-
 class CreateSSHTunnelCommand(BaseCommand):
     def __init__(self, database: Database, data: dict[str, Any]):
         self._properties = data.copy()
@@ -75,16 +42,41 @@ class CreateSSHTunnelCommand(BaseCommand):
     def run(self) -> Model:
         try:
             self.validate()
-            return SSHTunnelDAO.create(attributes=self._properties, commit=False)
+            ssh_tunnel = SSHTunnelDAO.create(attributes=self._properties, commit=False)
+            return ssh_tunnel
         except DAOCreateFailedError as ex:
-            db.session.rollback()
             raise SSHTunnelCreateFailedError() from ex
         except SSHTunnelInvalidError as ex:
-            db.session.rollback()
             raise ex
 
     def validate(self) -> None:
-        try:
-            validate_ssh_tunnel(self._properties)
-        except SSHTunnelInvalidError as ex:
-            raise ex
+        # TODO(hughhh): check to make sure the server port is not localhost
+        # using the config.SSH_TUNNEL_MANAGER
+
+        exceptions: list[ValidationError] = []
+        server_address: Optional[str] = self._properties.get("server_address")
+        server_port: Optional[int] = self._properties.get("server_port")
+        username: Optional[str] = self._properties.get("username")
+        private_key: Optional[str] = self._properties.get("private_key")
+        private_key_password: Optional[str] = self._properties.get(
+            "private_key_password"
+        )
+        if not server_address:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
+        if not server_port:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("server_port"))
+        if not username:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("username"))
+        if private_key_password and private_key is None:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("private_key"))
+        if exceptions:
+            exception = SSHTunnelInvalidError()
+            exception.extend(exceptions)
+            event_logger.log_with_context(
+                # pylint: disable=consider-using-f-string
+                action="ssh_tunnel_creation_failed.{}.{}".format(
+                    exception.__class__.__name__,
+                    ".".join(exception.get_list_classnames()),
+                )
+            )
+            raise exception

@@ -30,10 +30,7 @@ from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
 )
-from superset.commands.database.ssh_tunnel.create import (
-    CreateSSHTunnelCommand,
-    validate_ssh_tunnel,
-)
+from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
     SSHTunnelingNotEnabledError,
@@ -87,18 +84,14 @@ class CreateDatabaseCommand(BaseCommand):
                 if not is_feature_enabled("SSH_TUNNELING"):
                     raise SSHTunnelingNotEnabledError()
 
-                # pre-validate the SSH tunnel properties
-                is_tunnel_valid = validate_ssh_tunnel(ssh_tunnel_properties)
-
-                if is_tunnel_valid:
-                    database = self._do_create_database()
-                    ssh_tunnel = CreateSSHTunnelCommand(
-                        database, ssh_tunnel_properties
-                    ).run()
-
-                    db.session.commit()
+                database = self._do_create_database(commit=False)
+                ssh_tunnel = CreateSSHTunnelCommand(
+                    database, ssh_tunnel_properties
+                ).run()
             else:
-                database = self._do_create_database(commit=True)
+                database = self._do_create_database(commit=False)
+
+            db.session.commit()
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
@@ -122,7 +115,6 @@ class CreateDatabaseCommand(BaseCommand):
         except (
             DAOCreateFailedError,
             DatabaseInvalidError,
-            Exception,
         ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
@@ -160,5 +152,5 @@ class CreateDatabaseCommand(BaseCommand):
             )
             raise exception
 
-    def _do_create_database(self, commit: Optional[bool] = False) -> Database:
+    def _do_create_database(self, commit: bool = False) -> Database:
         return DatabaseDAO.create(attributes=self._properties, commit=commit)
