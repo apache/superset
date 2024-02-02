@@ -35,10 +35,6 @@ const StyledNotificationMethod = styled.div`
   .inline-container {
     margin-bottom: 10px;
 
-    .input-container {
-      margin-left: 10px;
-    }
-
     > div {
       margin: 0;
     }
