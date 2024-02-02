@@ -602,7 +602,14 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    assert rv.json["result"]["colnames"] == ["col1", "col2", "col3", "col4", "col5"]
+    assert rv.json["result"]["colnames"] == [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+    ]
     assert rv.json["result"]["rowcount"] == 1
 
     # empty results
