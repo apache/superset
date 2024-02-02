@@ -70,7 +70,7 @@ export const withResizableChartDemo: DecoratorFunction<ReactNode> = (
       initialSize={initialSize as Size | undefined}
       panelPadding={panelPadding}
     >
-      {innerSize => storyFn({ ...context, ...innerSize })}
+      {innerSize => storyFn({ ...context, ...context.args, ...innerSize })}
     </ResizableChartDemo>
   );
 };
