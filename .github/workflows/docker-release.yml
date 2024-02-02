@@ -3,6 +3,16 @@ name: Docker
 on:
   release:
     types: [published]
+
+  # Can be triggered manually
+  workflow_dispatch:
+    inputs:
+      release:
+        required: true
+        description: The version to generate
+      git-ref:
+        required: true
+        description: The git reference to checkout prior to running the docker build
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -53,6 +63,15 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # in the case of a manually-triggered run, read release from input
+            GITHUB_RELEASE_TAG_NAME="${{ github.event.inputs.release }}"
+            # build_docker.py may not exist on that SHA, let's switcharoo to /tmp
+            cp ./scripts/build_docker.py /tmp
+            git checkout "${{ github.event.inputs.git-ref }}"
+            cp /tmp/build_docker.py scripts/
+          else
+            GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          fi
           pip install click
-          ./scripts/build_docker.py ${{ matrix.build_preset }} release --platform ${{ matrix.platform }}
+          ./scripts/build_docker.py ${{ matrix.build_preset }} ${{GITHUB_RELEASE_TAG_NAME}} --platform ${{ matrix.platform }}
