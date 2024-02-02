@@ -1,4 +1,3 @@
-User
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,14 +28,31 @@ import {
 import CountryMapChartPlugin, {
   countries,
 } from '@superset-ui/legacy-plugin-chart-country-map';
-import { withKnobs, select } from '@storybook/addon-knobs';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
 new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-country-map',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  component: SuperChart,
+  parameters: {
+    initialSize: { width: 500, height: 300 },
+  },
+  args: {
+    country: 'finland',
+    colorSchema: 'schemeOranges',
+  },
+  argTypes: {
+    country: {
+      control: 'select',
+      options: Object.keys(countries),
+    },
+    colorSchema: {
+      control: 'select',
+      options: SequentialD3.map((x) => x.id),
+    },
+  },
 };
 
 function generateData(geojson: JsonObject) {
@@ -46,20 +62,15 @@ function generateData(geojson: JsonObject) {
   }));
 }
 
-export const basic = function BasicCountryMapStory({ width, height }) {
+ export const BasicCountryMapStory = ({ width, height, country, colorSchema }: { width: number, height: number, country: string, colorSchema: string }) => {
+  console.log(width, height, country, colorSchema)
   const theme = useTheme();
-  const country = select('Country', Object.keys(countries!), 'france');
-  const colorSchema = select<any>(
-    'Color schema',
-    SequentialD3,
-    SequentialD3.find(x => x.id === 'schemeOranges'),
-  );
   const [data, setData] = useState<JsonObject>();
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    fetch(countries[country], { signal })
+    fetch(countries['finland'], { signal })
       .then(resp => resp.json())
       .then(geojson => {
         setData(generateData(geojson));
@@ -82,7 +93,6 @@ export const basic = function BasicCountryMapStory({ width, height }) {
       </div>
     );
   }
-
   return (
     <SuperChart
       chartType="country-map"
@@ -90,7 +100,7 @@ export const basic = function BasicCountryMapStory({ width, height }) {
       height={height}
       queriesData={[{ data }]}
       formData={{
-        linearColorScheme: colorSchema.id,
+        linearColorScheme: colorSchema,
         numberFormat: '.3s',
         selectCountry: country,
       }}
@@ -99,85 +109,10 @@ export const basic = function BasicCountryMapStory({ width, height }) {
 };
 
 
-// import React, { useState, useEffect } from 'react';
-// import { JsonObject, SuperChart, useTheme, SequentialD3 } from '@superset-ui/core';
-// import CountryMapChartPlugin, { countries } from '@superset-ui/legacy-plugin-chart-country-map';
-// import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
-
-// // Ensure the CountryMapChartPlugin is registered
-// new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
-
-// export default {
-//   title: 'Legacy Chart Plugins/CountryMap',
-//   component: SuperChart,
-//   decorators: [withResizableChartDemo],
-//   parameters: {
-//     initialSize: { width: 500, height: 300 },
-//   },
-//   args: {
-//     country: 'france',
-//     colorSchema: SequentialD3.find(x => x.id === 'schemeOranges')?.id,
-//   },
-//   argTypes: {
-//     country: {
-//       control: 'select',
-//       options: Object.keys(countries),
-//     },
-//     colorSchema: {
-//       control: 'select',
-//       options: SequentialD3.map((x) => x.id),
-//     },
-//   },
-// };
-
-// export const BasicCountryMapStory = (args) => <BasicCountryMap {...args} />;
-
-// const BasicCountryMap = ({ width, height, country = 'finland', colorSchema = SequentialD3.find(x => x.id === 'schemeOranges')?.id }) => {
-//   // const theme = useTheme();
-//   const [data, setData] = useState<JsonObject>();
-
-//   console.log(`Width: ${width}, Height: ${height}`, `Country: ${country}`, `Color Schema: ${colorSchema}`);
-
-//   // Simplified data generation for demonstration
-//   const generateData = (geojson: JsonObject) => {
-//     return geojson.features.map((feat) => ({
-//       metric: Math.round(Math.random() * 10000) / 100,
-//       country_id: feat.properties.ISO,
-//     }));
-//   };
-
-//   useEffect(() => {
-//     // Assuming fetched data for simplicity
-//     // You should replace this with actual fetching logic based on `country`
-//     const geojson = { features: [{ properties: { ISO: countries[country] } }] }; // Adjust this line according to your actual data fetching
-//     const newData = generateData(geojson);
-//     setData(newData);
-//   }, [country]); // Re-fetch/generate data when `country` changes
-
-//   if (!data) {
-//     return <div>Loading...</div>;
-//   }
-
-//   return (
-//     <SuperChart
-//       chartType="country-map"
-//       width={width}
-//       height={height}
-//       queriesData={[{ data }]}
-//       formData={{
-//         linearColorScheme: colorSchema,
-//         numberFormat: '.3s',
-//         selectCountry: country,
-//       }}
-//     />
-//   );
-// };
-
+// export const BasicCountryMapStory = BasicCountryMap.bind({});
 // BasicCountryMapStory.args = {
-//   country: 'france',
-//   colorSchema: SequentialD3.find(x => x.id === 'schemeOranges')?.id,
+//   width: 500, // Example width, adjust as needed
+//   height: 300, // Example height, adjust as needed
+//   country: 'finland', // Default country
+//   colorSchema: 'schemeOranges', // Default color schema
 // };
-
-
-
-
