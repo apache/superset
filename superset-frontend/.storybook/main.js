@@ -31,7 +31,6 @@ module.exports = {
     getAbsolutePath("@storybook/addon-links"),
     getAbsolutePath("storybook-addon-jsx"),
     getAbsolutePath("@storybook/addon-controls"),
-    getAbsolutePath("@storybook/addon-mdx-gfm"),
     getAbsolutePath("@storybook/addon-mdx-gfm")
   ],
 
