@@ -75,7 +75,7 @@ jobs:
           FORCE_LATEST=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE ="${{ github.event.inputs.release }}"
+            RELEASE="${{ github.event.inputs.release }}"
             if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
