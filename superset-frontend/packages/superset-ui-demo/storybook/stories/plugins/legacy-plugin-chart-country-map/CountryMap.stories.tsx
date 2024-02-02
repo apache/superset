@@ -20,7 +20,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   JsonObject,
-  seedRandom,
+  seed,
   SuperChart,
   SequentialD3,
   useTheme,
@@ -57,20 +57,19 @@ export default {
 
 function generateData(geojson: JsonObject) {
   return geojson.features.map(feat => ({
-    metric: Math.round(seedRandom() * 10000) / 100,
+    metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
     country_id: feat.properties.ISO,
   }));
 }
 
  export const BasicCountryMapStory = ({ width, height, country, colorSchema }: { width: number, height: number, country: string, colorSchema: string }) => {
-  console.log(width, height, country, colorSchema)
   const theme = useTheme();
   const [data, setData] = useState<JsonObject>();
 
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    fetch(countries['finland'], { signal })
+    fetch(countries[country], { signal })
       .then(resp => resp.json())
       .then(geojson => {
         setData(generateData(geojson));
@@ -93,6 +92,7 @@ function generateData(geojson: JsonObject) {
       </div>
     );
   }
+  console.log(data);
   return (
     <SuperChart
       chartType="country-map"
@@ -107,12 +107,3 @@ function generateData(geojson: JsonObject) {
     />
   );
 };
-
-
-// export const BasicCountryMapStory = BasicCountryMap.bind({});
-// BasicCountryMapStory.args = {
-//   width: 500, // Example width, adjust as needed
-//   height: 300, // Example height, adjust as needed
-//   country: 'finland', // Default country
-//   colorSchema: 'schemeOranges', // Default color schema
-// };
