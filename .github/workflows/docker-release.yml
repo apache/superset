@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
   # Can be triggered manually
   workflow_dispatch:
     inputs:
