@@ -66,14 +66,18 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          RELEASE="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            GITHUB_RELEASE_TAG_NAME="${{ github.event.inputs.release }}"
+            RELEASE ="${{ github.event.inputs.release }}"
             # build_docker.py may not exist on that SHA, let's switcharoo to /tmp
             cp ./scripts/build_docker.py /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
             cp /tmp/build_docker.py scripts/
           fi
           pip install click
-          ./scripts/build_docker.py ${{ matrix.build_preset }} $GITHUB_RELEASE_TAG_NAME --platform ${{ matrix.platform }}
+          ./scripts/build_docker.py \
+            ${{ matrix.build_preset }} \
+            "release"
+            --build_context_ref $RELEASE \
+            --platform ${{ matrix.platform }}
