@@ -59,6 +59,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.ref }}
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -73,9 +74,10 @@ jobs:
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
+          EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE ="${{ github.event.inputs.release }}"
+            RELEASE="${{ github.event.inputs.release }}"
             if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
@@ -83,10 +85,11 @@ jobs:
             cp ./scripts/build_docker.py /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
             cp /tmp/build_docker.py scripts/
+            EVENT="release"
           fi
           pip install click
           ./scripts/build_docker.py \
             ${{ matrix.build_preset }} \
-            "${{ github.event_name }}" \
+            "$EVENT" \
             --build_context_ref "$RELEASE" \
             --platform ${{ matrix.platform }} $FORCE_LATEST
