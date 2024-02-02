@@ -9,7 +9,7 @@ module.exports = {
     getAbsolutePath("@storybook/addon-links"),
   ],
 
-  stories: ['../storybook/stories/**/*Stories.[tj]sx'],
+  stories: ['../storybook/stories/**/*.stories.[tj]sx'],
 
   webpackFinal: config => ({
     ...config,
@@ -33,7 +33,7 @@ module.exports = {
   },
 
   docs: {
-    autodocs: true
+    autodocs: false
   }
 };
 
