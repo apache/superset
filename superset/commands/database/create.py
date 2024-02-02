@@ -99,7 +99,11 @@ class CreateDatabaseCommand(BaseCommand):
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
 
-        except (SSHTunnelInvalidError, SSHTunnelCreateFailedError, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SSHTunnelInvalidError,
+            SSHTunnelCreateFailedError,
+            SSHTunnelingNotEnabledError,
+        ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
