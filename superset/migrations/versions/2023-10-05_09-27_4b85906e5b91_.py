@@ -7,44 +7,32 @@
 # with the License.  You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
-#jlsdjknsldfndsklfn
+#
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Resize key_value blob
+"""empty message
 
-Revision ID: e09b4ae78457
-Revises: e786798587de
-Create Date: 2022-06-14 15:28:42.746349
+Revision ID: 4b85906e5b91
+Revises: d7c45b7b2575
+Create Date: 2023-10-05 09:27:34.629325
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "e09b4ae78457"
-down_revision = "e786798587de"
+revision = '4b85906e5b91'
+down_revision = '168cfd974dd1'
 
-import sqlalchemy as sa
 from alembic import op
+import sqlalchemy as sa
 
 
 def upgrade():
-    with op.batch_alter_table("key_value", schema=None) as batch_op:
-        batch_op.alter_column(
-            "value",
-            existing_nullable=False,
-            existing_type=sa.LargeBinary(),
-            type_=sa.LargeBinary(length=2**24 - 1),
-        )
+    pass
 
 
 def downgrade():
-    with op.batch_alter_table("key_value", schema=None) as batch_op:
-        batch_op.alter_column(
-            "value",
-            existing_nullable=False,
-            existing_type=sa.LargeBinary(length=2**24 - 1),
-            type_=sa.LargeBinary(),
-        )
+    pass
