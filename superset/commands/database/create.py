@@ -76,36 +76,21 @@ class CreateDatabaseCommand(BaseCommand):
             "{}",
         )
 
+        ssh_tunnel = None
+
         try:
             database = DatabaseDAO.create(attributes=self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
-            db.session.add(database)
-
-            ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 if not is_feature_enabled("SSH_TUNNELING"):
-                    db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
-                try:
-                    ssh_tunnel = CreateSSHTunnelCommand(
-                        database, ssh_tunnel_properties
-                    ).run()
-                except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    db.session.rollback()
-                    # So we can show the original message
-                    raise ex
-                except Exception as ex:
-                    event_logger.log_with_context(
-                        action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
-                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
-                    )
-                    db.session.rollback()
-                    raise DatabaseCreateFailedError() from ex
+
+                ssh_tunnel = CreateSSHTunnelCommand(
+                    database, ssh_tunnel_properties
+                ).run()
+
+            db.session.commit()
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
@@ -114,8 +99,14 @@ class CreateDatabaseCommand(BaseCommand):
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
 
-            db.session.commit()
-
+        except (SSHTunnelInvalidError, SSHTunnelCreateFailedError, SSHTunnelingNotEnabledError) as ex:
+            db.session.rollback()
+            event_logger.log_with_context(
+                action=f"db_creation_failed.{ex.__class__.__name__}.ssh_tunnel",
+                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+            )
+            # So we can show the original message
+            raise ex
         except DAOCreateFailedError as ex:
             db.session.rollback()
             event_logger.log_with_context(
