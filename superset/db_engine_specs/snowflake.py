@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-import os
 import logging
+import os
 import re
 from datetime import datetime
 from re import Pattern
