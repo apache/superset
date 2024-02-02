@@ -44,13 +44,6 @@ jobs:
       matrix:
         build_preset: ["dev", "lean", "py311", "websocket", "dockerize"]
         platform: ["linux/amd64", "linux/arm64"]
-        exclude:
-          # disabling because slow! no python wheels for arm/py39 and
-          # QEMU is slow!
-          - build_preset: "dev"
-            platform: "linux/arm64"
-          - build_preset: "lean"
-            platform: "linux/arm64"
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
