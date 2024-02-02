@@ -19,10 +19,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   AdhocColumn,
-  FeatureFlag,
-  isFeatureEnabled,
   tn,
   QueryFormColumn,
+  t,
+  isAdhocColumn,
 } from '@superset-ui/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
@@ -31,16 +31,15 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
-  options: Record<string, ColumnMeta>;
+  options: ColumnMeta[];
   isTemporal?: boolean;
 };
 
-export function DndColumnSelect(props: DndColumnSelectProps) {
+function DndColumnSelect(props: DndColumnSelectProps) {
   const {
     value,
     options,
@@ -54,38 +53,13 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
-  const optionSelector = useMemo(
-    () => new OptionSelector(options, multi, value),
-    [multi, options, value],
-  );
+  const optionSelector = useMemo(() => {
+    const optionsMap = Object.fromEntries(
+      options.map(option => [option.column_name, option]),
+    );
 
-  // synchronize values in case of dataset changes
-  const handleOptionsChange = useCallback(() => {
-    const optionSelectorValues = optionSelector.getValues();
-    if (typeof value !== typeof optionSelectorValues) {
-      onChange(optionSelectorValues);
-    }
-    if (
-      typeof value === 'string' &&
-      typeof optionSelectorValues === 'string' &&
-      value !== optionSelectorValues
-    ) {
-      onChange(optionSelectorValues);
-    }
-    if (
-      Array.isArray(optionSelectorValues) &&
-      Array.isArray(value) &&
-      (optionSelectorValues.length !== value.length ||
-        optionSelectorValues.every((val, index) => val === value[index]))
-    ) {
-      onChange(optionSelectorValues);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
-
-  // useComponentDidUpdate to avoid running this for the first render, to avoid
-  // calling onChange when the initial value is not valid for the dataset
-  useComponentDidUpdate(handleOptionsChange);
+    return new OptionSelector(optionsMap, multi, value);
+  }, [multi, options, value]);
 
   const onDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
@@ -126,15 +100,17 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     [onChange, optionSelector],
   );
 
-  const popoverOptions = useMemo(() => Object.values(options), [options]);
-
   const valuesRenderer = useCallback(
     () =>
-      optionSelector.values.map((column, idx) =>
-        isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX) ? (
+      optionSelector.values.map((column, idx) => {
+        const datasourceWarningMessage =
+          isAdhocColumn(column) && column.datasourceWarning
+            ? t('This column might be incompatible with current dataset')
+            : undefined;
+        return (
           <ColumnSelectPopoverTrigger
             key={idx}
-            columns={popoverOptions}
+            columns={options}
             onColumnEdit={newColumn => {
               if (isColumnMeta(newColumn)) {
                 optionSelector.replace(idx, newColumn.column_name);
@@ -154,30 +130,22 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
               type={`${DndItemType.ColumnOption}_${name}_${label}`}
               canDelete={canDelete}
               column={column}
+              datasourceWarningMessage={datasourceWarningMessage}
               withCaret
             />
           </ColumnSelectPopoverTrigger>
-        ) : (
-          <OptionWrapper
-            key={idx}
-            index={idx}
-            clickClose={onClickClose}
-            onShiftOptions={onShiftOptions}
-            type={`${DndItemType.ColumnOption}_${name}_${label}`}
-            canDelete={canDelete}
-            column={column}
-          />
-        ),
-      ),
+        );
+      }),
     [
       canDelete,
+      isTemporal,
       label,
       name,
       onChange,
       onClickClose,
       onShiftOptions,
       optionSelector,
-      popoverOptions,
+      options,
     ],
   );
 
@@ -205,15 +173,16 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     togglePopover(true);
   }, [togglePopover]);
 
-  const defaultGhostButtonText = isFeatureEnabled(
-    FeatureFlag.ENABLE_DND_WITH_CLICK_UX,
-  )
-    ? tn(
+  const labelGhostButtonText = useMemo(
+    () =>
+      ghostButtonText ??
+      tn(
         'Drop a column here or click',
         'Drop columns here or click',
         multi ? 2 : 1,
-      )
-    : tn('Drop column here', 'Drop columns here', multi ? 2 : 1);
+      ),
+    [ghostButtonText, multi],
+  );
 
   return (
     <div>
@@ -223,16 +192,12 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
         valuesRenderer={valuesRenderer}
         accept={DndItemType.Column}
         displayGhostButton={multi || optionSelector.values.length === 0}
-        ghostButtonText={ghostButtonText || defaultGhostButtonText}
-        onClickGhostButton={
-          isFeatureEnabled(FeatureFlag.ENABLE_DND_WITH_CLICK_UX)
-            ? openPopover
-            : undefined
-        }
+        ghostButtonText={labelGhostButtonText}
+        onClickGhostButton={openPopover}
         {...props}
       />
       <ColumnSelectPopoverTrigger
-        columns={popoverOptions}
+        columns={options}
         onColumnEdit={addNewColumnWithPopover}
         isControlledComponent
         togglePopover={togglePopover}
@@ -245,3 +210,5 @@ export function DndColumnSelect(props: DndColumnSelectProps) {
     </div>
   );
 }
+
+export { DndColumnSelect };

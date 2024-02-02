@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { sections } from '@superset-ui/chart-controls';
+import {
+  DEFAULT_SORT_SERIES_DATA,
+  sections,
+} from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
 import {
   OrientationType,
   EchartsTimeseriesSeriesType,
@@ -26,11 +30,13 @@ import {
   DEFAULT_LEGEND_FORM_DATA,
   DEFAULT_TITLE_FORM_DATA,
 } from '../constants';
+import { defaultXAxis } from '../defaults';
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
+  ...DEFAULT_SORT_SERIES_DATA,
   annotationLayers: sections.annotationLayers,
   area: false,
   forecastEnabled: sections.FORECAST_DEFAULT_DATA.forecastEnabled,
@@ -52,15 +58,22 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  truncateXAxis: true,
   truncateYAxis: false,
   yAxisBounds: [null, null],
   zoomable: false,
   richTooltip: true,
-  xAxisLabelRotation: 0,
-  emitFilter: false,
+  xAxisForceCategorical: false,
+  xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
   groupby: [],
   showValue: false,
   onlyTotal: false,
   percentageThreshold: 0,
-  orientation: OrientationType.vertical,
+  orientation: OrientationType.Vertical,
+  sort_series_type: 'sum',
+  sort_series_ascending: false,
 };
+
+export const TIME_SERIES_DESCRIPTION_TEXT: string = t(
+  'When using other than adaptive formatting, labels may overlap',
+);

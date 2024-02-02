@@ -31,6 +31,7 @@ const BINARY_OPERATORS = [
   'ILIKE',
   'LIKE',
   'REGEX',
+  'TEMPORAL_RANGE',
 ] as const;
 
 /** List of operators that require another operand that is a set */

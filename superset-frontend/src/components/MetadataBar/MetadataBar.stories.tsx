@@ -19,16 +19,16 @@
 import React from 'react';
 import { css } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import MetadataBar, { MetadataBarProps } from './index';
+import MetadataBar, { MetadataBarProps, MetadataType } from '.';
 
 export default {
-  title: 'MetadataBar',
+  title: 'Design System/Components/MetadataBar/Examples',
   component: MetadataBar,
 };
 
-const A_WEEK_AGO = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+const A_WEEK_AGO = 'a week ago';
 
-export const Component = ({
+export const Basic = ({
   items,
   onClick,
 }: MetadataBarProps & {
@@ -61,7 +61,7 @@ export const Component = ({
   );
 };
 
-Component.story = {
+Basic.story = {
   parameters: {
     knobs: {
       disable: true,
@@ -69,29 +69,29 @@ Component.story = {
   },
 };
 
-Component.args = {
+Basic.args = {
   items: [
     {
-      type: 'sql',
+      type: MetadataType.Sql,
       title: 'Click to view query',
     },
     {
-      type: 'owner',
+      type: MetadataType.Owner,
       createdBy: 'Jane Smith',
       owners: ['John Doe', 'Mary Wilson'],
       createdOn: A_WEEK_AGO,
     },
     {
-      type: 'lastModified',
+      type: MetadataType.LastModified,
       value: A_WEEK_AGO,
       modifiedBy: 'Jane Smith',
     },
     {
-      type: 'tags',
+      type: MetadataType.Tags,
       values: ['management', 'research', 'poc'],
     },
     {
-      type: 'dashboards',
+      type: MetadataType.Dashboards,
       title: 'Added to 452 dashboards',
       description:
         'To preview the list of dashboards go to "More" settings on the right.',
@@ -99,7 +99,7 @@ Component.args = {
   ],
 };
 
-Component.argTypes = {
+Basic.argTypes = {
   onClick: {
     action: 'onClick',
     table: {

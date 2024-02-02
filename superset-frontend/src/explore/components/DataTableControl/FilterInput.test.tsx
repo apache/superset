@@ -29,6 +29,7 @@ jest.mock('lodash/debounce', () => ({
 test('Render a FilterInput', async () => {
   const onChangeHandler = jest.fn();
   render(<FilterInput onChangeHandler={onChangeHandler} />);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   expect(onChangeHandler).toBeCalledTimes(0);
   userEvent.type(screen.getByRole('textbox'), 'test');

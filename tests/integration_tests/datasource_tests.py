@@ -17,17 +17,18 @@
 """Unit tests for Superset"""
 import json
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from unittest import mock
 
 import prison
 import pytest
 
 from superset import app, db
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CacheRegion
-from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
@@ -45,18 +46,17 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    database.get_sqla_engine().execute(
-        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
-    )
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(
+            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+        )
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
+
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):
@@ -72,10 +72,62 @@ class TestDatasource(SupersetTestCase):
         tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
-        col_names = {o.get("name") for o in resp}
+        col_names = {o.get("column_name") for o in resp}
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
+
+    def test_always_filter_main_dttm(self):
+        self.login(username="admin")
+        session = db.session
+        database = get_example_database()
+
+        sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
+        if database.backend == "sqlite":
+            pass
+        elif database.backend in ["postgresql", "mysql"]:
+            sql = sql.replace("DATE()", "NOW()")
+        else:
+            return
+
+        query_obj = {
+            "columns": ["metric"],
+            "filter": [],
+            "from_dttm": datetime.now() - timedelta(days=1),
+            "granularity": "additional_dttm",
+            "orderby": [],
+            "to_dttm": datetime.now() + timedelta(days=1),
+            "series_columns": [],
+            "row_limit": 1000,
+            "row_offset": 0,
+        }
+        table = SqlaTable(
+            table_name="dummy_sql_table",
+            database=database,
+            schema=get_example_default_schema(),
+            main_dttm_col="default_dttm",
+            columns=[
+                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+                TableColumn(
+                    column_name="additional_dttm", type="DATETIME", is_dttm=True
+                ),
+            ],
+            sql=sql,
+        )
+
+        session.add(table)
+        session.commit()
+
+        table.always_filter_main_dttm = False
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" not in result and "additional_dttm" in result
+
+        table.always_filter_main_dttm = True
+        result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
+        assert "default_dttm" in result and "additional_dttm" in result
+
+        session.delete(table)
+        session.commit()
 
     def test_external_metadata_for_virtual_table(self):
         self.login(username="admin")
@@ -92,7 +144,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(table)
         session.commit()
 
@@ -106,11 +158,13 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
+                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        col_names = {o.get("name") for o in resp}
+        col_names = {o.get("column_name") for o in resp}
         self.assertEqual(
             col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
@@ -134,11 +188,13 @@ class TestDatasource(SupersetTestCase):
                 "database_name": tbl.database.database_name,
                 "schema_name": tbl.schema,
                 "table_name": tbl.table_name,
+                "normalize_columns": tbl.normalize_columns,
+                "always_filter_main_dttm": tbl.always_filter_main_dttm,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol", "strcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
         session.delete(tbl)
         session.commit()
 
@@ -152,11 +208,13 @@ class TestDatasource(SupersetTestCase):
                     "database_name": example_database.database_name,
                     "table_name": "test_table",
                     "schema_name": get_example_default_schema(),
+                    "normalize_columns": False,
+                    "always_filter_main_dttm": False,
                 }
             )
             url = f"/datasource/external_metadata_by_name/?q={params}"
             resp = self.get_json_resp(url)
-            col_names = {o.get("name") for o in resp}
+            col_names = {o.get("column_name") for o in resp}
             self.assertEqual(col_names, {"first", "second"})
 
         # No databases found
@@ -165,6 +223,8 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": "foo",
                 "table_name": "bar",
+                "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -181,6 +241,8 @@ class TestDatasource(SupersetTestCase):
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
                 "table_name": "fooooooooobarrrrrr",
+                "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         )
         url = f"/datasource/external_metadata_by_name/?q={params}"
@@ -217,7 +279,7 @@ class TestDatasource(SupersetTestCase):
         table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
-        assert {o.get("name") for o in resp} == {"intcol"}
+        assert {o.get("column_name") for o in resp} == {"intcol"}
         session.delete(table)
         session.commit()
 
@@ -234,7 +296,7 @@ class TestDatasource(SupersetTestCase):
             resp = self.get_json_resp(url)
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
 
-    def test_external_metadata_for_mutistatement_virtual_table(self):
+    def test_external_metadata_for_multistatement_virtual_table(self):
         self.login(username="admin")
         table = SqlaTable(
             table_name="multistatement_sql_table",
@@ -297,6 +359,18 @@ class TestDatasource(SupersetTestCase):
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_default_endpoint_validation_success(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://localhost/superset/1"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
 
     def save_datasource_from_dict(self, datasource_post):
         data = dict(data=json.dumps(datasource_post))
@@ -396,11 +470,11 @@ class TestDatasource(SupersetTestCase):
         app.config["DATASET_HEALTH_CHECK"] = None
 
     def test_get_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceNotFound,
-            lambda: DatasourceDAO.get_datasource(db.session, "table", 9999999),
+            lambda: DatasourceDAO.get_datasource("table", 9999999),
         )
 
         self.login(username="admin")
@@ -408,11 +482,11 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(resp.get("error"), "Datasource does not exist")
 
     def test_get_datasource_invalid_datasource_failed(self):
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         pytest.raises(
             DatasourceTypeNotSupportedError,
-            lambda: DatasourceDAO.get_datasource(db.session, "druid", 9999999),
+            lambda: DatasourceDAO.get_datasource("druid", 9999999),
         )
 
         self.login(username="admin")
@@ -429,9 +503,9 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     # feeds data
-    test_client.post(uri)
+    test_client.post(uri, json={})
     # get from cache
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 200
     assert len(rv.json["result"]["data"]) == 10
     assert QueryCacheManager.has(
@@ -443,9 +517,9 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     # 2. should read through cache data
     uri2 = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"
     # feeds data
-    test_client.post(uri2)
+    test_client.post(uri2, json={})
     # force query
-    rv2 = test_client.post(uri2)
+    rv2 = test_client.post(uri2, json={})
     assert rv2.status_code == 200
     assert len(rv2.json["result"]["data"]) == 10
     assert QueryCacheManager.has(
@@ -476,12 +550,11 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
-    db.session.merge(virtual_dataset)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 422
 
     assert "error" in rv.json
@@ -493,7 +566,7 @@ def test_get_samples_on_physical_dataset(test_client, login_as_admin, physical_d
     uri = (
         f"/datasource/samples?datasource_id={physical_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 200
     assert QueryCacheManager.has(
         rv.json["result"]["cache_key"], region=CacheRegion.DATA
@@ -506,7 +579,7 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json=None)
-    assert rv.status_code == 200
+    assert rv.status_code == 415
 
     rv = test_client.post(uri, json={})
     assert rv.status_code == 200
@@ -529,7 +602,14 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    assert rv.json["result"]["colnames"] == ["col1", "col2", "col3", "col4", "col5"]
+    assert rv.json["result"]["colnames"] == [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+    ]
     assert rv.json["result"]["rowcount"] == 1
 
     # empty results
@@ -607,7 +687,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 1
     assert rv.json["result"]["per_page"] == app.config["SAMPLES_ROW_LIMIT"]
     assert rv.json["result"]["total_count"] == 10
@@ -616,28 +696,28 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     per_pages = (app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"
-        rv = test_client.post(uri)
+        rv = test_client.post(uri, json={})
         assert rv.status_code == 400
 
     # 3. incorrect page or datasource_type
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&page=xx"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 400
 
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=xx"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.status_code == 400
 
     # 4. turning pages
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=1"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 1
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
     assert [row["col1"] for row in rv.json["result"]["data"]] == [0, 1]
 
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=2"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 2
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
@@ -645,7 +725,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
 
     # 5. Exceeding the maximum pages
     uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=6"
-    rv = test_client.post(uri)
+    rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 6
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10

@@ -27,7 +27,7 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-
+import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -42,13 +42,17 @@ import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import {
+  userHasPermission,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
 import { isString } from 'lodash';
+import { Link } from 'react-router-dom';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -159,6 +163,14 @@ export const getDatasourceTitle = datasource => {
   return datasource?.name || '';
 };
 
+const preventRouterLinkWhileMetaClicked = evt => {
+  if (evt.metaKey) {
+    evt.preventDefault();
+  } else {
+    evt.stopPropagation();
+  }
+};
+
 class DatasourceControl extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -171,19 +183,31 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave = datasource => {
     this.props.actions.changeDatasource(datasource);
+    const { temporalColumns, defaultTemporalColumn } =
+      getTemporalColumns(datasource);
+    const { columns } = datasource;
+    // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
-    const { columns } = this.props.datasource;
-    const firstDttmCol = columns.find(column => column.is_dttm);
-    if (
-      datasource.type === 'table' &&
-      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
-    ) {
-      // set `granularity_sqla` to first datatime column name or null
+    const isGranularitySqalTemporal = columns.find(
+      ({ column_name }) => column_name === timeCol,
+    )?.is_dttm;
+    // the current main_dttm_col might not be a temporal column anymore
+    const isDefaultTemporal = columns.find(
+      ({ column_name }) => column_name === defaultTemporalColumn,
+    )?.is_dttm;
+
+    // if the current granularity_sqla is empty or it is not a temporal column anymore
+    // let's update the control value
+    if (datasource.type === 'table' && !isGranularitySqalTemporal) {
+      const temporalColumn = isDefaultTemporal
+        ? defaultTemporalColumn
+        : temporalColumns?.[0];
       this.props.actions.setControlValue(
         'granularity_sqla',
-        firstDttmCol ? firstDttmCol.column_name : null,
+        temporalColumn || null,
       );
     }
+
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }
@@ -230,7 +254,7 @@ class DatasourceControl extends React.PureComponent {
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          SupersetClient.postForm('/superset/sqllab/', {
+          SupersetClient.postForm('/sqllab/', {
             form_data: safeStringify(payload),
           });
         }
@@ -252,11 +276,12 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = datasource?.id == null;
+    const isMissingDatasource = !datasource?.id;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
+
       if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
@@ -267,11 +292,17 @@ class DatasourceControl extends React.PureComponent {
       datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
       isUserAdmin(user);
 
+    const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
+
     const editText = t('Edit dataset');
+    const requestedQuery = {
+      datasourceKey: `${datasource.id}__${datasource.type}`,
+      sql: datasource.sql,
+    };
 
     const defaultDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
-        {this.props.isEditable && (
+        {this.props.isEditable && !isMissingDatasource && (
           <Menu.Item
             key={EDIT_DATASET}
             data-test="edit-dataset"
@@ -290,9 +321,19 @@ class DatasourceControl extends React.PureComponent {
             )}
           </Menu.Item>
         )}
-        <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
-        {datasource && (
-          <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
+        {!isMissingDatasource && canAccessSqlLab && (
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
+            <Link
+              to={{
+                pathname: '/sqllab',
+                state: { requestedQuery },
+              }}
+              onClick={preventRouterLinkWhileMetaClicked}
+            >
+              {t('View in SQL Lab')}
+            </Link>
+          </Menu.Item>
         )}
       </Menu>
     );
@@ -321,7 +362,19 @@ class DatasourceControl extends React.PureComponent {
             responsive
           />
         </Menu.Item>
-        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        {canAccessSqlLab && (
+          <Menu.Item key={VIEW_IN_SQL_LAB}>
+            <Link
+              to={{
+                pathname: '/sqllab',
+                state: { requestedQuery },
+              }}
+              onClick={preventRouterLinkWhileMetaClicked}
+            >
+              {t('View in SQL Lab')}
+            </Link>
+          </Menu.Item>
+        )}
         <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
       </Menu>
     );
@@ -339,7 +392,10 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
-    const titleText = getDatasourceTitle(datasource);
+    const titleText = isMissingDatasource
+      ? t('Missing dataset')
+      : getDatasourceTitle(datasource);
+
     const tooltip = titleText;
 
     return (
@@ -409,7 +465,7 @@ class DatasourceControl extends React.PureComponent {
                         this.handleMenuItemClick({ key: CHANGE_DATASET })
                       }
                     >
-                      {t('Change dataset')}
+                      {t('Swap dataset')}
                     </Button>
                   </p>
                 </>

@@ -21,6 +21,7 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import * as chartlib from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
@@ -51,7 +52,7 @@ describe('chart actions', () => {
       .callsFake(() => MOCK_URL);
     getChartDataUriStub = sinon
       .stub(exploreUtils, 'getChartDataUri')
-      .callsFake(() => URI(MOCK_URL));
+      .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
     fakeMetadata = { useLegacyApi: true };
     metadataRegistryStub = sinon
       .stub(chartlib, 'getChartMetadataRegistry')
@@ -81,7 +82,7 @@ describe('chart actions', () => {
     });
 
     it('should query with the built query', async () => {
-      const actionThunk = actions.postChartFormData({});
+      const actionThunk = actions.postChartFormData({}, null);
       await actionThunk(dispatch);
 
       expect(fetchMock.calls(MOCK_URL)).toHaveLength(1);
@@ -93,6 +94,25 @@ describe('chart actions', () => {
         }),
       );
       expect(dispatch.args[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
+    });
+
+    it('should handle the bigint without regression', async () => {
+      getChartDataUriStub.restore();
+      const mockBigIntUrl = '/mock/chart/data/bigint';
+      const expectedBigNumber = '9223372036854775807';
+      fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
+        overwriteRoutes: true,
+      });
+      getChartDataUriStub = sinon
+        .stub(exploreUtils, 'getChartDataUri')
+        .callsFake(() => URI(mockBigIntUrl));
+
+      const { json } = await actions.getChartDataRequest({
+        formData: fakeMetadata,
+      });
+
+      expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
+      expect(json.value.toString()).toEqual(expectedBigNumber);
     });
   });
 
@@ -192,6 +212,91 @@ describe('chart actions', () => {
         expect(updateFailedAction.queriesResponse[0].error).toBe('misc error');
 
         setupDefaultFetchMock();
+      });
+    });
+
+    it('should handle the bigint without regression', async () => {
+      getExploreUrlStub.restore();
+      const mockBigIntUrl = '/mock/chart/data/bigint';
+      const expectedBigNumber = '9223372036854775807';
+      fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
+        overwriteRoutes: true,
+      });
+      getExploreUrlStub = sinon
+        .stub(exploreUtils, 'getExploreUrl')
+        .callsFake(() => mockBigIntUrl);
+
+      const { json } = await actions.getChartDataRequest({
+        formData: fakeMetadata,
+      });
+
+      expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
+      expect(json.result[0].value.toString()).toEqual(expectedBigNumber);
+    });
+  });
+
+  describe('runAnnotationQuery', () => {
+    const mockDispatch = jest.fn();
+    const mockGetState = () => ({
+      charts: {
+        chartKey: {
+          latestQueryFormData: {
+            time_grain_sqla: 'P1D',
+            granularity_sqla: 'Date',
+          },
+        },
+      },
+    });
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
+      const annotation = {
+        name: 'Holidays',
+        annotationType: 'EVENT',
+        sourceType: 'NATIVE',
+        color: null,
+        opacity: '',
+        style: 'solid',
+        width: 1,
+        showMarkers: false,
+        hideLine: false,
+        value: 1,
+        overrides: {
+          time_range: null,
+        },
+        show: true,
+        showLabel: false,
+        titleColumn: '',
+        descriptionColumns: [],
+        timeColumn: '',
+        intervalEndColumn: '',
+      };
+      const key = undefined;
+
+      const postSpy = jest.spyOn(SupersetClient, 'post');
+      postSpy.mockImplementation(() =>
+        Promise.resolve({ json: { result: [] } }),
+      );
+      const buildV1ChartDataPayloadSpy = jest.spyOn(
+        exploreUtils,
+        'buildV1ChartDataPayload',
+      );
+
+      const queryFunc = actions.runAnnotationQuery({ annotation, key });
+      await queryFunc(mockDispatch, mockGetState);
+
+      expect(buildV1ChartDataPayloadSpy).toHaveBeenCalledWith({
+        formData: {
+          granularity: 'Date',
+          granularity_sqla: 'Date',
+          time_grain_sqla: 'P1D',
+        },
+        force: false,
+        resultFormat: 'json',
+        resultType: 'full',
       });
     });
   });

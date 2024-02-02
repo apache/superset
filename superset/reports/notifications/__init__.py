@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -31,4 +30,6 @@ def create_notification(
     for plugin in BaseNotification.plugins:
         if plugin.type == recipient.type:
             return plugin(recipient, notification_content)
-    raise Exception("Recipient type not supported")
+    raise Exception(  # pylint: disable=broad-exception-raised
+        "Recipient type not supported"
+    )

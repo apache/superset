@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t, DEFAULT_D3_FORMAT } from '@superset-ui/core';
+
+import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
+
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
@@ -23,10 +27,6 @@ export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
 
 export const URL_PARAMS = {
-  migrationState: {
-    name: 'migration_state',
-    type: 'string',
-  },
   standalone: {
     name: 'standalone',
     type: 'number',
@@ -45,10 +45,6 @@ export const URL_PARAMS = {
   },
   nativeFiltersKey: {
     name: 'native_filters_key',
-    type: 'string',
-  },
-  filterSet: {
-    name: 'filter_set',
     type: 'string',
   },
   showFilters: {
@@ -107,6 +103,10 @@ export const URL_PARAMS = {
     name: 'dashboard_page_id',
     type: 'string',
   },
+  dashboardFocusedChart: {
+    name: 'focused_chart',
+    type: 'number',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -136,4 +136,56 @@ export const SLOW_DEBOUNCE = 500;
 /**
  * Display null as `N/A`
  */
-export const NULL_DISPLAY = 'N/A';
+export const NULL_DISPLAY = t('N/A');
+
+export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  flash_messages: [],
+  conf: {},
+  locale: 'en',
+  feature_flags: {},
+  language_pack: {
+    domain: '',
+    locale_data: {
+      superset: {
+        '': {
+          domain: 'superset',
+          lang: 'en',
+          plural_forms: '',
+        },
+      },
+    },
+  },
+  extra_categorical_color_schemes: [],
+  extra_sequential_color_schemes: [],
+  theme_overrides: {},
+  menu_data: {
+    menu: [],
+    brand: {
+      path: '',
+      icon: '',
+      alt: '',
+      tooltip: '',
+      text: '',
+    },
+    navbar_right: {
+      show_watermark: true,
+      languages: {},
+      show_language_picker: true,
+      user_is_anonymous: false,
+      user_info_url: '',
+      user_login_url: '',
+      user_logout_url: '',
+      locale: '',
+    },
+    settings: [],
+    environment_tag: {
+      text: '',
+      color: '',
+    },
+  },
+  d3_format: DEFAULT_D3_FORMAT,
+};
+
+export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
+  common: DEFAULT_COMMON_BOOTSTRAP_DATA,
+};

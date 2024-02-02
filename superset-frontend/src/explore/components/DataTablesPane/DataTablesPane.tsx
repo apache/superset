@@ -23,7 +23,13 @@ import React, {
   useState,
   MouseEvent,
 } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
 import {
@@ -96,11 +102,14 @@ export const DataTablesPane = ({
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
-    getItem(LocalStorageKeys.is_datapanel_open, false),
+    isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault)
+      ? false
+      : getItem(LocalStorageKeys.IsDatapanelOpen, false),
   );
 
   useEffect(() => {
-    setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
+    if (!isFeatureEnabled(FeatureFlag.DatapanelClosedByDefault))
+      setItem(LocalStorageKeys.IsDatapanelOpen, panelOpen);
   }, [panelOpen]);
 
   useEffect(() => {

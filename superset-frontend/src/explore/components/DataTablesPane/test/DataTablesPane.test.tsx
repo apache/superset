@@ -19,12 +19,14 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { FeatureFlag } from '@superset-ui/core';
 import * as copyUtils from 'src/utils/copy';
 import {
   render,
   screen,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
@@ -39,10 +41,10 @@ describe('DataTablesPane', () => {
     localStorage.clear();
   });
 
-  test('Rendering DataTablesPane correctly', () => {
+  test('Rendering DataTablesPane correctly', async () => {
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, { useRedux: true });
-    expect(screen.getByText('Results')).toBeVisible();
+    expect(await screen.findByText('Results')).toBeVisible();
     expect(screen.getByText('Samples')).toBeVisible();
     expect(screen.getByLabelText('Expand data panel')).toBeVisible();
   });
@@ -106,7 +108,7 @@ describe('DataTablesPane', () => {
     userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
     const value = await copyToClipboardSpy.mock.calls[0][0]();
-    expect(value).toBe('2009-01-01 00:00:00\tAction\n');
+    expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     copyToClipboardSpy.mockRestore();
     fetchMock.restore();
   });
@@ -142,5 +144,20 @@ describe('DataTablesPane', () => {
     expect(screen.getByText('Horror')).toBeVisible();
     expect(screen.queryByText('Action')).not.toBeInTheDocument();
     fetchMock.restore();
+  });
+
+  test('Displaying the data pane is under featureflag', () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.DatapanelClosedByDefault]: true,
+    };
+    const props = createDataTablesPaneProps(0);
+    setItem(LocalStorageKeys.IsDatapanelOpen, true);
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+    expect(
+      screen.queryByLabelText('Collapse data panel'),
+    ).not.toBeInTheDocument();
   });
 });

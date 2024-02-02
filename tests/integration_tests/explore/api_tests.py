@@ -21,9 +21,9 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
-from superset.explore.form_data.commands.state import TemporaryExploreState
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -112,7 +112,7 @@ def test_no_params_provided(test_client, login_as_admin):
 
 def test_get_from_cache(test_client, login_as_admin, dataset):
     resp = test_client.get(
-        f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&dataset_id={dataset.id}&dataset_type={dataset.type}"
+        f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
@@ -146,7 +146,7 @@ def test_get_from_cache_unknown_key_chart_id(
 def test_get_from_cache_unknown_key_dataset(test_client, login_as_admin, dataset):
     unknown_key = "unknown_key"
     resp = test_client.get(
-        f"api/v1/explore/?form_data_key={unknown_key}&dataset_id={dataset.id}&dataset_type={dataset.type}"
+        f"api/v1/explore/?form_data_key={unknown_key}&datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     assert resp.status_code == 200
     data = json.loads(resp.data.decode("utf-8"))
@@ -204,25 +204,37 @@ def test_get_dataset_access_denied(
 ):
     message = "Dataset access denied"
     mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
-        message=message, dataset_id=dataset.id, dataset_type=dataset.type
+        message=message, datasource_id=dataset.id, datasource_type=dataset.type
     )
     resp = test_client.get(
-        f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&dataset_id={dataset.id}&dataset_type={dataset.type}"
+        f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))
     assert resp.status_code == 403
-    assert data["dataset_id"] == dataset.id
-    assert data["dataset_type"] == dataset.type
+    assert data["datasource_id"] == dataset.id
+    assert data["datasource_type"] == dataset.type
     assert data["message"] == message
 
 
-@patch("superset.datasource.dao.DatasourceDAO.get_datasource")
+@patch("superset.daos.datasource.DatasourceDAO.get_datasource")
 def test_wrong_endpoint(mock_get_datasource, test_client, login_as_admin, dataset):
     dataset.default_endpoint = "another_endpoint"
     mock_get_datasource.return_value = dataset
     resp = test_client.get(
-        f"api/v1/explore/?dataset_id={dataset.id}&dataset_type={dataset.type}"
+        f"api/v1/explore/?datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))
     assert resp.status_code == 302
     assert data["redirect"] == dataset.default_endpoint
+
+
+def test_get_url_params(test_client, login_as_admin, chart_id):
+    resp = test_client.get(f"api/v1/explore/?slice_id={chart_id}&foo=bar")
+    assert resp.status_code == 200
+    data = json.loads(resp.data.decode("utf-8"))
+    result = data.get("result")
+
+    assert result["form_data"]["url_params"] == {
+        "foo": "bar",
+        "slice_id": str(chart_id),
+    }

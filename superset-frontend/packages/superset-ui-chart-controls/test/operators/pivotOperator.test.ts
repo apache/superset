@@ -57,20 +57,19 @@ const queryObject: QueryObject = {
 test('skip pivot', () => {
   expect(pivotOperator(formData, queryObject)).toEqual(undefined);
   expect(
-    pivotOperator(formData, { ...queryObject, is_timeseries: false }),
-  ).toEqual(undefined);
-  expect(
     pivotOperator(formData, {
       ...queryObject,
-      is_timeseries: true,
       metrics: [],
     }),
   ).toEqual(undefined);
 });
 
-test('pivot by __timestamp without groupby', () => {
+test('pivot by __timestamp without columns', () => {
   expect(
-    pivotOperator(formData, { ...queryObject, is_timeseries: true }),
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      queryObject,
+    ),
   ).toEqual({
     operation: 'pivot',
     options: {
@@ -85,13 +84,38 @@ test('pivot by __timestamp without groupby', () => {
   });
 });
 
-test('pivot by __timestamp with groupby', () => {
+test('pivot by __timestamp with columns', () => {
   expect(
-    pivotOperator(formData, {
-      ...queryObject,
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      {
+        ...queryObject,
+        columns: ['foo', 'bar'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
       columns: ['foo', 'bar'],
-      is_timeseries: true,
-    }),
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});
+
+test('pivot by __timestamp with series_columns', () => {
+  expect(
+    pivotOperator(
+      { ...formData, granularity_sqla: 'time_column' },
+      {
+        ...queryObject,
+        series_columns: ['foo', 'bar'],
+      },
+    ),
   ).toEqual({
     operation: 'pivot',
     options: {
@@ -115,7 +139,7 @@ test('pivot by x_axis with groupby', () => {
       },
       {
         ...queryObject,
-        columns: ['foo', 'bar'],
+        series_columns: ['foo', 'bar'],
       },
     ),
   ).toEqual({
@@ -140,12 +164,12 @@ test('pivot by adhoc x_axis', () => {
         x_axis: {
           label: 'my_case_expr',
           expressionType: 'SQL',
-          expression: 'case when a = 1 then 1 else 0 end',
+          sqlExpression: 'case when a = 1 then 1 else 0 end',
         },
       },
       {
         ...queryObject,
-        columns: ['foo', 'bar'],
+        series_columns: ['foo', 'bar'],
       },
     ),
   ).toEqual({
@@ -156,6 +180,36 @@ test('pivot by adhoc x_axis', () => {
       aggregates: {
         'count(*)': { operator: 'mean' },
         'sum(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+    },
+  });
+});
+
+test('pivot by x_axis with extra metrics', () => {
+  expect(
+    pivotOperator(
+      {
+        ...formData,
+        x_axis: 'foo',
+        x_axis_sort: 'bar',
+        groupby: [],
+        timeseries_limit_metric: 'bar',
+      },
+      {
+        ...queryObject,
+        series_columns: [],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['foo'],
+      columns: [],
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+        bar: { operator: 'mean' },
       },
       drop_missing_columns: false,
     },

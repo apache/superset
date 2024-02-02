@@ -16,38 +16,61 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
-import ReactMarkdown, { MarkdownAbstractSyntaxTree } from 'react-markdown';
-// @ts-ignore no types available
-import htmlParser from 'react-markdown/plugins/html-parser';
-
+import React, { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
+import { mergeWith, isArray } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {
   source: string;
+  htmlSanitization?: boolean;
+  htmlSchemaOverrides?: typeof defaultSchema;
 }
 
-function isSafeMarkup(node: MarkdownAbstractSyntaxTree) {
-  return node.type === 'html' && node.value
-    ? /href="(javascript|vbscript|file):.*"/gim.test(node.value) === false
-    : true;
+export function getOverrideHtmlSchema(
+  originalSchema: typeof defaultSchema,
+  htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
+) {
+  return mergeWith(originalSchema, htmlSchemaOverrides, (objValue, srcValue) =>
+    isArray(objValue) ? objValue.concat(srcValue) : undefined,
+  );
 }
 
-function SafeMarkdown({ source }: SafeMarkdownProps) {
+function SafeMarkdown({
+  source,
+  htmlSanitization = true,
+  htmlSchemaOverrides = {},
+}: SafeMarkdownProps) {
+  const escapeHtml = isFeatureEnabled(FeatureFlag.EscapeMarkdownHtml);
+
+  const rehypePlugins = useMemo(() => {
+    const rehypePlugins: any = [];
+    if (!escapeHtml) {
+      rehypePlugins.push(rehypeRaw);
+      if (htmlSanitization) {
+        const schema = getOverrideHtmlSchema(
+          defaultSchema,
+          htmlSchemaOverrides,
+        );
+        rehypePlugins.push([rehypeSanitize, schema]);
+      }
+    }
+    return rehypePlugins;
+  }, [escapeHtml, htmlSanitization, htmlSchemaOverrides]);
+
+  // React Markdown escapes HTML by default
   return (
     <ReactMarkdown
-      source={source}
-      escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
-      skipHtml={!isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML)}
-      allowNode={isSafeMarkup}
-      astPlugins={[
-        htmlParser({
-          isValidNode: (node: MarkdownAbstractSyntaxTree) =>
-            node.type !== 'script',
-        }),
-      ]}
-    />
+      rehypePlugins={rehypePlugins}
+      remarkPlugins={[remarkGfm]}
+      skipHtml={false}
+      transformLinkUri={null}
+    >
+      {source}
+    </ReactMarkdown>
   );
 }
 

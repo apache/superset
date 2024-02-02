@@ -17,8 +17,7 @@
  * under the License.
  */
 import React, { ReactElement } from 'react';
-import { sharedControls } from '../shared-controls';
-import sharedControlComponents from '../shared-controls/components';
+import { sharedControls, sharedControlComponents } from '../shared-controls';
 import {
   ControlType,
   ControlSetItem,
@@ -75,7 +74,7 @@ export function expandControlConfig(
   // {
   //   name: 'metric',
   //   config: {
-  //     type: 'SelectControl' | SelectComonent
+  //     type: 'SelectControl' | SelectComponent
   //   }
   // }
   if ('name' in control && 'config' in control) {

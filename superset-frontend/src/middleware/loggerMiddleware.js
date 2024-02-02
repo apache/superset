@@ -72,23 +72,33 @@ const loggerMiddleware = store => next => action => {
     return next(action);
   }
 
-  const { dashboardInfo, explore, impressionId, dashboardLayout } =
+  const { dashboardInfo, explore, impressionId, dashboardLayout, sqlLab } =
     store.getState();
   let logMetadata = {
     impression_id: impressionId,
     version: 'v2',
   };
-  if (dashboardInfo) {
+  if (dashboardInfo?.id) {
     logMetadata = {
       source: 'dashboard',
       source_id: dashboardInfo.id,
       ...logMetadata,
     };
-  } else if (explore) {
+  } else if (explore?.slice) {
     logMetadata = {
       source: 'explore',
       source_id: explore.slice ? explore.slice.slice_id : 0,
       ...logMetadata,
+    };
+  } else if (sqlLab) {
+    const editor = sqlLab.queryEditors.find(
+      ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
+    );
+    logMetadata = {
+      source: 'sqlLab',
+      source_id: editor?.id,
+      db_id: editor?.dbId,
+      schema: editor?.schema,
     };
   }
 

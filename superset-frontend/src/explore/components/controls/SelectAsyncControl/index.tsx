@@ -20,7 +20,7 @@ import React, { useEffect, useState } from 'react';
 import { t, SupersetClient } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Select } from 'src/components';
-import { SelectProps, OptionsType } from 'src/components/Select/Select';
+import { SelectOptionsType, SelectProps } from 'src/components/Select/types';
 import { SelectValue, LabeledValue } from 'antd/lib/select';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
@@ -32,7 +32,7 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   ariaLabel?: string;
   dataEndpoint: string;
   default?: SelectValue;
-  mutator?: (response: Record<string, any>) => OptionsType;
+  mutator?: (response: Record<string, any>) => SelectOptionsType;
   multi?: boolean;
   onChange: (val: SelectValue) => void;
   // ControlHeader related props
@@ -57,7 +57,7 @@ const SelectAsyncControl = ({
   value,
   ...props
 }: SelectAsyncControlProps) => {
-  const [options, setOptions] = useState<OptionsType>([]);
+  const [options, setOptions] = useState<SelectOptionsType>([]);
 
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;

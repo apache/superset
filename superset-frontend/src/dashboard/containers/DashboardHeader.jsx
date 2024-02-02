@@ -31,7 +31,8 @@ import {
   fetchFaveStar,
   saveFaveStar,
   savePublished,
-  setColorSchemeAndUnsavedChanges,
+  setColorScheme,
+  setUnsavedChanges,
   fetchCharts,
   updateCss,
   onChange,
@@ -56,7 +57,6 @@ import {
 
 import { logEvent } from 'src/logger/actions';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
-import { fetchUISpecificReport } from 'src/reports/actions/reports';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -98,7 +98,6 @@ function mapStateToProps({
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
     reports,
-    filterboxMigrationState: dashboardState.filterboxMigrationState,
   };
 }
 
@@ -112,7 +111,8 @@ function mapDispatchToProps(dispatch) {
       onRedo: redoLayoutAction,
       setEditMode,
       showBuilderPane,
-      setColorSchemeAndUnsavedChanges,
+      setColorScheme,
+      setUnsavedChanges,
       fetchFaveStar,
       saveFaveStar,
       savePublished,
@@ -129,7 +129,6 @@ function mapDispatchToProps(dispatch) {
       dashboardInfoChanged,
       dashboardTitleChanged,
       updateDataMask,
-      fetchUISpecificReport,
     },
     dispatch,
   );

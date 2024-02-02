@@ -64,7 +64,7 @@ const config: ControlPanelConfig = {
             controlState,
           ) || {};
         timeserieslimitProps.value = state.controls?.limit?.value
-          ? controlState.value
+          ? controlState?.value
           : [];
         return timeserieslimitProps;
       },

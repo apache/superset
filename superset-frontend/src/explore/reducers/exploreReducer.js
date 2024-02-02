@@ -19,7 +19,6 @@
 /* eslint camelcase: 0 */
 import { ensureIsArray } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
-import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
@@ -55,42 +54,36 @@ export default function exploreReducer(state = {}, action) {
       const { prevDatasource, newDatasource } = action;
       const controls = { ...state.controls };
       const controlsTransferred = [];
+
       if (
         prevDatasource.id !== newDatasource.id ||
         prevDatasource.type !== newDatasource.type
       ) {
-        // reset time range filter to default
-        newFormData.time_range = DEFAULT_TIME_RANGE;
-
         newFormData.datasource = newDatasource.uid;
-
-        // reset control values for column/metric related controls
-        Object.entries(controls).forEach(([controlName, controlState]) => {
-          if (
-            // for direct column select controls
-            controlState.valueKey === 'column_name' ||
-            // for all other controls
-            'savedMetrics' in controlState ||
-            'columns' in controlState ||
-            ('options' in controlState && !Array.isArray(controlState.options))
-          ) {
-            controls[controlName] = {
-              ...controlState,
-            };
-            newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              newDatasource,
-              controlState,
-              controlState.value,
-            );
-            if (
-              ensureIsArray(newFormData[controlName]).length > 0 &&
-              newFormData[controlName] !== controls[controlName].default
-            ) {
-              controlsTransferred.push(controlName);
-            }
-          }
-        });
       }
+      // reset control values for column/metric related controls
+      Object.entries(controls).forEach(([controlName, controlState]) => {
+        if (
+          // for direct column select controls
+          controlState.valueKey === 'column_name' ||
+          // for all other controls
+          'savedMetrics' in controlState ||
+          'columns' in controlState ||
+          ('options' in controlState && !Array.isArray(controlState.options))
+        ) {
+          newFormData[controlName] = getControlValuesCompatibleWithDatasource(
+            newDatasource,
+            controlState,
+            controlState.value,
+          );
+          if (
+            ensureIsArray(newFormData[controlName]).length > 0 &&
+            newFormData[controlName] !== controls[controlName].default
+          ) {
+            controlsTransferred.push(controlName);
+          }
+        }
+      });
 
       const newState = {
         ...state,
@@ -119,10 +112,15 @@ export default function exploreReducer(state = {}, action) {
       const vizType = new_form_data.viz_type;
 
       // if the controlName is metrics, and the metric column name is updated,
-      // need to update column config as well to keep the previou config.
+      // need to update column config as well to keep the previous config.
       if (controlName === 'metrics' && old_metrics_data && new_column_config) {
         value.forEach((item, index) => {
+          const itemExist = old_metrics_data.some(
+            oldItem => oldItem?.label === item?.label,
+          );
+
           if (
+            !itemExist &&
             item?.label !== old_metrics_data[index]?.label &&
             !!new_column_config[old_metrics_data[index]?.label]
           ) {
@@ -136,11 +134,11 @@ export default function exploreReducer(state = {}, action) {
       }
 
       // Use the processed control config (with overrides and everything)
-      // if `controlName` does not existing in current controls,
+      // if `controlName` does not exist in current controls,
       const controlConfig =
         state.controls[action.controlName] ||
         getControlConfig(action.controlName, vizType) ||
-        {};
+        null;
 
       // will call validators again
       const control = {
@@ -156,7 +154,7 @@ export default function exploreReducer(state = {}, action) {
         ...state,
         controls: {
           ...state.controls,
-          [controlName]: control,
+          ...(controlConfig && { [controlName]: control }),
           ...(controlName === 'metrics' && { column_config }),
         },
       };
@@ -203,10 +201,12 @@ export default function exploreReducer(state = {}, action) {
         triggerRender: control.renderTrigger && !hasErrors,
         controls: {
           ...currentControlsState,
-          [action.controlName]: {
-            ...control,
-            validationErrors: errors,
-          },
+          ...(controlConfig && {
+            [action.controlName]: {
+              ...control,
+              validationErrors: errors,
+            },
+          }),
           ...rerenderedControls,
         },
       };
@@ -229,6 +229,12 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.sliceName,
       };
     },
+    [actions.SET_SAVE_ACTION]() {
+      return {
+        ...state,
+        saveAction: action.saveAction,
+      };
+    },
     [actions.CREATE_NEW_SLICE]() {
       return {
         ...state,
@@ -245,9 +251,17 @@ export default function exploreReducer(state = {}, action) {
         slice: {
           ...state.slice,
           ...action.slice,
-          owners: action.slice.owners ?? null,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.value)
+            : null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
+        metadata: {
+          ...state.metadata,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.label)
+            : null,
+        },
       };
     },
     [actions.SET_FORCE_QUERY]() {

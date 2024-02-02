@@ -23,20 +23,12 @@ import { render, waitFor } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import {
-  queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
-  addTable,
-} from 'src/SqlLab/actions/sqlLab';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/Select', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
@@ -53,18 +45,13 @@ jest.mock('src/components/AsyncAceEditor', () => ({
 const setup = (queryEditor: QueryEditor, store?: Store) =>
   render(
     <AceEditorWrapper
-      queryEditor={queryEditor}
-      actions={{
-        queryEditorSetSelectedText,
-        queryEditorSetFunctionNames,
-        addTable,
-      }}
+      queryEditorId={queryEditor.id}
       height="100px"
       hotkeys={[]}
-      database={{}}
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete
+      onCursorPositionChange={jest.fn()}
     />,
     {
       useRedux: true,
@@ -79,27 +66,6 @@ describe('AceEditorWrapper', () => {
 
     expect(getByTestId('react-ace')).toHaveTextContent(
       JSON.stringify({ value: defaultQueryEditor.sql }).slice(1, -1),
-    );
-  });
-
-  it('renders sql from unsaved change', () => {
-    const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-    const { getByTestId } = setup(
-      defaultQueryEditor,
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            sql: expectedSql,
-          },
-        },
-      }),
-    );
-
-    expect(getByTestId('react-ace')).toHaveTextContent(
-      JSON.stringify({ value: expectedSql }).slice(1, -1),
     );
   });
 

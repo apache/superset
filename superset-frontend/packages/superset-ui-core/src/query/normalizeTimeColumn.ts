@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import omit from 'lodash/omit';
+import { omit } from 'lodash';
 
 import {
   AdhocColumn,
@@ -26,13 +26,14 @@ import {
   QueryFormData,
   QueryObject,
 } from './types';
-import { FeatureFlag, isFeatureEnabled } from '../utils';
+import { isXAxisSet } from './getXAxis';
 
 export function normalizeTimeColumn(
   formData: QueryFormData,
   queryObject: QueryObject,
 ): QueryObject {
-  if (!(isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && formData.x_axis)) {
+  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!isXAxisSet(formData)) {
     return queryObject;
   }
 
@@ -69,10 +70,7 @@ export function normalizeTimeColumn(
       };
     }
 
-    const newQueryObject = omit(queryObject, [
-      'extras.time_grain_sqla',
-      'is_timeseries',
-    ]);
+    const newQueryObject = omit(queryObject, ['is_timeseries']);
     newQueryObject.columns = mutatedColumns;
 
     return newQueryObject;

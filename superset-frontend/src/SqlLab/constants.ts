@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const STATE_TYPE_MAP = {
+import { t } from '@superset-ui/core';
+import type { Type } from 'src/components/Label';
+
+export const STATE_TYPE_MAP: Record<string, Type> = {
   offline: 'danger',
   failed: 'danger',
   pending: 'info',
@@ -26,12 +29,30 @@ export const STATE_TYPE_MAP = {
   success: 'success',
 };
 
+export const STATE_TYPE_MAP_LOCALIZED = {
+  offline: t('offline'),
+  failed: t('failed'),
+  pending: t('pending'),
+  fetching: t('fetching'),
+  running: t('running'),
+  stopped: t('stopped'),
+  success: t('success'),
+};
+
 export const STATUS_OPTIONS = {
   success: 'success',
   failed: 'failed',
   running: 'running',
   offline: 'offline',
   pending: 'pending',
+};
+
+export const STATUS_OPTIONS_LOCALIZED = {
+  success: t('success'),
+  failed: t('failed'),
+  running: t('running'),
+  offline: t('offline'),
+  pending: t('pending'),
 };
 
 export const TIME_OPTIONS = [
@@ -49,6 +70,12 @@ export const SQL_EDITOR_GUTTER_HEIGHT = 5;
 export const SQL_EDITOR_GUTTER_MARGIN = 3;
 export const SQL_TOOLBAR_HEIGHT = 51;
 export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
+export const SQL_EDITOR_PADDING = 10;
+export const INITIAL_NORTH_PERCENT = 30;
+export const INITIAL_SOUTH_PERCENT = 70;
+export const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
+export const VALIDATION_DEBOUNCE_MS = 600;
+export const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 // kilobyte storage
 export const KB_STORAGE = 1024;
@@ -57,6 +84,7 @@ export const BYTES_PER_CHAR = 2;
 // browser's localStorage max usage constants
 export const LOCALSTORAGE_MAX_QUERY_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
+export const LOCALSTORAGE_MAX_QUERY_RESULTS_KB = 1 * 1024; // 1M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
 

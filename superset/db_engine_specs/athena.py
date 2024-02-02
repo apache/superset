@@ -16,13 +16,15 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any, Optional
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
-from superset.utils import core as utils
 
 SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
@@ -33,24 +35,25 @@ class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
     allows_escaped_colons = False
+    disable_ssh_tunneling = True
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
-        "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",
-        "PT1H": "date_trunc('hour', CAST({col} AS TIMESTAMP))",
-        "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
-        "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
-        "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
-        "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
-        "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', \
+        TimeGrain.SECOND: "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MINUTE: "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        TimeGrain.HOUR: "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        TimeGrain.DAY: "date_trunc('day', CAST({col} AS TIMESTAMP))",
+        TimeGrain.WEEK: "date_trunc('week', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MONTH: "date_trunc('month', CAST({col} AS TIMESTAMP))",
+        TimeGrain.QUARTER: "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        TimeGrain.YEAR: "date_trunc('year', CAST({col} AS TIMESTAMP))",
+        TimeGrain.WEEK_ENDING_SATURDAY: "date_add('day', 5, date_trunc('week', \
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-        "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', \
+        TimeGrain.WEEK_STARTING_SUNDAY: "date_add('day', -1, date_trunc('week', \
                                     date_add('day', 1, CAST({col} AS TIMESTAMP))))",
     }
 
-    custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
             __(
                 "Please check your query for syntax errors at or "
@@ -63,12 +66,13 @@ class AthenaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
             return f"""TIMESTAMP '{datetime_formatted}'"""
         return None

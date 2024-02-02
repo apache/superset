@@ -21,7 +21,7 @@ import yaml
 from freezegun import freeze_time
 
 from superset import security_manager
-from superset.databases.commands.export import ExportDatabasesCommand
+from superset.commands.database.export import ExportDatabasesCommand
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 

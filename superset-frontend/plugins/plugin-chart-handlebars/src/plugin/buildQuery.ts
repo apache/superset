@@ -23,13 +23,10 @@ import {
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { groupby } = formData;
-
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
       orderby: normalizeOrderBy(baseQueryObject).orderby,
-      ...(groupby && { groupby }),
     },
   ]);
 }

@@ -98,6 +98,21 @@ export function applyMapStateToPropsToControl<T = ControlType>(
     // `mapStateToProps` may also provide a value
     value = value || state.value;
   }
+
+  // InitialValue is used for setting value for the control,
+  // this value is not recalculated. The default value will override it.
+  if (typeof state.initialValue === 'function') {
+    state.initialValue = state.initialValue(state, controlPanelState);
+    // if default is still a function, discard
+    if (typeof state.initialValue === 'function') {
+      delete state.initialValue;
+    }
+  }
+  if (state.initialValue) {
+    value = state.initialValue;
+    delete state.initialValue;
+  }
+
   // If default is a function, evaluate it
   if (typeof state.default === 'function') {
     state.default = state.default(state, controlPanelState);
@@ -159,7 +174,7 @@ export function getAllControlsState(
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {
-        if (field && field.config && field.name) {
+        if (field?.config && field.name) {
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,

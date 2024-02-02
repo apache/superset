@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t } from '@superset-ui/core';
+import classNames from 'classnames';
+import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
@@ -28,8 +29,8 @@ import { TAB_TYPE } from '../util/componentTypes';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  gridComponent: componentShape.isRequired,
+  editMode: PropTypes.bool,
+  gridComponent: componentShape,
   handleComponentDrop: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool.isRequired,
   resizeComponent: PropTypes.func.isRequired,
@@ -58,16 +59,66 @@ const DashboardEmptyStateContainer = styled.div`
   right: 0;
 `;
 
+const GridContent = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+
+    /* gutters between rows */
+    & > div:not(:last-child):not(.empty-droptarget) {
+      margin-bottom: ${theme.gridUnit * 4}px;
+    }
+
+    & > .empty-droptarget {
+      width: 100%;
+      height: 100%;
+    }
+
+    & > .empty-droptarget:first-child {
+      height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit * -6}px;
+    }
+
+    & > .empty-droptarget:last-child {
+      height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit * -6}px;
+    }
+
+    & > .empty-droptarget.empty-droptarget--full:only-child {
+      height: 80vh;
+    }
+  `}
+`;
+
+const GridColumnGuide = styled.div`
+  ${({ theme }) => css`
+    // /* Editing guides */
+    &.grid-column-guide {
+      position: absolute;
+      top: 0;
+      min-height: 100%;
+      background-color: ${addAlpha(
+        theme.colors.primary.base,
+        parseFloat(theme.opacity.light) / 100,
+      )};
+      pointer-events: none;
+      box-shadow: inset 0 0 0 1px
+        ${addAlpha(
+          theme.colors.primary.base,
+          parseFloat(theme.opacity.mediumHeavy) / 100,
+        )};
+    }
+  `};
+`;
+
 class DashboardGrid extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isResizing: false,
-      rowGuideTop: null,
     };
 
     this.handleResizeStart = this.handleResizeStart.bind(this);
-    this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.getRowGuidePosition = this.getRowGuidePosition.bind(this);
@@ -90,22 +141,10 @@ class DashboardGrid extends React.PureComponent {
     this.grid = ref;
   }
 
-  handleResizeStart({ ref, direction }) {
-    let rowGuideTop = null;
-    if (direction === 'bottom' || direction === 'bottomRight') {
-      rowGuideTop = this.getRowGuidePosition(ref);
-    }
-
+  handleResizeStart() {
     this.setState(() => ({
       isResizing: true,
-      rowGuideTop,
     }));
-  }
-
-  handleResize({ ref, direction }) {
-    if (direction === 'bottom' || direction === 'bottomRight') {
-      this.setState(() => ({ rowGuideTop: this.getRowGuidePosition(ref) }));
-    }
   }
 
   handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
@@ -113,7 +152,6 @@ class DashboardGrid extends React.PureComponent {
 
     this.setState(() => ({
       isResizing: false,
-      rowGuideTop: null,
     }));
   }
 
@@ -150,7 +188,7 @@ class DashboardGrid extends React.PureComponent {
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
 
     const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
-    const { isResizing, rowGuideTop } = this.state;
+    const { isResizing } = this.state;
 
     const shouldDisplayEmptyState = gridComponent?.children?.length === 0;
     const shouldDisplayTopLevelTabEmptyState =
@@ -227,7 +265,7 @@ class DashboardGrid extends React.PureComponent {
           </DashboardEmptyStateContainer>
         )}
         <div className="dashboard-grid" ref={this.setGridRef}>
-          <div className="grid-content" data-test="grid-content">
+          <GridContent className="grid-content" data-test="grid-content">
             {/* make the area above components droppable */}
             {editMode && (
               <DragDroppable
@@ -237,10 +275,14 @@ class DashboardGrid extends React.PureComponent {
                 index={0}
                 orientation="column"
                 onDrop={this.handleTopDropTargetDrop}
-                className="empty-droptarget"
+                className={classNames({
+                  'empty-droptarget': true,
+                  'empty-droptarget--full':
+                    gridComponent?.children?.length === 0,
+                })}
                 editMode
               >
-                {renderDraggableContentBottom}
+                {renderDraggableContentTop}
               </DragDroppable>
             )}
             {gridComponent?.children?.map((id, index) => (
@@ -271,14 +313,14 @@ class DashboardGrid extends React.PureComponent {
                 className="empty-droptarget"
                 editMode
               >
-                {renderDraggableContentTop}
+                {renderDraggableContentBottom}
               </DragDroppable>
             )}
             {isResizing &&
               Array(GRID_COLUMN_COUNT)
                 .fill(null)
                 .map((_, i) => (
-                  <div
+                  <GridColumnGuide
                     key={`grid-column-${i}`}
                     className="grid-column-guide"
                     style={{
@@ -287,16 +329,7 @@ class DashboardGrid extends React.PureComponent {
                     }}
                   />
                 ))}
-            {isResizing && rowGuideTop && (
-              <div
-                className="grid-row-guide"
-                style={{
-                  top: rowGuideTop,
-                  width,
-                }}
-              />
-            )}
-          </div>
+          </GridContent>
         </div>
       </>
     );

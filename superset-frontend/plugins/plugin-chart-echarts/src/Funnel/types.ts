@@ -16,32 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormData,
-} from '@superset-ui/core';
-import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsFunnelFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     groupby: QueryFormData[];
     labelLine: boolean;
     labelType: EchartsFunnelLabelTypeType;
+    tooltipLabelType: EchartsFunnelLabelTypeType;
     metric?: string;
     showLabels: boolean;
+    showTooltipLabels: boolean;
     numberFormat: string;
     gap: number;
     sort: 'descending' | 'ascending' | 'none' | undefined;
     orient: 'vertical' | 'horizontal' | undefined;
-    emitFilter: boolean;
+    percentCalculationType: PercentCalcType;
   };
 
 export enum EchartsFunnelLabelTypeType {
@@ -51,12 +52,12 @@ export enum EchartsFunnelLabelTypeType {
   KeyValue,
   KeyPercent,
   KeyValuePercent,
+  ValuePercent,
 }
 
 export interface EchartsFunnelChartProps
-  extends ChartProps<EchartsFunnelFormData> {
+  extends BaseChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -65,6 +66,7 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   groupby: [],
   labelLine: false,
   labelType: EchartsFunnelLabelTypeType.Key,
+  defaultTooltipLabel: EchartsFunnelLabelTypeType.KeyValuePercent,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',
@@ -72,8 +74,15 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   sort: 'descending',
   orient: 'vertical',
   gap: 0,
-  emitFilter: false,
 };
 
 export type FunnelChartTransformedProps =
-  EChartTransformedProps<EchartsFunnelFormData>;
+  BaseTransformedProps<EchartsFunnelFormData> &
+    CrossFilterTransformedProps &
+    ContextMenuTransformedProps;
+
+export enum PercentCalcType {
+  Total = 'total',
+  PreviousStep = 'prev_step',
+  FirstStep = 'first_step',
+}

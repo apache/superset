@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import gettext as _
 from pandas import DataFrame
@@ -31,11 +31,11 @@ def contribution(
     orientation: Optional[
         PostProcessingContributionOrientation
     ] = PostProcessingContributionOrientation.COLUMN,
-    columns: Optional[List[str]] = None,
-    rename_columns: Optional[List[str]] = None,
+    columns: Optional[list[str]] = None,
+    rename_columns: Optional[list[str]] = None,
 ) -> DataFrame:
     """
-    Calculate cell contibution to row/column total for numeric columns.
+    Calculate cell contribution to row/column total for numeric columns.
     Non-numeric columns will be kept untouched.
 
     If `columns` are specified, only calculate contributions on selected columns.

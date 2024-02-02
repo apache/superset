@@ -42,6 +42,7 @@ module.exports = {
     'prettier',
     'prettier/react',
     'plugin:react-hooks/recommended',
+    'plugin:react-prefer-function-component/recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -71,8 +72,10 @@ module.exports = {
     'prettier',
     'react',
     'file-progress',
+    'lodash',
     'theme-colors',
     'translation-vars',
+    'react-prefer-function-component',
   ],
   overrides: [
     {
@@ -90,12 +93,24 @@ module.exports = {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            selector: 'enum',
+            format: ['PascalCase'],
+          },
+          {
+            selector: 'enumMember',
+            format: ['PascalCase'],
+          },
+        ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
+        '@typescript-eslint/prefer-optional-chain': 2,
         camelcase: 0,
         'class-methods-use-this': 0,
         'func-names': 0,
@@ -112,7 +127,7 @@ module.exports = {
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
-        'jsx-a11y/anchor-is-valid': 1,
+        'jsx-a11y/anchor-is-valid': 2,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
         'max-classes-per-file': 0,
@@ -240,6 +255,7 @@ module.exports = {
     'jsx-a11y/anchor-is-valid': 1,
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+    'lodash/import-scope': [2, 'member'],
     'new-cap': 0,
     'no-bitwise': 0,
     'no-continue': 0,
@@ -264,7 +280,12 @@ module.exports = {
             message:
               'Please use the theme directly from the ThemeProvider rather than importing supersetTheme.',
           },
+          {
+            name: 'lodash/memoize',
+            message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
+          },
         ],
+        patterns: ['antd/*'],
       },
     ],
     'no-shadow': 0, // re-enable up for discussion
@@ -273,6 +294,7 @@ module.exports = {
     'prefer-object-spread': 1,
     'prefer-destructuring': ['error', { object: true, array: false }],
     'react/destructuring-assignment': 0, // re-enable up for discussion
+    'react/forbid-component-props': 1,
     'react/forbid-prop-types': 0,
     'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
     'react/jsx-fragments': 1,
@@ -286,6 +308,7 @@ module.exports = {
     'react/require-default-props': 0,
     'react/sort-comp': 0, // TODO: re-enable in separate PR
     'react/static-property-placement': 0, // disabled temporarily
+    'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
   },
   ignorePatterns,

@@ -20,7 +20,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-
+import { css } from '@superset-ui/core';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/containers/Chart';
@@ -66,8 +66,17 @@ interface ChartHolderProps {
   updateComponents: Function;
   handleComponentDrop: (...args: unknown[]) => unknown;
   setFullSizeChartId: (chartId: number | null) => void;
-  postAddSliceFromDashboard?: () => void;
+  isInView: boolean;
 }
+
+const fullSizeStyle = css`
+  && {
+    position: fixed;
+    z-index: 3000;
+    left: 0;
+    top: 0;
+  }
+`;
 
 const ChartHolder: React.FC<ChartHolderProps> = ({
   id,
@@ -90,7 +99,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   updateComponents,
   handleComponentDrop,
   setFullSizeChartId,
-  postAddSliceFromDashboard,
+  isInView,
 }) => {
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
@@ -233,14 +242,6 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
     }));
   }, []);
 
-  const handlePostTransformProps = useCallback(
-    (props: unknown) => {
-      postAddSliceFromDashboard?.();
-      return props;
-    },
-    [postAddSliceFromDashboard],
-  );
-
   return (
     <DragDroppable
       component={component}
@@ -273,13 +274,13 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
             ref={dragSourceRef}
             data-test="dashboard-component-chart-holder"
             style={focusHighlightStyles}
+            css={isFullSize ? fullSizeStyle : undefined}
             className={cx(
               'dashboard-component',
               'dashboard-component-chart-holder',
               // The following class is added to support custom dashboard styling via the CSS editor
               `dashboard-chart-id-${chartId}`,
               outlinedComponentId ? 'fade-in' : 'fade-out',
-              isFullSize && 'full-size',
             )}
           >
             {!editMode && (
@@ -313,7 +314,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
               isFullSize={isFullSize}
               setControlValue={handleExtraControl}
               extraControls={extraControls}
-              postTransformProps={handlePostTransformProps}
+              isInView={isInView}
             />
             {editMode && (
               <HoverMenu position="top">

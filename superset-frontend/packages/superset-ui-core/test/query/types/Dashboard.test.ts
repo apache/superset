@@ -21,27 +21,50 @@ import {
   isFilterDivider,
   Filter,
   NativeFilterType,
+  FilterWithDataMask,
+  Divider,
+  isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 
-test('should do native filter type guard', () => {
-  const dummyFilter: Filter = {
-    cascadeParentIds: [],
-    defaultDataMask: {},
-    id: 'dummyID',
-    name: 'dummyName',
-    scope: { rootPath: [], excluded: [] },
-    filterType: 'dummyType',
-    targets: [{}],
-    controlValues: {},
-    type: NativeFilterType.NATIVE_FILTER,
-    description: 'dummyDesc',
-  };
-  expect(isNativeFilter(dummyFilter)).toBeTruthy();
-  expect(
-    isFilterDivider({
-      ...dummyFilter,
-      type: NativeFilterType.DIVIDER,
-      title: 'dummyTitle',
-    }),
-  ).toBeTruthy();
+const filter: Filter = {
+  cascadeParentIds: [],
+  defaultDataMask: {},
+  id: 'filter_id',
+  name: 'Filter Name',
+  scope: { rootPath: [], excluded: [] },
+  filterType: 'filter_type',
+  targets: [{}],
+  controlValues: {},
+  type: NativeFilterType.NativeFilter,
+  description: 'Filter description.',
+};
+
+const filterWithDataMask: FilterWithDataMask = {
+  ...filter,
+  dataMask: { id: 'data_mask_id', filterState: { value: 'Filter value' } },
+};
+
+const filterDivider: Divider = {
+  id: 'divider_id',
+  type: NativeFilterType.Divider,
+  title: 'Divider title',
+  description: 'Divider description.',
+};
+
+test('filter type guard', () => {
+  expect(isNativeFilter(filter)).toBeTruthy();
+  expect(isNativeFilter(filterWithDataMask)).toBeTruthy();
+  expect(isNativeFilter(filterDivider)).toBeFalsy();
+});
+
+test('filter with dataMask type guard', () => {
+  expect(isNativeFilterWithDataMask(filter)).toBeFalsy();
+  expect(isNativeFilterWithDataMask(filterWithDataMask)).toBeTruthy();
+  expect(isNativeFilterWithDataMask(filterDivider)).toBeFalsy();
+});
+
+test('filter divider type guard', () => {
+  expect(isFilterDivider(filter)).toBeFalsy();
+  expect(isFilterDivider(filterWithDataMask)).toBeFalsy();
+  expect(isFilterDivider(filterDivider)).toBeTruthy();
 });

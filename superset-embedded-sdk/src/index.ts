@@ -66,6 +66,8 @@ export type Size = {
 export type EmbeddedDashboard = {
   getScrollSize: () => Promise<Size>
   unmount: () => void
+  getDashboardPermalink: (anchor: string) => Promise<string>
+  getActiveTabs: () => Promise<string[]>
 }
 
 /**
@@ -86,6 +88,10 @@ export async function embedDashboard({
   }
 
   log('embedding');
+
+  if (supersetDomain.endsWith("/")) {
+    supersetDomain = supersetDomain.slice(0, -1);
+  }
 
   function calculateConfig() {
     let configNumber = 0
@@ -115,14 +121,14 @@ export async function embedDashboard({
           .map(key => DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key] + '=' + filterConfig[key]).join('&')
         : ""
 
-      // setup the iframe's sandbox configuration
+      // set up the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
       iframe.sandbox.add("allow-downloads"); // for downloading charts as image
       iframe.sandbox.add("allow-forms"); // for forms to submit
       iframe.sandbox.add("allow-popups"); // for exporting charts as csv
-      // add these ones if it turns out we need them:
+      // add these if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
@@ -148,12 +154,13 @@ export async function embedDashboard({
       });
 
       iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
+      //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
   }
 
-  const [guestToken, ourPort] = await Promise.all([
+  const [guestToken, ourPort]: [string, Switchboard] = await Promise.all([
     fetchGuestToken(),
     mountIframe(),
   ]);
@@ -171,13 +178,19 @@ export async function embedDashboard({
 
   function unmount() {
     log('unmounting');
+    //@ts-ignore
     mountPoint.replaceChildren();
   }
 
   const getScrollSize = () => ourPort.get<Size>('getScrollSize');
+  const getDashboardPermalink = (anchor: string) =>
+    ourPort.get<string>('getDashboardPermalink', { anchor });
+  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs')
 
   return {
     getScrollSize,
     unmount,
+    getDashboardPermalink,
+    getActiveTabs,
   };
 }

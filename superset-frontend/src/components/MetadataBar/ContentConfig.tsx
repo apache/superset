@@ -17,10 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import moment from 'moment';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { ContentType, MetadataType } from './ContentType';
+import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
   font-weight: ${({ theme }) => theme.typography.weights.bold};
@@ -55,7 +54,7 @@ const config = (contentType: ContentType) => {
    */
 
   switch (type) {
-    case MetadataType.DASHBOARDS:
+    case MetadataType.Dashboards:
       return {
         icon: Icons.FundProjectionScreenOutlined,
         title: contentType.title,
@@ -66,65 +65,61 @@ const config = (contentType: ContentType) => {
         ) : undefined,
       };
 
-    case MetadataType.DESCRIPTION:
+    case MetadataType.Description:
       return {
         icon: Icons.BookOutlined,
         title: contentType.value,
       };
 
-    case MetadataType.LAST_MODIFIED:
+    case MetadataType.LastModified:
       return {
         icon: Icons.EditOutlined,
-        title: moment.utc(contentType.value).fromNow(),
+        title: contentType.value,
         tooltip: (
           <div>
-            <Info
-              header={t('Last modified')}
-              text={moment.utc(contentType.value).fromNow()}
-            />
+            <Info header={t('Last modified')} text={contentType.value} />
             <Info header={t('Modified by')} text={contentType.modifiedBy} />
           </div>
         ),
       };
 
-    case MetadataType.OWNER:
+    case MetadataType.Owner:
       return {
         icon: Icons.UserOutlined,
         title: contentType.createdBy,
         tooltip: (
           <div>
             <Info header={t('Created by')} text={contentType.createdBy} />
-            <Info header={t('Owners')} text={contentType.owners} />
-            <Info
-              header={t('Created on')}
-              text={moment.utc(contentType.createdOn).fromNow()}
-            />
+            {!!contentType.owners && (
+              <Info header={t('Owners')} text={contentType.owners} />
+            )}
+            <Info header={t('Created on')} text={contentType.createdOn} />
           </div>
         ),
       };
 
-    case MetadataType.ROWS:
+    case MetadataType.Rows:
       return {
         icon: Icons.InsertRowBelowOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.SQL:
+    case MetadataType.Sql:
       return {
         icon: Icons.ConsoleSqlOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.TABLE:
+    case MetadataType.Table:
       return {
         icon: Icons.Table,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.TAGS:
+    case MetadataType.Tags:
       return {
         icon: Icons.TagsOutlined,
         title: contentType.values.join(', '),

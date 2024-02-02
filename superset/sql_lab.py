@@ -20,25 +20,24 @@ import uuid
 from contextlib import closing
 from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Optional, Union
 
 import backoff
 import msgpack
-import pyarrow as pa
 import simplejson as json
-from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
-from sqlalchemy.orm import Session
 
 from superset import (
     app,
+    db,
     is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -47,11 +46,15 @@ from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
+from superset.sql_parse import (
+    CtasMethod,
+    insert_rls_as_subquery,
+    insert_rls_in_predicate,
+    ParsedQuery,
+)
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.celery import session_scope
+from superset.sqllab.utils import write_ipc_buffer
 from superset.utils.core import (
-    get_username,
     json_iso_dttm_ser,
     override_user,
     QuerySource,
@@ -69,7 +72,6 @@ SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
-cancel_query_key = "cancel_query"
 
 
 class SqlLabException(Exception):
@@ -87,14 +89,12 @@ class SqlLabQueryStoppedException(SqlLabException):
 def handle_query_error(
     ex: Exception,
     query: Query,
-    session: Session,
-    payload: Optional[Dict[str, Any]] = None,
+    payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Local method handling error while processing the SQL"""
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
-    troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
@@ -116,19 +116,19 @@ def handle_query_error(
     if errors:
         query.set_extra_json_key("errors", errors_payload)
 
-    session.commit()
+    db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
-    if troubleshooting_link:
+    if troubleshooting_link := config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
 
 
-def get_query_backoff_handler(details: Dict[Any, Any]) -> None:
+def get_query_backoff_handler(details: dict[Any, Any]) -> None:
     query_id = details["kwargs"]["query_id"]
     logger.error(
         "Query with id `%s` could not be retrieved", str(query_id), exc_info=True
     )
-    stats_logger.incr("error_attempting_orm_query_{}".format(details["tries"] - 1))
+    stats_logger.incr(f"error_attempting_orm_query_{details['tries'] - 1}")
     logger.error(
         "Query %s: Sleeping for a sec before retrying...", str(query_id), exc_info=True
     )
@@ -146,22 +146,20 @@ def get_query_giveup_handler(_: Any) -> None:
     on_giveup=get_query_giveup_handler,
     max_tries=5,
 )
-def get_query(query_id: int, session: Session) -> Query:
+def get_query(query_id: int) -> Query:
     """attempts to get the query and retry if it cannot"""
     try:
-        return session.query(Query).filter_by(id=query_id).one()
+        return db.session.query(Query).filter_by(id=query_id).one()
     except Exception as ex:
         raise SqlLabException("Failed at getting query") from ex
 
 
 @celery_app.task(
     name="sql_lab.get_sql_results",
-    bind=True,
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
 def get_sql_results(  # pylint: disable=too-many-arguments
-    ctask: Task,
     query_id: int,
     rendered_query: str,
     return_results: bool = True,
@@ -169,43 +167,50 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     username: Optional[str] = None,
     start_time: Optional[float] = None,
     expand_data: bool = False,
-    log_params: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]] = None,
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
-    with session_scope(not ctask.request.called_directly) as session:
-        with override_user(security_manager.find_user(username)):
-            try:
-                return execute_sql_statements(
-                    query_id,
-                    rendered_query,
-                    return_results,
-                    store_results,
-                    session=session,
-                    start_time=start_time,
-                    expand_data=expand_data,
-                    log_params=log_params,
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.debug("Query %d: %s", query_id, ex)
-                stats_logger.incr("error_sqllab_unhandled")
-                query = get_query(query_id, session)
-                return handle_query_error(ex, query, session)
+    with override_user(security_manager.find_user(username)):
+        try:
+            return execute_sql_statements(
+                query_id,
+                rendered_query,
+                return_results,
+                store_results,
+                start_time=start_time,
+                expand_data=expand_data,
+                log_params=log_params,
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug("Query %d: %s", query_id, ex)
+            stats_logger.incr("error_sqllab_unhandled")
+            query = get_query(query_id)
+            return handle_query_error(ex, query)
 
 
-def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statements
+def execute_sql_statement(
     sql_statement: str,
     query: Query,
-    session: Session,
     cursor: Any,
-    log_params: Optional[Dict[str, Any]],
+    log_params: Optional[dict[str, Any]],
     apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-    parsed_query = ParsedQuery(sql_statement)
+    parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
     if is_feature_enabled("RLS_IN_SQLLAB"):
+        # There are two ways to insert RLS: either replacing the table with a subquery
+        # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
+        # safer, but not supported in all databases.
+        insert_rls = (
+            insert_rls_as_subquery
+            if database.db_engine_spec.allows_subqueries
+            and database.db_engine_spec.allows_alias_in_select
+            else insert_rls_in_predicate
+        )
+
         # Insert any applicable RLS predicates
         parsed_query = ParsedQuery(
             str(
@@ -214,10 +219,12 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                     database.id,
                     query.schema,
                 )
-            )
+            ),
+            engine=db_engine_spec.engine,
         )
 
     sql = parsed_query.stripped()
+
     # This is a test to see if the query is being
     # limited by either the dropdown or the sql.
     # We are testing to see if more rows exist than the limit.
@@ -234,8 +241,8 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
-            query.tmp_table_name = "tmp_{}_table_{}".format(
-                query.user_id, start_dttm.strftime("%Y_%m_%d_%H_%M_%S")
+            query.tmp_table_name = (
+                f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
             )
         sql = parsed_query.as_create_table(
             query.tmp_table_name,
@@ -255,7 +262,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )
@@ -266,17 +272,13 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 query.database.sqlalchemy_uri,
                 query.executed_sql,
                 query.schema,
-                get_username(),
                 __name__,
                 security_manager,
                 log_params,
             )
-        session.commit()
+        db.session.commit()
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            logger.debug("Query %d: Running query: %s", query.id, sql)
-            db_engine_spec.execute(cursor, sql, async_=True)
-            logger.debug("Query %d: Handling cursor", query.id)
-            db_engine_spec.handle_cursor(cursor, query, session)
+            db_engine_spec.execute_with_cursor(cursor, sql, query)
 
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logger.debug(
@@ -309,11 +311,10 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip
-        session.refresh(query)
+        db.session.refresh(query)
         if query.status == QueryStatus.STOPPED:
             raise SqlLabQueryStoppedException() from ex
 
-        logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
@@ -336,7 +337,7 @@ def apply_limit_if_exists(
 
 
 def _serialize_payload(
-    payload: Dict[Any, Any], use_msgpack: Optional[bool] = False
+    payload: dict[Any, Any], use_msgpack: Optional[bool] = False
 ) -> Union[bytes, str]:
     logger.debug("Serializing to msgpack: %r", use_msgpack)
     if use_msgpack:
@@ -350,21 +351,16 @@ def _serialize_and_expand_data(
     db_engine_spec: BaseEngineSpec,
     use_msgpack: Optional[bool] = False,
     expand_data: bool = False,
-) -> Tuple[Union[bytes, str], List[Any], List[Any], List[Any]]:
+) -> tuple[Union[bytes, str], list[Any], list[Any], list[Any]]:
     selected_columns = result_set.columns
-    all_columns: List[Any]
-    expanded_columns: List[Any]
+    all_columns: list[Any]
+    expanded_columns: list[Any]
 
     if use_msgpack:
         with stats_timing(
             "sqllab.query.results_backend_pa_serialization", stats_logger
         ):
-            data = (
-                pa.default_serialization_context()
-                .serialize(result_set.pa_table)
-                .to_buffer()
-                .to_pybytes()
-            )
+            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
 
         # expand when loading data from results backend
         all_columns, expanded_columns = (selected_columns, [])
@@ -383,23 +379,23 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
+def execute_sql_statements(
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
     return_results: bool,
     store_results: bool,
-    session: Session,
     start_time: Optional[float],
     expand_data: bool,
-    log_params: Optional[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+    log_params: Optional[dict[str, Any]],
+) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
     if store_results and start_time:
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
-    query = get_query(query_id, session)
-    payload: Dict[str, Any] = dict(query_id=query_id)
+    query = get_query(query_id)
+    payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -414,7 +410,11 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         )
 
     # Breaking down into multiple statements
-    parsed_query = ParsedQuery(rendered_query, strip_comments=True)
+    parsed_query = ParsedQuery(
+        rendered_query,
+        strip_comments=True,
+        engine=db_engine_spec.engine,
+    )
     if not db_engine_spec.run_multiple_statements_as_one:
         statements = parsed_query.get_statements()
         logger.info(
@@ -427,7 +427,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
-    session.commit()
+    db.session.commit()
 
     # Should we create a table or view from the select?
     if (
@@ -464,40 +464,39 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             )
         )
 
-    engine = database.get_sqla_engine(query.schema, source=QuerySource.SQL_LAB)
-    # Sharing a single connection and cursor across the
-    # execution of all statements (if many)
-    with closing(engine.raw_connection()) as conn:
-        # closing the connection closes the cursor as well
+    with database.get_raw_connection(query.schema, source=QuerySource.SQL_LAB) as conn:
+        # Sharing a single connection and cursor across the
+        # execution of all statements (if many)
         cursor = conn.cursor()
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
         if cancel_query_id is not None:
-            query.set_extra_json_key(cancel_query_key, cancel_query_id)
-            session.commit()
+            query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+            db.session.commit()
         statement_count = len(statements)
         for i, statement in enumerate(statements):
             # Check if stopped
-            session.refresh(query)
+            db.session.refresh(query)
             if query.status == QueryStatus.STOPPED:
                 payload.update({"status": query.status})
                 return payload
-
             # For CTAS we create the table only on the last statement
             apply_ctas = query.select_as_cta and (
                 query.ctas_method == CtasMethod.VIEW
                 or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
             )
-
             # Run statement
-            msg = f"Running statement {i+1} out of {statement_count}"
+            msg = __(
+                "Running statement %(statement_num)s out of %(statement_count)s",
+                statement_num=i + 1,
+                statement_count=statement_count,
+            )
             logger.info("Query %s: %s", str(query_id), msg)
             query.set_extra_json_key("progress", msg)
-            session.commit()
+            db.session.commit()
             try:
                 result_set = execute_sql_statement(
                     statement,
                     query,
-                    session,
                     cursor,
                     log_params,
                     apply_ctas,
@@ -508,17 +507,24 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             except Exception as ex:  # pylint: disable=broad-except
                 msg = str(ex)
                 prefix_message = (
-                    f"[Statement {i+1} out of {statement_count}]"
+                    __(
+                        "Statement %(statement_num)s out of %(statement_count)s",
+                        statement_num=i + 1,
+                        statement_count=statement_count,
+                    )
                     if statement_count > 1
                     else ""
                 )
-                payload = handle_query_error(
-                    ex, query, session, payload, prefix_message
-                )
+                payload = handle_query_error(ex, query, payload, prefix_message)
                 return payload
 
-        # Commit the connection so CTA queries will create the table.
-        conn.commit()
+        # Commit the connection so CTA queries will create the table and any DML.
+        should_commit = (
+            not db_engine_spec.is_select_query(parsed_query)  # check if query is DML
+            or apply_ctas
+        )
+        if should_commit:
+            conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size
@@ -579,7 +585,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         query.results_key = key
 
     query.status = QueryStatus.SUCCESS
-    session.commit()
+    db.session.commit()
 
     if return_results:
         # since we're returning results we need to create non-arrow data
@@ -609,7 +615,7 @@ def cancel_query(query: Query) -> bool:
     """
     Cancel a running query.
 
-    Note some engines implicitly handle the cancelation of a query and thus no expliicit
+    Note some engines implicitly handle the cancelation of a query and thus no explicit
     action is required.
 
     :param query: Query to cancel
@@ -619,14 +625,24 @@ def cancel_query(query: Query) -> bool:
     if query.database.db_engine_spec.has_implicit_cancel():
         return True
 
-    cancel_query_id = query.extra.get(cancel_query_key)
+    # Some databases may need to make preparations for query cancellation
+    query.database.db_engine_spec.prepare_cancel_query(query)
+
+    if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+        # Query has been cancelled prior to being able to set the cancel key.
+        # This can happen if the query cancellation key can only be acquired after the
+        # query has been executed
+        return True
+
+    cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
     if cancel_query_id is None:
         return False
 
-    engine = query.database.get_sqla_engine(query.schema, source=QuerySource.SQL_LAB)
-
-    with closing(engine.raw_connection()) as conn:
-        with closing(conn.cursor()) as cursor:
-            return query.database.db_engine_spec.cancel_query(
-                cursor, query, cancel_query_id
-            )
+    with query.database.get_sqla_engine_with_context(
+        query.schema, source=QuerySource.SQL_LAB
+    ) as engine:
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                return query.database.db_engine_spec.cancel_query(
+                    cursor, query, cancel_query_id
+                )

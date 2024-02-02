@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 from datetime import datetime, timedelta
+from unittest import mock
 import json
 import random
 import string
@@ -51,6 +52,7 @@ class TestQueryApi(SupersetTestCase):
         rows: int = 100,
         tab_name: str = "",
         status: str = "success",
+        changed_on: datetime = datetime(2020, 1, 1),
     ) -> Query:
         database = db.session.query(Database).get(database_id)
         user = db.session.query(security_manager.user_model).get(user_id)
@@ -66,7 +68,7 @@ class TestQueryApi(SupersetTestCase):
             rows=rows,
             tab_name=tab_name,
             status=status,
-            changed_on=datetime(2020, 1, 1),
+            changed_on=changed_on,
         )
         db.session.add(query)
         db.session.commit()
@@ -200,6 +202,10 @@ class TestQueryApi(SupersetTestCase):
         gamma2 = self.create_user(
             "gamma_2", "password", "Gamma", email="gamma2@superset.org"
         )
+        # Add SQLLab role to these gamma users, so they have access to queries
+        sqllab_role = self.get_role("sql_lab")
+        gamma1.roles.append(sqllab_role)
+        gamma2.roles.append(sqllab_role)
 
         gamma1_client_id = self.get_random_string()
         gamma2_client_id = self.get_random_string()
@@ -279,7 +285,6 @@ class TestQueryApi(SupersetTestCase):
             "first_name",
             "id",
             "last_name",
-            "username",
         ]
         assert list(data["result"][0]["database"].keys()) == [
             "database_name",
@@ -381,7 +386,7 @@ class TestQueryApi(SupersetTestCase):
             sql="SELECT col1, col2 from table1",
         )
 
-        self.login(username="gamma")
+        self.login(username="gamma_sqllab")
         arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
@@ -392,3 +397,107 @@ class TestQueryApi(SupersetTestCase):
         # rollback changes
         db.session.delete(query)
         db.session.commit()
+
+    def test_get_updated_since(self):
+        """
+        Query API: Test get queries updated since timestamp
+        """
+        now = datetime.utcnow()
+        client_id = self.get_random_string()
+
+        admin = self.get_user("admin")
+        example_db = get_example_database()
+
+        old_query = self.insert_query(
+            example_db.id,
+            admin.id,
+            self.get_random_string(),
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=now - timedelta(days=3),
+        )
+        updated_query = self.insert_query(
+            example_db.id,
+            admin.id,
+            client_id,
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=now - timedelta(days=1),
+        )
+
+        self.login(username="admin")
+        timestamp = datetime.timestamp(now - timedelta(days=2)) * 1000
+        uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
+        expected_result = updated_query.to_dict()
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 1)
+        for key, value in data["result"][0].items():
+            # We can't assert timestamp
+            if key not in (
+                "changed_on",
+                "end_time",
+                "start_running_time",
+                "start_time",
+                "id",
+            ):
+                self.assertEqual(value, expected_result[key])
+        # rollback changes
+        db.session.delete(old_query)
+        db.session.delete(updated_query)
+        db.session.commit()
+
+    @mock.patch("superset.sql_lab.cancel_query")
+    @mock.patch("superset.views.core.db.session")
+    def test_stop_query_not_found(
+        self, mock_superset_db_session, mock_sql_lab_cancel_query
+    ):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method (with invalid client_id).
+        """
+        form_data = {"client_id": "foo2"}
+        query_mock = mock.Mock()
+        query_mock.return_value = None
+        self.login(username="admin")
+        mock_superset_db_session.query().filter_by().one_or_none = query_mock
+        mock_sql_lab_cancel_query.return_value = True
+        rv = self.client.post(
+            "/api/v1/query/stop",
+            data=json.dumps(form_data),
+            content_type="application/json",
+        )
+
+        assert rv.status_code == 404
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["message"] == "Query with client_id foo2 not found"
+
+    @mock.patch("superset.sql_lab.cancel_query")
+    @mock.patch("superset.views.core.db.session")
+    def test_stop_query(self, mock_superset_db_session, mock_sql_lab_cancel_query):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method.
+        """
+        form_data = {"client_id": "foo"}
+        query_mock = mock.Mock()
+        query_mock.client_id = "foo"
+        query_mock.status = QueryStatus.RUNNING
+        self.login(username="admin")
+        mock_superset_db_session.query().filter_by().one_or_none().return_value = (
+            query_mock
+        )
+        mock_sql_lab_cancel_query.return_value = True
+        rv = self.client.post(
+            "/api/v1/query/stop",
+            data=json.dumps(form_data),
+            content_type="application/json",
+        )
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"] == "OK"

@@ -23,7 +23,6 @@ import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { AntdModal } from 'src/components';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -49,11 +48,10 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setActiveTabs: PropTypes.func,
+  setActiveTab: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -77,8 +75,7 @@ const defaultProps = {
   columnWidth: 0,
   activeTabs: [],
   directPathToChild: [],
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
-  setActiveTabs() {},
+  setActiveTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -114,22 +111,7 @@ const StyledTabsContainer = styled.div`
 export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    let tabIndex = Math.max(
-      0,
-      findTabIndexByComponentId({
-        currentComponent: props.component,
-        directPathToChild: props.directPathToChild,
-      }),
-    );
-    if (tabIndex === 0 && props.activeTabs?.length) {
-      props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
-          tabIndex = index;
-        }
-      });
-    }
-    const { children: tabIds } = props.component;
-    const activeKey = tabIds[tabIndex];
+    const { tabIndex, activeKey } = this.getTabInfo(props);
 
     this.state = {
       tabIndex,
@@ -143,15 +125,12 @@ export class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTabs(this.state.activeKey);
+    this.props.setActiveTab(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.activeKey !== this.state.activeKey ||
-      prevProps.filterboxMigrationState !== this.props.filterboxMigrationState
-    ) {
-      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
+    if (prevState.activeKey !== this.state.activeKey) {
+      this.props.setActiveTab(this.state.activeKey, prevState.activeKey);
     }
   }
 
@@ -162,6 +141,15 @@ export class Tabs extends React.PureComponent {
 
     if (this.state.tabIndex > maxIndex) {
       this.setState(() => ({ tabIndex: maxIndex }));
+    }
+
+    // reset tab index if dashboard was changed
+    if (nextProps.dashboardId !== this.props.dashboardId) {
+      const { tabIndex, activeKey } = this.getTabInfo(nextProps);
+      this.setState(() => ({
+        tabIndex,
+        activeKey,
+      }));
     }
 
     if (nextProps.isComponentVisible) {
@@ -196,15 +184,42 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  getTabInfo = props => {
+    let tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
+    if (tabIndex === 0 && props.activeTabs?.length) {
+      props.component.children.forEach((tabId, index) => {
+        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
+          tabIndex = index;
+        }
+      });
+    }
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
+
+    return {
+      tabIndex,
+      activeKey,
+    };
+  };
+
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
     AntdModal.confirm({
       title: t('Delete dashboard tab?'),
       content: (
         <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
+          {t(
+            'Deleting a tab will remove all content within it. You may still ' +
+              'reverse this action with the',
+          )}{' '}
+          <b>{t('undo')}</b>{' '}
+          {t('button (cmd + z) until you save your changes.')}
         </span>
       ),
       onOk: () => {
@@ -213,8 +228,8 @@ export class Tabs extends React.PureComponent {
         this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
+      okText: t('DELETE'),
+      cancelText: t('CANCEL'),
       icon: null,
     });
   };
@@ -318,9 +333,10 @@ export class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    if (nativeFilters?.focusedFilterId) {
-      tabsToHighlight =
-        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    const highlightedFilterId =
+      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    if (highlightedFilterId) {
+      tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
       <DragDroppable
@@ -370,6 +386,7 @@ export class Tabs extends React.PureComponent {
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
+                      onHoverTab={() => this.handleClickTab(tabIndex)}
                       isFocused={activeKey === tabId}
                       isHighlighted={
                         activeKey !== tabId && tabsToHighlight?.includes(tabId)
@@ -419,7 +436,6 @@ function mapStateToProps(state) {
     nativeFilters: state.nativeFilters,
     activeTabs: state.dashboardState.activeTabs,
     directPathToChild: state.dashboardState.directPathToChild,
-    filterboxMigrationState: state.dashboardState.filterboxMigrationState,
   };
 }
 export default connect(mapStateToProps)(Tabs);

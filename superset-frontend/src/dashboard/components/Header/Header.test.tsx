@@ -37,7 +37,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   user: {
@@ -68,7 +73,6 @@ const createProps = () => ({
   fetchFaveStar: jest.fn(),
   fetchCharts: jest.fn(),
   onRefresh: jest.fn(),
-  fetchUISpecificReport: jest.fn(),
   saveFaveStar: jest.fn(),
   savePublished: jest.fn(),
   isPublished: false,
@@ -77,7 +81,8 @@ const createProps = () => ({
   setEditMode: jest.fn(),
   showBuilderPane: jest.fn(),
   updateCss: jest.fn(),
-  setColorSchemeAndUnsavedChanges: jest.fn(),
+  setColorScheme: jest.fn(),
+  setUnsavedChanges: jest.fn(),
   logEvent: jest.fn(),
   setRefreshFrequency: jest.fn(),
   hasUnsavedChanges: false,
@@ -90,6 +95,7 @@ const createProps = () => ({
   maxUndoHistoryToast: jest.fn(),
   dashboardInfoChanged: jest.fn(),
   dashboardTitleChanged: jest.fn(),
+  showMenuDropdown: true,
 });
 const props = createProps();
 const editableProps = {

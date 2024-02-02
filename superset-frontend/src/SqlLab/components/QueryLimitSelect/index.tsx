@@ -17,21 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { styled, useTheme } from '@superset-ui/core';
+import { useDispatch } from 'react-redux';
+import { styled, useTheme, t } from '@superset-ui/core';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
-import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 export interface QueryLimitSelectProps {
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   maxRow: number;
   defaultQueryLimit: number;
 }
-
-export const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 
 export function convertToNumWithSpaces(num: number) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
@@ -63,15 +61,20 @@ function renderQueryLimit(
   maxRow: number,
   setQueryLimit: (limit: number) => void,
 ) {
-  // Adding SQL_MAX_ROW value to dropdown
-  LIMIT_DROPDOWN.push(maxRow);
+  const limitDropdown = [];
+
+  // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
+  for (let i = 10; i < maxRow; i *= 10) {
+    limitDropdown.push(i);
+  }
+  limitDropdown.push(maxRow);
 
   return (
     <Menu>
-      {[...new Set(LIMIT_DROPDOWN)].map(limit => (
+      {[...new Set(limitDropdown)].map(limit => (
         <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
           {/* // eslint-disable-line no-use-before-define */}
-          <a role="button">{convertToNumWithSpaces(limit)}</a>{' '}
+          {convertToNumWithSpaces(limit)}{' '}
         </Menu.Item>
       ))}
     </Menu>
@@ -79,23 +82,17 @@ function renderQueryLimit(
 }
 
 const QueryLimitSelect = ({
-  queryEditor,
+  queryEditorId,
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const queryLimit = useSelector<SqlLabRootState, number>(
-    ({ sqlLab: { unsavedQueryEditor } }) => {
-      const updatedQueryEditor = {
-        ...queryEditor,
-        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
-      };
-      return updatedQueryEditor.queryLimit || defaultQueryLimit;
-    },
-  );
+  const theme = useTheme();
   const dispatch = useDispatch();
+
+  const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
+  const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
   const setQueryLimit = (updatedQueryLimit: number) =>
     dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
-  const theme = useTheme();
 
   return (
     <LimitSelectStyled>
@@ -104,7 +101,7 @@ const QueryLimitSelect = ({
         trigger={['click']}
       >
         <button type="button" onClick={e => e.preventDefault()}>
-          <span>LIMIT:</span>
+          <span>{t('LIMIT')}:</span>
           <span className="limitDropdown">
             {convertToNumWithSpaces(queryLimit)}
           </span>

@@ -1,0 +1,69 @@
+import { Meta, Source, Story, ArgsTable } from '@storybook/addon-docs';
+
+<Meta title="Design System/Components/Table/Cell Renderers/ActionCell/Overview" />
+
+# ActionCell
+
+An ActionCell is used to display an overflow icon that opens a menu allowing the user to take actions
+specific to the data in the table row that the cell is a member of.
+
+### [Basic example](./?path=/docs/design-system-components-table-cell-renderers-actioncell--basic)
+
+<Story id="design-system-components-table-cell-renderers-actioncell--basic" />
+
+---
+
+## Usage
+
+The action cell accepts an array of objects that define the label, tooltip, onClick callback functions,
+and an optional data payload to be provided back to the onClick handler function.
+
+### [Basic example](./?path=/docs/design-system-components-table-cell-renderers-actioncell--basic)
+
+<Story id="design-system-components-table-cell-renderers-actioncell--basic" />
+
+```
+import { ActionMenuItem } from 'src/components/Table/cell-renderers/index';
+
+export const exampleMenuOptions: ActionMenuItem[] = [
+  {
+    label: 'Action 1',
+    tooltip: "This is a tip, don't spend it all in one place",
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'spicy chicken',
+    },
+  },
+  {
+    label: 'Action 2',
+    tooltip: 'This is another tip',
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'saucy tofu',
+    },
+  },
+];
+
+```
+
+Within the context of adding an action cell to cell definitions provided to the table using the ActionCell component
+for the return value from the render function on the cell definition. See the [Basic example](./?path=/docs/design-system-components-table-examples--basic)
+
+```
+import ActionCell from './index';
+
+const cellExample = [
+  {
+    title: 'Actions',
+    dataIndex: 'actions',
+    key: 'actions',
+    render: () => <ActionCell menuOptions={exampleMenuOptions} />,
+  }
+]
+```

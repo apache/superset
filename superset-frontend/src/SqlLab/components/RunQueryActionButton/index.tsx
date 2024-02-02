@@ -19,26 +19,20 @@
 import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
-import { shallowEqual, useSelector } from 'react-redux';
-import {
-  QueryEditor,
-  SqlLabRootState,
-  QueryButtonProps,
-} from 'src/SqlLab/types';
-import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
+import { QueryButtonProps } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-export interface Props {
-  queryEditor: QueryEditor;
+export interface RunQueryActionButtonProps {
+  queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
   runQuery: (c?: boolean) => void;
   stopQuery: () => void;
-  overlayCreateAsMenu: typeof Menu | null;
+  overlayCreateAsMenu: React.ReactElement | null;
 }
 
 const buildText = (
@@ -88,27 +82,19 @@ const StyledButton = styled.span`
 
 const RunQueryActionButton = ({
   allowAsync = false,
-  queryEditor,
+  queryEditorId,
   queryState,
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}: Props) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const userOS = detectOS();
-  const { selectedText, sql } = useSelector<
-    SqlLabRootState,
-    Pick<QueryEditor, 'selectedText' | 'sql'>
-  >(rootState => {
-    const currentQueryEditor = getUpToDateQuery(
-      rootState,
-      queryEditor,
-    ) as unknown as QueryEditor;
-    return {
-      selectedText: currentQueryEditor.selectedText,
-      sql: currentQueryEditor.sql,
-    };
-  }, shallowEqual);
+
+  const { selectedText, sql } = useQueryEditor(queryEditorId, [
+    'selectedText',
+    'sql',
+  ]);
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
@@ -117,7 +103,10 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
-  const isDisabled = !sql || !sql.trim();
+  const sqlContent = selectedText || sql || '';
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -130,6 +119,7 @@ const RunQueryActionButton = ({
   return (
     <StyledButton>
       <ButtonComponent
+        data-test="run-query-action"
         onClick={() =>
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
@@ -156,7 +146,9 @@ const RunQueryActionButton = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: 'primary' })}
+          : {
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+            })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>

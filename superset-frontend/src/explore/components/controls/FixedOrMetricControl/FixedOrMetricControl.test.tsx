@@ -21,6 +21,13 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import FixedOrMetricControl from '.';
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 const createProps = () => ({
   datasource: {
     columns: [{ column_name: 'Column A' }],

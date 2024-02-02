@@ -98,6 +98,7 @@ describe('buildQueryContext', () => {
       ]),
     );
   });
+  // todo(Yongjie): move these test case into buildQueryObject.test.ts
   it('should remove undefined value in post_processing', () => {
     const queryContext = buildQueryContext(
       {
@@ -123,13 +124,7 @@ describe('buildQueryContext', () => {
       },
     ]);
   });
-  it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled', () => {
-    // @ts-ignore
-    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: true,
-      },
-    }));
+  it('should call normalizeTimeColumn if has x_axis', () => {
     const spyNormalizeTimeColumn = jest.spyOn(
       queryModule,
       'normalizeTimeColumn',
@@ -139,34 +134,11 @@ describe('buildQueryContext', () => {
       {
         datasource: '5__table',
         viz_type: 'table',
+        x_axis: 'axis',
       },
       () => [{}],
     );
     expect(spyNormalizeTimeColumn).toBeCalled();
-    spy.mockRestore();
-    spyNormalizeTimeColumn.mockRestore();
-  });
-  it("shouldn't call normalizeTimeColumn if GENERIC_CHART_AXES is disabled", () => {
-    // @ts-ignore
-    const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
-    const spyNormalizeTimeColumn = jest.spyOn(
-      queryModule,
-      'normalizeTimeColumn',
-    );
-
-    buildQueryContext(
-      {
-        datasource: '5__table',
-        viz_type: 'table',
-      },
-      () => [{}],
-    );
-    expect(spyNormalizeTimeColumn).not.toBeCalled();
-    spy.mockRestore();
     spyNormalizeTimeColumn.mockRestore();
   });
 });

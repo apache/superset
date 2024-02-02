@@ -18,15 +18,9 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import kebabCase from 'lodash/kebabCase';
-import { t } from '@superset-ui/core';
+import { kebabCase } from 'lodash';
+import { t, supersetTheme } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
-
-/**
- * @remark
- * same as https://github.com/apache/superset/blob/c53bc4ddf9808a8bb6916bbe3cb31935d33a2420/superset-frontend/src/assets/stylesheets/less/variables.less#L34
- */
-const GRAY_BACKGROUND_COLOR = '#F5F5F5';
 
 /**
  * generate a consistent file stem from a description and date
@@ -68,7 +62,7 @@ export default function downloadAsImage(
       if (typeof node.className === 'string') {
         return (
           node.className !== 'mapboxgl-control-container' &&
-          !node.className.includes('ant-dropdown')
+          !node.className.includes('header-controls')
         );
       }
       return true;
@@ -76,17 +70,16 @@ export default function downloadAsImage(
 
     return domToImage
       .toJpeg(elementToPrint, {
-        quality: 0.95,
-        bgcolor: GRAY_BACKGROUND_COLOR,
+        bgcolor: supersetTheme.colors.grayscale.light4,
         filter,
       })
-      .then(dataUrl => {
+      .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = `${generateFileStem(description)}.jpg`;
         link.href = dataUrl;
         link.click();
       })
-      .catch(e => {
+      .catch((e: Error) => {
         console.error('Creating image failed', e);
       });
   };

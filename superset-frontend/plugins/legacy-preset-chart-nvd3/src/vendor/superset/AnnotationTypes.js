@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+
 function extractTypes(metadata) {
   return Object.keys(metadata).reduce((prev, key) => {
     const result = prev;
@@ -28,21 +30,21 @@ function extractTypes(metadata) {
 export const ANNOTATION_TYPES_METADATA = {
   FORMULA: {
     value: 'FORMULA',
-    label: 'Formula',
+    label: t('Formula'),
   },
   EVENT: {
     value: 'EVENT',
-    label: 'Event',
+    label: t('Event'),
     supportNativeSource: true,
   },
   INTERVAL: {
     value: 'INTERVAL',
-    label: 'Interval',
+    label: t('Interval'),
     supportNativeSource: true,
   },
   TIME_SERIES: {
     value: 'TIME_SERIES',
-    label: 'Time Series',
+    label: t('Time Series'),
   },
 };
 

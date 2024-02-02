@@ -14,16 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
-from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
@@ -44,38 +48,38 @@ class DruidEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1S')",
-        "PT5S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5S')",
-        "PT30S": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30S')",
-        "PT1M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1M')",
-        "PT5M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')",
-        "PT10M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT10M')",
-        "PT15M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT15M')",
-        "PT30M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30M')",
-        "PT1H": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1H')",
-        "PT6H": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT6H')",
-        "P1D": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1D')",
-        "P1W": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1W')",
-        "P1M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1M')",
-        "P3M": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P3M')",
-        "P1Y": "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1Y')",
-        "P1W/1970-01-03T00:00:00Z": (
+        TimeGrain.SECOND: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1S')",
+        TimeGrain.FIVE_SECONDS: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5S')",
+        TimeGrain.THIRTY_SECONDS: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30S')",
+        TimeGrain.MINUTE: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1M')",
+        TimeGrain.FIVE_MINUTES: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT5M')",
+        TimeGrain.TEN_MINUTES: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT10M')",
+        TimeGrain.FIFTEEN_MINUTES: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT15M')",
+        TimeGrain.THIRTY_MINUTES: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT30M')",
+        TimeGrain.HOUR: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT1H')",
+        TimeGrain.SIX_HOURS: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'PT6H')",
+        TimeGrain.DAY: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1D')",
+        TimeGrain.WEEK: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1W')",
+        TimeGrain.MONTH: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1M')",
+        TimeGrain.QUARTER: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P3M')",
+        TimeGrain.YEAR: "TIME_FLOOR(CAST({col} AS TIMESTAMP), 'P1Y')",
+        TimeGrain.WEEK_ENDING_SATURDAY: (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
             "'P1D', 1), 'P1W'), 'P1D', 5)"
         ),
-        "1969-12-28T00:00:00Z/P1W": (
+        TimeGrain.WEEK_STARTING_SUNDAY: (
             "TIME_SHIFT(TIME_FLOOR(TIME_SHIFT(CAST({col} AS TIMESTAMP), "
             "'P1D', 1), 'P1W'), 'P1D', -1)"
         ),
     }
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
+    def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 
@@ -100,12 +104,13 @@ class DruidEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"
-        if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
+        if isinstance(sqla_type, (types.DateTime, types.TIMESTAMP)):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
 
@@ -124,15 +129,10 @@ class DruidEngineSpec(BaseEngineSpec):
         return "MILLIS_TO_TIMESTAMP({col})"
 
     @classmethod
-    def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: Optional[str]
-    ) -> List[Dict[str, Any]]:
-        """
-        Update the Druid type map.
-        """
+    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         # pylint: disable=import-outside-toplevel
-        from pydruid.db.sqlalchemy import type_map
+        from requests import exceptions as requests_exceptions
 
-        type_map["complex<hllsketch>"] = types.BLOB
-
-        return super().get_columns(inspector, table_name, schema)
+        return {
+            requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
+        }

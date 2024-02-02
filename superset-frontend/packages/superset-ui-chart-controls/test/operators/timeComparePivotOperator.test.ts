@@ -72,10 +72,10 @@ test('should pivot on any type of timeCompare', () => {
           ...formData,
           comparison_type: cType,
           time_compare: ['1 year ago', '1 year later'],
+          granularity_sqla: 'time_column',
         },
         {
           ...queryObject,
-          is_timeseries: true,
         },
       ),
     ).toEqual({
@@ -136,6 +136,45 @@ test('should pivot on x-axis', () => {
   });
 });
 
+test('should pivot on x-axis with series_columns', () => {
+  expect(
+    timeComparePivotOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago', '1 year later'],
+        x_axis: 'ds',
+      },
+      {
+        ...queryObject,
+        columns: ['ds', 'foo', 'bar'],
+        series_columns: ['foo', 'bar'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'count(*)__1 year later': { operator: 'mean' },
+        'sum(val)': {
+          operator: 'mean',
+        },
+        'sum(val)__1 year ago': {
+          operator: 'mean',
+        },
+        'sum(val)__1 year later': {
+          operator: 'mean',
+        },
+      },
+      drop_missing_columns: false,
+      columns: ['foo', 'bar'],
+      index: ['ds'],
+    },
+  });
+});
+
 test('should pivot on adhoc x-axis', () => {
   expect(
     timeComparePivotOperator(
@@ -146,7 +185,7 @@ test('should pivot on adhoc x-axis', () => {
         x_axis: {
           label: 'my_case_expr',
           expressionType: 'SQL',
-          expression: 'case when a = 1 then 1 else 0 end',
+          sqlExpression: 'case when a = 1 then 1 else 0 end',
         },
       },
       queryObject,

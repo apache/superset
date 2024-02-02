@@ -19,6 +19,7 @@
 
 /* eslint-disable react/jsx-sort-default-props */
 import * as React from 'react';
+import { t } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
@@ -94,15 +95,17 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
    * is changed.
    */
   processChartProps = createSelector(
-    (input: {
-      chartProps: ChartProps;
-      preTransformProps?: PreTransformProps;
-      transformProps?: TransformProps;
-      postTransformProps?: PostTransformProps;
-    }) => input.chartProps,
-    input => input.preTransformProps,
-    input => input.transformProps,
-    input => input.postTransformProps,
+    [
+      (input: {
+        chartProps: ChartProps;
+        preTransformProps?: PreTransformProps;
+        transformProps?: TransformProps;
+        postTransformProps?: PostTransformProps;
+      }) => input.chartProps,
+      input => input.preTransformProps,
+      input => input.transformProps,
+      input => input.postTransformProps,
+    ],
     (chartProps, pre = IDENTITY, transform = IDENTITY, post = IDENTITY) =>
       post(transform(pre(chartProps))),
   );
@@ -116,9 +119,11 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
    * is changed.
    */
   private createLoadableRenderer = createSelector(
-    (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
-      input.chartType,
-    input => input.overrideTransformProps,
+    [
+      (input: { chartType: string; overrideTransformProps?: TransformProps }) =>
+        input.chartType,
+      input => input.overrideTransformProps,
+    ],
     (chartType, overrideTransformProps) => {
       if (chartType) {
         const Renderer = createLoadableRenderer({
@@ -167,7 +172,7 @@ export default class SuperChartCore extends React.PureComponent<Props, {}> {
     if (error) {
       return (
         <div className="alert alert-warning" role="alert">
-          <strong>ERROR</strong>&nbsp;
+          <strong>{t('ERROR')}</strong>&nbsp;
           <code>chartType=&quot;{chartType}&quot;</code> &mdash;
           {error.toString()}
         </div>

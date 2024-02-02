@@ -20,28 +20,70 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
-import { DataMaskStateWithId, Filters } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  Filters,
+  JsonObject,
+  styled,
+  usePrevious,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { usePrevious } from 'src/hooks/usePrevious';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
-import { Pill } from './Styles';
 import {
   Indicator,
   IndicatorStatus,
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
-} from './selectors';
-import { setDirectPathToChild } from '../../actions/dashboardState';
-import {
-  ChartsState,
-  DashboardInfo,
-  DashboardLayout,
-  RootState,
-} from '../../types';
+} from '../nativeFilters/selectors';
+import { Chart, DashboardLayout, RootState } from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
 }
+
+const StyledFilterCount = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-items: center;
+    align-items: center;
+    cursor: pointer;
+    margin-right: ${theme.gridUnit}px;
+    padding-left: ${theme.gridUnit * 2}px;
+    padding-right: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.light4};
+    border-radius: 4px;
+    height: 100%;
+    .anticon {
+      vertical-align: middle;
+      color: ${theme.colors.grayscale.base};
+      &:hover {
+        color: ${theme.colors.grayscale.light1};
+      }
+    }
+
+    .incompatible-count {
+      font-size: ${theme.typography.sizes.s}px;
+    }
+  `}
+`;
+
+const StyledBadge = styled(Badge)`
+  ${({ theme }) => `
+    vertical-align: middle;
+    margin-left: ${theme.gridUnit * 2}px;
+    &>sup {
+      padding: 0 ${theme.gridUnit}px;
+      min-width: ${theme.gridUnit * 4}px;
+      height: ${theme.gridUnit * 4}px;
+      line-height: 1.5;
+      font-weight: ${theme.typography.weights.medium};
+      font-size: ${theme.typography.sizes.s - 1}px;
+      box-shadow: none;
+    }
+  `}
+`;
 
 const sortByStatus = (indicators: Indicator[]): Indicator[] => {
   const statuses = [
@@ -67,10 +109,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
-  const dashboardInfo = useSelector<RootState, DashboardInfo>(
-    state => state.dashboardInfo,
+  const chartConfiguration = useSelector<RootState, JsonObject>(
+    state => state.dashboardInfo.metadata?.chart_configuration,
   );
-  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
   const present = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -92,7 +134,6 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
-  const chart = charts[chartId];
   const prevChart = usePrevious(chart);
   const prevChartStatus = prevChart?.chartStatus;
   const prevDashboardFilters = usePrevious(dashboardFilters);
@@ -138,9 +179,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevNativeFilters = usePrevious(nativeFilters);
   const prevDashboardLayout = usePrevious(present);
   const prevDataMask = usePrevious(dataMask);
-  const prevChartConfig = usePrevious(
-    dashboardInfo.metadata?.chart_configuration,
-  );
+  const prevChartConfig = usePrevious(chartConfiguration);
   useEffect(() => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
@@ -153,7 +192,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         nativeFilters !== prevNativeFilters ||
         present !== prevDashboardLayout ||
         dataMask !== prevDataMask ||
-        prevChartConfig !== dashboardInfo.metadata?.chart_configuration
+        prevChartConfig !== chartConfiguration
       ) {
         setNativeIndicators(
           selectNativeIndicatorsForChart(
@@ -162,7 +201,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             chartId,
             chart,
             present,
-            dashboardInfo.metadata?.chart_configuration,
+            chartConfiguration,
           ),
         );
       }
@@ -170,7 +209,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [
     chart,
     chartId,
-    dashboardInfo.metadata?.chart_configuration,
+    chartConfiguration,
     dataMask,
     nativeFilters,
     nativeIndicators.length,
@@ -211,67 +250,31 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       ),
     [indicators],
   );
-  const unsetIndicators = useMemo(
-    () =>
-      indicators.filter(
-        indicator => indicator.status === IndicatorStatus.Unset,
-      ),
-    [indicators],
-  );
-  const incompatibleIndicators = useMemo(
-    () =>
-      indicators.filter(
-        indicator => indicator.status === IndicatorStatus.Incompatible,
-      ),
-    [indicators],
-  );
 
-  if (
-    !appliedCrossFilterIndicators.length &&
-    !appliedIndicators.length &&
-    !incompatibleIndicators.length &&
-    !unsetIndicators.length
-  ) {
+  if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
     return null;
   }
-
-  const isInactive =
-    !appliedCrossFilterIndicators.length &&
-    !appliedIndicators.length &&
-    !incompatibleIndicators.length;
 
   return (
     <DetailsPanelPopover
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
-      unsetIndicators={unsetIndicators}
-      incompatibleIndicators={incompatibleIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
     >
-      <Pill
+      <StyledFilterCount
         className={cx(
           'filter-counts',
-          !!incompatibleIndicators.length && 'has-incompatible-filters',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
-          isInactive && 'filters-inactive',
         )}
       >
         <Icons.Filter iconSize="m" />
-        {!isInactive && (
-          <span data-test="applied-filter-count">
-            {appliedIndicators.length + appliedCrossFilterIndicators.length}
-          </span>
-        )}
-        {incompatibleIndicators.length ? (
-          <>
-            {' '}
-            <Icons.AlertSolid />
-            <span data-test="incompatible-filter-count">
-              {incompatibleIndicators.length}
-            </span>
-          </>
-        ) : null}
-      </Pill>
+        <StyledBadge
+          data-test="applied-filter-count"
+          className="applied-count"
+          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          showZero
+        />
+      </StyledFilterCount>
     </DetailsPanelPopover>
   );
 };

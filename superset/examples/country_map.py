@@ -39,38 +39,39 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        url = get_example_url("birth_france_data_for_country_map.csv")
-        data = pd.read_csv(url, encoding="utf-8")
-        data["dttm"] = datetime.datetime.now().date()
-        data.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "DEPT_ID": String(10),
-                "2003": BigInteger,
-                "2004": BigInteger,
-                "2005": BigInteger,
-                "2006": BigInteger,
-                "2007": BigInteger,
-                "2008": BigInteger,
-                "2009": BigInteger,
-                "2010": BigInteger,
-                "2011": BigInteger,
-                "2012": BigInteger,
-                "2013": BigInteger,
-                "2014": BigInteger,
-                "dttm": Date(),
-            },
-            index=False,
-        )
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
+
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("birth_france_data_for_country_map.csv")
+            data = pd.read_csv(url, encoding="utf-8")
+            data["dttm"] = datetime.datetime.now().date()
+            data.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "DEPT_ID": String(10),
+                    "2003": BigInteger,
+                    "2004": BigInteger,
+                    "2005": BigInteger,
+                    "2006": BigInteger,
+                    "2007": BigInteger,
+                    "2008": BigInteger,
+                    "2009": BigInteger,
+                    "2010": BigInteger,
+                    "2011": BigInteger,
+                    "2012": BigInteger,
+                    "2013": BigInteger,
+                    "2014": BigInteger,
+                    "dttm": Date(),
+                },
+                index=False,
+            )
         print("Done loading table!")
         print("-" * 80)
 
@@ -79,13 +80,13 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "dttm"
     obj.database = database
     obj.filter_select_enabled = True
     if not any(col.metric_name == "avg__2004" for col in obj.metrics):
         col = str(column("2004").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="avg__2004", expression=f"AVG({col})"))
-    db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj

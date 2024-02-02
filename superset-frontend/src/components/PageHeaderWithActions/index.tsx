@@ -19,6 +19,7 @@
 import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { AntdDropdown, AntdDropdownProps } from 'src/components';
+import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
@@ -107,11 +108,16 @@ export type PageHeaderWithActionsProps = {
   showTitlePanelItems: boolean;
   certificatiedBadgeProps?: CertifiedBadgeProps;
   showFaveStar: boolean;
+  showMenuDropdown?: boolean;
   faveStarProps: FaveStarProps;
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
   menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
+  tooltipProps?: {
+    text?: string;
+    placement?: TooltipPlacement;
+  };
 };
 
 export const PageHeaderWithActions = ({
@@ -124,6 +130,8 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
+  showMenuDropdown = true,
+  tooltipProps,
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
   return (
@@ -143,22 +151,27 @@ export const PageHeaderWithActions = ({
       <div className="right-button-panel">
         {rightPanelAdditionalItems}
         <div css={additionalActionsContainerStyles}>
-          <AntdDropdown
-            trigger={['click']}
-            overlay={additionalActionsMenu}
-            {...menuDropdownProps}
-          >
-            <Button
-              css={menuTriggerStyles}
-              buttonStyle="tertiary"
-              aria-label={t('Menu actions trigger')}
+          {showMenuDropdown && (
+            <AntdDropdown
+              trigger={['click']}
+              overlay={additionalActionsMenu}
+              {...menuDropdownProps}
             >
-              <Icons.MoreHoriz
-                iconColor={theme.colors.primary.dark2}
-                iconSize="l"
-              />
-            </Button>
-          </AntdDropdown>
+              <Button
+                css={menuTriggerStyles}
+                buttonStyle="tertiary"
+                aria-label={t('Menu actions trigger')}
+                tooltip={tooltipProps?.text}
+                placement={tooltipProps?.placement}
+                data-test="actions-trigger"
+              >
+                <Icons.MoreHoriz
+                  iconColor={theme.colors.primary.dark2}
+                  iconSize="l"
+                />
+              </Button>
+            </AntdDropdown>
+          )}
         </div>
       </div>
     </div>

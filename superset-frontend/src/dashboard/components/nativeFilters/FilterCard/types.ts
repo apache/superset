@@ -19,11 +19,18 @@
 import { ReactNode } from 'react';
 import { Filter } from '@superset-ui/core';
 
+export enum FilterCardPlacement {
+  Right = 'right',
+  Bottom = 'bottom',
+  Left = 'left',
+}
+
 export interface FilterCardProps {
   children: ReactNode;
   filter: Filter;
   getPopupContainer?: (node: HTMLElement) => HTMLElement;
   isVisible?: boolean;
+  placement: FilterCardPlacement;
 }
 
 export interface FilterCardRowProps {

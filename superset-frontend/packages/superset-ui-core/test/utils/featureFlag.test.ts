@@ -16,48 +16,58 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import * as uiCore from '@superset-ui/core';
 
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+it('initializes feature flags', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  uiCore.initFeatureFlags();
+  expect(window.featureFlags).toEqual({});
+});
 
-const originalFeatureFlags = window.featureFlags;
-// eslint-disable-next-line no-console
-const originalConsoleError = console.error;
-const reset = () => {
-  window.featureFlags = originalFeatureFlags;
-  // eslint-disable-next-line no-console
-  console.error = originalConsoleError;
-};
+it('initializes feature flags with predefined values', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  const featureFlags = {
+    DRILL_BY: false,
+  };
+  uiCore.initFeatureFlags(featureFlags);
+  expect(window.featureFlags).toEqual(featureFlags);
+});
+
+it('does nothing if feature flags are already initialized', () => {
+  const featureFlags = { DRILL_BY: false };
+  Object.defineProperty(window, 'featureFlags', {
+    value: featureFlags,
+  });
+  uiCore.initFeatureFlags({ DRILL_BY: true });
+  expect(window.featureFlags).toEqual(featureFlags);
+});
 
 it('returns false and raises console error if feature flags have not been initialized', () => {
-  // eslint-disable-next-line no-console
-  console.error = jest.fn();
-  delete (window as any).featureFlags;
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
-
-  // eslint-disable-next-line no-console
-  expect(console.error).toHaveBeenNthCalledWith(
-    1,
-    'Failed to query feature flag ALLOW_DASHBOARD_DOMAIN_SHARDING (see error below)',
-  );
-
-  reset();
+  const logging = jest.spyOn(uiCore.logging, 'error');
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
+  expect(uiCore.logging.error).toHaveBeenCalled();
+  expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
 
 it('returns false for unset feature flag', () => {
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
-
-  reset();
+  Object.defineProperty(window, 'featureFlags', {
+    value: {},
+  });
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
 });
 
 it('returns true for set feature flag', () => {
-  window.featureFlags = {
-    [FeatureFlag.CLIENT_CACHE]: true,
-  };
-
-  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
-  reset();
+  Object.defineProperty(window, 'featureFlags', {
+    value: {
+      DRILL_BY: true,
+    },
+  });
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(true);
 });

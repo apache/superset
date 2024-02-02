@@ -17,12 +17,18 @@
  * under the License.
  */
 
+import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
-  ChartProps,
+  ContextMenuFilters,
+  DataRecordValue,
   QueryFormData,
   QueryFormMetric,
+  TimeFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
+import { ColorFormatters } from '@superset-ui/chart-controls';
+import { BaseChartProps, Refs } from '../types';
 
 export interface BigNumberDatum {
   [key: string]: number | null;
@@ -43,15 +49,51 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
   compareLag?: string | number;
 };
 
-export type BigNumberTotalChartProps = ChartProps & {
-  formData: BigNumberTotalFormData;
-  queriesData: (ChartDataResponseResult & {
-    data?: BigNumberDatum[];
-  })[];
-};
+export interface BigNumberTotalChartDataResponseResult
+  extends ChartDataResponseResult {
+  data: BigNumberDatum[];
+}
 
-export type BigNumberWithTrendlineChartProps = BigNumberTotalChartProps & {
-  formData: BigNumberWithTrendlineFormData;
-};
+export type BigNumberTotalChartProps =
+  BaseChartProps<BigNumberTotalFormData> & {
+    formData: BigNumberTotalFormData;
+    queriesData: BigNumberTotalChartDataResponseResult[];
+  };
+
+export type BigNumberWithTrendlineChartProps =
+  BaseChartProps<BigNumberWithTrendlineFormData> & {
+    formData: BigNumberWithTrendlineFormData;
+  };
 
 export type TimeSeriesDatum = [number, number | null];
+
+export type BigNumberVizProps = {
+  className?: string;
+  width: number;
+  height: number;
+  bigNumber?: DataRecordValue;
+  bigNumberFallback?: TimeSeriesDatum;
+  headerFormatter: ValueFormatter | TimeFormatter;
+  formatTime?: TimeFormatter;
+  headerFontSize: number;
+  kickerFontSize?: number;
+  subheader: string;
+  subheaderFontSize: number;
+  showTimestamp?: boolean;
+  showTrendLine?: boolean;
+  startYAxisAtZero?: boolean;
+  timeRangeFixed?: boolean;
+  timestamp?: DataRecordValue;
+  trendLineData?: TimeSeriesDatum[];
+  mainColor?: string;
+  echartOptions?: EChartsCoreOption;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  xValueFormatter?: TimeFormatter;
+  formData?: BigNumberWithTrendlineFormData;
+  refs: Refs;
+  colorThresholdFormatters?: ColorFormatters;
+};

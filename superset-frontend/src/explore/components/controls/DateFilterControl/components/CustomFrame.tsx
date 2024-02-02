@@ -110,9 +110,15 @@ export function CustomFrame(props: FrameComponentProps) {
     }
   }
 
-  const localFromFlaskBabel =
-    useSelector((state: ExplorePageState) => state.common.locale) || 'en';
-  const currentLocale = locales[LOCALE_MAPPING[localFromFlaskBabel]].DatePicker;
+  // check if there is a locale defined for explore
+  const localFromFlaskBabel = useSelector(
+    (state: ExplorePageState) => state?.common?.locale,
+  );
+  // An undefined datePickerLocale is acceptable if no match is found in the LOCALE_MAPPING[localFromFlaskBabel] lookup
+  // and will fall back to antd's default locale when the antd DataPicker's prop locale === undefined
+  // This also protects us from the case where state is populated with a locale that antd locales does not recognize
+  const datePickerLocale =
+    locales[LOCALE_MAPPING[localFromFlaskBabel]]?.DatePicker;
 
   return (
     <div data-test="custom-frame">
@@ -141,7 +147,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={currentLocale}
+                locale={datePickerLocale}
               />
             </Row>
           )}
@@ -194,7 +200,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
-                locale={currentLocale}
+                locale={datePickerLocale}
               />
             </Row>
           )}
@@ -252,7 +258,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
-                  locale={currentLocale}
+                  locale={datePickerLocale}
                 />
               </Col>
             )}

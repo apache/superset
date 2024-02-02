@@ -42,10 +42,15 @@ function Echart(
     eventHandlers,
     zrEventHandlers,
     selectedValues = {},
+    refs,
   }: EchartsProps,
   ref: React.Ref<EchartsHandler>,
 ) {
   const divRef = useRef<HTMLDivElement>(null);
+  if (refs) {
+    // eslint-disable-next-line no-param-reassign
+    refs.divRef = divRef;
+  }
   const chartRef = useRef<ECharts>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -106,6 +111,7 @@ function Echart(
   // did mount
   useEffect(() => {
     handleSizeChange({ width, height });
+    return () => chartRef.current?.dispose();
   }, []);
 
   useLayoutEffect(() => {

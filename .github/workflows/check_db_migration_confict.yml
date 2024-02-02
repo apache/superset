@@ -3,18 +3,32 @@ on:
   push:
     paths:
       - "superset/migrations/**"
+    branches:
+      - 'master'
+  pull_request:
+    paths:
+      - "superset/migrations/**"
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   check_db_migration_conflict:
     name: Check DB migration conflict
     runs-on: ubuntu-20.04
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Check and notify
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             // API reference: https://octokit.github.io/rest.js
             const currentBranch = context.ref.replace('refs/heads/', '');

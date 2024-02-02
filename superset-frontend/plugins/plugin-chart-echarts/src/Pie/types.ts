@@ -16,22 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormColumn,
-  QueryFormData,
-} from '@superset-ui/core';
-import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsPieFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     currentOwnValue?: string[] | null;
     donut: boolean;
@@ -47,7 +45,6 @@ export type EchartsPieFormData = QueryFormData &
     numberFormat: string;
     dateFormat: string;
     showLabelsThreshold: number;
-    emitFilter: boolean;
   };
 
 export enum EchartsPieLabelType {
@@ -57,11 +54,12 @@ export enum EchartsPieLabelType {
   KeyValue = 'key_value',
   KeyPercent = 'key_percent',
   KeyValuePercent = 'key_value_percent',
+  ValuePercent = 'value_percent',
 }
 
-export interface EchartsPieChartProps extends ChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps
+  extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -79,9 +77,10 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabels: true,
   labelsOutside: true,
   showLabelsThreshold: 5,
-  emitFilter: false,
   dateFormat: 'smart_date',
 };
 
 export type PieChartTransformedProps =
-  EChartTransformedProps<EchartsPieFormData>;
+  BaseTransformedProps<EchartsPieFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

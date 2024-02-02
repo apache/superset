@@ -79,6 +79,29 @@ def test_cidr_func_invalid_ip():
     assert internet_address.translate_type(cidr_request) == cidr_response
 
 
+def test_cidr_func_empty_ip():
+    """Test to see if the cidr_func behaves as expected when no IP is passed in"""
+    cidr_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "cidr",
+        "values": [""],
+    }
+    cidr_response: AdvancedDataTypeResponse = {
+        "values": [""],
+        "error_message": "",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert internet_address.translate_type(cidr_request) == cidr_response
+
+
 def test_port_translation_func_valid_port_number():
     """Test to see if the port_translation_func behaves as expected when a valid port number
     is passed in"""
@@ -161,6 +184,30 @@ def test_port_translation_func_invalid_port_number():
     port_response: AdvancedDataTypeResponse = {
         "values": [],
         "error_message": "'123456789' does not appear to be a port name or number",
+        "display_value": "",
+        "valid_filter_operators": [
+            FilterStringOperators.EQUALS,
+            FilterStringOperators.GREATER_THAN_OR_EQUAL,
+            FilterStringOperators.GREATER_THAN,
+            FilterStringOperators.IN,
+            FilterStringOperators.LESS_THAN,
+            FilterStringOperators.LESS_THAN_OR_EQUAL,
+        ],
+    }
+
+    assert port.translate_type(port_request) == port_response
+
+
+def test_port_translation_func_empty_port_number():
+    """Test to see if the port_translation_func behaves as expected when no port
+    number is passed in"""
+    port_request: AdvancedDataTypeRequest = {
+        "advanced_data_type": "port",
+        "values": [""],
+    }
+    port_response: AdvancedDataTypeResponse = {
+        "values": [[""]],
+        "error_message": "",
         "display_value": "",
         "valid_filter_operators": [
             FilterStringOperators.EQUALS,

@@ -17,9 +17,16 @@
  * under the License.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { FileOutlined, FileImageOutlined } from '@ant-design/icons';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  css,
+  isFeatureEnabled,
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
@@ -28,17 +35,27 @@ import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { getChartPermalink } from 'src/utils/urlUtils';
 import copyTextToClipboard from 'src/utils/copy';
-import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdown';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import HeaderReportDropDown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import { logEvent } from 'src/logger/actions';
+import {
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED,
+  LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS,
+} from 'src/logger/LogUtils';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import DashboardsSubMenu from './DashboardsSubMenu';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
+  DASHBOARDS_ADDED_TO: 'dashboards_added_to',
   DOWNLOAD_SUBMENU: 'download_submenu',
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
   EXPORT_TO_JSON: 'export_to_json',
+  EXPORT_TO_XLSX: 'export_to_xlsx',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
@@ -53,7 +70,7 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table', 'pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = ['pivot_table_v2'];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
@@ -90,6 +107,13 @@ export const MenuTrigger = styled(Button)`
   `}
 `;
 
+const iconReset = css`
+  .ant-dropdown-menu-item > & > .anticon:first-child {
+    margin-right: 0;
+    vertical-align: 0;
+  }
+`;
+
 export const useExploreAdditionalActionsMenu = (
   latestQueryFormData,
   canDownloadCSV,
@@ -97,12 +121,14 @@ export const useExploreAdditionalActionsMenu = (
   onOpenInEditor,
   onOpenPropertiesModal,
   ownState,
+  dashboards,
+  ...rest
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
   const [showReportSubMenu, setShowReportSubMenu] = useState(null);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [openSubmenus, setOpenSubmenus] = useState([]);
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
@@ -155,6 +181,16 @@ export const useExploreAdditionalActionsMenu = (
     [latestQueryFormData],
   );
 
+  const exportExcel = useCallback(
+    () =>
+      exportChart({
+        formData: latestQueryFormData,
+        resultType: 'results',
+        resultFormat: 'xlsx',
+      }),
+    [latestQueryFormData],
+  );
+
   const copyLink = useCallback(async () => {
     try {
       if (!latestQueryFormData) {
@@ -177,18 +213,42 @@ export const useExploreAdditionalActionsMenu = (
         case MENU_KEYS.EXPORT_TO_CSV:
           exportCSV();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_CSV_PIVOTED:
           exportCSVPivoted();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.EXPORT_TO_JSON:
           exportJson();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
-
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_JSON, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
+          break;
+        case MENU_KEYS.EXPORT_TO_XLSX:
+          exportExcel();
+          setIsDropdownVisible(false);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
@@ -198,27 +258,29 @@ export const useExploreAdditionalActionsMenu = (
             true,
           )(domEvent);
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
+          dispatch(
+            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+              chartId: slice?.slice_id,
+              chartName: slice?.slice_name,
+            }),
+          );
           break;
         case MENU_KEYS.COPY_PERMALINK:
           copyLink();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.EMBED_CODE:
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.SHARE_BY_EMAIL:
           shareByEmail();
           setIsDropdownVisible(false);
-          setOpenSubmenus([]);
           break;
         case MENU_KEYS.VIEW_QUERY:
           setIsDropdownVisible(false);
           break;
         case MENU_KEYS.RUN_IN_SQL_LAB:
-          onOpenInEditor(latestQueryFormData);
+          onOpenInEditor(latestQueryFormData, domEvent.metaKey);
           setIsDropdownVisible(false);
           break;
         default:
@@ -240,33 +302,37 @@ export const useExploreAdditionalActionsMenu = (
 
   const menu = useMemo(
     () => (
-      <Menu
-        onClick={handleMenuClick}
-        selectable={false}
-        openKeys={openSubmenus}
-        onOpenChange={setOpenSubmenus}
-      >
-        {slice && (
-          <>
+      <Menu onClick={handleMenuClick} selectable={false} {...rest}>
+        <>
+          {slice && (
             <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
               {t('Edit chart properties')}
             </Menu.Item>
-            <Menu.Divider />
-          </>
-        )}
+          )}
+          <Menu.SubMenu
+            title={t('Dashboards added to')}
+            key={MENU_KEYS.DASHBOARDS_ADDED_TO}
+          >
+            <DashboardsSubMenu
+              chartId={slice?.slice_id}
+              dashboards={dashboards}
+            />
+          </Menu.SubMenu>
+          <Menu.Divider />
+        </>
         <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
           {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
             <>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<FileOutlined />}
+                icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<FileOutlined />}
+                icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to pivoted .CSV')}
@@ -275,20 +341,29 @@ export const useExploreAdditionalActionsMenu = (
           ) : (
             <Menu.Item
               key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<FileOutlined />}
+              icon={<Icons.FileOutlined css={iconReset} />}
               disabled={!canDownloadCSV}
             >
               {t('Export to .CSV')}
             </Menu.Item>
           )}
-          <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_JSON}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
             {t('Export to .JSON')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<FileImageOutlined />}
+            icon={<Icons.FileImageOutlined css={iconReset} />}
           >
             {t('Download as image')}
+          </Menu.Item>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_XLSX}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
+            {t('Export to Excel')}
           </Menu.Item>
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
@@ -298,7 +373,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item key={MENU_KEYS.SHARE_BY_EMAIL}>
             {t('Share chart by email')}
           </Menu.Item>
-          {isFeatureEnabled(FeatureFlag.EMBEDDABLE_CHARTS) ? (
+          {isFeatureEnabled(FeatureFlag.EmbeddableCharts) ? (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={
@@ -369,10 +444,10 @@ export const useExploreAdditionalActionsMenu = (
       addDangerToast,
       canDownloadCSV,
       chart,
+      dashboards,
       handleMenuClick,
       isDropdownVisible,
       latestQueryFormData,
-      openSubmenus,
       showReportSubMenu,
       slice,
       theme.gridUnit,

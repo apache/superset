@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  PlainObject,
-  QueryFormData,
-  QueryObjectFilterClause,
-} from '@superset-ui/core';
+import { QueryFormData } from '@superset-ui/core';
 import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { SeriesTooltipOption } from 'echarts/types/src/util/types';
 import {
-  EchartsLegendFormData,
-  EchartsProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
@@ -34,7 +32,7 @@ import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 export type EdgeSymbol = 'none' | 'circle' | 'arrow';
 
 export type EchartsGraphFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     source: string;
     target: string;
     sourceCategory?: string;
@@ -57,6 +55,7 @@ export type EchartsGraphFormData = QueryFormData &
 
 export type EChartGraphNode = Omit<GraphNodeItemOption, 'value'> & {
   value: number;
+  col: string;
   tooltip?: Pick<SeriesTooltipOption, 'formatter'>;
 };
 
@@ -85,11 +84,10 @@ export type tooltipFormatParams = {
   data: { [name: string]: string };
 };
 
-export type GraphChartTransformedProps = EchartsProps & {
-  formData: PlainObject;
-  onContextMenu?: (
-    filters: QueryObjectFilterClause[],
-    clientX: number,
-    clientY: number,
-  ) => void;
-};
+export interface EchartsGraphChartProps
+  extends BaseChartProps<EchartsGraphFormData> {
+  formData: EchartsGraphFormData;
+}
+
+export type GraphChartTransformedProps =
+  BaseTransformedProps<EchartsGraphFormData> & ContextMenuTransformedProps;

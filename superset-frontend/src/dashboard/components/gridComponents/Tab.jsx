@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
@@ -43,6 +44,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
+  onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
 
@@ -64,6 +66,7 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   onDropOnTab() {},
+  onHoverTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -95,6 +98,7 @@ class Tab extends React.PureComponent {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
+    this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
   }
@@ -121,6 +125,10 @@ class Tab extends React.PureComponent {
   handleDrop(dropResult) {
     this.props.handleComponentDrop(dropResult);
     this.props.onDropOnTab(dropResult);
+  }
+
+  handleOnHover() {
+    this.props.onHoverTab();
   }
 
   handleTopDropTargetDrop(dropResult) {
@@ -166,7 +174,10 @@ class Tab extends React.PureComponent {
             depth={depth}
             onDrop={this.handleTopDropTargetDrop}
             editMode
-            className="empty-droptarget"
+            className={classNames({
+              'empty-droptarget': true,
+              'empty-droptarget--full': tabComponent.children.length === 0,
+            })}
           >
             {renderDraggableContentTop}
           </DragDroppable>
@@ -216,6 +227,7 @@ class Tab extends React.PureComponent {
             depth={depth} // see isValidChild.js for why tabs don't increment child depth
             index={componentIndex}
             onDrop={this.handleDrop}
+            onHover={this.handleOnHover}
             availableColumnCount={availableColumnCount}
             columnWidth={columnWidth}
             onResizeStart={onResizeStart}
@@ -226,7 +238,7 @@ class Tab extends React.PureComponent {
           />
         ))}
         {/* Make bottom of tab droppable */}
-        {editMode && (
+        {editMode && tabComponent.children.length > 0 && (
           <DragDroppable
             component={tabComponent}
             parentComponent={tabParentComponent}
@@ -234,6 +246,7 @@ class Tab extends React.PureComponent {
             index={tabComponent.children.length}
             depth={depth}
             onDrop={this.handleDrop}
+            onHover={this.handleOnHover}
             editMode
             className="empty-droptarget"
           >
@@ -263,6 +276,7 @@ class Tab extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={this.handleDrop}
+        onHover={this.handleOnHover}
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (

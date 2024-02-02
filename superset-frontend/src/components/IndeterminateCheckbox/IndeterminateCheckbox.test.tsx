@@ -18,11 +18,11 @@
  */
 
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import IndeterminateCheckbox from '.';
+import IndeterminateCheckbox, { IndeterminateCheckboxProps } from '.';
 
-const mockedProps = {
+const mockedProps: IndeterminateCheckboxProps = {
   checked: false,
   id: 'checkbox-id',
   indeterminate: false,
@@ -30,27 +30,30 @@ const mockedProps = {
   onChange: jest.fn(),
 };
 
-test('should render', () => {
-  const { container } = render(<IndeterminateCheckbox {...mockedProps} />);
+const asyncRender = (props = mockedProps) =>
+  waitFor(() => render(<IndeterminateCheckbox {...props} />));
+
+test('should render', async () => {
+  const { container } = await asyncRender();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the label', () => {
-  render(<IndeterminateCheckbox {...mockedProps} />);
+test('should render the label', async () => {
+  await asyncRender();
   expect(screen.getByTitle('Checkbox title')).toBeInTheDocument();
 });
 
-test('should render the checkbox', () => {
-  render(<IndeterminateCheckbox {...mockedProps} />);
+test('should render the checkbox', async () => {
+  await asyncRender();
   expect(screen.getByRole('checkbox')).toBeInTheDocument();
 });
 
-test('should render the checkbox-half icon', () => {
+test('should render the checkbox-half icon', async () => {
   const indeterminateProps = {
     ...mockedProps,
     indeterminate: true,
   };
-  render(<IndeterminateCheckbox {...indeterminateProps} />);
+  await asyncRender(indeterminateProps);
   expect(screen.getByRole('img')).toBeInTheDocument();
   expect(screen.getByRole('img')).toHaveAttribute(
     'aria-label',
@@ -58,24 +61,24 @@ test('should render the checkbox-half icon', () => {
   );
 });
 
-test('should render the checkbox-off icon', () => {
-  render(<IndeterminateCheckbox {...mockedProps} />);
+test('should render the checkbox-off icon', async () => {
+  await asyncRender();
   expect(screen.getByRole('img')).toBeInTheDocument();
   expect(screen.getByRole('img')).toHaveAttribute('aria-label', 'checkbox-off');
 });
 
-test('should render the checkbox-on icon', () => {
+test('should render the checkbox-on icon', async () => {
   const checkboxOnProps = {
     ...mockedProps,
     checked: true,
   };
-  render(<IndeterminateCheckbox {...checkboxOnProps} />);
+  await asyncRender(checkboxOnProps);
   expect(screen.getByRole('img')).toBeInTheDocument();
   expect(screen.getByRole('img')).toHaveAttribute('aria-label', 'checkbox-on');
 });
 
-test('should call the onChange', () => {
-  render(<IndeterminateCheckbox {...mockedProps} />);
+test('should call the onChange', async () => {
+  await asyncRender();
   const label = screen.getByTitle('Checkbox title');
   userEvent.click(label);
   expect(mockedProps.onChange).toHaveBeenCalledTimes(1);

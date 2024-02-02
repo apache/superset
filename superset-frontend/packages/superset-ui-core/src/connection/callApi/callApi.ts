@@ -94,7 +94,7 @@ export default async function callApi({
     cache !== 'no-store' &&
     cache !== 'reload' &&
     CACHE_AVAILABLE &&
-    (window.location && window.location.protocol) === 'https:'
+    window.location?.protocol === 'https:'
   ) {
     let supersetCache: Cache | null = null;
     try {

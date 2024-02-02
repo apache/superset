@@ -15,4 +15,4 @@
 # limitations under the License.
 #
 FLASK_APP="superset.app:create_app()"
-FLASK_ENV="development"
+FLASK_DEBUG=true

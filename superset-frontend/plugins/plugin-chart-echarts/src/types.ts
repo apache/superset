@@ -16,20 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { RefObject } from 'react';
 import {
+  ChartDataResponseResult,
+  ChartProps,
+  ContextMenuFilters,
+  FilterState,
   HandlerFunction,
+  LegendState,
+  PlainObject,
   QueryFormColumn,
-  QueryObjectFilterClause,
   SetDataMaskHook,
+  ChartPlugin,
+  SqlaFormData,
+  ChartMetadata,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
-import { OptionName } from 'echarts/types/src/util/types';
-import { AreaChartExtraControlsValue } from './constants';
+import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
   width: number;
+};
+
+export type Refs = {
+  echartRef?: React.Ref<EchartsHandler>;
+  divRef?: RefObject<HTMLDivElement>;
 };
 
 export interface EchartsProps {
@@ -40,6 +53,7 @@ export interface EchartsProps {
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
+  refs: Refs;
 }
 
 export interface EchartsHandler {
@@ -78,7 +92,7 @@ export type ForecastValue = {
   forecastUpper?: number;
 };
 
-export type EchartsLegendFormData = {
+export type LegendFormData = {
   legendMargin: number | null | string;
   legendOrientation: LegendOrientation;
   legendType: LegendType;
@@ -103,26 +117,47 @@ export enum LabelPositionEnum {
   InsideBottomRight = 'insideBottomRight',
 }
 
-export interface EChartTransformedProps<F> {
-  formData: F;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  setControlValue?: HandlerFunction;
-  labelMap: Record<string, string[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-  legendData?: OptionName[];
-  onContextMenu?: (
-    filters: QueryObjectFilterClause[],
-    clientX: number,
-    clientY: number,
-  ) => void;
+export interface BaseChartProps<T extends PlainObject> extends ChartProps<T> {
+  queriesData: ChartDataResponseResult[];
 }
 
-export interface EchartsTitleFormData {
+export interface BaseTransformedProps<F> {
+  echartOptions: EChartsCoreOption;
+  formData: F;
+  height: number;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  setDataMask?: SetDataMaskHook;
+  onLegendStateChanged?: (state: LegendState) => void;
+  filterState?: FilterState;
+  refs: Refs;
+  width: number;
+  emitCrossFilters?: boolean;
+  coltypeMapping?: Record<string, number>;
+}
+
+export type CrossFilterTransformedProps = {
+  groupby: QueryFormColumn[];
+  labelMap: Record<string, string[]>;
+  setControlValue?: HandlerFunction;
+  setDataMask: SetDataMaskHook;
+  selectedValues: Record<number, string>;
+  emitCrossFilters?: boolean;
+};
+
+export type ContextMenuTransformedProps = {
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
+  setDataMask?: SetDataMaskHook;
+};
+
+export interface TitleFormData {
   xAxisTitle: string;
   xAxisTitleMargin: number;
   yAxisTitle: string;
@@ -130,8 +165,28 @@ export interface EchartsTitleFormData {
   yAxisTitlePosition: string;
 }
 
-export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
+export type StackType = boolean | null | Partial<StackControlsValue>;
 
-export type AxisType = 'time' | 'value' | 'category';
+export interface TreePathInfo {
+  name: string;
+  dataIndex: number;
+  value: number | number[];
+}
+
+export class EchartsChartPlugin<
+  T extends SqlaFormData = SqlaFormData,
+  P extends ChartProps = ChartProps,
+> extends ChartPlugin<T, P> {
+  constructor(props: any) {
+    const { metadata, ...restProps } = props;
+    super({
+      ...restProps,
+      metadata: new ChartMetadata({
+        parseMethod: 'json',
+        ...metadata,
+      }),
+    });
+  }
+}
 
 export * from './Timeseries/types';

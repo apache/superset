@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -55,7 +55,7 @@ def test_client(app_context: AppContext):
 
 
 @pytest.fixture
-def login_as(test_client: "FlaskClient[Any]"):
+def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
     def _login_as(username: str, password: str = "general"):
@@ -134,9 +134,7 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-
-        # drop sqlachemy tables
+        # drop sqlalchemy tables
 
         db.session.commit()
         from sqlalchemy.ext import declarative
@@ -162,7 +160,7 @@ def drop_from_schema(engine: Engine, schema_name: str):
 @pytest.fixture(scope="session")
 def example_db_provider() -> Callable[[], Database]:  # type: ignore
     class _example_db_provider:
-        _db: Optional[Database] = None
+        _db: Database | None = None
 
         def __call__(self) -> Database:
             with app.app_context():
@@ -173,7 +171,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
                 return self._db
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
-            self._db.get_sqla_engine()  # type: ignore
+            self._db._get_sqla_engine()  # type: ignore
             self._db.backend  # type: ignore
 
         def remove(self) -> None:
@@ -190,7 +188,11 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
 
 def setup_presto_if_needed():
-    backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    db_uri = (
+        app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or app.config["SQLALCHEMY_DATABASE_URI"]
+    )
+    backend = db_uri.split("://")[0]
     database = get_example_database()
     extra = database.get_extra()
 
@@ -210,14 +212,14 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        drop_from_schema(engine, CTAS_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
+        with database.get_sqla_engine_with_context() as engine:
+            drop_from_schema(engine, CTAS_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
 
-        drop_from_schema(engine, ADMIN_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+            drop_from_schema(engine, ADMIN_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
 
 
 def with_feature_flags(**mock_feature_flags):
@@ -255,6 +257,38 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
+def with_config(override_config: dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            from flask import current_app
+
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate
+
+
 @pytest.fixture
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -262,25 +296,25 @@ def virtual_dataset():
     dataset = SqlaTable(
         table_name="virtual_dataset",
         sql=(
-            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5 "
+            "SELECT 0 as col1, 'a' as col2, 1.0 as col3, NULL as col4, '2000-01-01 00:00:00' as col5, 1 as col6 "
             "UNION ALL "
-            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00' "
+            "SELECT 1, 'b', 1.1, NULL, '2000-01-02 00:00:00', NULL "
             "UNION ALL "
-            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00' "
+            "SELECT 2 as col1, 'c' as col2, 1.2, NULL, '2000-01-03 00:00:00', 3 "
             "UNION ALL "
-            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00' "
+            "SELECT 3 as col1, 'd' as col2, 1.3, NULL, '2000-01-04 00:00:00', 4 "
             "UNION ALL "
-            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00' "
+            "SELECT 4 as col1, 'e' as col2, 1.4, NULL, '2000-01-05 00:00:00', 5 "
             "UNION ALL "
-            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00' "
+            "SELECT 5 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 "
             "UNION ALL "
-            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00' "
+            "SELECT 6 as col1, 'g' as col2, 1.6, NULL, '2000-01-07 00:00:00', 7 "
             "UNION ALL "
-            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00' "
+            "SELECT 7 as col1, 'h' as col2, 1.7, NULL, '2000-01-08 00:00:00', 8 "
             "UNION ALL "
-            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00' "
+            "SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9 "
             "UNION ALL "
-            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00' "
+            "SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10"
         ),
         database=get_example_database(),
     )
@@ -290,9 +324,11 @@ def virtual_dataset():
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
     # Different database dialect datetime type is not consistent, so temporarily use varchar
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
+    TableColumn(column_name="col6", type="INTEGER", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 
@@ -306,37 +342,38 @@ def physical_dataset():
     from superset.connectors.sqla.utils import get_identifier_quoter
 
     example_database = get_example_database()
-    engine = example_database.get_sqla_engine()
-    quoter = get_identifier_quoter(engine.name)
-    # sqlite can only execute one statement at a time
-    engine.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS physical_dataset(
-          col1 INTEGER,
-          col2 VARCHAR(255),
-          col3 DECIMAL(4,2),
-          col4 VARCHAR(255),
-          col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-          col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-          {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
-        );
+
+    with example_database.get_sqla_engine_with_context() as engine:
+        quoter = get_identifier_quoter(engine.name)
+        # sqlite can only execute one statement at a time
+        engine.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS physical_dataset(
+            col1 INTEGER,
+            col2 VARCHAR(255),
+            col3 DECIMAL(4,2),
+            col4 VARCHAR(255),
+            col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+            col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+            {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            );
+            """
+        )
+        engine.execute(
+            """
+            INSERT INTO physical_dataset values
+            (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
+            (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
+            (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
+            (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
+            (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
+            (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
+            (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
+            (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
+            (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
+            (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
         """
-    )
-    engine.execute(
-        """
-        INSERT INTO physical_dataset values
-        (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
-        (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
-        (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
-        (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
-        (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
-        (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
-        (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
-        (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
-        (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
-        (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
-    """
-    )
+        )
 
     dataset = SqlaTable(
         table_name="physical_dataset",
@@ -355,7 +392,7 @@ def physical_dataset():
         table=dataset,
     )
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
     db.session.commit()
 
     yield dataset
@@ -390,7 +427,8 @@ def virtual_dataset_comma_in_column_value():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
 
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
-    db.session.merge(dataset)
+    db.session.add(dataset)
+    db.session.commit()
 
     yield dataset
 
@@ -401,4 +439,14 @@ def virtual_dataset_comma_in_column_value():
 only_postgresql = pytest.mark.skipif(
     "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
     reason="Only run test case in Postgresql",
+)
+
+only_sqlite = pytest.mark.skipif(
+    "sqlite" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in SQLite",
+)
+
+only_mysql = pytest.mark.skipif(
+    "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in MySQL",
 )

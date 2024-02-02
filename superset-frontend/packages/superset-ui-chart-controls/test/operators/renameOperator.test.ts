@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisionType, QueryObject, SqlaFormData } from '@superset-ui/core';
+import { ComparisonType, QueryObject, SqlaFormData } from '@superset-ui/core';
 import { renameOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -49,7 +49,7 @@ test('should skip renameOperator if exists multiple metrics', () => {
   ).toEqual(undefined);
 });
 
-test('should skip renameOperator if does not exist series', () => {
+test('should skip renameOperator if series does not exist', () => {
   expect(
     renameOperator(formData, {
       ...queryObject,
@@ -74,9 +74,9 @@ test('should skip renameOperator if does not exist x_axis and is_timeseries', ()
 
 test('should skip renameOperator if exists derived metrics', () => {
   [
-    ComparisionType.Difference,
-    ComparisionType.Ratio,
-    ComparisionType.Percentage,
+    ComparisonType.Difference,
+    ComparisonType.Ratio,
+    ComparisonType.Percentage,
   ].forEach(type => {
     expect(
       renameOperator(
@@ -105,14 +105,33 @@ test('should add renameOperator', () => {
   });
 });
 
-test('should add renameOperator if does not exist x_axis', () => {
+test('should add renameOperator if x_axis does not exist', () => {
   expect(
     renameOperator(
       {
         ...formData,
-        ...{ x_axis: null },
+        ...{ x_axis: null, granularity_sqla: 'time column' },
       },
       queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: { columns: { 'count(*)': null }, inplace: true, level: 0 },
+  });
+});
+
+test('should add renameOperator if based on series_columns', () => {
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        ...{ x_axis: null, granularity_sqla: 'time column' },
+      },
+      {
+        ...queryObject,
+        columns: [],
+        series_columns: ['gender', 'dttm'],
+      },
     ),
   ).toEqual({
     operation: 'rename',
@@ -126,7 +145,7 @@ test('should add renameOperator if exist "actual value" time comparison', () => 
       {
         ...formData,
         ...{
-          comparison_type: ComparisionType.Values,
+          comparison_type: ComparisonType.Values,
           time_compare: ['1 year ago', '1 year later'],
         },
       },

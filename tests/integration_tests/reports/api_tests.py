@@ -23,9 +23,10 @@ import pytz
 
 import pytest
 import prison
+from parameterized import parameterized
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
@@ -48,13 +49,94 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
+REPORTS_ROLE_NAME = "reports_role"
+REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
-    def create_working_report_schedule(self):
+    def gamma_user_with_alerts_role(self):
         with self.create_app().app_context():
+            user = self.create_user(
+                REPORTS_GAMMA_USER,
+                "general",
+                "Gamma",
+                email=f"{REPORTS_GAMMA_USER}@superset.org",
+            )
 
+            security_manager.add_role(REPORTS_ROLE_NAME)
+            read_perm = security_manager.find_permission_view_menu(
+                "can_read",
+                "ReportSchedule",
+            )
+            write_perm = security_manager.find_permission_view_menu(
+                "can_write",
+                "ReportSchedule",
+            )
+            reports_role = security_manager.find_role(REPORTS_ROLE_NAME)
+            security_manager.add_permission_role(reports_role, read_perm)
+            security_manager.add_permission_role(reports_role, write_perm)
+            user.roles.append(reports_role)
+
+            yield user
+
+            # rollback changes (assuming cascade delete)
+            db.session.delete(reports_role)
+            db.session.delete(user)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_working_admin_report_schedule(self):
+        with self.create_app().app_context():
+            admin_user = self.get_user("admin")
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name="name_admin_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
+                chart=chart,
+                database=example_db,
+                owners=[admin_user],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
+    @pytest.fixture()
+    def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
+        with self.create_app().app_context():
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name="name_gamma_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
+                chart=chart,
+                database=example_db,
+                owners=[gamma_user_with_alerts_role],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
+    @pytest.fixture()
+    def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
+        with self.create_app().app_context():
             admin_user = self.get_user("admin")
             alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
@@ -62,13 +144,13 @@ class TestReportSchedulesApi(SupersetTestCase):
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
-                name="name_working",
+                name="name_shared_working",
                 crontab="* * * * *",
                 sql="SELECT value from table",
                 description="Report working",
                 chart=chart,
                 database=example_db,
-                owners=[admin_user, alpha_user],
+                owners=[admin_user, alpha_user, gamma_user_with_alerts_role],
                 last_state=ReportState.WORKING,
             )
 
@@ -128,7 +210,6 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
     def create_alpha_users(self):
         with self.create_app().app_context():
-
             users = [
                 self.create_user(
                     "alpha1", "password", "Alpha", email="alpha1@superset.org"
@@ -305,6 +386,61 @@ class TestReportSchedulesApi(SupersetTestCase):
         data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))
         assert expected_recipients_fields == data_keys
 
+    @parameterized.expand(
+        [
+            (
+                "admin",
+                {
+                    "name_admin_working",
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+            (
+                "alpha",
+                {
+                    "name_admin_working",
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+            (
+                REPORTS_GAMMA_USER,
+                {
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+        ],
+    )
+    @pytest.mark.usefixtures(
+        "create_working_admin_report_schedule",
+        "create_working_gamma_report_schedule",
+        "create_working_shared_report_schedule",
+        "gamma_user_with_alerts_role",
+    )
+    def test_get_list_report_schedule_perms(self, username, report_names):
+        """
+        ReportSchedule Api: Test get list report schedules for different roles
+        """
+        self.login(username=username)
+        uri = f"api/v1/report/"
+        rv = self.get_assert_metric(uri, "get_list")
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert {report["name"] for report in data["result"]} == report_names
+
+    def test_get_list_report_schedule_gamma(self):
+        """
+        ReportSchedule Api: Test get list report schedules for regular gamma user
+        """
+        self.login(username="gamma")
+        uri = f"api/v1/report/"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 403
+
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_sorting(self):
         """
@@ -431,7 +567,7 @@ class TestReportSchedulesApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_related_report_schedule(self):
         """
-        ReportSchedule Api: Test get releated report schedule
+        ReportSchedule Api: Test get related report schedule
         """
         self.login(username="admin")
         related_columns = ["created_by", "chart", "dashboard", "database"]
@@ -1113,7 +1249,11 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"creation_method": ["Invalid enum value BAD_CREATION_METHOD"]}
+            "message": {
+                "creation_method": [
+                    "Must be one of: charts, dashboards, alerts_reports."
+                ]
+            }
         }
         assert rv.status_code == 400
 
@@ -1159,14 +1299,14 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
 
-    @pytest.mark.usefixtures("create_working_report_schedule")
+    @pytest.mark.usefixtures("create_working_shared_report_schedule")
     def test_update_report_schedule_state_working(self):
         """
         ReportSchedule Api: Test update state in a working report
         """
         report_schedule = (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.name == "name_working")
+            .filter(ReportSchedule.name == "name_shared_working")
             .one_or_none()
         )
 
@@ -1177,7 +1317,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         report_schedule = (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.name == "name_working")
+            .filter(ReportSchedule.name == "name_shared_working")
             .one_or_none()
         )
         assert report_schedule.last_state == ReportState.NOOP

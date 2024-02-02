@@ -25,8 +25,8 @@ export default function toastsFromPyFlashMessages(flashMessages = []) {
   flashMessages.forEach(([messageType, message]) => {
     const toastType =
       messageType === 'danger'
-        ? ToastType.DANGER
-        : (messageType === 'success' && ToastType.SUCCESS) || ToastType.INFO;
+        ? ToastType.Danger
+        : (messageType === 'success' && ToastType.Success) || ToastType.Info;
 
     const toast = addToast({
       text: message,

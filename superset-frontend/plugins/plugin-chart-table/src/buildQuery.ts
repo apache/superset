@@ -17,9 +17,11 @@
  * under the License.
  */
 import {
+  AdhocColumn,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
+  isPhysicalColumn,
   QueryMode,
   QueryObject,
   removeDuplicates,
@@ -37,25 +39,30 @@ import { updateExternalFormData } from './DataTable/utils/externalAPIs';
  */
 export function getQueryMode(formData: TableChartFormData) {
   const { query_mode: mode } = formData;
-  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+  if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode;
   }
   const rawColumns = formData?.all_columns;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
-  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
+  return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
 const buildQuery: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
-  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } =
-    formData;
+  const {
+    percent_metrics: percentMetrics,
+    order_desc: orderDesc = false,
+    extra_form_data,
+  } = formData;
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
+  const time_grain_sqla =
+    extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
   let formDataCopy = formData;
   // never include time in raw records mode
-  if (queryMode === QueryMode.raw) {
+  if (queryMode === QueryMode.Raw) {
     formDataCopy = {
       ...formData,
       include_time: false,
@@ -63,17 +70,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   }
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
-    let { metrics, orderby = [] } = baseQueryObject;
+    let { metrics, orderby = [], columns = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
-    if (queryMode === QueryMode.aggregate) {
+    if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
-      // orverride orderby with timeseries metric when in aggregation mode
+      // override orderby with timeseries metric when in aggregation mode
       if (sortByMetric) {
         orderby = [[sortByMetric, !orderDesc]];
       } else if (metrics?.length > 0) {
         // default to ordering by first metric in descending order
-        // when no "sort by" metric is set (regargless if "SORT DESC" is set to true)
+        // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
         orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
@@ -95,6 +102,23 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           },
         ];
       }
+
+      columns = columns.map(col => {
+        if (
+          isPhysicalColumn(col) &&
+          time_grain_sqla &&
+          formData?.temporal_columns_lookup?.[col]
+        ) {
+          return {
+            timeGrain: time_grain_sqla,
+            columnType: 'BASE_AXIS',
+            sqlExpression: col,
+            label: col,
+            expressionType: 'SQL',
+          } as AdhocColumn;
+        }
+        return col;
+      });
     }
 
     const moreProps: Partial<QueryObject> = {};
@@ -108,6 +132,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     let queryObject = {
       ...baseQueryObject,
+      columns,
       orderby,
       metrics,
       post_processing: postProcessing,
@@ -136,7 +161,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (
       metrics?.length &&
       formData.show_totals &&
-      queryMode === QueryMode.aggregate
+      queryMode === QueryMode.Aggregate
     ) {
       extraQueries.push({
         ...queryObject,

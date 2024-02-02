@@ -16,26 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { OptionName } from 'echarts/types/src/util/types';
 import {
   AnnotationLayer,
-  ChartDataResponseResult,
-  ChartProps,
+  AxisType,
+  ContributionType,
   QueryFormColumn,
   QueryFormData,
-  TimeGranularity,
-  ContributionType,
+  QueryFormMetric,
   TimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
 import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
-  EchartsTitleFormData,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   StackType,
+  TitleFormData,
 } from '../types';
 
 export enum OrientationType {
-  vertical = 'vertical',
-  horizontal = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
 export enum EchartsTimeseriesSeriesType {
@@ -62,45 +66,50 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   logAxis: boolean;
   markerEnabled: boolean;
   markerSize: number;
+  metrics: QueryFormMetric[];
   minorSplitLine: boolean;
+  minorTicks: boolean;
   opacity: number;
   orderDesc: boolean;
   rowLimit: number;
   seriesType: EchartsTimeseriesSeriesType;
   stack: StackType;
+  timeCompare?: string[];
   tooltipTimeFormat?: string;
+  truncateXAxis: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  xAxisForceCategorical?: boolean;
   xAxisTimeFormat?: string;
   timeGrainSqla?: TimeGranularity;
+  xAxisBounds: [number | undefined | null, number | undefined | null];
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
   xAxisLabelRotation: number;
-  emitFilter: boolean;
   groupby: QueryFormColumn[];
   showValue: boolean;
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
   orientation?: OrientationType;
-} & EchartsLegendFormData &
-  EchartsTitleFormData;
+} & LegendFormData &
+  TitleFormData;
 
 export interface EchartsTimeseriesChartProps
-  extends ChartProps<EchartsTimeseriesFormData> {
+  extends BaseChartProps<EchartsTimeseriesFormData> {
   formData: EchartsTimeseriesFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 export type TimeseriesChartTransformedProps =
-  EChartTransformedProps<EchartsTimeseriesFormData> & {
-    xValueFormatter: TimeFormatter | StringConstructor;
-  };
-
-export enum AxisType {
-  category = 'category',
-  value = 'value',
-  time = 'time',
-  log = 'log',
-}
+  BaseTransformedProps<EchartsTimeseriesFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps & {
+      legendData?: OptionName[];
+      xValueFormatter: TimeFormatter | StringConstructor;
+      xAxis: {
+        label: string;
+        type: AxisType;
+      };
+      onFocusedSeries: (series: string | null) => void;
+    };

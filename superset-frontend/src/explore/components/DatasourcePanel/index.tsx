@@ -19,14 +19,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   css,
-  styled,
-  t,
   DatasourceType,
   Metric,
   QueryFormData,
+  styled,
+  t,
 } from '@superset-ui/core';
 
-import { ControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
+import { ControlConfig } from '@superset-ui/chart-controls';
 
 import { debounce, isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
@@ -36,12 +36,10 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
-import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 import { DndItemValue } from './types';
 
 interface DatasourceControl extends ControlConfig {
@@ -81,10 +79,6 @@ export interface Props {
   shouldForceUpdate?: number;
   formData?: QueryFormData;
 }
-
-const enableExploreDnd = isFeatureEnabled(
-  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
-);
 
 const Button = styled.button`
   background: none;
@@ -150,14 +144,11 @@ const LabelWrapper = styled.div`
       margin-bottom: 0;
     }
 
-    ${enableExploreDnd &&
-    css`
-      padding: 0;
-      cursor: pointer;
-      &:hover {
-        background-color: ${theme.colors.grayscale.light3};
-      }
-    `}
+    padding: 0;
+    cursor: pointer;
+    &:hover {
+      background-color: ${theme.colors.grayscale.light3};
+    }
 
     & > span {
       white-space: nowrap;
@@ -335,7 +326,11 @@ export default function DataSourcePanel({
   );
 
   const showInfoboxCheck = () => {
-    if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    try {
+      if (sessionStorage.getItem('showInfobox') === 'false') return false;
+    } catch (error) {
+      // continue regardless of error
+    }
     return true;
   };
 
@@ -365,7 +360,13 @@ export default function DataSourcePanel({
             <StyledInfoboxWrapper>
               <Alert
                 closable
-                onClose={() => sessionStorage.setItem('showInfobox', 'false')}
+                onClose={() => {
+                  try {
+                    sessionStorage.setItem('showInfobox', 'false');
+                  } catch (error) {
+                    // continue regardless of error
+                  }
+                }}
                 type="info"
                 message=""
                 description={
@@ -406,14 +407,10 @@ export default function DataSourcePanel({
                     key={m.metric_name + String(shouldForceUpdate)}
                     className="column"
                   >
-                    {enableExploreDnd ? (
-                      <DatasourcePanelDragOption
-                        value={m}
-                        type={DndItemType.Metric}
-                      />
-                    ) : (
-                      <StyledMetricOption metric={m} showType />
-                    )}
+                    <DatasourcePanelDragOption
+                      value={m}
+                      type={DndItemType.Metric}
+                    />
                   </LabelContainer>
                 ))}
                 {lists?.metrics?.length > DEFAULT_MAX_METRICS_LENGTH ? (
@@ -443,14 +440,10 @@ export default function DataSourcePanel({
                   key={col.column_name + String(shouldForceUpdate)}
                   className="column"
                 >
-                  {enableExploreDnd ? (
-                    <DatasourcePanelDragOption
-                      value={col as DndItemValue}
-                      type={DndItemType.Column}
-                    />
-                  ) : (
-                    <StyledColumnOption column={col as ColumnMeta} showType />
-                  )}
+                  <DatasourcePanelDragOption
+                    value={col as DndItemValue}
+                    type={DndItemType.Column}
+                  />
                 </LabelContainer>
               ))}
               {lists.columns.length > DEFAULT_MAX_COLUMNS_LENGTH ? (

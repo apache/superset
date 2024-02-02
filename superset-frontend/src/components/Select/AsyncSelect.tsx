@@ -19,7 +19,6 @@
 import React, {
   forwardRef,
   ReactElement,
-  ReactNode,
   RefObject,
   UIEvent,
   useEffect,
@@ -28,224 +27,55 @@ import React, {
   useRef,
   useCallback,
   useImperativeHandle,
+  ClipboardEvent,
 } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
-import AntdSelect, {
-  SelectProps as AntdSelectProps,
-  SelectValue as AntdSelectValue,
-  LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
-import debounce from 'lodash/debounce';
-import { isEqual } from 'lodash';
+import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SLOW_DEBOUNCE } from 'src/constants';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
-import { getValue, hasOption, isLabeledValue } from './utils';
-
-const { Option } = AntdSelect;
-
-type AntdSelectAllProps = AntdSelectProps<AntdSelectValue>;
-
-type PickedSelectProps = Pick<
-  AntdSelectAllProps,
-  | 'allowClear'
-  | 'autoFocus'
-  | 'disabled'
-  | 'filterOption'
-  | 'loading'
-  | 'notFoundContent'
-  | 'onChange'
-  | 'onClear'
-  | 'onFocus'
-  | 'onBlur'
-  | 'onDropdownVisibleChange'
-  | 'placeholder'
-  | 'showSearch'
-  | 'tokenSeparators'
-  | 'value'
-  | 'getPopupContainer'
->;
-
-export type OptionsType = Exclude<AntdSelectAllProps['options'], undefined>;
-
-export type OptionsTypePage = {
-  data: OptionsType;
-  totalCount: number;
-};
-
-export type OptionsPagePromise = (
-  search: string,
-  page: number,
-  pageSize: number,
-) => Promise<OptionsTypePage>;
-
-export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
-
-export interface AsyncSelectProps extends PickedSelectProps {
-  /**
-   * It enables the user to create new options.
-   * Can be used with standard or async select types.
-   * Can be used with any mode, single or multiple.
-   * False by default.
-   * */
-  allowNewOptions?: boolean;
-  /**
-   * It adds the aria-label tag for accessibility standards.
-   * Must be plain English and localized.
-   */
-  ariaLabel: string;
-  /**
-   * It adds a header on top of the Select.
-   * Can be any ReactNode.
-   */
-  header?: ReactNode;
-  /**
-   * It adds a helper text on top of the Select options
-   * with additional context to help with the interaction.
-   */
-  helperText?: string;
-  /**
-   * It fires a request against the server after
-   * the first interaction and not on render.
-   * Works in async mode only (See the options property).
-   * True by default.
-   */
-  lazyLoading?: boolean;
-  /**
-   * It defines whether the Select should allow for the
-   * selection of multiple options or single.
-   * Single by default.
-   */
-  mode?: 'single' | 'multiple';
-  /**
-   * Deprecated.
-   * Prefer ariaLabel instead.
-   */
-  name?: string; // discourage usage
-  /**
-   * It allows to define which properties of the option object
-   * should be looked for when searching.
-   * By default label and value.
-   */
-  optionFilterProps?: string[];
-  /**
-   * It defines the options of the Select.
-   * The options are async, a promise that returns
-   * an array of options.
-   */
-  options: OptionsPagePromise;
-  /**
-   * It defines how many results should be included
-   * in the query response.
-   * Works in async mode only (See the options property).
-   */
-  pageSize?: number;
-  /**
-   * It shows a stop-outlined icon at the far right of a selected
-   * option instead of the default checkmark.
-   * Useful to better indicate to the user that by clicking on a selected
-   * option it will be de-selected.
-   * False by default.
-   */
-  invertSelection?: boolean;
-  /**
-   * It fires a request against the server only after
-   * searching.
-   * Works in async mode only (See the options property).
-   * Undefined by default.
-   */
-  fetchOnlyOnSearch?: boolean;
-  /**
-   * It provides a callback function when an error
-   * is generated after a request is fired.
-   * Works in async mode only (See the options property).
-   */
-  onError?: (error: string) => void;
-  /**
-   * Customize how filtered options are sorted while users search.
-   * Will not apply to predefined `options` array when users are not searching.
-   */
-  sortComparator?: typeof DEFAULT_SORT_COMPARATOR;
-}
-
-const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
-
-const StyledSelect = styled(AntdSelect)`
-  ${({ theme }) => `
-    && .ant-select-selector {
-      border-radius: ${theme.gridUnit}px;
-    }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
-    }
-    .ant-select-dropdown {
-      padding: 0;
-    }
-  `}
-`;
-
-const StyledStopOutlined = styled(Icons.StopOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledCheckOutlined = styled(Icons.CheckOutlined)`
-  vertical-align: 0;
-`;
-
-const StyledError = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
-    & svg {
-      margin-right: ${theme.gridUnit * 2}px;
-    }
-  `}
-`;
-
-const StyledErrorMessage = styled.div`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const StyledSpin = styled(Spin)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
-`;
-
-const StyledLoadingText = styled.div`
-  ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 3}px;
-    line-height: ${theme.gridUnit * 8}px;
-    color: ${theme.colors.grayscale.light1};
-  `}
-`;
-
-const StyledHelperText = styled.div`
-  ${({ theme }) => `
-    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
-    color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
-    cursor: default;
-    border-bottom: 1px solid ${theme.colors.grayscale.light2};
-  `}
-`;
-
-const MAX_TAG_COUNT = 4;
-const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-const DEFAULT_PAGE_SIZE = 100;
-const EMPTY_OPTIONS: OptionsType = [];
+import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
+import {
+  getValue,
+  hasOption,
+  isLabeledValue,
+  renderSelectOptions,
+  hasCustomLabels,
+  sortSelectedFirstHelper,
+  sortComparatorWithSearchHelper,
+  sortComparatorForNoSearchHelper,
+  getSuffixIcon,
+  dropDownRenderHelper,
+  handleFilterOptionHelper,
+  mapOptions,
+  getOption,
+  isObject,
+} from './utils';
+import {
+  AsyncSelectProps,
+  AsyncSelectRef,
+  SelectOptionsPagePromise,
+  SelectOptionsType,
+  SelectOptionsTypePage,
+  SelectProps,
+} from './types';
+import {
+  StyledCheckOutlined,
+  StyledContainer,
+  StyledError,
+  StyledErrorMessage,
+  StyledHeader,
+  StyledSelect,
+  StyledStopOutlined,
+} from './styles';
+import {
+  DEFAULT_PAGE_SIZE,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
+} from './constants';
+import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -253,50 +83,12 @@ const Error = ({ error }: { error: string }) => (
   </StyledError>
 );
 
-export const DEFAULT_SORT_COMPARATOR = (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-  search?: string,
-) => {
-  let aText: string | undefined;
-  let bText: string | undefined;
-  if (typeof a.label === 'string' && typeof b.label === 'string') {
-    aText = a.label;
-    bText = b.label;
-  } else if (typeof a.value === 'string' && typeof b.value === 'string') {
-    aText = a.value;
-    bText = b.value;
-  }
-  // sort selected options first
-  if (typeof aText === 'string' && typeof bText === 'string') {
-    if (search) {
-      return rankedSearchCompare(aText, bText, search);
-    }
-    return aText.localeCompare(bText);
-  }
-  return (a.value as number) - (b.value as number);
-};
-
-/**
- * It creates a comparator to check for a specific property.
- * Can be used with string and number property values.
- * */
-export const propertyComparator =
-  (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
-    }
-    return (a[property] as number) - (b[property] as number);
-  };
-
 const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
   `${value};${page};${pageSize}`;
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -312,9 +104,11 @@ const AsyncSelect = forwardRef(
       allowClear,
       allowNewOptions = false,
       ariaLabel,
+      autoClearSearchValue = false,
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
+      headerPosition = 'top',
       helperText,
       invertSelection = false,
       lazyLoading = true,
@@ -322,19 +116,25 @@ const AsyncSelect = forwardRef(
       mode = 'single',
       name,
       notFoundContent,
+      onBlur,
       onError,
       onChange,
       onClear,
       onDropdownVisibleChange,
+      onDeselect,
+      onSearch,
+      onSelect,
       optionFilterProps = ['label', 'value'],
       options,
       pageSize = DEFAULT_PAGE_SIZE,
       placeholder = t('Select ...'),
       showSearch = true,
       sortComparator = DEFAULT_SORT_COMPARATOR,
-      tokenSeparators,
+      tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
+      oneLine,
+      maxTagCount: propsMaxTagCount,
       ...props
     }: AsyncSelectProps,
     ref: RefObject<AsyncSelectRef>,
@@ -349,52 +149,66 @@ const AsyncSelect = forwardRef(
     const [totalCount, setTotalCount] = useState(0);
     const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
+    const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
-    const mappedMode = isSingleMode
-      ? undefined
-      : allowNewOptions
-      ? 'tags'
-      : 'multiple';
+    const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
+    const [onChangeCount, setOnChangeCount] = useState(0);
+    const previousChangeCount = usePrevious(onChangeCount, 0);
+
+    const fireOnChange = useCallback(
+      () => setOnChangeCount(onChangeCount + 1),
+      [onChangeCount],
+    );
+
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
+      }
+    }, [isDropdownVisible, oneLine]);
+
+    useEffect(() => {
+      selectValueRef.current = selectValue;
+    }, [selectValue]);
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        selectValue && a.value !== undefined && b.value !== undefined
-          ? Number(hasOption(b.value, selectValue)) -
-            Number(hasOption(a.value, selectValue))
-          : 0,
-      [selectValue],
+        sortSelectedFirstHelper(a, b, selectValueRef.current),
+      [],
     );
+
     const sortComparatorWithSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirst(a, b) || sortComparator(a, b, inputValue),
+        sortComparatorWithSearchHelper(
+          a,
+          b,
+          inputValue,
+          sortSelectedFirst,
+          sortComparator,
+        ),
       [inputValue, sortComparator, sortSelectedFirst],
     );
+
     const sortComparatorForNoSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirst(a, b) ||
-        // Only apply the custom sorter in async mode because we should
-        // preserve the options order as much as possible.
-        sortComparator(a, b, ''),
+        sortComparatorForNoSearchHelper(
+          a,
+          b,
+          sortSelectedFirst,
+          sortComparator,
+        ),
       [sortComparator, sortSelectedFirst],
     );
 
-    const initialOptions = useMemo(
-      () =>
-        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
-      [options],
-    );
-    const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortComparatorForNoSearch),
-      [initialOptions, sortComparatorForNoSearch],
-    );
-
     const [selectOptions, setSelectOptions] =
-      useState<OptionsType>(initialOptionsSorted);
+      useState<SelectOptionsType>(EMPTY_OPTIONS);
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
-      const missingValues: OptionsType = ensureIsArray(selectValue)
+      const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
@@ -404,11 +218,7 @@ const AsyncSelect = forwardRef(
         : selectOptions;
     }, [selectOptions, selectValue]);
 
-    const hasCustomLabels = fullSelectOptions.some(opt => !!opt?.customLabel);
-
-    const handleOnSelect = (
-      selectedItem: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
         setSelectValue(selectedItem);
       } else {
@@ -425,12 +235,11 @@ const AsyncSelect = forwardRef(
           return previousState;
         });
       }
-      setInputValue('');
+      fireOnChange();
+      onSelect?.(selectedItem, option);
     };
 
-    const handleOnDeselect = (
-      value: string | number | AntdLabeledValue | undefined,
-    ) => {
+    const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
         if (isLabeledValue(value)) {
           const array = selectValue as AntdLabeledValue[];
@@ -441,8 +250,17 @@ const AsyncSelect = forwardRef(
           const array = selectValue as (string | number)[];
           setSelectValue(array.filter(element => element !== value));
         }
+        // removes new option
+        if (option.isNewOption) {
+          setSelectOptions(
+            fullSelectOptions.filter(
+              option => getValue(option.value) !== getValue(value),
+            ),
+          );
+        }
       }
-      setInputValue('');
+      fireOnChange();
+      onDeselect?.(value, option);
     };
 
     const internalOnError = useCallback(
@@ -459,8 +277,8 @@ const AsyncSelect = forwardRef(
     );
 
     const mergeData = useCallback(
-      (data: OptionsType) => {
-        let mergedData: OptionsType = [];
+      (data: SelectOptionsType) => {
+        let mergedData: SelectOptionsType = [];
         if (data && Array.isArray(data) && data.length) {
           // unique option values should always be case sensitive so don't lowercase
           const dataValues = new Set(data.map(opt => opt.value));
@@ -493,15 +311,16 @@ const AsyncSelect = forwardRef(
           return;
         }
         setIsLoading(true);
-        const fetchOptions = options as OptionsPagePromise;
+
+        const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
-          .then(({ data, totalCount }: OptionsTypePage) => {
+          .then(({ data, totalCount }: SelectOptionsTypePage) => {
             const mergedData = mergeData(data);
             fetchedQueries.current.set(key, totalCount);
             setTotalCount(totalCount);
             if (
               !fetchOnlyOnSearch &&
-              value === '' &&
+              search === '' &&
               mergedData.length >= totalCount
             ) {
               setAllValuesLoaded(true);
@@ -519,7 +338,6 @@ const AsyncSelect = forwardRef(
         internalOnError,
         options,
         pageSize,
-        value,
       ],
     );
 
@@ -528,9 +346,9 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = (search: string) => {
+    const handleOnSearch = debounce((search: string) => {
       const searchValue = search.trim();
-      if (allowNewOptions && isSingleMode) {
+      if (allowNewOptions) {
         const newOption = searchValue &&
           !hasOption(searchValue, fullSelectOptions, true) && {
             label: searchValue,
@@ -555,7 +373,10 @@ const AsyncSelect = forwardRef(
         setIsLoading(!(fetchOnlyOnSearch && !searchValue));
       }
       setInputValue(search);
-    };
+      onSearch?.(searchValue);
+    }, FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -569,25 +390,8 @@ const AsyncSelect = forwardRef(
       }
     };
 
-    const handleFilterOption = (search: string, option: AntdLabeledValue) => {
-      if (typeof filterOption === 'function') {
-        return filterOption(search, option);
-      }
-
-      if (filterOption) {
-        const searchValue = search.trim().toLowerCase();
-        if (optionFilterProps && optionFilterProps.length) {
-          return optionFilterProps.some(prop => {
-            const optionProp = option?.[prop]
-              ? String(option[prop]).trim().toLowerCase()
-              : '';
-            return optionProp.includes(searchValue);
-          });
-        }
-      }
-
-      return false;
-    };
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
     const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
       setIsDropdownVisible(isDropdownVisible);
@@ -624,50 +428,59 @@ const AsyncSelect = forwardRef(
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
-    ) => {
-      if (!isDropdownVisible) {
-        originNode.ref?.current?.scrollTo({ top: 0 });
-      }
-      if (isLoading && fullSelectOptions.length === 0) {
-        return <StyledLoadingText>{t('Loading...')}</StyledLoadingText>;
-      }
-      return error ? (
-        <Error error={error} />
-      ) : (
-        <>
-          {helperText && (
-            <StyledHelperText role="note">{helperText}</StyledHelperText>
-          )}
-          {originNode}
-        </>
+    ) =>
+      dropDownRenderHelper(
+        originNode,
+        isDropdownVisible,
+        isLoading,
+        fullSelectOptions.length,
+        helperText,
+        error ? <Error error={error} /> : undefined,
       );
-    };
-
-    // use a function instead of component since every rerender of the
-    // Select component will create a new component
-    const getSuffixIcon = () => {
-      if (isLoading) {
-        return <StyledSpin size="small" />;
-      }
-      if (showSearch && isDropdownVisible) {
-        return <SearchOutlined />;
-      }
-      return <DownOutlined />;
-    };
 
     const handleClear = () => {
       setSelectValue(undefined);
       if (onClear) {
         onClear();
       }
+      fireOnChange();
     };
+
+    const handleOnBlur = (event: React.FocusEvent<HTMLElement>) => {
+      setInputValue('');
+      onBlur?.(event);
+    };
+
+    useEffect(() => {
+      if (onChangeCount !== previousChangeCount) {
+        const array = ensureIsArray(selectValue);
+        const set = new Set(array.map(getValue));
+        const options = mapOptions(
+          fullSelectOptions.filter(opt => set.has(opt.value)),
+        );
+        if (isSingleMode) {
+          // @ts-ignore
+          onChange?.(selectValue, options[0]);
+        } else {
+          // @ts-ignore
+          onChange?.(array, options);
+        }
+      }
+    }, [
+      fullSelectOptions,
+      isSingleMode,
+      onChange,
+      onChangeCount,
+      previousChangeCount,
+      selectValue,
+    ]);
 
     useEffect(() => {
       // when `options` list is updated from component prop, reset states
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
-      setSelectOptions(initialOptions);
-    }, [initialOptions]);
+      setSelectOptions(EMPTY_OPTIONS);
+    }, [options]);
 
     useEffect(() => {
       setSelectValue(value);
@@ -709,58 +522,93 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        const value: AntdLabeledValue = {
+          label: text,
+          value: text,
+        };
+        if (option) {
+          value.label = isObject(option) ? option.label : option;
+          value.value = isObject(option) ? option.value! : option;
+        }
+        return value;
+      },
+      [fullSelectOptions],
+    );
+
+    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (isSingleMode) {
+        setSelectValue(getPastedTextValue(pastedText));
+      } else {
+        const token = tokenSeparators.find(token => pastedText.includes(token));
+        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array.map(item => getPastedTextValue(item));
+        setSelectValue(previous => [
+          ...((previous || []) as AntdLabeledValue[]),
+          ...values,
+        ]);
+      }
+      fireOnChange();
+    };
+
+    const shouldRenderChildrenOptions = useMemo(
+      () => hasCustomLabels(fullSelectOptions),
+      [fullSelectOptions],
+    );
+
     return (
-      <StyledContainer>
-        {header}
+      <StyledContainer headerPosition={headerPosition}>
+        {header && (
+          <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
+        )}
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
+          autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
+          headerPosition={headerPosition}
           labelInValue
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={maxTagCount}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
+          onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          // @ts-ignore
+          onPaste={onPaste}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          onChange={onChange}
-          options={hasCustomLabels ? undefined : fullSelectOptions}
+          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           placeholder={placeholder}
           showSearch={showSearch}
           showArrow
-          tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
+          tokenSeparators={tokenSeparators}
           value={selectValue}
-          suffixIcon={getSuffixIcon()}
+          suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}
           menuItemSelectedIcon={
             invertSelection ? (
-              <StyledStopOutlined iconSize="m" />
+              <StyledStopOutlined iconSize="m" aria-label="stop" />
             ) : (
-              <StyledCheckOutlined iconSize="m" />
+              <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          ref={ref}
+          oneLine={oneLine}
+          tagRender={customTagRender}
           {...props}
+          ref={ref}
         >
-          {hasCustomLabels &&
-            fullSelectOptions.map(opt => {
-              const isOptObject = typeof opt === 'object';
-              const label = isOptObject ? opt?.label || opt.value : opt;
-              const value = isOptObject ? opt.value : opt;
-              const { customLabel, ...optProps } = opt;
-              return (
-                <Option {...optProps} key={value} label={label} value={value}>
-                  {isOptObject && customLabel ? customLabel : label}
-                </Option>
-              );
-            })}
+          {hasCustomLabels(fullSelectOptions) &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

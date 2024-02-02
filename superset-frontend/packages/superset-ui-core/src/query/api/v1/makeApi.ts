@@ -112,13 +112,13 @@ export default function makeApi<
         endpoint,
       };
       if (requestType === 'search') {
-        requestConfig.searchParams = payload;
+        requestConfig.searchParams = payload as SupersetPayload;
       } else if (requestType === 'rison') {
         requestConfig.endpoint = `${endpoint}?q=${rison.encode(payload)}`;
       } else if (requestType === 'form') {
-        requestConfig.postPayload = payload;
+        requestConfig.postPayload = payload as SupersetPayload;
       } else {
-        requestConfig.jsonPayload = payload;
+        requestConfig.jsonPayload = payload as SupersetPayload;
       }
 
       let result: JsonValue | Response;

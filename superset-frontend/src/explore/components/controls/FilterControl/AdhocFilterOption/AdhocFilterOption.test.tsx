@@ -19,20 +19,16 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import AdhocFilterOption from '.';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilterOption, { AdhocFilterOptionProps } from '.';
+import { Clauses, ExpressionTypes } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   subject: 'value',
   operator: '>',
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const options = [
@@ -44,48 +40,49 @@ const options = [
 const mockedProps = {
   adhocFilter: simpleAdhocFilter,
   onFilterEdit: jest.fn(),
+  onRemoveFilter: jest.fn(),
   options,
+  sections: [],
+  operators: [],
+  datasource: {},
+  partitionColumn: '',
+  onMoveLabel: jest.fn(),
+  onDropLabel: jest.fn(),
+  index: 1,
 };
 
-const setup = (props: {
-  adhocFilter: typeof simpleAdhocFilter;
-  onFilterEdit: () => void;
-  options: {
-    type: string;
-    column_name: string;
-    id: number;
-  }[];
-}) => (
-  <DndProvider backend={HTML5Backend}>
-    <AdhocFilterOption {...props} />
-  </DndProvider>
+const setup = (props: AdhocFilterOptionProps) => (
+  <AdhocFilterOption {...props} />
 );
 
 test('should render', async () => {
-  const { container } = render(setup(mockedProps));
+  const { container } = render(setup(mockedProps), {
+    useDnd: true,
+    useRedux: true,
+  });
   await waitFor(() => expect(container).toBeInTheDocument());
 });
 
 test('should render the control label', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   expect(await screen.findByText('value > 10')).toBeInTheDocument();
 });
 
 test('should render the remove button', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   const removeBtn = await screen.findByRole('button');
   expect(removeBtn).toBeInTheDocument();
 });
 
 test('should render the right caret', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   expect(
     await screen.findByRole('img', { name: 'caret-right' }),
   ).toBeInTheDocument();
 });
 
 test('should render the Popover on clicking the right caret', async () => {
-  render(setup(mockedProps));
+  render(setup(mockedProps), { useDnd: true, useRedux: true });
   const rightCaret = await screen.findByRole('img', { name: 'caret-right' });
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();

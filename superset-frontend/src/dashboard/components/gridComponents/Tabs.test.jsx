@@ -25,7 +25,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { LineEditableTabs } from 'src/components/Tabs';
 import { AntdModal } from 'src/components';
-import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -40,8 +39,6 @@ import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
 describe('Tabs', () => {
-  fetchMock.post('glob:*/r/shortner/', {});
-
   const props = {
     id: 'TABS_ID',
     parentId: DASHBOARD_ROOT_ID,
@@ -53,6 +50,7 @@ describe('Tabs', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
+    dashboardId: 1,
     onResizeStart() {},
     onResize() {},
     onResizeStop() {},
@@ -201,5 +199,16 @@ describe('Tabs', () => {
     wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
     expect(modalMock.mock.calls).toHaveLength(1);
     expect(deleteComponent.callCount).toBe(0);
+  });
+
+  it('should set new tab key if dashboardId was changed', () => {
+    const wrapper = shallow(<Tabs {...props} />);
+    expect(wrapper.state('activeKey')).toBe('TAB_ID');
+    wrapper.setProps({
+      ...props,
+      dashboardId: 2,
+      component: dashboardLayoutWithTabs.present.TAB_ID,
+    });
+    expect(wrapper.state('activeKey')).toBe('ROW_ID');
   });
 });

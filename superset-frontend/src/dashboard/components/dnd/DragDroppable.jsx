@@ -21,6 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
@@ -34,7 +35,7 @@ import {
 const propTypes = {
   children: PropTypes.func,
   className: PropTypes.string,
-  component: componentShape.isRequired,
+  component: componentShape,
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
@@ -42,7 +43,8 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
   onDrop: PropTypes.func,
-  editMode: PropTypes.bool.isRequired,
+  onHover: PropTypes.func,
+  editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
   // from react-dnd
@@ -61,6 +63,7 @@ const defaultProps = {
   disableDragDrop: false,
   children() {},
   onDrop() {},
+  onHover() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
@@ -71,6 +74,69 @@ const defaultProps = {
   dragPreviewRef() {},
 };
 
+const DragDroppableStyles = styled.div`
+  ${({ theme }) => css`
+    position: relative;
+
+    &.dragdroppable--dragging {
+      opacity: 0.2;
+    }
+
+    &.dragdroppable-row {
+      width: 100%;
+    }
+
+    &.dragdroppable-column .resizable-container span div {
+      z-index: 10;
+    }
+
+    &.empty-droptarget--full > .drop-indicator--top {
+      height: 100%;
+      opacity: 0.3;
+    }
+
+    & {
+      .drop-indicator {
+        display: block;
+        background-color: ${theme.colors.primary.base};
+        position: absolute;
+        z-index: 10;
+      }
+
+      .drop-indicator--top {
+        top: ${-theme.gridUnit - 2}px;
+        left: 0;
+        height: ${theme.gridUnit}px;
+        width: 100%;
+        min-width: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--bottom {
+        bottom: ${-theme.gridUnit - 2}px;
+        left: 0;
+        height: ${theme.gridUnit}px;
+        width: 100%;
+        min-width: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--right {
+        top: 0;
+        left: calc(100% - ${theme.gridUnit}px);
+        height: 100%;
+        width: ${theme.gridUnit}px;
+        min-height: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--left {
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: ${theme.gridUnit}px;
+        min-height: ${theme.gridUnit * 4}px;
+      }
+    }
+  `};
+`;
 // export unwrapped component for testing
 export class UnwrappedDragDroppable extends React.PureComponent {
   constructor(props) {
@@ -139,7 +205,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
       : {};
 
     return (
-      <div
+      <DragDroppableStyles
         style={style}
         ref={this.setRef}
         data-test="dragdroppable-object"
@@ -152,7 +218,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         )}
       >
         {children(childProps)}
-      </div>
+      </DragDroppableStyles>
     );
   }
 }

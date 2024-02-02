@@ -24,28 +24,26 @@ import Button from 'src/components/Button';
 
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/components/Tabs';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterEditPopover from '.';
+import { Clauses, ExpressionTypes } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   subject: 'value',
   operator: '>',
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const sqlAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SQL,
+  expressionType: ExpressionTypes.Sql,
   sqlExpression: 'value > 10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const faultyAdhocFilter = new AdhocFilter({
@@ -53,11 +51,11 @@ const faultyAdhocFilter = new AdhocFilter({
   subject: null,
   operator: '>',
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   column: { type: 'VARCHAR(255)', column_name: 'source' },
   aggregate: AGGREGATES.SUM,
 });
@@ -122,7 +120,7 @@ describe('AdhocFilterEditPopover', () => {
 
   it('prevents saving if the filter is invalid', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper
       .instance()
       .onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
@@ -133,7 +131,6 @@ describe('AdhocFilterEditPopover', () => {
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });

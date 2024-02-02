@@ -19,7 +19,7 @@
 import { useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
-import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { DashboardState, RootState } from 'src/dashboard/types';
 
 const selectFocusedFilterScope = (
@@ -49,8 +49,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     dashboardFilters,
   );
 
-  const focusedNativeFilterId = nativeFilters.focusedFilterId;
-  if (!(focusedFilterScope || focusedNativeFilterId)) {
+  const highlightedFilterId =
+    nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+  if (!(focusedFilterScope || highlightedFilterId)) {
     return {};
   }
 
@@ -67,9 +68,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     pointerEvents: 'auto',
   };
 
-  if (focusedNativeFilterId) {
+  if (highlightedFilterId) {
     if (
-      nativeFilters.filters[focusedNativeFilterId]?.chartsInScope?.includes(
+      nativeFilters.filters[highlightedFilterId]?.chartsInScope?.includes(
         chartId,
       )
     ) {
@@ -77,7 +78,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     }
   } else if (
     chartId === focusedFilterScope?.chartId ||
-    getChartIdsInFilterBoxScope({
+    getChartIdsInFilterScope({
       filterScope: focusedFilterScope?.scope,
     }).includes(chartId)
   ) {

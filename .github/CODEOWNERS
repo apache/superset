@@ -4,19 +4,24 @@
 
 /superset/migrations/ @apache/superset-committers
 
-# Notify Preset team when ephemeral env settings are changed
+# Notify some committers of changes in the components
 
-.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-
-# Notify some committers of changes in the Select component
-
-/superset-frontend/src/components/Select/ @michael-s-molina @geido @ktmud
+/superset-frontend/src/components/Select/ @michael-s-molina @geido @kgabryje
+/superset-frontend/src/components/MetadataBar/ @michael-s-molina @geido @kgabryje
+/superset-frontend/src/components/DropdownContainer/ @michael-s-molina @geido @kgabryje
 
 # Notify Helm Chart maintainers about changes in it
 
 /helm/superset/ @craig-rueda @dpgaspar @villebro
 
 # Notify E2E test maintainers of changes
-/superset-frontend/cypress-base/ @jinghua-qa
+
+/superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida
+
+# Notify PMC members of changes to GitHub Actions
+
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
+
+# Notify PMC members of changes to required Github Actions
+
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar

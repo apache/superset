@@ -137,7 +137,7 @@ describe('ChartHolder', () => {
 
     rerender(
       <Provider store={store}>
-        <ChartHolder {...defaultProps} editMode />
+        <ChartHolder {...defaultProps} editMode isInView />
       </Provider>,
     );
 
@@ -414,6 +414,7 @@ describe('ChartHolder', () => {
           deleteComponent={deleteComponent}
           fullSizeChartId={null}
           editMode
+          isInView
         />
       </Provider>,
     );

@@ -21,14 +21,14 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
-  getNumberFormatter,
   getMetricLabel,
   getColumnLabel,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import range from 'lodash/range';
+import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -44,6 +44,9 @@ import {
   FONT_SIZE_MULTIPLIERS,
 } from './constants';
 import { OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
+import { getColtypesMapping } from '../utils/series';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -89,11 +92,24 @@ const calculateMax = (data: GaugeDataItemOption[]) =>
 export default function transformProps(
   chartProps: EchartsGaugeChartProps,
 ): GaugeChartTransformedProps {
-  const { width, height, formData, queriesData, hooks, filterState, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    theme,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+  } = datasource;
   const {
     groupby,
     metric,
@@ -102,6 +118,7 @@ export default function transformProps(
     colorScheme,
     fontSize,
     numberFormat,
+    currencyFormat,
     animation,
     showProgress,
     overlap,
@@ -115,11 +132,18 @@ export default function transformProps(
     intervals,
     intervalColorIndices,
     valueFormatter,
-    emitFilter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
+  const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);
@@ -136,7 +160,7 @@ export default function transformProps(
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
       const name = groupbyLabels
-        .map(column => `${column}: ${data_point[column]}`)
+        .map(column => `${verboseMap[column] || column}: ${data_point[column]}`)
         .join(', ');
       columnsLabelMap.set(
         name,
@@ -258,6 +282,7 @@ export default function transformProps(
     color: gaugeSeriesOptions.detail?.color,
   };
   const tooltip = {
+    ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
       return `${name} : ${formatValue(value as number)}`;
@@ -300,6 +325,7 @@ export default function transformProps(
       axisTick,
       pointer,
       detail,
+      // @ts-ignore
       tooltip,
       radius:
         Math.min(width, height) / 2 - axisLabelDistance - axisTickDistance,
@@ -310,7 +336,7 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      appendToBody: true,
+      ...getDefaultTooltip(refs),
       trigger: 'item',
     },
     series,
@@ -322,10 +348,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    refs,
+    coltypeMapping,
   };
 }

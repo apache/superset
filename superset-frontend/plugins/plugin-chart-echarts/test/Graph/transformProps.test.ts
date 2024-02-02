@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
+import { EchartsGraphChartProps } from '../../src/Graph/types';
 
 describe('EchartsGraph transformProps', () => {
   it('should transform chart props for viz without category', () => {
-    const formData = {
+    const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
@@ -30,6 +31,7 @@ describe('EchartsGraph transformProps', () => {
       source: 'source_column',
       target: 'target_column',
       category: null,
+      viz_type: 'graph',
     };
     const queriesData = [
       {
@@ -57,7 +59,7 @@ describe('EchartsGraph transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -69,6 +71,7 @@ describe('EchartsGraph transformProps', () => {
             expect.objectContaining({
               data: [
                 {
+                  col: 'source_column',
                   category: undefined,
                   id: '0',
                   label: { show: true },
@@ -78,10 +81,15 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: { formatter: '{b}: {c}' },
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   value: 6,
                 },
                 {
+                  col: 'target_column',
                   category: undefined,
                   id: '1',
                   label: { show: true },
@@ -91,10 +99,15 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: { formatter: '{b}: {c}' },
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   value: 6,
                 },
                 {
+                  col: 'source_column',
                   category: undefined,
                   id: '2',
                   label: { show: true },
@@ -104,10 +117,15 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: { formatter: '{b}: {c}' },
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   value: 5,
                 },
                 {
+                  col: 'target_column',
                   category: undefined,
                   id: '3',
                   label: { show: true },
@@ -117,7 +135,11 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: { formatter: '{b}: {c}' },
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   value: 5,
                 },
               ],
@@ -151,7 +173,7 @@ describe('EchartsGraph transformProps', () => {
   });
 
   it('should transform chart props for viz with category and falsey normalization', () => {
-    const formData = {
+    const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
@@ -160,6 +182,7 @@ describe('EchartsGraph transformProps', () => {
       target: 'target_column',
       sourceCategory: 'source_category_column',
       targetCategory: 'target_category_column',
+      viz_type: 'graph',
     };
     const queriesData = [
       {
@@ -197,7 +220,7 @@ describe('EchartsGraph transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -210,22 +233,32 @@ describe('EchartsGraph transformProps', () => {
               data: [
                 {
                   id: '0',
+                  col: 'source_column',
                   name: 'source_value',
                   value: 11,
                   symbolSize: 10,
                   category: 'category_value_1',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: DEFAULT_GRAPH_SERIES_OPTION.tooltip,
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   label: { show: true },
                 },
                 {
                   id: '1',
+                  col: 'target_column',
                   name: 'target_value',
                   value: 11,
                   symbolSize: 10,
                   category: 'category_value_2',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: DEFAULT_GRAPH_SERIES_OPTION.tooltip,
+                  tooltip: {
+                    appendToBody: true,
+                    formatter: '{b}: {c}',
+                    position: expect.anything(),
+                  },
                   label: { show: true },
                 },
               ],

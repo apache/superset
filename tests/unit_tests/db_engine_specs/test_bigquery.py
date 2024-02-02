@@ -18,11 +18,18 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 import json
+from datetime import datetime
+from typing import Optional
 
-from pybigquery.sqlalchemy_bigquery import BigQueryDialect
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
+from sqlalchemy_bigquery import BigQueryDialect
+
+from superset.superset_typing import ResultSetColumnType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
 def test_get_fields() -> None:
@@ -58,7 +65,16 @@ def test_get_fields() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    columns = [{"name": "limit"}, {"name": "name"}, {"name": "project.name"}]
+    columns: list[ResultSetColumnType] = [
+        {"column_name": "limit", "name": "limit", "type": "STRING", "is_dttm": False},
+        {"column_name": "name", "name": "name", "type": "STRING", "is_dttm": False},
+        {
+            "column_name": "project.name",
+            "name": "project.name",
+            "type": "STRING",
+            "is_dttm": False,
+        },
+    ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
     query = select(fields)
@@ -78,8 +94,9 @@ def test_select_star(mocker: MockFixture) -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    cols = [
+    cols: list[ResultSetColumnType] = [
         {
+            "column_name": "trailer",
             "name": "trailer",
             "type": sqltypes.ARRAY(sqltypes.JSON()),
             "nullable": True,
@@ -88,8 +105,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.key",
             "name": "trailer.key",
             "type": sqltypes.String(),
             "nullable": True,
@@ -98,8 +117,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.value",
             "name": "trailer.value",
             "type": sqltypes.String(),
             "nullable": True,
@@ -108,8 +129,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.email",
             "name": "trailer.email",
             "type": sqltypes.String(),
             "nullable": True,
@@ -118,6 +141,7 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
     ]
 
@@ -186,9 +210,123 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(BigQueryEngineSpec.unmask_encrypted_extra(old, new)) == {
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
         "credentials_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",
         },
     }
+
+
+def test_unmask_encrypted_extra_when_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "credentials_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = None
+
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) is None
+
+
+def test_mask_encrypted_extra_when_empty() -> None:
+    """
+    Test that the encrypted extra will return a none value if the field is empty.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    assert BigQueryEngineSpec.mask_encrypted_extra(None) is None
+
+
+def test_parse_error_message() -> None:
+    """
+    Test that we parse a received message and just extract the useful information.
+
+    Example errors:
+    bigquery error: 400 Syntax error:  Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
+
+    (job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)
+                                                -----Query Job SQL Follows-----
+    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
+        == expected_result
+    )
+
+
+def test_parse_error_raises_exception() -> None:
+    """
+    Test that we handle any exception we might get from calling the parse_error_exception method.
+
+    Example errors:
+    400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]
+    bigquery error: 400 Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message_2 = "6"
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
+        == expected_result
+    )
+    assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_2))) == "6"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+        ("TimeStamp", "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"),
+        ("Time", "CAST('03:04:05.678900' AS TIME)"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    """
+    DB Eng Specs (bigquery): Test conversion to date time
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

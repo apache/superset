@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name, import-outside-toplevel
+
+# pylint: disable=invalid-name, import-outside-toplevel, unused-argument
 
 import json
 from io import BytesIO
@@ -98,7 +99,13 @@ def test_import_assets(
     assert response.json == {"message": "OK"}
 
     passwords = {"assets_export/databases/imported_database.yaml": "SECRET"}
-    ImportAssetsCommand.assert_called_with(mocked_contents, passwords=passwords)
+    ImportAssetsCommand.assert_called_with(
+        mocked_contents,
+        passwords=passwords,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+    )
 
 
 def test_import_assets_not_zip(

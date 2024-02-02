@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, Dict, List
+from typing import Any
 
 from click.core import Context
 
@@ -34,7 +34,7 @@ PROJECT_MODULE = "superset"
 PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
 
 
-def string_comma_to_list(message: str) -> List[str]:
+def string_comma_to_list(message: str) -> list[str]:
     if not message:
         return []
     return [element.strip() for element in message.split(",")]
@@ -52,7 +52,7 @@ def render_template(template_file: str, **kwargs: Any) -> str:
     return template.render(kwargs)
 
 
-class BaseParameters(object):
+class BaseParameters:
     def __init__(
         self,
         version: str,
@@ -60,7 +60,7 @@ class BaseParameters(object):
     ) -> None:
         self.version = version
         self.version_rc = version_rc
-        self.template_arguments: Dict[str, Any] = {}
+        self.template_arguments: dict[str, Any] = {}
 
     def __repr__(self) -> str:
         return f"Apache Credentials: {self.version}/{self.version_rc}"

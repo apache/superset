@@ -26,15 +26,9 @@ from marshmallow import ValidationError
 
 from superset import is_feature_enabled
 from superset.charts.filters import ChartFilter
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.filters import DashboardAccessFilter
-from superset.databases.filters import DatabaseFilter
-from superset.extensions import event_logger
-from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
-from superset.reports.commands.create import CreateReportScheduleCommand
-from superset.reports.commands.delete import DeleteReportScheduleCommand
-from superset.reports.commands.exceptions import (
-    ReportScheduleBulkDeleteFailedError,
+from superset.commands.report.create import CreateReportScheduleCommand
+from superset.commands.report.delete import DeleteReportScheduleCommand
+from superset.commands.report.exceptions import (
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
     ReportScheduleForbiddenError,
@@ -42,8 +36,12 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
-from superset.reports.commands.update import UpdateReportScheduleCommand
-from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.commands.report.update import UpdateReportScheduleCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.dashboards.filters import DashboardAccessFilter
+from superset.databases.filters import DatabaseFilter
+from superset.extensions import event_logger
+from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
@@ -57,7 +55,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +78,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     resource_name = "report"
     allow_browser_login = True
 
+    base_filters = [
+        ["id", ReportScheduleFilter, lambda: []],
+    ]
+
     show_columns = [
         "id",
         "active",
@@ -89,6 +91,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "context_markdown",
         "creation_method",
         "crontab",
+        "custom_width",
         "dashboard.dashboard_title",
         "dashboard.id",
         "database.database_name",
@@ -155,6 +158,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "context_markdown",
         "creation_method",
         "crontab",
+        "custom_width",
         "dashboard",
         "database",
         "description",
@@ -194,6 +198,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     search_columns = [
         "name",
         "active",
+        "changed_by",
         "created_by",
         "owners",
         "type",
@@ -203,11 +208,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart_id",
     ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
-    allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
-    filter_rel_fields = {
+    allowed_rel_fields = {
+        "owners",
+        "chart",
+        "dashboard",
+        "database",
+        "created_by",
+        "changed_by",
+    }
+
+    base_related_field_filters = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",
@@ -228,7 +243,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/<int:pk>", methods=["DELETE"])
+    @expose("/<int:pk>", methods=("DELETE",))
     @protect()
     @safe
     @permission_name("delete")
@@ -238,11 +253,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Report Schedule
+        """Delete a report schedule.
         ---
         delete:
-          description: >-
-            Delete a Report Schedule
+          summary: Delete a report schedule
           parameters:
           - in: path
             schema:
@@ -269,7 +283,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(pk).run()
+            DeleteReportScheduleCommand([pk]).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -284,7 +298,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["POST"])
+    @expose("/", methods=("POST",))
     @protect()
     @statsd_metrics
     @permission_name("post")
@@ -292,11 +306,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     def post(
         self,
     ) -> Response:
-        """Creates a new Report Schedule
+        """Create a new report schedule.
         ---
         post:
-          description: >-
-            Create a new Report Schedule
+          summary: Create a new report schedule
           requestBody:
             description: Report Schedule schema
             required: true
@@ -358,18 +371,17 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>", methods=["PUT"])
+    @expose("/<int:pk>", methods=("PUT",))
     @protect()
     @safe
     @statsd_metrics
     @permission_name("put")
     @requires_json
     def put(self, pk: int) -> Response:
-        """Updates an Report Schedule
+        """Update a report schedule.
         ---
         put:
-          description: >-
-            Updates a Report Schedule
+          summary: Update a report schedule
           parameters:
           - in: path
             schema:
@@ -441,7 +453,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/", methods=["DELETE"])
+    @expose("/", methods=("DELETE",))
     @protect()
     @safe
     @statsd_metrics
@@ -451,11 +463,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Report Schedule layers
+        """Bulk delete report schedules.
         ---
         delete:
-          description: >-
-            Deletes multiple report schedules in a bulk operation.
+          summary: Bulk delete report schedules
           parameters:
           - in: query
             name: q
@@ -486,7 +497,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(item_ids).run()
+            DeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -499,5 +510,5 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleForbiddenError:
             return self.response_403()
-        except ReportScheduleBulkDeleteFailedError as ex:
+        except ReportScheduleDeleteFailedError as ex:
             return self.response_422(message=str(ex))

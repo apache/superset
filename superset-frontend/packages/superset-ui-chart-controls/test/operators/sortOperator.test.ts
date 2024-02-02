@@ -52,92 +52,99 @@ const queryObject: QueryObject = {
   ],
 };
 
-test('skip sort', () => {
-  expect(sortOperator(formData, queryObject)).toEqual(undefined);
-  expect(
-    sortOperator(formData, { ...queryObject, is_timeseries: false }),
-  ).toEqual(undefined);
+test('should ignore the sortOperator', () => {
   expect(
     sortOperator(
-      { ...formData, rolling_type: 'xxxx' },
-      { ...queryObject, is_timeseries: true },
+      {
+        ...formData,
+        ...{
+          x_axis_sort: undefined,
+          x_axis_sort_asc: true,
+        },
+      },
+      queryObject,
     ),
   ).toEqual(undefined);
+
+  // sortOperator doesn't support multiple series
   expect(
-    sortOperator(formData, { ...queryObject, is_timeseries: true }),
+    sortOperator(
+      {
+        ...formData,
+        ...{
+          x_axis_sort: 'metric label',
+          x_axis_sort_asc: true,
+          groupby: ['col1'],
+          x_axis: 'axis column',
+        },
+      },
+      queryObject,
+    ),
   ).toEqual(undefined);
 });
 
-test('sort by __timestamp', () => {
+test('should sort by metric', () => {
   expect(
     sortOperator(
-      { ...formData, rolling_type: 'cumsum' },
-      { ...queryObject, is_timeseries: true },
+      {
+        ...formData,
+        ...{
+          metrics: ['a metric label'],
+          x_axis_sort: 'a metric label',
+          x_axis_sort_asc: true,
+        },
+      },
+      queryObject,
     ),
   ).toEqual({
     operation: 'sort',
     options: {
-      columns: {
-        __timestamp: true,
-      },
-    },
-  });
-
-  expect(
-    sortOperator(
-      { ...formData, rolling_type: 'sum' },
-      { ...queryObject, is_timeseries: true },
-    ),
-  ).toEqual({
-    operation: 'sort',
-    options: {
-      columns: {
-        __timestamp: true,
-      },
-    },
-  });
-
-  expect(
-    sortOperator(
-      { ...formData, rolling_type: 'mean' },
-      { ...queryObject, is_timeseries: true },
-    ),
-  ).toEqual({
-    operation: 'sort',
-    options: {
-      columns: {
-        __timestamp: true,
-      },
-    },
-  });
-
-  expect(
-    sortOperator(
-      { ...formData, rolling_type: 'std' },
-      { ...queryObject, is_timeseries: true },
-    ),
-  ).toEqual({
-    operation: 'sort',
-    options: {
-      columns: {
-        __timestamp: true,
-      },
+      by: 'a metric label',
+      ascending: true,
     },
   });
 });
 
-test('sort by named x-axis', () => {
+test('should sort by axis', () => {
   expect(
     sortOperator(
-      { ...formData, x_axis: 'ds', rolling_type: 'cumsum' },
-      { ...queryObject },
+      {
+        ...formData,
+        ...{
+          x_axis_sort: 'Categorical Column',
+          x_axis_sort_asc: true,
+          x_axis: 'Categorical Column',
+        },
+      },
+      queryObject,
     ),
   ).toEqual({
     operation: 'sort',
     options: {
-      columns: {
-        ds: true,
+      is_sort_index: true,
+      ascending: true,
+    },
+  });
+});
+
+test('should sort by extra metric', () => {
+  expect(
+    sortOperator(
+      {
+        ...formData,
+        x_axis_sort: 'my_limit_metric',
+        x_axis_sort_asc: true,
+        x_axis: 'Categorical Column',
+        groupby: [],
+        timeseries_limit_metric: 'my_limit_metric',
       },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'sort',
+    options: {
+      by: 'my_limit_metric',
+      ascending: true,
     },
   });
 });

@@ -26,4 +26,6 @@ export default interface Database {
   impersonate_user: boolean;
   server_cert: string;
   sqlalchemy_uri: string;
+  catalog: object;
+  parameters: any;
 }

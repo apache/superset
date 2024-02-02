@@ -30,12 +30,9 @@ import {
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
 import TemplateParamsEditor, {
-  Props,
+  TemplateParamsEditorProps,
 } from 'src/SqlLab/components/TemplateParamsEditor';
 
-jest.mock('src/components/Select', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
@@ -50,12 +47,15 @@ jest.mock('src/components/AsyncAceEditor', () => ({
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const setup = (otherProps: Partial<Props> = {}, store?: Store) =>
+const setup = (
+  otherProps: Partial<TemplateParamsEditorProps> = {},
+  store?: Store,
+) =>
   render(
     <TemplateParamsEditor
       language="json"
       onChange={() => {}}
-      queryEditor={defaultQueryEditor}
+      queryEditorId={defaultQueryEditor.id}
       {...otherProps}
     />,
     {

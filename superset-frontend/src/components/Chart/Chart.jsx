@@ -18,9 +18,14 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
-
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import {
+  ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
+  logging,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
@@ -28,6 +33,8 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { isCurrentUserBot } from 'src/utils/isBot';
+import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
@@ -57,7 +64,6 @@ const propTypes = {
   triggerRender: PropTypes.bool,
   force: PropTypes.bool,
   isFiltersInitialized: PropTypes.bool,
-  isDeactivatedViz: PropTypes.bool,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -74,6 +80,8 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -90,8 +98,8 @@ const defaultProps = {
   triggerRender: false,
   dashboardId: null,
   chartStackTrace: null,
-  isDeactivatedViz: false,
   force: false,
+  isInView: true,
 };
 
 const Styles = styled.div`
@@ -104,10 +112,18 @@ const Styles = styled.div`
   }
 
   .slice_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
     height: ${p => p.height}px;
 
     .pivot_table tbody tr {
       font-feature-settings: 'tnum' 1;
+    }
+
+    .alert {
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
@@ -127,51 +143,27 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
 
   componentDidUpdate() {
-    // during migration, hold chart queries before user choose review or cancel
-    if (
-      this.props.triggerQuery &&
-      this.props.filterboxMigrationState !== 'UNDECIDED'
-    ) {
-      // if the chart is deactivated (filter_box), only load once
-      if (this.props.isDeactivatedViz && this.props.queriesResponse) {
-        return;
-      }
+    if (this.props.triggerQuery) {
       this.runQuery();
     }
   }
 
   runQuery() {
-    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
-      // Load saved chart with a GET request
-      this.props.actions.getSavedChart(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    } else {
-      // Create chart with POST request
-      this.props.actions.postChartFormData(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    }
+    // Create chart with POST request
+    this.props.actions.postChartFormData(
+      this.props.formData,
+      Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+      this.props.timeout,
+      this.props.chartId,
+      this.props.dashboardId,
+      this.props.ownState,
+    );
   }
 
   handleRenderContainerFailure(error, info) {
@@ -211,7 +203,7 @@ class Chart extends React.PureComponent {
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
-      datasetsStatus !== ResourceStatus.ERROR
+      datasetsStatus !== ResourceStatus.Error
     ) {
       return (
         <Styles
@@ -234,7 +226,7 @@ class Chart extends React.PureComponent {
         subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
         link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? 'dashboard' : 'explore'}
+        source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
       />
     );
@@ -248,7 +240,6 @@ class Chart extends React.PureComponent {
       errorMessage,
       chartIsStale,
       queriesResponse = [],
-      isDeactivatedViz = false,
       width,
     } = this.props;
 
@@ -307,13 +298,19 @@ class Chart extends React.PureComponent {
           width={width}
         >
           <div className="slice_container" data-test="slice-container">
-            <ChartRenderer
-              {...this.props}
-              source={this.props.dashboardId ? 'dashboard' : 'explore'}
-              data-test={this.props.vizType}
-            />
+            {this.props.isInView ||
+            !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+            isCurrentUserBot() ? (
+              <ChartRenderer
+                {...this.props}
+                source={this.props.dashboardId ? 'dashboard' : 'explore'}
+                data-test={this.props.vizType}
+              />
+            ) : (
+              <Loading />
+            )}
           </div>
-          {isLoading && !isDeactivatedViz && <Loading />}
+          {isLoading && <Loading />}
         </Styles>
       </ErrorBoundary>
     );

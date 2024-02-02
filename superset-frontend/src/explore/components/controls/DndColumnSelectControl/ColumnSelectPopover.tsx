@@ -46,9 +46,10 @@ import { EmptyStateSmall } from 'src/components/EmptyState';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
   POPOVER_INITIAL_HEIGHT,
-  UNRESIZABLE_POPOVER_WIDTH,
+  POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
 import { ExplorePageState } from 'src/explore/types';
+import useResizeButton from './useResizeButton';
 
 const StyledSelect = styled(Select)`
   .metric-option {
@@ -67,6 +68,7 @@ interface ColumnSelectPopoverProps {
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
+  hasCustomLabel: boolean;
   setLabel: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
@@ -92,13 +94,14 @@ const getInitialColumnValues = (
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
+  getCurrentTab,
+  hasCustomLabel,
+  isTemporal,
+  label,
   onChange,
   onClose,
   setDatasetModal,
   setLabel,
-  getCurrentTab,
-  label,
-  isTemporal,
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
@@ -116,6 +119,12 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
+
+  const [resizeButton, width, height] = useResizeButton(
+    POPOVER_INITIAL_WIDTH,
+    POPOVER_INITIAL_HEIGHT,
+  );
 
   const sqlEditorRef = useRef(null);
 
@@ -182,7 +191,34 @@ const ColumnSelectPopover = ({
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);
-  }, [defaultActiveTabKey, getCurrentTab]);
+    setSelectedTab(defaultActiveTabKey);
+  }, [defaultActiveTabKey, getCurrentTab, setSelectedTab]);
+
+  useEffect(() => {
+    /* if the adhoc column is not set (because it was never edited) but the
+     * tab is selected and the label has changed, then we need to set the
+     * adhoc column manually */
+    if (
+      adhocColumn === undefined &&
+      selectedTab === 'sqlExpression' &&
+      hasCustomLabel
+    ) {
+      const sqlExpression =
+        selectedSimpleColumn?.column_name ||
+        selectedCalculatedColumn?.expression ||
+        '';
+      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+    }
+  }, [
+    adhocColumn,
+    defaultActiveTabKey,
+    hasCustomLabel,
+    getCurrentTab,
+    label,
+    selectedCalculatedColumn,
+    selectedSimpleColumn,
+    selectedTab,
+  ]);
 
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
@@ -219,6 +255,7 @@ const ColumnSelectPopover = ({
   const onTabChange = useCallback(
     tab => {
       getCurrentTab(tab);
+      setSelectedTab(tab);
       // @ts-ignore
       sqlEditorRef.current?.editor.focus();
     },
@@ -231,7 +268,9 @@ const ColumnSelectPopover = ({
   }, []);
 
   const setDatasetAndClose = () => {
-    if (setDatasetModal) setDatasetModal(true);
+    if (setDatasetModal) {
+      setDatasetModal(true);
+    }
     onClose();
   };
 
@@ -256,8 +295,8 @@ const ColumnSelectPopover = ({
         className="adhoc-metric-edit-tabs"
         allowOverflow
         css={css`
-          height: ${POPOVER_INITIAL_HEIGHT}px;
-          width: ${UNRESIZABLE_POPOVER_WIDTH}px;
+          height: ${height}px;
+          width: ${width}px;
         `}
       >
         <Tabs.TabPane key="saved" tab={t('Saved')}>
@@ -391,7 +430,7 @@ const ColumnSelectPopover = ({
             showLoadingForImport
             onChange={onSqlExpressionChange}
             width="100%"
-            height={`${POPOVER_INITIAL_HEIGHT - 80}px`}
+            height={`${height - 80}px`}
             showGutter={false}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
@@ -406,10 +445,8 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={!stateIsValid}
-          buttonStyle={
-            hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-          }
+          disabled={!stateIsValid || !hasUnsavedChanges}
+          buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"
@@ -417,6 +454,7 @@ const ColumnSelectPopover = ({
         >
           {t('Save')}
         </Button>
+        {resizeButton}
       </div>
     </Form>
   );

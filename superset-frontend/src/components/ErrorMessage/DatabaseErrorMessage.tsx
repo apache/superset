@@ -75,19 +75,18 @@ function DatabaseErrorMessage({
     </>
   );
 
-  const copyText =
-    extra && extra.issue_codes
-      ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
-          message,
-          issues: extra.issue_codes
-            .map(issueCode => issueCode.message)
-            .join('\n'),
-        })
-      : message;
+  const copyText = extra?.issue_codes
+    ? t('%(message)s\nThis may be triggered by: \n%(issues)s', {
+        message,
+        issues: extra.issue_codes
+          .map(issueCode => issueCode.message)
+          .join('\n'),
+      })
+    : message;
 
   return (
     <ErrorAlert
-      title={t('%s Error', (extra && extra.engine_name) || t('DB engine'))}
+      title={t('%s Error', extra?.engine_name || t('DB engine'))}
       subtitle={subtitle}
       level={level}
       source={source}

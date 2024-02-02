@@ -90,7 +90,7 @@ function isError(message: Message): message is ErrorMessage {
 export class Switchboard {
   port: MessagePort;
 
-  name: string;
+  name = '';
 
   methods: Record<string, Method<any, unknown>> = {};
 
@@ -99,7 +99,23 @@ export class Switchboard {
 
   debugMode: boolean;
 
-  constructor({ port, name = 'switchboard', debug = false }: Params) {
+  private isInitialised: boolean;
+
+  constructor(params?: Params) {
+    if (!params) {
+      return;
+    }
+    this.init(params);
+  }
+
+  init(params: Params) {
+    if (this.isInitialised) {
+      this.logError('already initialized');
+      return;
+    }
+
+    const { port, name = 'switchboard', debug = false } = params;
+
     this.port = port;
     this.name = name;
     this.debugMode = debug;
@@ -122,6 +138,8 @@ export class Switchboard {
         }
       }
     });
+
+    this.isInitialised = true;
   }
 
   private async getMethodResult({
@@ -157,7 +175,10 @@ export class Switchboard {
   /**
    * Defines a method that can be "called" from the other side by sending an event.
    */
-  defineMethod<A = any, R = any>(methodName: string, executor: Method<A, R>) {
+  defineMethod<A extends {} = any, R = any>(
+    methodName: string,
+    executor: Method<A, R>,
+  ) {
     this.methods[methodName] = executor;
   }
 
@@ -173,11 +194,15 @@ export class Switchboard {
    * Instead of an arguments list, arguments are supplied as a map.
    *
    * @param method the name of the method to call
-   * @param args arguments that will be supplied. Must be serializable, no functions or other nonense.
+   * @param args arguments that will be supplied. Must be serializable, no functions or other nonsense.
    * @returns whatever is returned from the method
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {
     return new Promise((resolve, reject) => {
+      if (!this.isInitialised) {
+        reject(new Error('Switchboard not initialised'));
+        return;
+      }
       // In order to "call a method" on the other side of the port,
       // we will send a message with a unique id
       const messageId = this.getNewMessageId();
@@ -215,6 +240,10 @@ export class Switchboard {
    * @param args
    */
   emit(method: string, args: unknown = undefined) {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     const message: EmitMessage = {
       switchboardAction: Actions.EMIT,
       method,
@@ -224,6 +253,10 @@ export class Switchboard {
   }
 
   start() {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     this.port.start();
   }
 
@@ -242,3 +275,5 @@ export class Switchboard {
     return `m_${this.name}_${this.incrementor++}`;
   }
 }
+
+export default new Switchboard();

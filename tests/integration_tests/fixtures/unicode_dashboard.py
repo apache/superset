@@ -37,21 +37,22 @@ UNICODE_TBL_NAME = "unicode_test"
 @pytest.fixture(scope="session")
 def load_unicode_data():
     with app.app_context():
-        _get_dataframe().to_sql(
-            UNICODE_TBL_NAME,
-            get_example_database().get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype={"phrase": String(500)},
-            index=False,
-            method="multi",
-            schema=get_example_default_schema(),
-        )
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            _get_dataframe().to_sql(
+                UNICODE_TBL_NAME,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                dtype={"phrase": String(500)},
+                index=False,
+                method="multi",
+                schema=get_example_default_schema(),
+            )
 
     yield
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE IF EXISTS unicode_test")
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS unicode_test")
 
 
 @pytest.fixture()

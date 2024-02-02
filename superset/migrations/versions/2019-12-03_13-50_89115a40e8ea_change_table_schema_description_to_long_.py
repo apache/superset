@@ -28,7 +28,7 @@ down_revision = "5afa9079866a"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.databases import mysql
+from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 

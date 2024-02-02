@@ -22,6 +22,7 @@ import { Radio } from 'src/components/Radio';
 import {
   COMMON_RANGE_OPTIONS,
   COMMON_RANGE_SET,
+  DateFilterTestKey,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CommonRangeType,
@@ -38,7 +39,9 @@ export function CommonFrame(props: FrameComponentProps) {
 
   return (
     <>
-      <div className="section-title">{t('Configure Time Range: Last...')}</div>
+      <div className="section-title" data-test={DateFilterTestKey.CommonFrame}>
+        {t('Configure Time Range: Last...')}
+      </div>
       <Radio.Group
         value={commonRange}
         onChange={(e: any) => props.onChange(e.target.value)}

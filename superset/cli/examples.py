@@ -55,8 +55,8 @@ def load_examples_run(
         print("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)
 
-        print("Loading [ECharts Dashboard]")
-        examples.load_echarts_dashboard()
+        print("Loading [Supported Charts Dashboard]")
+        examples.load_supported_charts_dashboard()
     else:
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
@@ -72,9 +72,6 @@ def load_examples_run(
 
         print("Loading [BART lines]")
         examples.load_bart_lines(only_metadata, force)
-
-        print("Loading [Multi Line]")
-        examples.load_multi_line(only_metadata)
 
         print("Loading [Misc Charts] dashboard")
         examples.load_misc_dashboard()

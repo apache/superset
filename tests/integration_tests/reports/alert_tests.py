@@ -15,19 +15,98 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
+from contextlib import nullcontext, suppress
+from typing import Optional, Union
 
 import pandas as pd
+import pytest
 from pytest_mock import MockFixture
+
+from superset.commands.report.exceptions import AlertQueryError
+from superset.reports.models import ReportCreationMethod, ReportScheduleType
+from superset.tasks.types import ExecutorType
+from superset.utils.database import get_example_database
+from tests.integration_tests.test_app import app
+
+
+@pytest.mark.parametrize(
+    "owner_names,creator_name,config,expected_result",
+    [
+        (["gamma"], None, [ExecutorType.SELENIUM], "admin"),
+        (["gamma"], None, [ExecutorType.OWNER], "gamma"),
+        (
+            ["alpha", "gamma"],
+            "gamma",
+            [ExecutorType.CREATOR_OWNER],
+            "gamma",
+        ),
+        (
+            ["alpha", "gamma"],
+            "alpha",
+            [ExecutorType.CREATOR_OWNER],
+            "alpha",
+        ),
+        (
+            ["alpha", "gamma"],
+            "admin",
+            [ExecutorType.CREATOR_OWNER],
+            AlertQueryError(),
+        ),
+        (["gamma"], None, [ExecutorType.CURRENT_USER], AlertQueryError()),
+    ],
+)
+def test_execute_query_as_report_executor(
+    owner_names: list[str],
+    creator_name: Optional[str],
+    config: list[ExecutorType],
+    expected_result: Union[tuple[ExecutorType, str], Exception],
+    mocker: MockFixture,
+    app_context: None,
+    get_user,
+) -> None:
+    from superset.commands.report.alert import AlertCommand
+    from superset.reports.models import ReportSchedule
+
+    with app.app_context():
+        original_config = app.config["ALERT_REPORTS_EXECUTE_AS"]
+        app.config["ALERT_REPORTS_EXECUTE_AS"] = config
+        owners = [get_user(owner_name) for owner_name in owner_names]
+        report_schedule = ReportSchedule(
+            created_by=get_user(creator_name) if creator_name else None,
+            owners=owners,
+            type=ReportScheduleType.ALERT,
+            description="description",
+            crontab="0 9 * * *",
+            creation_method=ReportCreationMethod.ALERTS_REPORTS,
+            sql="SELECT 1",
+            grace_period=14400,
+            working_timeout=3600,
+            database=get_example_database(),
+            validator_config_json='{"op": "==", "threshold": 1}',
+        )
+        command = AlertCommand(report_schedule=report_schedule)
+        override_user_mock = mocker.patch(
+            "superset.commands.report.alert.override_user"
+        )
+        cm = (
+            pytest.raises(type(expected_result))
+            if isinstance(expected_result, Exception)
+            else nullcontext()
+        )
+        with cm:
+            command.run()
+            assert override_user_mock.call_args[0][0].username == expected_result
+
+        app.config["ALERT_REPORTS_EXECUTE_AS"] = original_config
 
 
 def test_execute_query_succeeded_no_retry(
     mocker: MockFixture, app_context: None
 ) -> None:
-
-    from superset.reports.commands.alert import AlertCommand
+    from superset.commands.report.alert import AlertCommand
 
     execute_query_mock = mocker.patch(
-        "superset.reports.commands.alert.AlertCommand._execute_query",
+        "superset.commands.report.alert.AlertCommand._execute_query",
         side_effect=lambda: pd.DataFrame([{"sample_col": 0}]),
     )
 
@@ -41,10 +120,10 @@ def test_execute_query_succeeded_no_retry(
 def test_execute_query_succeeded_with_retries(
     mocker: MockFixture, app_context: None
 ) -> None:
-    from superset.reports.commands.alert import AlertCommand, AlertQueryError
+    from superset.commands.report.alert import AlertCommand, AlertQueryError
 
     execute_query_mock = mocker.patch(
-        "superset.reports.commands.alert.AlertCommand._execute_query"
+        "superset.commands.report.alert.AlertCommand._execute_query"
     )
 
     query_executed_count = 0
@@ -71,10 +150,10 @@ def test_execute_query_succeeded_with_retries(
 
 
 def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -> None:
-    from superset.reports.commands.alert import AlertCommand, AlertQueryTimeout
+    from superset.commands.report.alert import AlertCommand, AlertQueryTimeout
 
     execute_query_mock = mocker.patch(
-        "superset.reports.commands.alert.AlertCommand._execute_query"
+        "superset.commands.report.alert.AlertCommand._execute_query"
     )
 
     def _mocked_execute_query() -> None:
@@ -85,21 +164,18 @@ def test_execute_query_failed_no_retry(mocker: MockFixture, app_context: None) -
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryTimeout):
         command.validate()
-    except AlertQueryTimeout:
-        pass
-
     assert execute_query_mock.call_count == 1
 
 
 def test_execute_query_failed_max_retries(
     mocker: MockFixture, app_context: None
 ) -> None:
-    from superset.reports.commands.alert import AlertCommand, AlertQueryError
+    from superset.commands.report.alert import AlertCommand, AlertQueryError
 
     execute_query_mock = mocker.patch(
-        "superset.reports.commands.alert.AlertCommand._execute_query"
+        "superset.commands.report.alert.AlertCommand._execute_query"
     )
 
     def _mocked_execute_query() -> None:
@@ -110,10 +186,7 @@ def test_execute_query_failed_max_retries(
 
     command = AlertCommand(report_schedule=mocker.Mock())
 
-    try:
+    with suppress(AlertQueryError):
         command.validate()
-    except AlertQueryError:
-        pass
-
     # Should match the value defined in superset_test_config.py
     assert execute_query_mock.call_count == 3

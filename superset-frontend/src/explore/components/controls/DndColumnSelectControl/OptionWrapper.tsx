@@ -57,7 +57,9 @@ export default function OptionWrapper(
     clickClose,
     withCaret,
     isExtra,
+    datasourceWarningMessage,
     canDelete = true,
+    tooltipOverlay,
     ...rest
   } = props;
   const ref = useRef<HTMLDivElement>(null);
@@ -122,11 +124,19 @@ export default function OptionWrapper(
     (!isDragging &&
       labelRef &&
       labelRef.current &&
-      labelRef.current.scrollWidth > labelRef.current.clientWidth);
+      labelRef.current.scrollWidth > labelRef.current.clientWidth) ||
+    (!isDragging && tooltipOverlay);
 
   const LabelContent = () => {
     if (!shouldShowTooltip) {
       return <span>{label}</span>;
+    }
+    if (tooltipOverlay) {
+      return (
+        <Tooltip overlay={tooltipOverlay}>
+          <span>{label}</span>
+        </Tooltip>
+      );
     }
     return (
       <Tooltip title={tooltipTitle || label}>
@@ -176,6 +186,7 @@ export default function OptionWrapper(
         clickClose={clickClose}
         withCaret={withCaret}
         isExtra={isExtra}
+        datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
       >
         <Label />

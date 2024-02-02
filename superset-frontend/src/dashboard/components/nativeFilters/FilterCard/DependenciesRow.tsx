@@ -18,9 +18,9 @@
  */
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, t, useTheme } from '@superset-ui/core';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { css, t, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   DependencyItem,
   Row,
@@ -30,7 +30,6 @@ import {
   TooltipList,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
-import { useTruncation } from './useTruncation';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
@@ -55,7 +54,11 @@ const DependencyValue = ({
 export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);
   const dependenciesRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(dependenciesRef);
+  const plusRef = useRef<HTMLDivElement>(null);
+  const [elementsTruncated, hasHiddenElements] = useTruncation(
+    dependenciesRef,
+    plusRef,
+  );
   const theme = useTheme();
 
   const tooltipText = useMemo(
@@ -102,13 +105,16 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         <RowValue ref={dependenciesRef}>
           {dependencies.map((dependency, index) => (
             <DependencyValue
+              key={dependency.id}
               dependency={dependency}
               hasSeparator={index !== 0}
             />
           ))}
         </RowValue>
         {hasHiddenElements && (
-          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+          <RowTruncationCount ref={plusRef}>
+            +{elementsTruncated}
+          </RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

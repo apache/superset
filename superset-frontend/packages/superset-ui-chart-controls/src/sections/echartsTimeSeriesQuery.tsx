@@ -16,50 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
-  ContributionType,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '../types';
-import { emitFilterControl } from '../shared-controls/emitFilterControl';
+  contributionModeControl,
+  xAxisForceCategoricalControl,
+  xAxisSortAscControl,
+  xAxisSortControl,
+  xAxisSortSeriesAscendingControl,
+  xAxisSortSeriesControl,
+} from '../shared-controls';
+
+const controlsWithoutXAxis: ControlSetRow[] = [
+  ['metrics'],
+  ['groupby'],
+  [contributionModeControl],
+  ['adhoc_filters'],
+  ['limit'],
+  ['timeseries_limit_metric'],
+  ['order_desc'],
+  ['row_limit'],
+  ['truncate_metric'],
+  ['show_empty_columns'],
+];
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
+  controlSetRows: [['x_axis'], ['time_grain_sqla'], ...controlsWithoutXAxis],
+};
+
+export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
+  label: t('Query'),
+  expanded: true,
   controlSetRows: [
-    [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
-    [
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-        ? 'time_grain_sqla'
-        : null,
-    ],
-    ['metrics'],
-    ['groupby'],
-    [
-      {
-        name: 'contributionMode',
-        config: {
-          type: 'SelectControl',
-          label: t('Contribution Mode'),
-          default: null,
-          choices: [
-            [null, 'None'],
-            [ContributionType.Row, 'Row'],
-            [ContributionType.Column, 'Series'],
-          ],
-          description: t('Calculate contribution per series or row'),
-        },
-      },
-    ],
-    ['adhoc_filters'],
-    emitFilterControl,
-    ['limit'],
-    ['timeseries_limit_metric'],
-    ['order_desc'],
-    ['row_limit'],
-    ['truncate_metric'],
-    ['show_empty_columns'],
+    ['x_axis'],
+    ['time_grain_sqla'],
+    [xAxisForceCategoricalControl],
+    [xAxisSortControl],
+    [xAxisSortAscControl],
+    [xAxisSortSeriesControl],
+    [xAxisSortSeriesAscendingControl],
+    ...controlsWithoutXAxis,
   ],
 };
