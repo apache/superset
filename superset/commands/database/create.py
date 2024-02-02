@@ -89,7 +89,7 @@ class CreateDatabaseCommand(BaseCommand):
                     raise SSHTunnelingNotEnabledError()
                 try:
                     ssh_tunnel = CreateSSHTunnelCommand(
-                        database.id, ssh_tunnel_properties
+                        database, ssh_tunnel_properties
                     ).run()
                 except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                     event_logger.log_with_context(
