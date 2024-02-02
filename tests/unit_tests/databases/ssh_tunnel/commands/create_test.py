@@ -37,7 +37,7 @@ def test_create_ssh_tunnel_command() -> None:
         "password": "bar",
     }
 
-    result = CreateSSHTunnelCommand(db.id, properties).run()
+    result = CreateSSHTunnelCommand(db, properties).run()
 
     assert result is not None
     assert isinstance(result, SSHTunnel)
@@ -53,7 +53,7 @@ def test_create_ssh_tunnel_command_invalid_params() -> None:
     # If we are trying to create a tunnel with a private_key_password
     # then a private_key is mandatory
     properties = {
-        "database_id": db.id,
+        "database": db,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",

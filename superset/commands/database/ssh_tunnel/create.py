@@ -52,7 +52,6 @@ class CreateSSHTunnelCommand(BaseCommand):
         # TODO(hughhh): check to make sure the server port is not localhost
         # using the config.SSH_TUNNEL_MANAGER
         exceptions: list[ValidationError] = []
-        database_id: Optional[int] = self._properties.get("database_id")
         server_address: Optional[str] = self._properties.get("server_address")
         server_port: Optional[int] = self._properties.get("server_port")
         username: Optional[str] = self._properties.get("username")
