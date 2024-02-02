@@ -38,14 +38,12 @@ def validate_ssh_tunnel(properties: dict[str, Any]) -> bool:
     # TODO(hughhh): check to make sure the server port is not localhost
     # using the config.SSH_TUNNEL_MANAGER
 
-    tunnel_properties = properties
-
     exceptions: list[ValidationError] = []
-    server_address: Optional[str] = tunnel_properties.get("server_address")
-    server_port: Optional[int] = tunnel_properties.get("server_port")
-    username: Optional[str] = tunnel_properties.get("username")
-    private_key: Optional[str] = tunnel_properties.get("private_key")
-    private_key_password: Optional[str] = tunnel_properties.get("private_key_password")
+    server_address: Optional[str] = properties.get("server_address")
+    server_port: Optional[int] = properties.get("server_port")
+    username: Optional[str] = properties.get("username")
+    private_key: Optional[str] = properties.get("private_key")
+    private_key_password: Optional[str] = properties.get("private_key_password")
     if not server_address:
         exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
     if not server_port:
