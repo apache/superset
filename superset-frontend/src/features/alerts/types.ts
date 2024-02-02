@@ -125,7 +125,7 @@ export interface AlertsReportsConfig {
 }
 
 export type SectionValidationObject = {
-  status: boolean;
+  hasErrors: boolean;
   errors: string[];
   name: string;
 };
@@ -139,9 +139,9 @@ export interface ValidationObject {
 }
 
 export enum Sections {
-  GENERAL = 'generalSection',
-  CONTENT = 'contentSection',
-  ALERT = 'alertConditionSection',
-  SCHEDULE = 'scheduleSection',
-  NOTIFICATION = 'notificationSection',
+  General = 'generalSection',
+  Content = 'contentSection',
+  Alert = 'alertConditionSection',
+  Schedule = 'scheduleSection',
+  Notification = 'notificationSection',
 }

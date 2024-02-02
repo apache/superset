@@ -428,6 +428,19 @@ export const TRANSLATIONS = {
   // Button text
   SAVE_TEXT: t('Save'),
   ADD_TEXT: t('Add'),
+  // Error text
+  NAME_ERROR_TEXT: t('name'),
+  OWNERS_ERROR_TEXT: t('owners'),
+  CONTENT_ERROR_TEXT: t('content type'),
+  DATABASE_ERROR_TEXT: t('database'),
+  SQL_ERROR_TEXT: t('sql'),
+  ALERT_CONDITION_ERROR_TEXT: t('alert condition'),
+  CRONTAB_ERROR_TEXT: t('crontab'),
+  WORKING_TIMEOUT_ERROR_TEXT: t('working timeout'),
+  RECIPIENTS_ERROR_TEXT: t('recipients'),
+  ERROR_TOOLTIP_MESSAGE: t(
+    'Not all required fields are complete. Please provide the following:',
+  ),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -503,17 +516,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
-    generalSection: { status: false, name: 'General information', errors: [] },
-    contentSection: { status: false, name: 'Report contents', errors: [] },
-    alertConditionSection: {
-      status: false,
-      name: 'Alert condition',
+    [Sections.General]: {
+      hasErrors: false,
+      name: TRANSLATIONS.GENERAL_TITLE,
       errors: [],
     },
-    scheduleSection: { status: false, name: 'Schedule', errors: [] },
-    notificationSection: {
-      status: false,
-      name: 'Notification methods',
+    [Sections.Content]: {
+      hasErrors: false,
+      name: isReport
+        ? TRANSLATIONS.REPORT_CONTENTS_TITLE
+        : TRANSLATIONS.ALERT_CONTENTS_TITLE,
+      errors: [],
+    },
+    [Sections.Alert]: {
+      hasErrors: false,
+      name: TRANSLATIONS.ALERT_CONDITION_TITLE,
+      errors: [],
+    },
+    [Sections.Schedule]: {
+      hasErrors: false,
+      name: TRANSLATIONS.SCHEDULE_TITLE,
+      errors: [],
+    },
+    [Sections.Notification]: {
+      hasErrors: false,
+      name: TRANSLATIONS.NOTIFICATION_TITLE,
       errors: [],
     },
   });
@@ -521,15 +548,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const updateValidationStatus = (
     section: Sections,
-    status: boolean,
+    hasErrors: boolean,
     errors?: string[],
   ) => {
-    if (status || (section === Sections.ALERT && isReport)) {
+    if (hasErrors || (section === Sections.Alert && isReport)) {
       // clear set true and clear errors
       setValidationStatus(currentValidationData => ({
         ...currentValidationData,
         [section]: {
-          status: true,
+          hasErrors: true,
           name: currentValidationData[section].name,
           errors: [],
         },
@@ -539,7 +566,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setValidationStatus(currentValidationData => ({
         ...currentValidationData,
         [section]: {
-          status: false,
+          hasErrors: false,
           name: currentValidationData[section].name,
           errors,
         },
@@ -1047,15 +1074,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const validateGeneralSection = () => {
     const errors = [];
     if (!currentAlert?.name?.length) {
-      errors.push('name');
+      errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
     if (!currentAlert?.owners?.length) {
-      errors.push('owners');
+      errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.GENERAL, false, errors);
+      updateValidationStatus(Sections.General, false, errors);
     } else {
-      updateValidationStatus(Sections.GENERAL, true);
+      updateValidationStatus(Sections.General, true);
     }
   };
   const validateContentSection = () => {
@@ -1066,21 +1093,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         (contentType === 'chart' && !!currentAlert?.chart)
       )
     ) {
-      errors.push('content type');
+      errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.CONTENT, false, errors);
+      updateValidationStatus(Sections.Content, false, errors);
     } else {
-      updateValidationStatus(Sections.CONTENT, true);
+      updateValidationStatus(Sections.Content, true);
     }
   };
   const validateAlertSection = () => {
     const errors = [];
     if (!currentAlert?.database) {
-      errors.push('database');
+      errors.push(TRANSLATIONS.DATABASE_ERROR_TEXT);
     }
     if (!currentAlert?.sql?.length) {
-      errors.push('sql');
+      errors.push(TRANSLATIONS.SQL_ERROR_TEXT);
     }
     if (
       !(
@@ -1089,34 +1116,36 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           currentAlert?.validator_config_json?.threshold !== undefined)
       )
     ) {
-      errors.push('alert condition');
+      errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.ALERT, false, errors);
+      updateValidationStatus(Sections.Alert, false, errors);
     } else {
-      updateValidationStatus(Sections.ALERT, true);
+      updateValidationStatus(Sections.Alert, true);
     }
   };
   const validateScheduleSection = () => {
     const errors = [];
     if (!currentAlert?.crontab?.length) {
-      errors.push('crontab');
+      errors.push(TRANSLATIONS.CRONTAB_ERROR_TEXT);
     }
     if (!currentAlert?.working_timeout) {
-      errors.push('working timeout');
+      errors.push(TRANSLATIONS.WORKING_TIMEOUT_ERROR_TEXT);
     }
 
     if (errors.length) {
-      updateValidationStatus(Sections.SCHEDULE, false, errors);
+      updateValidationStatus(Sections.Schedule, false, errors);
     } else {
-      updateValidationStatus(Sections.SCHEDULE, true);
+      updateValidationStatus(Sections.Schedule, true);
     }
   };
   const validateNotificationSection = () => {
     if (checkNotificationSettings()) {
-      updateValidationStatus(Sections.NOTIFICATION, true);
+      updateValidationStatus(Sections.Notification, true);
     } else {
-      updateValidationStatus(Sections.NOTIFICATION, false, ['recipients']);
+      updateValidationStatus(Sections.Notification, false, [
+        TRANSLATIONS.RECIPIENTS_ERROR_TEXT,
+      ]);
     }
   };
 
@@ -1130,11 +1159,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const enforceValidation = () => {
     if (
-      validationStatus[Sections.GENERAL].status &&
-      validationStatus[Sections.CONTENT].status &&
-      (isReport || validationStatus[Sections.ALERT].status) &&
-      validationStatus[Sections.SCHEDULE].status &&
-      validationStatus[Sections.NOTIFICATION].status
+      validationStatus[Sections.General].hasErrors &&
+      validationStatus[Sections.Content].hasErrors &&
+      (isReport || validationStatus[Sections.Alert].hasErrors) &&
+      validationStatus[Sections.Schedule].hasErrors &&
+      validationStatus[Sections.Notification].hasErrors
     ) {
       buildErrorTooltipMessage(false, setErrorTooltipMessage, validationStatus);
       setDisableSave(false);
@@ -1324,7 +1353,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               title={TRANSLATIONS.GENERAL_TITLE}
               subtitle={TRANSLATIONS.GENERAL_SUBTITLE}
               required
-              validateCheckStatus={validationStatus[Sections.GENERAL].status}
+              validateCheckStatus={validationStatus[Sections.General].hasErrors}
               testId="general-information-panel"
             />
           }
@@ -1415,7 +1444,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 title={TRANSLATIONS.ALERT_CONDITION_TITLE}
                 subtitle={TRANSLATIONS.ALERT_CONDITION_SUBTITLE}
                 required={false}
-                validateCheckStatus={validationStatus[Sections.ALERT].status}
+                validateCheckStatus={validationStatus[Sections.Alert].hasErrors}
                 testId="alert-condition-panel"
               />
             }
@@ -1514,7 +1543,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
               subtitle={TRANSLATIONS.CONTENTS_SUBTITLE}
               required
-              validateCheckStatus={validationStatus[Sections.CONTENT].status}
+              validateCheckStatus={validationStatus[Sections.Content].hasErrors}
               testId="contents-panel"
             />
           }
@@ -1646,7 +1675,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               title={TRANSLATIONS.SCHEDULE_TITLE}
               subtitle={TRANSLATIONS.SCHEDULE_SUBTITLE}
               required
-              validateCheckStatus={validationStatus[Sections.SCHEDULE].status}
+              validateCheckStatus={
+                validationStatus[Sections.Schedule].hasErrors
+              }
               testId="schedule-panel"
             />
           }
@@ -1701,7 +1732,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     value={currentAlert?.working_timeout || ''}
                     placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
                     onChange={onTimeoutVerifyChange}
-                    timeUnit="seconds"
+                    timeUnit={TRANSLATIONS.SECONDS_TEXT}
                   />
                 </div>
               </>
@@ -1717,7 +1748,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     value={currentAlert?.grace_period || ''}
                     placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
                     onChange={onTimeoutVerifyChange}
-                    timeUnit="seconds"
+                    timeUnit={TRANSLATIONS.SECONDS_TEXT}
                   />
                 </div>
               </>
@@ -1731,7 +1762,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.NOTIFICATION_SUBTITLE}
               required
               validateCheckStatus={
-                validationStatus[Sections.NOTIFICATION].status
+                validationStatus[Sections.Notification].hasErrors
               }
               testId="notification-method-panel"
             />

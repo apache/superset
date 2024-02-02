@@ -19,6 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { ValidationObject } from './types';
+import { TRANSLATIONS } from './AlertReportModal';
 
 const StyledList = styled.ul`
   margin: 0;
@@ -43,7 +44,7 @@ export const buildErrorTooltipMessage = (
     });
     setErrorTooltipMessage(
       <div>
-        Not all required fields are complete. Please provide the following:
+        {TRANSLATIONS.ERROR_TOOLTIP_MESSAGE}
         <StyledList>
           {sectionErrors.map(err => (
             <li key={err}>{err}</li>

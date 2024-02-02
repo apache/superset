@@ -34,7 +34,6 @@ const ValidatedPanelHeader = ({
   validateCheckStatus: boolean;
   testId?: string;
 }): JSX.Element => {
-  const asterisk = ' *';
   const checkmark = <CheckCircleOutlined />;
 
   return (
@@ -44,7 +43,7 @@ const ValidatedPanelHeader = ({
         {validateCheckStatus ? (
           <span className="validation-checkmark">{checkmark}</span>
         ) : (
-          <span className="collapse-panel-asterisk">{asterisk}</span>
+          <span className="collapse-panel-asterisk">{' *'}</span>
         )}
       </div>
       <p className="collapse-panel-subtitle">
