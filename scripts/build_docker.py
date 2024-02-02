@@ -116,6 +116,8 @@ def get_docker_tags(
             tags.add(make_docker_tag(["latest"] + tag_chunks))
     elif build_context == "push" and build_context_ref == "master":
         tags.add(make_docker_tag(["master"] + tag_chunks))
+    elif build_context == "pull_request":
+        tags.add(make_docker_tag([f"pr-{build_context_ref}"] + tag_chunks))
     return tags
 
 
