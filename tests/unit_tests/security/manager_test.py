@@ -234,9 +234,9 @@ def test_raise_for_access_chart_on_admin(
     when the user does not have access to the chart datasource
     """
     from flask_appbuilder.security.sqla.models import Role, User
-    from utils.core import override_user
 
     from superset.models.slice import Slice
+    from superset.utils.core import override_user
 
     sm = SupersetSecurityManager(appbuilder)
     session = sm.get_session

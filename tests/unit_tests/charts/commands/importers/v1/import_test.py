@@ -23,13 +23,13 @@ import pytest
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
-from utils.core import override_user
 
 from superset import security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.models.slice import Slice
+from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
 
