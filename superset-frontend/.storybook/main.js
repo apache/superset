@@ -24,6 +24,7 @@ module.exports = {
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
+    '../packages/superset-ui-demo/storybook/stories/**/*.*.@(tsx|jsx)',
   ],
 
   addons: [
@@ -31,7 +32,7 @@ module.exports = {
     getAbsolutePath("@storybook/addon-links"),
     getAbsolutePath("storybook-addon-jsx"),
     getAbsolutePath("@storybook/addon-controls"),
-    getAbsolutePath("@storybook/addon-mdx-gfm")
+    getAbsolutePath("@storybook/addon-mdx-gfm"),
   ],
 
   staticDirs: ['../src/assets/images'],
