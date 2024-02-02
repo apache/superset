@@ -18,7 +18,6 @@
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
-from utils.core import override_user
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
@@ -26,6 +25,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import SupersetSecurityManager
+from superset.utils.core import override_user
 
 
 def test_security_manager(app_context: None) -> None:
