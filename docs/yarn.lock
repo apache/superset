@@ -216,7 +216,7 @@
     semver "^5.4.1"
     source-map "^0.5.0"
 
-"@babel/core@^7.18.6", "@babel/core@^7.19.6", "@babel/core@^7.21.3", "@babel/core@^7.23.9":
+"@babel/core@^7.18.6", "@babel/core@^7.19.6", "@babel/core@^7.21.3":
   version "7.23.9"
   resolved "https://registry.yarnpkg.com/@babel/core/-/core-7.23.9.tgz#b028820718000f267870822fec434820e9b1e4d1"
   integrity sha512-5q0175NOjddqpvvzU+kDiSOAk4PfdO6FvwCWoQ6RO7rTzEe8vlo+4HVfcnAREhD4npMs0e9uZypjTwzZPCf/cw==
