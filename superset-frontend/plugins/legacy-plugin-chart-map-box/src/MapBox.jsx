@@ -47,7 +47,7 @@ const propTypes = {
   viewportLongitude: PropTypes.number,
   viewportLatitude: PropTypes.number,
   viewportZoom: PropTypes.number,
-  initialViewportSettings: PropTypes.string,
+  initialViewportSettings: PropTypes.oneOf(['Auto', 'Fixed']),
 };
 
 const defaultProps = {
