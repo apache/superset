@@ -80,6 +80,7 @@ const MapBox = props => {
     renderWhileDragging,
     rgb,
     hasCustomMetric,
+    onViewportChange,
   } = props;
 
   const [viewport, setViewport] = React.useState();
@@ -155,7 +156,6 @@ const MapBox = props => {
 
   const handleViewportChange = newViewport => {
     setViewport(newViewport);
-    const { onViewportChange } = props;
     onViewportChange(newViewport);
   };
 
