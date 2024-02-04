@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import ViewportMercator from 'viewport-mercator-project';
@@ -84,7 +84,6 @@ const MapBox = props => {
   } = props;
 
   const [viewport, setViewport] = React.useState();
-  const [clusters, setClusters] = React.useState();
 
   useEffect(() => {
     // Get a viewport that fits the given bounds, which all marks to be clustered.
@@ -111,23 +110,6 @@ const MapBox = props => {
     }
   }, []);
 
-  useEffect(() => {
-    if (viewport) {
-      // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
-      // to an area outside of the original bounds, no additional queries are made to the backend to
-      // retrieve additional data.
-      // add this variable to widen the visible area
-      const offsetHorizontal = (width * 0.5) / 100;
-      const offsetVertical = (height * 0.5) / 100;
-      const bbox = [
-        bounds[0][0] - offsetHorizontal,
-        bounds[0][1] - offsetVertical,
-        bounds[1][0] + offsetHorizontal,
-        bounds[1][1] + offsetVertical,
-      ];
-      setClusters(clusterer.getClusters(bbox, Math.round(viewport.zoom)));
-    }
-  }, [clusters, viewport]);
   const clusters = useMemo(() => {
     if (viewport) {
       // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
@@ -145,14 +127,13 @@ const MapBox = props => {
       return clusterer.getClusters(bbox, Math.round(viewport.zoom));
     }
     return undefined;
-  }, [viewport]);
+  }, [viewport, clusterer, bounds, width, height]);
 
   if (!viewport || !clusters) {
     return <></>;
   }
 
   const isDragging = Boolean(viewport.isDragging);
-    viewport.isDragging === undefined ? false : viewport.isDragging;
 
   const handleViewportChange = newViewport => {
     setViewport(newViewport);
