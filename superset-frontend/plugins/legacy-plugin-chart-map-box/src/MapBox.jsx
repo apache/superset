@@ -126,7 +126,25 @@ const MapBox = props => {
       ];
       setClusters(clusterer.getClusters(bbox, Math.round(viewport.zoom)));
     }
-  }, [clusterer, viewport]);
+  }, [clusters, viewport]);
+  const clusters = useMemo(() => {
+    if (viewport) {
+      // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
+      // to an area outside of the original bounds, no additional queries are made to the backend to
+      // retrieve additional data.
+      // add this variable to widen the visible area
+      const offsetHorizontal = (width * 0.5) / 100;
+      const offsetVertical = (height * 0.5) / 100;
+      const bbox = [
+        bounds[0][0] - offsetHorizontal,
+        bounds[0][1] - offsetVertical,
+        bounds[1][0] + offsetHorizontal,
+        bounds[1][1] + offsetVertical,
+      ];
+      return clusterer.getClusters(bbox, Math.round(viewport.zoom));
+    }
+    return undefined;
+  }, [viewport]);
 
   if (!viewport || !clusters) {
     return <></>;
