@@ -18,7 +18,9 @@
  */
 /* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
 /* eslint-disable react/forbid-prop-types, react/require-default-props */
-import React, { useEffect, useMemo } from 'react';
+// -- import React, { useEffect, useMemo } from 'react';
+// ++
+import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import MapGL from 'react-map-gl';
 import ViewportMercator from 'viewport-mercator-project';
@@ -84,6 +86,8 @@ const MapBox = props => {
   } = props;
 
   const [viewport, setViewport] = React.useState();
+  // ++
+  const [clusters, setClusters] = React.useState();
 
   useEffect(() => {
     // Get a viewport that fits the given bounds, which all marks to be clustered.
@@ -110,7 +114,9 @@ const MapBox = props => {
     }
   }, []);
 
-  const clusters = useMemo(() => {
+  // ++
+  useEffect(() => {
+    // -- const clusters = useMemo(() => {
     if (viewport) {
       // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
       // to an area outside of the original bounds, no additional queries are made to the backend to
@@ -124,10 +130,13 @@ const MapBox = props => {
         bounds[1][0] + offsetHorizontal,
         bounds[1][1] + offsetVertical,
       ];
-      return clusterer.getClusters(bbox, Math.round(viewport.zoom));
+      // ++
+      setClusters(clusterer.getClusters(bbox, Math.round(viewport.zoom)));
+      // -- return clusterer.getClusters(bbox, Math.round(viewport.zoom));
     }
-    return undefined;
-  }, [viewport, clusterer, bounds, width, height]);
+  }, [clusterer, viewport, bounds, width, height]);
+  // --  return undefined;
+  // -- }, [viewport, clusterer, bounds, width, height]);
 
   if (!viewport || !clusters) {
     return <></>;
