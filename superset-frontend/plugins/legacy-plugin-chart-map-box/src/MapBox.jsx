@@ -132,7 +132,7 @@ const MapBox = props => {
     return <></>;
   }
 
-  const isDragging =
+  const isDragging = Boolean(viewport.isDragging);
     viewport.isDragging === undefined ? false : viewport.isDragging;
 
   const handleViewportChange = newViewport => {
