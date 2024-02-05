@@ -21,7 +21,6 @@ import {
   ensureIsArray,
   getMetricLabel,
   getXAxisLabel,
-  hasGenericChartAxes,
   isDefined,
   PostProcessingSort,
 } from '@superset-ui/core';
@@ -40,7 +39,6 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   ].filter(Boolean);
 
   if (
-    hasGenericChartAxes &&
     isDefined(formData?.x_axis_sort) &&
     isDefined(formData?.x_axis_sort_asc) &&
     sortableLabels.includes(formData.x_axis_sort) &&

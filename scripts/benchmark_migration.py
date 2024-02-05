@@ -142,8 +142,6 @@ def main(
     filepath: str, limit: int = 1000, force: bool = False, no_auto_cleanup: bool = False
 ) -> None:
     auto_cleanup = not no_auto_cleanup
-    session = db.session()
-
     print(f"Importing migration script: {filepath}")
     module = import_migration_script(Path(filepath))
 
@@ -174,10 +172,9 @@ def main(
     models = find_models(module)
     model_rows: dict[type[Model], int] = {}
     for model in models:
-        rows = session.query(model).count()
+        rows = db.session.query(model).count()
         print(f"- {model.__name__} ({rows} rows in table {model.__tablename__})")
         model_rows[model] = rows
-    session.close()
 
     print("Benchmarking migration")
     results: dict[str, float] = {}
@@ -199,16 +196,16 @@ def main(
                 print(f"- Adding {missing} entities to the {model.__name__} model")
                 bar = ChargingBar("Processing", max=missing)
                 try:
-                    for entity in add_sample_rows(session, model, missing):
+                    for entity in add_sample_rows(model, missing):
                         entities.append(entity)
                         bar.next()
                 except Exception:
-                    session.rollback()
+                    db.session.rollback()
                     raise
                 bar.finish()
                 model_rows[model] = min_entities
-                session.add_all(entities)
-                session.commit()
+                db.session.add_all(entities)
+                db.session.commit()
 
                 if auto_cleanup:
                     new_models[model].extend(entities)
@@ -227,10 +224,10 @@ def main(
         print("Cleaning up DB")
         # delete in reverse order of creation to handle relationships
         for model, entities in list(new_models.items())[::-1]:
-            session.query(model).filter(
+            db.session.query(model).filter(
                 model.id.in_(entity.id for entity in entities)
             ).delete(synchronize_session=False)
-        session.commit()
+        db.session.commit()
 
     if current_revision != revision and not force:
         click.confirm(f"\nRevert DB to {revision}?", abort=True)

@@ -42,7 +42,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-typescript": "^7.16.7",
     "@types/jest": "^27.4.1",
-    "axios": "^0.25.0",
+    "axios": "^1.6.0",
     "babel-loader": "^8.2.3",
     "jest": "^27.5.1",
     "typescript": "^4.5.5",

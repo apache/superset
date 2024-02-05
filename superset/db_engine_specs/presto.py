@@ -39,10 +39,9 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import cache_manager, is_feature_enabled
+from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -981,7 +980,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
         Get columns from a Presto data source. This includes handling row and
@@ -989,6 +992,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :param inspector: object that performs database schema inspection
         :param table_name: table name
         :param schema: schema name
+        :param options: Extra configuration options, not used by this backend
         :return: a list of results that contain column info
                 (i.e. column name and data type)
         """
@@ -1283,11 +1287,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """Updates progress information"""
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
-            session.commit()
+            db.session.commit()
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
@@ -1303,7 +1307,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # Update the object and wait for the kill signal.
             stats = polled.get("stats", {})
 
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
@@ -1327,7 +1331,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                     )
                     if progress > query.progress:
                         query.progress = progress
-                    session.commit()
+                    db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()

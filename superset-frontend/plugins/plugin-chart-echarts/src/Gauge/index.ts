@@ -37,9 +37,9 @@ export default class EchartsGaugeChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsGauge'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('KPI'),
         credits: ['https://echarts.apache.org'],

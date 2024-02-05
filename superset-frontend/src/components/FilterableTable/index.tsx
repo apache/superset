@@ -253,7 +253,7 @@ const FilterableTable = ({
       {fitted && (
         <Table
           loading={filterText !== keyword}
-          size={TableSize.SMALL}
+          size={TableSize.Small}
           height={totalTableHeight + 42}
           usePagination={false}
           columns={columns}

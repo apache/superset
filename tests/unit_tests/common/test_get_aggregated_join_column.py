@@ -24,7 +24,7 @@ from superset.common.query_context_processor import (
     AGGREGATED_JOIN_COLUMN,
     QueryContextProcessor,
 )
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import TimeGrain
 
 query_context_processor = QueryContextProcessor(

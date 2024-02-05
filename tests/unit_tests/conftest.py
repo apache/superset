@@ -172,7 +172,6 @@ def dummy_query_object(request, app_context):
             "ROW_LIMIT": 100,
         },
         _datasource_dao=unittest.mock.Mock(),
-        session_maker=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
 
 

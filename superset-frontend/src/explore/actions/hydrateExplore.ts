@@ -31,7 +31,6 @@ import {
   getCategoricalSchemeRegistry,
   getColumnLabel,
   getSequentialSchemeRegistry,
-  hasGenericChartAxes,
   NO_TIME_RANGE,
   QueryFormColumn,
 } from '@superset-ui/core';
@@ -77,7 +76,6 @@ export const hydrateExplore =
         common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
     if (
-      hasGenericChartAxes &&
       initialFormData.include_time &&
       initialFormData.granularity_sqla &&
       !initialFormData.groupby?.some(

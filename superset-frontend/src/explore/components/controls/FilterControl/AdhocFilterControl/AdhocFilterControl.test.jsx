@@ -31,18 +31,18 @@ import {
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilterControl from '.';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   subject: 'value',
-  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
   comparator: '10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: EXPRESSION_TYPES.SIMPLE,
+  expressionType: ExpressionTypes.Simple,
   column: { type: 'VARCHAR(255)', column_name: 'source' },
   aggregate: AGGREGATES.SUM,
 });
@@ -92,12 +92,12 @@ describe('AdhocFilterControl', () => {
     expect(
       adhocFilter.equals(
         new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SQL,
+          expressionType: ExpressionTypes.Sql,
           subject: savedMetric.expression,
           operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
           comparator: 0,
-          clause: CLAUSES.HAVING,
+          clause: Clauses.Having,
         }),
       ),
     ).toBe(true);
@@ -112,12 +112,12 @@ describe('AdhocFilterControl', () => {
     expect(
       adhocFilter.equals(
         new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SQL,
+          expressionType: ExpressionTypes.Sql,
           subject: sumValueAdhocMetric.label,
           operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
           comparator: 0,
-          clause: CLAUSES.HAVING,
+          clause: Clauses.Having,
         }),
       ),
     ).toBe(true);
@@ -136,11 +136,11 @@ describe('AdhocFilterControl', () => {
     expect(
       newAdhocFilter.equals(
         new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SIMPLE,
+          expressionType: ExpressionTypes.Simple,
           subject: columns[0].column_name,
-          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
           comparator: '',
-          clause: CLAUSES.WHERE,
+          clause: Clauses.Where,
         }),
       ),
     ).toBe(true);

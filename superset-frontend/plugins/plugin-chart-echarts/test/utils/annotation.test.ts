@@ -161,7 +161,7 @@ describe('evalFormula', () => {
       { __timestamp: 10 },
     ];
 
-    expect(evalFormula(layer, data, '__timestamp', AxisType.time)).toEqual([
+    expect(evalFormula(layer, data, '__timestamp', AxisType.Time)).toEqual([
       [0, 1],
       [10, 11],
     ]);
@@ -178,7 +178,7 @@ describe('evalFormula', () => {
         { ...layer, value: 'y  = x* 2   -1' },
         data,
         '__timestamp',
-        AxisType.time,
+        AxisType.Time,
       ),
     ).toEqual([
       [0, -1],
@@ -194,7 +194,7 @@ describe('evalFormula', () => {
         { ...layer, value: 'y = 1000' },
         data,
         'gender',
-        AxisType.category,
+        AxisType.Category,
       ),
     ).toEqual([
       ['boy', 1000],
