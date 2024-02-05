@@ -34,7 +34,7 @@ getChartTransformPropsRegistry().registerValue(
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/AreaSeries',
+  title: 'Chart Plugins/plugin-chart-echarts',
   decorators: [withResizableChartDemo],
   component: SuperChart,
   parameters: {
@@ -123,7 +123,7 @@ export default {
   },
 };
 
-export const Timeseries = ({ 
+export const AreaSeries = ({ 
   width, 
   height, 
   forecastEnabled,
