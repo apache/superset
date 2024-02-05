@@ -21,10 +21,7 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import {
-  LegendOrientation,
-  LegendType,
-} from '../types';
+import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
   EchartsTimeseriesSeriesType,

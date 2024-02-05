@@ -56,76 +56,76 @@ export default {
     zoomable: false,
   },
   argTypes: {
-    forecastEnabled: { 
-      control: 'boolean', 
+    forecastEnabled: {
+      control: 'boolean',
       description: 'Extra Forecast',
-      defaultValue: false 
+      defaultValue: false,
     },
     seriesType: {
       control: 'select',
       description: 'Line type',
       options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
     },
-    show_extra_controls: { 
-      control: 'boolean', 
+    show_extra_controls: {
+      control: 'boolean',
       description: 'Extra Controls',
-      defaultValue: false 
+      defaultValue: false,
     },
-    logAxis: { 
-      control: 'boolean', 
+    logAxis: {
+      control: 'boolean',
       description: 'Log axis',
-      defaultValue: false 
+      defaultValue: false,
     },
-    stack: { 
-      control: 'boolean', 
-      defaultValue: false 
+    stack: {
+      control: 'boolean',
+      defaultValue: false,
     },
-    showValue: { 
-      control: 'boolean', 
+    showValue: {
+      control: 'boolean',
       description: 'Show Values',
-      defaultValue: false 
+      defaultValue: false,
     },
-    onlyTotal: { 
-      control: 'boolean', 
+    onlyTotal: {
+      control: 'boolean',
       description: 'Only Total',
-      defaultValue: false 
+      defaultValue: false,
     },
-    percentageThreshold: { 
-      control: { type: 'number', min:0, max:100, step: 1 },
+    percentageThreshold: {
+      control: { type: 'number', min: 0, max: 100, step: 1 },
       description: 'Percentage Threshold',
-      defaultValue: 0 
+      defaultValue: 0,
     },
-    markerEnabled: { 
-      control: 'boolean', 
+    markerEnabled: {
+      control: 'boolean',
       description: 'Enable markers',
-      defaultValue: false 
+      defaultValue: false,
     },
-    markerSize: { 
-      control: { type: 'number', min:0, max:100, step: 1 },
+    markerSize: {
+      control: { type: 'number', min: 0, max: 100, step: 1 },
       description: 'Marker Size',
-      defaultValue: 6 
+      defaultValue: 6,
     },
-    minorSplitLine: { 
-      control: 'boolean', 
+    minorSplitLine: {
+      control: 'boolean',
       description: 'Minor splitline',
-      defaultValue: false 
+      defaultValue: false,
     },
-    opacity: { 
-      control: { type: 'number', min:0, max:1, step: 0.1 },
+    opacity: {
+      control: { type: 'number', min: 0, max: 1, step: 0.1 },
       description: 'Opacity',
-      defaultValue: 0.2 
+      defaultValue: 0.2,
     },
-    zoomable: { 
-      control: 'boolean', 
+    zoomable: {
+      control: 'boolean',
       description: 'Zoomable',
-      defaultValue: false 
+      defaultValue: false,
     },
   },
 };
 
-export const AreaSeries = ({ 
-  width, 
-  height, 
+export const AreaSeries = ({
+  width,
+  height,
   forecastEnabled,
   seriesType,
   show_extra_controls,
@@ -139,22 +139,22 @@ export const AreaSeries = ({
   minorSplitLine,
   opacity,
   zoomable,
- }: {
-  width: number, 
-  height: number, 
-  forecastEnabled: boolean,
-  seriesType: string,
-  show_extra_controls: boolean,
-  logAxis: boolean,
-  stack: boolean,
-  showValue: boolean,
-  onlyTotal: boolean,
-  percentageThreshold: number,
-  markerEnabled: boolean,
-  markerSize: number,
-  minorSplitLine: boolean,
-  opacity: number,
-  zoomable: boolean
+}: {
+  width: number;
+  height: number;
+  forecastEnabled: boolean;
+  seriesType: string;
+  show_extra_controls: boolean;
+  logAxis: boolean;
+  stack: boolean;
+  showValue: boolean;
+  onlyTotal: boolean;
+  percentageThreshold: number;
+  markerEnabled: boolean;
+  markerSize: number;
+  minorSplitLine: boolean;
+  opacity: number;
+  zoomable: boolean;
 }) => {
   const queryData = data
     .map(row =>
@@ -192,7 +192,7 @@ export const AreaSeries = ({
         markerSize,
         minorSplitLine,
         opacity,
-        zoomable
+        zoomable,
       }}
     />
   );

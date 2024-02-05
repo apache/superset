@@ -36,7 +36,7 @@ export default {
   title: 'Chart Plugins/plugin-chart-echarts',
   decorators: [withResizableChartDemo],
   args: {
-    maxBubbleSize: 10, 
+    maxBubbleSize: 10,
     xAxisTitle: '',
     xAxisTitleMargin: 30,
     yAxisTitle: '',
@@ -81,16 +81,20 @@ export default {
       name: 'Log X Axis',
       description: 'Whether to use a logarithmic scale for the X axis',
     },
-  }
+  },
 };
 
-export const BubbleChart = ({ width, height, maxBubbleSize,
+export const BubbleChart = ({
+  width,
+  height,
+  maxBubbleSize,
   xAxisTitle,
   xAxisTitleMargin,
   yAxisTitle,
   yAxisTitleMargin,
   logYAxis,
-  logXAxis }: {
+  logXAxis,
+}: {
   width: number;
   height: number;
   maxBubbleSize: number;
@@ -100,7 +104,7 @@ export const BubbleChart = ({ width, height, maxBubbleSize,
   yAxisTitleMargin: number;
   logYAxis: boolean;
   logXAxis: boolean;
-  }) => (
+}) => (
   <SuperChart
     chartType="bubble_v2"
     width={width}

@@ -50,7 +50,15 @@ export default {
   },
 };
 
-export const BoxPlot = ({ width, height, xTicksLayout }: {width: number, height: number, xTicksLayout: string}) => (
+export const BoxPlot = ({
+  width,
+  height,
+  xTicksLayout,
+}: {
+  width: number;
+  height: number;
+  xTicksLayout: string;
+}) => (
   <SuperChart
     chartType="echarts-boxplot"
     width={width}
