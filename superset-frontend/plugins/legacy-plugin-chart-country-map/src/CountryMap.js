@@ -25,6 +25,7 @@ import {
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
+import { getColorFormatters } from '@superset-ui/chart-controls';
 import countries, { countryOptions } from './countries';
 
 const propTypes = {
@@ -54,21 +55,33 @@ function CountryMap(element, props) {
     numberFormat,
     colorScheme,
     sliceId,
+    conditionalFormatting,
   } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
+  const colorFormatter = getColorFormatters(conditionalFormatting, data, false);
+
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap = {};
-  data.forEach(d => {
-    colorMap[d.country_id] = colorScheme
-      ? colorScale(d.country_id, sliceId)
-      : linearColorScale(d.metric);
-  });
+  if (conditionalFormatting.length > 0) {
+    data.forEach(d => {
+      colorMap[d.country_id] = colorFormatter
+        .map(({ getColorFromValue }) => getColorFromValue(d.metric))
+        .filter(x => x !== undefined)[0];
+    });
+  } else {
+    data.forEach(d => {
+      colorMap[d.country_id] = colorScheme
+        ? colorScale(d.country_id, sliceId)
+        : linearColorScale(d.metric);
+    });
+  }
+  console.log('Colour Map', colorMap);
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
