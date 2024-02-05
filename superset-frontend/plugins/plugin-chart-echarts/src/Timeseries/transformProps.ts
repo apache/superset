@@ -218,7 +218,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby.length || metrics.length > 1;
+  const isMultiSeries = groupby?.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
