@@ -404,7 +404,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, "Public")
 
-    def test_get_draft_dashboard_without_roles_by_uuid(self):
+    def test_cannot_get_draft_dashboard_without_roles_by_uuid(self):
         """
         Dashboard API: Test get draft dashboard without roles by uuid
         """
@@ -416,7 +416,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.uuid}"
         rv = self.client.get(uri)
-        assert rv.status_code == 200
+        assert rv.status_code == 403
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()

@@ -2018,27 +2018,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.is_admin() or self.is_owner(dashboard):
                 return
 
-            # RBAC and legacy (datasource inferred) access controls.
-            if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
-                if dashboard.published and {role.id for role in dashboard.roles} & {
-                    role.id for role in self.get_user_roles()
-                }:
-                    return
-            elif (
-                # To understand why we rely on status and give access to draft dashboards
-                # without roles take a look at:
-                #
-                #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
-                #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
-                #
-                not dashboard.published
-                or not dashboard.datasources
-                or any(
+            # If not guest user (embedded), owner or admin,
+            # user should only access published dashboards.
+            if dashboard.published:
+                # DASHBOARD_RBAC logic - Manage dashboard access through roles.
+                # Only applicable in case the dashboard has roles set.
+                if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
+                    if {role.id for role in dashboard.roles} & {
+                        role.id for role in self.get_user_roles()
+                    }:
+                        return
+
+                # REGULAR RBAC logic
+                # User can only acess the dashboard in case:
+                #    It doesn't have any datasets; OR
+                #    They have access to at least one dataset used.
+                if not dashboard.datasources or any(
                     self.can_access_datasource(datasource)
                     for datasource in dashboard.datasources
-                )
-            ):
-                return
+                ):
+                    return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
