@@ -27,13 +27,13 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
-from utils.core import get_user
 
 from superset import security_manager
 from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)
 

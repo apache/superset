@@ -19,13 +19,12 @@ import json
 import logging
 from typing import Any
 
-from flask import g
 from sqlalchemy.orm import Session
-from utils.core import get_user
 
 from superset import security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
+from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)
 
