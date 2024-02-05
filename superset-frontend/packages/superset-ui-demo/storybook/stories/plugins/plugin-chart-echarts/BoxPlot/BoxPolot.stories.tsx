@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { select, withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsBoxPlotChartPlugin,
   BoxPlotTransformProps,
@@ -38,10 +37,20 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  args: {
+    xTicksLayout: '45°', // Initial value
+  },
+  argTypes: {
+    xTicksLayout: {
+      control: 'select',
+      options: ['auto', 'flat', '45°', '90°', 'staggered'],
+      defaultValue: '45°', // Default value here
+    },
+  },
 };
 
-export const BoxPlot = ({ width, height }) => (
+export const BoxPlot = ({ width, height, xTicksLayout }: {width: number, height: number, xTicksLayout: string}) => (
   <SuperChart
     chartType="echarts-boxplot"
     width={width}
@@ -52,11 +61,7 @@ export const BoxPlot = ({ width, height }) => (
       groupby: ['type', 'region'],
       metrics: ['AVG(averageprice)'],
       whiskerOptions: 'Tukey',
-      xTicksLayout: select(
-        'X Tick Layout',
-        ['auto', 'flat', '45°', '90°', 'staggered'],
-        '45°',
-      ),
+      xTicksLayout,
       yAxisFormat: 'SMART_NUMBER',
     }}
   />
