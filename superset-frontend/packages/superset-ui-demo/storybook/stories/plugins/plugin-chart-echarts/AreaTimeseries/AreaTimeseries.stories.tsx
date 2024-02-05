@@ -34,6 +34,7 @@ getChartTransformPropsRegistry().registerValue(
 );
 
 export default {
+  title: 'Chart Plugins/plugin-chart-echarts/AreaSeries',
   decorators: [withResizableChartDemo],
   component: SuperChart,
   parameters: {
