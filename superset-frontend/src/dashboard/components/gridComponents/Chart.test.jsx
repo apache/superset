@@ -141,7 +141,7 @@ test('should call exportChart when exportCSV is clicked', async () => {
 
 test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const stubbedExportCSV = jest
     .spyOn(exploreUtils, 'exportChart')
@@ -185,7 +185,7 @@ test('should call exportChart when exportXLSX is clicked', async () => {
 
 test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const stubbedExportXLSX = jest
     .spyOn(exploreUtils, 'exportChart')
