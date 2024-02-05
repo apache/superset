@@ -154,6 +154,7 @@ export async function embedDashboard({
       });
 
       iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
+      iframe.title = 'Embedded Dashboard';
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
