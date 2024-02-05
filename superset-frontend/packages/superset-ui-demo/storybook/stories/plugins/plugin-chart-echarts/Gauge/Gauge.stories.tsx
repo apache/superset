@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsGaugeChartPlugin,
   GaugeTransformProps,
@@ -36,7 +35,7 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Gauge',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
 };
 
 export const Gauge = ({ width, height }) => (

@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { select, withKnobs } from '@storybook/addon-knobs';
 import {
   WordCloudChartPlugin,
   LegacyWordCloudChartPlugin,
@@ -42,10 +41,19 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-word-cloud',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  args:{
+    rotation: 'flat',
+  },
+  argTypes: {
+    rotation: {
+      control: 'select',
+      options: ['square', 'flat', 'random'],
+    },
+  }
 };
 
-export const basic = ({ width, height }) => (
+export const basic = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -69,13 +77,13 @@ export const basic = ({ width, height }) => (
         },
       },
       metric: 'sum__num',
-      rotation: select('Rotation', ['square', 'flat', 'random'], 'flat'),
+      rotation,
       series: 'name',
     }}
   />
 );
 
-export const encodesColorByWordLength = ({ width, height }) => (
+export const encodesColorByWordLength = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -105,13 +113,13 @@ export const encodesColorByWordLength = ({ width, height }) => (
         },
       },
       metric: 'sum__num',
-      rotation: select('Rotation', ['square', 'flat', 'random'], 'flat'),
+      rotation,
       series: 'name',
     }}
   />
 );
 
-export const encodesFontByFirstLetter = ({ width, height }) => (
+export const encodesFontByFirstLetter = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -143,13 +151,13 @@ export const encodesFontByFirstLetter = ({ width, height }) => (
         },
       },
       metric: 'sum__num',
-      rotation: select('Rotation', ['square', 'flat', 'random'], 'flat'),
+      rotation,
       series: 'name',
     }}
   />
 );
 
-export const legacyShim = ({ width, height }) => (
+export const legacyShim = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
   <SuperChart
     chartType="legacy-word-cloud2"
     width={width}
@@ -158,7 +166,7 @@ export const legacyShim = ({ width, height }) => (
     formData={{
       colorScheme: 'd3Category10',
       metric: 'sum__num',
-      rotation: select('Rotation', ['square', 'flat', 'random'], 'flat'),
+      rotation,
       series: 'name',
       sizeFrom: '10',
       sizeTo: '70',

@@ -369,7 +369,7 @@ export default function transformProps(
       customFormatters,
       formatter,
       metrics,
-      labelMap[seriesName]?.[0],
+      (labelMap && labelMap[seriesName]?.[0]),
       !!contributionMode,
     );
 
@@ -414,7 +414,7 @@ export default function transformProps(
       customFormattersSecondary,
       formatterSecondary,
       metricsB,
-      labelMapB[seriesName]?.[0],
+      (labelMapB && labelMapB[seriesName]?.[0]),
       !!contributionMode,
     );
 
