@@ -19,12 +19,7 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-} from '../../../spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject } from './types';
@@ -34,7 +29,7 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
-jest.mock('../../databases/state.ts', () => ({
+jest.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
     ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack'],
   }),
