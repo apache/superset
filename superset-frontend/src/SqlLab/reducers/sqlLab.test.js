@@ -397,7 +397,7 @@ describe('sqlLabReducer', () => {
         id: 'abcd',
         changed_on: Date.now(),
         startDttm: Date.now(),
-        state: QueryState.FETCHING,
+        state: QueryState.Fetching,
         progress: 100,
         resultsKey: 'fa3dccc4-c549-4fbf-93c8-b4fb5a6fb8b7',
         cached: false,
@@ -412,7 +412,7 @@ describe('sqlLabReducer', () => {
               ...query,
               results: {
                 query_id: 1234,
-                status: QueryState.SUCCESS,
+                status: QueryState.Success,
                 data: [],
               },
             },
@@ -420,7 +420,7 @@ describe('sqlLabReducer', () => {
         },
         actions.clearInactiveQueries(Date.now()),
       );
-      expect(newState.queries.abcd.state).toBe(QueryState.SUCCESS);
+      expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
 });

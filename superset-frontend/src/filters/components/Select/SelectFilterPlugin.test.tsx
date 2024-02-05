@@ -66,7 +66,7 @@ const selectMultipleProps = {
   width: 220,
   behaviors: ['NATIVE_FILTER'],
   isRefreshing: false,
-  appSection: AppSection.DASHBOARD,
+  appSection: AppSection.Dashboard,
 };
 
 describe('SelectFilterPlugin', () => {

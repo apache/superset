@@ -191,7 +191,7 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       tableColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -211,7 +211,7 @@ function ColumnCollectionTable({
             ]
       }
       sortColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -287,7 +287,7 @@ function ColumnCollectionTable({
                 }
               />
             )}
-            {isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES) ? (
+            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
               <Field
                 fieldKey="advanced_data_type"
                 label={t('Advanced data type')}
@@ -359,7 +359,7 @@ function ColumnCollectionTable({
         </FormContainer>
       }
       columnLabels={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: t('Column'),
               advanced_data_type: t('Advanced data type'),
@@ -380,7 +380,7 @@ function ColumnCollectionTable({
       }
       onChange={onColumnsChange}
       itemRenderers={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: (v, onItemChange, _, record) =>
                 editableColumnName ? (

@@ -46,7 +46,7 @@
     "bootstrap": "^3.4.1",
     "core-js": "3.8.3",
     "gh-pages": "^3.0.0",
-    "jquery": "^3.4.1",
+    "jquery": "^3.7.1",
     "memoize-one": "^5.1.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
@@ -55,7 +55,7 @@
     "storybook-addon-jsx": "^7.3.14"
   },
   "devDependencies": {
-    "@babel/core": "^7.9.0",
+    "@babel/core": "^7.23.9",
     "babel-loader": "^8.1.0",
     "chromatic": "^5.4.0",
     "fork-ts-checker-webpack-plugin": "^5.0.7",

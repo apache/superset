@@ -60,7 +60,7 @@ export function formatColumnValue(
   value: DataRecordValue,
 ) {
   const { dataType, formatter, config = {} } = column;
-  const isNumber = dataType === GenericDataType.NUMERIC;
+  const isNumber = dataType === GenericDataType.Numeric;
   const smallNumberFormatter =
     config.d3SmallNumberFormat === undefined
       ? formatter

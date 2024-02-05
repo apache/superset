@@ -406,7 +406,7 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(({ response, json }) => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in json ? json.result : json;
           const [useLegacyApi] = getQuerySettings(formData);
@@ -454,7 +454,7 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
           return dispatch(chartUpdateFailed([response], key));
         }
 

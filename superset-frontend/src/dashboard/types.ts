@@ -55,8 +55,8 @@ export type Chart = ChartState & {
 };
 
 export enum FilterBarOrientation {
-  VERTICAL = 'VERTICAL',
-  HORIZONTAL = 'HORIZONTAL',
+  Vertical = 'VERTICAL',
+  Horizontal = 'HORIZONTAL',
 }
 
 // chart's cross filter scoping can have its custom value or point to the global configuration

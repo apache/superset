@@ -127,13 +127,13 @@ const SqlEditorLeftBar = ({
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
     const userSelected = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject | null;
 
     if (bool && userSelected) {
       setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
+      setItem(LocalStorageKeys.Database, null);
     } else if (database) {
       setUserSelected(database);
     }

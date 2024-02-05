@@ -34,7 +34,7 @@ const EMPTY_OBJECT = {};
 
 export const getDashboardContextLocalStorage = () => {
   const dashboardsContexts = getItem(
-    LocalStorageKeys.dashboard__explore_context,
+    LocalStorageKeys.DashboardExploreContext,
     {},
   );
   // A new dashboard tab id is generated on each dashboard page opening.
@@ -52,7 +52,7 @@ const updateDashboardTabLocalStorage = (
   dashboardContext: DashboardContextForExplore,
 ) => {
   const dashboardsContexts = getDashboardContextLocalStorage();
-  setItem(LocalStorageKeys.dashboard__explore_context, {
+  setItem(LocalStorageKeys.DashboardExploreContext, {
     ...dashboardsContexts,
     [dashboardPageId]: dashboardContext,
   });

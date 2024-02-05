@@ -17,12 +17,12 @@
  * under the License.
  */
 import PropTypes from 'prop-types';
-import { CLAUSES, EXPRESSION_TYPES } from './types';
+import { Clauses, ExpressionTypes } from './types';
 
 export default PropTypes.oneOfType([
   PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
+    expressionType: PropTypes.oneOf([ExpressionTypes.Simple]).isRequired,
+    clause: PropTypes.oneOf([Clauses.Having, Clauses.Where]).isRequired,
     subject: PropTypes.string.isRequired,
     comparator: PropTypes.oneOfType([
       PropTypes.string,
@@ -30,8 +30,8 @@ export default PropTypes.oneOfType([
     ]).isRequired,
   }),
   PropTypes.shape({
-    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SQL]).isRequired,
-    clause: PropTypes.oneOf([CLAUSES.WHERE, CLAUSES.HAVING]).isRequired,
+    expressionType: PropTypes.oneOf([ExpressionTypes.Sql]).isRequired,
+    clause: PropTypes.oneOf([Clauses.Where, Clauses.Having]).isRequired,
     sqlExpression: PropTypes.string.isRequired,
   }),
 ]);

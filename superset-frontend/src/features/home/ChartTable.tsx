@@ -72,7 +72,7 @@ function ChartTable({
 }: ChartTableProps) {
   const history = useHistory();
   const initialTab = getItem(
-    LocalStorageKeys.homepage_chart_filter,
+    LocalStorageKeys.HomepageChartFilter,
     TableTab.Other,
   );
 
@@ -145,7 +145,7 @@ function ChartTable({
       label: t('Favorite'),
       onClick: () => {
         setActiveTab(TableTab.Favorite);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Favorite);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Favorite);
       },
     },
     {
@@ -153,7 +153,7 @@ function ChartTable({
       label: t('Mine'),
       onClick: () => {
         setActiveTab(TableTab.Mine);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Mine);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Mine);
       },
     },
   ];
@@ -163,7 +163,7 @@ function ChartTable({
       label: otherTabTitle,
       onClick: () => {
         setActiveTab(TableTab.Other);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Other);
+        setItem(LocalStorageKeys.HomepageChartFilter, TableTab.Other);
       },
     });
   }

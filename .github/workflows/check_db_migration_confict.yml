@@ -10,6 +10,11 @@ on:
       - "superset/migrations/**"
     types: [synchronize, opened, reopened, ready_for_review]
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   check_db_migration_conflict:
     name: Check DB migration conflict
@@ -19,9 +24,9 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Check and notify
-        uses: actions/github-script@v3
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |

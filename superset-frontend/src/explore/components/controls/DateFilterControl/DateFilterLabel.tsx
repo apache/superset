@@ -40,7 +40,7 @@ import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
 import {
-  DATE_FILTER_TEST_KEY,
+  DateFilterTestKey,
   fetchTimeRange,
   FRAME_OPTIONS,
   guessFrame,
@@ -302,9 +302,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No filter' && (
-        <div data-test={DATE_FILTER_TEST_KEY.noFilter} />
-      )}
+      {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
@@ -328,7 +326,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           key="cancel"
           className="btn-secondary"
           onClick={onHide}
-          data-test={DATE_FILTER_TEST_KEY.cancelButton}
+          data-test={DateFilterTestKey.CancelButton}
         >
           {t('CANCEL')}
         </Button>
@@ -339,7 +337,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           className="btn-primary"
           key="apply"
           onClick={onSave}
-          data-test={DATE_FILTER_TEST_KEY.applyButton}
+          data-test={DateFilterTestKey.ApplyButton}
         >
           {t('APPLY')}
         </Button>
@@ -380,7 +378,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
+          data-test={DateFilterTestKey.PopoverOverlay}
           ref={labelRef}
         />
       </Tooltip>
@@ -399,11 +397,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DATE_FILTER_TEST_KEY.modalOverlay}
+          data-test={DateFilterTestKey.ModalOverlay}
           ref={labelRef}
         />
       </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
+      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
       <Modal
         title={title}
         show={show}

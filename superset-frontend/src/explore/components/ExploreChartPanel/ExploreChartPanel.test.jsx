@@ -154,7 +154,7 @@ describe('ChartContainer', () => {
 
   it('hides gutter when collapsing data panel', async () => {
     const props = createProps();
-    setItem(LocalStorageKeys.is_datapanel_open, true);
+    setItem(LocalStorageKeys.IsDatapanelOpen, true);
     const { container } = render(<ChartContainer {...props} />, {
       useRedux: true,
     });

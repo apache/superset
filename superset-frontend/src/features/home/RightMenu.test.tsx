@@ -38,17 +38,17 @@ const dropdownItems = [
     childs: [
       {
         label: 'Connect database',
-        name: GlobalMenuDataOptions.DB_CONNECTION,
+        name: GlobalMenuDataOptions.DbConnection,
         perm: true,
       },
       {
         label: 'Create dataset',
-        name: GlobalMenuDataOptions.DATASET_CREATION,
+        name: GlobalMenuDataOptions.DatasetCreation,
         perm: true,
       },
       {
         label: 'Connect Google Sheet',
-        name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+        name: GlobalMenuDataOptions.GoogleSheets,
         perm: true,
       },
       {

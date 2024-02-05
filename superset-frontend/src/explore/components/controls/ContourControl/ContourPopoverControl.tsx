@@ -31,7 +31,7 @@ import {
   ErrorMapType,
 } from './types';
 
-enum CONTOUR_TYPES {
+enum ContourTypes {
   Isoline = 'ISOLINE',
   Isoband = 'ISOBAND',
 }
@@ -53,7 +53,7 @@ const isIsoband = (contour: ContourType) => {
 };
 
 const getTabKey = (contour: ContourType | undefined) =>
-  contour && isIsoband(contour) ? CONTOUR_TYPES.Isoband : CONTOUR_TYPES.Isoline;
+  contour && isIsoband(contour) ? ContourTypes.Isoband : ContourTypes.Isoline;
 
 const determineErrorMap = (tab: string, contour: ContourType) => {
   const errorMap: ErrorMapType = {
@@ -67,13 +67,13 @@ const determineErrorMap = (tab: string, contour: ContourType) => {
   if (lowerThresholdError) errorMap.lowerThreshold.push(lowerThresholdError);
 
   // Isoline only validation
-  if (tab === CONTOUR_TYPES.Isoline) {
+  if (tab === ContourTypes.Isoline) {
     const strokeWidthError = legacyValidateInteger(contour.strokeWidth);
     if (strokeWidthError) errorMap.strokeWidth.push(strokeWidthError);
   }
 
   // Isoband only validation
-  if (tab === CONTOUR_TYPES.Isoband) {
+  if (tab === ContourTypes.Isoband) {
     const upperThresholdError = legacyValidateInteger(contour.upperThreshold);
     if (upperThresholdError) errorMap.upperThreshold.push(upperThresholdError);
     if (
@@ -140,7 +140,7 @@ const ContourPopoverControl = ({
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    const isIsoband = currentTab === CONTOUR_TYPES.Isoband;
+    const isIsoband = currentTab === ContourTypes.Isoband;
     const validLower =
       Boolean(contour.lowerThreshold) || contour.lowerThreshold === 0;
     const validUpper =
@@ -204,7 +204,7 @@ const ContourPopoverControl = ({
   const handleSave = () => {
     if (isComplete && onSave) {
       const newContour =
-        currentTab === CONTOUR_TYPES.Isoline
+        currentTab === ContourTypes.Isoline
           ? formatIsoline(contour)
           : formatIsoband(contour);
       onSave(convertContourToNumeric(newContour));
@@ -221,10 +221,10 @@ const ContourPopoverControl = ({
       >
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
-          key={CONTOUR_TYPES.Isoline}
+          key={ContourTypes.Isoline}
           tab={t('Isoline')}
         >
-          <div key={CONTOUR_TYPES.Isoline} className="isoline-popover-section">
+          <div key={ContourTypes.Isoline} className="isoline-popover-section">
             <StyledRow>
               <Col flex="1">
                 <ControlHeader
@@ -274,10 +274,10 @@ const ContourPopoverControl = ({
         </Tabs.TabPane>
         <Tabs.TabPane
           className="adhoc-filter-edit-tab"
-          key={CONTOUR_TYPES.Isoband}
+          key={ContourTypes.Isoband}
           tab={t('Isoband')}
         >
-          <div key={CONTOUR_TYPES.Isoband} className="isoline-popover-section">
+          <div key={ContourTypes.Isoband} className="isoline-popover-section">
             <StyledRow>
               <Col flex="1">
                 <ControlHeader
