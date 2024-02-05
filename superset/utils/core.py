@@ -823,7 +823,6 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     files: list[str] | None = None,
     data: dict[str, str] | None = None,
     images: dict[str, bytes] | None = None,
-    dryrun: bool = False,
     cc: str | None = None,
     bcc: str | None = None,
     mime_subtype: str = "mixed",
@@ -832,7 +831,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     """
     Send an email with html content, eg:
     send_email_smtp(
-        'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
+        'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'])
     """
     smtp_mail_from = config["SMTP_MAIL_FROM"]
     smtp_mail_to = get_email_address_list(to)
@@ -891,7 +890,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg_mutator = config["EMAIL_HEADER_MUTATOR"]
     # the base notification returns the message without any editing.
     new_msg = msg_mutator(msg, **(header_data or {}))
-    send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
+    send_mime_email(smtp_mail_from, recipients, new_msg, config)
 
 
 def send_mime_email(
@@ -899,7 +898,6 @@ def send_mime_email(
     e_to: list[str],
     mime_msg: MIMEMultipart,
     config: dict[str, Any],
-    dryrun: bool = False,
 ) -> None:
     smtp_host = config["SMTP_HOST"]
     smtp_port = config["SMTP_PORT"]
@@ -908,6 +906,7 @@ def send_mime_email(
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
     smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    dryrun = config["EMAIL_NOTIFICATIONS"]
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
