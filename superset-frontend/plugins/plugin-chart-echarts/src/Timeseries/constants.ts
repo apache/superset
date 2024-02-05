@@ -26,16 +26,16 @@ import {
   EchartsTimeseriesSeriesType,
   EchartsTimeseriesFormData,
 } from './types';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  DEFAULT_TITLE_FORM_DATA,
-} from '../constants';
+// import {
+//   DEFAULT_LEGEND_FORM_DATA,
+//   DEFAULT_TITLE_FORM_DATA,
+// } from '../constants';
 import { defaultXAxis } from '../defaults';
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
-  ...DEFAULT_LEGEND_FORM_DATA,
-  ...DEFAULT_TITLE_FORM_DATA,
+  // ...DEFAULT_LEGEND_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
+  // ...DEFAULT_TITLE_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   ...DEFAULT_SORT_SERIES_DATA,
   annotationLayers: sections.annotationLayers,
   area: false,
