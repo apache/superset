@@ -44,7 +44,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
   mode = 'development',
-  devserverPort = 9000,
+  devserverPort = 9001,
   measure = false,
   analyzeBundle = false,
   analyzerPort = 8888,

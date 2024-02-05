@@ -24,6 +24,7 @@ export default function transformProps(chartProps) {
     selectCountry,
     colorScheme,
     sliceId,
+    conditionalFormatting,
   } = formData;
 
   return {
@@ -34,6 +35,7 @@ export default function transformProps(chartProps) {
     linearColorScheme,
     numberFormat,
     colorScheme,
+    conditionalFormatting,
     sliceId,
   };
 }
