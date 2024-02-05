@@ -22,7 +22,7 @@ from typing import Any
 from urllib import request
 
 import pandas as pd
-from flask import current_app, g
+from flask import current_app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session

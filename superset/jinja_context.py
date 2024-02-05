@@ -37,7 +37,6 @@ from superset.extensions import feature_flag_manager
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     get_user,
-    get_user_id,
     merge_extra_filters,
 )
 
