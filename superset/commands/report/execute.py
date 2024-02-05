@@ -258,11 +258,9 @@ class BaseReportState:
             if csv_data:
                 buf = BytesIO()
                 temp_df = pd.read_csv(StringIO(csv_data.decode("utf-8")))
-                if temp_df.columns[0] == "":
-                    csv_data = temp_df.iloc[:, 1:]
-                    csv_data.to_csv(
-                        buf, encoding="utf-8", index=app.config["CSV_INDEX"]
-                    )
+                if temp_df.columns[0].strip() == "Unnamed: 0":
+                    temp_df = temp_df.iloc[:, 1:]
+                    temp_df.to_csv(buf, encoding="utf-8", index=app.config["CSV_INDEX"])
                     buf.seek(0)
                     csv_data = buf.getvalue()
         except SoftTimeLimitExceeded as ex:
