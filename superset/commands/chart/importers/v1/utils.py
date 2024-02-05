@@ -20,7 +20,6 @@ import json
 from inspect import isclass
 from typing import Any
 
-from flask import g
 from sqlalchemy.orm import Session
 
 from superset import security_manager
@@ -28,7 +27,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
-from superset.utils.core import AnnotationType
+from superset.utils.core import AnnotationType, get_user
 
 
 def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
@@ -55,7 +54,7 @@ def import_chart(
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     existing = session.query(Slice).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if overwrite and can_write and hasattr(g, "user") and g.user:
+        if overwrite and can_write and get_user():
             if not security_manager.can_access_chart(existing):
                 raise ImportFailedError(
                     "A chart already exists and user doesn't "
@@ -83,8 +82,8 @@ def import_chart(
     if chart.id is None:
         session.flush()
 
-    if hasattr(g, "user") and g.user:
-        chart.owners.append(g.user)
+    if user := get_user():
+        chart.owners.append(user)
 
     return chart
 

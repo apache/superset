@@ -21,6 +21,7 @@ from typing import Any
 
 from flask import g
 from sqlalchemy.orm import Session
+from utils.core import get_user
 
 from superset import security_manager
 from superset.commands.exceptions import ImportFailedError
@@ -157,7 +158,7 @@ def import_dashboard(
     )
     existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
-        if overwrite and can_write and hasattr(g, "user") and g.user:
+        if overwrite and can_write and get_user():
             if not security_manager.can_access_dashboard(existing):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
@@ -191,7 +192,7 @@ def import_dashboard(
     if dashboard.id is None:
         session.flush()
 
-    if hasattr(g, "user") and g.user:
-        dashboard.owners.append(g.user)
+    if user := get_user():
+        dashboard.owners.append(user)
 
     return dashboard

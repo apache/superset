@@ -27,6 +27,7 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
+from utils.core import get_user
 
 from superset import security_manager
 from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
@@ -176,8 +177,8 @@ def import_dataset(
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database, session)
 
-    if hasattr(g, "user") and g.user:
-        dataset.owners.append(g.user)
+    if user := get_user():
+        dataset.owners.append(user)
 
     return dataset
 

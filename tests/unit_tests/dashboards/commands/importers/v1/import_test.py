@@ -126,10 +126,6 @@ def test_import_existing_dashboard_without_permission(
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_dashboard", return_value=False)
-    mock_g = mocker.patch(
-        "superset.commands.dashboard.importers.v1.utils.g"
-    )  # Replace with the actual path to g
-    mock_g.user = mocker.MagicMock(return_value=True)
 
     dashboard = (
         session_with_data.query(Dashboard)
@@ -137,12 +133,13 @@ def test_import_existing_dashboard_without_permission(
         .one_or_none()
     )
 
-    with pytest.raises(ImportFailedError) as excinfo:
-        import_dashboard(session_with_data, dashboard_config, overwrite=True)
-    assert (
-        str(excinfo.value)
-        == "A dashboard already exists and user doesn't have permissions to overwrite it"
-    )
+    with override_user("admin"):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dashboard(session_with_data, dashboard_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"
+        )
 
     # Assert that the can write to dashboard was checked
     security_manager.can_access.assert_called_once_with("can_write", "Dashboard")

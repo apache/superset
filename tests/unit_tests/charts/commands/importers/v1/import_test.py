@@ -164,10 +164,6 @@ def test_import_existing_chart_without_permission(
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_chart", return_value=False)
-    mock_g = mocker.patch(
-        "superset.commands.chart.importers.v1.utils.g"
-    )  # Replace with the actual path to g
-    mock_g.user = mocker.MagicMock(return_value=True)
 
     slice = (
         session_with_data.query(Slice)
@@ -175,12 +171,13 @@ def test_import_existing_chart_without_permission(
         .one_or_none()
     )
 
-    with pytest.raises(ImportFailedError) as excinfo:
-        import_chart(session_with_data, chart_config, overwrite=True)
-    assert (
-        str(excinfo.value)
-        == "A chart already exists and user doesn't have permissions to overwrite it"
-    )
+    with override_user("admin"):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(session_with_data, chart_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A chart already exists and user doesn't have permissions to overwrite it"
+        )
 
     # Assert that the can write to chart was checked
     security_manager.can_access.assert_called_once_with("can_write", "Chart")
