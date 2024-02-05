@@ -17,8 +17,6 @@
 """Code related with dealing with legacy / change management"""
 from typing import Any
 
-from superset import is_feature_enabled
-
 
 def update_time_range(form_data: dict[str, Any]) -> None:
     """
@@ -33,11 +31,10 @@ def update_time_range(form_data: dict[str, Any]) -> None:
         until = form_data.pop("until", "") or ""
         form_data["time_range"] = f"{since} : {until}"
 
-    if is_feature_enabled("GENERIC_CHART_AXES"):
-        if temporal_column := form_data.get("granularity_sqla"):
-            if any(
-                adhoc_filter.get("subject") == temporal_column
-                and adhoc_filter.get("comparator") == "No filter"
-                for adhoc_filter in form_data.get("adhoc_filters", [])
-            ):
-                form_data.setdefault("time_range", "No filter")
+    if temporal_column := form_data.get("granularity_sqla"):
+        if any(
+            adhoc_filter.get("subject") == temporal_column
+            and adhoc_filter.get("comparator") == "No filter"
+            for adhoc_filter in form_data.get("adhoc_filters", [])
+        ):
+            form_data.setdefault("time_range", "No filter")

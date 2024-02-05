@@ -47,9 +47,9 @@ export const URL_PARAMS = {
     name: 'native_filters_key',
     type: 'string',
   },
-  filterSet: {
-    name: 'filter_set',
-    type: 'string',
+  showFilters: {
+    name: 'show_filters',
+    type: 'boolean',
   },
   expandFilters: {
     name: 'expand_filters',
@@ -175,7 +175,6 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
       user_info_url: '',
       user_login_url: '',
       user_logout_url: '',
-      user_profile_url: '',
       locale: '',
     },
     settings: [],

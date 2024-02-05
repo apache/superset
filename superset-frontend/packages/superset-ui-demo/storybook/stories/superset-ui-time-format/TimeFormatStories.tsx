@@ -59,7 +59,7 @@ class TimeFormatValidator extends React.PureComponent {
               This <code>@superset-ui/time-format</code> package enriches
               <code>d3-time-format</code> to handle invalid formats as well as
               edge case values. Use the validator below to preview outputs from
-              the specified format string. See
+              the specified format string. See &nbsp;
               <a
                 href="https://github.com/d3/d3-time-format#locale_format"
                 target="_blank"
@@ -67,7 +67,7 @@ class TimeFormatValidator extends React.PureComponent {
               >
                 D3 Time Format Reference
               </a>
-              for how to write a D3 time format string.
+              &nbsp;for how to write a D3 time format string.
             </p>
           </div>
         </div>

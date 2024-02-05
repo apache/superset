@@ -209,7 +209,7 @@ class TestSqlLabApi(SupersetTestCase):
             return_value=formatter_response
         )
 
-        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
             mock_superset_db.session.query().get.return_value = db_mock
 
             data = {"database_id": 1, "sql": "SELECT 1"}
@@ -223,7 +223,20 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)
         self.assertEqual(rv.status_code, 200)
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    def test_format_sql_request(self):
+        self.login()
+
+        data = {"sql": "select 1 from my_table"}
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, success_resp)
+        self.assertEqual(rv.status_code, 200)
+
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()
         client_id = f"{random.getrandbits(64)}"[:10]
@@ -263,7 +276,7 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_valid_request(self) -> None:
         from superset import sql_lab as core
 
@@ -307,9 +320,9 @@ class TestSqlLabApi(SupersetTestCase):
 
         self.delete_fake_db_for_macros()
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_get_results_with_display_limit(self):
-        from superset.sqllab.commands import results as command
+        from superset.commands.sql_lab import results as command
 
         command.results_backend = mock.Mock()
         self.login()
@@ -342,7 +355,7 @@ class TestSqlLabApi(SupersetTestCase):
         compressed = utils.zlib_compress(serialized_payload)
         command.results_backend.get.return_value = compressed
 
-        with mock.patch("superset.sqllab.commands.results.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.results.db") as mock_superset_db:
             mock_superset_db.session.query().filter_by().one_or_none.return_value = (
                 query_mock
             )

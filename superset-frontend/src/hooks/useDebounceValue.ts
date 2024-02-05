@@ -19,8 +19,8 @@
 import { useState, useEffect } from 'react';
 import { FAST_DEBOUNCE } from 'src/constants';
 
-export function useDebounceValue(value: string, delay = FAST_DEBOUNCE) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
+export function useDebounceValue<T>(value: T, delay = FAST_DEBOUNCE) {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
     const handler: NodeJS.Timeout = setTimeout(() => {

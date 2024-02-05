@@ -22,11 +22,12 @@ import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import jwt, { Algorithm } from 'jsonwebtoken';
 import cookie from 'cookie';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
 import { createLogger } from './logger';
-import { buildConfig } from './config';
+import { buildConfig, RedisConfig } from './config';
+import { checkServerIdentity, PeerCertificate } from 'tls';
 
 export type StreamResult = [
   recordId: string,
@@ -66,13 +67,6 @@ export interface SocketInstance {
   channel: string;
   pongTs: number;
 }
-interface RedisConfig {
-  port: number;
-  host: string;
-  password?: string | null;
-  db: number;
-  ssl: boolean;
-}
 
 interface ChannelValue {
   sockets: Array<string>;
@@ -103,15 +97,39 @@ export const statsd = new StatsD({
 if (startServer && opts.jwtSecret.length < 32)
   throw new Error('Please provide a JWT secret at least 32 bytes long');
 
-export const redisUrlFromConfig = (redisConfig: RedisConfig): string => {
-  let url = redisConfig.ssl ? 'rediss://' : 'redis://';
-  if (redisConfig.password) url += `:${redisConfig.password}@`;
-  url += `${redisConfig.host}:${redisConfig.port}/${redisConfig.db}`;
-  return url;
+export const buildRedisOpts = (baseConfig: RedisConfig) => {
+  const redisOpts: RedisOptions = {
+    port: baseConfig.port,
+    host: baseConfig.host,
+    db: baseConfig.db,
+  };
+
+  const passwd = baseConfig.password;
+  if (passwd !== '') {
+    redisOpts.username = baseConfig.username;
+    redisOpts.password = baseConfig.password;
+  }
+
+  if (baseConfig.ssl) {
+    redisOpts.tls = {
+      checkServerIdentity: (
+        hostname: string,
+        cert: PeerCertificate,
+      ): Error | undefined => {
+        // Note, the cert chain will have been verified already. the role of this method is to
+        // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
+        if (baseConfig.validateHostname) {
+          return checkServerIdentity(hostname, cert);
+        }
+      },
+    };
+  }
+
+  return redisOpts;
 };
 
 // initialize servers
-const redis = new Redis(redisUrlFromConfig(opts.redis));
+const redis = new Redis(buildRedisOpts(opts.redis));
 const httpServer = http.createServer();
 export const wss = new WebSocket.Server({
   noServer: true,

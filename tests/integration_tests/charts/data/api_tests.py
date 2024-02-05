@@ -27,6 +27,7 @@ from zipfile import ZipFile
 
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
+from superset.charts.data.api import ChartDataRestApi
 from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import SupersetTestCase, test_client
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
@@ -42,12 +43,11 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 import pytest
 from superset.models.slice import Slice
 
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
-from superset.models.slice import Slice
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
@@ -88,7 +88,9 @@ class BaseTestChartDataApi(SupersetTestCase):
             BaseTestChartDataApi.query_context_payload_template = get_query_context(
                 "birth_names"
             )
-        self.query_context_payload = copy.deepcopy(self.query_context_payload_template)
+        self.query_context_payload = (
+            copy.deepcopy(self.query_context_payload_template) or {}
+        )
 
     def get_expected_row_count(self, client_id: str) -> int:
         start_date = datetime.now()
@@ -124,7 +126,49 @@ class BaseTestChartDataApi(SupersetTestCase):
 @pytest.mark.chart_data_flow
 class TestPostChartDataApi(BaseTestChartDataApi):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_with_valid_qc__data_is_returned(self):
+    def test__map_form_data_datasource_to_dataset_id(self):
+        # arrange
+        self.query_context_payload["datasource"] = {"id": 1, "type": "table"}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dataset_id": 1, "slice_id": None}
+
+        # takes malformed content without raising an error
+        self.query_context_payload["datasource"] = "1__table"
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dataset_id": None, "slice_id": None}
+
+        # takes a slice id
+        self.query_context_payload["datasource"] = None
+        self.query_context_payload["form_data"] = {"slice_id": 1}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dataset_id": None, "slice_id": 1}
+
+        # takes missing slice id
+        self.query_context_payload["datasource"] = None
+        self.query_context_payload["form_data"] = {"foo": 1}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dataset_id": None, "slice_id": None}
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch("superset.utils.decorators.g")
+    def test_with_valid_qc__data_is_returned(self, mock_g):
+        mock_g.logs_context = {}
         # arrange
         expected_row_count = self.get_expected_row_count("client_id_1")
         # act
@@ -132,6 +176,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         # assert
         assert rv.status_code == 200
         self.assert_row_count(rv, expected_row_count)
+
+        # check that global logs decorator is capturing from form_data
+        assert isinstance(mock_g.logs_context.get("dataset_id"), int)
 
     @staticmethod
     def assert_row_count(rv: Response, expected_row_count: int):
@@ -1293,7 +1340,6 @@ def test_chart_cache_timeout(
 
     slice_with_cache_timeout = load_energy_table_with_slice[0]
     slice_with_cache_timeout.cache_timeout = 20
-    db.session.merge(slice_with_cache_timeout)
 
     datasource: SqlaTable = (
         db.session.query(SqlaTable)
@@ -1301,7 +1347,6 @@ def test_chart_cache_timeout(
         .first()
     )
     datasource.cache_timeout = 1254
-    db.session.merge(datasource)
 
     db.session.commit()
 
@@ -1331,7 +1376,6 @@ def test_chart_cache_timeout_not_present(
         .first()
     )
     datasource.cache_timeout = 1980
-    db.session.merge(datasource)
     db.session.commit()
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)

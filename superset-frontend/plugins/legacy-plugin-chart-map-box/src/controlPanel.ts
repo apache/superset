@@ -16,28 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t, validateMapboxStylesUrl } from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
-  ControlPanelState,
   formatSelectOptions,
-  sections,
   sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
-const allColumns = {
-  type: 'SelectControl',
-  default: null,
-  mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource),
-  }),
-};
-
-const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? sharedControls.entity
-  : allColumns;
+const columnsConfig = sharedControls.entity;
 
 const colorChoices = [
   ['rgb(0, 139, 139)', t('Dark Cyan')],
@@ -50,7 +38,6 @@ const colorChoices = [
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -224,6 +211,8 @@ const config: ControlPanelConfig = {
               label: t('Map Style'),
               clearable: false,
               renderTrigger: true,
+              freeForm: true,
+              validators: [validateMapboxStylesUrl],
               choices: [
                 ['mapbox://styles/mapbox/streets-v9', t('Streets')],
                 ['mapbox://styles/mapbox/dark-v9', t('Dark')],
@@ -236,7 +225,10 @@ const config: ControlPanelConfig = {
                 ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
               ],
               default: 'mapbox://styles/mapbox/light-v9',
-              description: t('Base layer map style'),
+              description: t(
+                'Base layer map style. See Mapbox documentation: %s',
+                'https://docs.mapbox.com/help/glossary/style-url/',
+              ),
             },
           },
         ],

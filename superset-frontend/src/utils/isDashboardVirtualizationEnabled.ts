@@ -17,14 +17,14 @@
  * under the License.
  */
 
-export enum DASHBOARD_VIRTUALIZATION_MODE {
-  NONE = 'NONE',
-  VIEWPORT = 'VIEWPORT',
-  PAGINATED = 'PAGINATED',
+export enum DashboardVirtualizationMode {
+  None = 'NONE',
+  Viewport = 'VIEWPORT',
+  Paginated = 'PAGINATED',
 }
 
 export const isDashboardVirtualizationEnabled = (
-  virtualizationMode: DASHBOARD_VIRTUALIZATION_MODE,
+  virtualizationMode: DashboardVirtualizationMode,
 ) =>
-  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.VIEWPORT ||
-  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.PAGINATED;
+  virtualizationMode === DashboardVirtualizationMode.Viewport ||
+  virtualizationMode === DashboardVirtualizationMode.Paginated;

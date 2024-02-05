@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
@@ -58,10 +74,10 @@ def session_with_data(session: Session):
 
 
 def test_update_command_success(session_with_data: Session, mocker: MockFixture):
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
-    from superset.tags.commands.update import UpdateTagCommand
-    from superset.tags.models import ObjectTypes, TaggedObject
+    from superset.tags.models import ObjectType, TaggedObject
 
     dashboard = session_with_data.query(Dashboard).first()
     mocker.patch(
@@ -72,7 +88,7 @@ def test_update_command_success(session_with_data: Session, mocker: MockFixture)
     )
 
     objects_to_tag = [
-        (ObjectTypes.dashboard, dashboard.id),
+        (ObjectType.dashboard, dashboard.id),
     ]
 
     tag_to_update = TagDAO.find_by_name("test_name")
@@ -94,12 +110,12 @@ def test_update_command_success(session_with_data: Session, mocker: MockFixture)
 def test_update_command_success_duplicates(
     session_with_data: Session, mocker: MockFixture
 ):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.commands.update import UpdateTagCommand
-    from superset.tags.models import ObjectTypes, TaggedObject
+    from superset.tags.models import ObjectType, TaggedObject
 
     dashboard = session_with_data.query(Dashboard).first()
     chart = session_with_data.query(Slice).first()
@@ -113,7 +129,7 @@ def test_update_command_success_duplicates(
     )
 
     objects_to_tag = [
-        (ObjectTypes.dashboard, dashboard.id),
+        (ObjectType.dashboard, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
@@ -123,7 +139,7 @@ def test_update_command_success_duplicates(
     tag_to_update = TagDAO.find_by_name("test_tag")
 
     objects_to_tag = [
-        (ObjectTypes.chart, chart.id),
+        (ObjectType.chart, chart.id),
     ]
     changed_model = UpdateTagCommand(
         tag_to_update.id,
@@ -144,18 +160,18 @@ def test_update_command_success_duplicates(
 def test_update_command_failed_validation(
     session_with_data: Session, mocker: MockFixture
 ):
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.exceptions import TagInvalidError
+    from superset.commands.tag.update import UpdateTagCommand
     from superset.daos.tag import TagDAO
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tags.commands.create import CreateCustomTagWithRelationshipsCommand
-    from superset.tags.commands.exceptions import TagInvalidError
-    from superset.tags.commands.update import UpdateTagCommand
-    from superset.tags.models import ObjectTypes
+    from superset.tags.models import ObjectType
 
     dashboard = session_with_data.query(Dashboard).first()
     chart = session_with_data.query(Slice).first()
     objects_to_tag = [
-        (ObjectTypes.chart, chart.id),
+        (ObjectType.chart, chart.id),
     ]
 
     mocker.patch(

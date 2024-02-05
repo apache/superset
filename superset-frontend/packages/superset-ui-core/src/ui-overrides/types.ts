@@ -127,11 +127,29 @@ export interface SQLResultTableExtentionProps {
   expandedColumns?: string[];
 }
 
+/**
+ * Interface for extensions to Slice Header
+ */
+export interface SliceHeaderExtension {
+  sliceId: number;
+  dashboardId: number;
+}
+
+/**
+ * Interface for extensions to Embed Modal
+ */
+export interface DashboardEmbedModalExtensions {
+  dashboardId: string;
+  show: boolean;
+  onHide: () => void;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
+  'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
   'dashboard.nav.right': React.ComponentType;
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
@@ -147,4 +165,5 @@ export type Extensions = Partial<{
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
+  'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
 }>;

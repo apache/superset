@@ -143,11 +143,7 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  const clientMethod =
-    'GET' && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)
-      ? SupersetClient.get
-      : SupersetClient.post;
-  return clientMethod(querySettings).then(({ json, response }) =>
+  return SupersetClient.post(querySettings).then(({ json, response }) =>
     // Make the legacy endpoint return a payload that corresponds to the
     // V1 chart data endpoint response signature.
     ({
@@ -183,7 +179,7 @@ const v1ChartDataRequest = async (
   const qs = {};
   if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
   if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
-  if (force !== false) qs.force = force;
+  if (force) qs.force = force;
 
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
@@ -269,9 +265,12 @@ export function runAnnotationQuery({
       return Promise.resolve();
     }
 
-    const granularity = fd.time_grain_sqla || fd.granularity;
-    fd.time_grain_sqla = granularity;
-    fd.granularity = granularity;
+    // In the original formData the `granularity` attribute represents the time grain (eg
+    // `P1D`), but in the request payload it corresponds to the name of the column where
+    // the time grain should be applied (eg, `Date`), so we need to move things around.
+    fd.time_grain_sqla = fd.time_grain_sqla || fd.granularity;
+    fd.granularity = fd.granularity_sqla;
+
     const overridesKeys = Object.keys(annotation.overrides);
     if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
       annotation.overrides = {
@@ -376,7 +375,6 @@ export function exploreJSON(
   force = false,
   timeout = 60,
   key,
-  method,
   dashboardId,
   ownState,
 ) {
@@ -399,7 +397,7 @@ export function exploreJSON(
       resultFormat: 'json',
       resultType: 'full',
       force,
-      method,
+      method: 'POST',
       requestParams,
       ownState,
     });
@@ -408,7 +406,7 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(({ response, json }) => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in json ? json.result : json;
           const [useLegacyApi] = getQuerySettings(formData);
@@ -456,7 +454,7 @@ export function exploreJSON(
         return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
-        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
           return dispatch(chartUpdateFailed([response], key));
         }
 
@@ -515,36 +513,6 @@ export function exploreJSON(
   };
 }
 
-export const GET_SAVED_CHART = 'GET_SAVED_CHART';
-export function getSavedChart(
-  formData,
-  force = false,
-  timeout = 60,
-  key,
-  dashboardId,
-  ownState,
-) {
-  /*
-   * Perform a GET request to `/explore_json`.
-   *
-   * This will return the payload of a saved chart, optionally filtered by
-   * ad-hoc or extra filters from dashboards. Eg:
-   *
-   *  GET  /explore_json?{"chart_id":1}
-   *  GET  /explore_json?{"chart_id":1,"extra_filters":"..."}
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'GET',
-    dashboardId,
-    ownState,
-  );
-}
-
 export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
 export function postChartFormData(
   formData,
@@ -554,21 +522,7 @@ export function postChartFormData(
   dashboardId,
   ownState,
 ) {
-  /*
-   * Perform a POST request to `/explore_json`.
-   *
-   * This will post the form data to the endpoint, returning a new chart.
-   *
-   */
-  return exploreJSON(
-    formData,
-    force,
-    timeout,
-    key,
-    'POST',
-    dashboardId,
-    ownState,
-  );
+  return exploreJSON(formData, force, timeout, key, dashboardId, ownState);
 }
 
 export function redirectSQLLab(formData, history) {

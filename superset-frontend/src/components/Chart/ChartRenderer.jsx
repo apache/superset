@@ -70,7 +70,7 @@ const BLANK = {};
 const BIG_NO_RESULT_MIN_WIDTH = 300;
 const BIG_NO_RESULT_MIN_HEIGHT = 220;
 
-const behaviors = [Behavior.INTERACTIVE_CHART];
+const behaviors = [Behavior.InteractiveChart];
 
 const defaultProps = {
   addFilter: () => BLANK,
@@ -87,8 +87,8 @@ class ChartRenderer extends React.Component {
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
-        (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) ||
-          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)),
+        (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
+          isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
       inContextMenu: false,
       legendState: undefined,
     };
@@ -319,7 +319,7 @@ class ChartRenderer extends React.Component {
     // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
     const drillToDetailProps = getChartMetadataRegistry()
       .get(formData.viz_type)
-      ?.behaviors.find(behavior => behavior === Behavior.DRILL_TO_DETAIL)
+      ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail)
       ? { inContextMenu: this.state.inContextMenu }
       : {};
 

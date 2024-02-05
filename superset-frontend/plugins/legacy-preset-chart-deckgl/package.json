@@ -33,8 +33,8 @@
     "d3-scale": "^3.0.0",
     "deck.gl": "8.8.27",
     "lodash": "^4.17.15",
-    "moment": "^2.20.1",
-    "mousetrap": "^1.6.1",
+    "moment": "^2.30.1",
+    "mousetrap": "^1.6.5",
     "prop-types": "^15.6.0",
     "react-bootstrap-slider": "2.1.5",
     "underscore": "^1.12.1",
@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/mapbox__geojson-extent": "^1.0.0",
     "@types/underscore": "^1.11.6",
-    "@types/urijs": "^1.19.19"
+    "@types/urijs": "^1.19.25"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

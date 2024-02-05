@@ -19,11 +19,11 @@
 import pytest
 from sqlalchemy.orm.session import Session
 
-from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelInvalidError
 
 
 def test_create_ssh_tunnel_command() -> None:
-    from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+    from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
@@ -44,7 +44,7 @@ def test_create_ssh_tunnel_command() -> None:
 
 
 def test_create_ssh_tunnel_command_invalid_params() -> None:
-    from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+    from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 

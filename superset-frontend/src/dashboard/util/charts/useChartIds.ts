@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import isEqual from 'lodash/isEqual';
+import { isEqual } from 'lodash';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
 import { useMemoCompare } from 'src/hooks/useMemoCompare';

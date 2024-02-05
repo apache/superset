@@ -23,7 +23,6 @@ from typing import Any, Callable, List, NamedTuple, Optional
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import Session
 
 with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be installed
     # Ensure pyocient inherits Superset's logging level
@@ -372,13 +371,13 @@ class OcientEngineSpec(BaseEngineSpec):
         return "DUMMY_VALUE"
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Any, query: Query) -> None:
         with OcientEngineSpec.query_id_mapping_lock:
             OcientEngineSpec.query_id_mapping[query.id] = cursor.query_id
 
         # Add the query id to the cursor
         setattr(cursor, "superset_query_id", query.id)
-        return super().handle_cursor(cursor, query, session)
+        return super().handle_cursor(cursor, query)
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
