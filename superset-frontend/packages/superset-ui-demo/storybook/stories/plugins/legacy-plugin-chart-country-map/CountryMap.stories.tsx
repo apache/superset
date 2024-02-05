@@ -38,21 +38,7 @@ export default {
   component: SuperChart,
   parameters: {
     initialSize: { width: 500, height: 300 },
-  },
-  args: {
-    country: 'finland',
-    colorSchema: 'schemeOranges',
-  },
-  argTypes: {
-    country: {
-      control: 'select',
-      options: Object.keys(countries),
-    },
-    colorSchema: {
-      control: 'select',
-      options: SequentialD3.map(x => x.id),
-    },
-  },
+  }
 };
 
 function generateData(geojson: JsonObject) {
@@ -102,7 +88,6 @@ export const BasicCountryMapStory = ({
       </div>
     );
   }
-  console.log(data);
   return (
     <SuperChart
       chartType="country-map"
@@ -116,4 +101,21 @@ export const BasicCountryMapStory = ({
       }}
     />
   );
+};
+
+BasicCountryMapStory.args = {
+    country: 'finland',
+    colorSchema: 'schemeOranges',
+  };
+BasicCountryMapStory.argTypes = {
+    country: {
+      control: 'select',
+      options: Object.keys(countries),
+    },
+    colorSchema: {
+      control: 'select',
+      options: SequentialD3.map(x => x.id), 
+      description: 'Choose a color schema',
+      defaultValue: 'schemeOranges'
+    },
 };
