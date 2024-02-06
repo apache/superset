@@ -138,7 +138,6 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         item: ReportSchedule | None = None,
         attributes: dict[str, Any] | None = None,
         commit: bool = True,
-        add: bool = True,
     ) -> ReportSchedule:
         """
         Create a report schedule with nested recipients.
