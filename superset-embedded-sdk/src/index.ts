@@ -51,6 +51,8 @@ export type EmbedDashboardParams = {
   supersetDomain: string
   /** The html element within which to mount the iframe */
   mountPoint: HTMLElement
+  /** The iframe title attribute */
+  iframeTitle?: string
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
   /** The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded **/
@@ -77,6 +79,7 @@ export async function embedDashboard({
   id,
   supersetDomain,
   mountPoint,
+  iframeTitle,
   fetchGuestToken,
   dashboardUiConfig,
   debug = false
@@ -154,7 +157,9 @@ export async function embedDashboard({
       });
 
       iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
-      iframe.title = 'Embedded Dashboard';
+      if(iframeTitle) {
+        iframe.title = iframeTitle;
+      }
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
