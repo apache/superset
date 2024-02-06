@@ -71,7 +71,7 @@ def env(key, default=None):
 
 # Redis Base URL
 {{- if .Values.supersetNode.connections.redis_password }}
-REDIS_BASE_URL=f"{env('REDIS_PROTO')}://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_USER', '')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- else }}
 REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 {{- end }}
