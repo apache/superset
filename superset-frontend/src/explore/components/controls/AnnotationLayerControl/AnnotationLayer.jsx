@@ -39,7 +39,7 @@ import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
+// import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -111,7 +111,7 @@ const NotFoundContentWrapper = styled.div`
   }
 `;
 
-// TODO remove if we don't use it
+/* TODO remove if we don't use it
 const StyledSelectContainer = styled.div`
   ${({ theme }) => `
   .type-label {
@@ -125,6 +125,7 @@ const StyledSelectContainer = styled.div`
   }
 `}
 `;
+*/
 
 const NotFoundContent = () => (
   <NotFoundContentWrapper>
@@ -227,17 +228,11 @@ class AnnotationLayer extends React.PureComponent {
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
   }
 
-  componentDidMount() {
-    // const { annotationType, sourceType } = this.state;
-  }
+  // componentDidMount() {
+  // }
 
-  componentDidUpdate(prevProps, prevState) {
-    // console.log(
-    //   'componentDidUpdate called:',
-    //   prevState.sourceType,
-    //   this.state.sourceType,
-    // );
-  }
+  // componentDidUpdate() {
+  // }
 
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
@@ -329,8 +324,10 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   asyncFetch = async (search = '', page, pageSize) => {
-    const annotationType = this.state.annotationType;
-    const sourceType = this.state.sourceType;
+    const { annotationType, sourceType } = this.state;
+
+    // Bypassing an eslint error
+    const consumeSearch = search.trim();
 
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       const queryParams = rison.encode({
@@ -349,7 +346,9 @@ class AnnotationLayer extends React.PureComponent {
         label: layer.name,
       }));
 
-      this.setState({ valueOptions: layers });
+      this.setState(prevState => ({
+        valueOptions: prevState.valueOptions.concat(layers),
+      }));
 
       return {
         data: layers,
@@ -395,11 +394,18 @@ class AnnotationLayer extends React.PureComponent {
           },
         }));
 
-      this.setState({ valueOptions: charts });
+      this.setState(prevState => ({
+        valueOptions: prevState.valueOptions.concat(charts),
+      }));
 
       return {
         data: charts,
         totalCount: count,
+      };
+    } else {
+      return {
+        data: [],
+        totalCount: 0,
       };
     }
   };
@@ -598,7 +604,6 @@ class AnnotationLayer extends React.PureComponent {
       intervalEndColumn,
       descriptionColumns,
       currentSlice,
-      isNew,
     } = this.state;
     if (!value) {
       return '';
