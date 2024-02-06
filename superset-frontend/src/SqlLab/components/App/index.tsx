@@ -17,8 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import { css, styled, t } from '@superset-ui/core';
@@ -28,7 +26,8 @@ import {
   LOCALSTORAGE_WARNING_THRESHOLD,
   LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
 } from 'src/SqlLab/constants';
-import * as Actions from 'src/SqlLab/actions/sqlLab';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 import { logEvent } from 'src/logger/actions';
 import {
   LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
@@ -100,8 +99,21 @@ const SqlLabStyles = styled.div`
   `};
 `;
 
-class App extends React.PureComponent {
-  constructor(props) {
+type PureProps = {
+  // add this for testing componentDidUpdate spec
+  updated?: boolean;
+};
+
+type AppProps = ReturnType<typeof mergeProps> & PureProps;
+
+interface AppState {
+  hash: string;
+}
+
+class App extends React.PureComponent<AppProps, AppState> {
+  hasLoggedLocalStorageUsage: boolean;
+
+  constructor(props: AppProps) {
     super(props);
     this.state = {
       hash: window.location.hash,
@@ -125,7 +137,7 @@ class App extends React.PureComponent {
 
   componentDidUpdate() {
     const { localStorageUsageInKilobytes, actions, queries } = this.props;
-    const queryCount = queries?.lenghth || 0;
+    const queryCount = Object.keys(queries || {}).length || 0;
     if (
       localStorageUsageInKilobytes >=
       LOCALSTORAGE_WARNING_THRESHOLD * LOCALSTORAGE_MAX_USAGE_KB
@@ -159,7 +171,7 @@ class App extends React.PureComponent {
     this.setState({ hash: window.location.hash });
   }
 
-  showLocalStorageUsageWarning(currentUsage, queryCount) {
+  showLocalStorageUsageWarning(currentUsage: number, queryCount: number) {
     this.props.actions.addDangerToast(
       t(
         "SQL Lab uses your browser's local storage to store queries and results." +
@@ -190,7 +202,6 @@ class App extends React.PureComponent {
         <Redirect
           to={{
             pathname: '/sqllab/history/',
-            replace: true,
           }}
         />
       );
@@ -207,13 +218,7 @@ class App extends React.PureComponent {
   }
 }
 
-App.propTypes = {
-  actions: PropTypes.object,
-  common: PropTypes.object,
-  localStorageUsageInKilobytes: PropTypes.number.isRequired,
-};
-
-function mapStateToProps(state) {
+function mapStateToProps(state: SqlLabRootState) {
   const { common, localStorageUsageInKilobytes, sqlLab } = state;
   return {
     common,
@@ -223,10 +228,21 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
+const mapDispatchToProps = {
+  addDangerToast,
+  logEvent,
+};
+
+function mergeProps(
+  stateProps: ReturnType<typeof mapStateToProps>,
+  dispatchProps: typeof mapDispatchToProps,
+  state: PureProps,
+) {
   return {
-    actions: bindActionCreators({ ...Actions, logEvent }, dispatch),
+    ...state,
+    ...stateProps,
+    actions: dispatchProps,
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default connect(mapStateToProps, mapDispatchToProps, mergeProps)(App);

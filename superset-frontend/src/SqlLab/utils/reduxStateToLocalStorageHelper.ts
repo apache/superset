@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { QueryResponse } from '@superset-ui/core';
+import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
+import type { ThunkDispatch } from 'redux-thunk';
 import { pick } from 'lodash';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import {
@@ -44,7 +47,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'hideLeftBar',
 ]);
 
-function shouldEmptyQueryResults(query) {
+function shouldEmptyQueryResults(query: QueryResponse) {
   const { startDttm, results } = query;
   return (
     Date.now() - startDttm > LOCALSTORAGE_MAX_QUERY_AGE_MS ||
@@ -53,7 +56,7 @@ function shouldEmptyQueryResults(query) {
   );
 }
 
-export function emptyTablePersistData(tables) {
+export function emptyTablePersistData(tables: Table[]) {
   return tables
     .map(table =>
       pick(table, [
@@ -68,7 +71,9 @@ export function emptyTablePersistData(tables) {
     .filter(({ queryEditorId }) => Boolean(queryEditorId));
 }
 
-export function emptyQueryResults(queries) {
+export function emptyQueryResults(
+  queries: SqlLabRootState['sqlLab']['queries'],
+) {
   return Object.keys(queries).reduce((accu, key) => {
     const { results } = queries[key];
     const query = {
@@ -84,7 +89,7 @@ export function emptyQueryResults(queries) {
   }, {});
 }
 
-export function clearQueryEditors(queryEditors) {
+export function clearQueryEditors(queryEditors: QueryEditor[]) {
   return queryEditors.map(editor =>
     // only return selected keys
     Object.keys(editor)
@@ -99,7 +104,10 @@ export function clearQueryEditors(queryEditors) {
   );
 }
 
-export function rehydratePersistedState(dispatch, state) {
+export function rehydratePersistedState(
+  dispatch: ThunkDispatch<SqlLabRootState, unknown, any>,
+  state: SqlLabRootState,
+) {
   // Rehydrate server side persisted table metadata
   state.sqlLab.tables.forEach(({ name: table, schema, dbId, persistData }) => {
     if (dbId && schema && table && persistData?.columns) {

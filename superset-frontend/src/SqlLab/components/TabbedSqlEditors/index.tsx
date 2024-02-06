@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import { pick } from 'lodash';
-import PropTypes from 'prop-types';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
 import URI from 'urijs';
+import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
@@ -33,22 +32,7 @@ import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  defaultDbId: PropTypes.number,
-  displayLimit: PropTypes.number,
-  defaultQueryLimit: PropTypes.number.isRequired,
-  maxRow: PropTypes.number.isRequired,
-  databases: PropTypes.object.isRequired,
-  queries: PropTypes.object.isRequired,
-  queryEditors: PropTypes.array,
-  tabHistory: PropTypes.array.isRequired,
-  tables: PropTypes.array.isRequired,
-  offline: PropTypes.bool,
-  saveQueryWarning: PropTypes.string,
-  scheduleQueryWarning: PropTypes.string,
-};
-const defaultProps = {
+const DEFAULT_PROPS = {
   queryEditors: [],
   offline: false,
   saveQueryWarning: null,
@@ -73,15 +57,14 @@ const TabTitle = styled.span`
 // Get the user's OS
 const userOS = detectOS();
 
-class TabbedSqlEditors extends React.PureComponent {
-  constructor(props) {
+type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
+
+const SQL_LAB_URL = '/sqllab';
+
+class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
+  constructor(props: TabbedSqlEditorsProps) {
     super(props);
-    const sqlLabUrl = '/sqllab';
-    this.state = {
-      sqlLabUrl,
-    };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
-    this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
     this.handleSelect = this.handleSelect.bind(this);
     this.handleEdit = this.handleEdit.bind(this);
   }
@@ -136,7 +119,7 @@ class TabbedSqlEditors extends React.PureComponent {
       ...this.context.requestedQuery,
       ...bootstrapData.requested_query,
       ...queryParameters,
-    };
+    } as Record<string, string>;
 
     // Popping a new tab based on the querystring
     if (id || sql || savedQueryId || datasourceKey || queryId) {
@@ -149,7 +132,7 @@ class TabbedSqlEditors extends React.PureComponent {
       } else if (datasourceKey) {
         this.props.actions.popDatasourceQuery(datasourceKey, sql);
       } else if (sql) {
-        let databaseId = dbid;
+        let databaseId: string | number = dbid;
         if (databaseId) {
           databaseId = parseInt(databaseId, 10);
         } else {
@@ -177,11 +160,11 @@ class TabbedSqlEditors extends React.PureComponent {
       this.newQueryEditor();
 
       if (isNewQuery) {
-        window.history.replaceState({}, document.title, this.state.sqlLabUrl);
+        window.history.replaceState({}, document.title, SQL_LAB_URL);
       }
     } else {
       const qe = this.activeQueryEditor();
-      const latestQuery = this.props.queries[qe.latestQueryId];
+      const latestQuery = this.props.queries[qe?.latestQueryId || ''];
       if (
         isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
         latestQuery &&
@@ -197,9 +180,9 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  popNewTab(urlParams) {
+  popNewTab(urlParams: Record<string, string>) {
     // Clean the url in browser history
-    const updatedUrl = `${URI(this.state.sqlLabUrl).query(urlParams)}`;
+    const updatedUrl = `${URI(SQL_LAB_URL).query(urlParams)}`;
     window.history.replaceState({}, document.title, updatedUrl);
   }
 
@@ -215,7 +198,7 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.addNewQueryEditor();
   }
 
-  handleSelect(key) {
+  handleSelect(key: string) {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     if (key !== qeid) {
       const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
@@ -229,22 +212,20 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  handleEdit(key, action) {
+  handleEdit(key: string, action: string) {
     if (action === 'remove') {
       const qe = this.props.queryEditors.find(qe => qe.id === key);
-      this.removeQueryEditor(qe);
+      if (qe) {
+        this.removeQueryEditor(qe);
+      }
     }
     if (action === 'add') {
       this.newQueryEditor();
     }
   }
 
-  removeQueryEditor(qe) {
+  removeQueryEditor(qe: QueryEditor) {
     this.props.actions.removeQueryEditor(qe);
-  }
-
-  duplicateQueryEditor(qe) {
-    this.props.actions.cloneQueryToNewTab(qe, false);
   }
 
   render() {
@@ -257,7 +238,6 @@ class TabbedSqlEditors extends React.PureComponent {
         data-key={qe.id}
       >
         <SqlEditor
-          tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
           queryEditor={qe}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}
@@ -332,30 +312,45 @@ class TabbedSqlEditors extends React.PureComponent {
     );
   }
 }
-TabbedSqlEditors.propTypes = propTypes;
-TabbedSqlEditors.defaultProps = defaultProps;
+
 TabbedSqlEditors.contextType = locationContext;
 
-function mapStateToProps({ sqlLab, common }) {
+export function mapStateToProps({ sqlLab, common }: SqlLabRootState) {
   return {
     databases: sqlLab.databases,
-    queryEditors: sqlLab.queryEditors,
+    queryEditors: sqlLab.queryEditors ?? DEFAULT_PROPS.queryEditors,
     queries: sqlLab.queries,
     tabHistory: sqlLab.tabHistory,
     tables: sqlLab.tables,
     defaultDbId: common.conf.SQLLAB_DEFAULT_DBID,
     displayLimit: common.conf.DISPLAY_MAX_ROW,
-    offline: sqlLab.offline,
+    offline: sqlLab.offline ?? DEFAULT_PROPS.offline,
     defaultQueryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     maxRow: common.conf.SQL_MAX_ROW,
-    saveQueryWarning: common.conf.SQLLAB_SAVE_WARNING_MESSAGE,
-    scheduleQueryWarning: common.conf.SQLLAB_SCHEDULE_WARNING_MESSAGE,
-  };
-}
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
+    saveQueryWarning:
+      common.conf.SQLLAB_SAVE_WARNING_MESSAGE ?? DEFAULT_PROPS.saveQueryWarning,
+    scheduleQueryWarning:
+      common.conf.SQLLAB_SCHEDULE_WARNING_MESSAGE ??
+      DEFAULT_PROPS.scheduleQueryWarning,
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
+const mapDispatchToProps = {
+  ...Actions,
+};
+
+function mergeProps(
+  stateProps: ReturnType<typeof mapStateToProps>,
+  dispatchProps: typeof mapDispatchToProps,
+) {
+  return {
+    ...stateProps,
+    actions: dispatchProps,
+  };
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+  mergeProps,
+)(TabbedSqlEditors);

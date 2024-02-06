@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { QueryResponse } from '@superset-ui/core';
 import {
   emptyQueryResults,
   clearQueryEditors,
@@ -43,7 +44,7 @@ describe('reduxStateToLocalStorageHelper', () => {
     expect(Date.now() - startDttm).toBeGreaterThan(
       LOCALSTORAGE_MAX_QUERY_AGE_MS,
     );
-    expect(Object.keys(oldQuery.results)).toContain('data');
+    expect(Object.keys(oldQuery.results || {})).toContain('data');
 
     const emptiedQuery = emptyQueryResults(queriesObj);
     expect(emptiedQuery[id].startDttm).toBe(startDttm);
@@ -55,7 +56,7 @@ describe('reduxStateToLocalStorageHelper', () => {
       ...queries[0],
       startDttm: Date.now(),
       results: { data: [{ a: 1 }] },
-    };
+    } as unknown as QueryResponse;
     const largeQuery = {
       ...queries[1],
       startDttm: Date.now(),
@@ -70,7 +71,7 @@ describe('reduxStateToLocalStorageHelper', () => {
           },
         ],
       },
-    };
+    } as unknown as QueryResponse;
     expect(Object.keys(largeQuery.results)).toContain('data');
     const emptiedQuery = emptyQueryResults({
       [reasonableSizeQuery.id]: reasonableSizeQuery,

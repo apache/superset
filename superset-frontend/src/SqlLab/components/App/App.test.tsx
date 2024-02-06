@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { combineReducers } from 'redux';
+import { AnyAction, combineReducers } from 'redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
@@ -38,18 +38,15 @@ jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
 
-const sqlLabReducer = combineReducers(reducers);
+const sqlLabReducer = combineReducers({
+  localStorageUsageInKilobytes: reducers.localStorageUsageInKilobytes,
+});
+const mockAction = {} as AnyAction;
 
 describe('SqlLab App', () => {
   const middlewares = [thunk];
   const mockStore = configureStore(middlewares);
-  const store = mockStore(sqlLabReducer(undefined, {}), {});
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+  const store = mockStore(sqlLabReducer(undefined, mockAction));
 
   it('is valid', () => {
     expect(React.isValidElement(<App />)).toBe(true);
@@ -61,15 +58,13 @@ describe('SqlLab App', () => {
     expect(getByTestId('mock-tabbed-sql-editors')).toBeInTheDocument();
   });
 
-  it('logs current usage warning', () => {
+  it('logs current usage warning', async () => {
     const localStorageUsageInKilobytes = LOCALSTORAGE_MAX_USAGE_KB + 10;
+    const initialState = {
+      localStorageUsageInKilobytes,
+    };
     const storeExceedLocalStorage = mockStore(
-      sqlLabReducer(
-        {
-          localStorageUsageInKilobytes,
-        },
-        {},
-      ),
+      sqlLabReducer(initialState, mockAction),
     );
 
     const { rerender } = render(<App />, {
@@ -87,14 +82,14 @@ describe('SqlLab App', () => {
     );
   });
 
-  it('logs current local storage usage', () => {
+  it('logs current local storage usage', async () => {
     const localStorageUsageInKilobytes = LOCALSTORAGE_MAX_USAGE_KB - 10;
     const storeExceedLocalStorage = mockStore(
       sqlLabReducer(
         {
           localStorageUsageInKilobytes,
         },
-        {},
+        mockAction,
       ),
     );
 
