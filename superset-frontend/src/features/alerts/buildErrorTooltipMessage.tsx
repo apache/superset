@@ -22,12 +22,11 @@ import { ValidationObject } from './types';
 import { TRANSLATIONS } from './AlertReportModal';
 
 const StyledList = styled.ul`
-  margin: 0;
-  padding: 0;
-  li {
-    padding-left: ${({ theme }) => theme.gridUnit * 3}px;
-  }
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-inline-start: ${({ theme }) => theme.gridUnit * 3}px;
 `;
+
+// padding-left: ${({ theme }) => theme.gridUnit}px;
 
 export const buildErrorTooltipMessage = (
   build = true,
