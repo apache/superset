@@ -64,7 +64,7 @@ const setup = ({
           Admin: [
             ['can_explore', 'Superset'],
             ['can_samples', 'Datasource'],
-            ['can_write', 'ExploreFormDataRestAPI'],
+            ['can_write', 'ExploreFormDataRestApi'],
           ],
         },
       },
@@ -97,7 +97,7 @@ test('Context menu shows "Drill by"', () => {
   const result = setup({
     roles: {
       Admin: [
-        ['can_write', 'ExploreFormDataRestAPI'],
+        ['can_write', 'ExploreFormDataRestApi'],
         ['can_explore', 'Superset'],
       ],
     },

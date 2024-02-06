@@ -91,7 +91,7 @@ const ChartContextMenu = (
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
   const canWriteExploreFormData = useSelector((state: RootState) =>
-    findPermission('can_write', 'ExploreFormDataRestAPI', state.user?.roles),
+    findPermission('can_write', 'ExploreFormDataRestApi', state.user?.roles),
   );
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
