@@ -1354,7 +1354,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               title={TRANSLATIONS.GENERAL_TITLE}
               subtitle={TRANSLATIONS.GENERAL_SUBTITLE}
               required
-              validateCheckStatus={!validationStatus[Sections.General].hasErrors}
+              validateCheckStatus={
+                !validationStatus[Sections.General].hasErrors
+              }
               testId="general-information-panel"
             />
           }
@@ -1445,7 +1447,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 title={TRANSLATIONS.ALERT_CONDITION_TITLE}
                 subtitle={TRANSLATIONS.ALERT_CONDITION_SUBTITLE}
                 required={false}
-                validateCheckStatus={!validationStatus[Sections.Alert].hasErrors}
+                validateCheckStatus={
+                  !validationStatus[Sections.Alert].hasErrors
+                }
                 testId="alert-condition-panel"
               />
             }
@@ -1544,7 +1548,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
               subtitle={TRANSLATIONS.CONTENTS_SUBTITLE}
               required
-              validateCheckStatus={!validationStatus[Sections.Content].hasErrors}
+              validateCheckStatus={
+                !validationStatus[Sections.Content].hasErrors
+              }
               testId="contents-panel"
             />
           }
