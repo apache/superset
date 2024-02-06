@@ -90,7 +90,7 @@ const ChartContextMenu = (
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
-  const canDrillBy = useSelector((state: RootState) =>
+  const canWriteExploreFormData = useSelector((state: RootState) =>
     findPermission('can_write', 'ExploreFormDataRestAPI', state.user?.roles),
   );
   const canDrillToDetail = useSelector((state: RootState) =>
@@ -122,7 +122,7 @@ const ChartContextMenu = (
 
   const showDrillBy =
     isFeatureEnabled(FeatureFlag.DrillBy) &&
-    (canExplore || canDrillBy) &&
+    (canExplore || canWriteExploreFormData) &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
