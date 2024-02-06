@@ -23,7 +23,6 @@ import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { AntdModal } from 'src/components';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -49,15 +48,10 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: PropTypes.oneOf(
-    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
-      key => FILTER_BOX_MIGRATION_STATES[key],
-    ),
-  ),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setActiveTabs: PropTypes.func,
+  setActiveTab: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -81,8 +75,7 @@ const defaultProps = {
   columnWidth: 0,
   activeTabs: [],
   directPathToChild: [],
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
-  setActiveTabs() {},
+  setActiveTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -132,15 +125,12 @@ export class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTabs(this.state.activeKey);
+    this.props.setActiveTab(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.activeKey !== this.state.activeKey ||
-      prevProps.filterboxMigrationState !== this.props.filterboxMigrationState
-    ) {
-      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
+    if (prevState.activeKey !== this.state.activeKey) {
+      this.props.setActiveTab(this.state.activeKey, prevState.activeKey);
     }
   }
 
@@ -224,9 +214,12 @@ export class Tabs extends React.PureComponent {
       title: t('Delete dashboard tab?'),
       content: (
         <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
+          {t(
+            'Deleting a tab will remove all content within it. You may still ' +
+              'reverse this action with the',
+          )}{' '}
+          <b>{t('undo')}</b>{' '}
+          {t('button (cmd + z) until you save your changes.')}
         </span>
       ),
       onOk: () => {
@@ -235,8 +228,8 @@ export class Tabs extends React.PureComponent {
         this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
+      okText: t('DELETE'),
+      cancelText: t('CANCEL'),
       icon: null,
     });
   };
@@ -443,7 +436,6 @@ function mapStateToProps(state) {
     nativeFilters: state.nativeFilters,
     activeTabs: state.dashboardState.activeTabs,
     directPathToChild: state.dashboardState.directPathToChild,
-    filterboxMigrationState: state.dashboardState.filterboxMigrationState,
   };
 }
 export default connect(mapStateToProps)(Tabs);

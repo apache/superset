@@ -8,7 +8,7 @@ version: 1
 ## Importing and Exporting Datasources
 
 The superset cli allows you to import and export datasources from and to YAML. Datasources include
-both databases and druid clusters. The data is expected to be organized in the following hierarchy:
+databases. The data is expected to be organized in the following hierarchy:
 
 ```
 ├──databases
@@ -24,19 +24,6 @@ both databases and druid clusters. The data is expected to be organized in the f
 |  |  |     └──... (more metrics)
 |  |  └── ... (more tables)
 |  └── ... (more databases)
-└──druid_clusters
-   ├──cluster_1
-   |  ├──datasource_1
-   |  |  ├──columns
-   |  |  |  ├──column_1
-   |  |  |  ├──column_2
-   |  |  |  └──... (more columns)
-   |  |  └──metrics
-   |  |     ├──metric_1
-   |  |     ├──metric_2
-   |  |     └──... (more metrics)
-   |  └── ... (more datasources)
-   └── ... (more clusters)
 ```
 
 ### Exporting Datasources to YAML
@@ -59,8 +46,7 @@ references to be included (e.g. a column to include the table id it belongs to) 
 Alternatively, you can export datasources using the UI:
 
 1. Open **Sources -> Databases** to export all tables associated to a single or multiple databases.
-   (**Tables** for one or more tables, **Druid Clusters** for clusters, **Druid Datasources** for
-   datasources)
+   (**Tables** for one or more tables)
 2. Select the items you would like to export.
 3. Click **Actions -> Export** to YAML
 4. If you want to import an item that you exported through the UI, you will need to nest it inside

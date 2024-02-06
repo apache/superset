@@ -17,7 +17,7 @@
 
 import json
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from flask_appbuilder.security.sqla.models import User
@@ -49,7 +49,7 @@ def insert_report_schedule(
     type: str,
     name: str,
     crontab: str,
-    owners: List[User],
+    owners: list[User],
     timezone: Optional[str] = None,
     sql: Optional[str] = None,
     description: Optional[str] = None,
@@ -61,10 +61,10 @@ def insert_report_schedule(
     log_retention: Optional[int] = None,
     last_state: Optional[ReportState] = None,
     grace_period: Optional[int] = None,
-    recipients: Optional[List[ReportRecipients]] = None,
+    recipients: Optional[list[ReportRecipients]] = None,
     report_format: Optional[ReportDataFormat] = None,
-    logs: Optional[List[ReportExecutionLog]] = None,
-    extra: Optional[Dict[Any, Any]] = None,
+    logs: Optional[list[ReportExecutionLog]] = None,
+    extra: Optional[dict[Any, Any]] = None,
     force_screenshot: bool = False,
 ) -> ReportSchedule:
     owners = owners or []
@@ -113,9 +113,9 @@ def create_report_notification(
     grace_period: Optional[int] = None,
     report_format: Optional[ReportDataFormat] = None,
     name: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None,
+    extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
-    owners: Optional[List[User]] = None,
+    owners: Optional[list[User]] = None,
 ) -> ReportSchedule:
     if not owners:
         owners = [

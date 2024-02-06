@@ -22,8 +22,8 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
+  ControlSubSectionHeader,
   CustomControlItem,
-  formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -75,7 +75,15 @@ export const leftMargin: CustomControlItem = {
     freeForm: true,
     clearable: false,
     label: t('Left Margin'),
-    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+    choices: [
+      ['auto', t('auto')],
+      [50, '50'],
+      [75, '75'],
+      [100, '100'],
+      [125, '125'],
+      [150, '150'],
+      [200, '200'],
+    ],
     default: 'auto',
     renderTrigger: true,
     description: t(
@@ -112,14 +120,14 @@ export const lineInterpolation: CustomControlItem = {
     type: 'SelectControl',
     label: t('Line Style'),
     renderTrigger: true,
-    choices: formatSelectOptions([
-      'linear',
-      'basis',
-      'cardinal',
-      'monotone',
-      'step-before',
-      'step-after',
-    ]),
+    choices: [
+      ['linear', t('linear')],
+      ['basis', t('basis')],
+      ['cardinal', t('cardinal')],
+      ['monotone', t('monotone')],
+      ['step-before', t('step-before')],
+      ['step-after', t('step-after')],
+    ],
     default: 'linear',
     description: t('Line interpolation as defined by d3.js'),
   },
@@ -134,9 +142,9 @@ export const showBrush: CustomControlItem = {
     clearable: false,
     default: 'auto',
     choices: [
-      ['yes', 'Yes'],
-      ['no', 'No'],
-      ['auto', 'Auto'],
+      ['yes', t('Yes')],
+      ['no', t('No')],
+      ['auto', t('Auto')],
     ],
     description: t('Whether to display the time range interactive selector'),
   },
@@ -185,7 +193,15 @@ export const bottomMargin: CustomControlItem = {
     clearable: false,
     freeForm: true,
     label: t('Bottom Margin'),
-    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+    choices: [
+      ['auto', t('auto')],
+      [50, '50'],
+      [75, '75'],
+      [100, '100'],
+      [125, '125'],
+      [150, '150'],
+      [200, '200'],
+    ],
     default: 'auto',
     renderTrigger: true,
     description: t(
@@ -199,7 +215,12 @@ export const xTicksLayout: CustomControlItem = {
   config: {
     type: 'SelectControl',
     label: t('X Tick Layout'),
-    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
+    choices: [
+      ['auto', t('auto')],
+      ['flat', t('flat')],
+      ['45°', '45°'],
+      ['staggered', t('staggered')],
+    ],
     default: 'auto',
     clearable: false,
     renderTrigger: true,
@@ -370,7 +391,11 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<div className="section-header">{t('Rolling Window')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Rolling Window')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'rolling_type',
@@ -378,13 +403,13 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             type: 'SelectControl',
             label: t('Rolling Function'),
             default: 'None',
-            choices: formatSelectOptions([
-              'None',
-              'mean',
-              'sum',
-              'std',
-              'cumsum',
-            ]),
+            choices: [
+              ['None', t('None')],
+              ['mean', t('mean')],
+              ['sum', t('sum')],
+              ['std', t('std')],
+              ['cumsum', t('cumsum')],
+            ],
             description: t(
               'Defines a rolling window function to apply, works along ' +
                 'with the [Periods] text box',
@@ -423,7 +448,11 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Time Comparison')}</div>],
+      [
+        <ControlSubSectionHeader>
+          {t('Time Comparison')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'time_compare',
@@ -432,24 +461,22 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             multi: true,
             freeForm: true,
             label: t('Time Shift'),
-            choices: formatSelectOptions([
-              '1 day',
-              '1 week',
-              '28 days',
-              '30 days',
-              '52 weeks',
-              '1 year',
-              '104 weeks',
-              '2 years',
-              '156 weeks',
-              '3 years',
-              '208 weeks',
-              '4 years',
-            ]),
+            choices: [
+              ['1 day', t('1 day')],
+              ['1 week', t('1 week')],
+              ['28 days', t('28 days')],
+              ['30 days', t('30 days')],
+              ['52 weeks', t('52 weeks')],
+              ['1 year', t('1 year')],
+              ['104 weeks', t('104 weeks')],
+              ['2 years', t('2 years')],
+              ['156 weeks', t('156 weeks')],
+              ['3 years', t('3 years')],
+            ],
             description: t(
               'Overlay one or more timeseries from a ' +
                 'relative time period. Expects relative time deltas ' +
-                'in natural language (example:  24 hours, 7 days, ' +
+                'in natural language (example: 24 hours, 7 days, ' +
                 '52 weeks, 365 days). Free text is supported.',
             ),
           },
@@ -476,7 +503,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<div className="section-header">{t('Resample')}</div>],
+      [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
       [
         {
           name: 'resample_rule',
@@ -485,7 +512,14 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             freeForm: true,
             label: t('Rule'),
             default: null,
-            choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
+            choices: [
+              ['1T', t('1T')],
+              ['1H', t('1H')],
+              ['1D', t('1D')],
+              ['7D', t('7D')],
+              ['1M', t('1M')],
+              ['1AS', t('1AS')],
+            ],
             description: t('Pandas resample rule'),
           },
         },
@@ -498,14 +532,14 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             freeForm: true,
             label: t('Method'),
             default: null,
-            choices: formatSelectOptions([
-              'asfreq',
-              'bfill',
-              'ffill',
-              'median',
-              'mean',
-              'sum',
-            ]),
+            choices: [
+              ['asfreq', t('asfreq')],
+              ['bfill', t('bfill')],
+              ['ffill', t('ffill')],
+              ['median', t('median')],
+              ['mean', t('mean')],
+              ['sum', t('sum')],
+            ],
             description: t('Pandas resample method'),
           },
         },

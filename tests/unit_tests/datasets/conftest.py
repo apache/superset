@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import pytest
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def columns_default() -> Dict[str, Any]:
+def columns_default() -> dict[str, Any]:
     """Default props for new columns"""
     return {
         "changed_by": 1,
@@ -49,7 +49,7 @@ def columns_default() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_columns() -> Dict["TableColumn", Dict[str, Any]]:
+def sample_columns() -> dict["TableColumn", dict[str, Any]]:
     from superset.connectors.sqla.models import TableColumn
 
     return {
@@ -93,7 +93,7 @@ def sample_columns() -> Dict["TableColumn", Dict[str, Any]]:
 
 
 @pytest.fixture
-def sample_metrics() -> Dict["SqlMetric", Dict[str, Any]]:
+def sample_metrics() -> dict["SqlMetric", dict[str, Any]]:
     from superset.connectors.sqla.models import SqlMetric
 
     return {

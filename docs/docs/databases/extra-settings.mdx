@@ -45,9 +45,9 @@ A common pattern is to use environment variables to make secrets available.
 
 ```python
 def example_password_as_env_var(url):
-# assuming the uri looks like
-# mysql://localhost?superset_user:{SUPERSET_PASSWORD}
-return url.password.format(os.environ)
+    # assuming the uri looks like
+    # mysql://localhost?superset_user:{SUPERSET_PASSWORD}
+    return url.password.format(**os.environ)
 
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_password_as_env_var
 ```

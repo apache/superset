@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """a collection of Annotation-related models"""
-from typing import Any, Dict
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
@@ -54,7 +54,7 @@ class Annotation(Model, AuditMixinNullable):
     __table_args__ = (Index("ti_dag_state", layer_id, start_dttm, end_dttm),)
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         return {
             "layer_id": self.layer_id,
             "start_dttm": self.start_dttm,

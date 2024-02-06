@@ -23,7 +23,6 @@ import configureStore from 'redux-mock-store';
 
 import {
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
   QueryFormData,
 } from '@superset-ui/core';
@@ -32,14 +31,13 @@ import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import {
   DndFilterSelect,
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { ExpressionTypes } from '../FilterControl/types';
 
 const defaultProps: DndFilterSelectProps = {
   type: 'DndFilterSelect',
@@ -58,14 +56,6 @@ const baseFormData = {
   viz_type: 'my_viz',
   datasource: 'table__1',
 };
-
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -94,14 +84,14 @@ function setup({
 test('renders with default props', async () => {
   render(setup(), { useDnd: true });
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
 test('renders with value', async () => {
   const value = new AdhocFilter({
     sqlExpression: 'COUNT(*)',
-    expressionType: EXPRESSION_TYPES.SQL,
+    expressionType: ExpressionTypes.Sql,
   });
   render(setup({ value }), {
     useDnd: true,
@@ -123,7 +113,7 @@ test('renders options with saved metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -134,7 +124,7 @@ test('renders options with column', async () => {
         {
           id: 1,
           type: 'VARCHAR',
-          type_generic: GenericDataType.STRING,
+          type_generic: GenericDataType.String,
           column_name: 'Column',
         },
       ],
@@ -144,7 +134,7 @@ test('renders options with column', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });
 
@@ -166,6 +156,6 @@ test('renders options with adhoc metric', async () => {
     },
   );
   expect(
-    await screen.findByText('Drop columns or metrics here'),
+    await screen.findByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
 });

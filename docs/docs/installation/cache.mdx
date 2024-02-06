@@ -1,25 +1,55 @@
 ---
 title: Caching
 hide_title: true
-sidebar_position: 5
+sidebar_position: 6
 version: 1
 ---
 
 ## Caching
 
-Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes. Configuring caching is as easy as providing a custom cache config in your
-`superset_config.py` that complies with [the Flask-Caching specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
-Flask-Caching supports various caching backends, including Redis, Memcached, SimpleCache (in-memory), or the
-local filesystem. Custom cache backends are also supported. See [here](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) for specifics.
-The following cache configurations can be customized:
-- Metadata cache (optional): `CACHE_CONFIG`
-- Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
-- SQL Lab query results (optional): `RESULTS_BACKEND`. See [Async Queries via Celery](/docs/installation/async-queries-celery) for details
+Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
+Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
+SimpleCache (in-memory), or the local filesystem.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
+are also supported.
+
+Caching can be configured by providing a dictionaries in
+`superset_config.py` that comply with[the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
+
+The following cache configurations can be customized in this way:
 - Dashboard filter state (required): `FILTER_STATE_CACHE_CONFIG`.
 - Explore chart form data (required): `EXPLORE_FORM_DATA_CACHE_CONFIG`
+- Metadata cache (optional): `CACHE_CONFIG`
+- Charting data queried from datasets (optional): `DATA_CACHE_CONFIG`
 
-Please note, that Dashboard and Explore caching is required. If these caches are undefined, Superset falls back to using a built-in cache that stores data
-in the metadata database. While it is recommended to use a dedicated cache, the built-in cache can also be used to cache other data.
+For example, to configure the filter state cache using redis:
+
+```python
+FILTER_STATE_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 86400,
+    'CACHE_KEY_PREFIX': 'superset_filter_cache',
+    'CACHE_REDIS_URL': 'redis://localhost:6379/0'
+}
+```
+
+### Dependencies
+
+In order to use dedicated cache stores, additional python libraries must be installed
+
+- For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
+- Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
+  `python-memcached` does not handle storing binary data correctly.
+
+These libraries can be installed using pip.
+
+### Fallback Metastore Cache
+
+Note, that some form of Filter State and Explore caching are required. If either of these caches
+are undefined, Superset falls back to using a built-in cache that stores data in the metadata
+database. While it is recommended to use a dedicated cache, the built-in cache can also be used
+to cache other data.
+
 For example, to use the built-in cache to store chart data, use the following config:
 
 ```python
@@ -30,21 +60,28 @@ DATA_CACHE_CONFIG = {
 }
 ```
 
-- Redis (recommended): we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
-- Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
-  `python-memcached` does not handle storing binary data correctly.
+### Chart Cache Timeout
 
-Both of these libraries can be installed using pip.
+The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or
+database. Each of these configurations will be checked in order before falling back to the default
+value defined in `DATA_CACHE_CONFIG.
 
-For chart data, Superset goes up a “timeout search path”, from a slice's (chart's) configuration
-to the dataset’s, the database’s, then ultimately falls back to the global default
-defined in `DATA_CACHE_CONFIG`.
+Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
+per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
-## Celery beat
+### SQL Lab Query Results
+
+Caching for SQL Lab query results is used when async queries are enabled and is configured using
+`RESULTS_BACKEND`.
+
+Note that this configuration does not use a flask-caching dictionary for its configuration, but
+instead requires a cachelib object.
+
+See [Async Queries via Celery](/docs/installation/async-queries-celery) for details.
 
 ### Caching Thumbnails
 
-This is an optional feature that can be turned on by activating it’s [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) on config:
+This is an optional feature that can be turned on by activating it’s [feature flag](/docs/installation/configuring-superset#feature-flags) on config:
 
 ```
 FEATURE_FLAGS = {
@@ -53,12 +90,16 @@ FEATURE_FLAGS = {
 }
 ```
 
-By default thumbnails are rendered using the `THUMBNAIL_SELENIUM_USER` user account. To render thumbnails as the
-logged in user (e.g. in environments that are using user impersonation), use the following configuration:
+By default thumbnails are rendered per user, and will fall back to the Selenium user for anonymous users.
+To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
 
 ```python
-THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+from superset.tasks.types import ExecutorType
+
+THUMBNAIL_SELENIUM_USER = "admin"
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 ```
+
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
@@ -73,7 +114,10 @@ from s3cache.s3cache import S3Cache
 
 class CeleryConfig(object):
     broker_url = "redis://localhost:6379/0"
-    imports = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.thumbnails",
+    )
     result_backend = "redis://localhost:6379/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True

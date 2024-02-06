@@ -37,7 +37,7 @@ const StyledConfigEditor = styled(ConfigEditor)`
 export type TemplateParamsEditorProps = {
   queryEditorId: string;
   language: 'yaml' | 'json';
-  onChange: () => void;
+  onChange: (params: any) => void;
 };
 
 const TemplateParamsEditor = ({
@@ -64,20 +64,20 @@ const TemplateParamsEditor = ({
   const modalBody = (
     <div>
       <p>
-        Assign a set of parameters as
+        {t('Assign a set of parameters as')}
         <code>JSON</code>
-        below (example:
+        {t('below (example:')}
         <code>{'{"my_table": "foo"}'}</code>
-        ), and they become available in your SQL (example:
-        <code>SELECT * FROM {'{{ my_table }}'} </code>) by using&nbsp;
+        {t('), and they become available in your SQL (example:')}
+        <code>SELECT * FROM {'{{ my_table }}'} </code>) {t('by using')}&nbsp;
         <a
           href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Jinja templating
+          {t('Jinja templating')}
         </a>{' '}
-        syntax.
+        {t('syntax.')}
       </p>
       <StyledConfigEditor
         mode={language}

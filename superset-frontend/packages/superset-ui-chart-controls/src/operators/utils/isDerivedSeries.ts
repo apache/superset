@@ -21,21 +21,18 @@ import {
   ensureIsArray,
   JsonObject,
   QueryFormData,
-  ComparisionType,
+  ComparisonType,
 } from '@superset-ui/core';
-import { isString } from 'lodash';
+import { hasTimeOffset } from './timeOffset';
 
 export const isDerivedSeries = (
   series: JsonObject,
   formData: QueryFormData,
 ): boolean => {
   const comparisonType = formData.comparison_type;
-  if (comparisonType !== ComparisionType.Values) {
+  if (comparisonType !== ComparisonType.Values) {
     return false;
   }
-
   const timeCompare: string[] = ensureIsArray(formData?.time_compare);
-  return isString(series.name)
-    ? !!timeCompare.find(timeOffset => series.name.endsWith(timeOffset))
-    : false;
+  return hasTimeOffset(series, timeCompare);
 };

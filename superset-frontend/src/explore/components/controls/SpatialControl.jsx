@@ -171,11 +171,11 @@ export default class SpatialControl extends React.Component {
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              Longitude
+              {t('Longitude')}
               {this.renderSelect('lonCol', spatialTypes.latlong)}
             </Col>
             <Col xs={24} md={12}>
-              Latitude
+              {t('Latitude')}
               {this.renderSelect('latCol', spatialTypes.latlong)}
             </Col>
           </Row>
@@ -206,7 +206,7 @@ export default class SpatialControl extends React.Component {
         >
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              Column
+              {t('Column')}
               {this.renderSelect('geohashCol', spatialTypes.geohash)}
             </Col>
             <Col xs={24} md={12}>

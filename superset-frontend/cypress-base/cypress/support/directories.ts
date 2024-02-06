@@ -84,11 +84,11 @@ export const databasesPage = {
     step: '.helper-top',
     selectDbStepTitle: '.select-db > h4',
     preferredBlockBigQuery: '.preferred > :nth-child(1)',
-    prefferedBlockPostgreSQL: '.preferred > :nth-child(2)',
-    prefferedBlockSnowflake: '.preferred > :nth-child(3)',
-    prefferedBlockMySQL: '.preferred > :nth-child(4)',
-    prefferedBlockAthena: '.preferred > :nth-child(5)',
-    prefferedBlockSheets: '.preferred > :nth-child(6)',
+    preferredBlockPostgreSQL: '.preferred > :nth-child(2)',
+    preferredBlockSnowflake: '.preferred > :nth-child(3)',
+    preferredBlockMySQL: '.preferred > :nth-child(4)',
+    preferredBlockAthena: '.preferred > :nth-child(5)',
+    preferredBlockSheets: '.preferred > :nth-child(6)',
     supportedDatabasesText: '.control-label',
     orChoose: '.available-label',
     dbDropdown: '[class="ant-select-selection-search-input"]',
@@ -127,10 +127,11 @@ export const databasesPage = {
 
 export const sqlLabView = {
   sqlEditorLeftBar: {
-    sqlEditorLeftBar: '[class="SqlEditorLeftBar"]',
-    databaseSchemaTableSection: '[class="SqlEditorLeftBar"] > :nth-child(1)',
+    sqlEditorLeftBar: '[data-test="sql-editor-left-bar"]',
+    databaseSchemaTableSection:
+      '[data-test="sql-editor-left-bar"] > :nth-child(1)',
     tableSchemaSection:
-      '[class="SqlEditorLeftBar"] > :nth-child(1) > :nth-child(3) > :nth-child(1)',
+      '[data-test="sql-editor-left-bar"] > :nth-child(1) > :nth-child(3) > :nth-child(1)',
     tableSchemaInputEmpty: '[aria-label="Select table or type table name"]',
   },
   databaseInput: '[data-test=DatabaseSelector] > :nth-child(1)',
@@ -589,7 +590,7 @@ export const exploreView = {
       okButton: '.ant-modal-confirm-btns .ant-btn-primary',
     },
   },
-  vizualizationTypeModal: {
+  visualizationTypeModal: {
     vizTypeButton: dataTestLocator('viztype-selector-container'),
   },
 };
@@ -656,7 +657,7 @@ export const dashboardView = {
   treeMapChartModal: {
     selectItem: '.Select_control',
     selectItemInput: '.Select__control input[type=text]',
-    applyButton: '.filter_box button:not(:disabled)',
+    applyButton: '.filter button:not(:disabled)',
     clearItemIcon: '.Select__clear-indicator',
   },
   sliceThreeDots: '[aria-label="More Options"]',

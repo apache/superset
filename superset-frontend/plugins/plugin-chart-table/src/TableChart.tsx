@@ -22,11 +22,13 @@ import React, {
   useLayoutEffect,
   useMemo,
   useState,
+  MouseEvent,
 } from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
   DefaultSortTypes,
+  Row,
 } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort } from '@react-icons/all-files/fa/FaSort';
@@ -39,6 +41,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   styled,
@@ -68,14 +71,20 @@ interface TableSize {
   height: number;
 }
 
+const ACTION_KEYS = {
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
+};
+
 /**
  * Return sortType based on data type
  */
 function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
-  if (dataType === GenericDataType.TEMPORAL) {
+  if (dataType === GenericDataType.Temporal) {
     return 'datetime';
   }
-  if (dataType === GenericDataType.STRING) {
+  if (dataType === GenericDataType.String) {
     return 'alphanumeric';
   }
   return 'basic';
@@ -198,7 +207,7 @@ function SelectPageSize({
 }
 
 const getNoResultsMessage = (filter: string) =>
-  t(filter ? 'No matching records found' : 'No records found');
+  filter ? t('No matching records found') : t('No records found');
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -222,13 +231,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPaginationData,
     setDataMask,
     showCellBars = true,
-    emitFilter = false,
     sortDesc = false,
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
     onContextMenu,
+    emitCrossFilters,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -240,57 +249,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
-
-  const handleChange = useCallback(
-    (filters: { [x: string]: DataRecordValue[] }) => {
-      if (!emitFilter) {
-        return;
-      }
-
-      const groupBy = Object.keys(filters);
-      const groupByValues = Object.values(filters);
-      const labelElements: string[] = [];
-      groupBy.forEach(col => {
-        const isTimestamp = col === DTTM_ALIAS;
-        const filterValues = ensureIsArray(filters?.[col]);
-        if (filterValues.length) {
-          const valueLabels = filterValues.map(value =>
-            isTimestamp ? timestampFormatter(value) : value,
-          );
-          labelElements.push(`${valueLabels.join(', ')}`);
-        }
-      });
-      setDataMask({
-        extraFormData: {
-          filters:
-            groupBy.length === 0
-              ? []
-              : groupBy.map(col => {
-                  const val = ensureIsArray(filters?.[col]);
-                  if (!val.length)
-                    return {
-                      col,
-                      op: 'IS NULL',
-                    };
-                  return {
-                    col,
-                    op: 'IN',
-                    val: val.map(el =>
-                      el instanceof Date ? el.getTime() : el!,
-                    ),
-                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
-                  };
-                }),
-        },
-        filterState: {
-          label: labelElements.join(', '),
-          value: groupByValues.length ? groupByValues : null,
-          filters: filters && Object.keys(filters).length ? filters : null,
-        },
-      });
-    },
-    [emitFilter, setDataMask],
-  );
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -322,31 +280,80 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [filters],
   );
 
-  function getEmitTarget(col: string) {
-    const meta = columnsMeta?.find(x => x.key === col);
-    return meta?.config?.emitTarget || col;
-  }
+  const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
+    let updatedFilters = { ...(filters || {}) };
+    if (filters && isActiveFilterValue(key, value)) {
+      updatedFilters = {};
+    } else {
+      updatedFilters = {
+        [key]: [value],
+      };
+    }
+    if (
+      Array.isArray(updatedFilters[key]) &&
+      updatedFilters[key].length === 0
+    ) {
+      delete updatedFilters[key];
+    }
+
+    const groupBy = Object.keys(updatedFilters);
+    const groupByValues = Object.values(updatedFilters);
+    const labelElements: string[] = [];
+    groupBy.forEach(col => {
+      const isTimestamp = col === DTTM_ALIAS;
+      const filterValues = ensureIsArray(updatedFilters?.[col]);
+      if (filterValues.length) {
+        const valueLabels = filterValues.map(value =>
+          isTimestamp ? timestampFormatter(value) : value,
+        );
+        labelElements.push(`${valueLabels.join(', ')}`);
+      }
+    });
+
+    return {
+      dataMask: {
+        extraFormData: {
+          filters:
+            groupBy.length === 0
+              ? []
+              : groupBy.map(col => {
+                  const val = ensureIsArray(updatedFilters?.[col]);
+                  if (!val.length)
+                    return {
+                      col,
+                      op: 'IS NULL' as const,
+                    };
+                  return {
+                    col,
+                    op: 'IN' as const,
+                    val: val.map(el =>
+                      el instanceof Date ? el.getTime() : el!,
+                    ),
+                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
+                  };
+                }),
+        },
+        filterState: {
+          label: labelElements.join(', '),
+          value: groupByValues.length ? groupByValues : null,
+          filters:
+            updatedFilters && Object.keys(updatedFilters).length
+              ? updatedFilters
+              : null,
+        },
+      },
+      isCurrentValueSelected: isActiveFilterValue(key, value),
+    };
+  };
 
   const toggleFilter = useCallback(
     function toggleFilter(key: string, val: DataRecordValue) {
-      let updatedFilters = { ...(filters || {}) };
-      const target = getEmitTarget(key);
-      if (filters && isActiveFilterValue(target, val)) {
-        updatedFilters = {};
-      } else {
-        updatedFilters = {
-          [target]: [val],
-        };
+      if (!emitCrossFilters) {
+        return;
       }
-      if (
-        Array.isArray(updatedFilters[target]) &&
-        updatedFilters[target].length === 0
-      ) {
-        delete updatedFilters[target];
-      }
-      handleChange(updatedFilters);
+      setDataMask(getCrossFilterDataMask(key, val).dataMask);
     },
-    [filters, handleChange, isActiveFilterValue],
+    [emitCrossFilters, getCrossFilterDataMask, setDataMask],
   );
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
@@ -361,9 +368,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     };
   };
 
+  const handleContextMenu =
+    onContextMenu && !isRawRecords
+      ? (
+          value: D,
+          cellPoint: {
+            key: string;
+            value: DataRecordValue;
+            isMetric?: boolean;
+          },
+          clientX: number,
+          clientY: number,
+        ) => {
+          const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+          columnsMeta.forEach(col => {
+            if (!col.isMetric) {
+              const dataRecordValue = value[col.key];
+              drillToDetailFilters.push({
+                col: col.key,
+                op: '==',
+                val: dataRecordValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            }
+          });
+          onContextMenu(clientX, clientY, {
+            drillToDetail: drillToDetailFilters,
+            crossFilter: cellPoint.isMetric
+              ? undefined
+              : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+            drillBy: cellPoint.isMetric
+              ? undefined
+              : {
+                  filters: [
+                    {
+                      col: cellPoint.key,
+                      op: '==',
+                      val: cellPoint.value as string | number | boolean,
+                    },
+                  ],
+                  groupbyFieldName: 'groupby',
+                },
+          });
+        }
+      : undefined;
+
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
+      const {
+        key,
+        label,
+        isNumeric,
+        dataType,
+        isMetric,
+        isPercentMetric,
+        config = {},
+      } = column;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -392,11 +452,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
-        (isMetric || isRawRecords) &&
+        (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
-      if (emitFilter) {
+      if (emitCrossFilters && !isMetric) {
         className += ' dt-is-filter';
       }
 
@@ -406,7 +466,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({ value }: { value: DataRecordValue }) => {
+        Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
           const html = isHtml ? { __html: text } : undefined;
 
@@ -415,9 +475,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
-                const formatterResult = value
-                  ? formatter.getColorFromValue(value as number)
-                  : false;
+                const formatterResult =
+                  value || value === 0
+                    ? formatter.getColorFromValue(value as number)
+                    : false;
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }
@@ -459,9 +520,26 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
-              emitFilter && !valueRange
-                ? () => toggleFilter(key, value)
+              emitCrossFilters && !valueRange && !isMetric
+                ? () => {
+                    // allow selecting text in a cell
+                    if (!getSelectedText()) {
+                      toggleFilter(key, value);
+                    }
+                  }
                 : undefined,
+            onContextMenu: (e: MouseEvent) => {
+              if (handleContextMenu) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleContextMenu(
+                  row.original,
+                  { key, value, isMetric },
+                  e.nativeEvent.clientX,
+                  e.nativeEvent.clientY,
+                );
+              }
+            },
             className: [
               className,
               value == null ? 'dt-is-null' : '',
@@ -484,7 +562,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
-          // If cellProps renderes textContent already, then we don't have to
+          // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
@@ -513,11 +591,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
-            title="Shift + Click to sort by multiple columns"
+            title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
               ...style,
+            }}
+            tabIndex={0}
+            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+              // programatically sort column on keypress
+              if (Object.values(ACTION_KEYS).includes(e.key)) {
+                col.toggleSortBy();
+              }
             }}
             onClick={onClick}
             data-column-name={col.id}
@@ -567,7 +652,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [
       defaultAlignPN,
       defaultColorPN,
-      emitFilter,
+      emitCrossFilters,
       getValueRange,
       isActiveFilterValue,
       isRawRecords,
@@ -627,25 +712,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const { width: widthFromState, height: heightFromState } = tableSize;
 
-  const handleContextMenu =
-    onContextMenu && !isRawRecords
-      ? (value: D, clientX: number, clientY: number) => {
-          const filters: BinaryQueryObjectFilterClause[] = [];
-          columnsMeta.forEach(col => {
-            if (!col.isMetric) {
-              const dataRecordValue = value[col.key];
-              filters.push({
-                col: col.key,
-                op: '==',
-                val: dataRecordValue as string | number | boolean,
-                formattedVal: formatColumnValue(col, dataRecordValue)[1],
-              });
-            }
-          });
-          onContextMenu(clientX, clientY, filters);
-        }
-      : undefined;
-
   return (
     <Styles>
       <DataTable<D>
@@ -668,7 +734,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
-        onContextMenu={handleContextMenu}
       />
     </Styles>
   );

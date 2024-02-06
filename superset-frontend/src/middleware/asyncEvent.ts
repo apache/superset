@@ -18,12 +18,14 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
+  FeatureFlag,
   makeApi,
   SupersetClient,
   logging,
 } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
-import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -228,28 +230,14 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
 
   listenersByJobId = {};
   retriesByJobId = {};
   lastReceivedEventId = null;
 
-  if (appConfig) {
-    config = appConfig;
-  } else {
-    // load bootstrap data from DOM
-    const appContainer = document.getElementById('app');
-    if (appContainer) {
-      const bootstrapData = JSON.parse(
-        appContainer?.getAttribute('data-bootstrap') || '{}',
-      );
-      config = bootstrapData?.common?.conf;
-    } else {
-      config = {};
-      logging.warn('asyncEvent: app config data not found');
-    }
-  }
+  config = appConfig || getBootstrapData().common.conf;
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 

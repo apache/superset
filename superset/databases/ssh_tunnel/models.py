@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict
+from typing import Any
 
 import sqlalchemy as sa
 from flask import current_app
@@ -23,6 +23,7 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
+from superset.constants import PASSWORD_MASK
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -33,7 +34,7 @@ from superset.models.helpers import (
 app_config = current_app.config
 
 
-class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class SSHTunnel(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
     A ssh tunnel configuration in a database.
     """
@@ -67,10 +68,31 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
 
+    export_fields = [
+        "server_address",
+        "server_port",
+        "username",
+        "password",
+        "private_key",
+        "private_key_password",
+    ]
+
+    extra_import_fields = [
+        "database_id",
+    ]
+
     @property
-    def data(self) -> Dict[str, Any]:
-        return {
+    def data(self) -> dict[str, Any]:
+        output = {
+            "id": self.id,
             "server_address": self.server_address,
             "server_port": self.server_port,
             "username": self.username,
         }
+        if self.password is not None:
+            output["password"] = PASSWORD_MASK
+        if self.private_key is not None:
+            output["private_key"] = PASSWORD_MASK
+        if self.private_key_password is not None:
+            output["private_key_password"] = PASSWORD_MASK
+        return output

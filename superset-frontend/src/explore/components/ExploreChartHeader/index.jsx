@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
@@ -151,12 +152,22 @@ export const ExploreChartHeader = ({
     [dispatch],
   );
 
+  const history = useHistory();
+  const { redirectSQLLab } = actions;
+
+  const redirectToSQLLab = useCallback(
+    (formData, openNewWindow = false) => {
+      redirectSQLLab(formData, !openNewWindow && history);
+    },
+    [redirectSQLLab, history],
+  );
+
   const [menu, isDropdownVisible, setIsDropdownVisible] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
       canDownload,
       slice,
-      actions.redirectSQLLab,
+      redirectToSQLLab,
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
@@ -168,7 +179,7 @@ export const ExploreChartHeader = ({
     }
     const items = [];
     items.push({
-      type: MetadataType.DASHBOARDS,
+      type: MetadataType.Dashboards,
       title:
         metadata.dashboards.length > 0
           ? tn(
@@ -186,19 +197,19 @@ export const ExploreChartHeader = ({
           : undefined,
     });
     items.push({
-      type: MetadataType.LAST_MODIFIED,
+      type: MetadataType.LastModified,
       value: metadata.changed_on_humanized,
       modifiedBy: metadata.changed_by || t('Not available'),
     });
     items.push({
-      type: MetadataType.OWNER,
+      type: MetadataType.Owner,
       createdBy: metadata.created_by || t('Not available'),
       owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
       createdOn: metadata.created_on_humanized,
     });
     if (slice?.description) {
       items.push({
-        type: MetadataType.DESCRIPTION,
+        type: MetadataType.Description,
         value: slice?.description,
       });
     }

@@ -103,6 +103,11 @@ const ARG_TYPES = {
       disable: true,
     },
   },
+  mappedMode: {
+    table: {
+      disable: true,
+    },
+  },
   mode: {
     description: `It defines whether the Select should allow for
       the selection of multiple options or single. Single by default.
@@ -141,6 +146,13 @@ const ARG_TYPES = {
        Requires '"mode=multiple"'.
      `,
   },
+  maxTagCount: {
+    defaultValue: 4,
+    description: `Sets maxTagCount attribute. The overflow tag is displayed in
+       place of the remaining items.
+       Requires '"mode=multiple"'.
+     `,
+  },
 };
 
 const mountHeader = (type: String) => {
@@ -151,7 +163,7 @@ const mountHeader = (type: String) => {
     header = (
       <ControlHeader
         label="Control header"
-        warning="Example of warning messsage"
+        warning="Example of warning message"
       />
     );
   }
@@ -201,12 +213,15 @@ InteractiveSelect.args = {
   autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
+  autoClearSearchValue: false,
+  allowSelectAll: true,
   showSearch: true,
   disabled: false,
   invertSelection: false,
   placeholder: 'Select ...',
   optionFilterProps: ['value', 'label', 'custom'],
   oneLine: false,
+  maxTagCount: 4,
 };
 
 InteractiveSelect.argTypes = {

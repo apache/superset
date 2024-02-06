@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import rison from 'rison';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
 import Button from 'src/components/Button';
@@ -28,12 +29,16 @@ import {
   validateNonEmpty,
   isValidExpression,
   styled,
+  getColumnLabel,
   withTheme,
 } from '@superset-ui/core';
-
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import PopoverSection from 'src/components/PopoverSection';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
+import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -41,10 +46,7 @@ import {
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
   ANNOTATION_SOURCE_TYPES_METADATA,
-} from 'src/modules/AnnotationTypes';
-import PopoverSection from 'src/components/PopoverSection';
-import ControlHeader from 'src/explore/components/ControlHeader';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+} from './AnnotationTypes';
 
 const AUTOMATIC_COLOR = '';
 
@@ -299,8 +301,12 @@ class AnnotationLayer extends React.PureComponent {
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
     if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        const queryParams = rison.encode({
+          page: 0,
+          page_size: FILTER_OPTIONS_LIMIT,
+        });
         SupersetClient.get({
-          endpoint: '/api/v1/annotation_layer/',
+          endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
         }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
@@ -314,22 +320,45 @@ class AnnotationLayer extends React.PureComponent {
           });
         });
       } else if (requiresQuery(sourceType)) {
-        SupersetClient.get({ endpoint: '/superset/user_slices' }).then(
-          ({ json }) => {
-            const registry = getChartMetadataRegistry();
-            this.setState({
-              isLoadingOptions: false,
-              valueOptions: json
-                .filter(x => {
-                  const metadata = registry.get(x.viz_type);
-                  return (
-                    metadata && metadata.canBeAnnotationType(annotationType)
-                  );
-                })
-                .map(x => ({ value: x.id, label: x.title, slice: x })),
-            });
-          },
-        );
+        const queryParams = rison.encode({
+          filters: [
+            {
+              col: 'id',
+              opr: 'chart_owned_created_favored_by_me',
+              value: true,
+            },
+          ],
+          order_column: 'slice_name',
+          order_direction: 'asc',
+          page: 0,
+          page_size: FILTER_OPTIONS_LIMIT,
+        });
+        SupersetClient.get({
+          endpoint: `/api/v1/chart/?q=${queryParams}`,
+        }).then(({ json }) => {
+          const registry = getChartMetadataRegistry();
+          this.setState({
+            isLoadingOptions: false,
+            valueOptions: json.result
+              .filter(x => {
+                const metadata = registry.get(x.viz_type);
+                return metadata && metadata.canBeAnnotationType(annotationType);
+              })
+              .map(x => ({
+                value: x.id,
+                label: x.slice_name,
+                slice: {
+                  ...x,
+                  data: {
+                    ...x.form_data,
+                    groupby: x.form_data.groupby?.map(column =>
+                      getColumnLabel(column),
+                    ),
+                  },
+                },
+              })),
+          });
+        });
       } else {
         this.setState({
           isLoadingOptions: false,
@@ -499,7 +528,7 @@ class AnnotationLayer extends React.PureComponent {
             isSelected
             title={t('Annotation Slice Configuration')}
             info={t(`This section allows you to configure how to use the slice
-               to generate annotations.`)}
+              to generate annotations.`)}
           >
             {(annotationType === ANNOTATION_TYPES.EVENT ||
               annotationType === ANNOTATION_TYPES.INTERVAL) && (
@@ -543,7 +572,7 @@ class AnnotationLayer extends React.PureComponent {
               name="annotation-layer-title"
               label={t('Title Column')}
               description={t('Pick a title for you annotation.')}
-              options={[{ value: '', label: 'None' }].concat(columns)}
+              options={[{ value: '', label: t('None') }].concat(columns)}
               value={titleColumn}
               onChange={value => this.setState({ titleColumn: value })}
             />
@@ -566,9 +595,9 @@ class AnnotationLayer extends React.PureComponent {
               <CheckboxControl
                 hovered
                 name="annotation-override-time_range"
-                label="Override time range"
-                description={`This controls whether the "time_range" field from the current
-                  view should be passed down to the chart containing the annotation data.`}
+                label={t('Override time range')}
+                description={t(`This controls whether the "time_range" field from the current
+                  view should be passed down to the chart containing the annotation data.`)}
                 value={'time_range' in overrides}
                 onChange={v => {
                   delete overrides.time_range;
@@ -584,9 +613,9 @@ class AnnotationLayer extends React.PureComponent {
               <CheckboxControl
                 hovered
                 name="annotation-override-timegrain"
-                label="Override time grain"
-                description={`This controls whether the time grain field from the current
-                  view should be passed down to the chart containing the annotation data.`}
+                label={t('Override time grain')}
+                description={t(`This controls whether the time grain field from the current
+                  view should be passed down to the chart containing the annotation data.`)}
                 value={'time_grain_sqla' in overrides}
                 onChange={v => {
                   delete overrides.time_grain_sqla;
@@ -607,9 +636,9 @@ class AnnotationLayer extends React.PureComponent {
               <TextControl
                 hovered
                 name="annotation-layer-timeshift"
-                label="Time Shift"
-                description={`Time delta in natural language
-                  (example:  24 hours, 7 days, 56 weeks, 365 days)`}
+                label={t('Time Shift')}
+                description={t(`Time delta in natural language
+                  (example:  24 hours, 7 days, 56 weeks, 365 days)`)}
                 placeholder=""
                 value={overrides.time_shift}
                 onChange={v =>
@@ -708,8 +737,8 @@ class AnnotationLayer extends React.PureComponent {
           <CheckboxControl
             hovered
             name="annotation-layer-show-markers"
-            label="Show Markers"
-            description="Shows or hides markers for the time series"
+            label={t('Show Markers')}
+            description={t('Shows or hides markers for the time series')}
             value={showMarkers}
             onChange={v => this.setState({ showMarkers: v })}
           />
@@ -718,8 +747,8 @@ class AnnotationLayer extends React.PureComponent {
           <CheckboxControl
             hovered
             name="annotation-layer-hide-line"
-            label="Hide Line"
-            description="Hides the Line for the time series"
+            label={t('Hide Line')}
+            description={t('Hides the Line for the time series')}
             value={hideLine}
             onChange={v => this.setState({ hideLine: v })}
           />

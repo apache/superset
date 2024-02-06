@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
+import { smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   getStandardizedControls,
-  sections,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
 import React from 'react';
@@ -31,13 +30,12 @@ import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [hasGenericChartAxes ? 'x_axis' : null],
-        [hasGenericChartAxes ? 'time_grain_sqla' : null],
+        ['x_axis'],
+        ['time_grain_sqla'],
         ['metric'],
         ['adhoc_filters'],
       ],
@@ -136,6 +134,7 @@ const config: ControlPanelConfig = {
         [headerFontSize],
         [subheaderFontSize],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'time_format',
@@ -171,7 +170,11 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Rolling Window')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Rolling Window')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'rolling_type',
@@ -179,13 +182,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Rolling Function'),
               default: 'None',
-              choices: formatSelectOptions([
-                'None',
-                'mean',
-                'sum',
-                'std',
-                'cumsum',
-              ]),
+              choices: [
+                ['None', t('None')],
+                ['mean', t('mean')],
+                ['sum', t('sum')],
+                ['std', t('std')],
+                ['cumsum', t('cumsum')],
+              ],
               description: t(
                 'Defines a rolling window function to apply, works along ' +
                   'with the [Periods] text box',
@@ -224,7 +227,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Resample')}</div>],
+        [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
             name: 'resample_rule',
@@ -234,14 +237,14 @@ const config: ControlPanelConfig = {
               label: t('Rule'),
               default: null,
               choices: [
-                ['1T', '1 minutely frequency'],
-                ['1H', '1 hourly frequency'],
-                ['1D', '1 calendar day frequency'],
-                ['7D', '7 calendar day frequency'],
-                ['1MS', '1 month start frequency'],
-                ['1M', '1 month end frequency'],
-                ['1AS', '1 year start frequency'],
-                ['1A', '1 year end frequency'],
+                ['1T', t('1 minutely frequency')],
+                ['1H', t('1 hourly frequency')],
+                ['1D', t('1 calendar day frequency')],
+                ['7D', t('7 calendar day frequency')],
+                ['1MS', t('1 month start frequency')],
+                ['1M', t('1 month end frequency')],
+                ['1AS', t('1 year start frequency')],
+                ['1A', t('1 year end frequency')],
               ],
               description: t('Pandas resample rule'),
             },

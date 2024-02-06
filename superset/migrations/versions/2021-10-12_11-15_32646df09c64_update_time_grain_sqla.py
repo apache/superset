@@ -27,7 +27,6 @@ revision = "32646df09c64"
 down_revision = "60dc453f4e2e"
 
 import json
-from typing import Dict
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
@@ -45,7 +44,7 @@ class Slice(Base):
     params = Column(Text)
 
 
-def migrate(mapping: Dict[str, str]) -> None:
+def migrate(mapping: dict[str, str]) -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
 

@@ -21,7 +21,7 @@ under the License.
 
 Here's a list of organizations, broken down into broad industry categories, that have taken the time to send a PR to let
 the world know they are using Apache Superset. If you are a user and want to be recognized,
-all you have to do is file a simple PR [like this one](https://github.com/apache/superset/pull/10122). If you think
+all you have to do is file a simple PR [like this one](https://github.com/apache/superset/pull/10122) — [just click here](https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.md) to do so. If you think
 the categorization is inaccurate, please file a PR with your correction as well.
 Join our growing community!
 
@@ -40,6 +40,8 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [KarrotPay](https://www.daangnpay.com/)
+- [Taveo](https://www.taveo.com) [@codek]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
@@ -72,8 +74,11 @@ Join our growing community!
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
+- [Caizin](https://caizin.com/) [@tejaskatariya]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
+- [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
 - [Dremio](https://dremio.com) [@narendrans]
@@ -86,16 +91,19 @@ Join our growing community!
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]
+- [Mainstrat](https://mainstrat.com/)
 - [mishmash io](https://mishmash.io/)[@mishmash-io]
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
 - [Pronto Tools](http://www.prontotools.io) [@zkan]
 - [PubNub](https://pubnub.com) [@jzucker2]
+- [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
 - [Showmax](https://tech.showmax.com) [@bobek]
@@ -103,6 +111,7 @@ Join our growing community!
 - [Steamroot](https://streamroot.io/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
+- [Tentacle](https://public.tentaclecmi.com) [@jdclarke5]
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
@@ -111,12 +120,14 @@ Join our growing community!
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
 
-### Entertainment
+### Media & Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
 - [bilibili](https://www.bilibili.com) [@Moinheart]
+- [BurdaForward](https://www.burda-forward.de/en/)
 - [Douban](https://www.douban.com/) [@luchuan]
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
@@ -135,6 +146,7 @@ Join our growing community!
 - [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
+- [Wattbewerb](https://wattbewerb.de/) [@wattbewerb]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
@@ -148,17 +160,24 @@ Join our growing community!
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
+- [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
-### News
-- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+### Government
+- [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+
+### Travel
+- [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)
+- [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
+- [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
+- [Onebeat](https://1beat.com/) [@GuyAttia]
 - [Twitter](https://twitter.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)

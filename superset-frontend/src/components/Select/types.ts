@@ -40,6 +40,7 @@ export type AntdProps = AntdSelectProps<AntdSelectValue>;
 export type AntdExposedProps = Pick<
   AntdProps,
   | 'allowClear'
+  | 'autoClearSearchValue'
   | 'autoFocus'
   | 'disabled'
   | 'filterOption'
@@ -156,10 +157,13 @@ export interface BaseSelectProps extends AntdExposedProps {
 
 export interface SelectProps extends BaseSelectProps {
   /**
+   * It enables the user to select all options.
+   * True by default.
+   * */
+  allowSelectAll?: boolean;
+  /**
    * It defines the options of the Select.
    * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
-   * an array of options.
    */
   options: SelectOptionsType;
 }
@@ -215,4 +219,5 @@ export interface AsyncSelectProps extends BaseSelectProps {
 export type CustomTagProps = HTMLSpanElement &
   TagProps & {
     label: ReactNode;
+    value: string;
   };

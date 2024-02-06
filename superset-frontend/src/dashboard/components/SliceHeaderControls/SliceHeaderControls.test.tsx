@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from 'src/featureFlags';
+import { FeatureFlag } from '@superset-ui/core';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
@@ -37,16 +37,19 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = 'sunburst') =>
+const createProps = (viz_type = 'sunburst_v2') =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
+    exportXLSX: jest.fn(),
+    exportFullXLSX: jest.fn(),
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
+    logEvent: jest.fn(),
     slice: {
       slice_id: 371,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
@@ -56,7 +59,9 @@ const createProps = (viz_type = 'sunburst') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        groupby: ['product_category', 'clinical_stage'],
+        ...(viz_type === 'sunburst_v2'
+          ? { columns: ['product_category', 'clinical_stage'] }
+          : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
         metric: 'count',
         queryFields: {
@@ -84,24 +89,33 @@ const createProps = (viz_type = 'sunburst') =>
     updatedDttm: 1617213803803,
     supersetCanExplore: true,
     supersetCanCSV: true,
-    sliceCanEdit: false,
     componentId: 'CHART-fYo7IyvKZQ',
     dashboardId: 26,
     isFullSize: false,
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst' },
+    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
     exploreUrl: '/explore',
   } as SliceHeaderControlsProps);
 
-const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+const renderWrapper = (
+  overrideProps?: SliceHeaderControlsProps,
+  roles?: Record<string, string[][]>,
+) => {
   const props = overrideProps || createProps();
   const store = getMockStore();
+  const mockState = store.getState();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
-    store,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: roles ?? mockState.user.roles,
+      },
+    },
   });
 };
 
@@ -125,6 +139,8 @@ test('Should render default props', () => {
   // @ts-ignore
   delete props.exportCSV;
   // @ts-ignore
+  delete props.exportXLSX;
+  // @ts-ignore
   delete props.cachedDttm;
   // @ts-ignore
   delete props.updatedDttm;
@@ -132,8 +148,6 @@ test('Should render default props', () => {
   delete props.isCached;
   // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
-  delete props.sliceCanEdit;
 
   renderWrapper(props);
   expect(
@@ -169,16 +183,20 @@ test('Should "export to CSV"', async () => {
   expect(props.exportCSV).toBeCalledWith(371);
 });
 
-test('Should not show "Download" if slice is filter box', () => {
-  const props = createProps('filter_box');
+test('Should "export to Excel"', async () => {
+  const props = createProps();
   renderWrapper(props);
-  expect(screen.queryByText('Download')).not.toBeInTheDocument();
+  expect(props.exportXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to Excel'));
+  expect(props.exportXLSX).toBeCalledTimes(1);
+  expect(props.exportXLSX).toBeCalledWith(371);
 });
 
 test('Export full CSV is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -190,7 +208,7 @@ test('Export full CSV is under featureflag', async () => {
 test('Should "export full CSV"', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -204,12 +222,49 @@ test('Should "export full CSV"', async () => {
 test('Should not show export full CSV if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
+});
+
+test('Export full Excel is under featureflag', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: false,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
+});
+
+test('Should "export full Excel"', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps('table');
+  renderWrapper(props);
+  expect(props.exportFullXLSX).toBeCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toBeCalledTimes(1);
+  expect(props.exportFullXLSX).toBeCalledWith(371);
+});
+
+test('Should not show export full Excel if report is not table', async () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  renderWrapper();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
 });
 
 test('Should "Show chart description"', () => {
@@ -243,20 +298,55 @@ test('Should "Enter fullscreen"', () => {
 test('Drill to detail modal is under featureflag', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: false,
+    [FeatureFlag.DrillToDetail]: false,
   };
   const props = createProps();
   renderWrapper(props);
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show the "Drill to detail"', () => {
+test('Should show "Drill to detail"', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+    [FeatureFlag.DrillToDetail]: true,
   };
   const props = createProps();
   props.slice.slice_id = 18;
-  renderWrapper(props);
+  renderWrapper(props, {
+    Admin: [
+      ['can_view_and_drill', 'Dashboard'],
+      ['can_samples', 'Datasource'],
+    ],
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should show menu items tied to can_view_and_drill permission', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_and_drill', 'Dashboard']],
+  });
+  expect(screen.getByText('View query')).toBeInTheDocument();
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" without proper permissions', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_and_drill', 'Dashboard']],
+  });
+  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

@@ -40,7 +40,8 @@ default-setup-command() {
 apt-get-install() {
   say "::group::apt-get install dependencies"
   sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev
+    libsasl2-dev \
+    libldap2-dev
   say "::endgroup::"
 }
 
@@ -156,16 +157,18 @@ cypress-run() {
   local browser=${CYPRESS_BROWSER:-chrome}
 
   export TERM="xterm"
+  export ELECTRON_DISABLE_GPU=true # Attempt to disable GPU for Electron-based Cypress
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_KEY ]]; then
-    $cypress --spec "cypress/integration/$page" --browser "$browser"
+    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser"
   else
     export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
     # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/integration/$page" --browser "$browser" \
+    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
       --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
+
   fi
 
   # don't add quotes to $record because we do want word splitting
@@ -232,7 +235,7 @@ cypress-run-applitools() {
   nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
   local flaskProcessId=$!
 
-  $cypress --spec "cypress/integration/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
+  $cypress --spec "cypress/e2e/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
 
   codecov -c -F "cypress" || true
 

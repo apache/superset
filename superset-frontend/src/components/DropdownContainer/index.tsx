@@ -30,9 +30,8 @@ import React, {
   ReactNode,
 } from 'react';
 import { Global } from '@emotion/react';
-import { css, t, useTheme } from '@superset-ui/core';
+import { css, t, useTheme, usePrevious } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
-import { usePrevious } from 'src/hooks/usePrevious';
 import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
@@ -105,6 +104,10 @@ export interface DropdownContainerProps {
    * Main container additional style properties.
    */
   style?: CSSProperties;
+  /**
+   * Force render popover content before it's first opened
+   */
+  forceRender?: boolean;
 }
 
 export type Ref = HTMLDivElement & { open: () => void };
@@ -121,6 +124,7 @@ const DropdownContainer = forwardRef(
       dropdownTriggerIcon,
       dropdownTriggerText = t('More'),
       dropdownTriggerTooltip = null,
+      forceRender,
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -365,7 +369,7 @@ const DropdownContainer = forwardRef(
               visible={popoverVisible}
               onVisibleChange={visible => setPopoverVisible(visible)}
               placement="bottom"
-              destroyTooltipOnHide
+              forceRender={forceRender}
             >
               <Tooltip title={dropdownTriggerTooltip}>
                 <Button

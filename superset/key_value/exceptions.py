@@ -52,3 +52,15 @@ class KeyValueUpsertFailedError(UpdateFailedError):
 
 class KeyValueAccessDeniedError(ForbiddenError):
     message = _("You don't have permission to modify the value.")
+
+
+class KeyValueCodecException(SupersetException):
+    pass
+
+
+class KeyValueCodecEncodeException(KeyValueCodecException):
+    message = _("Unable to encode value")
+
+
+class KeyValueCodecDecodeException(KeyValueCodecException):
+    message = _("Unable to decode value")

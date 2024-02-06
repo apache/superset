@@ -40,9 +40,6 @@ export default function saveModalReducer(state = {}, action) {
     [actions.SAVE_SLICE_SUCCESS](data) {
       return { ...state, data };
     },
-    [actions.REMOVE_SAVE_MODAL_ALERT]() {
-      return { ...state, saveModalAlert: null };
-    },
     [HYDRATE_EXPLORE]() {
       return { ...action.data.saveModal };
     },

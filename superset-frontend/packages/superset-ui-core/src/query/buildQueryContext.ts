@@ -20,16 +20,11 @@
 import buildQueryObject from './buildQueryObject';
 import DatasourceKey from './DatasourceKey';
 import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
-import {
-  BinaryQueryObjectFilterClause,
-  QueryContext,
-  QueryObject,
-} from './types/Query';
+import { QueryContext, QueryObject } from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
 import { normalizeTimeColumn } from './normalizeTimeColumn';
-import { hasGenericChartAxes, isXAxisSet } from './getXAxis';
-import { ensureIsArray } from '../utils';
+import { isXAxisSet } from './getXAxis';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
@@ -59,14 +54,6 @@ export default function buildQueryContext(
     if (Array.isArray(query.post_processing)) {
       // eslint-disable-next-line no-param-reassign
       query.post_processing = query.post_processing.filter(Boolean);
-    }
-    if (hasGenericChartAxes && query.time_range) {
-      // eslint-disable-next-line no-param-reassign
-      query.filters = ensureIsArray(query.filters).map(flt =>
-        flt?.op === 'TEMPORAL_RANGE'
-          ? ({ ...flt, val: query.time_range } as BinaryQueryObjectFilterClause)
-          : flt,
-      );
     }
   });
   if (isXAxisSet(formData)) {

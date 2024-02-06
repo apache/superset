@@ -19,7 +19,6 @@
 import React from 'react';
 import {
   ensureIsArray,
-  hasGenericChartAxes,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormMetric,
@@ -30,10 +29,7 @@ import {
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
-  sections,
   sharedControls,
-  emitFilterControl,
   Dataset,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -41,7 +37,6 @@ import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -67,37 +62,35 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          hasGenericChartAxes
-            ? {
-                name: 'time_grain_sqla',
-                config: {
-                  ...sharedControls.time_grain_sqla,
-                  visibility: ({ controls }) => {
-                    const dttmLookup = Object.fromEntries(
-                      ensureIsArray(controls?.groupbyColumns?.options).map(
-                        option => [option.column_name, option.is_dttm],
-                      ),
-                    );
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.groupbyColumns?.options).map(
+                    option => [option.column_name, option.is_dttm],
+                  ),
+                );
 
-                    return [
-                      ...ensureIsArray(controls?.groupbyColumns.value),
-                      ...ensureIsArray(controls?.groupbyRows.value),
-                    ]
-                      .map(selection => {
-                        if (isAdhocColumn(selection)) {
-                          return true;
-                        }
-                        if (isPhysicalColumn(selection)) {
-                          return !!dttmLookup[selection];
-                        }
-                        return false;
-                      })
-                      .some(Boolean);
-                  },
-                },
-              }
-            : null,
-          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
+                return [
+                  ...ensureIsArray(controls?.groupbyColumns.value),
+                  ...ensureIsArray(controls?.groupbyRows.value),
+                ]
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
         ],
         [
           {
@@ -128,7 +121,6 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        emitFilterControl,
         ['series_limit'],
         [
           {
@@ -178,26 +170,29 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Aggregation function'),
               clearable: false,
-              choices: formatSelectOptions([
-                'Count',
-                'Count Unique Values',
-                'List Unique Values',
-                'Sum',
-                'Average',
-                'Median',
-                'Sample Variance',
-                'Sample Standard Deviation',
-                'Minimum',
-                'Maximum',
-                'First',
-                'Last',
-                'Sum as Fraction of Total',
-                'Sum as Fraction of Rows',
-                'Sum as Fraction of Columns',
-                'Count as Fraction of Total',
-                'Count as Fraction of Rows',
-                'Count as Fraction of Columns',
-              ]),
+              choices: [
+                ['Count', t('Count')],
+                ['Count Unique Values', t('Count Unique Values')],
+                ['List Unique Values', t('List Unique Values')],
+                ['Sum', t('Sum')],
+                ['Average', t('Average')],
+                ['Median', t('Median')],
+                ['Sample Variance', t('Sample Variance')],
+                ['Sample Standard Deviation', t('Sample Standard Deviation')],
+                ['Minimum', t('Minimum')],
+                ['Maximum', t('Maximum')],
+                ['First', t('First')],
+                ['Last', t('Last')],
+                ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
+                ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
+                ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
+                ['Count as Fraction of Total', t('Count as Fraction of Total')],
+                ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
+                [
+                  'Count as Fraction of Columns',
+                  t('Count as Fraction of Columns'),
+                ],
+              ],
               default: 'Sum',
               description: t(
                 'Aggregate function to apply when pivoting and computing the total rows and columns',
@@ -220,6 +215,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rowSubTotals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show rows subtotal'),
+              default: false,
+              renderTrigger: true,
+              description: t('Display row level subtotal'),
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -227,6 +234,18 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t('Display column level total'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'colSubTotals',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show columns subtotal'),
+              default: false,
+              renderTrigger: true,
+              description: t('Display column level subtotal'),
             },
           },
         ],
@@ -272,6 +291,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'date_format',
@@ -384,7 +404,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Conditional formatting'),
               description: t('Apply conditional color formatting to metrics'),
-              mapStateToProps(explore) {
+              mapStateToProps(explore, _, chart) {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
@@ -393,6 +413,7 @@ const config: ControlPanelConfig = {
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
                   : explore?.datasource?.columns ?? {};
+                const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return { value, label: verboseMap[value] ?? value };
@@ -400,6 +421,7 @@ const config: ControlPanelConfig = {
                   return { value: value.label, label: value.label };
                 });
                 return {
+                  removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions: metricColumn,
                   verboseMap,
                 };

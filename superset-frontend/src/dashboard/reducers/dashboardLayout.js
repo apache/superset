@@ -45,6 +45,39 @@ import {
 
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
+export function recursivelyDeleteChildren(
+  componentId,
+  componentParentId,
+  nextComponents,
+) {
+  // delete child and it's children
+  const component = nextComponents?.[componentId];
+  if (component) {
+    // eslint-disable-next-line no-param-reassign
+    delete nextComponents[componentId];
+
+    const { children = [] } = component;
+    children?.forEach?.(childId => {
+      recursivelyDeleteChildren(childId, componentId, nextComponents);
+    });
+
+    const parent = nextComponents?.[componentParentId];
+    if (Array.isArray(parent?.children)) {
+      // may have been deleted in another recursion
+      const componentIndex = parent.children.indexOf(componentId);
+      if (componentIndex > -1) {
+        const nextChildren = [...parent.children];
+        nextChildren.splice(componentIndex, 1);
+        // eslint-disable-next-line no-param-reassign
+        nextComponents[componentParentId] = {
+          ...parent,
+          children: nextChildren,
+        };
+      }
+    }
+  }
+}
+
 const actionHandlers = {
   [HYDRATE_DASHBOARD](state, action) {
     return {
@@ -71,39 +104,14 @@ const actionHandlers = {
 
     const nextComponents = { ...state };
 
-    function recursivelyDeleteChildren(componentId, componentParentId) {
-      // delete child and it's children
-      const component = nextComponents[componentId];
-      delete nextComponents[componentId];
-
-      const { children = [] } = component;
-      children.forEach(childId => {
-        recursivelyDeleteChildren(childId, componentId);
-      });
-
-      const parent = nextComponents[componentParentId];
-      if (parent) {
-        // may have been deleted in another recursion
-        const componentIndex = (parent.children || []).indexOf(componentId);
-        if (componentIndex > -1) {
-          const nextChildren = [...parent.children];
-          nextChildren.splice(componentIndex, 1);
-          nextComponents[componentParentId] = {
-            ...parent,
-            children: nextChildren,
-          };
-        }
-      }
-    }
-
-    recursivelyDeleteChildren(id, parentId);
+    recursivelyDeleteChildren(id, parentId, nextComponents);
     const nextParent = nextComponents[parentId];
-    if (nextParent.type === ROW_TYPE && nextParent.children.length === 0) {
+    if (nextParent?.type === ROW_TYPE && nextParent?.children?.length === 0) {
       const grandparentId = findParentId({
         childId: parentId,
         layout: nextComponents,
       });
-      recursivelyDeleteChildren(parentId, grandparentId);
+      recursivelyDeleteChildren(parentId, grandparentId, nextComponents);
     }
 
     return nextComponents;

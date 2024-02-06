@@ -75,7 +75,6 @@ export default class AdhocMetric {
       this.column = null;
       this.aggregate = null;
     }
-    this.isNew = !!adhocMetric.isNew;
     this.datasourceWarning = !!adhocMetric.datasourceWarning;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
@@ -90,8 +89,7 @@ export default class AdhocMetric {
   }
 
   getDefaultLabel() {
-    const label = this.translateToSql({ useVerboseName: true });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    return this.translateToSql({ useVerboseName: true });
   }
 
   translateToSql(
@@ -125,9 +123,6 @@ export default class AdhocMetric {
   duplicateWith(nextFields) {
     return new AdhocMetric({
       ...this,
-      // all duplicate metrics are not considered new by default
-      isNew: false,
-      // but still overriddable by nextFields
       ...nextFields,
     });
   }

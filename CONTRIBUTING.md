@@ -52,7 +52,9 @@ little bit helps, and credit will always be given.
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
-      - [Images](#images)
+      - [Local Development](#local-development)
+      - [Build](#build)
+      - [Deployment](#deployment)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Dependencies](#dependencies)
@@ -64,7 +66,7 @@ little bit helps, and credit will always be given.
       - [Build assets](#build-assets)
       - [Webpack dev server](#webpack-dev-server)
       - [Other npm commands](#other-npm-commands)
-      - [Docker (docker-compose)](#docker-docker-compose)
+      - [Docker (docker compose)](#docker-docker-compose)
       - [Updating NPM packages](#updating-npm-packages)
       - [Feature flags](#feature-flags)
   - [Git Hooks](#git-hooks)
@@ -124,7 +126,7 @@ Here's a list of repositories that contain Superset-related packages:
 
 ## Types of Contributions
 
-### Report Bug
+### Report a Bug
 
 The best way to report a bug is to file an issue on GitHub. Please include:
 
@@ -136,15 +138,17 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+_Please note that feature requests opened as GitHub Issues will be moved to Discussions._
+
 ### Submit Ideas or Feature Requests
 
-The best way is to file an issue on GitHub:
+The best way is to start an ["Ideas" Discussion thread](https://github.com/apache/superset/discussions/categories/ideas) on GitHub:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+- Remember that this is a volunteer-driven project, and that your contributions are as welcome as anyone's :)
 
-For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
+To propose large features or major changes to codebase, and help usher in those changes, please create a **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
 ### Fix Bugs
 
@@ -166,7 +170,7 @@ articles. See [Documentation](#documentation) for more details.
 ### Add Translations
 
 If you are proficient in a non-English language, you can help translate
-text strings from Superset's UI. You can jump in to the existing
+text strings from Superset's UI. You can jump into the existing
 language dictionaries at
 `superset/translations/<language_code>/LC_MESSAGES/messages.po`, or
 even create a dictionary for a new language altogether.
@@ -175,6 +179,51 @@ See [Translating](#translating) for more details.
 ### Ask Questions
 
 There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
+
+## Types of Contributors
+
+Following the project governance model of the Apache Software Foundation (ASF), Apache Superset has a specific set of contributor roles:
+
+### PMC Member
+
+A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
+
+For more information about Apache Project PMCs, please refer to https://www.apache.org/foundation/governance/pmcs.html
+
+### Committer
+
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. They can modify the code, documentation, and website and accept contributions from others.
+
+The official list of committers and PMC members can be found [here](https://projects.apache.org/committee.html?superset).
+
+### Contributor
+
+A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
+
+> You can also review the Superset project's guidelines for PMC member promotion here: https://github.com/apache/superset/wiki/Guidelines-for-promoting-Superset-Committers-to-the-Superset-PMC
+
+### Security Team
+
+The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
+
+New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
+
+This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
+
+Each new security issue is tracked as a JIRA ticket on the [ASF's JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+
+Security team members must:
+
+- Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
+- Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
+
+A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team.  However, they are not expected to be active in assessing, discussing, and fixing security issues.
+
+Security team members should also follow these general expectations:
+
+- Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
+- Avoid discussing security fixes in public forums. Pull request (PR) descriptions should not contain any information about security issues. The corresponding JIRA ticket should contain a link to the PR.
+- Security team members who contribute to a fix may be listed as remediation developers in the CVE report, along with their job affiliation (if they choose to include it).
 
 ## Pull Request Guidelines
 
@@ -325,16 +374,16 @@ Triaging goals
 
 First, add **Category labels (a.k.a. hash labels)**. Every issue/PR must have one hash label (except spam entry). Labels that begin with `#` defines issue/PR type:
 
-| Label           | for Issue                                                                                                                               | for PR                                                                                                                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#bug`          | Bug report                                                                                                                              | Bug fix                                                                                                                                           |
-| `#code-quality` | Describe problem with code, architecture or productivity                                                                                | Refactor, tests, tooling                                                                                                                          |
-| `#feature`      | New feature request                                                                                                                     | New feature implementation                                                                                                                        |
-| `#refine`       | Propose improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. | Implementation of improvement that does not provide new features and is also not a bug fix nor refactor, such as adjust padding, refine UI style. |
-| `#doc`          | Documentation                                                                                                                           | Documentation                                                                                                                                     |
-| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                                | N/A                                                                                                                                               |
-| `#SIP`          | Superset Improvement Proposal                                                                                                           | N/A                                                                                                                                               |
-| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                                      | Tasks related to Apache Software Foundation policy                                                                                                |
+| Label           | for Issue                                                                                                               | for PR                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#bug`          | Bug report                                                                                                              | Bug fix                                                                                                                           |
+| `#code-quality` | Describe problem with code, architecture or productivity                                                                | Refactor, tests, tooling                                                                                                          |
+| `#feature`      | New feature request                                                                                                     | New feature implementation                                                                                                        |
+| `#refine`       | Propose improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. | Implementation of improvement such as adjusting padding or refining UI style, excluding new features, bug fixes, and refactoring. |
+| `#doc`          | Documentation                                                                                                           | Documentation                                                                                                                     |
+| `#question`     | Troubleshooting: Installation, Running locally, Ask how to do something. Can be changed to `#bug` later.                | N/A                                                                                                                               |
+| `#SIP`          | Superset Improvement Proposal                                                                                           | N/A                                                                                                                               |
+| `#ASF`          | Tasks related to Apache Software Foundation policy                                                                      | Tasks related to Apache Software Foundation policy                                                                                |
 
 Then add other types of labels as appropriate.
 
@@ -420,7 +469,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
+Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -449,7 +498,7 @@ superset load-examples
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
 # See instructions below how to build the front-end assets.
-FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
 Or you can install via our Makefile
@@ -473,7 +522,7 @@ $ make pre-commit
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
-`FLASK_ENV=development superset run -p 8088 --reload --debugger`
+`superset run -p 8088 --reload --debugger --debug`
 
 #### Dependencies
 
@@ -514,7 +563,7 @@ def FLASK_APP_MUTATOR(app):
 Then make sure you run your WSGI server using the right worker type:
 
 ```bash
-FLASK_ENV=development gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
+gunicorn "superset.app:create_app()" -k "geventwebsocket.gunicorn.workers.GeventWebSocketWorker" -b 127.0.0.1:8088 --reload
 ```
 
 You can log anything to the browser console, including objects:
@@ -543,6 +592,11 @@ We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node envi
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
+incase it shows '-bash: nvm: command not found'
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
 cd superset-frontend
 nvm install --lts
 nvm use --lts
@@ -568,6 +622,19 @@ cd superset-frontend
 npm ci
 ```
 
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+
+```json
+// your-package/package.json
+{
+  // ...
+  "scarfSettings": {
+    "enabled": false
+  }
+  // ...
+}
+```
+
 #### Build assets
 
 There are three types of assets you can build:
@@ -575,6 +642,31 @@ There are three types of assets you can build:
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+If while using the above commands you encounter an error related to the limit of file watchers:
+
+```bash
+Error: ENOSPC: System limit for number of file watchers reached
+```
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this this error by increasing the number of inotify watchers.
+
+The current value of max watches can be checked with:
+```bash
+cat /proc/sys/fs/inotify/max_user_watches
+```
+Edit the file /etc/sysctl.conf to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in editor and add a line at the bottom specifying the max watches values.
+```bash
+fs.inotify.max_user_watches=524288
+```
+Save the file and exit editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+```bash
+sudo sysctl -p
+```
 
 #### Webpack dev server
 
@@ -585,7 +677,7 @@ So a typical development workflow is the following:
 1. [run Superset locally](#flask-server) using Flask, on port `8088` — but don't access it directly,<br/>
    ```bash
    # Install Superset and dependencies, plus load your virtual environment first, as detailed above.
-   FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+   superset run -p 8088 --with-threads --reload --debugger --debug
    ```
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
    ```bash
@@ -618,7 +710,7 @@ Alternatively, there are other NPM commands you may find useful:
 1. `npm run build-dev`: build assets in development mode.
 2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
 
-#### Docker (docker-compose)
+#### Docker (docker compose)
 
 See docs [here](docker/README.md)
 
@@ -638,7 +730,7 @@ FEATURE_FLAGS = {
 }
 ```
 
-If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
+If you want to use the same flag in the client code, also add it to the FeatureFlag TypeScript enum in [@superset-ui/core](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/utils/featureFlags.ts). For example,
 
 ```typescript
 export enum FeatureFlag {
@@ -686,7 +778,7 @@ We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 tox -e pylint
 ```
 
-In terms of best practices please avoid blanket disablement of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disablement should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
 Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
 is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
@@ -696,7 +788,10 @@ is configured as a pre-commit hook. There are also numerous [editor integrations
 ```bash
 cd superset-frontend
 npm ci
-npm run lint
+# run eslint checks
+npm run eslint -- .
+# run tsc (typescript) checks
+npm run type
 ```
 
 If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
@@ -850,10 +945,10 @@ npm install
 npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.ts
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
 # run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
 npm run cypress-debug
@@ -865,17 +960,17 @@ CYPRESS_BASE_URL=<your url> npm run cypress open
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
 
-As an alternative you can use docker-compose environment for testing:
+As an alternative you can use docker compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
 `127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-`docker-compose down -v`
+`docker compose down -v`
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker-compose up`
+`CYPRESS_CONFIG=true docker compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -888,6 +983,33 @@ npm run cypress open
 ```
 
 ### Debugging Server App
+
+#### Local
+
+For debugging locally using VSCode, you can configure a launch configuration file .vscode/launch.json such as
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Flask",
+      "type": "python",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "superset",
+        "SUPERSET_ENV": "development"
+      },
+      "args": ["run", "-p 8088", "--with-threads", "--reload", "--debugger"],
+      "jinja": true,
+      "justMyCode": true
+    }
+  ]
+}
+```
+
+#### Docker
 
 Follow these instructions to debug the Flask app running inside a docker container.
 
@@ -915,7 +1037,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Install the required libraries and packages to the docker container
@@ -966,26 +1088,26 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
 
-```
+```json
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Superset App in Docker Container",
+      "type": "python",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Attach to Superset App in Docker Container",
-            "type": "python",
-            "request": "attach",
-            "connect": {
-                "host": "127.0.0.1",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ]
-        },
-    ]
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -1150,7 +1272,7 @@ To contribute a plugin to Superset, your plugin must meet the following criteria
 - The plugin should contain sufficient unit/e2e tests
 - The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
 - The plugin should use them variables via Emotion, as passed in by the ThemeProvider
-- The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
+- The plugin should provide adequate error handling (no data returned, malformed data, invalid controls, etc.)
 - The plugin should contain documentation in the form of a populated `README.md` file
 - The plugin should have a meaningful and unique icon
 - Above all else, the plugin should come with a _commitment to maintenance_ from the original author(s)
@@ -1286,14 +1408,14 @@ To do this, you'll need to:
   but perfect for testing (stores cache in `/tmp`)
 
   ```python
-  from cachelib.file import FileSystemCache
+  from flask_caching.backends.filesystemcache import FileSystemCache
   RESULTS_BACKEND = FileSystemCache('/tmp/sqllab')
   ```
 
 - Start up a celery worker
 
   ```shell script
-  celery --app=superset.tasks.celery_app:app worker -Ofair
+  celery --app=superset.tasks.celery_app:app worker -O fair
   ```
 
 Note that:
@@ -1323,6 +1445,7 @@ The following configuration settings are available for async queries (see config
 - `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE` - JWT cookie same site option
 - `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN` - JWT cookie domain option ([see docs for set_cookie](https://tedboy.github.io/flask/interface_api.response_object.html#flask.Response.set_cookie))
 - `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
 - `GLOBAL_ASYNC_QUERIES_TRANSPORT` - available options: "polling" (HTTP, default), "ws" (WebSocket, requires running superset-websocket server)
@@ -1351,13 +1474,11 @@ Note not all fields are correctly categorized. The fields vary based on visualiz
 
 ### Time
 
-| Field               | Type     | Notes                                 |
-| ------------------- | -------- | ------------------------------------- |
-| `druid_time_origin` | _string_ | The Druid **Origin** widget           |
-| `granularity`       | _string_ | The Druid **Time Granularity** widget |
-| `granularity_sqla`  | _string_ | The SQLA **Time Column** widget       |
-| `time_grain_sqla`   | _string_ | The SQLA **Time Grain** widget        |
-| `time_range`        | _string_ | The **Time range** widget             |
+| Field              | Type     | Notes                           |
+| ------------------ | -------- | ------------------------------- |
+| `granularity_sqla` | _string_ | The SQLA **Time Column** widget |
+| `time_grain_sqla`  | _string_ | The SQLA **Time Grain** widget  |
+| `time_range`       | _string_ | The **Time range** widget       |
 
 ### GROUP BY
 

@@ -39,4 +39,7 @@ test('correctly positions at lower edge of screen', () => {
   expect(getMenuAdjustedY(425, 1)).toEqual(425); // No adjustment
   expect(getMenuAdjustedY(425, 2)).toEqual(404); // Adjustment
   expect(getMenuAdjustedY(425, 3)).toEqual(372); // Adjustment
+
+  expect(getMenuAdjustedY(425, 8, 200)).toEqual(268);
+  expect(getMenuAdjustedY(425, 8, 200, 48)).toEqual(220);
 });

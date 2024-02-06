@@ -24,7 +24,7 @@
  */
 
 /* You can override the default Infima variables here. */
-@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
 :root {
   --ifm-color-primary: #20a7c9;
@@ -34,80 +34,17 @@
   --ifm-color-primary-light: #79cade;
   --ifm-color-primary-lighter: #a5dbe9;
   --ifm-color-primary-lightest: #d2edf4;
+  --ifm-font-base-color: #484848;
+  --ifm-font-base-color-inverse: #ffffff;
   --ifm-code-font-size: 95%;
   --ifm-menu-link-padding-vertical: 12px;
   --doc-sidebar-width: 350px !important;
   --ifm-navbar-height: none;
-  --ifm-font-family-base: Inter;
-}
-body {
-  font-family: Inter !important;
-}
-.DocSearch-Button .DocSearch-Button-Key {
-  display: none;
-}
-.github-logo-container {
-  background-image: url('/img/github.png');
-  background-size: contain;
-  width: 30px;
-  height: 30px;
-}
-
-.theme-doc-toc-desktop {
-  position: fixed !important;
-}
-
-.docusaurus-highlight-code-line {
-  background-color: rgba(0, 0, 0, 0.1);
-  display: block;
-  margin: 0 calc(-1 * var(--ifm-pre-padding));
-  padding: 0 var(--ifm-pre-padding);
-}
-
-html[data-theme='dark'] .docusaurus-highlight-code-line {
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
-.navbar__logo {
-  height: 40px;
-}
-
-.navbar-sidebar__brand {
-  padding-left: 0;
-}
-
-.menu,
-.navbar {
-  font-size: 14px;
-  font-weight: 400;
-}
-
-/* Hacks to disable Swagger UI's "try it out" interactive mode */
-.try-out,
-.auth-wrapper,
-.information-container {
-  display: none !important;
-}
-
-.swagger-ui table td,
-.swagger-ui table th,
-.swagger-ui table tr {
-  border: none;
-}
-
-.markdown h2:first-child {
-  margin-top: 0.5em;
-}
-
-@media only screen and (min-width: 800px) {
-  .navbar__logo {
-    height: 50px;
-  }
-
-  .navbar {
-    padding-left: 0;
-  }
-}
-a > span > svg {
-  display: none;
+  --ifm-font-family-base: Roboto;
+  --ifm-footer-background-color: #173036;
+  --ifm-footer-color: #87939a;
+  --ifm-off-section-background: #fbfbfb;
+  --ifm-border-color: #ededed;
+  --ifm-primary-text: #484848;
+  --ifm-secondary-text: #5f5f5f;
 }

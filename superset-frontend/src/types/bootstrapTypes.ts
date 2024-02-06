@@ -6,9 +6,10 @@ import {
   Locale,
   SequentialSchemeConfig,
 } from '@superset-ui/core';
+import { FormatLocaleDefinition } from 'd3-format';
 import { isPlainObject } from 'lodash';
+import { Languages } from 'src/features/home/LanguagePicker';
 import { FlashMessage } from '../components/FlashProvider';
-import { Languages } from '../views/components/LanguagePicker';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -94,17 +95,20 @@ export interface BrandProps {
 export interface NavBarProps {
   show_watermark: boolean;
   bug_report_url?: string;
+  bug_report_text?: string;
+  bug_report_icon?: string;
   version_string?: string;
   version_sha?: string;
   build_number?: string;
   documentation_url?: string;
+  documentation_text?: string;
+  documentation_icon?: string;
   languages: Languages;
   show_language_picker: boolean;
   user_is_anonymous: boolean;
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
-  user_profile_url: string | null;
   locale: string;
 }
 
@@ -146,6 +150,7 @@ export interface CommonBootstrapData {
   extra_sequential_color_schemes: SequentialSchemeConfig[];
   theme_overrides: JsonObject;
   menu_data: MenuData;
+  d3_format: Partial<FormatLocaleDefinition>;
 }
 
 export interface BootstrapData {
@@ -155,6 +160,7 @@ export interface BootstrapData {
   embedded?: {
     dashboard_id: string;
   };
+  requested_query?: JsonObject;
 }
 
 export function isUser(user: any): user is User {

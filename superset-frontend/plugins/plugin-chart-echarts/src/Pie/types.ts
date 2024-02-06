@@ -45,7 +45,6 @@ export type EchartsPieFormData = QueryFormData &
     numberFormat: string;
     dateFormat: string;
     showLabelsThreshold: number;
-    emitFilter: boolean;
   };
 
 export enum EchartsPieLabelType {
@@ -55,6 +54,7 @@ export enum EchartsPieLabelType {
   KeyValue = 'key_value',
   KeyPercent = 'key_percent',
   KeyValuePercent = 'key_value_percent',
+  ValuePercent = 'value_percent',
 }
 
 export interface EchartsPieChartProps
@@ -77,7 +77,6 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabels: true,
   labelsOutside: true,
   showLabelsThreshold: 5,
-  emitFilter: false,
   dateFormat: 'smart_date',
 };
 

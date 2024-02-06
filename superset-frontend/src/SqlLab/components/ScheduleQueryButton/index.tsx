@@ -25,11 +25,9 @@ import * as chrono from 'chrono-node';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { Form, FormItem } from 'src/components/Form';
 import Button from 'src/components/Button';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
+const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
 
 const validators = {
@@ -81,7 +79,7 @@ interface ScheduleQueryButtonProps {
   defaultLabel?: string;
   sql: string;
   schema?: string;
-  dbId: number;
+  dbId?: number;
   animation?: boolean;
   onSchedule?: Function;
   scheduleQueryWarning: string | null;
@@ -208,7 +206,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
                 htmlType="submit"
                 css={{ float: 'right' }}
               >
-                Submit
+                {t('Submit')}
               </Button>
             </SchemaForm>
           </StyledJsonSchema>

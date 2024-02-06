@@ -20,6 +20,8 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
+from superset.utils.backports import StrEnum
+
 USER_AGENT = "Apache Superset"
 
 NULL_STRING = "<NULL>"
@@ -36,6 +38,8 @@ NO_TIME_RANGE = "No filter"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
+
+LRU_CACHE_MAX_SIZE = 256
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
@@ -118,13 +122,16 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put": "write",
     "related": "read",
     "related_objects": "read",
+    "tables": "read",
     "schemas": "read",
     "select_star": "read",
     "table_metadata": "read",
     "table_extra_metadata": "read",
-    "test_connection": "read",
-    "validate_parameters": "read",
+    "test_connection": "write",
+    "validate_parameters": "write",
     "favorite_status": "read",
+    "add_favorite": "read",
+    "remove_favorite": "read",
     "thumbnail": "read",
     "import_": "write",
     "refresh": "write",
@@ -140,6 +147,16 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_data": "read",
     "samples": "read",
     "delete_ssh_tunnel": "write",
+    "get_updated_since": "read",
+    "stop_query": "read",
+    "get_user_slices": "read",
+    "schemas_access_for_file_upload": "read",
+    "get_objects": "read",
+    "get_all_objects": "read",
+    "add_objects": "write",
+    "delete_object": "write",
+    "copy_dash": "write",
+    "get_connection": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -152,7 +169,6 @@ EXTRA_FORM_DATA_APPEND_KEYS = {
 }
 
 EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
-    "granularity": "granularity",
     "granularity_sqla": "granularity",
     "time_column": "time_column",
     "time_grain": "time_grain",
@@ -171,18 +187,42 @@ EXTRA_FORM_DATA_OVERRIDE_KEYS = (
 )
 
 
+class TimeGrain(StrEnum):
+    SECOND = "PT1S"
+    FIVE_SECONDS = "PT5S"
+    THIRTY_SECONDS = "PT30S"
+    MINUTE = "PT1M"
+    FIVE_MINUTES = "PT5M"
+    TEN_MINUTES = "PT10M"
+    FIFTEEN_MINUTES = "PT15M"
+    THIRTY_MINUTES = "PT30M"
+    HALF_HOUR = "PT0.5H"
+    HOUR = "PT1H"
+    SIX_HOURS = "PT6H"
+    DAY = "P1D"
+    WEEK = "P1W"
+    WEEK_STARTING_SUNDAY = "1969-12-28T00:00:00Z/P1W"
+    WEEK_STARTING_MONDAY = "1969-12-29T00:00:00Z/P1W"
+    WEEK_ENDING_SATURDAY = "P1W/1970-01-03T00:00:00Z"
+    WEEK_ENDING_SUNDAY = "P1W/1970-01-04T00:00:00Z"
+    MONTH = "P1M"
+    QUARTER = "P3M"
+    QUARTER_YEAR = "P0.25Y"
+    YEAR = "P1Y"
+
+
 class PandasAxis(int, Enum):
     ROW = 0
     COLUMN = 1
 
 
-class PandasPostprocessingCompare(str, Enum):
+class PandasPostprocessingCompare(StrEnum):
     DIFF = "difference"
     PCT = "percentage"
     RAT = "ratio"
 
 
-class CacheRegion(str, Enum):
+class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"

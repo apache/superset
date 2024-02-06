@@ -37,12 +37,15 @@ import {
   SET_DIRECT_PATH,
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
+  SET_ACTIVE_TAB,
   SET_ACTIVE_TABS,
   SET_FULL_SIZE_CHART_ID,
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
   SET_OVERRIDE_CONFIRM,
+  SAVE_DASHBOARD_STARTED,
+  SAVE_DASHBOARD_FINISHED,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -111,6 +114,18 @@ export default function dashboardStateReducer(state = {}, action) {
     [ON_CHANGE]() {
       return { ...state, hasUnsavedChanges: true };
     },
+    [SAVE_DASHBOARD_STARTED]() {
+      return {
+        ...state,
+        dashboardIsSaving: true,
+      };
+    },
+    [SAVE_DASHBOARD_FINISHED]() {
+      return {
+        ...state,
+        dashboardIsSaving: false,
+      };
+    },
     [ON_SAVE]() {
       return {
         ...state,
@@ -165,13 +180,19 @@ export default function dashboardStateReducer(state = {}, action) {
         directPathLastUpdated: Date.now(),
       };
     },
-    [SET_ACTIVE_TABS]() {
+    [SET_ACTIVE_TAB]() {
       const newActiveTabs = new Set(state.activeTabs);
       newActiveTabs.delete(action.prevTabId);
       newActiveTabs.add(action.tabId);
       return {
         ...state,
         activeTabs: Array.from(newActiveTabs),
+      };
+    },
+    [SET_ACTIVE_TABS]() {
+      return {
+        ...state,
+        activeTabs: action.activeTabs,
       };
     },
     [SET_OVERRIDE_CONFIRM]() {

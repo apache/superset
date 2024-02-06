@@ -16,16 +16,26 @@
 # under the License.
 from __future__ import annotations
 
+from contextlib import nullcontext
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
 import pytest
 from flask.ctx import AppContext
 from freezegun import freeze_time
 
+from superset.key_value.exceptions import KeyValueCodecEncodeException
+from superset.key_value.types import (
+    JsonKeyValueCodec,
+    KeyValueCodec,
+    PickleKeyValueCodec,
+)
+
 if TYPE_CHECKING:
     from superset.extensions.metastore_cache import SupersetMetastoreCache
+
+NAMESPACE = UUID("ee173d1b-ccf3-40aa-941c-985c15224496")
 
 FIRST_KEY = "foo"
 FIRST_KEY_INITIAL_VALUE = {"foo": "bar"}
@@ -40,8 +50,9 @@ def cache() -> SupersetMetastoreCache:
     from superset.extensions.metastore_cache import SupersetMetastoreCache
 
     return SupersetMetastoreCache(
-        namespace=UUID("ee173d1b-ccf3-40aa-941c-985c15224496"),
+        namespace=NAMESPACE,
         default_timeout=600,
+        codec=PickleKeyValueCodec(),
     )
 
 
@@ -75,3 +86,37 @@ def test_expiry(app_context: AppContext, cache: SupersetMetastoreCache) -> None:
     with freeze_time(dttm + delta + timedelta(seconds=1)):
         assert cache.has(FIRST_KEY) is False
         assert cache.get(FIRST_KEY) is None
+
+
+@pytest.mark.parametrize(
+    "input_,codec,expected_result",
+    [
+        ({"foo": "bar"}, JsonKeyValueCodec(), {"foo": "bar"}),
+        (("foo", "bar"), JsonKeyValueCodec(), ["foo", "bar"]),
+        (complex(1, 1), JsonKeyValueCodec(), KeyValueCodecEncodeException()),
+        ({"foo": "bar"}, PickleKeyValueCodec(), {"foo": "bar"}),
+        (("foo", "bar"), PickleKeyValueCodec(), ("foo", "bar")),
+        (complex(1, 1), PickleKeyValueCodec(), complex(1, 1)),
+    ],
+)
+def test_codec(
+    input_: Any,
+    codec: KeyValueCodec,
+    expected_result: Any,
+    app_context: AppContext,
+) -> None:
+    from superset.extensions.metastore_cache import SupersetMetastoreCache
+
+    cache = SupersetMetastoreCache(
+        namespace=NAMESPACE,
+        default_timeout=600,
+        codec=codec,
+    )
+    cm = (
+        pytest.raises(type(expected_result))
+        if isinstance(expected_result, Exception)
+        else nullcontext()
+    )
+    with cm:
+        cache.set(FIRST_KEY, input_)
+        assert cache.get(FIRST_KEY) == expected_result

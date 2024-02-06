@@ -16,24 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  hasGenericChartAxes,
-  t,
-} from '@superset-ui/core';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps
 > {
@@ -52,24 +47,25 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsMixedTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: hasGenericChartAxes
-          ? t(
-              'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
-            )
-          : t(
-              'Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
-            ),
+        description: t(
+          'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
+        ),
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
+        exampleGallery: [{ url: example }],
+        name: t('Mixed Chart'),
         thumbnail,
         tags: [
           t('Advanced-Analytics'),
@@ -82,7 +78,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           t('Transformable'),
         ],
         queryObjectCount: 2,
-      }),
+      },
       // @ts-ignore
       transformProps,
     });

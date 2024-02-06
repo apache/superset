@@ -1,7 +1,7 @@
 ---
 title: Async Queries via Celery
 hide_title: true
-sidebar_position: 8
+sidebar_position: 9
 version: 1
 ---
 
@@ -23,30 +23,17 @@ and web server processes should have the same configuration.
 
 ```python
 class CeleryConfig(object):
-    broker_url = 'redis://localhost:6379/0'
+    broker_url = "redis://localhost:6379/0"
     imports = (
-        'superset.sql_lab',
-        'superset.tasks',
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
     )
-    result_backend = 'redis://localhost:6379/0'
-    worker_log_level = 'DEBUG'
+    result_backend = "redis://localhost:6379/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True
     task_annotations = {
-        'sql_lab.get_sql_results': {
-            'rate_limit': '100/s',
-        },
-        'email_reports.send': {
-            'rate_limit': '1/s',
-            'time_limit': 120,
-            'soft_time_limit': 150,
-            'ignore_result': True,
-        },
-    }
-    beat_schedule = {
-        'email_reports.schedule_hourly': {
-            'task': 'email_reports.schedule_hourly',
-            'schedule': crontab(minute=1, hour='*'),
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
         },
     }
 
@@ -66,7 +53,7 @@ celery --app=superset.tasks.celery_app:app beat
 ```
 
 To setup a result backend, you need to pass an instance of a derivative of from
-cachelib.base.BaseCache to the RESULTS_BACKEND configuration key in your superset_config.py. You can
+from flask_caching.backends.base import BaseCache to the RESULTS_BACKEND configuration key in your superset_config.py. You can
 use Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache), memory or the file system
 (in a single server-type setup or for testing), or to write your own caching interface. Your
 `superset_config.py` may look something like:
@@ -79,7 +66,7 @@ S3_CACHE_KEY_PREFIX = 'sql_lab_result'
 RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 
 # On Redis
-from cachelib.redis import RedisCache
+from flask_caching.backends.rediscache import RedisCache
 RESULTS_BACKEND = RedisCache(
     host='localhost', port=6379, key_prefix='superset_results')
 ```

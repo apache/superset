@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { Input, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import Icons from 'src/components/Icons';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -92,6 +92,12 @@ const StyledFormLabel = styled(FormLabel)`
   margin-bottom: 0;
 `;
 
+const iconReset = css`
+  &.anticon > * {
+    line-height: 0;
+  }
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -110,9 +116,7 @@ const LabeledErrorBoundInput = ({
       <StyledFormLabel htmlFor={id} required={required}>
         {label}
       </StyledFormLabel>
-      {hasTooltip && (
-        <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -1 24 24" />
-      )}
+      {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
     </StyledAlignment>
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
@@ -127,12 +131,16 @@ const LabeledErrorBoundInput = ({
           {...validationMethods}
           iconRender={visible =>
             visible ? (
-              <Tooltip title="Hide password.">
-                <EyeInvisibleOutlined />
+              <Tooltip title={t('Hide password.')}>
+                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
               </Tooltip>
             ) : (
-              <Tooltip title="Show password.">
-                <EyeOutlined />
+              <Tooltip title={t('Show password.')}>
+                <Icons.EyeOutlined
+                  iconSize="m"
+                  css={iconReset}
+                  data-test="icon-eye"
+                />
               </Tooltip>
             )
           }

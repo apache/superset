@@ -27,7 +27,6 @@ import {
 } from '@superset-ui/core';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import LegacySankeyPlugin from '@superset-ui/legacy-plugin-chart-sankey';
-import LegacySunburstPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 
 import {
@@ -49,8 +48,6 @@ const WORD_CLOUD = 'new_word_cloud';
 new BigNumberChartPlugin().configure({ key: BIG_NUMBER }).register();
 // eslint-disable-next-line
 new LegacySankeyPlugin().configure({ key: SANKEY }).register();
-// eslint-disable-next-line
-new LegacySunburstPlugin().configure({ key: SUNBURST }).register();
 // eslint-disable-next-line
 new WordCloudChartPlugin().configure({ key: WORD_CLOUD }).register();
 

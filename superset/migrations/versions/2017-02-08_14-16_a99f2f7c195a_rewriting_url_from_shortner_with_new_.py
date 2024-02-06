@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""rewriting url from shortner with new format
+"""rewriting url from shortener with new format
 
 Revision ID: a99f2f7c195a
 Revises: 53fc3de270ae
@@ -80,9 +80,8 @@ def upgrade():
                 "/".join(split[:-1]) + "/?form_data=" + parse.quote_plus(json.dumps(d))
             )
             url.url = newurl
-            session.merge(url)
             session.commit()
-        print("Updating url ({}/{})".format(i, urls_len))
+        print(f"Updating url ({i}/{urls_len})")
     session.close()
 
 
