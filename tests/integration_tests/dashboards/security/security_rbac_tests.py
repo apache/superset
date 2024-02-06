@@ -410,12 +410,12 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         """
         admin = self.get_user("admin")
 
-        database = create_database_to_db(name="test_db")
+        database = create_database_to_db(name="test_db_rbac")
         table = create_datasource_table_to_db(
-            name="test_datasource", db_id=database.id, owners=[admin]
+            name="test_datasource_rbac", db_id=database.id, owners=[admin]
         )
         dashboard_to_access = create_dashboard_to_db(
-            dashboard_title="test_dashboard",
+            dashboard_title="test_dashboard_rbac",
             owners=[admin],
             slices=[create_slice_to_db(datasource_id=table.id)],
         )
