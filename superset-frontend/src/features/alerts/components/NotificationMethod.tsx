@@ -46,8 +46,6 @@ const StyledNotificationMethod = styled.div`
   }
 `;
 
-const RECIPIENTS_TEXT = t('RECIPIENTS');
-
 type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
@@ -148,7 +146,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       {method !== undefined ? (
         <StyledInputContainer>
           <div className="control-label">
-            {t(method)} {RECIPIENTS_TEXT}
+            {t(method)} {t('RECIPIENTS')}
             <span className="required">*</span>
           </div>
           <div className="input-container">

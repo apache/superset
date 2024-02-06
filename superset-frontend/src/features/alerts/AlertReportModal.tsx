@@ -351,11 +351,6 @@ interface NotificationMethodAddProps {
 }
 
 export const TRANSLATIONS = {
-  // Modal header
-  EDIT_REPORT_TEXT: t('Edit Report'),
-  EDIT_ALERT_TEXT: t('Edit Alert'),
-  ADD_REPORT_TEXT: t('Add Report'),
-  ADD_ALERT_TEXT: t('Add Alert'),
   // Panel titles
   GENERAL_TITLE: t('General information'),
   ALERT_CONDITION_TITLE: t('Alert condition'),
@@ -363,71 +358,6 @@ export const TRANSLATIONS = {
   REPORT_CONTENTS_TITLE: t('Report contents'),
   SCHEDULE_TITLE: t('Schedule'),
   NOTIFICATION_TITLE: t('Notification method'),
-  // Panel subtitles
-  GENERAL_SUBTITLE: t('Set up basic details, such as name and description.'),
-  ALERT_CONDITION_SUBTITLE: t(
-    'Define the database, SQL query, and triggering conditions for alert.',
-  ),
-  CONTENTS_SUBTITLE: t('Customize data source, filters, and layout.'),
-  SCHEDULE_SUBTITLE: t(
-    'Define delivery schedule, timezone, and frequency settings.',
-  ),
-  NOTIFICATION_SUBTITLE: t('Choose notification method and recipients.'),
-  // General info panel inputs
-  REPORT_NAME_TEXT: t('Report name'),
-  REPORT_NAME_PLACEHOLDER: t('Enter report name'),
-  ALERT_NAME_TEXT: t('Alert name'),
-  ALERT_NAME_PLACEHOLDER: t('Enter alert name'),
-  OWNERS_TEXT: t('Owners'),
-  OWNERS_PLACEHOLDER: t('Select owners'),
-  DESCRIPTION_TEXT: t('Description'),
-  REPORT_DESCRIPTION_PLACEHOLDER: t(
-    'Include description to be sent with report',
-  ),
-  ALERT_DESCRIPTION_PLACEHOLDER: t('Include description to be sent with alert'),
-  ACTIVE_REPORT_TEXT: t('Report is active'),
-  ACTIVE_ALERT_TEXT: t('Alert is active'),
-  // Alert condition panel inputs
-  DATABASE_TEXT: t('Database'),
-  DATABASE_PLACEHOLDER: t('Select database'),
-  SQL_QUERY_TEXT: t('SQL Query'),
-  SQL_QUERY_TOOLTIP: t(
-    'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
-  ),
-  TRIGGER_ALERT_IF_TEXT: t('Trigger Alert If...'),
-  CONDITION_TEXT: t('Condition'),
-  CONDITION_PLACEHOLDER: t('Condition'),
-  VALUE_TEXT: t('Value'),
-  // Contents panel inputs
-  CONTENT_TYPE_LABEL: t('Content type'),
-  CONTENT_TYPE_PLACEHOLDER: t('Select content type'),
-  SELECT_DASHBOARD_LABEL: t('Select dashboard'),
-  SELECT_DASHBOARD_PLACEHOLDER: t('Select dashboard to use'),
-  SELECT_CHART_LABEL: t('Select chart'),
-  SELECT_CHART_PLACEHOLDER: t('Select chart to use'),
-  DASHBOARD_TEXT: t('Dashboard'),
-  CHART_TEXT: t('Chart'),
-  FORMAT_TYPE_LABEL: t('Content format'),
-  FORMAT_TYPE_PLACEHOLDER: t('Select format'),
-  IGNORE_CACHE_TEXT: t('Ignore cache when generating report'),
-  CUSTOM_SCREENSHOT_WIDTH_TEXT: t('Screenshot width'),
-  CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT: t('Input custom width in pixels'),
-  // Schedule panel inputs
-  SCHEDULE_TYPE_TEXT: t('Schedule type'),
-  SCHEDULE: t('Schedule'),
-  TIMEZONE_TEXT: t('Timezone'),
-  LOG_RETENTION_TEXT: t('Log retention'),
-  WORKING_TIMEOUT_TEXT: t('Working timeout'),
-  TIME_IN_SECONDS_TEXT: t('Time in seconds'),
-  SECONDS_TEXT: t('seconds'),
-  GRACE_PERIOD_TEXT: t('Grace period'),
-  // Notification panel inputs
-  ADD_NOTIFICATION_METHOD_TEXT: t('Add another notification method'),
-  ADD_DELIVERY_METHOD_TEXT: t('Add delivery method'),
-  NOTIFICATION_METHOD_TEXT: t('Notification method'),
-  // Button text
-  SAVE_TEXT: t('Save'),
-  ADD_TEXT: t('Add'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
   OWNERS_ERROR_TEXT: t('owners'),
@@ -461,8 +391,8 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
       <i className="fa fa-plus" />{' '}
       {status === 'active'
-        ? TRANSLATIONS.ADD_NOTIFICATION_METHOD_TEXT
-        : TRANSLATIONS.ADD_DELIVERY_METHOD_TEXT}
+        ? t('Add another notification method')
+        : t('Add delivery method')}
     </StyledNotificationAddButton>
   );
 };
@@ -1040,13 +970,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('timezone', timezone);
   };
 
-  const onContentTypeChange = (value: any) => {
+  const onContentTypeChange = (value: string) => {
     // When switch content type, reset force_screenshot to false
     setForceScreenshot(false);
     setContentType(value);
   };
 
-  const onFormatChange = (value: any) => {
+  const onFormatChange = (value: string) => {
     setReportFormat(value);
   };
 
@@ -1322,21 +1252,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       primaryTooltipMessage={errorTooltipMessage}
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={
-        isEditMode ? TRANSLATIONS.SAVE_TEXT : TRANSLATIONS.ADD_TEXT
-      }
+      primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="500px"
       centered
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode && isReport
-            ? TRANSLATIONS.EDIT_REPORT_TEXT
+            ? t('Edit Report')
             : isEditMode
-            ? TRANSLATIONS.EDIT_ALERT_TEXT
+            ? t('Edit Alert')
             : isReport
-            ? TRANSLATIONS.ADD_REPORT_TEXT
-            : TRANSLATIONS.ADD_ALERT_TEXT}
+            ? t('Add Report')
+            : t('Add Alert')}
         </h4>
       }
     >
@@ -1352,7 +1280,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           header={
             <ValidatedPanelHeader
               title={TRANSLATIONS.GENERAL_TITLE}
-              subtitle={TRANSLATIONS.GENERAL_SUBTITLE}
+              subtitle={t(
+                'Set up basic details, such as name and description.',
+              )}
               required
               validateCheckStatus={
                 !validationStatus[Sections.General].hasErrors
@@ -1366,9 +1296,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           <div className="header-section">
             <StyledInputContainer>
               <div className="control-label">
-                {isReport
-                  ? TRANSLATIONS.REPORT_NAME_TEXT
-                  : TRANSLATIONS.ALERT_NAME_TEXT}
+                {isReport ? t('Report name') : t('Alert name')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1377,9 +1305,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   name="name"
                   value={currentAlert ? currentAlert.name : ''}
                   placeholder={
-                    isReport
-                      ? TRANSLATIONS.REPORT_NAME_PLACEHOLDER
-                      : TRANSLATIONS.ALERT_NAME_PLACEHOLDER
+                    isReport ? t('Enter report name') : t('Enter alert name')
                   }
                   onChange={onInputChange}
                 />
@@ -1387,16 +1313,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledInputContainer>
             <StyledInputContainer>
               <div className="control-label">
-                {TRANSLATIONS.OWNERS_TEXT}
+                {t('Owners')}
                 <span className="required">*</span>
               </div>
               <div data-test="owners-select" className="input-container">
                 <AsyncSelect
-                  ariaLabel={TRANSLATIONS.OWNERS_TEXT}
+                  ariaLabel={t('Owners')}
                   allowClear
                   name="owners"
                   mode="multiple"
-                  placeholder={TRANSLATIONS.OWNERS_PLACEHOLDER}
+                  placeholder={t('Select owners')}
                   value={
                     (currentAlert?.owners as {
                       label: string;
@@ -1409,9 +1335,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
-              <div className="control-label">
-                {TRANSLATIONS.DESCRIPTION_TEXT}
-              </div>
+              <div className="control-label">{t('Description')}</div>
               <div className="input-container">
                 <input
                   type="text"
@@ -1419,8 +1343,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={currentAlert ? currentAlert.description || '' : ''}
                   placeholder={
                     isReport
-                      ? TRANSLATIONS.REPORT_DESCRIPTION_PLACEHOLDER
-                      : TRANSLATIONS.ALERT_DESCRIPTION_PLACEHOLDER
+                      ? t('Include description to be sent with report')
+                      : t('Include description to be sent with alert')
                   }
                   onChange={onInputChange}
                 />
@@ -1433,9 +1357,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 onChange={onActiveSwitch}
               />
               <div className="switch-label">
-                {isReport
-                  ? TRANSLATIONS.ACTIVE_REPORT_TEXT
-                  : TRANSLATIONS.ACTIVE_ALERT_TEXT}
+                {isReport ? t('Report is active') : t('Alert is active')}
               </div>
             </StyledSwitchContainer>
           </div>
@@ -1445,7 +1367,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             header={
               <ValidatedPanelHeader
                 title={TRANSLATIONS.ALERT_CONDITION_TITLE}
-                subtitle={TRANSLATIONS.ALERT_CONDITION_SUBTITLE}
+                subtitle={t(
+                  'Define the database, SQL query, and triggering conditions for alert.',
+                )}
                 required={false}
                 validateCheckStatus={
                   !validationStatus[Sections.Alert].hasErrors
@@ -1458,14 +1382,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           >
             <StyledInputContainer>
               <div className="control-label">
-                {TRANSLATIONS.DATABASE_TEXT}
+                {t('Database')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
                 <AsyncSelect
-                  ariaLabel={TRANSLATIONS.DATABASE_TEXT}
+                  ariaLabel={t('Database')}
                   name="source"
-                  placeholder={TRANSLATIONS.DATABASE_PLACEHOLDER}
+                  placeholder={t('Select database')}
                   value={
                     currentAlert?.database?.label &&
                     currentAlert?.database?.value
@@ -1482,8 +1406,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledInputContainer>
             <StyledInputContainer>
               <div className="control-label">
-                {TRANSLATIONS.SQL_QUERY_TEXT}
-                <StyledTooltip tooltip={TRANSLATIONS.SQL_QUERY_TOOLTIP} />
+                {t('SQL Query')}
+                <StyledTooltip
+                  tooltip={t(
+                    'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
+                  )}
+                />
                 <span className="required">*</span>
               </div>
               <TextAreaControl
@@ -1501,14 +1429,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <div className="inline-container wrap">
               <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label" css={inputSpacer}>
-                  {TRANSLATIONS.TRIGGER_ALERT_IF_TEXT}
+                  {t('Trigger Alert If...')}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
                   <Select
-                    ariaLabel={TRANSLATIONS.CONDITION_TEXT}
+                    ariaLabel={t('Condition')}
                     onChange={onConditionChange}
-                    placeholder={TRANSLATIONS.CONDITION_PLACEHOLDER}
+                    placeholder={t('Condition')}
                     value={currentAlert?.validator_config_json?.op || undefined}
                     options={CONDITIONS}
                     css={inputSpacer}
@@ -1517,7 +1445,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label">
-                  {TRANSLATIONS.VALUE_TEXT} <span className="required">*</span>
+                  {t('Value')} <span className="required">*</span>
                 </div>
                 <div className="input-container">
                   <input
@@ -1530,7 +1458,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         ? currentAlert.validator_config_json.threshold
                         : ''
                     }
-                    placeholder={TRANSLATIONS.VALUE_TEXT}
+                    placeholder={t('Value')}
                     onChange={onThresholdChange}
                   />
                 </div>
@@ -1546,7 +1474,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ? TRANSLATIONS.REPORT_CONTENTS_TITLE
                   : TRANSLATIONS.ALERT_CONTENTS_TITLE
               }
-              subtitle={TRANSLATIONS.CONTENTS_SUBTITLE}
+              subtitle={t('Customize data source, filters, and layout.')}
               required
               validateCheckStatus={
                 !validationStatus[Sections.Content].hasErrors
@@ -1559,26 +1487,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         >
           <StyledInputContainer>
             <div className="control-label">
-              {TRANSLATIONS.CONTENT_TYPE_LABEL}
+              {t('Content type')}
               <span className="required">*</span>
             </div>
             <Select
-              ariaLabel={TRANSLATIONS.CONTENT_TYPE_PLACEHOLDER}
+              ariaLabel={t('Select content type')}
               onChange={onContentTypeChange}
               value={contentType}
               options={CONTENT_TYPE_OPTIONS}
-              placeholder={TRANSLATIONS.CONTENT_TYPE_PLACEHOLDER}
+              placeholder={t('Select content type')}
             />
           </StyledInputContainer>
           <StyledInputContainer>
             {contentType === 'chart' ? (
               <>
                 <div className="control-label">
-                  {TRANSLATIONS.SELECT_CHART_LABEL}
+                  {t('Select chart')}
                   <span className="required">*</span>
                 </div>
                 <AsyncSelect
-                  ariaLabel={TRANSLATIONS.CHART_TEXT}
+                  ariaLabel={t('Chart')}
                   name="chart"
                   value={
                     currentAlert?.chart?.label && currentAlert?.chart?.value
@@ -1590,17 +1518,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   }
                   options={loadChartOptions}
                   onChange={onChartChange}
-                  placeholder={TRANSLATIONS.SELECT_CHART_PLACEHOLDER}
+                  placeholder={t('Select chart to use')}
                 />
               </>
             ) : (
               <>
                 <div className="control-label">
-                  {TRANSLATIONS.SELECT_DASHBOARD_LABEL}
+                  {t('Select dashboard')}
                   <span className="required">*</span>
                 </div>
                 <AsyncSelect
-                  ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
+                  ariaLabel={t('Dashboard')}
                   name="dashboard"
                   value={
                     currentAlert?.dashboard?.label &&
@@ -1613,7 +1541,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   }
                   options={loadDashboardOptions}
                   onChange={onDashboardChange}
-                  placeholder={TRANSLATIONS.SELECT_DASHBOARD_PLACEHOLDER}
+                  placeholder={t('Select dashboard to use')}
                 />
               </>
             )}
@@ -1624,11 +1552,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             {formatOptionEnabled && (
               <>
                 <div className="control-label">
-                  {TRANSLATIONS.FORMAT_TYPE_LABEL}
+                  {t('Content format')}
                   <span className="required">*</span>
                 </div>
                 <Select
-                  ariaLabel={TRANSLATIONS.FORMAT_TYPE_PLACEHOLDER}
+                  ariaLabel={t('Select format')}
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
@@ -1638,7 +1566,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       ? Object.values(FORMAT_OPTIONS)
                       : ['png', 'csv'].map(key => FORMAT_OPTIONS[key])
                   }
-                  placeholder={TRANSLATIONS.FORMAT_TYPE_PLACEHOLDER}
+                  placeholder={t('Select format')}
                 />
               </>
             )}
@@ -1647,17 +1575,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledInputContainer
               css={!isReport && contentType === 'chart' && noMarginBottom}
             >
-              <div className="control-label">
-                {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
-              </div>
+              <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
                 <Input
                   type="number"
                   name="custom_width"
                   value={currentAlert?.custom_width || ''}
-                  placeholder={
-                    TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
-                  }
+                  placeholder={t('Input custom width in pixels')}
                   onChange={onInputChange}
                 />
               </div>
@@ -1671,7 +1595,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 checked={forceScreenshot}
                 onChange={onForceScreenshotChange}
               >
-                {TRANSLATIONS.IGNORE_CACHE_TEXT}
+                {t('Ignore cache when generating report')}
               </StyledCheckbox>
             </div>
           )}
@@ -1680,7 +1604,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           header={
             <ValidatedPanelHeader
               title={TRANSLATIONS.SCHEDULE_TITLE}
-              subtitle={TRANSLATIONS.SCHEDULE_SUBTITLE}
+              subtitle={t(
+                'Define delivery schedule, timezone, and frequency settings.',
+              )}
               required
               validateCheckStatus={
                 !validationStatus[Sections.Schedule].hasErrors
@@ -1697,7 +1623,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           />
           <StyledInputContainer>
             <div className="control-label">
-              {TRANSLATIONS.TIMEZONE_TEXT} <span className="required">*</span>
+              {t('Timezone')} <span className="required">*</span>
             </div>
             <TimezoneSelector
               onTimezoneChange={onTimezoneChange}
@@ -1707,13 +1633,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </StyledInputContainer>
           <StyledInputContainer>
             <div className="control-label">
-              {TRANSLATIONS.LOG_RETENTION_TEXT}
+              {t('Log retention')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
               <Select
-                ariaLabel={TRANSLATIONS.LOG_RETENTION_TEXT}
-                placeholder={TRANSLATIONS.LOG_RETENTION_TEXT}
+                ariaLabel={t('Log retention')}
+                placeholder={t('Log retention')}
                 onChange={onLogRetentionChange}
                 value={
                   typeof currentAlert?.log_retention === 'number'
@@ -1729,7 +1655,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             {isReport ? (
               <>
                 <div className="control-label">
-                  {TRANSLATIONS.WORKING_TIMEOUT_TEXT}
+                  {t('Working timeout')}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
@@ -1737,25 +1663,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     min={1}
                     name="working_timeout"
                     value={currentAlert?.working_timeout || ''}
-                    placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                    placeholder={t('Time in seconds')}
                     onChange={onTimeoutVerifyChange}
-                    timeUnit={TRANSLATIONS.SECONDS_TEXT}
+                    timeUnit={t('seconds')}
                   />
                 </div>
               </>
             ) : (
               <>
-                <div className="control-label">
-                  {TRANSLATIONS.GRACE_PERIOD_TEXT}
-                </div>
+                <div className="control-label">{t('Grace period')}</div>
                 <div className="input-container">
                   <NumberInput
                     min={1}
                     name="grace_period"
                     value={currentAlert?.grace_period || ''}
-                    placeholder={TRANSLATIONS.TIME_IN_SECONDS_TEXT}
+                    placeholder={t('Time in seconds')}
                     onChange={onTimeoutVerifyChange}
-                    timeUnit={TRANSLATIONS.SECONDS_TEXT}
+                    timeUnit={t('seconds')}
                   />
                 </div>
               </>
@@ -1766,7 +1690,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           header={
             <ValidatedPanelHeader
               title={TRANSLATIONS.NOTIFICATION_TITLE}
-              subtitle={TRANSLATIONS.NOTIFICATION_SUBTITLE}
+              subtitle={t('Choose notification method and recipients.')}
               required
               validateCheckStatus={
                 !validationStatus[Sections.Notification].hasErrors

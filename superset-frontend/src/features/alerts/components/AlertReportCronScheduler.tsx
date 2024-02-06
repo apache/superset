@@ -22,7 +22,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { AntdInput, Select } from 'src/components';
 import { Input } from 'src/components/Input';
 import { CronPicker, CronError } from 'src/components/CronPicker';
-import { StyledInputContainer, TRANSLATIONS } from '../AlertReportModal';
+import { StyledInputContainer } from '../AlertReportModal';
 
 export interface AlertReportCronSchedulerProps {
   value: string;
@@ -72,13 +72,13 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
       <>
         <StyledInputContainer>
           <div className="control-label">
-            {TRANSLATIONS.SCHEDULE_TYPE_TEXT}
+            {t('Schedule type')}
             <span className="required">*</span>
           </div>
           <div className="input-container">
             <Select
-              ariaLabel={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
-              placeholder={TRANSLATIONS.SCHEDULE_TYPE_TEXT}
+              ariaLabel={t('Schedule type')}
+              placeholder={t('Schedule type')}
               onChange={(e: any) => {
                 setScheduleFormat(e);
               }}
@@ -92,7 +92,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
           className="styled-input"
         >
           <div className="control-label">
-            {TRANSLATIONS.SCHEDULE}
+            {t('Schedule')}
             <span className="required">*</span>
           </div>
           {scheduleFormat === 'input' ? (

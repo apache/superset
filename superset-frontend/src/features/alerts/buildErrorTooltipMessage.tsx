@@ -26,8 +26,6 @@ const StyledList = styled.ul`
   padding-inline-start: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
-// padding-left: ${({ theme }) => theme.gridUnit}px;
-
 export const buildErrorTooltipMessage = (
   build = true,
   setErrorTooltipMessage: Function,
