@@ -125,27 +125,27 @@ export default function LeftPanel({
 
   const setDatabase = useCallback(
     (db: Partial<DatabaseObject>) => {
-      setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
+      setDataset({ type: DatasetActionType.SelectDatabase, payload: { db } });
     },
     [setDataset],
   );
   const setSchema = (schema: string) => {
     if (schema) {
       setDataset({
-        type: DatasetActionType.selectSchema,
+        type: DatasetActionType.SelectSchema,
         payload: { name: 'schema', value: schema },
       });
     }
   };
   const setTable = (tableName: string) => {
     setDataset({
-      type: DatasetActionType.selectTable,
+      type: DatasetActionType.SelectTable,
       payload: { name: 'table_name', value: tableName },
     });
   };
   useEffect(() => {
     const currentUserSelectedDb = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject;
     if (currentUserSelectedDb) {

@@ -21,17 +21,26 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
 
-import { shallow } from 'enzyme';
-import { Radio } from 'src/components/Radio';
-import Button from 'src/components/Button';
+import {
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, {
-  PureSaveModal,
-  StyledModal,
-} from 'src/explore/components/SaveModal';
-import { BrowserRouter } from 'react-router-dom';
+import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
+
+jest.mock('src/components', () => ({
+  ...jest.requireActual('src/components'),
+  AsyncSelect: ({ onChange }) => (
+    <input
+      data-test="mock-async-select"
+      onChange={({ target: { value } }) => onChange({ label: value, value })}
+    />
+  ),
+}));
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -97,141 +106,191 @@ const queryStore = mockStore({
   },
 });
 
-const queryDefaultProps = {
-  ...defaultProps,
-  form_data: { datasource: '107__query', url_params: { foo: 'bar' } },
-};
-
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
+const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
 
 beforeAll(() => {
   fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
   fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
 });
 
 afterAll(() => fetchMock.restore());
 
-const getWrapper = (props = defaultProps, store = initialStore) =>
-  shallow(
-    <BrowserRouter>
-      <SaveModal {...props} store={store} />
-    </BrowserRouter>,
-  )
-    .dive()
-    .dive()
-    .dive()
-    .dive()
-    .dive()
-    .dive()
-    .dive()
-    .dive();
+const setup = (props = defaultProps, store = initialStore) =>
+  render(<SaveModal {...props} />, {
+    useRouter: true,
+    store,
+  });
 
 test('renders a Modal with the right set of components', () => {
-  const wrapper = getWrapper();
-  expect(wrapper.find(StyledModal)).toExist();
-  expect(wrapper.find(Radio)).toHaveLength(2);
-
-  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-
-  expect(footerWrapper.find(Button)).toHaveLength(3);
+  const { getByRole, getByTestId } = setup();
+  expect(getByRole('dialog', { name: 'Save chart' })).toBeInTheDocument();
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeInTheDocument();
+  expect(getByRole('radio', { name: 'Save as...' })).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getAllByRole('button'),
+  ).toHaveLength(3);
 });
 
 test('renders the right footer buttons', () => {
-  const wrapper = getWrapper();
-  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-  const saveAndGoDash = footerWrapper
-    .find('#btn_modal_save_goto_dash')
-    .getElement();
-  const save = footerWrapper.find('#btn_modal_save').getElement();
-  expect(save.props.children).toBe('Save');
-  expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
+  const { getByTestId } = setup();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Cancel',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Save & go to dashboard',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Save',
+    }),
+  ).toBeInTheDocument();
 });
 
 test('does not render a message when overriding', () => {
-  const wrapper = getWrapper();
-  wrapper.setState({
-    action: 'overwrite',
-  });
+  const { getByRole, queryByRole } = setup();
+
+  fireEvent.click(getByRole('radio', { name: 'Save (Overwrite)' }));
   expect(
-    wrapper.find('[message="A new chart will be created."]'),
-  ).not.toExist();
+    queryByRole('alert', { name: 'A new chart will be created.' }),
+  ).not.toBeInTheDocument();
 });
 
 test('renders a message when saving as', () => {
-  const wrapper = getWrapper();
-  wrapper.setState({
-    action: 'saveas',
-  });
-  expect(wrapper.find('[message="A new chart will be created."]')).toExist();
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  expect(getByRole('alert')).toHaveTextContent('A new chart will be created.');
 });
 
-test('renders a message when a new dashboard is selected', () => {
-  const wrapper = getWrapper();
-  wrapper.setState({
-    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
-  });
-  expect(
-    wrapper.find('[message="A new dashboard will be created."]'),
-  ).toExist();
+test('renders a message when a new dashboard is selected', async () => {
+  const { getByRole, getByTestId } = setup();
+
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: 'Test new dashboard' } });
+
+  expect(getByRole('alert')).toHaveTextContent(
+    'A new dashboard will be created.',
+  );
 });
 
 test('renders a message when saving as with new dashboard', () => {
-  const wrapper = getWrapper();
-  wrapper.setState({
-    action: 'saveas',
-    dashboard: { label: 'Test new dashboard', value: 'Test new dashboard' },
-  });
-  expect(
-    wrapper.find('[message="A new chart and dashboard will be created."]'),
-  ).toExist();
+  const { getByRole, getByTestId } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: 'Test new dashboard' } });
+
+  expect(getByRole('alert')).toHaveTextContent(
+    'A new chart and dashboard will be created.',
+  );
 });
 
 test('disables overwrite option for new slice', () => {
-  const wrapper = getWrapper();
-  wrapper.setProps({ slice: null });
-  expect(wrapper.find('#overwrite-radio').prop('disabled')).toBe(true);
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: null,
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
 });
 
 test('disables overwrite option for non-owner', () => {
-  const wrapperForNonOwner = getWrapper();
-  wrapperForNonOwner.setProps({ user: { userId: 2 } });
-  const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
-  expect(overwriteRadio).toHaveLength(1);
-  expect(overwriteRadio.prop('disabled')).toBe(true);
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      user: { userId: 2 },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
 });
 
-test('sets action when saving as new slice', () => {
-  const wrapperForNewSlice = getWrapper();
-  wrapperForNewSlice.setProps({ can_overwrite: false });
-  wrapperForNewSlice.instance().changeAction('saveas');
-  const saveasRadio = wrapperForNewSlice.find('#saveas-radio');
-  saveasRadio.simulate('click');
-  expect(wrapperForNewSlice.state().action).toBe('saveas');
-});
-
-test('sets action when overwriting slice', () => {
-  const wrapperForOverwrite = getWrapper();
-  const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
-  overwriteRadio.simulate('click');
-  expect(wrapperForOverwrite.state().action).toBe('overwrite');
-});
-
-test('updates slice name and selected dashboard', () => {
-  const wrapper = getWrapper();
+test('updates slice name and selected dashboard', async () => {
   const dashboardId = mockEvent.value;
+  const saveDataset = jest.fn().mockResolvedValue();
+  const createDashboard = jest.fn().mockResolvedValue({ id: dashboardId });
+  const saveSliceFailed = jest.fn();
+  const setFormData = jest.fn();
+  const createSlice = jest.fn().mockResolvedValue({ id: 1 });
 
-  wrapper.instance().onSliceNameChange(mockEvent);
-  expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
+  const { getByRole, getByTestId } = setup(
+    {
+      actions: {
+        saveDataset,
+        createDashboard,
+        saveSliceFailed,
+        setFormData,
+        createSlice,
+      },
+    },
+    queryStore,
+  );
 
-  wrapper.instance().onDashboardChange({ value: dashboardId });
-  expect(wrapper.state().dashboard.value).toBe(dashboardId);
+  fireEvent.change(getByTestId('new-chart-name'), mockEvent);
+  fireEvent.change(getByTestId('new-dataset-name'), mockEvent);
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: dashboardId } });
+
+  expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+
+  fireEvent.click(getByRole('button', { name: 'Save' }));
+  expect(saveDataset).toHaveBeenCalledWith(
+    expect.objectContaining({
+      datasourceName: mockEvent.target.value,
+    }),
+  );
+  await waitFor(() =>
+    expect(fetchMock.calls(fetchDashboardEndpoint)).toHaveLength(1),
+  );
+  expect(fetchMock.calls(fetchDashboardEndpoint)[0][0]).toEqual(
+    expect.stringContaining(`dashboard/${dashboardId}`),
+  );
+  expect(createSlice).toHaveBeenCalledWith(
+    mockEvent.target.value,
+    expect.anything(),
+    expect.anything(),
+  );
 });
 
 test('set dataset name when chart source is query', () => {
-  const wrapper = getWrapper(queryDefaultProps, queryStore);
-  expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
-  expect(wrapper.state().datasetName).toBe('test');
+  const { getByTestId } = setup({}, queryStore);
+  expect(getByTestId('new-dataset-name')).toHaveValue('test');
 });
 
 test('make sure slice_id in the URLSearchParams before the redirect', () => {

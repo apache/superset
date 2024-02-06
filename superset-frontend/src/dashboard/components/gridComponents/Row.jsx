@@ -118,7 +118,7 @@ class Row extends React.PureComponent {
   // if chart rendered - remove it if it's more than 4 view heights away from current viewport
   componentDidMount() {
     if (
-      isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) &&
+      isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
       !isCurrentUserBot()
     ) {
       this.observerEnabler = new IntersectionObserver(

@@ -60,7 +60,7 @@ const filterMock: Filter = {
   filterType: '',
   targets: [{}],
   controlValues: {},
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: '',
 };
 

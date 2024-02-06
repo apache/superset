@@ -135,7 +135,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     ...commonMenuData,
   };
 
-  const initialSort = [{ id: QueryObjectColumns.start_time, desc: true }];
+  const initialSort = [{ id: QueryObjectColumns.StartTime, desc: true }];
   const columns = useMemo(
     () => [
       {
@@ -157,38 +157,38 @@ function QueryList({ addDangerToast }: QueryListProps) {
             name: null,
             label: '',
           };
-          if (status === QueryState.SUCCESS) {
+          if (status === QueryState.Success) {
             statusConfig.name = (
               <Icons.Check iconColor={theme.colors.success.base} />
             );
             statusConfig.label = t('Success');
           } else if (
-            status === QueryState.FAILED ||
-            status === QueryState.STOPPED
+            status === QueryState.Failed ||
+            status === QueryState.Stopped
           ) {
             statusConfig.name = (
               <Icons.XSmall
                 iconColor={
-                  status === QueryState.FAILED
+                  status === QueryState.Failed
                     ? theme.colors.error.base
                     : theme.colors.grayscale.base
                 }
               />
             );
             statusConfig.label = t('Failed');
-          } else if (status === QueryState.RUNNING) {
+          } else if (status === QueryState.Running) {
             statusConfig.name = (
               <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
-          } else if (status === QueryState.TIMED_OUT) {
+          } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
               <Icons.Offline iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (
-            status === QueryState.SCHEDULED ||
-            status === QueryState.PENDING
+            status === QueryState.Scheduled ||
+            status === QueryState.Pending
           ) {
             statusConfig.name = (
               <Icons.Queued iconColor={theme.colors.grayscale.base} />
@@ -201,12 +201,12 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </Tooltip>
           );
         },
-        accessor: QueryObjectColumns.status,
+        accessor: QueryObjectColumns.Status,
         size: 'xs',
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.start_time,
+        accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
         size: 'xl',
         Cell: ({
@@ -236,7 +236,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { status, start_time, end_time },
           },
         }: any) => {
-          const timerType = status === QueryState.FAILED ? 'danger' : status;
+          const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
             ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
             : '00:00:00.000';
@@ -248,21 +248,21 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
       },
       {
-        accessor: QueryObjectColumns.tab_name,
+        accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.database_name,
+        accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
         size: 'xl',
       },
       {
-        accessor: QueryObjectColumns.database,
+        accessor: QueryObjectColumns.Database,
         hidden: true,
       },
       {
-        accessor: QueryObjectColumns.schema,
+        accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
         size: 'xl',
       },
@@ -299,13 +299,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
 
           return main;
         },
-        accessor: QueryObjectColumns.sql_tables,
+        accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
         size: 'xl',
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.user_first_name,
+        accessor: QueryObjectColumns.UserFirstName,
         Header: t('User'),
         size: 'xl',
         Cell: ({
@@ -315,16 +315,16 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => getOwnerName(user),
       },
       {
-        accessor: QueryObjectColumns.user,
+        accessor: QueryObjectColumns.User,
         hidden: true,
       },
       {
-        accessor: QueryObjectColumns.rows,
+        accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
         size: 'md',
       },
       {
-        accessor: QueryObjectColumns.sql,
+        accessor: QueryObjectColumns.Sql,
         Header: t('SQL'),
         Cell: ({ row: { original, id } }: any) => (
           <div
@@ -366,7 +366,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'database',
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'query',
@@ -384,7 +384,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'state',
         id: 'status',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'query',
@@ -402,7 +402,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'user',
         id: 'user',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'query',
@@ -420,14 +420,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
         key: 'start_time',
         id: 'start_time',
         input: 'datetime_range',
-        operator: FilterOperator.between,
+        operator: FilterOperator.Between,
       },
       {
         Header: t('Search by query text'),
         key: 'sql',
         id: 'sql',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
     ],
     [addDangerToast],

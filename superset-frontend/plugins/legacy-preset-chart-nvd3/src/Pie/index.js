@@ -24,7 +24,7 @@ import controlPanel from './controlPanel';
 const metadata = new ChartMetadata({
   credits: ['http://nvd3.org'],
   description: '',
-  label: ChartLabel.DEPRECATED,
+  label: ChartLabel.Deprecated,
   name: t('Pie Chart (legacy)'),
   thumbnail,
   useLegacyApi: true,

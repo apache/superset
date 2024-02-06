@@ -203,7 +203,7 @@ class Chart extends React.PureComponent {
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
-      datasetsStatus !== ResourceStatus.ERROR
+      datasetsStatus !== ResourceStatus.Error
     ) {
       return (
         <Styles
@@ -299,7 +299,7 @@ class Chart extends React.PureComponent {
         >
           <div className="slice_container" data-test="slice-container">
             {this.props.isInView ||
-            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ||
+            !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
             isCurrentUserBot() ? (
               <ChartRenderer
                 {...this.props}

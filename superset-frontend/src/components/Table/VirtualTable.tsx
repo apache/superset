@@ -178,7 +178,7 @@ const VirtualTable = <RecordType extends object>(
       {},
       {},
       {
-        action: ETableAction.PAGINATE,
+        action: ETableAction.Paginate,
         currentDataSource: [],
       },
     );
@@ -187,7 +187,7 @@ const VirtualTable = <RecordType extends object>(
   const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
-    const cellSize = size === TableSize.MIDDLE ? MIDDLE : SMALL;
+    const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
     return (
       <Grid
         ref={gridRef}

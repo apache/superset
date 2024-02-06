@@ -85,6 +85,7 @@ if TYPE_CHECKING:
     )
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
@@ -422,6 +423,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    def can_access_chart(self, chart: "Slice") -> bool:
+        """
+        Return True if the user can access the specified chart, False otherwise.
+        :param chart: The chart
+        :return: Whether the user can access the chart
+        """
+        try:
+            self.raise_for_access(chart=chart)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
@@ -436,6 +450,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
             message="You don't have access to this dashboard.",
+            level=ErrorLevel.ERROR,
+        )
+
+    def get_chart_access_error_object(  # pylint: disable=invalid-name
+        self,
+        dashboard: "Dashboard",  # pylint: disable=unused-argument
+    ) -> SupersetError:
+        """
+        Return the error object for the denied Superset dashboard.
+
+        :param dashboard: The denied Superset dashboard
+        :returns: The error object
+        """
+
+        return SupersetError(
+            error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this chart.",
             level=ErrorLevel.ERROR,
         )
 
@@ -726,6 +757,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_share_dashboard", "Superset")
         self.add_permission_view_menu("can_share_chart", "Superset")
+        self.add_permission_view_menu("can_view_and_drill", "Dashboard")
 
     def create_missing_perms(self) -> None:
         """
@@ -1818,9 +1850,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
+        chart: Optional["Slice"] = None,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
         query: Optional["Query"] = None,
@@ -1906,6 +1939,30 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if denied:
                 raise SupersetSecurityException(
                     self.get_table_access_error_object(denied)
+                )
+
+        if self.is_guest_user() and query_context:
+            # Guest users MUST not modify the payload so it's requesting a different
+            # chart or different ad-hoc metrics from what's saved.
+            form_data = query_context.form_data
+            stored_chart = query_context.slice_
+
+            if (
+                form_data is None
+                or stored_chart is None
+                or form_data.get("slice_id") != stored_chart.id
+                or form_data.get("metrics", []) != stored_chart.params_dict["metrics"]
+                or any(
+                    query.metrics != stored_chart.params_dict["metrics"]
+                    for query in query_context.queries
+                )
+            ):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                        message=_("Guest user cannot modify chart payload"),
+                        level=ErrorLevel.ERROR,
+                    )
                 )
 
         if datasource or query_context or viz:
@@ -2018,6 +2075,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
             )
+
+        if chart:
+            if self.is_admin() or self.is_owner(chart):
+                return
+
+            if chart.datasource and self.can_access_datasource(chart.datasource):
+                return
+
+            raise SupersetSecurityException(self.get_chart_access_error_object(chart))
 
     def get_user_by_username(self, username: str) -> Optional[User]:
         """

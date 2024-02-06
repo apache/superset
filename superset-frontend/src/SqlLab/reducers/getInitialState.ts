@@ -77,7 +77,7 @@ export default function getInitialState({
     let queryEditor: QueryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
-        version: activeTab.extra_json?.version ?? QueryEditorVersion.v1,
+        version: activeTab.extra_json?.version ?? QueryEditorVersion.V1,
         id: id.toString(),
         loaded: true,
         name: activeTab.label,

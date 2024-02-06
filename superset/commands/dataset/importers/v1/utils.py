@@ -22,7 +22,7 @@ from typing import Any
 from urllib import request
 
 import pandas as pd
-from flask import current_app, g
+from flask import current_app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.orm import Session
@@ -33,6 +33,7 @@ from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)
 
@@ -176,8 +177,8 @@ def import_dataset(
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database, session)
 
-    if hasattr(g, "user") and g.user:
-        dataset.owners.append(g.user)
+    if user := get_user():
+        dataset.owners.append(user)
 
     return dataset
 

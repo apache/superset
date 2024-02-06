@@ -339,7 +339,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.commands.dataset.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_v1_dataset(self, sm_g, utils_g):

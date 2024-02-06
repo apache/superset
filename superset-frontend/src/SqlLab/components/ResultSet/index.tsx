@@ -69,11 +69,11 @@ import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
 
-enum LIMITING_FACTOR {
-  QUERY = 'QUERY',
-  QUERY_AND_DROPDOWN = 'QUERY_AND_DROPDOWN',
-  DROPDOWN = 'DROPDOWN',
-  NOT_LIMITED = 'NOT_LIMITED',
+enum LimitingFactor {
+  Query = 'QUERY',
+  QueryAndDropdown = 'QUERY_AND_DROPDOWN',
+  Dropdown = 'DROPDOWN',
+  NotLimited = 'NOT_LIMITED',
 }
 
 export interface ResultSetProps {
@@ -338,23 +338,22 @@ const ResultSet = ({
       ),
     };
     const shouldUseDefaultDropdownAlert =
-      limit === defaultQueryLimit &&
-      limitingFactor === LIMITING_FACTOR.DROPDOWN;
+      limit === defaultQueryLimit && limitingFactor === LimitingFactor.Dropdown;
 
-    if (limitingFactor === LIMITING_FACTOR.QUERY && csv) {
+    if (limitingFactor === LimitingFactor.Query && csv) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the query',
         { rows },
       );
     } else if (
-      limitingFactor === LIMITING_FACTOR.DROPDOWN &&
+      limitingFactor === LimitingFactor.Dropdown &&
       !shouldUseDefaultDropdownAlert
     ) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
         { rows },
       );
-    } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
+    } else if (limitingFactor === LimitingFactor.QueryAndDropdown) {
       limitMessage = t(
         'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
         { rows },
@@ -444,8 +443,8 @@ const ResultSet = ({
   let trackingUrl;
   if (
     query.trackingUrl &&
-    query.state !== QueryState.SUCCESS &&
-    query.state !== QueryState.FETCHING
+    query.state !== QueryState.Success &&
+    query.state !== QueryState.Fetching
   ) {
     trackingUrl = (
       <Button
@@ -454,7 +453,7 @@ const ResultSet = ({
         href={query.trackingUrl}
         target="_blank"
       >
-        {query.state === QueryState.RUNNING
+        {query.state === QueryState.Running
           ? t('Track job')
           : t('See query details')}
       </Button>
@@ -470,11 +469,11 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.STOPPED) {
+  if (query.state === QueryState.Stopped) {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
 
-  if (query.state === QueryState.FAILED) {
+  if (query.state === QueryState.Failed) {
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
@@ -490,10 +489,10 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.ctas) {
+  if (query.state === QueryState.Success && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
-    if (query.ctas_method === CtasEnum.VIEW) {
+    if (query.ctas_method === CtasEnum.View) {
       object = 'View';
     }
     return (
@@ -529,7 +528,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.results) {
+  if (query.state === QueryState.Success && query.results) {
     const { results } = query;
     // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
     const rowMessageHeight = !limitReached ? 32 : 0;
@@ -608,7 +607,7 @@ const ResultSet = ({
     }
   }
 
-  if (query.cached || (query.state === QueryState.SUCCESS && !query.results)) {
+  if (query.cached || (query.state === QueryState.Success && !query.results)) {
     if (query.isDataPreview) {
       return (
         <Button

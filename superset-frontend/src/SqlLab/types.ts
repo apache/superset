@@ -30,10 +30,10 @@ export type QueryDictionary = {
 };
 
 export enum QueryEditorVersion {
-  v1 = 1,
+  V1 = 1,
 }
 
-export const LatestQueryEditorVersion = QueryEditorVersion.v1;
+export const LatestQueryEditorVersion = QueryEditorVersion.V1;
 
 export interface CursorPosition {
   row: number;
@@ -112,8 +112,8 @@ export type SqlLabRootState = {
 };
 
 export enum DatasetRadioState {
-  SAVE_NEW = 1,
-  OVERWRITE_DATASET = 2,
+  SaveNew = 1,
+  OverwriteDataset = 2,
 }
 
 export const EXPLORE_CHART_DEFAULT = {

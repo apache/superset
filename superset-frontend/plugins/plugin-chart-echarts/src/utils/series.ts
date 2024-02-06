@@ -364,7 +364,7 @@ export function formatSeriesName(
   if (typeof name === 'boolean') {
     return name.toString();
   }
-  if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
+  if (name instanceof Date || coltype === GenericDataType.Temporal) {
     const normalizedName =
       typeof name === 'string' ? normalizeTimestamp(name) : name;
     const d =
@@ -466,6 +466,7 @@ export function getChartPadding(
   orientation: LegendOrientation,
   margin?: string | number | null,
   padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -486,6 +487,19 @@ export function getChartPadding(
   }
 
   const { bottom = 0, left = 0, right = 0, top = 0 } = padding || {};
+
+  if (isHorizontal) {
+    return {
+      left:
+        left + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+      right:
+        right + (orientation === LegendOrientation.Right ? legendMargin : 0),
+      top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
+      bottom:
+        bottom + (orientation === LegendOrientation.Left ? legendMargin : 0),
+    };
+  }
+
   return {
     left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
     right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),
@@ -521,15 +535,15 @@ export function getAxisType(
   dataType?: GenericDataType,
 ): AxisType {
   if (forceCategorical) {
-    return AxisType.category;
+    return AxisType.Category;
   }
-  if (dataType === GenericDataType.TEMPORAL) {
-    return AxisType.time;
+  if (dataType === GenericDataType.Temporal) {
+    return AxisType.Time;
   }
-  if (dataType === GenericDataType.NUMERIC && !stack) {
-    return AxisType.value;
+  if (dataType === GenericDataType.Numeric && !stack) {
+    return AxisType.Value;
   }
-  return AxisType.category;
+  return AxisType.Category;
 }
 
 export function getOverMaxHiddenFormatter(
@@ -571,7 +585,7 @@ export function getMinAndMaxFromBounds(
   max?: number,
   seriesType?: EchartsTimeseriesSeriesType,
 ): BoundsType | {} {
-  if (axisType === AxisType.value && truncateAxis) {
+  if (axisType === AxisType.Value && truncateAxis) {
     const ret: BoundsType = {};
     if (seriesType === EchartsTimeseriesSeriesType.Bar) {
       ret.scale = true;
