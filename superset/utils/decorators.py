@@ -20,11 +20,14 @@ import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app, g, Response
+from flask_appbuilder.security.decorators import has_access_api
 
+from superset import security_manager
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
@@ -191,3 +194,25 @@ def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
 
 def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
+
+
+def has_api_override_permission(permissions_targets: list[tuple[str, str]]) -> Callable:
+    """
+    Decorator to check for multiple override permissions, each tied to a specific target.
+    :param permissions_targets: A list of tuples where each tuple contains [permission, target_view].
+    """
+
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def decorated_function(*args, **kwargs) -> Callable:
+            # Iterate through the list of permission-target pairs
+            for permission, target_view in permissions_targets:
+                # Check for each custom override permission with its specific target
+                if security_manager.can_access(permission, target_view):
+                    return f(*args, **kwargs)
+            # Fallback to the standard has_access_api decorator if none of the override permissions are present
+            return has_access_api(f)(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
