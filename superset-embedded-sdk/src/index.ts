@@ -21,6 +21,7 @@ import {
   DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
   IFRAME_COMMS_MESSAGE_TYPE
 } from './const';
+import { t } from '@superset-ui/core';
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
@@ -79,7 +80,7 @@ export async function embedDashboard({
   id,
   supersetDomain,
   mountPoint,
-  iframeTitle,
+  iframeTitle = t("Embedded Dashboard"),
   fetchGuestToken,
   dashboardUiConfig,
   debug = false
