@@ -7,15 +7,12 @@ import redis
 class GuestTokenCacheManager:
 
     def __init__(self):
-        REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-        REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
-        REDIS_DB = os.environ.get("REDIS_DB", 6)
+        _redis_host = os.environ.get("REDIS_HOST", "localhost")
+        _redis_port = os.environ.get("REDIS_PORT", 6379)
+        _redis_db = os.environ.get("REDIS_DB", 6)
 
         self._redis: redis.Redis = redis.Redis(
-            host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB
-        )
-        self._guest_token_timeout: int = os.environ.get(
-            "GUEST_TOKEN_V2_TIMEOUT_SEC", 600
+            host=_redis_host, port=_redis_port, db=_redis_db
         )
 
     def _generate_token(self) -> str:
@@ -25,10 +22,9 @@ class GuestTokenCacheManager:
 
         return random_id
 
-    def save_guest_token(self, raw_token: str) -> str:
+    def save_guest_token(self, raw_token: str, exp_sec: int) -> str:
         random_id = self._generate_token()
-        self._redis.set(name=random_id, value=raw_token, ex=self._guest_token_timeout)
-
+        self._redis.set(name=random_id, value=raw_token, ex=exp_sec)
         return random_id
 
     def retrieve_guest_token(self, token_v2: str) -> str:
