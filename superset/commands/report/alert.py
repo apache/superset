@@ -150,7 +150,7 @@ class AlertCommand(BaseCommand):
                 rendered_sql, ALERT_SQL_LIMIT
             )
 
-            executor, username = get_executor(
+            executor, username = get_executor(  # pylint: disable=unused-variable
                 executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
                 model=self._report_schedule,
             )
