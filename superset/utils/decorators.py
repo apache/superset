@@ -24,9 +24,7 @@ from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app, g, Response
-from flask_appbuilder.security.decorators import has_access_api
 
-from superset import security_manager
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
