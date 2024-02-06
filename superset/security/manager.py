@@ -73,6 +73,7 @@ from superset.utils.core import (
     get_user_id,
     RowLevelSecurityFilterType,
 )
+from superset.extensions import guest_token_cache_manager
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -137,6 +138,10 @@ ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 RoleModelView.list_columns = ["name"]
 RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
+
+
+def fetch_token_from_cache(token_v2) -> str:
+    return guest_token_cache_manager.retrieve_guest_token(token_v2)
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
@@ -2181,9 +2186,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(
-            current_app.config["GUEST_TOKEN_HEADER_NAME"]
-        ) or req.form.get("guest_token")
+        token_v2 = req.headers.get("X-GuestTokenV2")
+        if token_v2:
+            raw_token = fetch_token_from_cache(token_v2)
+        else:
+            raw_token = (req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"]) 
+                         or req.form.get("guest_token"))
         if raw_token is None:
             return None
 
