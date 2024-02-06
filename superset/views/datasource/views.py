@@ -39,7 +39,6 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType
-from superset.utils.decorators import has_api_override_permission
 from superset.views.base import (
     api,
     BaseSupersetView,
