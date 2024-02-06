@@ -190,7 +190,6 @@ class Datasource(BaseSupersetView):
         return self.json_response(external_metadata)
 
     @expose("/samples", methods=("POST",))
-    @has_api_override_permission([("can_drill_to_detail", "Dashboard")])
     @api
     @handle_api_exception
     def samples(self) -> FlaskResponse:

@@ -274,12 +274,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
-  const canDrillToDetail = useSelector((state: RootState) =>
-    findPermission('can_drill_to_detail', 'Dashboard', state.user?.roles),
-  );
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
   );
+  const canDrillToDetail = canExplore && canDatasourceSamples;
   const canViewQuery = useSelector((state: RootState) =>
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );
@@ -491,13 +489,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DrillToDetail) &&
-        ((canExplore && canDatasourceSamples) || canDrillToDetail) && (
-          <DrillDetailMenuItems
-            chartId={slice.slice_id}
-            formData={props.formData}
-          />
-        )}
+      {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
+        <DrillDetailMenuItems
+          chartId={slice.slice_id}
+          formData={props.formData}
+        />
+      )}
 
       {(slice.description || canExplore) && <Menu.Divider />}
 

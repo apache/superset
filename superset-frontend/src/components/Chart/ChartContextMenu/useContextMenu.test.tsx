@@ -64,6 +64,7 @@ const setup = ({
           Admin: [
             ['can_explore', 'Superset'],
             ['can_samples', 'Datasource'],
+            ['can_write', 'ExploreFormDataRestAPI'],
           ],
         },
       },
@@ -95,7 +96,10 @@ test('Context menu contains all displayed items only', () => {
 test('Context menu shows "Drill by"', () => {
   const result = setup({
     roles: {
-      Admin: [['can_write', 'ExploreFormDataRestAPI']],
+      Admin: [
+        ['can_write', 'ExploreFormDataRestAPI'],
+        ['can_explore', 'Superset'],
+      ],
     },
   });
   result.current.onContextMenu(0, 0, {});
