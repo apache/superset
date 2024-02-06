@@ -551,12 +551,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     hasErrors: boolean,
     errors?: string[],
   ) => {
-    if (hasErrors || (section === Sections.Alert && isReport)) {
-      // clear set true and clear errors
+    if (!hasErrors || (section === Sections.Alert && isReport)) {
+      // clear set false and clear errors
       setValidationStatus(currentValidationData => ({
         ...currentValidationData,
         [section]: {
-          hasErrors: true,
+          hasErrors: false,
           name: currentValidationData[section].name,
           errors: [],
         },
@@ -566,7 +566,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setValidationStatus(currentValidationData => ({
         ...currentValidationData,
         [section]: {
-          hasErrors: false,
+          hasErrors: true,
           name: currentValidationData[section].name,
           errors,
         },
@@ -1080,9 +1080,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.General, false, errors);
+      updateValidationStatus(Sections.General, true, errors);
     } else {
-      updateValidationStatus(Sections.General, true);
+      updateValidationStatus(Sections.General, false);
     }
   };
   const validateContentSection = () => {
@@ -1096,9 +1096,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.Content, false, errors);
+      updateValidationStatus(Sections.Content, true, errors);
     } else {
-      updateValidationStatus(Sections.Content, true);
+      updateValidationStatus(Sections.Content, false);
     }
   };
   const validateAlertSection = () => {
@@ -1119,9 +1119,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
     if (errors.length) {
-      updateValidationStatus(Sections.Alert, false, errors);
+      updateValidationStatus(Sections.Alert, true, errors);
     } else {
-      updateValidationStatus(Sections.Alert, true);
+      updateValidationStatus(Sections.Alert, false);
     }
   };
   const validateScheduleSection = () => {
@@ -1134,16 +1134,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     if (errors.length) {
-      updateValidationStatus(Sections.Schedule, false, errors);
+      updateValidationStatus(Sections.Schedule, true, errors);
     } else {
-      updateValidationStatus(Sections.Schedule, true);
+      updateValidationStatus(Sections.Schedule, false);
     }
   };
   const validateNotificationSection = () => {
     if (checkNotificationSettings()) {
-      updateValidationStatus(Sections.Notification, true);
+      updateValidationStatus(Sections.Notification, false);
     } else {
-      updateValidationStatus(Sections.Notification, false, [
+      updateValidationStatus(Sections.Notification, true, [
         TRANSLATIONS.RECIPIENTS_ERROR_TEXT,
       ]);
     }
@@ -1158,12 +1158,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const enforceValidation = () => {
+    // if no active sections have errors
     if (
-      validationStatus[Sections.General].hasErrors &&
-      validationStatus[Sections.Content].hasErrors &&
-      (isReport || validationStatus[Sections.Alert].hasErrors) &&
-      validationStatus[Sections.Schedule].hasErrors &&
-      validationStatus[Sections.Notification].hasErrors
+      !validationStatus[Sections.General].hasErrors &&
+      !validationStatus[Sections.Content].hasErrors &&
+      (isReport || !validationStatus[Sections.Alert].hasErrors) &&
+      !validationStatus[Sections.Schedule].hasErrors &&
+      !validationStatus[Sections.Notification].hasErrors
     ) {
       buildErrorTooltipMessage(false, setErrorTooltipMessage, validationStatus);
       setDisableSave(false);
@@ -1353,7 +1354,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               title={TRANSLATIONS.GENERAL_TITLE}
               subtitle={TRANSLATIONS.GENERAL_SUBTITLE}
               required
-              validateCheckStatus={validationStatus[Sections.General].hasErrors}
+              validateCheckStatus={!validationStatus[Sections.General].hasErrors}
               testId="general-information-panel"
             />
           }
@@ -1444,7 +1445,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 title={TRANSLATIONS.ALERT_CONDITION_TITLE}
                 subtitle={TRANSLATIONS.ALERT_CONDITION_SUBTITLE}
                 required={false}
-                validateCheckStatus={validationStatus[Sections.Alert].hasErrors}
+                validateCheckStatus={!validationStatus[Sections.Alert].hasErrors}
                 testId="alert-condition-panel"
               />
             }
@@ -1543,7 +1544,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
               subtitle={TRANSLATIONS.CONTENTS_SUBTITLE}
               required
-              validateCheckStatus={validationStatus[Sections.Content].hasErrors}
+              validateCheckStatus={!validationStatus[Sections.Content].hasErrors}
               testId="contents-panel"
             />
           }
@@ -1676,7 +1677,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.SCHEDULE_SUBTITLE}
               required
               validateCheckStatus={
-                validationStatus[Sections.Schedule].hasErrors
+                !validationStatus[Sections.Schedule].hasErrors
               }
               testId="schedule-panel"
             />
@@ -1762,7 +1763,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={TRANSLATIONS.NOTIFICATION_SUBTITLE}
               required
               validateCheckStatus={
-                validationStatus[Sections.Notification].hasErrors
+                !validationStatus[Sections.Notification].hasErrors
               }
               testId="notification-method-panel"
             />
