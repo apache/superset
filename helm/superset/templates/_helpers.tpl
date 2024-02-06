@@ -112,9 +112,9 @@ RESULTS_BACKEND = RedisCache(
       {{- end }}
       port=env('REDIS_PORT'),
       key_prefix='superset_results',
-      {{- if .Values.supersetNode.connections.use_redis_ssl }}
+      {{- if .Values.supersetNode.connections.redis_ssl.enabled }}
       ssl=True,
-      ssl_cert_reqs={{- .Values.supersetNode.connections.use_redis_ssl.ssl_cert_reqs | default "CERT_NONE" | quote }},
+      ssl_cert_reqs=env('REDIS_SSL_CERT_REQS'),
       {{- end }}
 )
 
