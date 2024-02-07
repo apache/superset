@@ -23,8 +23,8 @@ Create Date: 2024-02-07 17:13:20.937186
 """
 
 # revision identifiers, used by Alembic.
-revision = '87d38ad83218'
-down_revision = '1cf8e4344e2b'
+revision = "87d38ad83218"
+down_revision = "1cf8e4344e2b"
 
 from alembic import op
 from sqlalchemy.exc import SQLAlchemyError
@@ -41,8 +41,11 @@ from superset.migrations.shared.security_converge import (
 NEW_PVMS = {"Dashboard": ("can_view_chart_as_table",)}
 
 PVM_MAP = {
-    Pvm("Dashboard", "can_view_and_drill"): (Pvm("Dashboard", "can_view_chart_as_table"),),
+    Pvm("Dashboard", "can_view_and_drill"): (
+        Pvm("Dashboard", "can_view_chart_as_table"),
+    ),
 }
+
 
 def upgrade():
     bind = op.get_bind()
@@ -57,6 +60,7 @@ def upgrade():
     except SQLAlchemyError as ex:
         session.rollback()
         raise Exception(f"An error occurred while upgrading permissions: {ex}")
+
 
 def downgrade():
     bind = op.get_bind()
