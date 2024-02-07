@@ -278,7 +278,7 @@
     "babel-plugin-jsx-remove-data-test-id": "^2.1.3",
     "babel-plugin-lodash": "^3.3.4",
     "chromatic": "^6.7.4",
-    "copy-webpack-plugin": "^9.1.0",
+    "copy-webpack-plugin": "^12.0.2",
     "cross-env": "^5.2.1",
     "css-loader": "^6.8.1",
     "css-minimizer-webpack-plugin": "^5.0.1",
