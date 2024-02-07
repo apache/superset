@@ -80,16 +80,15 @@ class CreateDatabaseCommand(BaseCommand):
         ssh_tunnel = None
 
         try:
+            database = self._create_database()
+
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 if not is_feature_enabled("SSH_TUNNELING"):
                     raise SSHTunnelingNotEnabledError()
 
-                database = self._create_database()
                 ssh_tunnel = CreateSSHTunnelCommand(
                     database, ssh_tunnel_properties
                 ).run()
-            else:
-                database = self._create_database()
 
             db.session.commit()
 

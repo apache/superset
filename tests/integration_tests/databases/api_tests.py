@@ -551,15 +551,15 @@ class TestDatabaseApi(SupersetTestCase):
         """
         mock_create_is_feature_enabled.return_value = True
         self.login(username="admin")
-        # example_db = get_example_database()
-        # if example_db.backend == "sqlite":
-        # return
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
         }
         database_data = {
             "database_name": "test-db-failure-ssh-tunnel",
-            "sqlalchemy_uri": "hive://",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": ssh_tunnel_properties,
         }
         fail_message = {"message": "SSH Tunnel parameters are invalid."}
