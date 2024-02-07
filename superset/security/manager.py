@@ -73,6 +73,7 @@ from superset.utils.core import (
     get_user_id,
     RowLevelSecurityFilterType,
 )
+from superset.extensions import guest_token_cache_manager
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -139,6 +140,10 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
+def fetch_token_from_cache(token_v2) -> str:
+    return guest_token_cache_manager.retrieve_guest_token(token_v2)
+
+
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
@@ -156,26 +161,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "Dataset",
-        "Datasource",
-    } | READ_ONLY_MODEL_VIEWS
+                                      "Dataset",
+                                      "Datasource",
+                                  } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
-        "Access Requests",
-        "Action Log",
-        "Log",
-        "List Users",
-        "List Roles",
-        "ResetPasswordView",
-        "RoleModelView",
-        "Row Level Security",
-        "Row Level Security Filters",
-        "RowLevelSecurityFiltersModelView",
-        "Security",
-        "SQL Lab",
-        "User Registrations",
-        "User's Statistics",
-    } | USER_MODEL_VIEWS
+                                "Access Requests",
+                                "Action Log",
+                                "Log",
+                                "List Users",
+                                "List Roles",
+                                "ResetPasswordView",
+                                "RoleModelView",
+                                "Row Level Security",
+                                "Row Level Security Filters",
+                                "RowLevelSecurityFiltersModelView",
+                                "Security",
+                                "SQL Lab",
+                                "User Registrations",
+                                "User's Statistics",
+                            } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
         "Alerts & Report",
@@ -1893,8 +1898,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
                         dashboard_ := self.get_session.query(Dashboard)
-                        .filter(Dashboard.id == dashboard_id)
-                        .one_or_none()
+                            .filter(Dashboard.id == dashboard_id)
+                            .one_or_none()
                     )
                     and (
                         (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
@@ -1911,14 +1916,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.id
-                                for fltr in json_metadata.get(
-                                    "native_filter_configuration",
-                                    [],
-                                )
-                                for target in fltr.get("targets", [])
-                                if native_filter_id == fltr.get("id")
+                            target.get("datasetId") == datasource.id
+                            for fltr in json_metadata.get(
+                                "native_filter_configuration",
+                                [],
                             )
+                            for target in fltr.get("targets", [])
+                            if native_filter_id == fltr.get("id")
+                        )
                         )
                         or (
                             # Chart.
@@ -1926,8 +1931,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and (slice_id := form_data.get("slice_id"))
                             and (
                                 slc := self.get_session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
+                                    .filter(Slice.id == slice_id)
+                                    .one_or_none()
                             )
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
@@ -1969,9 +1974,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 not dashboard.published
                 or not dashboard.datasources
                 or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                )
+                self.can_access_datasource(datasource)
+                for datasource in dashboard.datasources
+            )
             ):
                 return
 
@@ -2019,7 +2024,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.id)
+                   or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -2151,6 +2156,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user: GuestTokenUser,
         resources: GuestTokenResources,
         rls: list[GuestTokenRlsRule],
+        is_cached: bool
     ) -> bytes:
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
@@ -2170,7 +2176,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "type": "guest",
         }
         token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
-        return token
+        if is_cached:
+            return guest_token_cache_manager.save_guest_token(token, exp_seconds - 2)
+        else:
+            return token
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -2181,9 +2190,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(
-            current_app.config["GUEST_TOKEN_HEADER_NAME"]
-        ) or req.form.get("guest_token")
+        token_v2 = req.headers.get("X-GuestTokenV2")
+        if token_v2:
+            raw_token = fetch_token_from_cache(token_v2)
+        else:
+            raw_token = (req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+                         or req.form.get("guest_token"))
         if raw_token is None:
             return None
 

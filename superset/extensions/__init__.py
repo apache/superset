@@ -30,6 +30,7 @@ from werkzeug.local import LocalProxy
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.utils.async_query_manager import AsyncQueryManager
+from superset.utils.guest_token_cache_manager import GuestTokenCacheManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
@@ -130,3 +131,4 @@ security_manager = LocalProxy(lambda: appbuilder.sm)
 ssh_manager_factory = SSHManagerFactory()
 stats_logger_manager = BaseStatsLoggerManager()
 talisman = Talisman()
+guest_token_cache_manager = GuestTokenCacheManager()
