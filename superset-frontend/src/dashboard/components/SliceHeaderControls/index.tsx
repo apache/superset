@@ -282,7 +282,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     findPermission('can_view_query', 'Dashboard', state.user?.roles),
   );
   const canViewTable = useSelector((state: RootState) =>
-    findPermission('can_view_table', 'Dashboard', state.user?.roles),
+    findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
   const refreshChart = () => {
     if (props.updatedDttm) {

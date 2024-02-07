@@ -368,7 +368,7 @@ test('Should show "View as table"', () => {
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_view_table', 'Dashboard']],
+    Admin: [['can_view_chart_as_table', 'Dashboard']],
   });
   expect(screen.getByText('View as table')).toBeInTheDocument();
 });
@@ -395,7 +395,7 @@ test('Should not show the "Edit chart" button', () => {
     Admin: [
       ['can_samples', 'Datasource'],
       ['can_view_query', 'Dashboard'],
-      ['can_view_table', 'Dashboard'],
+      ['can_view_chart_as_table', 'Dashboard'],
     ],
   });
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
