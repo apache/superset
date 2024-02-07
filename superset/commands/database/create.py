@@ -114,6 +114,7 @@ class CreateDatabaseCommand(BaseCommand):
         except (
             DAOCreateFailedError,
             DatabaseInvalidError,
+            Exception,
         ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
@@ -152,4 +153,6 @@ class CreateDatabaseCommand(BaseCommand):
             raise exception
 
     def _create_database(self) -> Database:
-        return DatabaseDAO.create(attributes=self._properties, commit=False)
+        database = DatabaseDAO.create(attributes=self._properties, commit=False)
+        database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+        return database
