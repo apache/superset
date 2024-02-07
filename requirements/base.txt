@@ -88,7 +88,7 @@ flask==2.2.5
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.3.10
+flask-appbuilder==4.3.11
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
@@ -135,7 +135,9 @@ humanize==3.11.0
 idna==3.2
     # via email-validator
 importlib-metadata==6.6.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   flask
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -295,6 +297,7 @@ typing-extensions==4.4.0
     # via
     #   apache-superset
     #   flask-limiter
+    #   kombu
     #   limits
 urllib3==1.26.6
     # via selenium
@@ -325,7 +328,9 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
