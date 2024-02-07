@@ -156,7 +156,7 @@ class SecurityRestApi(BaseSupersetApi):
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(
                 body["user"], body["resources"], body["rls"],
-                body.get("is_cached", False)
+                body.get("is_cached", True)
             )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:

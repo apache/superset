@@ -2190,7 +2190,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        token_v2 = req.headers.get("X-GuestTokenV2")
+        token_v2 = req.headers.get("X-GuestToken")
         if token_v2:
             raw_token = fetch_token_from_cache(token_v2)
         else:
