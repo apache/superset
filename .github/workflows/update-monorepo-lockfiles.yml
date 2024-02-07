@@ -5,18 +5,21 @@ on:
     paths:
       - 'superset-frontend/packages/**/package.json'
       - 'superset-frontend/plugins/**/package.json'
-    # Trigger this workflow when Dependabot creates a pull request
     types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
 
 # cancel previous workflow jobs for PRs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   update-lock-file:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]' # Ensure it only runs for Dependabot PRs
+    if: >
+      (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot trigger-dependabot-lockfile') && github.event.issue.pull_request)
     defaults:
       run:
         working-directory: superset-frontend
@@ -24,7 +27,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }} # Checkout the branch that made the PR
+          ref: ${{ github.event.pull_request.head.ref || github.head_ref }} # Checkout the branch that made the PR or the comment's PR branch
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -41,4 +44,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           # Push the changes back to the branch if they exist, and pass if there are no changes
-          git diff --staged --quiet || (git commit -m "Update lock file for Dependabot PR" -a && git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} ${{github.head_ref}})
+          git diff --staged --quiet || (git commit -m "Update lock file for Dependabot PR" -a && git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} ${{ github.event.pull_request.head.ref || github.head_ref }})
