@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, QueryResponse } from '@superset-ui/core';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { QueryResponse } from '@superset-ui/core';
+import {
+  CommonBootstrapData,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
 import { DropdownButtonProps } from 'src/components/DropdownButton';
 import { ButtonProps } from 'src/components/Button';
+import type { TableMetaData } from 'src/hooks/apiResources';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
@@ -81,8 +85,10 @@ export interface Table {
   name: string;
   queryEditorId: QueryEditor['id'];
   dataPreviewQueryId: string | null;
-  expanded?: boolean;
+  expanded: boolean;
   initialized?: boolean;
+  inLocalStorage?: boolean;
+  persistData?: TableMetaData;
 }
 
 export type SqlLabRootState = {
@@ -92,7 +98,7 @@ export type SqlLabRootState = {
     databases: Record<string, any>;
     dbConnect: boolean;
     offline: boolean;
-    queries: Record<string, QueryResponse>;
+    queries: Record<string, QueryResponse & { inLocalStorage?: boolean }>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Table[];
@@ -105,10 +111,7 @@ export type SqlLabRootState = {
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];
   user: UserWithPermissionsAndRoles;
-  common: {
-    flash_messages: string[];
-    conf: JsonObject;
-  };
+  common: CommonBootstrapData;
 };
 
 export enum DatasetRadioState {

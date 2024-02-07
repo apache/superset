@@ -36,7 +36,7 @@ from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
-    get_user_id,
+    get_user,
     merge_extra_filters,
 )
 
@@ -110,11 +110,10 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if hasattr(g, "user") and g.user:
-            id_ = get_user_id()
+        if user := get_user():
             if add_to_cache_keys:
-                self.cache_key_wrapper(id_)
-            return id_
+                self.cache_key_wrapper(user.id)
+            return user.id
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
