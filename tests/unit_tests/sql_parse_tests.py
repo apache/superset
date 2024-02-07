@@ -35,7 +35,7 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
-    SQLQuery,
+    SQLScript,
     SQLStatement,
     strip_comments_from_sql,
     Table,
@@ -1856,16 +1856,16 @@ SELECT * FROM t"""
 
 def test_sqlquery() -> None:
     """
-    Test the `SQLQuery` class.
+    Test the `SQLScript` class.
     """
-    query = SQLQuery("SELECT 1; SELECT 2;")
+    script = SQLScript("SELECT 1; SELECT 2;")
 
-    assert len(query.statements) == 2
-    assert query.format() == "SELECT\n  1;\nSELECT\n  2"
-    assert query.statements[0].format() == "SELECT\n  1"
+    assert len(script.statements) == 2
+    assert script.format() == "SELECT\n  1;\nSELECT\n  2"
+    assert script.statements[0].format() == "SELECT\n  1"
 
-    query = SQLQuery("SET a=1; SET a=2; SELECT 3;")
-    assert query.get_settings() == {"a": "2"}
+    script = SQLScript("SET a=1; SET a=2; SELECT 3;")
+    assert script.get_settings() == {"a": "2"}
 
 
 def test_sqlstatement() -> None:

@@ -323,9 +323,9 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     return source.name in ctes_in_scope
 
 
-class SQLQuery:
+class SQLScript:
     """
-    A SQL query, with 0+ statements.
+    A SQL script, with 0+ statements.
     """
 
     def __init__(
@@ -351,7 +351,7 @@ class SQLQuery:
         """
         Return the settings for the SQL query.
 
-            >>> statement = SQLQuery("SET foo = 'bar'; SET foo = 'baz'")
+            >>> statement = SQLScript("SET foo = 'bar'; SET foo = 'baz'")
             >>> statement.get_settings()
             {"foo": "'baz'"}
 

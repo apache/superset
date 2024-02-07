@@ -36,7 +36,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
-from superset.sql_parse import SQLQuery
+from superset.sql_parse import SQLScript
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -281,8 +281,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        statement = SQLQuery(query.sql, engine=cls.engine)
-        settings = statement.get_settings()
+        script = SQLScript(query.sql, engine=cls.engine)
+        settings = script.get_settings()
         if "search_path" in settings:
             raise SupersetSecurityException(
                 SupersetError(

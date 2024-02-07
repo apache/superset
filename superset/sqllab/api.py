@@ -37,7 +37,7 @@ from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql_lab import get_sql_results
-from superset.sql_parse import SQLQuery
+from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -230,7 +230,7 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         try:
             model = self.format_model_schema.load(request.json)
-            result = SQLQuery(model["sql"], model.get("engine")).format()
+            result = SQLScript(model["sql"], model.get("engine")).format()
             return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)

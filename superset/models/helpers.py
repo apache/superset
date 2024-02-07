@@ -74,7 +74,7 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
-    SQLQuery,
+    SQLScript,
     SQLStatement,
 )
 from superset.superset_typing import (
@@ -1082,13 +1082,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 ) from ex
 
-        query = SQLQuery(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
-        if len(query.statements) > 1:
+        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
 
-        sql = query.statements[0].format(comments=False)
+        sql = script.statements[0].format(comments=False)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
