@@ -46,16 +46,17 @@ function openModalFromMenu(chartType: string) {
 function openModalFromChartContext(targetMenuItem: string) {
   interceptSamples();
 
-  cy.wait(500);
   if (targetMenuItem.startsWith('Drill to detail by')) {
     cy.get('.ant-dropdown')
       .not('.ant-dropdown-hidden')
+      .should('be.visible')
       .first()
       .find("[role='menu'] [role='menuitem'] [title='Drill to detail by']")
       .trigger('mouseover');
-    cy.wait(500);
     cy.get('[data-test="drill-to-detail-by-submenu"]')
+      .should('be.visible')
       .not('.ant-dropdown-menu-hidden [data-test="drill-to-detail-by-submenu"]')
+      .should('be.visible')
       .find('[role="menuitem"]')
       .contains(new RegExp(`^${targetMenuItem}$`))
       .first()

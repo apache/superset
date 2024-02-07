@@ -197,8 +197,7 @@ test('Should "export to Excel"', async () => {
 });
 
 test('Export full CSV is under featureflag', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
@@ -209,8 +208,7 @@ test('Export full CSV is under featureflag', async () => {
 });
 
 test('Should "export full CSV"', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
@@ -223,8 +221,7 @@ test('Should "export full CSV"', async () => {
 });
 
 test('Should not show export full CSV if report is not table', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
@@ -234,8 +231,7 @@ test('Should not show export full CSV if report is not table', async () => {
 });
 
 test('Export full Excel is under featureflag', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
@@ -246,8 +242,7 @@ test('Export full Excel is under featureflag', async () => {
 });
 
 test('Should "export full Excel"', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
@@ -260,8 +255,7 @@ test('Should "export full Excel"', async () => {
 });
 
 test('Should not show export full Excel if report is not table', async () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
@@ -299,8 +293,7 @@ test('Should "Enter fullscreen"', () => {
 });
 
 test('Drill to detail modal is under featureflag', () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: false,
   };
   const props = createProps();
@@ -309,8 +302,7 @@ test('Drill to detail modal is under featureflag', () => {
 });
 
 test('Should show "Drill to detail"', () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
   const props = {
@@ -325,8 +317,7 @@ test('Should show "Drill to detail"', () => {
 });
 
 test('Should not show "Drill to detail"', () => {
-  // @ts-ignore
-  global.featureFlags = {
+  (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
   const props = {
@@ -421,9 +412,12 @@ describe('handleDropdownNavigation', () => {
   });
 
   test('should continue with system tab navigation if dropdown is closed and tab key is pressed', () => {
-    const event = { key: 'Tab', preventDefault: jest.fn() };
+    const event = {
+      key: 'Tab',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       false,
       <div />,
@@ -436,10 +430,12 @@ describe('handleDropdownNavigation', () => {
 
   test(`should prevent default behavior and toggle dropdown if dropdown
       is closed and action key is pressed`, () => {
-    const event = { key: 'Enter', preventDefault: jest.fn() };
+    const event = {
+      key: 'Enter',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       false,
       <div />,
@@ -457,10 +453,9 @@ describe('handleDropdownNavigation', () => {
       key: 'Enter',
       preventDefault: jest.fn(),
       currentTarget: { focus: jest.fn() },
-    };
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       true,
       menu,
@@ -473,9 +468,12 @@ describe('handleDropdownNavigation', () => {
   });
 
   test('should select the next menu item if down arrow key is pressed', () => {
-    const event = { key: 'ArrowDown', preventDefault: jest.fn() };
+    const event = {
+      key: 'ArrowDown',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       true,
       menu,
@@ -486,10 +484,12 @@ describe('handleDropdownNavigation', () => {
   });
 
   test('should select the previous menu item if up arrow key is pressed', () => {
-    const event = { key: 'ArrowUp', preventDefault: jest.fn() };
+    const event = {
+      key: 'ArrowUp',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
 
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       true,
       menu,
@@ -500,9 +500,12 @@ describe('handleDropdownNavigation', () => {
   });
 
   test('should close dropdown menu if escape key is pressed', () => {
-    const event = { key: 'Escape', preventDefault: jest.fn() };
+    const event = {
+      key: 'Escape',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       true,
       <div />,
@@ -514,9 +517,12 @@ describe('handleDropdownNavigation', () => {
   });
 
   test('should do nothing if an unsupported key is pressed', () => {
-    const event = { key: 'Shift', preventDefault: jest.fn() };
+    const event = {
+      key: 'Shift',
+      preventDefault: jest.fn(),
+    } as unknown as React.KeyboardEvent<HTMLDivElement>;
+
     handleDropdownNavigation(
-      // @ts-ignore
       event,
       true,
       <div />,
@@ -525,5 +531,23 @@ describe('handleDropdownNavigation', () => {
     );
     expect(mockToggleDropdown).not.toHaveBeenCalled();
     expect(mockSetSelectedKeys).not.toHaveBeenCalled();
+  });
+
+  test('should find a child element with a key', () => {
+    const item = {
+      props: {
+        children: [
+          <div key="1">Child 1</div>,
+          <div key="2">Child 2</div>,
+          <div key="3">Child 3</div>,
+        ],
+      },
+    };
+
+    const childWithKey = item?.props?.children?.find(
+      (child: React.ReactElement) => child?.key,
+    );
+
+    expect(childWithKey).toBeDefined();
   });
 });

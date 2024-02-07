@@ -51,7 +51,7 @@ export const headerStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-// adds enough margin and padding so that the focus ouline styles will fit
+// adds enough margin and padding so that the focus outline styles will fit
 export const chartHeaderStyles = (theme: SupersetTheme) => css`
   .header-title a {
     margin: ${theme.gridUnit / 2}px;
@@ -130,24 +130,6 @@ export const focusStyle = (theme: SupersetTheme) => css`
       &:focus-visible {
         padding: ${theme.gridUnit / 2}px;
       }
-    }
-  }
-
-  @keyframes fadeOut {
-    0% {
-      box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
-    }
-    100% {
-      box-shadow: 0 0 0 0 ${theme.colors.primary.dark1};
-    }
-  }
-
-  @keyframes fadeIn {
-    0% {
-      box-shadow: 0 0 0 0 ${theme.colors.primary.dark1};
-    }
-    100% {
-      box-shadow: 0 0 0 2px ${theme.colors.primary.dark1};
     }
   }
 `;
