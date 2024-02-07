@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsWaterfallChartPlugin,
   WaterfallTransformProps,
@@ -37,7 +36,7 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins|plugin-chart-echarts/Waterfall',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
 };
 
 export const Waterfall = ({ width, height }) => (
