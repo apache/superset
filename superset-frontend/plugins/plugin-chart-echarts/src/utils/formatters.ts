@@ -26,6 +26,7 @@ import {
   QueryFormMetric,
   smartDateDetailedFormatter,
   smartDateFormatter,
+  TimeGranularity,
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -78,4 +79,14 @@ export function getXAxisFormatter(
     return getTimeFormatter(format);
   }
   return String;
+}
+
+export function getTimeFormat(
+  timeGrainSqla: TimeGranularity | undefined,
+  timeFormat: string | undefined,
+): string | undefined {
+  if (timeGrainSqla === 'P3M' && timeFormat === 'smart_date') {
+    return '%Y-Q%q';
+  }
+  return timeFormat;
 }

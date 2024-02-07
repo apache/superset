@@ -95,6 +95,7 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  getTimeFormat,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
@@ -411,11 +412,11 @@ export default function transformProps(
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(getTimeFormat(timeGrainSqla, tooltipTimeFormat))
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(getTimeFormat(timeGrainSqla, xAxisTimeFormat))
       : String;
 
   const {
