@@ -42,7 +42,7 @@ jobs:
               sort: 'updated',
               per_page: 100,
             });
-            const pulls = await github.rest.paginate(opts);
+            const pulls = await github.paginate(opts);
             if (pulls.length > 0) {
               console.log(`Found ${pulls.length} open PRs for base branch "${currentBranch}"`)
             }
@@ -53,7 +53,7 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: pull.number,
               });
-              const files = await github.rest.paginate(listFilesOpts);
+              const files = await github.paginate(listFilesOpts);
               if (
                 files.some(x => x.contents_url.includes('/contents/superset/migrations'))
               ) {
