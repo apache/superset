@@ -34,7 +34,7 @@ jobs:
             const currentBranch = context.ref.replace('refs/heads/', '');
 
             // Find all pull requests to current branch
-            const opts = github.pulls.list.endpoint.merge({
+            const opts = github.rest.pulls.list.endpoint.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
               base: context.ref,
@@ -42,23 +42,23 @@ jobs:
               sort: 'updated',
               per_page: 100,
             });
-            const pulls = await github.paginate(opts);
+            const pulls = await github.rest.paginate(opts);
             if (pulls.length > 0) {
               console.log(`Found ${pulls.length} open PRs for base branch "${currentBranch}"`)
             }
 
             for (const pull of pulls) {
-              const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
+              const listFilesOpts = await github.rest.pulls.listFiles.endpoint.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pull.number,
               });
-              const files = await github.paginate(listFilesOpts);
+              const files = await github.rest.paginate(listFilesOpts);
               if (
                 files.some(x => x.contents_url.includes('/contents/superset/migrations'))
               ) {
                 console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
-                await github.issues.createComment({
+                await github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
