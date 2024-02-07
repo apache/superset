@@ -173,7 +173,7 @@
     "react-draggable": "^4.4.6",
     "react-hot-loader": "^4.13.1",
     "react-intersection-observer": "^9.6.0",
-    "react-js-cron": "^1.2.0",
+    "react-js-cron": "^2.1.2",
     "react-json-tree": "^0.17.0",
     "react-jsonschema-form": "^1.8.1",
     "react-lines-ellipsis": "^0.15.0",
