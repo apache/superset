@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsSunburstChartPlugin,
   SunburstTransformProps,
@@ -38,10 +37,15 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Sunburst',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
 };
 
-export const Sunburst = ({ width, height }) => (
+export const Sunburst = ({ width, height, showLabels, showTotal }: {
+  width: number,
+  height: number,
+  showLabels: boolean,
+  showTotal: boolean,
+}) => (
   <SuperChart
     chartType="echarts-sunburst"
     width={width}
@@ -50,8 +54,16 @@ export const Sunburst = ({ width, height }) => (
     formData={{
       columns: ['genre', 'platform'],
       metric: 'count',
-      showLabels: boolean('Show labels', true),
-      showTotal: boolean('Show total', true),
+      showLabels,
+      showTotal,
     }}
   />
 );
+Sunburst.args = {
+    showLabels: true,
+    showTotal: true,
+}
+Sunburst.argTypes = {
+    showLabels: { control: 'boolean' },
+    showTotal: { control: 'boolean' },
+}
