@@ -79,7 +79,7 @@ def make_docker_tag(l: list[str]) -> str:
 
 def get_docker_tags(
     build_preset: str,
-    build_platform: str,
+    build_platforms: list[str],
     sha: str,
     build_context: str,
     build_context_ref: str,
@@ -91,17 +91,18 @@ def get_docker_tags(
     tags: set[str] = set()
     tag_chunks: list[str] = []
 
-    short_build_platform = build_platform.replace("linux/", "").replace("64", "")
-
     is_latest = is_latest_release(build_context_ref)
 
     if build_preset != "lean":
         # Always add the preset_build name if different from default (lean)
         tag_chunks += [build_preset]
 
-    if short_build_platform != "amd":
-        # Always a platform indicator if different from default (amd)
-        tag_chunks += [short_build_platform]
+    if len(build_platforms) == 1:
+        build_platform = build_platforms[0]
+        short_build_platform = build_platform.replace("linux/", "").replace("64", "")
+        if short_build_platform != "amd":
+            # Always a platform indicator if different from default (amd)
+            tag_chunks += [short_build_platform]
 
     # Always craft a tag for the SHA
     tags.add(make_docker_tag([sha] + tag_chunks))
@@ -123,7 +124,7 @@ def get_docker_tags(
 
 def get_docker_command(
     build_preset: str,
-    build_platform: str,
+    build_platforms: list[str],
     is_authenticated: bool,
     sha: str,
     build_context: str,
@@ -160,7 +161,7 @@ def get_docker_command(
 
     tags = get_docker_tags(
         build_preset,
-        build_platform,
+        build_platforms,
         sha,
         build_context,
         build_context_ref,
@@ -170,8 +171,14 @@ def get_docker_command(
 
     docker_args = "--load" if not is_authenticated else "--push"
     target_argument = f"--target {build_target}" if build_target else ""
-    short_build_platform = build_platform.replace("linux/", "").replace("64", "")
-    cache_ref = f"{CACHE_REPO}:{py_ver}-{short_build_platform}"
+
+    cache_ref = f"{CACHE_REPO}:{py_ver}"
+    if len(build_platforms) == 1:
+        build_platform = build_platforms[0]
+        short_build_platform = build_platform.replace("linux/", "").replace("64", "")
+        cache_ref = f"{CACHE_REPO}:{py_ver}-{short_build_platform}"
+    platform_arg = "--platform " + ",".join(build_platforms)
+
     cache_from_arg = f"--cache-from=type=registry,ref={cache_ref}"
     cache_to_arg = (
         f"--cache-to=type=registry,mode=max,ref={cache_ref}" if is_authenticated else ""
@@ -187,7 +194,7 @@ def get_docker_command(
         {cache_from_arg} \\
         {cache_to_arg} \\
         {build_arg} \\
-        --platform {build_platform} \\
+        {platform_arg} \\
         --label sha={sha} \\
         --label target={build_target} \\
         --label build_trigger={build_context} \\
@@ -206,7 +213,8 @@ def get_docker_command(
 @click.option(
     "--platform",
     type=click.Choice(["linux/arm64", "linux/amd64"]),
-    default="linux/amd64",
+    default=["linux/amd64"],
+    multiple=True,
 )
 @click.option("--build_context_ref", help="a reference to the pr, release or branch")
 @click.option("--dry-run", is_flag=True, help="Run the command in dry-run mode.")
@@ -217,7 +225,7 @@ def main(
     build_preset: str,
     build_context: str,
     build_context_ref: str,
-    platform: str,
+    platform: list[str],
     dry_run: bool,
     force_latest: bool,
 ) -> None:
