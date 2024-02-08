@@ -52,7 +52,7 @@ LoadingGallery.parameters = {
   },
   controls: {
     disable: true,
-  },
+  }
 };
 
 export const InteractiveLoading = (args: Props) => <Loading {...args} />;
