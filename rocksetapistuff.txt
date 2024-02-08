@@ -1,0 +1,2 @@
+rockset_api_key: slzXRHem1lebeo13tDp9LqaeItDIJ201GWOhjcrbWelAQTxmHntftKWfntmvfwS5
+rockset_api_server: https://api.use1a1.rockset.com/
