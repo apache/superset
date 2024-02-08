@@ -12,7 +12,10 @@ on:
         description: 'Comment Body'
         required: true
         type: string
-        issue_number: string
+      issue_number:
+        required: true
+        type: string
+
 
 jobs:
   supersetbot:
