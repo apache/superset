@@ -40,18 +40,18 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Treemap = ({ 
-  width, 
+export const Treemap = ({
+  width,
   height,
   showLabels,
   showUpperLabels,
   labelType,
 }: {
-  width: number,
-  height: number,
-  showLabels: boolean,
-  showUpperLabels: boolean,
-  labelType: string,
+  width: number;
+  height: number;
+  showLabels: boolean;
+  showUpperLabels: boolean;
+  labelType: string;
 }) => (
   <SuperChart
     chartType="echarts-treemap"
@@ -73,13 +73,13 @@ Treemap.args = {
   showLabels: true,
   showUpperLabels: true,
   labelType: 'key_value',
-}
+};
 
 Treemap.argTypes = {
   showLabels: { control: 'boolean' },
   showUpperLabels: { control: 'boolean' },
-  labelType: { 
+  labelType: {
     control: 'select',
-    options: ['key', 'value', 'key_value'], 
+    options: ['key', 'value', 'key_value'],
   },
 };

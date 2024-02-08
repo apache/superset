@@ -42,7 +42,7 @@ getChartTransformPropsRegistry().registerValue(
 export default {
   title: 'Chart Plugins/plugin-chart-word-cloud',
   decorators: [withResizableChartDemo],
-  args:{
+  args: {
     rotation: 'flat',
   },
   argTypes: {
@@ -50,10 +50,18 @@ export default {
       control: 'select',
       options: ['square', 'flat', 'random'],
     },
-  }
+  },
 };
 
-export const basic = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
+export const basic = ({
+  width,
+  height,
+  rotation,
+}: {
+  width: number;
+  height: number;
+  rotation: string;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -83,7 +91,15 @@ export const basic = ({ width, height, rotation }: {width: number, height: numbe
   />
 );
 
-export const encodesColorByWordLength = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
+export const encodesColorByWordLength = ({
+  width,
+  height,
+  rotation,
+}: {
+  width: number;
+  height: number;
+  rotation: string;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -119,7 +135,15 @@ export const encodesColorByWordLength = ({ width, height, rotation }: {width: nu
   />
 );
 
-export const encodesFontByFirstLetter = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
+export const encodesFontByFirstLetter = ({
+  width,
+  height,
+  rotation,
+}: {
+  width: number;
+  height: number;
+  rotation: string;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -157,7 +181,15 @@ export const encodesFontByFirstLetter = ({ width, height, rotation }: {width: nu
   />
 );
 
-export const legacyShim = ({ width, height, rotation }: {width: number, height: number, rotation: string}) => (
+export const legacyShim = ({
+  width,
+  height,
+  rotation,
+}: {
+  width: number;
+  height: number;
+  rotation: string;
+}) => (
   <SuperChart
     chartType="legacy-word-cloud2"
     width={width}

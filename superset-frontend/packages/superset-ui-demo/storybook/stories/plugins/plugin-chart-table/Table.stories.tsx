@@ -36,7 +36,7 @@ export default {
     includeSearch: true,
     alignPn: false,
     showCellBars: true,
-    allowRearrangeColumns: false
+    allowRearrangeColumns: false,
   },
   argTypes: {
     rows: {
@@ -158,28 +158,27 @@ basic.story = {
   },
 };
 
-export const BigTable = ({ 
-    width, 
-    height,
-    rows,
-    cols,
-    pageLength,
-    includeSearch,
-    alignPn,
-    showCellBars,
-    allowRearrangeColumns
-  }: {
-    width: number;
-    height: number;
-    rows: number;
-    cols: number;
-    pageLength: number;
-    includeSearch: boolean;
-    alignPn: boolean;
-    showCellBars: boolean;
-    allowRearrangeColumns: boolean;
-  }) => 
-{
+export const BigTable = ({
+  width,
+  height,
+  rows,
+  cols,
+  pageLength,
+  includeSearch,
+  alignPn,
+  showCellBars,
+  allowRearrangeColumns,
+}: {
+  width: number;
+  height: number;
+  rows: number;
+  cols: number;
+  pageLength: number;
+  includeSearch: boolean;
+  alignPn: boolean;
+  showCellBars: boolean;
+  allowRearrangeColumns: boolean;
+}) => {
   const chartProps = loadData(birthNames, {
     pageLength,
     rows,

@@ -38,9 +38,9 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Tree = ({ 
-  width, 
-  height, 
+export const Tree = ({
+  width,
+  height,
   id,
   rootNodeId,
   parent,
@@ -52,18 +52,18 @@ export const Tree = ({
   symbol,
   symbolSize,
 }: {
-  width: number,
-  height: number,
-  id: string,
-  rootNodeId: string,
-  parent: string,
-  name: string,
-  position: string,
-  layout: string,
-  orient: string,
-  emphasis: string,
-  symbol: string,
-  symbolSize: number,
+  width: number;
+  height: number;
+  id: string;
+  rootNodeId: string;
+  parent: string;
+  name: string;
+  position: string;
+  layout: string;
+  orient: string;
+  emphasis: string;
+  symbol: string;
+  symbolSize: number;
 }) => (
   <SuperChart
     chartType="echarts-tree"
@@ -100,7 +100,7 @@ Tree.args = {
   emphasis: 'descendant',
   symbol: 'circle',
   symbolSize: 7,
-}
+};
 
 Tree.argTypes = {
   id: {

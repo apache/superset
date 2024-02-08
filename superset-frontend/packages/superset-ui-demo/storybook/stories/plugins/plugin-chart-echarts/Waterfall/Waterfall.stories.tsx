@@ -35,7 +35,7 @@ getChartTransformPropsRegistry().registerValue(
 );
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Waterfall',
+  title: 'Chart Plugins/plugin-chart-echarts/Waterfall',
   decorators: [withResizableChartDemo],
 };
 

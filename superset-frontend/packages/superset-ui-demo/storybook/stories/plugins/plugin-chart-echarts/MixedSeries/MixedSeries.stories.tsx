@@ -41,8 +41,8 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = ({ 
-  width, 
+export const Timeseries = ({
+  width,
   height,
   zoomable,
   logAxis,
@@ -61,28 +61,28 @@ export const Timeseries = ({
   areaB,
   markerEnabledB,
   markerSizeB,
-  opacityB
+  opacityB,
 }: {
-  width: number,
-  height: number,
-  zoomable: boolean,
-  logAxis: boolean,
-  yAxisFormat: string,
-  yAxisTitle: string,
-  yAxisIndexB: number,
-  minorSplitLine: boolean,
-  seriesType: string,
-  stack: boolean,
-  area: boolean,
-  markerEnabled: boolean,
-  markerSize: number,
-  opacity: number,
-  seriesTypeB: string,
-  stackB: boolean,
-  areaB: boolean,
-  markerEnabledB: boolean,
-  markerSizeB: number,
-  opacityB: number
+  width: number;
+  height: number;
+  zoomable: boolean;
+  logAxis: boolean;
+  yAxisFormat: string;
+  yAxisTitle: string;
+  yAxisIndexB: number;
+  minorSplitLine: boolean;
+  seriesType: string;
+  stack: boolean;
+  area: boolean;
+  markerEnabled: boolean;
+  markerSize: number;
+  opacity: number;
+  seriesTypeB: string;
+  stackB: boolean;
+  areaB: boolean;
+  markerEnabledB: boolean;
+  markerSizeB: number;
+  opacityB: number;
 }) => {
   const queriesData = [
     {
@@ -160,7 +160,7 @@ Timeseries.args = {
   markerEnabledB: false,
   markerSizeB: 6,
   opacityB: 0.2,
-}
+};
 
 Timeseries.argTypes = {
   zoomable: {
@@ -257,24 +257,24 @@ Timeseries.argTypes = {
     description: 'Query 2: Opacity',
     defaultValue: 0.2,
   },
-}
+};
 
-export const WithNegativeNumbers = ({ 
-  width, 
+export const WithNegativeNumbers = ({
+  width,
   height,
   seriesType,
   yAxisFormat,
   showValue,
   showValueB,
-  yAxisIndexB
+  yAxisIndexB,
 }: {
-  width: number,
-  height: number,
-  seriesType: string,
-  yAxisFormat: string,
-  showValue: boolean,
-  showValueB: boolean,
-  yAxisIndexB: number
+  width: number;
+  height: number;
+  seriesType: string;
+  yAxisFormat: string;
+  showValue: boolean;
+  showValueB: boolean;
+  yAxisIndexB: number;
 }) => (
   <SuperChart
     chartType="mixed-timeseries"
@@ -304,7 +304,7 @@ export const WithNegativeNumbers = ({
       showValueB,
       showLegend: true,
       markerEnabledB: true,
-      yAxisIndexB
+      yAxisIndexB,
     }}
   />
 );

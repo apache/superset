@@ -68,8 +68,8 @@ export default {
   },
 };
 
-export const Funnel = ({ 
-  width, 
+export const Funnel = ({
+  width,
   height,
   orient,
   sort,
@@ -77,7 +77,7 @@ export const Funnel = ({
   labelType,
   labelLine,
   showLabels,
-  showLegend
+  showLegend,
 }: {
   width: number;
   height: number;

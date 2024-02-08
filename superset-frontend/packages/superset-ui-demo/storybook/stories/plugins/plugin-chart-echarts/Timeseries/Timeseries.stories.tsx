@@ -43,8 +43,8 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = ({ 
-  width, 
+export const Timeseries = ({
+  width,
   height,
   forecastEnabled,
   seriesType,
@@ -60,21 +60,21 @@ export const Timeseries = ({
   opacity,
   zoomable,
 }: {
-  width: number,
-  height: number,
-  forecastEnabled: boolean,
-  seriesType: string,
-  logAxis: boolean,
-  stack: boolean,
-  showValue: boolean,
-  onlyTotal: boolean,
-  percentageThreshold: number,
-  area: boolean,
-  markerEnabled: boolean,
-  markerSize: number,
-  minorSplitLine: boolean,
-  opacity: number,
-  zoomable: boolean,
+  width: number;
+  height: number;
+  forecastEnabled: boolean;
+  seriesType: string;
+  logAxis: boolean;
+  stack: boolean;
+  showValue: boolean;
+  onlyTotal: boolean;
+  percentageThreshold: number;
+  area: boolean;
+  markerEnabled: boolean;
+  markerSize: number;
+  minorSplitLine: boolean;
+  opacity: number;
+  zoomable: boolean;
 }) => {
   const queryData = data
     .map(row =>
@@ -133,11 +133,14 @@ Timeseries.args = {
   minorSplitLine: false,
   opacity: 0.2,
   zoomable: false,
-}
+};
 
 Timeseries.argTypes = {
   forecastEnabled: { control: 'boolean' },
-  seriesType: { control: 'select', options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'] },
+  seriesType: {
+    control: 'select',
+    options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+  },
   logAxis: { control: 'boolean' },
   stack: { control: 'boolean' },
   showValue: { control: 'boolean' },
@@ -149,22 +152,22 @@ Timeseries.argTypes = {
   minorSplitLine: { control: 'boolean' },
   opacity: { control: 'number' },
   zoomable: { control: 'boolean' },
-}
+};
 
-export const WithNegativeNumbers = ({ 
-  width, 
+export const WithNegativeNumbers = ({
+  width,
   height,
   seriesType,
   stack,
   onlyTotal,
   orientation,
 }: {
-  width: number,
-  height: number,
-  seriesType: string,
-  stack: boolean,
-  onlyTotal: boolean,
-  orientation: string,
+  width: number;
+  height: number;
+  seriesType: string;
+  stack: boolean;
+  onlyTotal: boolean;
+  orientation: string;
 }) => (
   <SuperChart
     chartType="echarts-timeseries"
@@ -192,13 +195,16 @@ WithNegativeNumbers.args = {
   stack: true,
   onlyTotal: true,
   orientation: 'vertical',
-}
+};
 WithNegativeNumbers.argTypes = {
-  seriesType: { control: 'select', options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'] },
+  seriesType: {
+    control: 'select',
+    options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+  },
   stack: { control: 'boolean' },
   onlyTotal: { control: 'boolean' },
   orientation: { control: 'select', options: ['vertical', 'horizontal'] },
-}
+};
 
 export const ConfidenceBand = ({ width, height }) => (
   <SuperChart

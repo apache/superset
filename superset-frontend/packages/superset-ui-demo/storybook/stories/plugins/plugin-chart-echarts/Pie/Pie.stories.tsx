@@ -38,8 +38,8 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const WeekdayPie = ({ 
-  width, 
+export const WeekdayPie = ({
+  width,
   height,
   donut,
   innerRadius,
@@ -52,14 +52,14 @@ export const WeekdayPie = ({
 }: {
   width: number;
   height: number;
-  donut: boolean,
-  innerRadius: number,
-  outerRadius: number,
-  labelsOutside: boolean,
-  labelLine: boolean,
-  showLabels: boolean,
-  showLegend: boolean,
-  labelType: string,
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+  labelsOutside: boolean;
+  labelLine: boolean;
+  showLabels: boolean;
+  showLegend: boolean;
+  labelType: string;
 }) => (
   <SuperChart
     chartType="echarts-pie"
@@ -71,14 +71,14 @@ export const WeekdayPie = ({
       groupby: ['Day'],
       metric: 'SUM(AIR_TIME)',
       numberFormat: 'SMART_NUMBER',
-      donut: donut,
-      innerRadius: innerRadius,
-      outerRadius: outerRadius,
-      labelsOutside: labelsOutside,
-      labelLine: labelLine,
-      showLabels: showLabels,
-      showLegend: showLegend,
-      labelType: labelType,
+      donut,
+      innerRadius,
+      outerRadius,
+      labelsOutside,
+      labelLine,
+      showLabels,
+      showLegend,
+      labelType,
     }}
   />
 );
@@ -117,7 +117,7 @@ WeekdayPie.argTypes = {
   },
 };
 
-export const PopulationPie = ({ 
+export const PopulationPie = ({
   width,
   height,
   donut,
@@ -127,42 +127,43 @@ export const PopulationPie = ({
   labelLine,
   showLabels,
   showLegend,
-  labelType
+  labelType,
 }: {
-  width: number,
-  height: number,
-  donut: boolean,
-  innerRadius: number,
-  outerRadius: number,
-  labelsOutside: boolean,
-  labelLine: boolean,
-  showLabels: boolean,
-  showLegend: boolean,
-  labelType: string
+  width: number;
+  height: number;
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+  labelsOutside: boolean;
+  labelLine: boolean;
+  showLabels: boolean;
+  showLegend: boolean;
+  labelType: string;
 }) => {
-  console.log('test:',width, height)
+  console.log('test:', width, height);
   return (
-  <SuperChart
-    chartType="echarts-pie"
-    width={width}
-    height={height}
-    queriesData={[{ data: population }]}
-    formData={{
-      colorScheme: 'supersetColors',
-      groupby: ['Country'],
-      metric: 'Population',
-      numberFormat: 'SMART_NUMBER',
-      donut: donut,
-      innerRadius: innerRadius,
-      outerRadius: outerRadius,
-      labelsOutside: labelsOutside,
-      labelLine: labelLine,
-      showLabels: showLabels,
-      showLegend: showLegend,
-      labelType: labelType
-    }}
-  />
-)};
+    <SuperChart
+      chartType="echarts-pie"
+      width={width}
+      height={height}
+      queriesData={[{ data: population }]}
+      formData={{
+        colorScheme: 'supersetColors',
+        groupby: ['Country'],
+        metric: 'Population',
+        numberFormat: 'SMART_NUMBER',
+        donut,
+        innerRadius,
+        outerRadius,
+        labelsOutside,
+        labelLine,
+        showLabels,
+        showLegend,
+        labelType,
+      }}
+    />
+  );
+};
 
 PopulationPie.args = {
   donut: false,

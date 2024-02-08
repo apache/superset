@@ -296,7 +296,7 @@ export default function transformProps(
           : getCustomFormatter(
               customFormatters,
               metrics,
-              (labelMap && labelMap[seriesName]?.[0]),
+              labelMap && labelMap[seriesName]?.[0],
             ) ?? defaultFormatter,
         showValue,
         onlyTotal,
