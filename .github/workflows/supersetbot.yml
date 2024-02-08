@@ -24,8 +24,9 @@ jobs:
             const commentBody = context.eventName === 'workflow_dispatch' ?
               context.payload.inputs.comment_body :
               context.payload.comment.body;
+            console.log('commentBody:', commentBody);
             const commandPrefix = '@supersetbot';
-            if (!commentBody.startsWith(commandPrefix)) return;
+            // if (!commentBody.startsWith(commandPrefix)) return;
 
             const regex = /"([^"]+)"|\S+/g;
             let matches = [...commentBody.slice(commandPrefix.length).trim().matchAll(regex)];
