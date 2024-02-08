@@ -42,26 +42,22 @@ export default {
 };
 
 export const configureCORS = ({
-  host, 
-  selectEndpoint, 
-  customEndpoint, 
-  methodOption, 
-  postPayloadContents
+  host,
+  selectEndpoint,
+  customEndpoint,
+  methodOption,
+  postPayloadContents,
 }: {
-  host: string,
-  selectEndpoint: string,
-  customEndpoint: string,
-  methodOption: string,
-  postPayloadContents: string
+  host: string;
+  selectEndpoint: string;
+  customEndpoint: string;
+  methodOption: string;
+  postPayloadContents: string;
 }) => {
   const endpoint = customEndpoint || selectEndpoint;
-  const method = endpoint
-    ? methodOption
-    : undefined;
+  const method = endpoint ? methodOption : undefined;
   const postPayload =
-    endpoint && method === 'POST'
-      ? postPayloadContents
-      : undefined;
+    endpoint && method === 'POST' ? postPayloadContents : undefined;
 
   return (
     <div style={{ margin: 16 }}>
@@ -108,7 +104,7 @@ configureCORS.argTypes = {
   selectEndpoint: {
     control: {
       type: 'select',
-      options: Object.keys(ENDPOINTS)
+      options: Object.keys(ENDPOINTS),
     },
     mapping: ENDPOINTS,
     description: 'Select an endpoint',
