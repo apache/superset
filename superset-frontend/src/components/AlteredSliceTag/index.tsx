@@ -235,7 +235,7 @@ class AlteredSliceTag extends React.Component<
     );
   }
 
-  render(): JSX.Element | null {
+  render() {
     // Return nothing if there are no differences
     if (!this.state.hasDiffs) {
       return null;
