@@ -41,8 +41,8 @@ export interface PopKPIComparisonValueStyleProps {
 }
 
 export interface PopKPIComparisonSymbolStyleProps {
-  percentDifferenceNumber: number;
-  comparisonColorEnabled: boolean;
+  backgroundColor: string;
+  textColor: string;
 }
 
 export type PopKPIQueryFormData = QueryFormData &
@@ -53,11 +53,11 @@ export type PopKPIProps = PopKPIStylesProps &
   PopKPICustomizeProps & {
     data: TimeseriesDataRecord[];
     metrics: Metric[];
-    metricName: String;
+    metricName: string;
     bigNumber: string;
     prevNumber: string;
     valueDifference: string;
     percentDifferenceFormattedString: string;
-    compType: String;
+    compType: string;
     percentDifferenceNumber: number;
   };

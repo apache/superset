@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef } from 'react';
+import React, { createRef, useMemo } from 'react';
 import { css, styled, useTheme } from '@superset-ui/core';
 import {
   PopKPIComparisonSymbolStyleProps,
@@ -35,37 +35,15 @@ const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
 `;
 
 const SymbolWrapper = styled.div<PopKPIComparisonSymbolStyleProps>`
-  ${({ theme, percentDifferenceNumber, comparisonColorEnabled }) => {
-    const defaultBackgroundColor = theme.colors.grayscale.light4;
-    const defaultTextColor = theme.colors.grayscale.base;
-    const isPositiveChange = percentDifferenceNumber > 0;
-    const backgroundColor =
-      percentDifferenceNumber === 0
-        ? defaultBackgroundColor
-        : isPositiveChange
-        ? theme.colors.success.light2
-        : theme.colors.error.light2;
-    const textColor =
-      percentDifferenceNumber === 0
-        ? defaultTextColor
-        : isPositiveChange
-        ? theme.colors.success.base
-        : theme.colors.error.base;
-
-    return `
-      background-color: ${
-        comparisonColorEnabled ? backgroundColor : defaultBackgroundColor
-      };
-      color: ${comparisonColorEnabled ? textColor : defaultTextColor};
-      padding: 2px 5px;
-      border-radius: ${theme.gridUnit * 2}px;
-      display: inline-block;
-      margin-right: ${theme.gridUnit}px;
-    `;
-  }}
+  ${({ theme, backgroundColor, textColor }) => `
+    background-color: ${backgroundColor};
+    color: ${textColor};
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    border-radius: ${theme.gridUnit * 2}px;
+    display: inline-block;
+    margin-right: ${theme.gridUnit}px;
+  `}
 `;
-
-const SYMBOLS = ['#', '△', '%'];
 
 export default function PopKPI(props: PopKPIProps) {
   const {
@@ -114,6 +92,38 @@ export default function PopKPI(props: PopKPIProps) {
     margin-left: ${theme.gridUnit}px;
   `;
 
+  const defaultBackgroundColor = theme.colors.grayscale.light4;
+  const defaultTextColor = theme.colors.grayscale.base;
+  const { backgroundColor, textColor } = useMemo(() => {
+    let bgColor = defaultBackgroundColor;
+    let txtColor = defaultTextColor;
+    if (percentDifferenceNumber > 0) {
+      if (comparisonColorEnabled) {
+        bgColor = theme.colors.success.light2;
+        txtColor = theme.colors.success.base;
+      }
+    } else if (percentDifferenceNumber < 0) {
+      if (comparisonColorEnabled) {
+        bgColor = theme.colors.error.light2;
+        txtColor = theme.colors.error.base;
+      }
+    }
+
+    return {
+      backgroundColor: bgColor,
+      textColor: txtColor,
+    };
+  }, [theme, comparisonColorEnabled, percentDifferenceNumber]);
+
+  const SYMBOLS_WITH_VALUES = useMemo(
+    () => [
+      ['#', prevNumber],
+      ['△', valueDifference],
+      ['%', percentDifferenceFormattedString],
+    ],
+    [prevNumber, valueDifference, percentDifferenceFormattedString],
+  );
+
   return (
     <div ref={rootElem} css={wrapperDivStyles}>
       <div css={bigValueContainerStyles}>
@@ -135,24 +145,20 @@ export default function PopKPI(props: PopKPIProps) {
             display: table-row;
           `}
         >
-          {SYMBOLS.map((symbol, index) => (
+          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
             <ComparisonValue
-              key={`comparison-symbol-${symbol}`}
+              key={`comparison-symbol-${symbol_with_value[0]}`}
               subheaderFontSize={subheaderFontSize}
             >
               <SymbolWrapper
-                percentDifferenceNumber={
-                  index > 0 ? percentDifferenceNumber : 0
+                backgroundColor={
+                  index > 0 ? backgroundColor : defaultBackgroundColor
                 }
-                comparisonColorEnabled={comparisonColorEnabled}
+                textColor={index > 0 ? textColor : defaultTextColor}
               >
-                {symbol}
+                {symbol_with_value[0]}
               </SymbolWrapper>
-              {index === 0
-                ? prevNumber
-                : index === 1
-                ? valueDifference
-                : percentDifferenceFormattedString}
+              {symbol_with_value[1]}
             </ComparisonValue>
           ))}
         </div>
