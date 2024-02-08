@@ -58,10 +58,4 @@ jobs:
                 console.log(error);
               });
             }
-            resp = await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: "TESTING COMMENT",
-            });
             console.log("response:", resp);
