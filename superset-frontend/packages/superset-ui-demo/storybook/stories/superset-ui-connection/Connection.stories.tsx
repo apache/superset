@@ -18,13 +18,13 @@
  */
 
 import React from 'react';
+import { post } from 'fetch-mock';
 import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
 
 import VerifyCORS, {
   Props as VerifyCORSProps,
 } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
-import { post } from 'fetch-mock';
 
 const REQUEST_METHODS = ['GET', 'POST'];
 const ENDPOINTS = {

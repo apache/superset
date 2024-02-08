@@ -138,30 +138,28 @@ export const PopulationPie = ({
   showLabels: boolean;
   showLegend: boolean;
   labelType: string;
-}) => {
-  return (
-    <SuperChart
-      chartType="echarts-pie"
-      width={width}
-      height={height}
-      queriesData={[{ data: population }]}
-      formData={{
-        colorScheme: 'supersetColors',
-        groupby: ['Country'],
-        metric: 'Population',
-        numberFormat: 'SMART_NUMBER',
-        donut,
-        innerRadius,
-        outerRadius,
-        labelsOutside,
-        labelLine,
-        showLabels,
-        showLegend,
-        labelType,
-      }}
-    />
-  );
-};
+}) => (
+  <SuperChart
+    chartType="echarts-pie"
+    width={width}
+    height={height}
+    queriesData={[{ data: population }]}
+    formData={{
+      colorScheme: 'supersetColors',
+      groupby: ['Country'],
+      metric: 'Population',
+      numberFormat: 'SMART_NUMBER',
+      donut,
+      innerRadius,
+      outerRadius,
+      labelsOutside,
+      labelLine,
+      showLabels,
+      showLegend,
+      labelType,
+    }}
+  />
+);
 
 PopulationPie.args = {
   donut: false,
