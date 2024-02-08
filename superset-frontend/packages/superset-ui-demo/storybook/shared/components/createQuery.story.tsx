@@ -39,7 +39,13 @@ export default function createQueryStory({
   };
 }) {
   const keys = Object.keys(choices);
-  const story = (host: string, mode: string | number, width: number, height: number, formData: any) => {
+  const story = (
+    host: string,
+    mode: string | number,
+    width: number,
+    height: number,
+    formData: any,
+  ) => {
     const { chartType } = choices[mode];
 
     return (
@@ -95,11 +101,14 @@ export default function createQueryStory({
     formData: JSON.stringify(choices[keys[0]].formData, null, 2),
   };
   story.argTypes = {
-    host: { control: 'text', description: 'Superset App host for CORS request' },
+    host: {
+      control: 'text',
+      description: 'Superset App host for CORS request',
+    },
     mode: { control: 'select', options: keys, description: 'Choose mode' },
     width: { control: 'text', description: 'Vis width' },
     height: { control: 'text', description: 'Vis height' },
     formData: { control: 'text', description: 'Override formData' },
-  }
+  };
   return story;
 }

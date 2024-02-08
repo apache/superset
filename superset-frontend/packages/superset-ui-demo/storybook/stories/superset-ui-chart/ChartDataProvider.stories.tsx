@@ -118,7 +118,7 @@ export const dataProvider = ({
   </div>
 );
 
-dataProvider.story = { name: 'ChartDataProvider' };
+dataProvider.storyName = 'ChartDataProvider';
 
 dataProvider.args = {
   host: 'localhost:8088',

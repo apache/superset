@@ -123,6 +123,4 @@ configureCORS.argTypes = {
     description: 'Set POST payload contents',
   },
 };
-configureCORS.story = {
-  name: 'Verify CORS',
-};
+configureCORS.storyName = 'Verify CORS';

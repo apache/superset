@@ -137,7 +137,7 @@ function loadData(
   };
 }
 
-export const basic = ({ width, height }) => (
+export const Basic = ({ width, height }) => (
   <SuperChart
     chartType="table"
     datasource={{
@@ -149,12 +149,10 @@ export const basic = ({ width, height }) => (
     formData={basicFormData}
   />
 );
-basic.story = {
-  parameters: {
-    initialSize: {
-      width: 680,
-      height: 420,
-    },
+Basic.parameters = {
+  initialSize: {
+    width: 680,
+    height: 420,
   },
 };
 
@@ -197,11 +195,9 @@ export const BigTable = ({
     />
   );
 };
-BigTable.story = {
-  parameters: {
-    initialSize: {
-      width: 620,
-      height: 440,
-    },
+BigTable.parameters = {
+  initialSize: {
+    width: 620,
+    height: 440,
   },
 };

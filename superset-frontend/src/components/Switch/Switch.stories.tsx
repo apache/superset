@@ -48,11 +48,3 @@ InteractiveSwitch.argTypes = {
     control: { type: 'radio', options: ['small', 'default'] },
   },
 };
-
-InteractiveSwitch.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

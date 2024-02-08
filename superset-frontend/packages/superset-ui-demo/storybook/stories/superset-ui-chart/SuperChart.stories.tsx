@@ -70,7 +70,7 @@ export const container50pct = ({
   />
 );
 
-container50pct.story = { name: '50% of container' };
+container50pct.storyName = '50% of container';
 container50pct.args = {
   width: '50%',
   height: '50%',
@@ -108,7 +108,7 @@ export const fixedWidth100height = ({
   />
 );
 
-fixedWidth100height.story = { name: 'fixed width, 100% height' };
+fixedWidth100height.storyName = 'fixed width, 100% height';
 fixedWidth100height.args = {
   width: '500',
   height: '100%',
@@ -132,7 +132,7 @@ export const fixedHeight100Width = ({
     queriesData={[DEFAULT_QUERY_DATA]}
   />
 );
-fixedHeight100Width.story = { name: 'fixed height, 100% width' };
+fixedHeight100Width.storyName = 'fixed height, 100% width';
 fixedHeight100Width.args = {
   width: '100%',
   height: '300',
@@ -156,7 +156,7 @@ export const withErrorBoundary = ({
     queriesData={[DEFAULT_QUERY_DATA]}
   />
 );
-withErrorBoundary.story = { name: 'With Error Boundary' };
+withErrorBoundary.storyName = 'With Error Boundary';
 withErrorBoundary.args = {
   width: '500',
   height: '300',
@@ -186,7 +186,7 @@ export const withWrapper = ({
     )}
   />
 );
-withWrapper.story = { name: 'With Wrapper' };
+withWrapper.storyName = 'With Wrapper';
 withWrapper.args = {
   width: '100%',
   height: '100%',
@@ -205,7 +205,7 @@ export const withNoResults = ({
 }) => (
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
-withNoResults.story = { name: 'With no results' };
+withNoResults.storyName = 'With no results';
 withNoResults.args = {
   width: '100%',
   height: '100%',
@@ -225,7 +225,7 @@ export const withNoResultsAndMedium = ({
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
 
-withNoResultsAndMedium.story = { name: 'With no results and medium' };
+withNoResultsAndMedium.storyName = 'With no results and medium';
 withNoResultsAndMedium.args = {
   width: '400',
   height: '300',
@@ -244,7 +244,7 @@ export const withNoResultsAndSmall = ({
 }) => (
   <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
 );
-withNoResultsAndSmall.story = { name: 'With no results and small' };
+withNoResultsAndSmall.storyName = 'With no results and small';
 withNoResultsAndSmall.args = {
   width: '150',
   height: '200',
