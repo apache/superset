@@ -9,20 +9,6 @@ concurrency:
   
 
 jobs:
-  config:
-    runs-on: "ubuntu-latest"
-    # no need to run this on PR descriptn changes (edited)
-    outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
-    steps:
-      - name: "Check for secrets"
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ (secrets.GITHUB_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-          fi
-
   labeler:
     permissions:
       contents: read
@@ -44,11 +30,11 @@ jobs:
   # This'll look at the PR body and add a label if it contains an issue-closing keyword
   # it runs on every PR event, including "edited" since people tend to add "closes #123" in the PR body after opening it
   label-auto-closing:
-    needs: config
-    if: needs.config.outputs.has-secrets
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Log PR Edit
+      run: echo "PR was edited"
     - name: Auto-label PRs
       uses: actions/github-script@v7
       with:
