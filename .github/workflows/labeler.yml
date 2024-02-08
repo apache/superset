@@ -12,7 +12,6 @@ jobs:
   config:
     runs-on: "ubuntu-latest"
     # no need to run this on PR descriptn changes (edited)
-    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -29,6 +28,7 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
+    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
     steps:
     - uses: actions/labeler@v5
       with:
