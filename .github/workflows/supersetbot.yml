@@ -36,6 +36,7 @@ jobs:
             const args = matches.slice(1).map(match => match[1] ? match[1] : match[0]);
 
             let resp;
+            console.log("COMMAND:", command)
             if (command === 'label') {
               const label = args[0];
               resp = await github.rest.issues.addLabels({
