@@ -36,6 +36,7 @@ import {
   IKI_FORECAST_TYPE,
   IKI_EXTERNAL_DATASETS_TYPE,
   IKI_EXPLAINABILITY_TYPE,
+  IKI_FORECAST_MODULE_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -57,6 +58,7 @@ import IkiModelMetrics from './IkiModelMetrics';
 import IkiExternalDatasets from './IkiExternalDatasets';
 import IkiForecast from './IkiForecast';
 import IkiExplainability from './IkiExplainability';
+import IkiForecastModule from './IkiForecastModule';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -77,6 +79,7 @@ export { default as IkiModelMetrics } from './IkiModelMetrics';
 export { default as IkiExternalDatasets } from './IkiExternalDatasets';
 export { default as IkiForecast } from './IkiForecast';
 export { default as IkiExplainability } from './IkiExplainability';
+export { default as IkiForecastModule } from './IkiForecastModule';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -98,4 +101,5 @@ export const componentLookup = {
   [IKI_FORECAST_TYPE]: IkiForecast,
   [IKI_EXTERNAL_DATASETS_TYPE]: IkiExternalDatasets,
   [IKI_EXPLAINABILITY_TYPE]: IkiExplainability,
+  [IKI_FORECAST_MODULE_TYPE]: IkiForecastModule,
 };

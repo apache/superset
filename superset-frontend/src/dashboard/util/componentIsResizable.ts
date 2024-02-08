@@ -23,6 +23,7 @@ import {
   DYNAMIC_TYPE,
   IKI_DEEPCAST_TYPE,
   IKI_RUN_PIPELINE_TYPE,
+  IKI_FORECAST_MODULE_TYPE,
 } from './componentTypes';
 
 export default function componentIsResizable(entity: { type: string }) {
@@ -34,6 +35,7 @@ export default function componentIsResizable(entity: { type: string }) {
       DYNAMIC_TYPE,
       IKI_RUN_PIPELINE_TYPE,
       IKI_DEEPCAST_TYPE,
+      IKI_FORECAST_MODULE_TYPE,
     ].indexOf(entity.type) > -1
   );
 }

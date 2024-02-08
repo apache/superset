@@ -43,6 +43,7 @@ import NewIkiEitlColumn from '../gridComponents/new/components/NewIkiEitlColumn'
 import NewIkiModelMetrics from '../gridComponents/new/NewIkiModelMetrics';
 import NewExternalDatasets from '../gridComponents/new/components/NewExternalDatasets';
 import NewForecast from '../gridComponents/new/components/NewForecast';
+import NewForecastModule from '../gridComponents/new/components/NewForecastModule';
 
 export interface BCPProps {
   isStandalone: boolean;
@@ -126,6 +127,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewDeepCast />
                       <NewIkiEitlRow />
                       <NewIkiEitlColumn />
+                      <NewForecastModule />
                       <NewIkiModelMetrics />
                       <NewExternalDatasets />
                       <NewForecast />

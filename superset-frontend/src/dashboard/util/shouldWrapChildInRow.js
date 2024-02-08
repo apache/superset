@@ -24,6 +24,7 @@ import {
   TAB_TYPE,
   IKI_DEEPCAST_TYPE,
   IKI_RUN_PIPELINE_TYPE,
+  IKI_FORECAST_MODULE_TYPE,
 } from './componentTypes';
 
 const typeToWrapChildLookup = {
@@ -33,6 +34,7 @@ const typeToWrapChildLookup = {
     [MARKDOWN_TYPE]: true,
     [IKI_DEEPCAST_TYPE]: true,
     [IKI_RUN_PIPELINE_TYPE]: true,
+    [IKI_FORECAST_MODULE_TYPE]: true,
   },
 
   [TAB_TYPE]: {
@@ -41,6 +43,7 @@ const typeToWrapChildLookup = {
     [MARKDOWN_TYPE]: true,
     [IKI_DEEPCAST_TYPE]: true,
     [IKI_RUN_PIPELINE_TYPE]: true,
+    [IKI_FORECAST_MODULE_TYPE]: true,
   },
 };
 
