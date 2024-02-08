@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { isEqual, isEmpty } from 'lodash';
-import { styled, t } from '@superset-ui/core';
+import { QueryFormData, styled, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -26,17 +26,12 @@ import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';
 import TableView from '../TableView';
 
-// Define interfaces for props and state
-interface FormData {
-  [key: string]: any; // Use a more specific type if possible for your form data
-}
-
 interface AlteredSliceTagProps {
-  origFormData: FormData;
-  currentFormData: FormData;
+  origFormData: QueryFormData;
+  currentFormData: QueryFormData;
 }
 
-interface ControlMap {
+export interface ControlMap {
   [key: string]: {
     label?: string;
     type?: string;
@@ -44,8 +39,8 @@ interface ControlMap {
 }
 
 interface Diff {
-  before: any; // Specify a more precise type if possible
-  after: any; // Specify a more precise type if possible
+  before: [];
+  after: [];
 }
 
 interface Row {
@@ -53,7 +48,12 @@ interface Row {
   before: string;
   after: string;
 }
-
+interface FilterItem {
+  comparator?: string | string[];
+  subject: string;
+  operator: string;
+  label?: string;
+}
 interface AlteredSliceTagState {
   rows: Row[];
   hasDiffs: boolean;
@@ -72,7 +72,7 @@ const StyledLabel = styled.span`
   `}
 `;
 
-function alterForComparison(value: any): any {
+function alterForComparison(value: string): [] | Object | null {
   // Treat `null`, `undefined`, and empty strings as equivalent
   if (value === undefined || value === null || value === '') {
     return null;
@@ -84,7 +84,6 @@ function alterForComparison(value: any): any {
   if (typeof value === 'object' && Object.keys(value).length === 0) {
     return null;
   }
-  // Return the value unchanged if it doesn't meet the above conditions
   return value;
 }
 
@@ -97,7 +96,7 @@ class AlteredSliceTag extends React.Component<
     const diffs = this.getDiffs(props);
     const controlsMap: ControlMap = getControlsForVizType(
       props.origFormData.viz_type,
-    );
+    ) as ControlMap;
     const rows = this.getRowsFromDiffs(diffs, controlsMap);
 
     this.state = { rows, hasDiffs: !isEmpty(diffs), controlsMap };
@@ -119,7 +118,7 @@ class AlteredSliceTag extends React.Component<
     controlsMap: ControlMap,
   ): Row[] {
     return Object.entries(diffs).map(([key, diff]) => ({
-      control: (controlsMap[key] && controlsMap[key].label) || key,
+      control: controlsMap[key]?.label || key,
       before: this.formatValue(diff.before, key, controlsMap),
       after: this.formatValue(diff.after, key, controlsMap),
     }));
@@ -144,15 +143,15 @@ class AlteredSliceTag extends React.Component<
     return diffs;
   }
 
-  isEqualish(val1: any, val2: any): boolean {
-    // Consider refining 'any' types
+  isEqualish(val1: string, val2: string): boolean {
     return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
-  formatValue(value: any, key: string, controlsMap: ControlMap): string {
-    // Consider refining 'any' types
-    // Format display value based on the control type
-    // or the value type
+  formatValue(
+    value: FilterItem[],
+    key: string,
+    controlsMap: ControlMap,
+  ): string {
     if (value === undefined) {
       return 'N/A';
     }
