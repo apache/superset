@@ -85,5 +85,5 @@ jobs:
             ${{ matrix.build_preset }} \
             "$EVENT" \
             --build_context_ref "$RELEASE" $FORCE_LATEST \
-            --platform "linux/arm64"
+            --platform "linux/arm64" \
             --platform "linux/amd64"
