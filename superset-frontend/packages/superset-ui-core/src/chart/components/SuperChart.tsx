@@ -109,20 +109,14 @@ class SuperChart extends React.PureComponent<Props, {}> {
     ],
     (width, height) => {
       // Parse them in case they are % or 'auto'
-      console.log('width!', width);
-      console.log('height!', height);
       const widthInfo = parseLength(width);
       const heightInfo = parseLength(height);
-      console.log('widthInfo!', widthInfo);
-      console.log('heightInfo!', heightInfo);
       const boxHeight = heightInfo.isDynamic
         ? `${heightInfo.multiplier * 100}%`
         : heightInfo.value;
       const boxWidth = widthInfo.isDynamic
         ? `${widthInfo.multiplier * 100}%`
         : widthInfo.value;
-      console.log('boxHeight!', boxHeight);
-      console.log('boxWidth!', boxWidth);
       const style = {
         height: boxHeight,
         width: boxWidth,
@@ -179,8 +173,8 @@ class SuperChart extends React.PureComponent<Props, {}> {
     const chartProps = this.createChartProps({
       ...rest,
       queriesData,
-      height: 600,
-      width: 600,
+      height,
+      width,
       theme,
     });
 
