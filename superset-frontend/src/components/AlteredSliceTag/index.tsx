@@ -43,10 +43,10 @@ interface Diff {
   after: [];
 }
 
-interface Row {
+export interface Row {
   control: string;
-  before: string;
-  after: string;
+  before: string | number;
+  after: string | number;
 }
 interface FilterItem {
   comparator?: string | string[];
