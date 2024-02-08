@@ -58,7 +58,7 @@ jobs:
           const prBody = context.payload.pull_request.body;
           const issueNumbers = prBody.match(closingKeywords);
           if (issueNumbers) {
-            github.issues.addLabels({
+            github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
