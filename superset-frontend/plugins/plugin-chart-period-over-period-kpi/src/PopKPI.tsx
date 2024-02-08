@@ -18,7 +18,11 @@
  */
 import React, { createRef } from 'react';
 import { css, styled, useTheme } from '@superset-ui/core';
-import { PopKPIComparisonValueStyleProps, PopKPIProps } from './types';
+import {
+  PopKPIComparisonSymbolStyleProps,
+  PopKPIComparisonValueStyleProps,
+  PopKPIProps,
+} from './types';
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   ${({ theme, subheaderFontSize }) => `
@@ -30,6 +34,39 @@ const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   `}
 `;
 
+const SymbolWrapper = styled.div<PopKPIComparisonSymbolStyleProps>`
+  ${({ theme, percentDifferenceNumber, comparisonColorEnabled }) => {
+    const defaultBackgroundColor = theme.colors.grayscale.light4;
+    const defaultTextColor = theme.colors.grayscale.base;
+    const isPositiveChange = percentDifferenceNumber > 0;
+    const backgroundColor =
+      percentDifferenceNumber === 0
+        ? defaultBackgroundColor
+        : isPositiveChange
+        ? theme.colors.success.light2
+        : theme.colors.error.light2;
+    const textColor =
+      percentDifferenceNumber === 0
+        ? defaultTextColor
+        : isPositiveChange
+        ? theme.colors.success.base
+        : theme.colors.error.base;
+
+    return `
+      background-color: ${
+        comparisonColorEnabled ? backgroundColor : defaultBackgroundColor
+      };
+      color: ${comparisonColorEnabled ? textColor : defaultTextColor};
+      padding: 2px 5px;
+      border-radius: ${theme.gridUnit * 2}px;
+      display: inline-block;
+      margin-right: ${theme.gridUnit}px;
+    `;
+  }}
+`;
+
+const SYMBOLS = ['#', '△', '%'];
+
 export default function PopKPI(props: PopKPIProps) {
   const {
     height,
@@ -37,9 +74,11 @@ export default function PopKPI(props: PopKPIProps) {
     bigNumber,
     prevNumber,
     valueDifference,
-    percentDifference,
+    percentDifferenceFormattedString,
     headerFontSize,
     subheaderFontSize,
+    comparisonColorEnabled,
+    percentDifferenceNumber,
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
@@ -63,9 +102,28 @@ export default function PopKPI(props: PopKPIProps) {
     text-align: center;
   `;
 
+  const getArrowIndicatorColor = () => {
+    if (!comparisonColorEnabled) return theme.colors.grayscale.base;
+    return percentDifferenceNumber > 0
+      ? theme.colors.success.base
+      : theme.colors.error.base;
+  };
+
+  const arrowIndicatorStyle = css`
+    color: ${getArrowIndicatorColor()};
+    margin-left: ${theme.gridUnit}px;
+  `;
+
   return (
     <div ref={rootElem} css={wrapperDivStyles}>
-      <div css={bigValueContainerStyles}>{bigNumber}</div>
+      <div css={bigValueContainerStyles}>
+        {bigNumber}
+        {percentDifferenceNumber !== 0 && (
+          <span css={arrowIndicatorStyle}>
+            {percentDifferenceNumber > 0 ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
       <div
         css={css`
           width: 100%;
@@ -77,18 +135,26 @@ export default function PopKPI(props: PopKPIProps) {
             display: table-row;
           `}
         >
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            #: {prevNumber}
-          </ComparisonValue>
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            Δ: {valueDifference}
-          </ComparisonValue>
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            %: {percentDifference}
-          </ComparisonValue>
+          {SYMBOLS.map((symbol, index) => (
+            <ComparisonValue
+              key={`comparison-symbol-${symbol}`}
+              subheaderFontSize={subheaderFontSize}
+            >
+              <SymbolWrapper
+                percentDifferenceNumber={
+                  index > 0 ? percentDifferenceNumber : 0
+                }
+                comparisonColorEnabled={comparisonColorEnabled}
+              >
+                {symbol}
+              </SymbolWrapper>
+              {index === 0
+                ? prevNumber
+                : index === 1
+                ? valueDifference
+                : percentDifferenceFormattedString}
+            </ComparisonValue>
+          ))}
         </div>
       </div>
     </div>

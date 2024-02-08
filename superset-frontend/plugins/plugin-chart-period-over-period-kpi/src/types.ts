@@ -29,6 +29,7 @@ export interface PopKPIStylesProps {
   headerFontSize: keyof typeof supersetTheme.typography.sizes;
   subheaderFontSize: keyof typeof supersetTheme.typography.sizes;
   boldText: boolean;
+  comparisonColorEnabled: boolean;
 }
 
 interface PopKPICustomizeProps {
@@ -37,6 +38,11 @@ interface PopKPICustomizeProps {
 
 export interface PopKPIComparisonValueStyleProps {
   subheaderFontSize?: keyof typeof supersetTheme.typography.sizes;
+}
+
+export interface PopKPIComparisonSymbolStyleProps {
+  percentDifferenceNumber: number;
+  comparisonColorEnabled: boolean;
 }
 
 export type PopKPIQueryFormData = QueryFormData &
@@ -48,9 +54,10 @@ export type PopKPIProps = PopKPIStylesProps &
     data: TimeseriesDataRecord[];
     metrics: Metric[];
     metricName: String;
-    bigNumber: Number;
-    prevNumber: Number;
-    valueDifference: Number;
-    percentDifference: Number;
+    bigNumber: string;
+    prevNumber: string;
+    valueDifference: string;
+    percentDifferenceFormattedString: string;
     compType: String;
+    percentDifferenceNumber: number;
   };
