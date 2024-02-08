@@ -146,8 +146,8 @@ jobs:
           SHA: ${{ steps.get-sha.outputs.sha }}
           IMAGE_TAG: ${{ steps.get-sha.outputs.sha }}-ci
         run: |
-          docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
+          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
   ephemeral-env-up:
