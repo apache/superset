@@ -24,7 +24,6 @@ jobs:
             const commentBody = github.event_name === 'workflow_dispatch' ?
               github.event.inputs.comment_body :
               context.payload.comment.body;
-            const commentBody = context.payload.comment.body;
             const commandPrefix = '@supersetbot';
             if (!commentBody.startsWith(commandPrefix)) return;
 
