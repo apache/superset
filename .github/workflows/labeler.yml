@@ -57,17 +57,17 @@ jobs:
           const closingKeywords = /close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved #[0-9]+/gi;
           const prBody = context.payload.pull_request.body;
           const issueNumbers = prBody.match(closingKeywords);
+          const labelName = 'closes-issue'; 
           if (issueNumbers) {
             console.log('Found an issue link! Labeling this PR');
-            github.rest.issues.addLabels({
+            await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              labels: ['closes-issue']
+              labels: [labelName]
             });
           } else {
-            // If closing keywords are not found, attempt to remove the label
-            console.log("No issue link found! Attempting to remove label');
+            console.log("No issue link found! Attempting to remove label");
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -76,7 +76,6 @@ jobs:
                 name: labelName
               });
             } catch {
-              // There wasn't a label to remove, and that's just fine
               console.log('No label was present to remove');
             }
           }
