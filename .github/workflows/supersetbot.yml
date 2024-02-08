@@ -4,6 +4,15 @@ on:
   issue_comment:
     types: [created, edited]
 
+  # Making the workflow testable since `issue_comment` only trigges on
+  # the default branch
+  workflow_dispatch:
+    inputs:
+      comment_body:
+        description: 'Comment Body'
+        required: true
+        type: string
+
 jobs:
   supersetbot:
     runs-on: ubuntu-latest
@@ -12,6 +21,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const commentBody = github.event_name === 'workflow_dispatch' ?
+              github.event.inputs.comment_body :
+              context.payload.comment.body;
             const commentBody = context.payload.comment.body;
             const commandPrefix = '@supersetbot';
             if (!commentBody.startsWith(commandPrefix)) return;
