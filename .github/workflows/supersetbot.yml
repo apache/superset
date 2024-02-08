@@ -34,9 +34,10 @@ jobs:
             // Generating args array, skipping the first element (command)
             const args = matches.slice(1).map(match => match[1] ? match[1] : match[0]);
 
+            let resp;
             if (command === 'label') {
               const label = args[0];
-              await github.rest.issues.addLabels({
+              resp = await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
@@ -44,7 +45,7 @@ jobs:
               });
             } else if (command === 'unlabel') {
               const label = args[0];
-              await github.rest.issues.removeLabel({
+              resp = await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
@@ -54,4 +55,5 @@ jobs:
                   throw error;
                 }
               });
+              console.log(resp);
             }
