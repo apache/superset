@@ -18,13 +18,13 @@
  */
 
 import React from 'react';
-import { select, text, withKnobs } from '@storybook/addon-knobs';
 import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
 
 import VerifyCORS, {
   Props as VerifyCORSProps,
 } from '../../shared/components/VerifyCORS';
 import Expandable from '../../shared/components/Expandable';
+import { post } from 'fetch-mock';
 
 const REQUEST_METHODS = ['GET', 'POST'];
 const ENDPOINTS = {
@@ -35,23 +35,32 @@ const ENDPOINTS = {
 export default {
   title: 'Core Packages/@superset-ui-connection',
   decorators: [
-    withKnobs({
-      escapeHTML: false,
-    }),
+    // withKnobs({
+    //   escapeHTML: false,
+    // }),
   ],
 };
 
-export const configureCORS = () => {
-  const host = text('Superset App host for CORS request', 'localhost:8088');
-  const selectEndpoint = select('Endpoint', ENDPOINTS, '');
-  const customEndpoint = text('Custom Endpoint (override above)', '');
+export const configureCORS = ({
+  host, 
+  selectEndpoint, 
+  customEndpoint, 
+  methodOption, 
+  postPayloadContents
+}: {
+  host: string,
+  selectEndpoint: string,
+  customEndpoint: string,
+  methodOption: string,
+  postPayloadContents: string
+}) => {
   const endpoint = customEndpoint || selectEndpoint;
   const method = endpoint
-    ? select('Request method', REQUEST_METHODS, 'POST')
+    ? methodOption
     : undefined;
   const postPayload =
     endpoint && method === 'POST'
-      ? text('POST payload', JSON.stringify({ form_data: bigNumberFormData }))
+      ? postPayloadContents
       : undefined;
 
   return (
@@ -65,7 +74,7 @@ export const configureCORS = () => {
         {({ payload }) => (
           <>
             <div className="alert alert-success">
-              Success! Update knobs below to try again
+              Success! Update controls below to try again
             </div>
             <br />
             <Expandable expandableWhat="payload">
@@ -83,4 +92,41 @@ export const configureCORS = () => {
 
 configureCORS.parameters = {
   chromatic: { disable: true },
+};
+configureCORS.args = {
+  host: 'localhost:8088',
+  selectEndpoint: '/api/v1/chart/data',
+  customEndpoint: '',
+  methodOption: 'POST', // TODO disable when custonEndpoint and selectEndpoint are empty
+  postPayloadContents: JSON.stringify({ form_data: bigNumberFormData }),
+};
+configureCORS.argTypes = {
+  host: {
+    control: 'text',
+    description: 'Set Superset App host for CORS request',
+  },
+  selectEndpoint: {
+    control: {
+      type: 'select',
+      options: Object.keys(ENDPOINTS)
+    },
+    mapping: ENDPOINTS,
+    description: 'Select an endpoint',
+  },
+  customEndpoint: {
+    control: 'text',
+    description: 'Custom Endpoint (override above)',
+  },
+  methodOption: {
+    control: 'select',
+    options: REQUEST_METHODS,
+    description: 'Select a request method',
+  },
+  postPayloadContents: {
+    control: 'text',
+    description: 'Set POST payload contents',
+  },
+};
+configureCORS.story = {
+  name: 'Verify CORS',
 };
