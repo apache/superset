@@ -64,4 +64,16 @@ jobs:
               issue_number: context.issue.number,
               labels: ['closes-issue']
             });
+          } else {
+            // If closing keywords are not found, attempt to remove the label
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: labelName
+              });
+            } catch {
+              // There wasn't a label to remove, and that's just fine
+            }
           }
