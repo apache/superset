@@ -198,7 +198,7 @@ class AlteredSliceTag extends React.Component<
     return safeStringify(value);
   }
 
-  renderModalBody(): JSX.Element {
+  renderModalBody(): React.ReactNode {
     const columns = [
       {
         accessor: 'control',
