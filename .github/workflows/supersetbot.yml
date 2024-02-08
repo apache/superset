@@ -21,7 +21,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const commentBody = github.event_name === 'workflow_dispatch' ?
+            const commentBody = context.eventName === 'workflow_dispatch' ?
               github.event.inputs.comment_body :
               context.payload.comment.body;
             const commandPrefix = '@supersetbot';
