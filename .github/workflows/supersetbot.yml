@@ -42,6 +42,8 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
                 labels: [label],
+              }).catch(error => {
+                console.log(error);
               });
             } else if (command === 'unlabel') {
               const label = args[0];
@@ -51,9 +53,7 @@ jobs:
                 issue_number: context.issue.number,
                 name: label,
               }).catch(error => {
-                if (error.status !== 404) {
-                  throw error;
-                }
+                console.log(error);
               });
-              console.log(resp);
             }
+            console.log("response:", resp);
