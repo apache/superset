@@ -52,6 +52,7 @@ type RefreshIntervalModalState = {
   custom_hour: number;
   custom_min: number;
   custom_sec: number;
+  custom_block: boolean;
 };
 
 class RefreshIntervalModal extends React.PureComponent<
@@ -73,6 +74,7 @@ class RefreshIntervalModal extends React.PureComponent<
       custom_hour: 0,
       custom_min: 0,
       custom_sec: 0,
+      custom_block: false,
     };
     this.handleFrequencyChange = this.handleFrequencyChange.bind(this);
     this.onSave = this.onSave.bind(this);
@@ -98,13 +100,14 @@ class RefreshIntervalModal extends React.PureComponent<
       refreshFrequency: value || refreshIntervalOptions[0][0],
     });
 
-    const custom_block = document.getElementById('custom_block_view');
     if (value === -1) {
-      if (custom_block) {
-        custom_block.style.visibility = 'visible';
-      }
-    } else if (custom_block) {
-      custom_block.style.visibility = 'hidden';
+      this.setState({
+        custom_block: true,
+      });
+    } else {
+      this.setState({
+        custom_block: false,
+      });
     }
   }
 
@@ -155,6 +158,7 @@ class RefreshIntervalModal extends React.PureComponent<
       custom_hour = 0,
       custom_min = 0,
       custom_sec = 0,
+      custom_block = false,
     } = this.state;
     const showRefreshWarning =
       !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
@@ -180,7 +184,7 @@ class RefreshIntervalModal extends React.PureComponent<
             </div>
             <div
               style={{
-                visibility: refreshFrequency === -1 ? 'visible' : 'hidden',
+                visibility: custom_block === true ? 'visible' : 'hidden',
                 display: 'flex',
                 gap: '3%',
                 marginTop: '15px',
@@ -266,12 +270,7 @@ class RefreshIntervalModal extends React.PureComponent<
               buttonStyle="primary"
               buttonSize="small"
               onClick={() => {
-                const custom_block =
-                  document.getElementById('custom_block_view');
-                if (
-                  custom_block &&
-                  custom_block.style.visibility === 'visible'
-                ) {
+                if (custom_block === true) {
                   // Get hour value
                   const hour_value = custom_hour;
 
