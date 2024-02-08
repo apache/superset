@@ -7,7 +7,7 @@ on:
 jobs:
   supersetbot:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '@supersetbot')
+      #if: contains(github.event.comment.body, '@supersetbot')
     steps:
       - uses: actions/github-script@v7
         with:
