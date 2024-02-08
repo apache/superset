@@ -40,7 +40,7 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const closingKeywords = /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s*:? ?#([0-9]+)/gi;
+          const closingKeywords = /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s*:? ?(?:#([0-9]+)|https:\/\/github\.com\/apache\/superset\/pull\/([0-9]+))/gi;
           const prBody = context.payload.pull_request.body;
           const issueNumbers = [...prBody.matchAll(closingKeywords)].map(match => match[0]);
           const labelName = 'closes-issue';
