@@ -29,7 +29,7 @@
     "@types/d3-array": "^2.0.0",
     "bootstrap-slider": "^10.0.0",
     "d3-array": "^1.2.4",
-    "d3-color": "^1.4.1",
+    "d3-color": "^3.1.0",
     "d3-scale": "^3.0.0",
     "deck.gl": "8.8.27",
     "lodash": "^4.17.15",
