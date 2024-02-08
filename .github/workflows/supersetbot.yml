@@ -20,6 +20,9 @@ on:
 jobs:
   supersetbot:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))
     steps:
       - name: Execute SupersetBot Command
         uses: actions/github-script@v7
@@ -31,9 +34,7 @@ jobs:
             const issueNumber = context.eventName === 'workflow_dispatch' ?
               context.payload.inputs.issue_number :
               context.issue.number;
-            console.log('commentBody:', commentBody);
             const commandPrefix = '@supersetbot';
-            // if (!commentBody.startsWith(commandPrefix)) return;
 
             const regex = /"([^"]+)"|\S+/g;
             let matches = [...commentBody.slice(commandPrefix.length).trim().matchAll(regex)];
@@ -42,11 +43,9 @@ jobs:
             // Generating args array, skipping the first element (command)
             const args = matches.slice(1).map(match => match[1] ? match[1] : match[0]);
 
-            let resp;
-            console.log("COMMAND:", command)
             if (command === 'label') {
               const label = args[0];
-              resp = await github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
@@ -56,7 +55,7 @@ jobs:
               });
             } else if (command === 'unlabel') {
               const label = args[0];
-              resp = await github.rest.issues.removeLabel({
+              await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
@@ -65,4 +64,3 @@ jobs:
                 console.log(error);
               });
             }
-            console.log("response:", resp);
