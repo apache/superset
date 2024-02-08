@@ -144,7 +144,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: superset-ci
           SHA: ${{ steps.get-sha.outputs.sha }}
-          IMAGE_TAG: ${{ steps.get-sha.outputs.sha }}-ci
+          IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
         run: |
           docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
