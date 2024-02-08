@@ -12,6 +12,7 @@ on:
         description: 'Comment Body'
         required: true
         type: string
+        issue_number: string
 
 jobs:
   supersetbot:
@@ -24,6 +25,9 @@ jobs:
             const commentBody = context.eventName === 'workflow_dispatch' ?
               context.payload.inputs.comment_body :
               context.payload.comment.body;
+            const issueNumber = context.eventName === 'workflow_dispatch' ?
+              context.payload.inputs.issue_number :
+              context.issue.number;
             console.log('commentBody:', commentBody);
             const commandPrefix = '@supersetbot';
             // if (!commentBody.startsWith(commandPrefix)) return;
@@ -42,7 +46,7 @@ jobs:
               resp = await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 labels: [label],
               }).catch(error => {
                 console.log(error);
@@ -52,7 +56,7 @@ jobs:
               resp = await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 name: label,
               }).catch(error => {
                 console.log(error);
