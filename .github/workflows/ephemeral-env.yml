@@ -122,7 +122,10 @@ jobs:
 
       - name: Build ephemeral env image
         run: |
-          ./scripts/build_docker.py "ci" "pull_request"
+          ./scripts/build_docker.py \
+            "ci" \
+            "pull_request" \
+            --build_context_ref ${{ github.event.issue.number }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
