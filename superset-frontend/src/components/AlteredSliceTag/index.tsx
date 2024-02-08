@@ -227,7 +227,7 @@ class AlteredSliceTag extends React.Component<
     );
   }
 
-  renderTriggerNode(): JSX.Element {
+  renderTriggerNode(): React.ReactNode {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
