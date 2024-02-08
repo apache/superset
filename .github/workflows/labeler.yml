@@ -46,6 +46,7 @@ jobs:
           const labelName = 'closes-issue'; 
           if (issueNumbers) {
             console.log('Found an issue link! Labeling this PR');
+            console.log('issues', issueNumbers);
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
