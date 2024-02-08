@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { post } from 'fetch-mock';
 import { bigNumberFormData } from '../../../../superset-ui-core/test/chart/fixtures/formData';
 
 import VerifyCORS, {
