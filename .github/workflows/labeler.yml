@@ -1,8 +1,7 @@
 name: "Pull Request Labeler"
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize]
-
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -12,6 +11,8 @@ concurrency:
 jobs:
   config:
     runs-on: "ubuntu-latest"
+    # no need to run this on PR descriptn changes (edited)
+    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -40,6 +41,8 @@ jobs:
     #     echo "Running translation scripts"
     #     # Generate .pot -> .po -> .json files
 
+  # This'll look at the PR body and add a label if it contains an issue-closing keyword
+  # it runs on every PR event, including "edited" since people tend to add "closes #123" in the PR body after opening it
   label-auto-closing:
     needs: config
     if: needs.config.outputs.has-secrets
