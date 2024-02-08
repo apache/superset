@@ -116,29 +116,28 @@ WeekdayPie.argTypes = {
   },
 };
 
-export const PopulationPie = ({
-  width,
-  height,
-  donut,
-  innerRadius,
-  outerRadius,
-  labelsOutside,
-  labelLine,
-  showLabels,
-  showLegend,
-  labelType,
-}: {
-  width: number;
-  height: number;
-  donut: boolean;
-  innerRadius: number;
-  outerRadius: number;
-  labelsOutside: boolean;
-  labelLine: boolean;
-  showLabels: boolean;
-  showLegend: boolean;
-  labelType: string;
-}) => (
+export const PopulationPie = (
+  {
+    donut,
+    innerRadius,
+    outerRadius,
+    labelsOutside,
+    labelLine,
+    showLabels,
+    showLegend,
+    labelType,
+  }: {
+    donut: boolean;
+    innerRadius: number;
+    outerRadius: number;
+    labelsOutside: boolean;
+    labelLine: boolean;
+    showLabels: boolean;
+    showLegend: boolean;
+    labelType: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-pie"
     width={width}

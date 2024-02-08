@@ -53,15 +53,14 @@ export default {
   },
 };
 
-export const basic = ({
-  width,
-  height,
-  rotation,
-}: {
-  width: number;
-  height: number;
-  rotation: string;
-}) => (
+export const basic = (
+  {
+    rotation,
+  }: {
+    rotation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -91,15 +90,14 @@ export const basic = ({
   />
 );
 
-export const encodesColorByWordLength = ({
-  width,
-  height,
-  rotation,
-}: {
-  width: number;
-  height: number;
-  rotation: string;
-}) => (
+export const encodesColorByWordLength = (
+  {
+    rotation,
+  }: {
+    rotation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -135,15 +133,14 @@ export const encodesColorByWordLength = ({
   />
 );
 
-export const encodesFontByFirstLetter = ({
-  width,
-  height,
-  rotation,
-}: {
-  width: number;
-  height: number;
-  rotation: string;
-}) => (
+export const encodesFontByFirstLetter = (
+  {
+    rotation,
+  }: {
+    rotation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -181,15 +178,14 @@ export const encodesFontByFirstLetter = ({
   />
 );
 
-export const legacyShim = ({
-  width,
-  height,
-  rotation,
-}: {
-  width: number;
-  height: number;
-  rotation: string;
-}) => (
+export const legacyShim = (
+  {
+    rotation,
+  }: {
+    rotation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="legacy-word-cloud2"
     width={width}

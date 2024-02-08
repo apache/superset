@@ -84,27 +84,26 @@ export default {
   },
 };
 
-export const BubbleChart = ({
-  width,
-  height,
-  maxBubbleSize,
-  xAxisTitle,
-  xAxisTitleMargin,
-  yAxisTitle,
-  yAxisTitleMargin,
-  logYAxis,
-  logXAxis,
-}: {
-  width: number;
-  height: number;
-  maxBubbleSize: number;
-  xAxisTitle: string;
-  xAxisTitleMargin: number;
-  yAxisTitle: string;
-  yAxisTitleMargin: number;
-  logYAxis: boolean;
-  logXAxis: boolean;
-}) => (
+export const BubbleChart = (
+  {
+    maxBubbleSize,
+    xAxisTitle,
+    xAxisTitleMargin,
+    yAxisTitle,
+    yAxisTitleMargin,
+    logYAxis,
+    logXAxis,
+  }: {
+    maxBubbleSize: number;
+    xAxisTitle: string;
+    xAxisTitleMargin: number;
+    yAxisTitle: string;
+    yAxisTitleMargin: number;
+    logYAxis: boolean;
+    logXAxis: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="bubble_v2"
     width={width}

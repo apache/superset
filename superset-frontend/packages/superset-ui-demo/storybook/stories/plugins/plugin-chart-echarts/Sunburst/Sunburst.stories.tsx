@@ -40,17 +40,16 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Sunburst = ({
-  width,
-  height,
-  showLabels,
-  showTotal,
-}: {
-  width: number;
-  height: number;
-  showLabels: boolean;
-  showTotal: boolean;
-}) => (
+export const Sunburst = (
+  {
+    showLabels,
+    showTotal,
+  }: {
+    showLabels: boolean;
+    showTotal: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-sunburst"
     width={width}

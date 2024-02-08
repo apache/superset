@@ -48,17 +48,16 @@ function generateData(geojson: JsonObject) {
   }));
 }
 
-export const BasicCountryMapStory = ({
-  width,
-  height,
-  country,
-  colorSchema,
-}: {
-  width: number;
-  height: number;
-  country: string;
-  colorSchema: string;
-}) => {
+export const BasicCountryMapStory = (
+  {
+    country,
+    colorSchema,
+  }: {
+    country: string;
+    colorSchema: string;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const theme = useTheme();
   const [data, setData] = useState<JsonObject>();
 

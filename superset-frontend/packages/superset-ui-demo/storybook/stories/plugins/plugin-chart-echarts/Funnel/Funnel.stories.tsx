@@ -68,27 +68,26 @@ export default {
   },
 };
 
-export const Funnel = ({
-  width,
-  height,
-  orient,
-  sort,
-  gap,
-  labelType,
-  labelLine,
-  showLabels,
-  showLegend,
-}: {
-  width: number;
-  height: number;
-  orient: string;
-  sort: string;
-  gap: number;
-  labelType: string;
-  labelLine: boolean;
-  showLabels: boolean;
-  showLegend: boolean;
-}) => (
+export const Funnel = (
+  {
+    orient,
+    sort,
+    gap,
+    labelType,
+    labelLine,
+    showLabels,
+    showLegend,
+  }: {
+    orient: string;
+    sort: string;
+    gap: number;
+    labelType: string;
+    labelLine: boolean;
+    showLabels: boolean;
+    showLegend: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-funnel"
     width={width}

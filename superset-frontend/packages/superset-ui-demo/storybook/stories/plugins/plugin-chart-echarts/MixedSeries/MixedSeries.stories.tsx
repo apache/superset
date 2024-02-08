@@ -41,49 +41,48 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = ({
-  width,
-  height,
-  zoomable,
-  logAxis,
-  yAxisFormat,
-  yAxisTitle,
-  yAxisIndexB,
-  minorSplitLine,
-  seriesType,
-  stack,
-  area,
-  markerEnabled,
-  markerSize,
-  opacity,
-  seriesTypeB,
-  stackB,
-  areaB,
-  markerEnabledB,
-  markerSizeB,
-  opacityB,
-}: {
-  width: number;
-  height: number;
-  zoomable: boolean;
-  logAxis: boolean;
-  yAxisFormat: string;
-  yAxisTitle: string;
-  yAxisIndexB: number;
-  minorSplitLine: boolean;
-  seriesType: string;
-  stack: boolean;
-  area: boolean;
-  markerEnabled: boolean;
-  markerSize: number;
-  opacity: number;
-  seriesTypeB: string;
-  stackB: boolean;
-  areaB: boolean;
-  markerEnabledB: boolean;
-  markerSizeB: number;
-  opacityB: number;
-}) => {
+export const Timeseries = (
+  {
+    zoomable,
+    logAxis,
+    yAxisFormat,
+    yAxisTitle,
+    yAxisIndexB,
+    minorSplitLine,
+    seriesType,
+    stack,
+    area,
+    markerEnabled,
+    markerSize,
+    opacity,
+    seriesTypeB,
+    stackB,
+    areaB,
+    markerEnabledB,
+    markerSizeB,
+    opacityB,
+  }: {
+    zoomable: boolean;
+    logAxis: boolean;
+    yAxisFormat: string;
+    yAxisTitle: string;
+    yAxisIndexB: number;
+    minorSplitLine: boolean;
+    seriesType: string;
+    stack: boolean;
+    area: boolean;
+    markerEnabled: boolean;
+    markerSize: number;
+    opacity: number;
+    seriesTypeB: string;
+    stackB: boolean;
+    areaB: boolean;
+    markerEnabledB: boolean;
+    markerSizeB: number;
+    opacityB: number;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const queriesData = [
     {
       data: data
@@ -259,23 +258,22 @@ Timeseries.argTypes = {
   },
 };
 
-export const WithNegativeNumbers = ({
-  width,
-  height,
-  seriesType,
-  yAxisFormat,
-  showValue,
-  showValueB,
-  yAxisIndexB,
-}: {
-  width: number;
-  height: number;
-  seriesType: string;
-  yAxisFormat: string;
-  showValue: boolean;
-  showValueB: boolean;
-  yAxisIndexB: number;
-}) => (
+export const WithNegativeNumbers = (
+  {
+    seriesType,
+    yAxisFormat,
+    showValue,
+    showValueB,
+    yAxisIndexB,
+  }: {
+    seriesType: string;
+    yAxisFormat: string;
+    showValue: boolean;
+    showValueB: boolean;
+    yAxisIndexB: number;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="mixed-timeseries"
     width={width}

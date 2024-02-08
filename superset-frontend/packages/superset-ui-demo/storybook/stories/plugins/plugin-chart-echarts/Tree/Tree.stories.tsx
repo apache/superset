@@ -38,33 +38,32 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Tree = ({
-  width,
-  height,
-  id,
-  rootNodeId,
-  parent,
-  name,
-  position,
-  layout,
-  orient,
-  emphasis,
-  symbol,
-  symbolSize,
-}: {
-  width: number;
-  height: number;
-  id: string;
-  rootNodeId: string;
-  parent: string;
-  name: string;
-  position: string;
-  layout: string;
-  orient: string;
-  emphasis: string;
-  symbol: string;
-  symbolSize: number;
-}) => (
+export const Tree = (
+  {
+    id,
+    rootNodeId,
+    parent,
+    name,
+    position,
+    layout,
+    orient,
+    emphasis,
+    symbol,
+    symbolSize,
+  }: {
+    id: string;
+    rootNodeId: string;
+    parent: string;
+    name: string;
+    position: string;
+    layout: string;
+    orient: string;
+    emphasis: string;
+    symbol: string;
+    symbolSize: number;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-tree"
     width={width}

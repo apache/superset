@@ -43,39 +43,38 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = ({
-  width,
-  height,
-  forecastEnabled,
-  seriesType,
-  logAxis,
-  stack,
-  showValue,
-  onlyTotal,
-  percentageThreshold,
-  area,
-  markerEnabled,
-  markerSize,
-  minorSplitLine,
-  opacity,
-  zoomable,
-}: {
-  width: number;
-  height: number;
-  forecastEnabled: boolean;
-  seriesType: string;
-  logAxis: boolean;
-  stack: boolean;
-  showValue: boolean;
-  onlyTotal: boolean;
-  percentageThreshold: number;
-  area: boolean;
-  markerEnabled: boolean;
-  markerSize: number;
-  minorSplitLine: boolean;
-  opacity: number;
-  zoomable: boolean;
-}) => {
+export const Timeseries = (
+  {
+    forecastEnabled,
+    seriesType,
+    logAxis,
+    stack,
+    showValue,
+    onlyTotal,
+    percentageThreshold,
+    area,
+    markerEnabled,
+    markerSize,
+    minorSplitLine,
+    opacity,
+    zoomable,
+  }: {
+    forecastEnabled: boolean;
+    seriesType: string;
+    logAxis: boolean;
+    stack: boolean;
+    showValue: boolean;
+    onlyTotal: boolean;
+    percentageThreshold: number;
+    area: boolean;
+    markerEnabled: boolean;
+    markerSize: number;
+    minorSplitLine: boolean;
+    opacity: number;
+    zoomable: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const queryData = data
     .map(row =>
       forecastEnabled
@@ -154,21 +153,20 @@ Timeseries.argTypes = {
   zoomable: { control: 'boolean' },
 };
 
-export const WithNegativeNumbers = ({
-  width,
-  height,
-  seriesType,
-  stack,
-  onlyTotal,
-  orientation,
-}: {
-  width: number;
-  height: number;
-  seriesType: string;
-  stack: boolean;
-  onlyTotal: boolean;
-  orientation: string;
-}) => (
+export const WithNegativeNumbers = (
+  {
+    seriesType,
+    stack,
+    onlyTotal,
+    orientation,
+  }: {
+    seriesType: string;
+    stack: boolean;
+    onlyTotal: boolean;
+    orientation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-timeseries"
     width={width}

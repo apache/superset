@@ -123,39 +123,38 @@ export default {
   },
 };
 
-export const AreaSeries = ({
-  width,
-  height,
-  forecastEnabled,
-  seriesType,
-  show_extra_controls,
-  logAxis,
-  stack,
-  showValue,
-  onlyTotal,
-  percentageThreshold,
-  markerEnabled,
-  markerSize,
-  minorSplitLine,
-  opacity,
-  zoomable,
-}: {
-  width: number;
-  height: number;
-  forecastEnabled: boolean;
-  seriesType: string;
-  show_extra_controls: boolean;
-  logAxis: boolean;
-  stack: boolean;
-  showValue: boolean;
-  onlyTotal: boolean;
-  percentageThreshold: number;
-  markerEnabled: boolean;
-  markerSize: number;
-  minorSplitLine: boolean;
-  opacity: number;
-  zoomable: boolean;
-}) => {
+export const AreaSeries = (
+  {
+    forecastEnabled,
+    seriesType,
+    show_extra_controls,
+    logAxis,
+    stack,
+    showValue,
+    onlyTotal,
+    percentageThreshold,
+    markerEnabled,
+    markerSize,
+    minorSplitLine,
+    opacity,
+    zoomable,
+  }: {
+    forecastEnabled: boolean;
+    seriesType: string;
+    show_extra_controls: boolean;
+    logAxis: boolean;
+    stack: boolean;
+    showValue: boolean;
+    onlyTotal: boolean;
+    percentageThreshold: number;
+    markerEnabled: boolean;
+    markerSize: number;
+    minorSplitLine: boolean;
+    opacity: number;
+    zoomable: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const queryData = data
     .map(row =>
       forecastEnabled
