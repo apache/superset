@@ -3,8 +3,6 @@ name: SupersetBot Workflow
 on:
   issue_comment:
     types: [created, edited]
-  pull_request:
-    types: [labeled, unlabeled, opened, reopened, synchronize]
 
 jobs:
   supersetbot:
@@ -14,27 +12,31 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const commandPrefix = '@supersetbot';
             const commentBody = context.payload.comment.body;
+            const commandPrefix = '@supersetbot';
             if (!commentBody.startsWith(commandPrefix)) return;
 
-            const [_, command, ...args] = commentBody.slice(commandPrefix.length).trim().split(/\s+/);
-            const issue_number = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const label = args.join(" ").replace(/['"]/g, '');
+            const regex = /"([^"]+)"|\S+/g;
+            let matches = [...commentBody.slice(commandPrefix.length).trim().matchAll(regex)];
+            // Extracting the command which is the first match
+            const command = matches[0] ? matches[0][0] : null;
+            // Generating args array, skipping the first element (command)
+            const args = matches.slice(1).map(match => match[1] ? match[1] : match[0]);
+
             if (command === 'label') {
+              const label = args[0];
               await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number,
+                context.repo.owner,
+                context.repo.repo,
+                context.issue.number,
                 labels: [label],
               });
             } else if (command === 'unlabel') {
+              const label = args[0];
               await github.rest.issues.removeLabel({
-                owner,
-                repo,
-                issue_number,
+                context.repo.owner,
+                context.repo.repo,
+                context.issue.number,
                 name: label,
               }).catch(error => {
                 if (error.status !== 404) {
