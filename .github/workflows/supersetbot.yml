@@ -1,17 +1,21 @@
-- name: supersetbot
-  id: supersetbot
-  run: node .github/workflows/supersetbot.js
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    COMMENT_BODY: ${{ github.event.comment.body }}
+name: SupersetBot Workflow
 
-  jobs:
-    supersetbot:
-      runs-on: ubuntu-latest
-      if: "contains(github.event.comment.body, '@supersetbot')"
-      steps:
-        - name: Process supersetbot Command
-          run: node .github/scripts/process_command.js
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            COMMENT_BODY: ${{ github.event.comment.body }}
+on:
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  supersetbot:
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '@supersetbot')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Process SupersetBot Command
+        run: node .github/scripts/process_command.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
