@@ -60,7 +60,5 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: issueNumber,
                 name: label,
-              }).catch(error => {
-                console.log(error);
-              });
+              }).catch(console.log);
             }
