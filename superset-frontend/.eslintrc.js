@@ -111,6 +111,19 @@ module.exports = {
         '@typescript-eslint/no-non-null-assertion': 0, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
+        '@typescript-eslint/member-delimiter-style': [
+          2,
+          {
+            multiline: {
+              delimiter: 'semi',
+              requireLast: true,
+            },
+            singleline: {
+              delimiter: 'semi',
+              requireLast: false,
+            },
+          },
+        ],
         '@typescript-eslint/prefer-optional-chain': 2,
         camelcase: 0,
         'class-methods-use-this': 0,
