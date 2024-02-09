@@ -4,7 +4,7 @@ on:
   issue_comment:
     types: [created, edited]
 
-  # Making the workflow testable since `issue_comment` only trigges on
+  # Making the workflow testable since `issue_comment` only triggers on
   # the default branch
   workflow_dispatch:
     inputs:
