@@ -258,8 +258,16 @@ supersetNode:
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: '{{ .Release.Name }}-redis-headless'
-    # redis_password: superset
     redis_port: "6379"
+    redis_user: ""
+    # redis_password: superset
+    redis_cache_db: "1"
+    redis_celery_db: "0"
+    # Or SSL port is usually 6380
+    # Update following for using Redis with SSL
+    redis_ssl:
+      enabled: false
+      ssl_cert_reqs: CERT_NONE
     # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
     db_host: '{{ .Release.Name }}-postgresql'
     db_port: "5432"
