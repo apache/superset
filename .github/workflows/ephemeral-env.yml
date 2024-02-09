@@ -146,7 +146,6 @@ jobs:
           SHA: ${{ steps.get-sha.outputs.sha }}
           IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
         run: |
-          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
@@ -182,7 +181,7 @@ jobs:
         aws ecr describe-images \
         --registry-id $(echo "${{ steps.login-ecr.outputs.registry }}" | grep -Eo "^[0-9]+") \
         --repository-name superset-ci \
-        --image-ids imageTag=pr-${{ github.event.issue.number }}
+        --image-ids imageTag=${{ steps.get-sha.outputs.sha }}
 
     - name: Fail on missing container image
       if: steps.check-image.outcome == 'failure'
