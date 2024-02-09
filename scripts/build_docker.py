@@ -40,6 +40,10 @@ def run_cmd(command: str) -> str:
             output += line
 
     process.wait()  # Wait for the subprocess to finish
+
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, command, output)
+
     return output
 
 
