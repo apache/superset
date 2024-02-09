@@ -21,10 +21,12 @@ import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
 import * as chartlib from '@superset-ui/core';
-import { SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, SupersetClient } from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
+import * as asyncEvent from 'src/middleware/asyncEvent';
+import { handleChartDataResponse } from 'src/components/Chart/chartAction';
 
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
@@ -33,6 +35,7 @@ describe('chart actions', () => {
   let getChartDataUriStub;
   let metadataRegistryStub;
   let buildQueryRegistryStub;
+  let waitForAsyncDataStub;
   let fakeMetadata;
 
   const setupDefaultFetchMock = () => {
@@ -66,6 +69,9 @@ describe('chart actions', () => {
           result_format: 'json',
         }),
       }));
+    waitForAsyncDataStub = sinon
+      .stub(asyncEvent, 'waitForAsyncData')
+      .callsFake(data => Promise.resolve(data));
   });
 
   afterEach(() => {
@@ -74,6 +80,11 @@ describe('chart actions', () => {
     fetchMock.resetHistory();
     metadataRegistryStub.restore();
     buildQueryRegistryStub.restore();
+    waitForAsyncDataStub.restore();
+
+    global.featureFlags = {
+      [FeatureFlag.GlobalAsyncQueries]: false,
+    };
   });
 
   describe('v1 API', () => {
@@ -113,6 +124,36 @@ describe('chart actions', () => {
 
       expect(fetchMock.calls(mockBigIntUrl)).toHaveLength(1);
       expect(json.value.toString()).toEqual(expectedBigNumber);
+    });
+
+    it('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+      const result = await handleChartDataResponse(
+        { status: 200 },
+        { result: [1, 2, 3] },
+      );
+      expect(result).toEqual([1, 2, 3]);
+    });
+
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+      global.featureFlags = {
+        [FeatureFlag.GlobalAsyncQueries]: true,
+      };
+      const result = await handleChartDataResponse(
+        { status: 200 },
+        { result: [1, 2, 3] },
+      );
+      expect(result).toEqual([1, 2, 3]);
+    });
+
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+      global.featureFlags = {
+        [FeatureFlag.GlobalAsyncQueries]: true,
+      };
+      const result = await handleChartDataResponse(
+        { status: 202 },
+        { result: [1, 2, 3] },
+      );
+      expect(result).toEqual([1, 2, 3]);
     });
   });
 
