@@ -2,7 +2,7 @@ name: Docker Publish Release
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
 
   # Can be triggered manually
   workflow_dispatch:
