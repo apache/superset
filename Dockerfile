@@ -26,7 +26,9 @@ FROM --platform=${BUILDPLATFORM} node:16-bookworm-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
-RUN apt-get update -qq \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq \
     && apt-get install -yqq --no-install-recommends \
         build-essential \
         python3
@@ -61,7 +63,9 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
-RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -111,7 +115,9 @@ ARG GECKODRIVER_VERSION=v0.33.0 \
 
 USER root
 
-RUN apt-get update -qq \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq \
     && apt-get install -yqq --no-install-recommends \
         libnss3 \
         libdbus-glib-1-2 \
