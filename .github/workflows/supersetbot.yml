@@ -50,9 +50,7 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: issueNumber,
                 labels: [label],
-              }).catch(error => {
-                console.log(error);
-              });
+              }).catch(console.log);
             } else if (command === 'unlabel') {
               const label = args[0];
               await github.rest.issues.removeLabel({
