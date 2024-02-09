@@ -43,6 +43,7 @@ NEW_PVMS = {"Dashboard": ("can_view_chart_as_table",)}
 PVM_MAP = {
     Pvm("Dashboard", "can_view_and_drill"): (
         Pvm("Dashboard", "can_view_chart_as_table"),
+        Pvm("Dashboard", "can_view_query"),
     ),
 }
 
