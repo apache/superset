@@ -48,13 +48,21 @@ PVM_MAP = {
 }
 
 
+def do_upgrade(session: Session) -> None:
+    add_pvms(session, NEW_PVMS)
+    migrate_roles(session, PVM_MAP)
+
+
+def do_downgrade(session: Session) -> None:
+    add_pvms(session, get_reversed_new_pvms(PVM_MAP))
+    migrate_roles(session, get_reversed_pvm_map(PVM_MAP))
+
+
 def upgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    add_pvms(session, NEW_PVMS)
-
-    migrate_roles(session, PVM_MAP)
+    do_upgrade(session)
 
     try:
         session.commit()
@@ -67,8 +75,8 @@ def downgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
 
-    add_pvms(session, get_reversed_new_pvms(PVM_MAP))
-    migrate_roles(session, get_reversed_pvm_map(PVM_MAP))
+    do_downgrade(session)
+
     try:
         session.commit()
     except SQLAlchemyError as ex:
