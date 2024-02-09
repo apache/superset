@@ -126,14 +126,15 @@ describe('chart actions', () => {
       expect(json.value.toString()).toEqual(expectedBigNumber);
     });
 
-    it('handleChartDataRequestResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
+    it('handleChartDataResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
       const result = await handleChartDataResponse(
         { status: 200 },
         { result: [1, 2, 3] },
       );
       expect(result).toEqual([1, 2, 3]);
     });
-    it('handleChartDataRequestResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
+
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
@@ -143,7 +144,8 @@ describe('chart actions', () => {
       );
       expect(result).toEqual([1, 2, 3]);
     });
-    it('handleChartDataRequestResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
+
+    it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
