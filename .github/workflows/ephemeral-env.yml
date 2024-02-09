@@ -143,10 +143,9 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: superset-ci
-          SHA: ${{ steps.get-sha.outputs.sha }}
           IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
         run: |
-          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
+          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:pr-${{ github.event.issue.number }}-ci
           docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
   ephemeral-env-up:
@@ -181,7 +180,7 @@ jobs:
         aws ecr describe-images \
         --registry-id $(echo "${{ steps.login-ecr.outputs.registry }}" | grep -Eo "^[0-9]+") \
         --repository-name superset-ci \
-        --image-ids imageTag=${{ steps.get-sha.outputs.sha }}
+        --image-ids imageTag=pr-${{ github.event.issue.number }}-ci
 
     - name: Fail on missing container image
       if: steps.check-image.outcome == 'failure'
@@ -204,7 +203,7 @@ jobs:
       with:
         task-definition: .github/workflows/ecs-task-definition.json
         container-name: superset-ci
-        image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:pr-${{ github.event.issue.number }}
+        image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:pr-${{ github.event.issue.number }}-ci
 
     - name: Update env vars in the Amazon ECS task definition
       run: |
