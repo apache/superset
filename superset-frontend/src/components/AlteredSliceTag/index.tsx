@@ -48,6 +48,7 @@ export interface Row {
   before: string | number;
   after: string | number;
 }
+
 interface FilterItem {
   comparator?: string | string[];
   subject: string;
