@@ -78,7 +78,7 @@ jobs:
             cp ./Dockerfile /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
             cp /tmp/build_docker.py scripts/
-            cp /Dockerfile ./
+            cp /tmp/Dockerfile ./
             EVENT="release"
           fi
           pip install click
