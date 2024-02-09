@@ -61,6 +61,7 @@ export default function downloadAsPdf(
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
+      excludeClassNames: ['header-controls'],
     };
     return domToPdf(elementToPrint, options)
       .then(() => {
