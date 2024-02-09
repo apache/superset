@@ -222,6 +222,7 @@ def get_docker_command(
 )
 @click.option("--build_context_ref", help="a reference to the pr, release or branch")
 @click.option("--dry-run", is_flag=True, help="Run the command in dry-run mode.")
+@click.option("--verbose", is_flag=True, help="Print more info")
 @click.option(
     "--force-latest", is_flag=True, help="Force the 'latest' tag on the release"
 )
@@ -232,6 +233,7 @@ def main(
     platform: list[str],
     dry_run: bool,
     force_latest: bool,
+    verbose: bool,
 ) -> None:
     """
     This script executes docker build and push commands based on given arguments.
@@ -274,6 +276,8 @@ def main(
                 """
             )
         script = script + docker_build_command
+        if verbose:
+            run_cmd("cat Dockerfile")
         stdout = run_cmd(script)
     else:
         print("Dry Run - Docker Build Command:")

@@ -65,11 +65,13 @@ ENV LANG=C.UTF-8 \
     SUPERSET_PORT=8088
 
 RUN \
+    mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
+
+RUN \
     --mount=type=cache,id=apt-cache-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/var/lib/apt/lists \
     --mount=type=cache,id=apt-cache-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/var/cache/apt \
-    mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
-    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && apt-get update -qq && apt-get install -yqq --no-install-recommends \
+    apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
         curl \
         default-libmysqlclient-dev \
