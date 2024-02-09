@@ -48,9 +48,22 @@ COPY ./superset-frontend ./
 RUN npm run ${BUILD_CMD}
 
 ######################################################################
+# Python pre-lean image
+######################################################################
+FROM python:${PY_VER} AS pre_lean
+WORKDIR /app
+RUN mkdir scripts ./superset-frontend/
+COPY --chown=superset:superset ./scripts/get_package_version.py ./scripts
+COPY --chown=superset:superset ./superset-frontend/package.json ./superset-frontend/
+# Generate ./version.txt from package.json (the source of thruth)
+RUN python ./scripts/get_package_version.py > ./version.txt
+
+
+######################################################################
 # Final lean image...
 ######################################################################
 FROM python:${PY_VER} AS lean
+
 
 WORKDIR /app
 ENV LANG=C.UTF-8 \
@@ -61,9 +74,7 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
-RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
-    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && apt-get update -qq && apt-get install -yqq --no-install-recommends \
+RUN apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
         curl \
         default-libmysqlclient-dev \
@@ -72,13 +83,18 @@ RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg
         libpq-dev \
         libecpg-dev \
         libldap2-dev \
-    && touch superset/static/version_info.json \
-    && chown -R superset:superset ./* \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
+    && touch superset/static/version_info.json \
+    && chown -R superset:superset ./*
+
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
-# setup.py uses the version information in package.json
-COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
+
+# version_info.json is used by setup.py
+COPY --chown=superset:superset --from=pre_lean /app/version.txt ./
+
 RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
     --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
     --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \

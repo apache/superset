@@ -22,12 +22,21 @@ from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
+VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.json")
+DOCKER_VERSION_FILE = os.path.join(BASE_DIR, "version.txt")
 
-with open(PACKAGE_JSON) as package_file:
-    version_string = json.load(package_file)["version"]
 
-with open("README.md", encoding="utf-8") as f:
-    long_description = f.read()
+def get_version() -> str:
+    version = ""
+    if os.path.exists(PACKAGE_JSON):
+        # package.json is the source of truth
+        with open(PACKAGE_JSON) as f:
+            version = json.load(f)["version"]
+    elif os.path.exists(DOCKER_VERSION_FILE):
+        # to improve docker caching, we prepare a small version.txt
+        with open(DOCKER_VERSION_FILE) as f:
+            version = f.read().strip()
+    return version
 
 
 def get_git_sha() -> str:
@@ -38,24 +47,31 @@ def get_git_sha() -> str:
         return ""
 
 
-GIT_SHA = get_git_sha()
-version_info = {"GIT_SHA": GIT_SHA, "version": version_string}
-print("-==-" * 15)
-print("VERSION: " + version_string)
-print("GIT SHA: " + GIT_SHA)
-print("-==-" * 15)
+def stamp_version() -> None:
+    """Leaving a trace in stdout and static assets"""
+    GIT_SHA = get_git_sha()
+    version_info = {"GIT_SHA": GIT_SHA, "version": VERSION}
+    print("-==-" * 15)
+    print(f"VERSION: {VERSION}")
+    print(f"GIT SHA: {GIT_SHA}")
+    print("-==-" * 15)
 
-VERSION_INFO_FILE = os.path.join(BASE_DIR, "superset", "static", "version_info.json")
+    with open(VERSION_INFO_FILE, "w") as version_file:
+        json.dump(version_info, version_file)
 
-with open(VERSION_INFO_FILE, "w") as version_file:
-    json.dump(version_info, version_file)
+
+VERSION = get_version()
+stamp_version()
+
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="apache-superset",
     description="A modern, enterprise-ready business intelligence web application",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version=version_string,
+    version=VERSION,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -211,7 +227,7 @@ setup(
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
-    download_url="https://www.apache.org/dist/superset/" + version_string,
+    download_url="https://www.apache.org/dist/superset/" + VERSION,
     classifiers=[
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
