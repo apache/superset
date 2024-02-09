@@ -370,7 +370,7 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
-export function handleChartDataRequestResponse(response, json, useLegacyApi) {
+export function handleChartDataResponse(response, json, useLegacyApi) {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
     // deal with getChartDataRequest transforming the response data
     const result = 'result' in json ? json.result : json;
@@ -430,7 +430,7 @@ export function exploreJSON(
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
       .then(({ response, json }) =>
-        handleChartDataRequestResponse(response, json, useLegacyApi),
+        handleChartDataResponse(response, json, useLegacyApi),
       )
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>

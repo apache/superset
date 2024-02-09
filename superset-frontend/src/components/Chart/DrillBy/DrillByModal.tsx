@@ -60,10 +60,7 @@ import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
 import { useContextMenu } from '../ChartContextMenu/useContextMenu';
-import {
-  getChartDataRequest,
-  handleChartDataRequestResponse,
-} from '../chartAction';
+import { getChartDataRequest, handleChartDataResponse } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import {
   DrillByBreadcrumb,
@@ -416,7 +413,7 @@ export default function DrillByModal({
         formData: drilledFormData,
       })
         .then(({ response, json }) =>
-          handleChartDataRequestResponse(response, json, useLegacyApi),
+          handleChartDataResponse(response, json, useLegacyApi),
         )
         .then(queriesResponse => {
           setChartDataResult(queriesResponse);

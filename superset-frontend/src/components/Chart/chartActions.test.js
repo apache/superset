@@ -26,7 +26,7 @@ import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
 import * as asyncEvent from 'src/middleware/asyncEvent';
-import { handleChartDataRequestResponse } from 'src/components/Chart/chartAction';
+import { handleChartDataResponse } from 'src/components/Chart/chartAction';
 
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
@@ -127,7 +127,7 @@ describe('chart actions', () => {
     });
 
     it('handleChartDataRequestResponse should return result if GlobalAsyncQueries flag is disabled', async () => {
-      const result = await handleChartDataRequestResponse(
+      const result = await handleChartDataResponse(
         { status: 200 },
         { result: [1, 2, 3] },
       );
@@ -137,7 +137,7 @@ describe('chart actions', () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
-      const result = await handleChartDataRequestResponse(
+      const result = await handleChartDataResponse(
         { status: 200 },
         { result: [1, 2, 3] },
       );
@@ -147,7 +147,7 @@ describe('chart actions', () => {
       global.featureFlags = {
         [FeatureFlag.GlobalAsyncQueries]: true,
       };
-      const result = await handleChartDataRequestResponse(
+      const result = await handleChartDataResponse(
         { status: 202 },
         { result: [1, 2, 3] },
       );
