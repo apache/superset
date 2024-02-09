@@ -28,35 +28,4 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const commentBody = context.eventName === 'workflow_dispatch' ?
-              context.payload.inputs.comment_body :
-              context.payload.comment.body;
-            const issueNumber = context.eventName === 'workflow_dispatch' ?
-              context.payload.inputs.issue_number :
-              context.issue.number;
-            const commandPrefix = '@supersetbot';
-
-            const regex = /"([^"]+)"|\S+/g;
-            let matches = [...commentBody.slice(commandPrefix.length).trim().matchAll(regex)];
-            // Extracting the command which is the first match
-            const command = matches[0] ? matches[0][0] : null;
-            // Generating args array, skipping the first element (command)
-            const args = matches.slice(1).map(match => match[1] ? match[1] : match[0]);
-
-            if (command === 'label') {
-              const label = args[0];
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                labels: [label],
-              }).catch(console.log);
-            } else if (command === 'unlabel') {
-              const label = args[0];
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issueNumber,
-                name: label,
-              }).catch(console.log);
-            }
+            pass
