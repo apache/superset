@@ -26,8 +26,7 @@ FROM --platform=${BUILDPLATFORM} node:16-bookworm-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --no-cache \
     apt-get update -qq \
     && apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -63,8 +62,7 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --no-cache \
     mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
@@ -115,8 +113,7 @@ ARG GECKODRIVER_VERSION=v0.33.0 \
 
 USER root
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --no-cache \
     apt-get update -qq \
     && apt-get install -yqq --no-install-recommends \
         libnss3 \
