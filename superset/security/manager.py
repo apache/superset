@@ -453,7 +453,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.ERROR,
         )
 
-    def get_chart_access_error_object(  # pylint: disable=invalid-name
+    def get_chart_access_error_object(
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
     ) -> SupersetError:
@@ -2088,7 +2088,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             raise SupersetSecurityException(self.get_chart_access_error_object(chart))
 
-    def get_user_by_username(self, username: str, session: Session = None) -> Optional[User]:
+    def get_user_by_username(
+        self, username: str, session: Session = None
+    ) -> Optional[User]:
         """
         Retrieves a user by it's username case sensitive. Optional session parameter
         utility method normally useful for celery tasks where the session
