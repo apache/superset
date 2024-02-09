@@ -1337,7 +1337,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), perm_set)
         self.assert_can_menu("Databases", perm_set)
         self.assert_can_menu("Datasets", perm_set)
         self.assert_can_menu("Data", perm_set)
@@ -1505,7 +1506,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
