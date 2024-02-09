@@ -17,7 +17,12 @@
 from importlib import import_module
 
 from superset import db
-from superset.migrations.shared.security_converge import _find_pvm, Permission, PermissionView, ViewMenu
+from superset.migrations.shared.security_converge import (
+    _find_pvm,
+    Permission,
+    PermissionView,
+    ViewMenu,
+)
 from tests.integration_tests.test_app import app
 
 migration_module = import_module(
@@ -27,6 +32,7 @@ migration_module = import_module(
 
 upgrade = migration_module.do_upgrade
 downgrade = migration_module.do_downgrade
+
 
 def test_migration_upgrade():
     with app.app_context():
@@ -45,6 +51,7 @@ def test_migration_upgrade():
         assert _find_pvm(db.session, "Dashboard", "can_view_query") is not None
         assert _find_pvm(db.session, "Dashboard", "can_view_and_drill") is None
 
+
 def test_migration_downgrade():
     with app.app_context():
         downgrade(db.session)
@@ -52,4 +59,3 @@ def test_migration_downgrade():
         assert _find_pvm(db.session, "Dashboard", "can_view_chart_as_table") is None
         assert _find_pvm(db.session, "Dashboard", "can_view_query") is None
         assert _find_pvm(db.session, "Dashboard", "can_view_and_drill") is not None
-
