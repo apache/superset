@@ -75,10 +75,8 @@ jobs:
             fi
             # build_docker.py may not exist on that SHA, let's switcharoo to /tmp
             cp ./scripts/build_docker.py /tmp
-            cp ./Dockerfile /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
             cp /tmp/build_docker.py scripts/
-            cp /tmp/Dockerfile ./
             EVENT="release"
           fi
           pip install click
