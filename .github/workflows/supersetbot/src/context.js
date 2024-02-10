@@ -25,13 +25,14 @@ export function getEnvContext() {
     throw new Error('GITHUB_TOKEN is not set. Please set the GITHUB_TOKEN environment variable.');
   }
   const github = new Octokit({ auth: `token ${process.env.GITHUB_TOKEN}` });
+  const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
   return {
     source: 'CLI',
     github,
     context: {
       repo: {
-        repo: 'superset',
-        owner: 'apache',
+        repo,
+        owner,
       },
     },
   };

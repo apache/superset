@@ -1,18 +1,15 @@
 export function commandWrapper(commandFunc, verbose = false) {
   return async (...args) => {
-    console.log(`in commandWrapper ${verbose}`);
     try {
       const resp = await commandFunc(...args); // Use await to ensure the command function is executed properly
       if (verbose) {
         console.log(resp);
       }
     } catch (error) {
+      console.error(`Error during operation: ${error}`);
       if (verbose) {
-        console.error('Error during operation:', error);
-      } else {
-        console.error('An error occurred. Use --verbose for more details.');
+        console.error(error);
       }
-      // Exit with a non-zero status code to indicate failure
       process.exit(1);
     }
   };

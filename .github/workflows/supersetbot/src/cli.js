@@ -15,7 +15,6 @@ program
   });
 
 const wrap = (f) => {
-  console.log('WRAP');
   const { verbose } = program.opts();
   return commands.commandWrapper(f, verbose);
 };
