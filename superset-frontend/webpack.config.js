@@ -26,7 +26,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const remarkGfm = require('remark-gfm');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -445,20 +444,20 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      {
-        test: /\.mdx?$/,
-        use: [
-          {
-            loader: require.resolve('@storybook/mdx2-csf/loader'),
-            options: {
-              skipCsf: false,
-              mdxCompileOptions: {
-                remarkPlugins: [remarkGfm],
-              },
-            },
-          },
-        ],
-      },
+      // {
+      //   test: /\.mdx?$/,
+      //   use: [
+      //     {
+      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
+      //       options: {
+      //         skipCsf: false,
+      //         mdxCompileOptions: {
+      //           remarkPlugins: [remarkGfm],
+      //         },
+      //       },
+      //     },
+      //   ],
+      // },
     ],
   },
   externals: {

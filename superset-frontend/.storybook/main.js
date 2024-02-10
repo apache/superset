@@ -23,7 +23,6 @@ const customConfig = require('../webpack.config.js');
 module.exports = {
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
-    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
     '../packages/superset-ui-demo/storybook/stories/**/*.*.@(tsx|jsx)',
   ],
 
