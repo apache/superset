@@ -18,7 +18,7 @@
  */
 
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/reports/types';
+import { NotificationFormats } from 'src/features/reports/types';
 
 type user = {
   id: number;
@@ -68,10 +68,12 @@ export type AlertObject = {
   created_by?: user;
   created_on?: string;
   crontab?: string;
+  custom_width?: number | null;
   dashboard?: MetaObject;
   dashboard_id?: number;
   database?: MetaObject;
   description?: string;
+  error?: string;
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
@@ -83,7 +85,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: NOTIFICATION_FORMATS;
+  report_format?: NotificationFormats;
   type?: string;
   validator_config_json?: {
     op?: Operator;
@@ -91,7 +93,6 @@ export type AlertObject = {
   };
   validator_type?: string;
   working_timeout?: number;
-  error?: string;
 };
 
 export type LogObject = {

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { isObject } from 'lodash';
 import rison from 'rison';
 import {
@@ -27,19 +28,18 @@ import {
 } from '@superset-ui/core';
 import { QueryDictionary } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
+import {
+  refreshQueries,
+  clearInactiveQueries,
+} from 'src/SqlLab/actions/sqlLab';
 
-const QUERY_UPDATE_FREQ = 2000;
+export const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 const MAX_QUERY_AGE_TO_POLL = 21600000;
 const QUERY_TIMEOUT_LIMIT = 10000;
 
-interface RefreshQueriesFunc {
-  (alteredQueries: any): any;
-}
-
 export interface QueryAutoRefreshProps {
   queries: QueryDictionary;
-  refreshQueries: RefreshQueriesFunc;
   queriesLastUpdate: number;
 }
 
@@ -61,39 +61,50 @@ export const shouldCheckForQueries = (queryList: QueryDictionary): boolean => {
 
 function QueryAutoRefresh({
   queries,
-  refreshQueries,
   queriesLastUpdate,
 }: QueryAutoRefreshProps) {
   // We do not want to spam requests in the case of slow connections and potentially receive responses out of order
   // pendingRequest check ensures we only have one active http call to check for query statuses
-  const [pendingRequest, setPendingRequest] = useState(false);
+  const pendingRequestRef = useRef(false);
+  const cleanInactiveRequestRef = useRef(false);
+  const dispatch = useDispatch();
 
   const checkForRefresh = () => {
-    if (!pendingRequest && shouldCheckForQueries(queries)) {
+    const shouldRequestChecking = shouldCheckForQueries(queries);
+    if (!pendingRequestRef.current && shouldRequestChecking) {
       const params = rison.encode({
         last_updated_ms: queriesLastUpdate - QUERY_UPDATE_BUFFER_MS,
       });
 
-      setPendingRequest(true);
+      pendingRequestRef.current = true;
       SupersetClient.get({
         endpoint: `/api/v1/query/updated_since?q=${params}`,
         timeout: QUERY_TIMEOUT_LIMIT,
+        parseMethod: 'json-bigint',
       })
         .then(({ json }) => {
           if (json) {
             const jsonPayload = json as { result?: QueryResponse[] };
-            const queries =
-              jsonPayload?.result?.reduce((acc, current) => {
-                acc[current.id] = current;
-                return acc;
-              }, {}) ?? {};
-            refreshQueries?.(queries);
+            if (jsonPayload?.result?.length) {
+              const queries =
+                jsonPayload?.result?.reduce((acc, current) => {
+                  acc[current.id] = current;
+                  return acc;
+                }, {}) ?? {};
+              dispatch(refreshQueries(queries));
+            } else {
+              dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
+            }
           }
         })
         .catch(() => {})
         .finally(() => {
-          setPendingRequest(false);
+          pendingRequestRef.current = false;
         });
+    }
+    if (!cleanInactiveRequestRef.current && !shouldRequestChecking) {
+      dispatch(clearInactiveQueries(QUERY_UPDATE_FREQ));
+      cleanInactiveRequestRef.current = true;
     }
   };
 

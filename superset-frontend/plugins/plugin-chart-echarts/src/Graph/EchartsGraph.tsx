@@ -17,9 +17,15 @@
  * under the License.
  */
 import React from 'react';
+import {
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
+} from '@superset-ui/core';
 import { EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { GraphChartTransformedProps } from './types';
+import { formatSeriesName } from '../utils/series';
 
 type DataRow = {
   source?: string;
@@ -46,6 +52,7 @@ export default function EchartsGraph({
   filterState,
   emitCrossFilters,
   refs,
+  coltypeMapping,
 }: GraphChartTransformedProps) {
   const getCrossFilterDataMask = (node: DataRow | undefined) => {
     if (!node?.name || !node?.col) {
@@ -143,7 +150,18 @@ export default function EchartsGraph({
           drillToDetail: drillToDetailFilters,
           crossFilter: getCrossFilterDataMask(node),
           drillBy: node && {
-            filters: [{ col: node.col, op: '==', val: node.name }],
+            filters: [
+              {
+                col: node.col,
+                op: '==',
+                val: node.name,
+                formattedVal: formatSeriesName(node.name, {
+                  timeFormatter: getTimeFormatter(formData.dateFormat),
+                  numberFormatter: getNumberFormatter(formData.numberFormat),
+                  coltype: coltypeMapping?.[getColumnLabel(node.col)],
+                }),
+              },
+            ],
             groupbyFieldName:
               node.col === formData.source ? 'source' : 'target',
           },

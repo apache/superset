@@ -31,6 +31,7 @@ import {
   portField,
   queryField,
   usernameField,
+  SSHTunnelSwitch,
 } from './CommonParameters';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
@@ -55,6 +56,7 @@ export const FormFieldOrder = [
   'account',
   'warehouse',
   'role',
+  'ssh',
 ];
 
 export interface FieldPropTypes {
@@ -77,6 +79,7 @@ export interface FieldPropTypes {
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  clearValidationErrors: () => void;
   db?: DatabaseObject;
   field: string;
   isEditMode?: boolean;
@@ -102,6 +105,7 @@ const FORM_FIELD_MAP = {
   warehouse: validatedInputField,
   role: validatedInputField,
   account: validatedInputField,
+  ssh: SSHTunnelSwitch,
 };
 
 interface DatabaseConnectionFormProps {
@@ -129,6 +133,7 @@ interface DatabaseConnectionFormProps {
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  clearValidationErrors: () => void;
   getPlaceholder?: (field: string) => string | undefined;
 }
 
@@ -148,6 +153,7 @@ const DatabaseConnectionForm = ({
   onRemoveTableCatalog,
   sslForced,
   validationErrors,
+  clearValidationErrors,
 }: DatabaseConnectionFormProps) => (
   <Form>
     <div
@@ -176,6 +182,7 @@ const DatabaseConnectionForm = ({
             },
             validationErrors,
             getValidation,
+            clearValidationErrors,
             db,
             key: field,
             field,

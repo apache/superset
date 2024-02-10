@@ -447,17 +447,19 @@ def test_validate_parameters_missing():
             "query": {},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message=(
-                "One or more parameters are missing: " "database, host, port, username"
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message=(
+                    "One or more parameters are missing: "
+                    "database, host, port, username"
+                ),
+                error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={"missing": ["database", "host", "port", "username"]},
             ),
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={"missing": ["database", "host", "port", "username"]},
-        ),
-    ]
+        ]
 
 
 @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
@@ -474,21 +476,22 @@ def test_validate_parameters_invalid_host(is_hostname_valid):
             "query": {"sslmode": "verify-full"},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message="One or more parameters are missing: port",
-            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={"missing": ["port"]},
-        ),
-        SupersetError(
-            message="The hostname provided can't be resolved.",
-            error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={"invalid": ["host"]},
-        ),
-    ]
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message="One or more parameters are missing: port",
+                error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={"missing": ["port"]},
+            ),
+            SupersetError(
+                message="The hostname provided can't be resolved.",
+                error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"invalid": ["host"]},
+            ),
+        ]
 
 
 @mock.patch("superset.db_engine_specs.base.is_hostname_valid")
@@ -507,17 +510,41 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
             "query": {"sslmode": "verify-full"},
         }
     }
-    errors = BasicParametersMixin.validate_parameters(properties)
-    assert errors == [
-        SupersetError(
-            message="The port is closed.",
-            error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "invalid": ["port"],
-                "issue_codes": [
-                    {"code": 1008, "message": "Issue 1008 - The port is closed."}
-                ],
-            },
-        )
+    with app.app_context():
+        errors = BasicParametersMixin.validate_parameters(properties)
+        assert errors == [
+            SupersetError(
+                message="The port is closed.",
+                error_type=SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "invalid": ["port"],
+                    "issue_codes": [
+                        {"code": 1008, "message": "Issue 1008 - The port is closed."}
+                    ],
+                },
+            )
+        ]
+
+
+def test_get_indexes():
+    indexes = [
+        {
+            "name": "partition",
+            "column_names": ["a", "b"],
+            "unique": False,
+        },
     ]
+
+    inspector = mock.Mock()
+    inspector.get_indexes = mock.Mock(return_value=indexes)
+
+    assert (
+        BaseEngineSpec.get_indexes(
+            database=mock.Mock(),
+            inspector=inspector,
+            table_name="bar",
+            schema="foo",
+        )
+        == indexes
+    )

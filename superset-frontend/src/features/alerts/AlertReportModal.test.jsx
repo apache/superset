@@ -341,7 +341,7 @@ describe('AlertReportModal', () => {
         .find('[data-test="select-delivery-method"]')
         .last()
         .props()
-        .onChange('Email');
+        .onSelect('Email');
     });
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('textarea[name="recipients"]')).toHaveLength(1);

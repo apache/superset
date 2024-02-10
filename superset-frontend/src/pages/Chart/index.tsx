@@ -75,9 +75,7 @@ const getDashboardPageContext = (pageId?: string | null) => {
   if (!pageId) {
     return null;
   }
-  return (
-    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
-  );
+  return getItem(LocalStorageKeys.DashboardExploreContext, {})[pageId] || null;
 };
 
 const getDashboardContextFormData = () => {
@@ -129,12 +127,13 @@ export default function ExplorePage() {
     if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData = dashboardContextFormData
-            ? getFormDataWithDashboardContext(
-                result.form_data,
-                dashboardContextFormData,
-              )
-            : result.form_data;
+          const formData =
+            !isExploreInitialized.current && dashboardContextFormData
+              ? getFormDataWithDashboardContext(
+                  result.form_data,
+                  dashboardContextFormData,
+                )
+              : result.form_data;
           dispatch(
             hydrateExplore({
               ...result,
@@ -152,7 +151,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.explore;
+    getSharedLabelColor().source = SharedLabelColorSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

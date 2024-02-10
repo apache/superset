@@ -160,7 +160,8 @@ class ChartOwnedCreatedFavoredByMeFilter(
                 Slice.id == FavStar.obj_id,
             ),
             isouter=True,
-        ).filter(  # pylint: disable=comparison-with-callable
+        ).filter(
+            # pylint: disable=comparison-with-callable
             or_(
                 Slice.id.in_(owner_ids_query),
                 Slice.created_by_fk == get_user_id(),

@@ -17,22 +17,25 @@
  * under the License.
  */
 import React, { useCallback, useMemo } from 'react';
-import { PlusSquareOutlined, MinusSquareOutlined } from '@ant-design/icons';
+import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import {
   AdhocMetric,
+  BinaryQueryObjectFilterClause,
+  CurrencyFormatter,
   DataRecordValue,
+  FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
+  getSelectedText,
+  isAdhocColumn,
+  isFeatureEnabled,
   isPhysicalColumn,
   NumberFormatter,
   styled,
-  useTheme,
-  isAdhocColumn,
-  BinaryQueryObjectFilterClause,
   t,
-  getSelectedText,
+  useTheme,
 } from '@superset-ui/core';
-import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
+import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
   MetricsLayoutEnum,
@@ -57,7 +60,7 @@ const PivotTableWrapper = styled.div`
   overflow: auto;
 `;
 
-const METRIC_KEY = t('metric');
+const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
@@ -135,13 +138,17 @@ export default function PivotTableChart(props: PivotTableProps) {
     rowSubtotalPosition,
     colSubtotalPosition,
     colTotals,
+    colSubTotals,
     rowTotals,
+    rowSubTotals,
     valueFormat,
+    currencyFormat,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,
     columnFormats,
+    currencyFormats,
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
@@ -151,27 +158,48 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const theme = useTheme();
   const defaultFormatter = useMemo(
-    () => getNumberFormatter(valueFormat),
-    [valueFormat],
+    () =>
+      currencyFormat?.symbol
+        ? new CurrencyFormatter({
+            currency: currencyFormat,
+            d3Format: valueFormat,
+          })
+        : getNumberFormatter(valueFormat),
+    [valueFormat, currencyFormat],
   );
-  const columnFormatsArray = useMemo(
-    () => Object.entries(columnFormats),
-    [columnFormats],
+  const customFormatsArray = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...Object.keys(columnFormats || {}),
+          ...Object.keys(currencyFormats || {}),
+        ]),
+      ).map(metricName => [
+        metricName,
+        columnFormats[metricName] || valueFormat,
+        currencyFormats[metricName] || currencyFormat,
+      ]),
+    [columnFormats, currencyFormat, currencyFormats, valueFormat],
   );
-  const hasCustomMetricFormatters = columnFormatsArray.length > 0;
+  const hasCustomMetricFormatters = customFormatsArray.length > 0;
   const metricFormatters = useMemo(
     () =>
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              columnFormatsArray.map(([metric, format]) => [
+              customFormatsArray.map(([metric, d3Format, currency]) => [
                 metric,
-                getNumberFormatter(format),
+                currency
+                  ? new CurrencyFormatter({
+                      currency,
+                      d3Format,
+                    })
+                  : getNumberFormatter(d3Format),
               ]),
             ),
           }
         : undefined,
-    [columnFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters],
   );
 
   const metricNames = useMemo(
@@ -406,8 +434,13 @@ export default function PivotTableChart(props: PivotTableProps) {
       clickRowHeaderCallback: toggleFilter,
       clickColumnHeaderCallback: toggleFilter,
       colTotals,
+      colSubTotals,
       rowTotals,
-      highlightHeaderCellsOnHover: emitCrossFilters,
+      rowSubTotals,
+      highlightHeaderCellsOnHover:
+        emitCrossFilters ||
+        isFeatureEnabled(FeatureFlag.DrillBy) ||
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
@@ -415,10 +448,12 @@ export default function PivotTableChart(props: PivotTableProps) {
     }),
     [
       colTotals,
+      colSubTotals,
       dateFormatters,
       emitCrossFilters,
       metricColorFormatters,
       rowTotals,
+      rowSubTotals,
       selectedFilters,
       toggleFilter,
     ],

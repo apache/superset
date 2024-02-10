@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+import json
 import os
 import tempfile
 import zipfile
@@ -122,7 +123,7 @@ class CustomFormView(SimpleFormView):
     your form pre-processing and post-processing
     """
 
-    @expose("/form", methods=["GET"])
+    @expose("/form", methods=("GET",))
     @has_access
     def this_form_get(self) -> Any:
         self._init_vars()
@@ -136,7 +137,7 @@ class CustomFormView(SimpleFormView):
             appbuilder=self.appbuilder,
         )
 
-    @expose("/form", methods=["POST"])
+    @expose("/form", methods=("POST",))
     @has_access
     def this_form_post(self) -> Any:
         self._init_vars()
@@ -166,7 +167,7 @@ class CsvToDatabaseView(CustomFormView):
         form.overwrite_duplicate.data = True
         form.skip_initial_space.data = False
         form.skip_blank_lines.data = True
-        form.infer_datetime_format.data = True
+        form.day_first.data = False
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
@@ -189,6 +190,7 @@ class CsvToDatabaseView(CustomFormView):
             delimiter_input = form.otherInput.data
 
         try:
+            kwargs = {"dtype": json.loads(form.dtype.data)} if form.dtype.data else {}
             df = pd.concat(
                 pd.read_csv(
                     chunksize=1000,
@@ -196,10 +198,9 @@ class CsvToDatabaseView(CustomFormView):
                     filepath_or_buffer=form.csv_file.data,
                     header=form.header.data if form.header.data else 0,
                     index_col=form.index_col.data,
-                    infer_datetime_format=form.infer_datetime_format.data,
+                    dayfirst=form.day_first.data,
                     iterator=True,
                     keep_default_na=not form.null_values.data,
-                    mangle_dupe_cols=form.overwrite_duplicate.data,
                     usecols=form.use_cols.data if form.use_cols.data else None,
                     na_values=form.null_values.data if form.null_values.data else None,
                     nrows=form.nrows.data,
@@ -208,6 +209,7 @@ class CsvToDatabaseView(CustomFormView):
                     skip_blank_lines=form.skip_blank_lines.data,
                     skipinitialspace=form.skip_initial_space.data,
                     skiprows=form.skiprows.data,
+                    **kwargs,
                 )
             )
 
@@ -305,7 +307,6 @@ class ExcelToDatabaseView(SimpleFormView):
 
     def form_get(self, form: ExcelToDatabaseForm) -> None:
         form.header.data = 0
-        form.mangle_dupe_cols.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
         form.sheet_name.data = ""
@@ -341,8 +342,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 index_col=form.index_col.data,
                 io=form.excel_file.data,
                 keep_default_na=not form.null_values.data,
-                mangle_dupe_cols=form.mangle_dupe_cols.data,
-                na_values=form.null_values.data if form.null_values.data else None,
+                na_values=form.null_values.data if form.null_values.data else [],
                 parse_dates=form.parse_dates.data,
                 skiprows=form.skiprows.data,
                 sheet_name=form.sheet_name.data if form.sheet_name.data else 0,
@@ -454,9 +454,10 @@ class ColumnarToDatabaseView(SimpleFormView):
         if file_type == {"zip"}:
             zipfile_ob = zipfile.ZipFile(  # pylint: disable=consider-using-with
                 form.columnar_file.data[0]
-            )  # pylint: disable=consider-using-with
+            )
             file_type = {filename.split(".")[-1] for filename in zipfile_ob.namelist()}
             files = [
+                # pylint: disable=consider-using-with
                 io.BytesIO((zipfile_ob.open(filename).read(), filename)[0])
                 for filename in zipfile_ob.namelist()
             ]

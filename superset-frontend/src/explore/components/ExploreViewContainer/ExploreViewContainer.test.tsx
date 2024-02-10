@@ -78,10 +78,13 @@ const reduxState = {
 const KEY = 'aWrs7w29sd';
 const SEARCH = `?form_data_key=${KEY}&dataset_id=1`;
 
-jest.mock('react-resize-detector', () => ({
-  __esModule: true,
-  useResizeDetector: () => ({ height: 100, width: 100 }),
-}));
+jest.mock(
+  'src/explore/components/ExploreChartPanel/useResizeDetectorByObserver',
+  () => ({
+    __esModule: true,
+    default: () => ({ height: 100, width: 100 }),
+  }),
+);
 
 jest.mock('lodash/debounce', () => ({
   __esModule: true,
@@ -94,14 +97,19 @@ fetchMock.get('glob:*/api/v1/explore/form_data*', {});
 fetchMock.get('glob:*/api/v1/chart/favorite_status*', {
   result: [{ value: true }],
 });
+fetchMock.get('glob:*/api/v1/chart/*', {
+  result: {},
+});
 
 const defaultPath = '/explore/';
 const renderWithRouter = ({
   search = '',
   overridePathname,
+  initialState = reduxState,
 }: {
   search?: string;
   overridePathname?: string;
+  initialState?: object;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
   Object.defineProperty(window, 'location', {
@@ -115,7 +123,7 @@ const renderWithRouter = ({
         <ExploreViewContainer />
       </Route>
     </MemoryRouter>,
-    { useRedux: true, initialState: reduxState },
+    { useRedux: true, useDnd: true, initialState },
   );
 };
 
@@ -141,6 +149,16 @@ test('generates a new form_data param when none is available', async () => {
     expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
+});
+
+test('renders chart in standalone mode', () => {
+  const { queryByTestId } = renderWithRouter({
+    initialState: {
+      ...reduxState,
+      explore: { ...reduxState.explore, standalone: true },
+    },
+  });
+  expect(queryByTestId('standalone-app')).toBeTruthy();
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {

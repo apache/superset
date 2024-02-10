@@ -27,6 +27,7 @@ import {
   Behavior,
   ChartDataResponseResult,
   Column,
+  isFeatureEnabled,
   FeatureFlag,
   Filter,
   GenericDataType,
@@ -54,6 +55,7 @@ import { Input, TextArea } from 'src/components/Input';
 import { Select, FormInstance } from 'src/components';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { FormItem } from 'src/components/Form';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
@@ -70,14 +72,17 @@ import {
 } from 'src/dashboard/types';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
   getFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
+import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -345,12 +350,14 @@ const FiltersConfigForm = (
   ref: React.RefObject<any>,
 ) => {
   const isRemoved = !!removedFilters[filterId];
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -368,9 +375,7 @@ const FiltersConfigForm = (
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
-    .filter(([, { value }]) =>
-      value.behaviors?.includes(Behavior.NATIVE_FILTER),
-    )
+    .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
     .map(([key]) => key);
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
@@ -440,11 +445,11 @@ const FiltersConfigForm = (
 
   const setNativeFilterFieldValuesWrapper = (values: object) => {
     setNativeFilterFieldValues(form, filterId, values);
-    setError('');
+    setError(undefined);
     forceUpdate();
   };
 
-  const setErrorWrapper = (error: string) => {
+  const setErrorWrapper = (error: ClientErrorObject) => {
     setNativeFilterFieldValues(form, filterId, {
       defaultValueQueriesData: null,
     });
@@ -475,6 +480,7 @@ const FiltersConfigForm = (
       }
       const formData = getFormData({
         datasetId: formFilter?.dataset?.value,
+        dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
       });
@@ -488,10 +494,9 @@ const FiltersConfigForm = (
       getChartDataRequest({
         formData,
         force,
-        requestParams: { dashboardId: 0 },
       })
         .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
 
@@ -506,10 +511,10 @@ const FiltersConfigForm = (
                     defaultValueQueriesData: asyncResult,
                   });
                 })
-                .catch((error: ClientErrorObject) => {
-                  setError(
-                    error.message || error.error || t('Check configuration'),
-                  );
+                .catch((error: Response) => {
+                  getClientErrorObject(error).then(clientErrorObject => {
+                    setErrorWrapper(clientErrorObject);
+                  });
                 });
             } else {
               throw new Error(
@@ -523,10 +528,8 @@ const FiltersConfigForm = (
           }
         })
         .catch((error: Response) => {
-          error.json().then(body => {
-            setErrorWrapper(
-              body.message || error.statusText || t('Check configuration'),
-            );
+          getClientErrorObject(error).then(clientErrorObject => {
+            setError(clientErrorObject);
           });
         });
     },
@@ -651,7 +654,7 @@ const FiltersConfigForm = (
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
     .filter(filter => filter.type === 'filter_time')
-    .some(filter => dependencies.includes(filter.value));
+    .some(filter => dependencies?.includes(filter.value));
 
   useEffect(() => {
     if (datasetId) {
@@ -806,7 +809,7 @@ const FiltersConfigForm = (
           <StyledFormItem
             name={['filters', filterId, 'type']}
             hidden
-            initialValue={NativeFilterType.NATIVE_FILTER}
+            initialValue={NativeFilterType.NativeFilter}
           >
             <Input />
           </StyledFormItem>
@@ -836,7 +839,7 @@ const FiltersConfigForm = (
                 const isDisabled =
                   FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
                   FILTER_SUPPORTED_TYPES[filterType]?.includes(
-                    GenericDataType.TEMPORAL,
+                    GenericDataType.Temporal,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
@@ -879,7 +882,15 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: datasetDetails.table_name,
+                        label: DatasetSelectLabel({
+                          id: datasetDetails.id,
+                          table_name: datasetDetails.table_name,
+                          schema: datasetDetails.schema,
+                          database: {
+                            database_name:
+                              datasetDetails.database.database_name,
+                          },
+                        }),
                         value: datasetDetails.id,
                       }
                     : undefined
@@ -1224,10 +1235,15 @@ const FiltersConfigForm = (
                     {error || showDefaultValue ? (
                       <DefaultValueContainer>
                         {error ? (
-                          <BasicErrorAlert
-                            title={t('Cannot load filter')}
-                            body={error}
-                            level="error"
+                          <ErrorMessageWithStackTrace
+                            error={error.errors?.[0]}
+                            fallback={
+                              <BasicErrorAlert
+                                title={t('Cannot load filter')}
+                                body={error.error}
+                                level="error"
+                              />
+                            }
                           />
                         ) : (
                           <DefaultValue

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
@@ -50,8 +50,8 @@ def create_dashboard_to_db(
     dashboard_title: Optional[str] = None,
     slug: Optional[str] = None,
     published: bool = False,
-    owners: Optional[List[User]] = None,
-    slices: Optional[List[Slice]] = None,
+    owners: Optional[list[User]] = None,
+    slices: Optional[list[Slice]] = None,
     css: str = "",
     json_metadata: str = "",
     position_json: str = "",
@@ -76,8 +76,8 @@ def create_dashboard(
     dashboard_title: Optional[str] = None,
     slug: Optional[str] = None,
     published: bool = False,
-    owners: Optional[List[User]] = None,
-    slices: Optional[List[Slice]] = None,
+    owners: Optional[list[User]] = None,
+    slices: Optional[list[Slice]] = None,
     css: str = "",
     json_metadata: str = "",
     position_json: str = "",
@@ -107,7 +107,7 @@ def insert_model(dashboard: Model) -> None:
 def create_slice_to_db(
     name: Optional[str] = None,
     datasource_id: Optional[int] = None,
-    owners: Optional[List[User]] = None,
+    owners: Optional[list[User]] = None,
 ) -> Slice:
     slice_ = create_slice(datasource_id, name=name, owners=owners)
     insert_model(slice_)
@@ -119,7 +119,7 @@ def create_slice(
     datasource_id: Optional[int] = None,
     datasource: Optional[SqlaTable] = None,
     name: Optional[str] = None,
-    owners: Optional[List[User]] = None,
+    owners: Optional[list[User]] = None,
 ) -> Slice:
     name = name if name is not None else random_str()
     owners = owners if owners is not None else []
@@ -149,7 +149,7 @@ def create_slice(
 def create_datasource_table_to_db(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
-    owners: Optional[List[User]] = None,
+    owners: Optional[list[User]] = None,
 ) -> SqlaTable:
     sqltable = create_datasource_table(name, db_id, owners=owners)
     insert_model(sqltable)
@@ -161,7 +161,7 @@ def create_datasource_table(
     name: Optional[str] = None,
     db_id: Optional[int] = None,
     database: Optional[Database] = None,
-    owners: Optional[List[User]] = None,
+    owners: Optional[list[User]] = None,
 ) -> SqlaTable:
     name = name if name is not None else random_str()
     owners = owners if owners is not None else []
@@ -192,7 +192,7 @@ def delete_all_inserted_objects() -> None:
 
 def delete_all_inserted_dashboards():
     try:
-        dashboards_to_delete: List[Dashboard] = (
+        dashboards_to_delete: list[Dashboard] = (
             session.query(Dashboard)
             .filter(Dashboard.id.in_(inserted_dashboards_ids))
             .all()
@@ -241,7 +241,7 @@ def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
 
 def delete_all_inserted_slices():
     try:
-        slices_to_delete: List[Slice] = (
+        slices_to_delete: list[Slice] = (
             session.query(Slice).filter(Slice.id.in_(inserted_slices_ids)).all()
         )
         for slice in slices_to_delete:
@@ -272,7 +272,7 @@ def delete_slice_users_associations(slice_: Slice) -> None:
 
 def delete_all_inserted_tables():
     try:
-        tables_to_delete: List[SqlaTable] = (
+        tables_to_delete: list[SqlaTable] = (
             session.query(SqlaTable)
             .filter(SqlaTable.id.in_(inserted_sqltables_ids))
             .all()
@@ -307,7 +307,7 @@ def delete_table_users_associations(table: SqlaTable) -> None:
 
 def delete_all_inserted_dbs():
     try:
-        dbs_to_delete: List[Database] = (
+        dbs_to_delete: list[Database] = (
             session.query(Database)
             .filter(Database.id.in_(inserted_databases_ids))
             .all()

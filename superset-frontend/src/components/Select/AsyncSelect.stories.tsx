@@ -26,7 +26,6 @@ import React, {
 import Button from 'src/components/Button';
 import AsyncSelect from './AsyncSelect';
 import {
-  SelectOptionsType,
   AsyncSelectProps,
   AsyncSelectRef,
   SelectOptionsTypePage,
@@ -39,40 +38,7 @@ export default {
 
 const DEFAULT_WIDTH = 200;
 
-const options: SelectOptionsType = [
-  {
-    label: 'Such an incredibly awesome long long label',
-    value: 'Such an incredibly awesome long long label',
-    custom: 'Secret custom prop',
-  },
-  {
-    label: 'Another incredibly awesome long long label',
-    value: 'Another incredibly awesome long long label',
-  },
-  {
-    label: 'JSX Label',
-    customLabel: <div style={{ color: 'red' }}>JSX Label</div>,
-    value: 'JSX Label',
-  },
-  { label: 'A', value: 'A' },
-  { label: 'B', value: 'B' },
-  { label: 'C', value: 'C' },
-  { label: 'D', value: 'D' },
-  { label: 'E', value: 'E' },
-  { label: 'F', value: 'F' },
-  { label: 'G', value: 'G' },
-  { label: 'H', value: 'H' },
-  { label: 'I', value: 'I' },
-];
-
 const ARG_TYPES = {
-  options: {
-    defaultValue: options,
-    description: `It defines the options of the Select.
-      The options can be static, an array of options.
-      The options can also be async, a promise that returns an array of options.
-    `,
-  },
   ariaLabel: {
     description: `It adds the aria-label tag for accessibility standards.
       Must be plain English and localized.

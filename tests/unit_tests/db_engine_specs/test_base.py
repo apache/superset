@@ -17,11 +17,12 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from textwrap import dedent
-from typing import Any, Dict, Optional, Type
+from typing import Any, Optional
 
 import pytest
 from sqlalchemy import types
 
+from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
@@ -130,11 +131,40 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
 )
 def test_get_column_spec(
     native_type: str,
-    sqla_type: Type[types.TypeEngine],
-    attrs: Optional[Dict[str, Any]],
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+@pytest.mark.parametrize(
+    "cols, expected_result",
+    [
+        (
+            [SQLAColumnType(name="John", type="integer", is_dttm=False)],
+            [
+                ResultSetColumnType(
+                    column_name="John", name="John", type="integer", is_dttm=False
+                )
+            ],
+        ),
+        (
+            [SQLAColumnType(name="hugh", type="integer", is_dttm=False)],
+            [
+                ResultSetColumnType(
+                    column_name="hugh", name="hugh", type="integer", is_dttm=False
+                )
+            ],
+        ),
+    ],
+)
+def test_convert_inspector_columns(
+    cols: list[SQLAColumnType], expected_result: list[ResultSetColumnType]
+):
+    from superset.db_engine_specs.base import convert_inspector_columns
+
+    assert convert_inspector_columns(cols) == expected_result

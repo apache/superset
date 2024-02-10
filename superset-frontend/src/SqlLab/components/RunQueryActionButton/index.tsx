@@ -19,14 +19,12 @@
 import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { cleanSqlComments } from 'src/SqlLab/actions/sqlLab';
 
 export interface RunQueryActionButtonProps {
   queryEditorId: string;
@@ -34,7 +32,7 @@ export interface RunQueryActionButtonProps {
   queryState?: string;
   runQuery: (c?: boolean) => void;
   stopQuery: () => void;
-  overlayCreateAsMenu: typeof Menu | null;
+  overlayCreateAsMenu: React.ReactElement | null;
 }
 
 const buildText = (
@@ -106,7 +104,9 @@ const RunQueryActionButton = ({
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled = cleanSqlComments(sqlContent).length === 0;
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -146,7 +146,9 @@ const RunQueryActionButton = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: 'primary' })}
+          : {
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+            })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>

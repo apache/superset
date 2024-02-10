@@ -66,6 +66,7 @@ def load_energy(
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = table(table_name=tbl_name, schema=schema)
+        db.session.add(tbl)
     tbl.description = "Energy consumption"
     tbl.database = database
     tbl.filter_select_enabled = True
@@ -76,7 +77,6 @@ def load_energy(
             SqlMetric(metric_name="sum__value", expression=f"SUM({col})")
         )
 
-    db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
 

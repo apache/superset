@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List
+from copy import deepcopy
+from typing import Any
 
 # example V0 import/export format
-dataset_ui_export: List[Dict[str, Any]] = [
+dataset_ui_export: list[dict[str, Any]] = [
     {
         "columns": [
             {
@@ -48,7 +49,7 @@ dataset_ui_export: List[Dict[str, Any]] = [
     }
 ]
 
-dataset_cli_export: Dict[str, Any] = {
+dataset_cli_export: dict[str, Any] = {
     "databases": [
         {
             "allow_run_async": True,
@@ -59,7 +60,7 @@ dataset_cli_export: Dict[str, Any] = {
     ]
 }
 
-dashboard_export: Dict[str, Any] = {
+dashboard_export: dict[str, Any] = {
     "dashboards": [
         {
             "__Dashboard__": {
@@ -312,41 +313,43 @@ dashboard_export: Dict[str, Any] = {
                 "sql": None,
                 "table_name": "birth_names_2",
                 "template_params": None,
+                "normalize_columns": False,
+                "always_filter_main_dttm": False,
             }
         }
     ],
 }
 
 # example V1 import/export format
-database_metadata_config: Dict[str, Any] = {
+database_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Database",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-dataset_metadata_config: Dict[str, Any] = {
+dataset_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SqlaTable",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-chart_metadata_config: Dict[str, Any] = {
+chart_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Slice",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
 
-dashboard_metadata_config: Dict[str, Any] = {
+dashboard_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "Dashboard",
     "timestamp": "2020-11-04T21:27:44.423819+00:00",
 }
-saved_queries_metadata_config: Dict[str, Any] = {
+saved_queries_metadata_config: dict[str, Any] = {
     "version": "1.0.0",
     "type": "SavedQuery",
     "timestamp": "2021-03-30T20:37:54.791187+00:00",
 }
-database_config: Dict[str, Any] = {
+database_config_sqlite: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -361,7 +364,65 @@ database_config: Dict[str, Any] = {
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
+database_config: dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "private_key": "XXXXXXXXXX",
+        "private_key_password": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_password: dict[str, Any] = {
+    "allow_csv_upload": True,
+    "allow_ctas": True,
+    "allow_cvas": True,
+    "allow_dml": True,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "someengine://user:pass@host1",
+    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
+    "ssh_tunnel": {
+        "server_address": "localhost",
+        "server_port": 22,
+        "username": "Test",
+        "password": "XXXXXXXXXX",
+    },
+    "version": "1.0.0",
+}
+
+database_with_ssh_tunnel_config_no_credentials: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -377,13 +438,11 @@ database_with_ssh_tunnel_config_private_key: Dict[str, Any] = {
         "server_address": "localhost",
         "server_port": 22,
         "username": "Test",
-        "private_key": "XXXXXXXXXX",
-        "private_key_password": "XXXXXXXXXX",
     },
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_password: Dict[str, Any] = {
+database_with_ssh_tunnel_config_mix_credentials: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -400,53 +459,12 @@ database_with_ssh_tunnel_config_password: Dict[str, Any] = {
         "server_port": 22,
         "username": "Test",
         "password": "XXXXXXXXXX",
-    },
-    "version": "1.0.0",
-}
-
-database_with_ssh_tunnel_config_no_credentials: Dict[str, Any] = {
-    "allow_csv_upload": True,
-    "allow_ctas": True,
-    "allow_cvas": True,
-    "allow_dml": True,
-    "allow_run_async": False,
-    "cache_timeout": None,
-    "database_name": "imported_database",
-    "expose_in_sqllab": True,
-    "extra": {},
-    "sqlalchemy_uri": "sqlite:///test.db",
-    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
-    "ssh_tunnel": {
-        "server_address": "localhost",
-        "server_port": 22,
-        "username": "Test",
-    },
-    "version": "1.0.0",
-}
-
-database_with_ssh_tunnel_config_mix_credentials: Dict[str, Any] = {
-    "allow_csv_upload": True,
-    "allow_ctas": True,
-    "allow_cvas": True,
-    "allow_dml": True,
-    "allow_run_async": False,
-    "cache_timeout": None,
-    "database_name": "imported_database",
-    "expose_in_sqllab": True,
-    "extra": {},
-    "sqlalchemy_uri": "sqlite:///test.db",
-    "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
-    "ssh_tunnel": {
-        "server_address": "localhost",
-        "server_port": 22,
-        "username": "Test",
-        "password": "XXXXXXXXXX",
         "private_key": "XXXXXXXXXX",
     },
     "version": "1.0.0",
 }
 
-database_with_ssh_tunnel_config_private_pass_only: Dict[str, Any] = {
+database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
     "allow_cvas": True,
@@ -468,7 +486,7 @@ database_with_ssh_tunnel_config_private_pass_only: Dict[str, Any] = {
 }
 
 
-dataset_config: Dict[str, Any] = {
+dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
     "description": "This is a dataset that was exported",
@@ -479,6 +497,8 @@ dataset_config: Dict[str, Any] = {
     "sql": "",
     "params": None,
     "template_params": {},
+    "normalize_columns": False,
+    "always_filter_main_dttm": False,
     "filter_select_enabled": True,
     "fetch_values_predicate": None,
     "extra": '{ "certification": { "certified_by": "Data Platform Team", "details": "This table is the source of truth." }, "warning_markdown": "This is a warning." }',
@@ -513,7 +533,7 @@ dataset_config: Dict[str, Any] = {
     "database_uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89",
 }
 
-chart_config: Dict[str, Any] = {
+chart_config: dict[str, Any] = {
     "slice_name": "Deck Path",
     "viz_type": "deck_path",
     "params": {
@@ -550,14 +570,48 @@ chart_config: Dict[str, Any] = {
         },
         "viz_type": "deck_path",
     },
-    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","having_druid":[],"where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
+    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
     "cache_timeout": None,
     "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
     "version": "1.0.0",
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
+chart_config_with_mixed_annotations: dict[str, Any] = deepcopy(chart_config)
+chart_config_with_mixed_annotations["params"]["annotation_layers"] = [
+    {
+        "name": "Formula test layer",
+        "annotationType": "FORMULA",
+        "color": None,
+        "descriptionColumns": [],
+        "hideLine": False,
+        "opacity": "",
+        "overrides": {"time_range": None},
+        "show": True,
+        "showLabel": False,
+        "showMarkers": False,
+        "style": "solid",
+        "value": "100000",
+        "width": 1,
+    },
+    {
+        "name": "Native layer to be removed on import",
+        "annotationType": "EVENT",
+        "sourceType": "NATIVE",
+        "color": None,
+        "opacity": "",
+        "style": "solid",
+        "width": 1,
+        "showMarkers": False,
+        "hideLine": False,
+        "value": 2,
+        "overrides": {"time_range": None},
+        "show": True,
+        "showLabel": False,
+        "descriptionColumns": [],
+    },
+]
 
-dashboard_config: Dict[str, Any] = {
+dashboard_config: dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
     "css": "",

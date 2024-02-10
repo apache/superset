@@ -17,7 +17,7 @@
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 from superset.models.slice import Slice
 
@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 def convert_filter_scopes(
-    json_metadata: Dict[Any, Any], filters: List[Slice]
-) -> Dict[int, Dict[str, Dict[str, Any]]]:
+    json_metadata: dict[Any, Any], filter_boxes: list[Slice]
+) -> dict[int, dict[str, dict[str, Any]]]:
     filter_scopes = {}
-    immuned_by_id: List[int] = json_metadata.get("filter_immune_slices") or []
-    immuned_by_column: Dict[str, List[int]] = defaultdict(list)
+    immuned_by_id: list[int] = json_metadata.get("filter_immune_slices") or []
+    immuned_by_column: dict[str, list[int]] = defaultdict(list)
     for slice_id, columns in json_metadata.get(
         "filter_immune_slice_fields", {}
     ).items():
@@ -37,7 +37,7 @@ def convert_filter_scopes(
             immuned_by_column[column].append(int(slice_id))
 
     def add_filter_scope(
-        filter_fields: Dict[str, Dict[str, Any]], filter_field: str, filter_id: int
+        filter_fields: dict[str, dict[str, Any]], filter_field: str, filter_id: int
     ) -> None:
         # in case filter field is invalid
         if isinstance(filter_field, str):
@@ -51,10 +51,10 @@ def convert_filter_scopes(
         else:
             logging.info("slice [%i] has invalid field: %s", filter_id, filter_field)
 
-    for filter_slice in filters:
-        filter_fields: Dict[str, Dict[str, Any]] = {}
-        filter_id = filter_slice.id
-        slice_params = json.loads(filter_slice.params or "{}")
+    for filter_box in filter_boxes:
+        filter_fields: dict[str, dict[str, Any]] = {}
+        filter_id = filter_box.id
+        slice_params = json.loads(filter_box.params or "{}")
         configs = slice_params.get("filter_configs") or []
 
         if slice_params.get("date_filter"):
@@ -73,10 +73,10 @@ def convert_filter_scopes(
 
 
 def copy_filter_scopes(
-    old_to_new_slc_id_dict: Dict[int, int],
-    old_filter_scopes: Dict[int, Dict[str, Dict[str, Any]]],
-) -> Dict[str, Dict[Any, Any]]:
-    new_filter_scopes: Dict[str, Dict[Any, Any]] = {}
+    old_to_new_slc_id_dict: dict[int, int],
+    old_filter_scopes: dict[int, dict[str, dict[str, Any]]],
+) -> dict[str, dict[Any, Any]]:
+    new_filter_scopes: dict[str, dict[Any, Any]] = {}
     for filter_id, scopes in old_filter_scopes.items():
         new_filter_key = old_to_new_slc_id_dict.get(int(filter_id))
         if new_filter_key:

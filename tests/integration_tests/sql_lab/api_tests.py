@@ -28,6 +28,7 @@ import prison
 from sqlalchemy.sql import func
 from unittest import mock
 
+from flask_appbuilder.security.sqla.models import Role
 from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -37,11 +38,124 @@ from superset.utils import core as utils
 from superset.models.sql_lab import Query
 
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data
 
 QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSqlLabApi(SupersetTestCase):
+    @pytest.mark.usefixtures("create_gamma_sqllab_no_data")
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": False},
+        clear=True,
+    )
+    def test_get_from_empty_bootsrap_data(self):
+        self.login(username="gamma_sqllab_no_data")
+        resp = self.client.get("/api/v1/sqllab/")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
+        assert result["active_tab"] == None
+        assert result["queries"] == {}
+        assert result["tab_state_ids"] == []
+        self.assertEqual(len(result["databases"]), 0)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": False},
+        clear=True,
+    )
+    def test_get_from_bootstrap_data_for_non_persisted_tab_state(self):
+        self.login("admin")
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        self.get_json_resp("/tabstateview/", data=data)
+        resp = self.client.get("/api/v1/sqllab/")
+        assert resp.status_code == 200
+        data = json.loads(resp.data.decode("utf-8"))
+        result = data.get("result")
+        assert result["active_tab"] == None
+        assert result["queries"] == {}
+        assert result["tab_state_ids"] == []
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_get_from_bootstrap_data_with_queries(self):
+        username = "admin"
+        self.login(username)
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+
+        # run a query in the created tab
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_1",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        # run an orphan query (no tab)
+        self.run_sql(
+            "SELECT name FROM birth_names",
+            "client_id_2",
+            username=username,
+            raise_on_error=True,
+        )
+
+        # we should have only 1 query returned, since the second one is not
+        # associated with any tabs
+        resp = self.get_json_resp("/api/v1/sqllab/")
+        result = resp["result"]
+        self.assertEqual(len(result["queries"]), 1)
+
+    def test_get_access_denied(self):
+        new_role = Role(name="Dummy Role", permissions=[])
+        db.session.add(new_role)
+        db.session.commit()
+        unauth_user = self.create_user(
+            "unauth_user1",
+            "password",
+            "Dummy Role",
+            email=f"unauth_user1@superset.org",
+        )
+        self.login(username="unauth_user1", password="password")
+        rv = self.client.get("/api/v1/sqllab/")
+
+        assert rv.status_code == 403
+
+        db.session.delete(unauth_user)
+        db.session.delete(new_role)
+        db.session.commit()
+
     def test_estimate_required_params(self):
         self.login()
 
@@ -95,7 +209,7 @@ class TestSqlLabApi(SupersetTestCase):
             return_value=formatter_response
         )
 
-        with mock.patch("superset.sqllab.commands.estimate.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.estimate.db") as mock_superset_db:
             mock_superset_db.session.query().get.return_value = db_mock
 
             data = {"database_id": 1, "sql": "SELECT 1"}
@@ -109,10 +223,23 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, success_resp)
         self.assertEqual(rv.status_code, 200)
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    def test_format_sql_request(self):
+        self.login()
+
+        data = {"sql": "select 1 from my_table"}
+        rv = self.client.post(
+            "/api/v1/sqllab/format_sql/",
+            json=data,
+        )
+        success_resp = {"result": "SELECT 1\nFROM my_table"}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, success_resp)
+        self.assertEqual(rv.status_code, 200)
+
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"client_id": client_id}
         rv = self.client.post(
@@ -149,7 +276,7 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_valid_request(self) -> None:
         from superset import sql_lab as core
 
@@ -157,7 +284,7 @@ class TestSqlLabApi(SupersetTestCase):
         core.results_backend.get.return_value = {}
 
         self.login()
-        client_id = "{}".format(random.getrandbits(64))[:10]
+        client_id = f"{random.getrandbits(64)}"[:10]
 
         data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
         rv = self.client.post(
@@ -193,9 +320,9 @@ class TestSqlLabApi(SupersetTestCase):
 
         self.delete_fake_db_for_macros()
 
-    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_get_results_with_display_limit(self):
-        from superset.sqllab.commands import results as command
+        from superset.commands.sql_lab import results as command
 
         command.results_backend = mock.Mock()
         self.login()
@@ -228,7 +355,7 @@ class TestSqlLabApi(SupersetTestCase):
         compressed = utils.zlib_compress(serialized_payload)
         command.results_backend.get.return_value = compressed
 
-        with mock.patch("superset.sqllab.commands.results.db") as mock_superset_db:
+        with mock.patch("superset.commands.sql_lab.results.db") as mock_superset_db:
             mock_superset_db.session.query().filter_by().one_or_none.return_value = (
                 query_mock
             )

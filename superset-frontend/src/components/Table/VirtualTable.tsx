@@ -25,12 +25,13 @@ import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
-import { useTheme, styled } from '@superset-ui/core';
+import { useTheme, styled, safeHtmlSpan } from '@superset-ui/core';
 
 import { TableSize, ETableAction } from './index';
 
 interface VirtualTableProps<RecordType> extends AntTableProps<RecordType> {
   height?: number;
+  allowHTML?: boolean;
 }
 
 const StyledCell = styled('div')<{ height?: number }>(
@@ -60,8 +61,11 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
 
     .ant-pagination-item-active {
       border-color: ${theme.colors.primary.base};
+      }
     }
-  }
+    .ant-table.ant-table-small {
+      font-size: ${theme.typography.sizes.s}px;
+    }
 `,
 );
 
@@ -71,7 +75,15 @@ const MIDDLE = 47;
 const VirtualTable = <RecordType extends object>(
   props: VirtualTableProps<RecordType>,
 ) => {
-  const { columns, pagination, onChange, height, scroll, size } = props;
+  const {
+    columns,
+    pagination,
+    onChange,
+    height,
+    scroll,
+    size,
+    allowHTML = false,
+  } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
   const onResize = useCallback((width: number) => {
     setTableWidth(width);
@@ -166,7 +178,7 @@ const VirtualTable = <RecordType extends object>(
       {},
       {},
       {
-        action: ETableAction.PAGINATE,
+        action: ETableAction.Paginate,
         currentDataSource: [],
       },
     );
@@ -175,7 +187,7 @@ const VirtualTable = <RecordType extends object>(
   const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
-    const cellSize = size === TableSize.MIDDLE ? MIDDLE : SMALL;
+    const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
     return (
       <Grid
         ref={gridRef}
@@ -211,6 +223,10 @@ const VirtualTable = <RecordType extends object>(
           if (typeof render === 'function') {
             // Use render function to generate formatted content using column's render function
             content = render(content, data, rowIndex);
+          }
+
+          if (allowHTML && typeof content === 'string') {
+            content = safeHtmlSpan(content);
           }
 
           return (

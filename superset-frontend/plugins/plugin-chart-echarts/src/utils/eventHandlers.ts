@@ -21,12 +21,18 @@ import {
   ContextMenuFilters,
   DataMask,
   QueryFormColumn,
+  QueryFormData,
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
 } from '@superset-ui/core';
+
 import {
   BaseTransformedProps,
   CrossFilterTransformedProps,
   EventHandlers,
 } from '../types';
+import { formatSeriesName } from './series';
 
 export type Event = {
   name: string;
@@ -106,6 +112,8 @@ export const contextMenuEventHandler =
     getCrossFilterDataMask: (
       value: string,
     ) => ContextMenuFilters['crossFilter'],
+    formData: QueryFormData,
+    coltypeMapping?: Record<string, number>,
   ) =>
   (e: Event) => {
     if (onContextMenu) {
@@ -114,14 +122,18 @@ export const contextMenuEventHandler =
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
-        groupby.forEach((dimension, i) =>
+        groupby.forEach((dimension, i) => {
           drillFilters.push({
             col: dimension,
             op: '==',
             val: values[i],
-            formattedVal: String(values[i]),
-          }),
-        );
+            formattedVal: formatSeriesName(values[i], {
+              timeFormatter: getTimeFormatter(formData.dateFormat),
+              numberFormatter: getNumberFormatter(formData.numberFormat),
+              coltype: coltypeMapping?.[getColumnLabel(dimension)],
+            }),
+          });
+        });
       }
       onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
         drillToDetail: drillFilters,
@@ -141,6 +153,8 @@ export const allEventHandlers = (
     labelMap,
     emitCrossFilters,
     selectedValues,
+    coltypeMapping,
+    formData,
   } = transformedProps;
   const eventHandlers: EventHandlers = {
     click: clickEventHandler(
@@ -153,6 +167,8 @@ export const allEventHandlers = (
       onContextMenu,
       labelMap,
       getCrossFilterDataMask(selectedValues, groupby, labelMap),
+      formData,
+      coltypeMapping,
     ),
   };
   return eventHandlers;

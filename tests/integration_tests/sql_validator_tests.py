@@ -19,12 +19,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import pytest
 from pyhive.exc import DatabaseError
 
-from superset import app
-from superset.sql_validators import SQLValidationAnnotation
-from superset.sql_validators.base import BaseSQLValidator
 from superset.sql_validators.postgres import PostgreSQLValidator
 from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
@@ -33,139 +29,6 @@ from superset.sql_validators.presto_db import (
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
-
-PRESTO_SQL_VALIDATORS_BY_ENGINE = {
-    "presto": "PrestoDBSQLValidator",
-    "sqlite": "PrestoDBSQLValidator",
-    "postgresql": "PrestoDBSQLValidator",
-    "mysql": "PrestoDBSQLValidator",
-}
-
-
-class TestSqlValidatorEndpoint(SupersetTestCase):
-    """Testing for Sql Lab querytext validation endpoint"""
-
-    def tearDown(self):
-        self.logout()
-
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        {},
-        clear=True,
-    )
-    def test_validate_sql_endpoint_noconfig(self):
-        """Assert that validate_sql_json errors out when no validators are
-        configured for any db"""
-        self.login("admin")
-
-        resp = self.validate_sql(
-            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
-        )
-        self.assertIn("error", resp)
-        self.assertIn("no SQL validator is configured", resp["error"])
-
-    @patch("superset.views.core.get_validator_by_name")
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        PRESTO_SQL_VALIDATORS_BY_ENGINE,
-        clear=True,
-    )
-    def test_validate_sql_endpoint_mocked(self, get_validator_by_name):
-        """Assert that, with a mocked validator, annotations make it back out
-        from the validate_sql_json endpoint as a list of json dictionaries"""
-        if get_example_database().backend == "hive":
-            pytest.skip("Hive validator is not implemented")
-        self.login("admin")
-
-        validator = MagicMock()
-        get_validator_by_name.return_value = validator
-        validator.validate.return_value = [
-            SQLValidationAnnotation(
-                message="I don't know what I expected, but it wasn't this",
-                line_number=4,
-                start_column=12,
-                end_column=42,
-            )
-        ]
-
-        resp = self.validate_sql(
-            "SELECT * FROM somewhere_over_the_rainbow",
-            client_id="1",
-            raise_on_error=False,
-        )
-
-        self.assertEqual(1, len(resp))
-        self.assertIn("expected,", resp[0]["message"])
-
-    @patch("superset.views.core.get_validator_by_name")
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        PRESTO_SQL_VALIDATORS_BY_ENGINE,
-        clear=True,
-    )
-    def test_validate_sql_endpoint_mocked_params(self, get_validator_by_name):
-        """Assert that, with a mocked validator, annotations make it back out
-        from the validate_sql_json endpoint as a list of json dictionaries"""
-        if get_example_database().backend == "hive":
-            pytest.skip("Hive validator is not implemented")
-        self.login("admin")
-
-        validator = MagicMock()
-        get_validator_by_name.return_value = validator
-        validator.validate.return_value = [
-            SQLValidationAnnotation(
-                message="This worked",
-                line_number=4,
-                start_column=12,
-                end_column=42,
-            )
-        ]
-
-        resp = self.validate_sql(
-            "SELECT * FROM somewhere_over_the_rainbow",
-            client_id="1",
-            raise_on_error=False,
-            template_params="null",
-        )
-
-        self.assertEqual(1, len(resp))
-        self.assertNotIn("error,", resp[0]["message"])
-
-    @patch("superset.views.core.get_validator_by_name")
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        PRESTO_SQL_VALIDATORS_BY_ENGINE,
-        clear=True,
-    )
-    def test_validate_sql_endpoint_failure(self, get_validator_by_name):
-        """Assert that validate_sql_json errors out when the selected validator
-        raises an unexpected exception"""
-        self.login("admin")
-
-        validator = MagicMock()
-        get_validator_by_name.return_value = validator
-        validator.validate.side_effect = Exception("Kaboom!")
-
-        resp = self.validate_sql(
-            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
-        )
-        # TODO(bkyryliuk): properly handle hive error
-        if get_example_database().backend == "hive":
-            assert resp["error"] == "no SQL validator is configured for hive"
-        else:
-            self.assertIn("error", resp)
-            self.assertIn("Kaboom!", resp["error"])
-
-
-class TestBaseValidator(SupersetTestCase):
-    """Testing for the base sql validator"""
-
-    def setUp(self):
-        self.validator = BaseSQLValidator
-
-    def test_validator_excepts(self):
-        with self.assertRaises(NotImplementedError):
-            self.validator.validate(None, None, None)
 
 
 class TestPrestoValidator(SupersetTestCase):
@@ -235,22 +98,6 @@ class TestPrestoValidator(SupersetTestCase):
         errors = self.validator.validate(sql, schema, self.database)
 
         self.assertEqual(1, len(errors))
-
-    @patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        {},
-        clear=True,
-    )
-    def test_validate_sql_endpoint(self):
-        self.login("admin")
-        # NB this is effectively an integration test -- when there's a default
-        #    validator for sqlite, this test will fail because the validator
-        #    will no longer error out.
-        resp = self.validate_sql(
-            "SELECT * FROM birth_names", client_id="1", raise_on_error=False
-        )
-        self.assertIn("error", resp)
-        self.assertIn("no SQL validator is configured", resp["error"])
 
 
 class TestPostgreSQLValidator(SupersetTestCase):

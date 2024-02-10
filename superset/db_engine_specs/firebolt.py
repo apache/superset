@@ -15,10 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 
@@ -31,19 +32,19 @@ class FireboltEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
-        "PT1M": "date_trunc('minute', CAST({col} AS TIMESTAMP))",
-        "PT1H": "date_trunc('hour', CAST({col} AS TIMESTAMP))",
-        "P1D": "date_trunc('day', CAST({col} AS TIMESTAMP))",
-        "P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
-        "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
-        "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
-        "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
+        TimeGrain.SECOND: "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MINUTE: "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        TimeGrain.HOUR: "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        TimeGrain.DAY: "date_trunc('day', CAST({col} AS TIMESTAMP))",
+        TimeGrain.WEEK: "date_trunc('week', CAST({col} AS TIMESTAMP))",
+        TimeGrain.MONTH: "date_trunc('month', CAST({col} AS TIMESTAMP))",
+        TimeGrain.QUARTER: "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+        TimeGrain.YEAR: "date_trunc('year', CAST({col} AS TIMESTAMP))",
     }
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+        cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         sqla_type = cls.get_sqla_column_type(target_type)
 

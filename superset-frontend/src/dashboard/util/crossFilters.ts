@@ -24,25 +24,49 @@ import {
   isDefined,
   isFeatureEnabled,
 } from '@superset-ui/core';
-import { DASHBOARD_ROOT_ID } from './constants';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
-import { ChartsState, DashboardInfo, DashboardLayout } from '../types';
+import {
+  ChartsState,
+  DashboardInfo,
+  DashboardLayout,
+  GLOBAL_SCOPE_POINTER,
+  isCrossFilterScopeGlobal,
+} from '../types';
+import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
-  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
   (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);
 
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,
-  initialConfig: DashboardInfo['metadata']['chart_configuration'] = {},
+  metadata: Pick<
+    DashboardInfo['metadata'],
+    'chart_configuration' | 'global_chart_configuration'
+  >,
   charts: ChartsState,
 ) => {
-  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (!isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     return undefined;
   }
-  // If user just added cross filter to dashboard it's not saving it scope on server,
+
+  const globalChartConfiguration = metadata.global_chart_configuration?.scope
+    ? {
+        scope: metadata.global_chart_configuration.scope,
+        chartsInScope: getChartIdsInFilterScope(
+          metadata.global_chart_configuration.scope,
+          Object.values(charts).map(chart => chart.id),
+          dashboardLayout,
+        ),
+      }
+    : {
+        scope: DEFAULT_CROSS_FILTER_SCOPING,
+        chartsInScope: Object.values(charts).map(chart => chart.id),
+      };
+
+  // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
   const chartConfiguration = {};
   Object.values(dashboardLayout).forEach(layoutItem => {
@@ -58,29 +82,33 @@ export const getCrossFiltersConfiguration = (
         {}
       )?.behaviors ?? [];
 
-    if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
-      if (initialConfig[chartId]) {
+    if (behaviors.includes(Behavior.InteractiveChart)) {
+      if (metadata.chart_configuration?.[chartId]) {
         // We need to clone to avoid mutating Redux state
-        chartConfiguration[chartId] = cloneDeep(initialConfig[chartId]);
+        chartConfiguration[chartId] = cloneDeep(
+          metadata.chart_configuration[chartId],
+        );
       }
       if (!chartConfiguration[chartId]) {
         chartConfiguration[chartId] = {
           id: chartId,
           crossFilters: {
-            scope: {
-              rootPath: [DASHBOARD_ROOT_ID],
-              excluded: [chartId], // By default it doesn't affects itself
-            },
+            scope: GLOBAL_SCOPE_POINTER,
           },
         };
       }
       chartConfiguration[chartId].crossFilters.chartsInScope =
-        getChartIdsInFilterScope(
-          chartConfiguration[chartId].crossFilters.scope,
-          charts,
-          dashboardLayout,
-        );
+        isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
+          ? globalChartConfiguration.chartsInScope.filter(
+              id => id !== Number(chartId),
+            )
+          : getChartIdsInFilterScope(
+              chartConfiguration[chartId].crossFilters.scope,
+              Object.values(charts).map(chart => chart.id),
+              dashboardLayout,
+            );
     }
   });
-  return chartConfiguration;
+
+  return { chartConfiguration, globalChartConfiguration };
 };

@@ -38,17 +38,17 @@ const dropdownItems = [
     childs: [
       {
         label: 'Connect database',
-        name: GlobalMenuDataOptions.DB_CONNECTION,
+        name: GlobalMenuDataOptions.DbConnection,
         perm: true,
       },
       {
         label: 'Create dataset',
-        name: GlobalMenuDataOptions.DATASET_CREATION,
+        name: GlobalMenuDataOptions.DatasetCreation,
         perm: true,
       },
       {
         label: 'Connect Google Sheet',
-        name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+        name: GlobalMenuDataOptions.GoogleSheets,
         perm: true,
       },
       {
@@ -73,7 +73,7 @@ const dropdownItems = [
   },
   {
     label: 'SQL query',
-    url: '/superset/sqllab?new=true',
+    url: '/sqllab?new=true',
     icon: 'fa-fw fa-search',
     perm: 'can_sqllab',
     view: 'Superset',
@@ -117,7 +117,6 @@ const createProps = (): RightMenuProps => ({
     user_info_url: '/users/userinfo/',
     user_logout_url: '/logout/',
     user_login_url: '/login/',
-    user_profile_url: '/profile/',
     locale: 'en',
     version_string: '1.0.0',
     version_sha: 'randomSHA',

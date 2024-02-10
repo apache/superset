@@ -137,6 +137,9 @@
         "应作为日期解析的列的逗号分隔列表。"
       ],
       "A database with the same name already exists.": ["已存在同名的数据库。"],
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+        ""
+      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "指向内置插件位置的完整URL（例如，可以托管在CDN上）"
       ],
@@ -201,7 +204,6 @@
       "Add Log": ["新增日志"],
       "Add Metric": ["添加指标"],
       "Add Report": ["添加报告"],
-      "Add Row level security filter": ["添加行级安全过滤"],
       "Add Saved Query": ["添加保存的查询"],
       "Add a Plugin": ["添加插件"],
       "Add a new tab": ["添加新的标签页"],
@@ -214,6 +216,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
       ],
+      "Add custom scoping": [""],
       "Add delivery method": ["添加通知方法"],
       "Add filter": ["增加过滤条件"],
       "Add filter clauses to control the filter's source query,\n                    though only in the context of the autocomplete i.e., these conditions\n                    do not impact how the filter is applied to the dashboard. This is useful\n                    when you want to improve the query's performance by only scanning a subset\n                    of the underlying data or limit the available values displayed in the filter.": [
@@ -292,6 +295,7 @@
       "All": ["所有"],
       "All Text": ["所有文本"],
       "All charts": ["所有图表"],
+      "All charts/global scoping": [""],
       "All filters": ["所有过滤"],
       "All filters (%(filterCount)d)": ["所有过滤(%(filterCount)d)"],
       "All panels": ["应用于所有面板"],
@@ -783,19 +787,15 @@
       ],
       "Choose a database...": ["选择数据库"],
       "Choose a dataset": ["选择数据源"],
-      "Choose a metric for left axis": ["选择左轴的计量指标"],
       "Choose a metric for right axis": ["为右轴选择一个指标"],
       "Choose a number format": ["选择一种数字格式"],
       "Choose a source": ["选择一个源"],
       "Choose a source and a target": ["选择一个源和一个目标"],
       "Choose a target": ["选择一个目标"],
-      "Choose a unique name": [""],
       "Choose chart type": ["选择图表类型"],
       "Choose one of the available databases from the panel on the left.": [
         "从左侧的面板中选择一个可用的数据库"
       ],
-      "Choose one or more charts for left axis": ["为左轴选择一个或多个图表"],
-      "Choose one or more charts for right axis": ["为右轴选择一个或多个图表"],
       "Choose the annotation layer type": ["选择注释层类型"],
       "Choose the source of your annotations": ["选择您的注释来源"],
       "Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette": [
@@ -894,7 +894,6 @@
       "Columns to group by": ["需要进行分组的一列或多列"],
       "Columns to group by on the columns": ["必须是分组列"],
       "Columns to group by on the rows": ["行上分组所依据的列"],
-      "Combine Metrics": ["整合指标"],
       "Combine metrics": ["整合指标"],
       "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.": [
         "间隔的逗号分隔色选项，例如1、2、4。整数表示所选配色方案中的颜色，并以1为索引。长度必须与间隔界限匹配。"
@@ -996,6 +995,7 @@
         "无法加载数据库驱动程序：%(driver_name)s"
       ],
       "Could not load database driver: {}": ["无法加载数据库驱动程序：{}"],
+      "Could not resolve hostname: \"%(host)s\".": [""],
       "Count as Fraction of Columns": [""],
       "Count as Fraction of Rows": [""],
       "Count as Fraction of Total": [""],
@@ -1168,6 +1168,7 @@
       ],
       "December": ["十二月"],
       "Decides which column to sort the base axis by.": [""],
+      "Decides which measure to sort the base axis by.": [""],
       "Decimal Character": ["十进制字符"],
       "Deck.gl - 3D Grid": ["Deck.gl - 3D网格"],
       "Deck.gl - 3D HEX": ["Deck.gl - 3D六角曲面"],
@@ -1289,7 +1290,6 @@
         "在每个列中并排显示指标，而不是每个指标并排显示每个列。"
       ],
       "Display row level total": ["显示行级合计"],
-      "Display total row/column": ["显示总行 / 列"],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         "显示图形结构中实体之间的连接。用于映射关系和显示网络中哪些节点是重要的。图表可以配置为强制引导或循环。如果您的数据具有地理空间组件，请尝试使用deck.gl圆弧图表。"
       ],
@@ -1328,10 +1328,7 @@
         ""
       ],
       "Drill to detail: %s": [""],
-      "Drop columns here": ["将列拖放到此处"],
-      "Drop columns or metrics here": ["将列或指标拖放到此处"],
       "Drop columns/metrics here or click": ["将列/指标拖放到此处或单击"],
-      "Drop temporal column here": ["将时间列拖放到此处"],
       "Dual Line Chart": ["双线图"],
       "Duplicate column name(s): %(columns)s": ["重复的列名%(columns)s"],
       "Duplicate column/metric labels: %(labels)s. Please make sure all columns and metrics have a unique label.": [
@@ -1381,7 +1378,6 @@
       "Edit Metric": ["编辑指标"],
       "Edit Plugin": ["编辑插件"],
       "Edit Report": ["编辑报表"],
-      "Edit Row level security filter": ["编辑行级安全过滤"],
       "Edit Saved Query": ["编辑保存的查询"],
       "Edit Table": ["编辑表"],
       "Edit annotation": ["编辑注释"],
@@ -1561,8 +1557,10 @@
       "Failed at stopping query. %s": ["停止查询失败。 %s"],
       "Failed to create report": [""],
       "Failed to execute %(query)s": [""],
+      "Failed to generate chart edit URL": [""],
       "Failed to load chart data": [""],
       "Failed to load chart data.": [""],
+      "Failed to load dimensions for drill by": [""],
       "Failed to start remote query on a worker.": ["无法启动远程查询"],
       "Failed to update report": [""],
       "Failed to verify select options: %s": ["验证选择选项失败：%s"],
@@ -1587,7 +1585,6 @@
       "Filter": ["过滤器"],
       "Filter List": ["过滤"],
       "Filter Type": ["过滤类型"],
-      "Filter box": ["过滤器"],
       "Filter configuration": ["过滤配置"],
       "Filter configuration for the filter box": ["过滤条件的过滤配置"],
       "Filter has default value": ["过滤器默认值"],
@@ -1687,7 +1684,6 @@
       "Gravity": ["重力"],
       "Group By": ["分组"],
       "Group By filter plugin": ["分组过滤插件"],
-      "Group By' and 'Columns' can't overlap": ["“Group by”列和字段不能重叠"],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "分组、指标或百分比指标必须具有值"
       ],
@@ -1797,6 +1793,10 @@
       ],
       "Instant filtering": ["即时过滤"],
       "Intensity": ["强度"],
+      "Intensity Radius is the radius at which the weight is distributed": [""],
+      "Intensity is the value multiplied by the weight to obtain the final weight": [
+        ""
+      ],
       "Interval End column": ["间隔结束列"],
       "Interval bounds": ["区间间隔"],
       "Interval colors": ["间隔颜色"],
@@ -1829,6 +1829,7 @@
         "%(rolling_type)s 的选项无效：%(options)s"
       ],
       "Invalid permalink key": [""],
+      "Invalid reference to column: \"%(column)s\"": [""],
       "Invalid result type: %(result_type)s": [
         "无效的结果类型：%(result_type)s"
       ],
@@ -1907,7 +1908,6 @@
       "Least recently modified": ["最远修改"],
       "Left": ["左边"],
       "Left Axis Format": ["左轴格式化"],
-      "Left Axis Metric": ["左轴指标"],
       "Left Axis chart(s)": ["左轴图表"],
       "Left Margin": ["左边距"],
       "Left margin, in pixels, allowing for more room for axis labels": [
@@ -1974,7 +1974,6 @@
       "Manage": ["管理"],
       "Manage your databases": ["管理你的数据库"],
       "Mandatory": ["必填参数"],
-      "Mangle Duplicate Columns": ["混合重复列"],
       "Map": ["地图"],
       "Map Style": ["地图样式"],
       "MapBox": ["MapBox地图"],
@@ -2087,7 +2086,6 @@
       "Multi-Levels": ["多层次"],
       "Multi-Variables": ["多元"],
       "Multiple": ["多方"],
-      "Multiple Line Charts": ["复合折线图"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "柱状上传不允许使用多个文件扩展名请确保所有文件的扩展名相同。"
       ],
@@ -2162,7 +2160,6 @@
       "No data in file": ["文件中无数据"],
       "No databases match your search": ["没有与您的搜索匹配的数据库"],
       "No description available.": ["没有可用的描述"],
-      "No dimensions available for drill by": [""],
       "No favorite charts yet, go click on stars!": [
         "暂无收藏的图表，去点击星星吧！"
       ],
@@ -2315,7 +2312,6 @@
       ],
       "Optional name of the data column.": ["数据列的可选名称"],
       "Optional warning about use of this metric": ["关于使用此指标的可选警告"],
-      "Optionally add a detailed description": [""],
       "Options": ["设置"],
       "Or choose from a list of other databases we support:": [
         "或者从我们支持的其他数据库列表中选择："
@@ -2403,8 +2399,6 @@
       "Pick a granularity in the Time section or uncheck 'Include Time'": [
         "在“时间”部分选择一个粒度，或取消选中“包含时间”"
       ],
-      "Pick a metric for left axis!": ["为左轴选择一个指标！"],
-      "Pick a metric for right axis!": ["为右轴选择一个指标！"],
       "Pick a metric for x, y and size": ["为 x 轴，y 轴和大小选择一个指标"],
       "Pick a metric to display": ["选择一个指标来显示"],
       "Pick a metric!": ["选择一个指标！"],
@@ -2428,9 +2422,7 @@
       "Pie Chart": ["饼图"],
       "Pie shape": ["饼图形状"],
       "Pin": ["Pin"],
-      "Pivot Options": ["透视表选项"],
       "Pivot Table": ["透视表"],
-      "Pivot Table (legacy)": [""],
       "Pivot operation must include at least one aggregate": [
         "数据透视操作必须至少包含一个聚合"
       ],
@@ -2452,7 +2444,6 @@
       "Please check your query for syntax errors near \"%(server_error)s\". Then, try running your query again.": [
         "请检查查询中\"%(server_error)s\"附近的语法错误然后，再次尝试运行查询"
       ],
-      "Please choose at least one metric": ["请至少选择一个指标"],
       "Please choose different metrics on left and right axis": [
         "请在左右轴上选择不同的指标"
       ],
@@ -2497,6 +2488,7 @@
       "Port %(port)s on hostname \"%(hostname)s\" refused the connection.": [
         "主机名 \"%(hostname)s\" 上的端口 %(port)s 拒绝连接。"
       ],
+      "Port out of range 0-65535": [""],
       "Position JSON": ["位置JSON"],
       "Position of child node label on tree": ["子节点标签在树上的位置"],
       "Position of column level subtotal": ["列级小计的位置"],
@@ -2510,7 +2502,6 @@
       ],
       "Predictive": ["预测"],
       "Predictive Analytics": ["预测分析"],
-      "Prefix metric name with slice name": ["用图表名称作为指标名称的前缀"],
       "Preview": ["预览"],
       "Preview: `%s`": ["预览 %s"],
       "Previous": ["之前"],
@@ -2612,9 +2603,6 @@
       "Refresh frequency": ["刷新频率"],
       "Refresh interval": ["刷新间隔"],
       "Refresh the default values": ["刷新默认值"],
-      "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter. Base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
-        "常规过滤将where子句添加到查询中，以确定用户是否属于过滤中引用的角色。基本过滤将应用于除过滤中定义的角色之外的所有查询，并且可以用于定义在没有应用RLS过滤组的情况下，哪些用户可以看到内容。"
-      ],
       "Relational": ["执行时间"],
       "Relationships between community channels": ["社区渠道之间的关系"],
       "Relative Date/Time": ["相对日期/时间"],
@@ -2687,7 +2675,6 @@
       "Right": ["高度"],
       "Right Axis Format": ["右轴格式化"],
       "Right Axis Metric": ["右轴指标"],
-      "Right Axis chart(s)": ["右轴图表"],
       "Right axis metric": ["右轴指标"],
       "Right to Left": ["右到左"],
       "Right value": ["右侧的值"],
@@ -2716,13 +2703,13 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         "作为列名的带有标题的行（０是第一行数据）。如果没有标题行则留空。"
       ],
-      "Row level security filter": ["行级安全过滤"],
       "Row limit": ["行限制"],
       "Rows": ["行"],
       "Rows per page, 0 means no pagination": ["每页行数，0 表示没有分页"],
       "Rows subtotal position": ["行小计的位置"],
       "Rows to Read": ["读取的行"],
       "Rule": ["规则"],
+      "Rule added": [""],
       "Run": ["执行"],
       "Run in SQL Lab": ["在 SQL 工具箱中执行"],
       "Run query": ["运行查询"],
@@ -2860,6 +2847,12 @@
       "Select scheme": ["选择表"],
       "Select start and end date": ["选择开始和结束时间"],
       "Select subject": ["选择主题"],
+      "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
+      "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
+        ""
+      ],
       "Select the number of bins for the histogram": ["选择直方图的容器数"],
       "Select the numeric columns to draw the histogram": [
         "选择直方图的容器数"
@@ -2923,7 +2916,6 @@
       "Show Metric": ["显示指标"],
       "Show Metric Names": ["显示指标名"],
       "Show Range Filter": ["显示范围过滤器"],
-      "Show Row level security filter": ["显示行级安全过滤"],
       "Show Saved Query": ["显示保存的查询"],
       "Show Table": ["显示表"],
       "Show Timestamp": ["显示时间戳"],
@@ -2983,9 +2975,6 @@
         "详细提示显示了该时间点的所有序列的列表。"
       ],
       "Shows or hides markers for the time series": [""],
-      "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
-        "显示数据集的组成，方法是将给定矩形分割为较小的矩形，其面积与矩形的值或对整体的贡献成比例。这些矩形也可以按层次进一步分割"
-      ],
       "Significance Level": ["显著性"],
       "Simple": ["简单配置"],
       "Simple ad-hoc metrics are not enabled for this dataset": [
@@ -3133,13 +3122,15 @@
       "Superset encountered an unexpected error.": ["报告计划意外错误。"],
       "Supported databases": ["已支持数据库"],
       "Survey Responses": ["调查结果"],
-      "Swap Groups and Columns": ["交换组和列"],
       "Swap rows and columns": ["交换组和列"],
       "Symbol": ["符号"],
       "Symbol of two ends of edge line": ["边线两端的符号"],
       "Symbol size": ["符号的大小"],
       "Sync columns from source": ["从源同步列"],
       "Syntax": ["语法"],
+      "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s": [
+        ""
+      ],
       "TABLES": ["表"],
       "THU": ["星期四"],
       "TUE": ["星期二"],
@@ -3173,7 +3164,6 @@
         "获取数据点，并将其分组，以查看信息最密集的区域"
       ],
       "Target": ["目标"],
-      "Target aspect ratio for treemap tiles.": ["树形图中图块的目标高宽比。"],
       "Target category": ["目标类别"],
       "Target value": ["目标值"],
       "Template Name": ["模板名称"],
@@ -3312,8 +3302,8 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "用于移动时间列的小时数（负数或正数）。这可用于将UTC时间移动到本地时间"
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
-        "显示的结果数由配置DISPLAY_MAX_rows限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 %(limit)d "
+      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
+        "显示的结果数由配置DISPLAY_MAX_ROW限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 %(limit)d "
       ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
         "显示的结果数限制为 %(rows)d。请添加其他筛选器，下载到csv，或与管理员联系以查看 %(limit)d 的更多行”"
@@ -3457,6 +3447,9 @@
         "指定点半径的度量单位"
       ],
       "The user seems to have been deleted": ["用户已经被删除"],
+      "The user/password combination is not valid (Incorrect password for user).": [
+        ""
+      ],
       "The username \"%(username)s\" does not exist.": [
         "指标 '%(username)s' 不存在"
       ],
@@ -3567,7 +3560,7 @@
       "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com).": [
         "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如127.0.0.1)"
       ],
-      "This chart emits/applies cross-filters to other charts that use the same dataset": [
+      "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
         ""
       ],
       "This chart has been moved to a different filter scope.": [
@@ -3682,9 +3675,7 @@
       "Time Range": ["时间范围"],
       "Time Series": ["时间序列"],
       "Time Series - Bar Chart": ["时间序列 - 柱状图"],
-      "Time Series - Dual Axis Line Chart": ["时间序列-双轴线图"],
       "Time Series - Line Chart": ["时间序列-折线图"],
-      "Time Series - Multiple Line Charts": ["时间序列-多线图"],
       "Time Series - Nightingale Rose Chart": ["时间序列 - 南丁格尔玫瑰图"],
       "Time Series - Paired t-test": ["时间序列 - 配对t检验"],
       "Time Series - Percent Change": ["时间序列 - 百分比变化"],
@@ -3774,13 +3765,11 @@
       "Track job": ["跟踪任务"],
       "Transformable": ["转换"],
       "Transparent": ["透明"],
-      "Transpose Pivot": ["转置透视图"],
       "Transpose pivot": ["转置透视图"],
       "Tree Chart": ["树状图"],
       "Tree layout": ["布局"],
       "Tree orientation": ["方向"],
       "Treemap": ["树状地图"],
-      "Treemap (legacy)": [""],
       "Trend": ["趋势"],
       "Triangle": ["三角形"],
       "Trigger Alert If...": ["如果 ... 则触发警报"],
@@ -3824,6 +3813,8 @@
         ""
       ],
       "Unable to create chart without a query id.": [""],
+      "Unable to decode value": [""],
+      "Unable to encode value": [""],
       "Unable to find such a holiday: [%(holiday)s]": [
         "找不到这样的假期：[{}]"
       ],
@@ -3930,9 +3921,6 @@
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
         "在内部用于标识插件。应该在插件的 package.json 内被设置为包名。"
       ],
-      "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location.\n\n  This chart is being deprecated and we recommend checking out Pivot Table V2 instead!": [
-        "用于通过将多个统计数据分组来总结一组数据"
-      ],
       "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile.": [
         "用于通过将多个统计信息分组在一起来汇总一组数据"
       ],
@@ -3947,6 +3935,9 @@
       ],
       "User query": ["用户查询"],
       "Username": ["用户名"],
+      "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data": [
+        ""
+      ],
       "Uses a gauge to showcase progress of a metric towards a target. The position of the dial represents the progress and the terminal value in the gauge represents the target value.": [
         "使用一个度量来展示实现目标的度量的进展"
       ],
@@ -4004,9 +3995,6 @@
       ],
       "Visualize two different time series using the same x-axis time range. This chart is being deprecated and we recommend using the Mixed Timeseries Chart instead!": [
         "使用相同的x轴时间范围可视化两个不同的时间序列。此图表已被弃用，我们建议使用混合改为时间序列图！"
-      ],
-      "Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.": [
-        "使用相同的x轴将2个指标可视化为折线图。此图表可用于比较相同时间范围内的指标。"
       ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "在单个图表中跨三维数据（X轴、Y轴和气泡大小）可视化度量。同一组中的气泡可以“使用气泡颜色显示"
@@ -4226,14 +4214,10 @@
       "Y AXIS TITLE MARGIN": ["Y轴标题页边距"],
       "Y AXIS TITLE POSITION": ["Y轴标题位置"],
       "Y Axis": ["Y 轴"],
-      "Y Axis 1": ["Y 轴 1"],
-      "Y Axis 2": ["Y 轴 2"],
       "Y Axis 2 Bounds": ["Y 轴界限"],
       "Y Axis Bounds": ["Y 轴界限"],
       "Y Axis Format": ["Y 轴格式化"],
       "Y Axis Label": ["Y 轴标签"],
-      "Y Axis Left": ["Y轴左侧"],
-      "Y Axis Right": ["Y轴右侧"],
       "Y Axis Title": ["Y 轴标题"],
       "Y Log Scale": ["Y经度标度"],
       "Y bounds": ["Y界限"],
@@ -4445,6 +4429,7 @@
       "e.g. world_population": ["世界人口"],
       "e.g. xy12345.us-east-2.aws": [""],
       "e.g., a \"user id\" column": ["时间序列的列"],
+      "error dark": [""],
       "every": ["任意"],
       "every day of the month": ["每月的每一天"],
       "every day of the week": ["一周的每一天"],
@@ -4461,7 +4446,6 @@
       ],
       "function type icon": [""],
       "geohash (square)": [""],
-      "green": ["绿色"],
       "heatmap: values are normalized across the entire heatmap": [""],
       "hour": ["小时"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
@@ -4520,7 +4504,6 @@
       "query": ["查询"],
       "reboot": ["重启"],
       "recents": ["最近"],
-      "red": ["红色"],
       "report": ["报告"],
       "reports": ["报告"],
       "restore zoom": [""],
@@ -4550,7 +4533,6 @@
       "y": [""],
       "y: values are normalized within each row": [""],
       "year": ["年"],
-      "yellow": ["黄色"],
       "zoom area": [""]
     }
   }

@@ -24,6 +24,7 @@ import {
   getColumnLabelText,
   getColumnTooltipNode,
   getMetricTooltipNode,
+  getColumnTypeTooltipNode,
 } from '../../src/components/labelUtils';
 
 const renderWithTheme = (ui: ReactElement) =>
@@ -62,6 +63,35 @@ test('should get null as tooltip', () => {
       ref,
     ),
   ).toBe(null);
+});
+
+test('should get null for column datatype tooltip when type is blank', () => {
+  expect(
+    getColumnTypeTooltipNode({
+      id: 123,
+      column_name: 'column name',
+      verbose_name: '',
+      description: '',
+      type: '',
+    }),
+  ).toBe(null);
+});
+
+test('should get column datatype rendered as tooltip when column has a type', () => {
+  renderWithTheme(
+    <>
+      {getColumnTypeTooltipNode({
+        id: 123,
+        column_name: 'column name',
+        verbose_name: 'verbose name',
+        description: 'A very important column',
+        type: 'text',
+      })}
+    </>,
+  );
+
+  expect(screen.getByText('Column datatype')).toBeVisible();
+  expect(screen.getByText('text')).toBeVisible();
 });
 
 test('should get column name, verbose name and description when it has a verbose name', () => {

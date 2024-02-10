@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, styled, SupersetClient, t } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -24,9 +29,12 @@ import { useQueryParams, BooleanParam } from 'use-query-params';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  uploadUserPerms,
+} from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
@@ -42,6 +50,16 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { DatabaseObject } from 'src/features/databases/types';
+import { ModifiedInfo } from 'src/components/AuditInfo';
+import { QueryObjectColumns } from 'src/views/CRUD/types';
+
+const extensionsRegistry = getExtensionsRegistry();
+const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
+  'database.delete.related',
+);
+const dbConfigExtraExtension = extensionsRegistry.get(
+  'databaseconnection.extraOption',
+);
 
 const PAGE_SIZE = 25;
 
@@ -53,6 +71,11 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 const IconCheck = styled(Icons.Check)`
@@ -60,7 +83,7 @@ const IconCheck = styled(Icons.Check)`
 `;
 
 const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colors.grayscale.light1};
 `;
 
 const Actions = styled.div`
@@ -76,7 +99,11 @@ function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconCheck /> : <IconCancelX />;
 }
 
-function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
+function DatabaseList({
+  addDangerToast,
+  addSuccessToast,
+  user,
+}: DatabaseListProps) {
   const {
     state: {
       loading,
@@ -91,7 +118,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     t('database'),
     addDangerToast,
   );
-  const user = useSelector<any, UserWithPermissionsAndRoles>(
+  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
@@ -109,11 +136,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     null,
   );
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
-  const isAdmin = isUserAdmin(user);
+  const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
 
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
-  const { roles } = user;
+  const { roles } = fullUser;
   const {
     CSV_EXTENSIONS,
     COLUMNAR_EXTENSIONS,
@@ -149,7 +176,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ),
       );
 
-  function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
+  function handleDatabaseDelete(database: DatabaseObject) {
+    const { id, database_name: dbName } = database;
     SupersetClient.delete({
       endpoint: `/api/v1/database/${id}`,
     }).then(
@@ -157,8 +185,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
 
+        // Remove any extension-related data
+        if (dbConfigExtraExtension?.onDelete) {
+          dbConfigExtraExtension.onDelete(database);
+        }
+
         // Delete user-selected db from local storage
-        setItem(LocalStorageKeys.db, null);
+        setItem(LocalStorageKeys.Database, null);
 
         // Close delete modal
         setDatabaseCurrentlyDeleting(null);
@@ -181,8 +214,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
-  const canExport =
-    hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+  const canExport = hasPerm('can_export');
 
   const { canUploadCSV, canUploadColumnar, canUploadExcel } = uploadUserPerms(
     roles,
@@ -293,7 +325,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         accessor: 'database_name',
-        Header: t('Database'),
+        Header: t('Name'),
       },
       {
         accessor: 'backend',
@@ -360,23 +392,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         size: 'md',
       },
       {
-        accessor: 'created_by',
-        disableSortBy: true,
-        Header: t('Created by'),
         Cell: ({
           row: {
-            original: { created_by: createdBy },
+            original: {
+              changed_by: changedBy,
+              changed_on_delta_humanized: changedOn,
+            },
           },
-        }: any) =>
-          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        size: 'xl',
-      },
-      {
-        Cell: ({
-          row: {
-            original: { changed_on_delta_humanized: changedOn },
-          },
-        }: any) => changedOn,
+        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -450,6 +473,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
+      {
+        accessor: QueryObjectColumns.ChangedBy,
+        hidden: true,
+      },
     ],
     [canDelete, canEdit, canExport],
   );
@@ -457,11 +484,18 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Name'),
+        key: 'search',
+        id: 'database_name',
+        input: 'search',
+        operator: FilterOperator.Contains,
+      },
+      {
         Header: t('Expose in SQL Lab'),
         key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -481,7 +515,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -489,11 +523,24 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         ],
       },
       {
-        Header: t('Search'),
-        key: 'search',
-        id: 'database_name',
-        input: 'search',
-        operator: FilterOperator.contains,
+        Header: t('Modified by'),
+        key: 'changed_by',
+        id: 'changed_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'database',
+          'changed_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
       },
     ],
     [],
@@ -512,13 +559,24 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-            databaseCurrentlyDeleting.database_name,
-            databaseCurrentlyDeleting.chart_count,
-            databaseCurrentlyDeleting.dashboard_count,
-            databaseCurrentlyDeleting.sqllab_tab_count,
-          )}
+          description={
+            <>
+              <p>
+                {t(
+                  'The database %s is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                  databaseCurrentlyDeleting.database_name,
+                  databaseCurrentlyDeleting.chart_count,
+                  databaseCurrentlyDeleting.dashboard_count,
+                  databaseCurrentlyDeleting.sqllab_tab_count,
+                )}
+              </p>
+              {DatabaseDeleteRelatedExtension && (
+                <DatabaseDeleteRelatedExtension
+                  database={databaseCurrentlyDeleting}
+                />
+              )}
+            </>
+          }
           onConfirm={() => {
             if (databaseCurrentlyDeleting) {
               handleDatabaseDelete(databaseCurrentlyDeleting);
@@ -539,6 +597,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        refreshData={() => {}}
         pageSize={PAGE_SIZE}
       />
 

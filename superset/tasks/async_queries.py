@@ -18,10 +18,11 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, cast, Dict, Optional, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
+from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -45,12 +46,11 @@ query_timeout = current_app.config[
 ]  # TODO: new config key
 
 
-def set_form_data(form_data: Dict[str, Any]) -> None:
-    # pylint: disable=assigning-non-slot
+def set_form_data(form_data: dict[str, Any]) -> None:
     g.form_data = form_data
 
 
-def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
+def _create_query_context_from_form(form_data: dict[str, Any]) -> QueryContext:
     try:
         return ChartDataQueryContextSchema().load(form_data)
     except KeyError as ex:
@@ -59,20 +59,29 @@ def _create_query_context_from_form(form_data: Dict[str, Any]) -> QueryContext:
         raise error
 
 
+def _load_user_from_job_metadata(job_metadata: dict[str, Any]) -> User:
+    if user_id := job_metadata.get("user_id"):
+        # logged in user
+        user = security_manager.get_user_by_id(user_id)
+    elif guest_token := job_metadata.get("guest_token"):
+        # embedded guest user
+        user = security_manager.get_guest_user_from_token(guest_token)
+        del job_metadata["guest_token"]
+    else:
+        # default to anonymous user if no user is found
+        user = security_manager.get_anonymous_user()
+    return user
+
+
 @celery_app.task(name="load_chart_data_into_cache", soft_time_limit=query_timeout)
 def load_chart_data_into_cache(
-    job_metadata: Dict[str, Any],
-    form_data: Dict[str, Any],
+    job_metadata: dict[str, Any],
+    form_data: dict[str, Any],
 ) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.charts.data.commands.get_data_command import ChartDataCommand
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
 
-    user = (
-        security_manager.get_user_by_id(job_metadata.get("user_id"))
-        or security_manager.get_anonymous_user()
-    )
-
-    with override_user(user, force=False):
+    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
             set_form_data(form_data)
             query_context = _create_query_context_from_form(form_data)
@@ -90,11 +99,7 @@ def load_chart_data_into_cache(
             raise ex
         except Exception as ex:
             # TODO: QueryContext should support SIP-40 style errors
-            error = (
-                ex.message  # pylint: disable=no-member
-                if hasattr(ex, "message")
-                else str(ex)
-            )
+            error = str(ex.message if hasattr(ex, "message") else ex)
             errors = [{"message": error}]
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors
@@ -104,19 +109,14 @@ def load_chart_data_into_cache(
 
 @celery_app.task(name="load_explore_json_into_cache", soft_time_limit=query_timeout)
 def load_explore_json_into_cache(  # pylint: disable=too-many-locals
-    job_metadata: Dict[str, Any],
-    form_data: Dict[str, Any],
-    response_type: Optional[str] = None,
+    job_metadata: dict[str, Any],
+    form_data: dict[str, Any],
+    response_type: str | None = None,
     force: bool = False,
 ) -> None:
     cache_key_prefix = "ejr-"  # ejr: explore_json request
 
-    user = (
-        security_manager.get_user_by_id(job_metadata.get("user_id"))
-        or security_manager.get_anonymous_user()
-    )
-
-    with override_user(user, force=False):
+    with override_user(_load_user_from_job_metadata(job_metadata), force=False):
         try:
             set_form_data(form_data)
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
@@ -145,7 +145,13 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 "response_type": response_type,
             }
             cache_key = generate_cache_key(cache_value, cache_key_prefix)
-            set_and_log_cache(cache_manager.cache, cache_key, cache_value)
+            cache_instance = cache_manager.cache
+            cache_timeout = (
+                cache_instance.cache.default_timeout if cache_instance.cache else None
+            )
+            set_and_log_cache(
+                cache_instance, cache_key, cache_value, cache_timeout=cache_timeout
+            )
             result_url = f"/superset/explore_json/data/{cache_key}"
             async_query_manager.update_job(
                 job_metadata,
@@ -159,13 +165,9 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
             raise ex
         except Exception as ex:
             if isinstance(ex, SupersetVizException):
-                errors = ex.errors  # pylint: disable=no-member
+                errors = ex.errors
             else:
-                error = (
-                    ex.message  # pylint: disable=no-member
-                    if hasattr(ex, "message")
-                    else str(ex)
-                )
+                error = ex.message if hasattr(ex, "message") else str(ex)
                 errors = [error]
 
             async_query_manager.update_job(

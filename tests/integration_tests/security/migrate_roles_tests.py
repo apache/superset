@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for alerting in Superset"""
-import json
 import logging
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -63,7 +62,6 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
         )
         new_role.permissions = []
-        db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
             security_manager.del_permission_view_menu(old_pvm.permission, old_pvm.view)
             for new_pvm in new_pvms:

@@ -184,8 +184,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentLayer ||
-        !currentLayer.id ||
+      (!currentLayer?.id ||
         (layer && layer.id !== currentLayer.id) ||
         (isHidden && show))
     ) {

@@ -17,7 +17,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
 from functools import partial
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import pytest
 from pytest_mock import MockerFixture
@@ -44,7 +44,7 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
-def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: Dict[str, Any]) -> None:
+def apply_dttm_defaults(table: "SqlaTable", dttm_defaults: dict[str, Any]) -> None:
     """Applies dttm defaults to the table, mutates in place."""
     for dbcol in table.columns:
         # Set is_dttm is column is listed in dttm_columns.
@@ -121,9 +121,9 @@ def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "ds", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "id", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "ds", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "id", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -154,9 +154,9 @@ def test_main_dttm_col_nonexistent(
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "ds", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "id", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "ds", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "id", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -188,9 +188,9 @@ def test_main_dttm_col_nondttm(
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "ds", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
-            {"name": "id", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "ds", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "event_time", "type": "TIMESTAMP", "is_dttm": True},
+            {"column_name": "id", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -211,7 +211,6 @@ def test_python_date_format_by_column_name(
         "dttm_columns": {
             "id": {"python_date_format": "epoch_ms"},
             "dttm": {"python_date_format": "epoch_s"},
-            "duration_ms": {"python_date_format": "invalid"},
         },
     }
     mocker.patch(
@@ -226,9 +225,8 @@ def test_python_date_format_by_column_name(
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "id", "type": "INTEGER", "is_dttm": False},
-            {"name": "dttm", "type": "INTEGER", "is_dttm": False},
-            {"name": "duration_ms", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "id", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "dttm", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -241,12 +239,6 @@ def test_python_date_format_by_column_name(
     dttm_col = [c for c in test_table.columns if c.column_name == "dttm"][0]
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
-
-    duration_ms_col = [c for c in test_table.columns if c.column_name == "duration_ms"][
-        0
-    ]
-    assert duration_ms_col.is_dttm
-    assert duration_ms_col.python_date_format == "invalid"
 
 
 def test_expression_by_column_name(
@@ -274,8 +266,8 @@ def test_expression_by_column_name(
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "dttm", "type": "INTEGER", "is_dttm": False},
-            {"name": "duration_ms", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "dttm", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "duration_ms", "type": "INTEGER", "is_dttm": False},
         ],
     )
 
@@ -311,9 +303,9 @@ def test_full_setting(
     mocker.patch(
         "superset.connectors.sqla.models.get_physical_table_metadata",
         return_value=[
-            {"name": "id", "type": "INTEGER", "is_dttm": False},
-            {"name": "dttm", "type": "INTEGER", "is_dttm": False},
-            {"name": "duration_ms", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "id", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "dttm", "type": "INTEGER", "is_dttm": False},
+            {"column_name": "duration_ms", "type": "INTEGER", "is_dttm": False},
         ],
     )
 

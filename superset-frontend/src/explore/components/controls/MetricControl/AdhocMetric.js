@@ -89,8 +89,7 @@ export default class AdhocMetric {
   }
 
   getDefaultLabel() {
-    const label = this.translateToSql({ useVerboseName: true });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    return this.translateToSql({ useVerboseName: true });
   }
 
   translateToSql(

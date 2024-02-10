@@ -20,9 +20,9 @@
 import {
   ContributionType,
   ensureIsArray,
+  GenericDataType,
   getColumnLabel,
   getMetricLabel,
-  isDefined,
   QueryFormColumn,
   QueryFormMetric,
   t,
@@ -34,6 +34,11 @@ import {
   isDataset,
 } from '../types';
 import { isTemporalColumn } from '../utils';
+import {
+  DEFAULT_XAXIS_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
+} from '../constants';
+import { checkColumnType } from '../utils/checkColumnType';
 
 export const contributionModeControl = {
   name: 'contributionMode',
@@ -50,14 +55,40 @@ export const contributionModeControl = {
   },
 };
 
+function isForcedCategorical(controls: ControlStateMapping): boolean {
+  return (
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.Numeric],
+    ) && !!controls?.xAxisForceCategorical?.value
+  );
+}
+
+function isSortable(controls: ControlStateMapping): boolean {
+  return (
+    isForcedCategorical(controls) ||
+    checkColumnType(
+      getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+      controls?.datasource?.datasource,
+      [GenericDataType.String, GenericDataType.Boolean],
+    )
+  );
+}
+
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
-  isDefined(controls?.x_axis?.value) &&
-  !isTemporalColumn(
-    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-    controls?.datasource?.datasource,
-  ) &&
-  Array.isArray(controls?.groupby?.value) &&
-  controls.groupby.value.length === 0;
+  isSortable(controls) &&
+  ensureIsArray(controls?.groupby?.value).length === 0 &&
+  ensureIsArray(controls?.metrics?.value).length === 1;
+
+const xAxisMultiSortVisibility = ({
+  controls,
+}: {
+  controls: ControlStateMapping;
+}) =>
+  isSortable(controls) &&
+  (!!ensureIsArray(controls?.groupby?.value).length ||
+    ensureIsArray(controls?.metrics?.value).length > 1);
 
 export const xAxisSortControl = {
   name: 'x_axis_sort',
@@ -122,6 +153,62 @@ export const xAxisSortAscControl = {
         : t('X-Axis Sort Ascending'),
     default: true,
     description: t('Whether to sort ascending or descending on the base Axis.'),
-    visibility: xAxisSortVisibility,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      controls?.x_axis_sort?.value !== undefined &&
+      xAxisSortVisibility({ controls }),
+  },
+};
+
+export const xAxisForceCategoricalControl = {
+  name: 'xAxisForceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: () => t('Force categorical'),
+    default: false,
+    description: t('Treat values as categorical.'),
+    initialValue: (control: ControlState, state: ControlPanelState | null) =>
+      state?.form_data?.x_axis_sort !== undefined || control.value,
+    renderTrigger: true,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      checkColumnType(
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        controls?.datasource?.datasource,
+        [GenericDataType.Numeric],
+      ),
+    shouldMapStateToProps: () => true,
+  },
+};
+
+export const xAxisSortSeriesControl = {
+  name: 'x_axis_sort_series',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort By')
+        : t('X-Axis Sort By'),
+    choices: SORT_SERIES_CHOICES,
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_type,
+    renderTrigger: true,
+    description: t('Decides which measure to sort the base axis by.'),
+    visibility: xAxisMultiSortVisibility,
+  },
+};
+
+export const xAxisSortSeriesAscendingControl = {
+  name: 'x_axis_sort_series_ascending',
+  config: {
+    type: 'CheckboxControl',
+    label: (state: ControlPanelState) =>
+      state.form_data?.orientation === 'horizontal'
+        ? t('Y-Axis Sort Ascending')
+        : t('X-Axis Sort Ascending'),
+    default: DEFAULT_XAXIS_SORT_SERIES_DATA.sort_series_ascending,
+    description: t('Whether to sort ascending or descending on the base Axis.'),
+    renderTrigger: true,
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      controls?.x_axis_sort_series?.value !== undefined &&
+      xAxisMultiSortVisibility({ controls }),
   },
 };

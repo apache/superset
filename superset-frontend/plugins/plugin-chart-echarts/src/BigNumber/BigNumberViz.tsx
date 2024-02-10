@@ -128,9 +128,28 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
   }
 
   renderHeader(maxHeight: number) {
-    const { bigNumber, headerFormatter, width } = this.props;
+    const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
+      this.props;
     // @ts-ignore
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+
+    const hasThresholdColorFormatter =
+      Array.isArray(colorThresholdFormatters) &&
+      colorThresholdFormatters.length > 0;
+
+    let numberColor;
+    if (hasThresholdColorFormatter) {
+      colorThresholdFormatters!.forEach(formatter => {
+        const formatterResult = bigNumber
+          ? formatter.getColorFromValue(bigNumber as number)
+          : false;
+        if (formatterResult) {
+          numberColor = formatterResult;
+        }
+      });
+    } else {
+      numberColor = 'black';
+    }
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
@@ -156,6 +175,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         style={{
           fontSize,
           height: maxHeight,
+          color: numberColor,
         }}
         onContextMenu={onContextMenu}
       >

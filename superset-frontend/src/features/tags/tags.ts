@@ -47,11 +47,26 @@ const map_object_type_to_id = (objectType: string) => {
 };
 
 export function fetchAllTags(
+  // fetch all tags (excluding system tags)
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  SupersetClient.get({ endpoint: `/api/v1/tag` })
+  SupersetClient.get({
+    endpoint: `/api/v1/tag/?q=${rison.encode({
+      filters: [{ col: 'type', opr: 'custom_tag', value: true }],
+    })}`,
+  })
     .then(({ json }) => callback(json))
+    .catch(response => error(response));
+}
+
+export function fetchSingleTag(
+  id: number,
+  callback: (json: JsonObject) => void,
+  error: (response: Response) => void,
+) {
+  SupersetClient.get({ endpoint: `/api/v1/tag/${id}` })
+    .then(({ json }) => callback(json.result))
     .catch(response => error(response));
 }
 
@@ -79,11 +94,7 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(
-        json.result.tags.filter(
-          (tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes,
-        ),
-      ),
+      callback(json.result.tags.filter((tag: Tag) => tag.type === 1)),
     )
     .catch(response => error(response));
 }
@@ -153,9 +164,6 @@ export function addTag(
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }
-  if (tag.indexOf(':') !== -1 && !includeTypes) {
-    return;
-  }
   const objectTypeId = map_object_type_to_id(objectType);
   SupersetClient.post({
     endpoint: `/api/v1/tag/${objectTypeId}/${objectId}/`,
@@ -177,6 +185,23 @@ export function fetchObjects(
   error: (response: Response) => void,
 ) {
   let url = `/api/v1/tag/get_objects/?tags=${tags}`;
+  if (types) {
+    url += `&types=${types}`;
+  }
+  SupersetClient.get({ endpoint: url })
+    .then(({ json }) => callback(json.result))
+    .catch(response => error(response));
+}
+
+export function fetchObjectsByTagIds(
+  {
+    tagIds = [],
+    types,
+  }: { tagIds: number[] | undefined; types: string | null },
+  callback: (json: JsonObject) => void,
+  error: (response: Response) => void,
+) {
+  let url = `/api/v1/tag/get_objects/?tagIds=${tagIds}`;
   if (types) {
     url += `&types=${types}`;
   }

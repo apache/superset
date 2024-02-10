@@ -104,12 +104,23 @@ const SavedQueryList = lazy(
     import(/* webpackChunkName: "SavedQueryList" */ 'src/pages/SavedQueryList'),
 );
 
+const SqlLab = lazy(
+  () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
+);
+
 const AllEntities = lazy(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
 );
 
 const Tags = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
+
+const RowLevelSecurityList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RowLevelSecurityList" */ 'src/pages/RowLevelSecurityList'
+    ),
 );
 
 type Routes = {
@@ -165,7 +176,7 @@ export const routes: Routes = [
     Component: AnnotationList,
   },
   {
-    path: '/superset/sqllab/history/',
+    path: '/sqllab/history/',
     Component: QueryHistoryList,
   },
   {
@@ -206,9 +217,17 @@ export const routes: Routes = [
     path: '/dataset/:datasetId',
     Component: DatasetCreation,
   },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurityList,
+  },
+  {
+    path: '/sqllab/',
+    Component: SqlLab,
+  },
 ];
 
-if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({
     path: '/superset/all_entities/',
     Component: AllEntities,

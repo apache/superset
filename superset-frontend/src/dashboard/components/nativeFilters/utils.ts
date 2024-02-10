@@ -23,16 +23,25 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
+  isFeatureEnabled,
   FeatureFlag,
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
+  t,
 } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import getBootstrapData from '../../../utils/getBootstrapData';
+
+const getDefaultRowLimit = (): number => {
+  const bootstrapData = getBootstrapData();
+  const nativeFilterDefaultRowLimit =
+    bootstrapData?.common?.conf?.NATIVE_FILTER_DEFAULT_ROW_LIMIT;
+  return nativeFilterDefaultRowLimit || 1000;
+};
 
 export const getFormData = ({
   datasetId,
@@ -46,7 +55,10 @@ export const getFormData = ({
   time_range,
   granularity_sqla,
   type,
+  dashboardId,
+  id,
 }: Partial<Filter> & {
+  dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
@@ -75,7 +87,7 @@ export const getFormData = ({
     extra_form_data: dependencies,
     granularity_sqla,
     metrics: ['count'],
-    row_limit: 1000,
+    row_limit: getDefaultRowLimit(),
     showSearch: true,
     defaultValue: defaultDataMask?.filterState?.value,
     time_range,
@@ -83,6 +95,8 @@ export const getFormData = ({
     inView: true,
     viz_type: filterType,
     type,
+    dashboardId,
+    native_filter_id: id,
   };
 };
 
@@ -116,7 +130,7 @@ export function mergeExtraFormData(
 export function isCrossFilter(vizType: string) {
   // @ts-ignore need export from superset-ui `ItemWithValue`
   return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
-    Behavior.INTERACTIVE_CHART,
+    Behavior.InteractiveChart,
   );
 }
 
@@ -136,10 +150,9 @@ export function getExtraFormData(
 
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
-    !behaviors.includes(Behavior.NATIVE_FILTER) ||
-    (isFeatureEnabled(FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL) &&
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-      behaviors.includes(Behavior.INTERACTIVE_CHART))
+    !behaviors.includes(Behavior.NativeFilter) ||
+    (isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
+      behaviors.includes(Behavior.InteractiveChart))
   );
 }
 
@@ -154,7 +167,12 @@ const findTabsWithChartsInScopeHelper = (
   componentId: string,
   tabIds: string[],
   tabsToHighlight: Set<string>,
+  visited: Set<string>,
 ) => {
+  if (visited.has(componentId)) {
+    return;
+  }
+  visited.add(componentId);
   if (
     dashboardLayout?.[componentId]?.type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
@@ -175,6 +193,7 @@ const findTabsWithChartsInScopeHelper = (
       childId,
       isComponentATab(dashboardLayout, childId) ? [...tabIds, childId] : tabIds,
       tabsToHighlight,
+      visited,
     ),
   );
 };
@@ -187,6 +206,7 @@ export const findTabsWithChartsInScope = (
   const rootChildId = dashboardRoot.children[0];
   const hasTopLevelTabs = rootChildId !== DASHBOARD_GRID_ID;
   const tabsInScope = new Set<string>();
+  const visited = new Set<string>();
   if (hasTopLevelTabs) {
     dashboardLayout[rootChildId]?.children?.forEach(tabId =>
       findTabsWithChartsInScopeHelper(
@@ -195,6 +215,7 @@ export const findTabsWithChartsInScope = (
         tabId,
         [tabId],
         tabsInScope,
+        visited,
       ),
     );
   } else {
@@ -207,8 +228,27 @@ export const findTabsWithChartsInScope = (
           element.id,
           [element.id],
           tabsInScope,
+          visited,
         ),
       );
   }
   return tabsInScope;
+};
+
+export const getFilterValueForDisplay = (
+  value?: string[] | null | string | number | object,
+): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return `${value}`;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return t('Unknown value');
 };

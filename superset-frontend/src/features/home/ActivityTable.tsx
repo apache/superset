@@ -36,7 +36,7 @@ import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
 /**
- * Return result from /api/v1/log/recent_activity/{user_id}/
+ * Return result from /api/v1/log/recent_activity/
  */
 interface RecentActivity {
   action: string;
@@ -105,7 +105,7 @@ const getEntityIcon = (entity: ActivityObject) => {
 };
 
 const getEntityUrl = (entity: ActivityObject) => {
-  if ('sql' in entity) return `/superset/sqllab?savedQueryId=${entity.id}`;
+  if ('sql' in entity) return `/sqllab?savedQueryId=${entity.id}`;
   if ('url' in entity) return entity.url;
   return entity.item_url;
 };
@@ -151,7 +151,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild(TableTab.Edited);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Edited);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Edited);
       },
     },
     {
@@ -159,7 +159,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild(TableTab.Created);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Created);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Created);
       },
     },
   ];
@@ -170,7 +170,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild(TableTab.Viewed);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Viewed);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Viewed);
       },
     });
   }

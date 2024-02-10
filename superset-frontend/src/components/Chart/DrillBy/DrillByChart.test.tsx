@@ -19,52 +19,52 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import fetchMock from 'fetch-mock';
+import { noOp } from 'src/utils/common';
 import DrillByChart from './DrillByChart';
 
-const CHART_DATA_ENDPOINT =
-  'glob:*api/v1/chart/data?form_data=%7B%22slice_id%22%3A18%7D';
-
 const chart = chartQueries[sliceId];
-
-const fetchWithNoData = () => {
-  fetchMock.post(CHART_DATA_ENDPOINT, {
-    result: [
-      {
-        total_count: 0,
-        data: [],
-        colnames: [],
-        coltypes: [],
-      },
-    ],
-  });
+const dataset = {
+  changed_on_humanized: '01-01-2001',
+  created_on_humanized: '01-01-2001',
+  description: 'desc',
+  table_name: 'my_dataset',
+  owners: [
+    {
+      first_name: 'Sarah',
+      last_name: 'Connor',
+    },
+  ],
+  columns: [
+    {
+      column_name: 'gender',
+    },
+    { column_name: 'name' },
+  ],
 };
 
-const setup = (overrides: Record<string, any> = {}) =>
-  render(<DrillByChart formData={{ ...chart.form_data, ...overrides }} />, {
-    useRedux: true,
-  });
+const setup = (overrides: Record<string, any> = {}, result?: any) =>
+  render(
+    <DrillByChart
+      formData={{ ...chart.form_data, ...overrides }}
+      onContextMenu={noOp}
+      inContextMenu={false}
+      result={result}
+      dataset={dataset}
+    />,
+    {
+      useRedux: true,
+    },
+  );
 
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
 
-afterEach(fetchMock.restore);
-
 test('should render', async () => {
-  fetchWithNoData();
   const { container } = await waitForRender();
   expect(container).toBeInTheDocument();
 });
 
-test('should render loading indicator', async () => {
-  setup();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
-  );
-});
-
 test('should render the "No results" components', async () => {
-  fetchWithNoData();
-  setup();
+  setup({}, []);
   expect(await screen.findByText('No Results')).toBeInTheDocument();
 });

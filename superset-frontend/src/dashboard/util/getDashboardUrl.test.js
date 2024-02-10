@@ -55,10 +55,10 @@ describe('getChartIdsFromLayout', () => {
     const urlWithStandalone = getDashboardUrl({
       pathname: 'path',
       filters,
-      standalone: DashboardStandaloneMode.HIDE_NAV,
+      standalone: DashboardStandaloneMode.HideNav,
     });
     expect(urlWithStandalone).toBe(
-      `path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=${DashboardStandaloneMode.HIDE_NAV}`,
+      `path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=${DashboardStandaloneMode.HideNav}`,
     );
   });
 
@@ -71,6 +71,35 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithStandalone).toBe(
       'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',
     );
+  });
+
+  it('should encode filters with missing filters', () => {
+    const urlWithStandalone = getDashboardUrl({
+      pathname: 'path',
+      filters: undefined,
+      standalone: DashboardStandaloneMode.HideNav,
+    });
+    expect(urlWithStandalone).toBe(
+      `path?standalone=${DashboardStandaloneMode.HideNav}`,
+    );
+  });
+
+  it('should preserve unknown filters', () => {
+    const windowSpy = jest.spyOn(window, 'window', 'get');
+    windowSpy.mockImplementation(() => ({
+      location: {
+        origin: 'https://localhost',
+        search: '?unkown_param=value',
+      },
+    }));
+    const urlWithStandalone = getDashboardUrl({
+      pathname: 'path',
+      standalone: DashboardStandaloneMode.HideNav,
+    });
+    expect(urlWithStandalone).toBe(
+      `path?unkown_param=value&standalone=${DashboardStandaloneMode.HideNav}`,
+    );
+    windowSpy.mockRestore();
   });
 
   it('should process native filters key', () => {
@@ -89,5 +118,6 @@ describe('getChartIdsFromLayout', () => {
     expect(urlWithNativeFilters).toBe(
       'path?preselect_filters=%7B%7D&native_filters_key=024380498jdkjf-2094838',
     );
+    windowSpy.mockRestore();
   });
 });

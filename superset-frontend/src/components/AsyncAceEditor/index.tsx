@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect } from 'react';
 import {
   Editor as OrigEditor,
   IEditSession,
@@ -28,12 +28,15 @@ import { acequire } from 'ace-builds/src-noconflict/ace';
 import AsyncEsmComponent, {
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 
 export interface AceCompleterKeywordData {
   name: string;
   value: string;
   score: number;
   meta: string;
+  docText?: string;
+  docHTML?: string;
 }
 
 export type TextMode = OrigTextMode & { $id: string };
@@ -84,6 +87,7 @@ export type AsyncAceEditorOptions = {
   defaultMode?: AceEditorMode;
   defaultTheme?: AceEditorTheme;
   defaultTabSize?: number;
+  fontFamily?: string;
   placeholder?: React.ComponentType<
     PlaceholderProps & Partial<IAceEditorProps>
   > | null;
@@ -98,6 +102,7 @@ export default function AsyncAceEditor(
     defaultMode,
     defaultTheme,
     defaultTabSize = 2,
+    fontFamily = 'Menlo, Consolas, Courier New, Ubuntu Mono, source-code-pro, Lucida Console, monospace',
     placeholder,
   }: AsyncAceEditorOptions = {},
 ) {
@@ -125,27 +130,37 @@ export default function AsyncAceEditor(
         },
         ref,
       ) {
-        if (keywords) {
-          const langTools = acequire('ace/ext/language_tools');
-          const completer = {
-            getCompletions: (
-              editor: AceEditor,
-              session: IEditSession,
-              pos: Position,
-              prefix: string,
-              callback: (error: null, wordList: object[]) => void,
-            ) => {
-              // If the prefix starts with a number, don't try to autocomplete
-              if (!Number.isNaN(parseInt(prefix, 10))) {
-                return;
-              }
-              if ((session.getMode() as TextMode).$id === `ace/mode/${mode}`) {
-                callback(null, keywords);
-              }
-            },
-          };
-          langTools.setCompleters([completer]);
-        }
+        const langTools = acequire('ace/ext/language_tools');
+        const setCompleters = useEffectEvent(
+          (keywords: AceCompleterKeyword[]) => {
+            const completer = {
+              getCompletions: (
+                editor: AceEditor,
+                session: IEditSession,
+                pos: Position,
+                prefix: string,
+                callback: (error: null, wordList: object[]) => void,
+              ) => {
+                // If the prefix starts with a number, don't try to autocomplete
+                if (!Number.isNaN(parseInt(prefix, 10))) {
+                  return;
+                }
+                if (
+                  (session.getMode() as TextMode).$id === `ace/mode/${mode}`
+                ) {
+                  callback(null, keywords);
+                }
+              },
+            };
+            langTools.setCompleters([completer]);
+          },
+        );
+        useEffect(() => {
+          if (keywords) {
+            setCompleters(keywords);
+          }
+        }, [keywords, setCompleters]);
+
         return (
           <ReactAceEditor
             ref={ref}
@@ -153,6 +168,7 @@ export default function AsyncAceEditor(
             theme={theme}
             tabSize={tabSize}
             defaultValue={defaultValue}
+            setOptions={{ fontFamily }}
             {...props}
           />
         );

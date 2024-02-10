@@ -29,8 +29,8 @@ import { Menu } from 'src/components/Menu';
 import {
   BaseFormData,
   Behavior,
-  BinaryQueryObjectFilterClause,
   Column,
+  ContextMenuFilters,
   css,
   ensureIsArray,
   getChartMetadataRegistry,
@@ -39,10 +39,13 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import Loading from 'src/components/Loading';
 import {
   cachedSupersetGet,
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
+import { useVerboseMap } from 'src/hooks/apiResources/datasets';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
@@ -54,40 +57,45 @@ const SHOW_COLUMNS_SEARCH_THRESHOLD = 10;
 const SEARCH_INPUT_HEIGHT = 48;
 
 export interface DrillByMenuItemsProps {
-  filters?: BinaryQueryObjectFilterClause[];
+  drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   contextMenuY?: number;
   submenuIndex?: number;
-  groupbyFieldName?: string;
-  onSelection?: () => void;
+  onSelection?: (...args: any) => void;
   onClick?: (event: MouseEvent) => void;
+  openNewModal?: boolean;
+  excludedColumns?: Column[];
 }
 
 export const DrillByMenuItems = ({
-  filters,
-  groupbyFieldName,
+  drillByConfig,
   formData,
   contextMenuY = 0,
   submenuIndex = 0,
   onSelection = () => {},
   onClick = () => {},
+  excludedColumns,
+  openNewModal = true,
   ...rest
 }: DrillByMenuItemsProps) => {
   const theme = useTheme();
+  const { addDangerToast } = useToasts();
+  const [isLoadingColumns, setIsLoadingColumns] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
-
-  const openModal = useCallback(
+  const handleSelection = useCallback(
     (event, column) => {
       onClick(event);
-      onSelection();
+      onSelection(column, drillByConfig);
       setCurrentColumn(column);
-      setShowModal(true);
+      if (openNewModal) {
+        setShowModal(true);
+      }
     },
-    [onClick, onSelection],
+    [drillByConfig, onClick, onSelection, openNewModal],
   );
   const closeModal = useCallback(() => {
     setShowModal(false);
@@ -99,15 +107,18 @@ export const DrillByMenuItems = ({
     setSearchInput('');
   }, [columns.length]);
 
-  const hasDrillBy = ensureIsArray(filters).length && groupbyFieldName;
+  const hasDrillBy =
+    ensureIsArray(drillByConfig?.filters).length &&
+    drillByConfig?.groupbyFieldName;
 
   const handlesDimensionContextMenu = useMemo(
     () =>
       getChartMetadataRegistry()
         .get(formData.viz_type)
-        ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
+        ?.behaviors.find(behavior => behavior === Behavior.DrillBy),
     [formData.viz_type],
   );
+  const verboseMap = useVerboseMap(dataset);
 
   useEffect(() => {
     if (handlesDimensionContextMenu && hasDrillBy) {
@@ -122,17 +133,33 @@ export const DrillByMenuItems = ({
               .filter(column => column.groupby)
               .filter(
                 column =>
-                  !ensureIsArray(formData[groupbyFieldName]).includes(
-                    column.column_name,
+                  !ensureIsArray(
+                    formData[drillByConfig.groupbyFieldName ?? ''],
+                  ).includes(column.column_name) &&
+                  column.column_name !== formData.x_axis &&
+                  ensureIsArray(excludedColumns)?.every(
+                    excludedCol =>
+                      excludedCol.column_name !== column.column_name,
                   ),
               ),
           );
         })
         .catch(() => {
           supersetGetCache.delete(`/api/v1/dataset/${datasetId}`);
+          addDangerToast(t('Failed to load dimensions for drill by'));
+        })
+        .finally(() => {
+          setIsLoadingColumns(false);
         });
     }
-  }, [formData, groupbyFieldName, handlesDimensionContextMenu, hasDrillBy]);
+  }, [
+    addDangerToast,
+    excludedColumns,
+    formData,
+    drillByConfig?.groupbyFieldName,
+    handlesDimensionContextMenu,
+    hasDrillBy,
+  ]);
 
   const handleInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -170,11 +197,9 @@ export const DrillByMenuItems = ({
     tooltip = t('Drill by is not yet supported for this chart type');
   } else if (!hasDrillBy) {
     tooltip = t('Drill by is not available for this data point');
-  } else if (columns.length === 0) {
-    tooltip = t('No dimensions available for drill by');
   }
 
-  if (!handlesDimensionContextMenu || !hasDrillBy || columns.length === 0) {
+  if (!handlesDimensionContextMenu || !hasDrillBy) {
     return (
       <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>
@@ -219,7 +244,15 @@ export const DrillByMenuItems = ({
               `}
             />
           )}
-          {filteredColumns.length ? (
+          {isLoadingColumns ? (
+            <div
+              css={css`
+                padding: ${theme.gridUnit * 3}px 0;
+              `}
+            >
+              <Loading position="inline-centered" />
+            </div>
+          ) : filteredColumns.length ? (
             <div
               css={css`
                 max-height: ${MAX_SUBMENU_HEIGHT}px;
@@ -231,7 +264,7 @@ export const DrillByMenuItems = ({
                   key={`drill-by-item-${column.column_name}`}
                   tooltipText={column.verbose_name || column.column_name}
                   {...rest}
-                  onClick={e => openModal(e, column)}
+                  onClick={e => handleSelection(e, column)}
                 >
                   {column.verbose_name || column.column_name}
                 </MenuItemWithTruncation>
@@ -244,15 +277,15 @@ export const DrillByMenuItems = ({
           )}
         </div>
       </Menu.SubMenu>
-      <DrillByModal
-        column={currentColumn}
-        filters={filters}
-        formData={formData}
-        groupbyFieldName={groupbyFieldName}
-        onHideModal={closeModal}
-        showModal={showModal}
-        dataset={dataset!}
-      />
+      {showModal && (
+        <DrillByModal
+          column={currentColumn}
+          drillByConfig={drillByConfig}
+          formData={formData}
+          onHideModal={closeModal}
+          dataset={{ ...dataset!, verbose_map: verboseMap }}
+        />
+      )}
     </>
   );
 };

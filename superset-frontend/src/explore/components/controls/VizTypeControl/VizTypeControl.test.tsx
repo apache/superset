@@ -39,7 +39,6 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
-import { LineChartPlugin } from '@superset-ui/preset-chart-xy';
 import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
@@ -50,7 +49,6 @@ class MainPreset extends Preset {
     super({
       name: 'Legacy charts',
       plugins: [
-        new LineChartPlugin().configure({ key: 'line' }),
         new TableChartPlugin().configure({ key: 'table' }),
         new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsTimeseriesLineChartPlugin().configure({
@@ -121,7 +119,6 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    expect(screen.getByLabelText('line-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
@@ -131,9 +128,7 @@ describe('VizTypeControl', () => {
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
@@ -145,18 +140,11 @@ describe('VizTypeControl', () => {
       within(screen.getByTestId('fast-viz-switcher')).getByText('Pie Chart'),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Bar Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Bar Chart'),
     ).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Area Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Area Chart'),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByTestId('fast-viz-switcher')).queryByText('Line Chart'),
-    ).not.toBeInTheDocument();
   });
 
   it('Render viz tiles when non-featured chart is selected', async () => {
@@ -208,9 +196,7 @@ describe('VizTypeControl', () => {
     };
     await waitForRenderWrapper(props);
     userEvent.click(
-      within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Line Chart',
-      ),
+      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     );
     expect(props.onChange).not.toHaveBeenCalled();
     userEvent.click(
@@ -237,9 +223,7 @@ describe('VizTypeControl', () => {
 
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
 
-    expect(
-      await within(visualizations).findByText('Time-series Line Chart'),
-    ).toBeVisible();
+    expect(await within(visualizations).findByText('Line Chart')).toBeVisible();
 
     // search
     userEvent.type(
@@ -249,20 +233,6 @@ describe('VizTypeControl', () => {
     expect(
       await within(visualizations).findByText('Time-series Table'),
     ).toBeVisible();
-    expect(within(visualizations).getByText('Time-series Chart')).toBeVisible();
-    expect(within(visualizations).getByText('Mixed Time-Series')).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Area Chart'),
-    ).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Line Chart'),
-    ).toBeVisible();
-    expect(
-      within(visualizations).getByText('Time-series Bar Chart'),
-    ).toBeVisible();
-    expect(
-      within(visualizations).queryByText('Line Chart'),
-    ).not.toBeInTheDocument();
     expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
     expect(
       within(visualizations).queryByText('Big Number'),
@@ -276,12 +246,10 @@ describe('VizTypeControl', () => {
     await waitForRenderWrapper();
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
-    userEvent.click(within(visualizations).getByText('Time-series Bar Chart'));
+    userEvent.click(within(visualizations).getByText('Bar Chart'));
 
     expect(defaultProps.onChange).not.toBeCalled();
-    userEvent.dblClick(
-      within(visualizations).getByText('Time-series Line Chart'),
-    );
+    userEvent.dblClick(within(visualizations).getByText('Line Chart'));
 
     expect(defaultProps.onChange).toHaveBeenCalledWith(
       'echarts_timeseries_line',

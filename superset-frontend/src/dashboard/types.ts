@@ -23,6 +23,7 @@ import {
   ExtraFormData,
   GenericDataType,
   JsonObject,
+  NativeFilterScope,
   NativeFiltersState,
 } from '@superset-ui/core';
 import { Dataset } from '@superset-ui/chart-controls';
@@ -33,7 +34,7 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
-export { Dashboard } from 'src/types/Dashboard';
+export type { Dashboard } from 'src/types/Dashboard';
 
 export type ChartReducerInitialState = typeof chart;
 
@@ -54,9 +55,31 @@ export type Chart = ChartState & {
 };
 
 export enum FilterBarOrientation {
-  VERTICAL = 'VERTICAL',
-  HORIZONTAL = 'HORIZONTAL',
+  Vertical = 'VERTICAL',
+  Horizontal = 'HORIZONTAL',
 }
+
+// chart's cross filter scoping can have its custom value or point to the global configuration
+export const GLOBAL_SCOPE_POINTER = 'global';
+export type GlobalScopePointer = typeof GLOBAL_SCOPE_POINTER;
+export type ChartCrossFiltersConfig = {
+  scope: NativeFilterScope | GlobalScopePointer;
+  chartsInScope: number[];
+};
+export type GlobalChartCrossFilterConfig = {
+  scope: NativeFilterScope;
+  chartsInScope: number[];
+};
+export const isCrossFilterScopeGlobal = (
+  scope: NativeFilterScope | GlobalScopePointer,
+): scope is GlobalScopePointer => scope === GLOBAL_SCOPE_POINTER;
+
+export type ChartConfiguration = {
+  [chartId: number]: {
+    id: number;
+    crossFilters: ChartCrossFiltersConfig;
+  };
+};
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
@@ -102,7 +125,8 @@ export type DashboardInfo = {
   json_metadata: string;
   metadata: {
     native_filter_configuration: JsonObject;
-    chart_configuration: JsonObject;
+    chart_configuration: ChartConfiguration;
+    global_chart_configuration: GlobalChartCrossFilterConfig;
     color_scheme: string;
     color_namespace: string;
     color_scheme_domain: string[];
