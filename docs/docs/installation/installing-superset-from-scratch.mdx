@@ -87,28 +87,12 @@ These will now be available when pip installing requirements.
 
 ### Python Virtual Environment
 
-We highly recommend installing Superset inside of a virtual environment. Python ships with
-`virtualenv` out of the box. If you're using [pyenv](https://github.com/pyenv/pyenv), you can install [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv). Or you can install it with `pip`:
-
-```
-pip install virtualenv
-```
-
+We highly recommend installing Superset inside of a virtual environment.
 You can create and activate a virtual environment using:
 
 ```
-# virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
-# See https://docs.python.org/3.6/library/venv.html
-python3 -m venv venv
-. venv/bin/activate
-```
-
-Or with pyenv-virtualenv:
-
-```
-# Here we name the virtual env 'superset'
-pyenv virtualenv superset
-pyenv activate superset
+python3 -m venv "venv"
+source "venv/bin/activate"
 ```
 
 Once you activated your virtual environment, all of the Python packages you install or uninstall
@@ -117,27 +101,34 @@ command line.
 
 ### Installing and Initializing Superset
 
+:::tip
+Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](/docs/installation/configuring-superset).
+:::
+
 First, start by installing `apache-superset`:
 
 ```
 pip install apache-superset
 ```
 
-Then, you need to initialize the database:
+Then, save some environmental variables needed by superset:
 
 ```
-superset db upgrade
+echo "FLASK_APP=superset" > superset_env
+echo "SUPERSET_SECRET_KEY=\"$(openssl rand -base64 42)\"" >> superset_env
+echo "export FLASK_APP SUPERSET_SECRET_KEY" >> superset_env
 ```
-
-:::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](/docs/installation/configuring-superset).
-:::
 
 Finish installing by running through the following commands:
 
 ```
+# Read these variables
+source superset_env
+
+# Initialize the database
+superset db upgrade
+
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
 superset fab create-admin
 
 # Load some data to play with
@@ -150,5 +141,4 @@ superset init
 superset run -p 8088 --with-threads --reload --debugger
 ```
 
-If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
-locally by default at `localhost:8088`) and login using the username and password you created.
+If everything worked, you should be able to navigate to <http://localhost:8088> in your browser and login using the admin username and password you created.
