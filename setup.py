@@ -154,7 +154,7 @@ setup(
         ],
         "db2": ["ibm-db-sa>0.3.8, <=0.4.0"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
-        "drill": ["sqlalchemy-drill==0.1.dev"],
+        "drill": ["sqlalchemy-drill>=1.1.4, <2"],
         "druid": ["pydruid>=0.6.5,<0.7"],
         "duckdb": ["duckdb-engine>=0.9.5, <0.10"],
         "dynamodb": ["pydynamodb>=0.4.2"],
