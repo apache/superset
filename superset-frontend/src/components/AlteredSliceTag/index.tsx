@@ -49,12 +49,12 @@ export type Row = {
   after: string | number;
 };
 
-interface FilterItem {
+type FilterItem = {
   comparator?: string | string[];
   subject: string;
   operator: string;
   label?: string;
-}
+};
 
 interface AlteredSliceTagState {
   rows: Row[];
