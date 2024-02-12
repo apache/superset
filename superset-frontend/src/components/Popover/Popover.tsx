@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { Popover as AntdPopover } from 'antd';
-import type { PopoverProps as AntdPopoverProps } from 'antd/lib/popover';
+import { Popover as AntdPopover } from 'antd-next';
+import type { PopoverProps as AntdPopoverProps } from 'antd-next/lib/popover';
 
 export interface PopoverProps extends AntdPopoverProps {
   forceRender?: boolean;

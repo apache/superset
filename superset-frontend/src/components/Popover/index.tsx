@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { PopoverProps } from 'antd/lib/popover';
-export type { TooltipPlacement } from 'antd/lib/tooltip';
+export type { PopoverProps } from 'antd-next/lib/popover';
+export type { TooltipPlacement } from 'antd-next/lib/tooltip';
 
 // Eventually Popover can be wrapped and customized in this file
 // for now we're just redirecting

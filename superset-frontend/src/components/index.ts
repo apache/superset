@@ -63,13 +63,16 @@ export {
   Dropdown as AntdDropdown,
   Form as AntdForm,
   Input as AntdInput,
-  Modal as AntdModal,
   Select as AntdSelect,
   Slider as AntdSlider,
   Switch as AntdSwitch,
   Tabs as AntdTabs,
   Tooltip as AntdTooltip,
 } from 'antd';
+
+export {
+  Modal as AntdModal,
+} from 'antd-next';
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
