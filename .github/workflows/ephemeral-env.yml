@@ -4,11 +4,6 @@ on:
   issue_comment:
     types: [created]
 
-# cancel previous workflow jobs for PRs
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   config:
     runs-on: "ubuntu-latest"
@@ -25,6 +20,9 @@ jobs:
           fi
 
   ephemeral-env-comment:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}-comment
+      cancel-in-progress: true
     needs: config
     if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
@@ -85,6 +83,9 @@ jobs:
           core.setFailed(errMsg)
 
   ephemeral-docker-build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}-build
+      cancel-in-progress: true
     needs: ephemeral-env-comment
     name: ephemeral-docker-build
     runs-on: ubuntu-latest
