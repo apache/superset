@@ -981,6 +981,7 @@
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s не может использоваться в качестве источника данных по соображениям безопасности."
       ],
+      "Guest user cannot modify chart payload": [""],
       "You don't have the rights to alter %(resource)s": [
         "Недостаточно прав для изменения %(resource)s"
       ],
@@ -2834,11 +2835,7 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        ""
-      ],
       "Mixed Chart": ["Смешанный график"],
-      "Mixed Time-Series": ["Смешанная диаграмма временных рядов"],
       "Put the labels outside of the pie?": [
         "Вынести метки за пределы диаграммы"
       ],
@@ -2902,11 +2899,7 @@
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        ""
-      ],
       "Generic Chart": ["Общая диаграмма"],
-      "Time-series Chart": ["Диаграмма (временные ряды)"],
       "zoom area": [""],
       "restore zoom": ["восстановить масштабирование"],
       "Series Style": ["Стиль категорий"],
@@ -2916,11 +2909,7 @@
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
         "Диаграммы с областями похожи на линейные диаграммы в том смысле, что они отображают показатели с одинаковым масштабом, но диаграммы областей накладывают эти показатели друг на друга."
       ],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-        "Диаграмма с наполнением похожа на линейную диаграмму тем, что они представляют переменные с одинаковым масштабом, но диаграммы с наполнением накладывают показатели друг на друга."
-      ],
       "Area Chart": ["Диаграмма с областями"],
-      "Time-series Area Chart": ["Диаграмма с областями (временные ряды)"],
       "Axis Title": ["Название оси"],
       "AXIS TITLE MARGIN": ["ОТСТУП ЗАГОЛОВКА ОСИ"],
       "AXIS TITLE POSITION": ["ПОЛОЖЕНИЕ ЗАГОЛОВКА ОСИ"],
@@ -2944,35 +2933,17 @@
       "Bar Charts are used to show metrics as a series of bars.": [
         "Столбчатые диаграммы используются для отображения показателей в виде серии столбцов."
       ],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        "Столбчатые диаграммы временных рядов используются для отображения изменений меры с течением времени в виде серии столбцов."
-      ],
       "Bar Chart": ["Столбчатая диаграмма"],
-      "Time-series Bar Chart": ["Столбчатая диаграмма"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Линейная диаграмма используется для визуализации показателей, полученных в рамках одной категории. Линейная диаграмма - это тип диаграммы, который отображает информацию в виде ряда точек данных, соединенных прямыми отрезками. Это базовый тип диаграммы, распространенный во многих областях."
       ],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        "Линейная диаграмма временных рядов используется для визуализации повторяющихся измерений, происходящих через регулярные промежутки времени. Линейная диаграмма - это тип диаграммы, который отображает информацию в виде ряда точек данных, соединенных прямыми отрезками. Это базовый тип диаграммы, распространенный во многих областях."
-      ],
       "Line Chart": ["Линейный график"],
-      "Time-series Line Chart": ["Линейная диаграмма (временные ряды)"],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         ""
       ],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        "На горизонтальной оси Точечной диаграммы откладывается время в линейных единицах, а точки соединяются по порядку. Он показывает статистическую зависимость между двумя переменными."
-      ],
       "Scatter Plot": ["Точечная диаграмма"],
-      "Time-series Scatter Plot": ["Точечная Диаграмма"],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         ""
-      ],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        ""
-      ],
-      "Time-series Smooth Line": [
-        "Плавная линейная диаграмма (временные ряды)"
       ],
       "Start": ["Начало"],
       "Middle": ["Середина"],
@@ -2983,10 +2954,6 @@
       "Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
         ""
       ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        ""
-      ],
-      "Time-series Stepped Line": ["Диаграмма шагов (временные ряды)"],
       "Id": ["ID"],
       "Name of the id column": ["Имя столбца id"],
       "Parent": ["Родитель"],
@@ -3086,6 +3053,9 @@
       "You need to configure HTML sanitization to use CSS": [""],
       "CSS Styles": ["CSS стили"],
       "CSS applied to the chart": ["CSS, примененный к графику"],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": [
         "Столбцы для группировки по столбцам"
       ],
@@ -3908,33 +3878,6 @@
         "Любая палитра, выбранная здесь, будет перезаписывать цвета, применённые к отдельным графикам этого дашборда"
       ],
       "You have unsaved changes.": ["У вас есть несохраненные изменения."],
-      "Changes saved.": ["Изменения сохранены."],
-      "Disable embedding?": ["Выключить встраивание?"],
-      "This will remove your current embed configuration.": [""],
-      "Embedding deactivated.": ["Встраивание отключено"],
-      "Sorry, something went wrong. Embedding could not be deactivated.": [
-        "Извините, что-то пошло не так. Встраивание не может быть деактивировано."
-      ],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        ""
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        "Настройте этот дашборд для встраивания во внешнее веб-приложение"
-      ],
-      "For further instructions, consult the": [
-        "Для получения дальнейших инструкций обратитесь к"
-      ],
-      "Superset Embedded SDK documentation.": [""],
-      "Allowed Domains (comma separated)": [
-        "Разрешенные домены (разделить запятыми)"
-      ],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        "Список доменных имен, которые могут встраивать этот дашборд. Если оставить поле пустым, любой домен сможет сделать встраивание."
-      ],
-      "Deactivate": ["Выключить"],
-      "Save changes": ["Сохранить изменения"],
-      "Enable embedding": ["Разрешить встраивание"],
-      "Embed": ["Встроить"],
       "Drag and drop components and charts to the dashboard": [
         "Переместите элементы оформления и графики на дашборд"
       ],
@@ -4001,6 +3944,33 @@
       "Go to the edit mode to configure the dashboard and add charts": [
         "Перейдите в режим редактирования для изменения дашборда и добавьте графики"
       ],
+      "Changes saved.": ["Изменения сохранены."],
+      "Disable embedding?": ["Выключить встраивание?"],
+      "This will remove your current embed configuration.": [""],
+      "Embedding deactivated.": ["Встраивание отключено"],
+      "Sorry, something went wrong. Embedding could not be deactivated.": [
+        "Извините, что-то пошло не так. Встраивание не может быть деактивировано."
+      ],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        ""
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        "Настройте этот дашборд для встраивания во внешнее веб-приложение"
+      ],
+      "For further instructions, consult the": [
+        "Для получения дальнейших инструкций обратитесь к"
+      ],
+      "Superset Embedded SDK documentation.": [""],
+      "Allowed Domains (comma separated)": [
+        "Разрешенные домены (разделить запятыми)"
+      ],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        "Список доменных имен, которые могут встраивать этот дашборд. Если оставить поле пустым, любой домен сможет сделать встраивание."
+      ],
+      "Deactivate": ["Выключить"],
+      "Save changes": ["Сохранить изменения"],
+      "Enable embedding": ["Разрешить встраивание"],
+      "Embed": ["Встроить"],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
         "В настоящий момент дашборд обновляется; следующее обновление будет через %s"
       ],
@@ -4804,8 +4774,8 @@
       "Width of the sparkline": ["Ширина спарклайна"],
       "Height of the sparkline": ["Высота спарклайна"],
       "Time lag": ["Временной лаг"],
-      "Number of periods to compare against": [
-        "Количество периодов для сравнения"
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
       ],
       "Time Lag": ["Временной лаг"],
       "Time ratio": ["Соотношение времени"],

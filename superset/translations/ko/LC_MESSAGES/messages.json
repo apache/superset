@@ -630,6 +630,7 @@
       ],
       "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [""],
       "%(dialect)s cannot be used as a data source for security reasons.": [""],
+      "Guest user cannot modify chart payload": [""],
       "You don't have the rights to alter %(resource)s": [""],
       "Failed to execute %(query)s": [""],
       "Please check your template parameters for syntax errors and make sure they match across your SQL query and Set Parameters. Then, try running your query again.": [
@@ -641,6 +642,7 @@
         ""
       ],
       "Tag name is invalid (cannot contain ':')": [""],
+      "Is custom tag": [""],
       "Record Count": ["레코드 수"],
       "No records found": [""],
       "Filter List": ["필터"],
@@ -2030,10 +2032,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        ""
-      ],
-      "Mixed Time-Series": [""],
       "Put the labels outside of the pie?": [""],
       "Label Line": [""],
       "Draw line from Pie to label when labels outside?": [""],
@@ -2078,18 +2076,12 @@
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        ""
-      ],
       "zoom area": [""],
       "restore zoom": [""],
       "Area chart opacity": [""],
       "Opacity of Area Chart. Also applies to confidence band.": [""],
       "Marker Size": [""],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
-        ""
-      ],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
         ""
       ],
       "Axis Title": [""],
@@ -2104,26 +2096,14 @@
       ],
       "Orientation of bar chart": [""],
       "Bar Charts are used to show metrics as a series of bars.": [""],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        ""
-      ],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        ""
-      ],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         ""
       ],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         ""
       ],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        ""
-      ],
       "Scatter Plot": [""],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        ""
-      ],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         ""
       ],
       "Start": ["시작 시간"],
@@ -2132,9 +2112,6 @@
         ""
       ],
       "Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        ""
-      ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
         ""
       ],
       "Id": [""],
@@ -2215,6 +2192,9 @@
       "You need to configure HTML sanitization to use CSS": [""],
       "CSS Styles": [""],
       "CSS applied to the chart": [""],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": [""],
       "Rows": [""],
       "Columns to group by on the rows": [""],
@@ -2555,6 +2535,7 @@
       "Drill by is not available for this data point": [""],
       "Drill by": [""],
       "Failed to generate chart edit URL": [""],
+      "You do not have sufficient permissions to edit the chart": [""],
       "Close": [""],
       "Failed to load chart data.": [""],
       "Drill to detail by": [""],
@@ -2832,26 +2813,6 @@
         ""
       ],
       "You have unsaved changes.": [""],
-      "Changes saved.": [""],
-      "Disable embedding?": [""],
-      "This will remove your current embed configuration.": [""],
-      "Embedding deactivated.": [""],
-      "Sorry, something went wrong. Embedding could not be deactivated.": [""],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        ""
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        ""
-      ],
-      "For further instructions, consult the": [""],
-      "Superset Embedded SDK documentation.": [""],
-      "Allowed Domains (comma separated)": [""],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        ""
-      ],
-      "Deactivate": [""],
-      "Enable embedding": [""],
-      "Embed": [""],
       "Drag and drop components and charts to the dashboard": [""],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
@@ -2892,6 +2853,27 @@
       "Collapse tab content": [""],
       "There are no charts added to this dashboard": [""],
       "Go to the edit mode to configure the dashboard and add charts": [""],
+      "Changes saved.": [""],
+      "Disable embedding?": [""],
+      "This will remove your current embed configuration.": [""],
+      "Embedding deactivated.": [""],
+      "Sorry, something went wrong. Embedding could not be deactivated.": [""],
+      "Sorry, something went wrong. Please try again.": [""],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        ""
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        ""
+      ],
+      "For further instructions, consult the": [""],
+      "Superset Embedded SDK documentation.": [""],
+      "Allowed Domains (comma separated)": [""],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        ""
+      ],
+      "Deactivate": [""],
+      "Enable embedding": [""],
+      "Embed": [""],
       "Applied cross-filters (%d)": [""],
       "Applied filters (%d)": [""],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
@@ -3455,7 +3437,9 @@
       "Width of the sparkline": [""],
       "Height of the sparkline": [""],
       "Time lag": [""],
-      "Number of periods to compare against": [""],
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
+      ],
       "Time Lag": [""],
       "Number of periods to ratio against": [""],
       "Show Y-axis": [""],

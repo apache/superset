@@ -1019,6 +1019,7 @@
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s não pode ser usado como uma fonte de dados por motivos de segurança."
       ],
+      "Guest user cannot modify chart payload": [""],
       "You don't have the rights to alter %(resource)s": [
         "Você não tem o direito de alterar %(resource)s"
       ],
@@ -2996,11 +2997,7 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Visualize duas séries diferentes usando o mesmo eixo x. Observe que ambas as séries podem ser visualizadas com um tipo de gráfico diferente (por exemplo, uma usando barras e outra usando uma linha)."
       ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        "Visualize duas séries temporais diferentes usando o mesmo eixo x. Observe que cada série temporal pode ser visualizada de forma diferente (por exemplo, uma usando barras e outra usando uma linha)."
-      ],
       "Mixed Chart": ["Gráfico misto"],
-      "Mixed Time-Series": ["Séries Temporais Mistas"],
       "Put the labels outside of the pie?": [
         "Colocar rótulos no exterior da torta?"
       ],
@@ -3068,11 +3065,7 @@
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         "Canivete suíço para visualizar dados. Escolha entre gráficos de etapas, de linhas, de dispersão e de barras. Esse tipo de visualização também tem muitas opções de personalização."
       ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        "Canivete suíço para visualizar dados de séries temporais. Escolha entre gráficos de etapas, de linhas, de dispersão e de barras. Esse tipo de visualização também tem muitas opções de personalização."
-      ],
       "Generic Chart": ["Gráfico genérico"],
-      "Time-series Chart": ["Gráfico de séries temporais"],
       "zoom area": ["área de zoom"],
       "restore zoom": ["restaurar zoom"],
       "Series Style": ["Estilo da série"],
@@ -3084,11 +3077,7 @@
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
         "Os gráficos de área são semelhantes aos gráficos de linhas na medida em que representam variáveis com a mesma escala, mas os gráficos de área empilham as métricas umas sobre as outras."
       ],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-        "O gráfico de área de série temporal é semelhante ao gráfico de linhas, pois representa variáveis com a mesma escala, mas os gráficos de área empilham as métricas umas sobre as outras. Um gráfico de área no Superset pode ser de fluxo, empilhamento ou expansão."
-      ],
       "Area Chart": ["Gráfico de área"],
-      "Time-series Area Chart": ["Gráfico de área de séries temporais"],
       "Axis Title": ["Título do eixo"],
       "AXIS TITLE MARGIN": ["MARGEM DO TÍTULO DO EIXO"],
       "AXIS TITLE POSITION": ["POSIÇÃO DO TÍTULO DO EIXO"],
@@ -3112,34 +3101,18 @@
       "Bar Charts are used to show metrics as a series of bars.": [
         "Os gráficos de barras são usados para mostrar as métricas como uma série de barras."
       ],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        "Os gráficos de barras de séries temporais são usados para mostrar as alterações em uma métrica ao longo do tempo como uma série de barras."
-      ],
       "Bar Chart": ["Gráfico de barras"],
-      "Time-series Bar Chart": ["Gráfico de barras de séries temporais"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "O gráfico de linhas é utilizado para visualizar as medições efetuadas numa determinada categoria. O gráfico de linhas é um tipo de gráfico que apresenta informações como uma série de pontos de dados ligados por segmentos de linha reta. É um tipo básico de gráfico comum em muitos domínios."
       ],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        "O gráfico de linhas de séries temporais é usado para visualizar medições repetidas feitas em intervalos de tempo regulares. O gráfico de linhas é um tipo de gráfico que exibe informações como uma série de pontos de dados conectados por segmentos de linha reta. É um tipo básico de gráfico comum em muitos campos."
-      ],
       "Line Chart": ["Gráfico de linhas"],
-      "Time-series Line Chart": ["Gráfico de linhas de séries temporais"],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         "O gráfico de dispersão tem o eixo horizontal em unidades lineares e os pontos estão ligados por ordem. Mostra uma relação estatística entre duas variáveis."
       ],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        "O gráfico de dispersão de séries temporais tem o tempo no eixo horizontal em unidades lineares, e os pontos são conectados em ordem. Ele mostra uma relação estatística entre duas variáveis."
-      ],
       "Scatter Plot": ["Gráfico de dispersão"],
-      "Time-series Scatter Plot": ["Gráfico de dispersão de séries temporais"],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         "A linha suave é uma variação do gráfico de linhas. Sem ângulos nem arestas, a linha suave tem por vezes um aspecto mais inteligente e profissional."
       ],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        "A série temporal Smooth-line é uma variação do gráfico de linhas. Sem ângulos e bordas rígidas, o Smooth-line às vezes parece mais inteligente e profissional."
-      ],
-      "Time-series Smooth Line": ["Linha suave de séries temporais"],
       "Step type": ["Tipo de etapa"],
       "Start": ["Iniciar"],
       "Middle": ["Médio"],
@@ -3150,11 +3123,7 @@
       "Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
         "O gráfico de linhas escalonadas (também designado por gráfico de passos) é uma variação do gráfico de linhas, mas com a linha a formar uma série de passos entre os pontos de dados. Um gráfico escalonado pode ser útil quando se pretende mostrar as alterações que ocorrem em intervalos irregulares."
       ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        "O Gráfico de linhas escalonadas de séries temporais (também chamado de gráfico de etapas) é uma variação do gráfico de linhas, mas com a linha formando uma série de etapas entre os pontos de dados. Um gráfico de etapas pode ser útil quando você deseja mostrar as alterações que ocorrem em intervalos irregulares."
-      ],
       "Stepped Line": ["Linha escalonada"],
-      "Time-series Stepped Line": ["Linha escalonada de série temporal"],
       "Id": ["Id"],
       "Name of the id column": ["Nome da coluna id"],
       "Parent": ["Pai"],
@@ -3267,6 +3236,9 @@
       ],
       "CSS Styles": ["Estilos CSS"],
       "CSS applied to the chart": ["CSS aplicado ao gráfico"],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": [
         "Colunas para agrupar nas colunas"
       ],
@@ -4138,37 +4110,6 @@
         "Qualquer paleta de cores selecionada aqui substituirá as cores aplicadas aos gráficos individuais deste painel"
       ],
       "You have unsaved changes.": ["Você tem alterações não salvas."],
-      "Changes saved.": ["Alterações salvas."],
-      "Disable embedding?": ["Desativar incorporação?"],
-      "This will remove your current embed configuration.": [
-        "Isso removerá sua configuração de incorporação atual."
-      ],
-      "Embedding deactivated.": ["Incorporação desativada."],
-      "Sorry, something went wrong. Embedding could not be deactivated.": [
-        "Desculpe, ocorreu um erro. Não foi possível desativar a incorporação."
-      ],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        "Esse painel está pronto para ser incorporado. Em seu aplicativo, passe o seguinte id para o SDK:"
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        "Configurar este painel para incorporá-lo em um aplicativo web externo."
-      ],
-      "For further instructions, consult the": [
-        "Para mais instruções , consultar o"
-      ],
-      "Superset Embedded SDK documentation.": [
-        "Documentação do SDK incorporado Superset."
-      ],
-      "Allowed Domains (comma separated)": [
-        "Domínios permitidos (separados por vírgula)"
-      ],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        "Uma lista de nomes de domínio que podem incorporar este dashboard. Se deixar este campo vazio, permitirá a incorporação a partir de qualquer domínio."
-      ],
-      "Deactivate": ["Desativar"],
-      "Save changes": ["Salvar alterações"],
-      "Enable embedding": ["Habilitar incorporação"],
-      "Embed": ["Incorporar"],
       "Drag and drop components and charts to the dashboard": [
         "Arraste e solte componentes e gráficos para o painel"
       ],
@@ -4232,6 +4173,37 @@
       "Go to the edit mode to configure the dashboard and add charts": [
         "Vá ao modo de edição para configurar o painel e adicionar gráficos"
       ],
+      "Changes saved.": ["Alterações salvas."],
+      "Disable embedding?": ["Desativar incorporação?"],
+      "This will remove your current embed configuration.": [
+        "Isso removerá sua configuração de incorporação atual."
+      ],
+      "Embedding deactivated.": ["Incorporação desativada."],
+      "Sorry, something went wrong. Embedding could not be deactivated.": [
+        "Desculpe, ocorreu um erro. Não foi possível desativar a incorporação."
+      ],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        "Esse painel está pronto para ser incorporado. Em seu aplicativo, passe o seguinte id para o SDK:"
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        "Configurar este painel para incorporá-lo em um aplicativo web externo."
+      ],
+      "For further instructions, consult the": [
+        "Para mais instruções , consultar o"
+      ],
+      "Superset Embedded SDK documentation.": [
+        "Documentação do SDK incorporado Superset."
+      ],
+      "Allowed Domains (comma separated)": [
+        "Domínios permitidos (separados por vírgula)"
+      ],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        "Uma lista de nomes de domínio que podem incorporar este dashboard. Se deixar este campo vazio, permitirá a incorporação a partir de qualquer domínio."
+      ],
+      "Deactivate": ["Desativar"],
+      "Save changes": ["Salvar alterações"],
+      "Enable embedding": ["Habilitar incorporação"],
+      "Embed": ["Incorporar"],
       "Applied cross-filters (%d)": ["Filtros cruzados aplicados (%d)"],
       "Applied filters (%d)": ["Filtros aplicados (%d)"],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
@@ -5076,8 +5048,8 @@
       "Width of the sparkline": ["Largura do brilho"],
       "Height of the sparkline": ["Altura do minigráfico"],
       "Time lag": ["Defasagem de tempo"],
-      "Number of periods to compare against": [
-        "Número de períodos para comparar com"
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
       ],
       "Time Lag": ["Atraso de tempo"],
       "Time ratio": ["Relação de tempo"],

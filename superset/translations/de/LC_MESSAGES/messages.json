@@ -1083,6 +1083,7 @@
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s kann aus Sicherheitsgründen nicht als Datenquelle verwendet werden."
       ],
+      "Guest user cannot modify chart payload": [""],
       "You don't have the rights to alter %(resource)s": [
         "Sie sind nicht berechtigt, %(resource)s zu ändern"
       ],
@@ -3108,11 +3109,7 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Visualisieren Sie zwei verschiedene Zeitreihen mit derselben x-Achse. Beachten Sie, dass beide Reihen mit einem anderen Diagrammtyp visualisiert werden können (z. B. eine mit Balken und die andere mit einer Linie)."
       ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        "Visualisieren Sie zwei verschiedene Zeitreihen mit derselben x-Achse. Beachten Sie, dass jede Zeitreihe unterschiedlich visualisiert werden kann (z. B. eine mit Balken und die andere mit einer Linie)."
-      ],
       "Mixed Chart": ["Gemischtes Diagramm"],
-      "Mixed Time-Series": ["Gemischte Zeitreihen"],
       "Put the labels outside of the pie?": [
         "Sollen die Beschriftungen außerhalb der Torte dargestellt werden?"
       ],
@@ -3180,11 +3177,7 @@
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         "Schweizer Taschenmesser zur Visualisierung von Daten. Wählen Sie zwischen Schritt-, Linien-, Punkt- und Balkendiagrammen. Dieser Visualisierungstyp hat auch viele Anpassungsoptionen."
       ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        "Schweizer Taschenmesser zur Visualisierung von Zeitreihendaten. Wählen Sie zwischen Schritt-, Linien-, Punkt- und Balkendiagrammen. Dieser Visualisierungstyp verfügt auch über viele Anpassungsoptionen."
-      ],
       "Generic Chart": ["Generisches Diagramm"],
-      "Time-series Chart": ["Zeitreihendiagramm"],
       "zoom area": ["Zoombereich"],
       "restore zoom": ["Zoom wiederherstellen"],
       "Series Style": ["Zeitreihenstil"],
@@ -3196,11 +3189,7 @@
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
         "Flächendiagramme ähneln Liniendiagrammen, da sie Variablen mit der gleichen Skala darstellen, aber Flächendiagramme stapeln die Metriken übereinander."
       ],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-        "Zeitreihen-Flächendiagramme ähneln Liniendiagrammen insofern, als sie Variablen mit der gleichen Skala darstellen, aber Flächendiagramme stapeln die Metriken übereinander. Ein Flächendiagramm in Superset kann streamen, stapeln oder erweitern."
-      ],
       "Area Chart": ["Flächendiagramm"],
-      "Time-series Area Chart": ["Zeitreihen-Flächendiagramm"],
       "Axis Title": ["Titel der Achse"],
       "AXIS TITLE MARGIN": ["ABSTAND DES ACHSENTITELS"],
       "AXIS TITLE POSITION": ["Y-ACHSE TITEL POSITION"],
@@ -3224,34 +3213,18 @@
       "Bar Charts are used to show metrics as a series of bars.": [
         "Balkendiagramme werden verwendet, um Metriken als eine Reihe von Balken anzuzeigen."
       ],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        "Zeitreihen-Balkendiagramme werden verwendet, um die Änderungen in einer Metrik im Laufe der Zeit als eine Reihe von Balken anzuzeigen."
-      ],
       "Bar Chart": ["Balkendiagramm"],
-      "Time-series Bar Chart": ["Zeitreihen - Balkendiagramm"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Liniendiagramm wird verwendet, um Messungen zu visualisieren, die über eine bestimmte Kategorie durchgeführt wurden. Liniendiagramm ist eine Art Diagramm, das Informationen als eine Reihe von Datenpunkten anzeigt, die durch gerade Liniensegmente verbunden sind. Es ist ein grundlegender Diagrammtyp, der in vielen Bereichen üblich ist."
       ],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        "Das Zeitreihen-Liniendiagramm wird verwendet, um wiederholte Messungen in regelmäßigen Zeitintervallen zu visualisieren. Liniendiagramm ist ein Diagrammtyp, der Informationen als eine Reihe von Datenpunkten anzeigt, die durch gerade Liniensegmente verbunden sind. Es ist ein grundlegender Diagrammtyp, der in vielen Bereichen üblich ist."
-      ],
       "Line Chart": ["Liniendiagramm"],
-      "Time-series Line Chart": ["Zeitreihen - Liniendiagramm"],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         "Das Punktdiagramm hat die horizontale Achse in linearen Einheiten, und die Punkte sind in der richtigen Reihenfolge verbunden. Es zeigt eine statistische Beziehung zwischen zwei Variablen."
       ],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        "Das Zeitreihen-Streudiagramm stellt die Zeit auf der horizontalen Achse in linearen Einheiten dar, und die Punkte sind in der richtigen Reihenfolge verbunden. Es zeigt eine statistische Beziehung zwischen zwei Variablen."
-      ],
       "Scatter Plot": ["Streudiagramm"],
-      "Time-series Scatter Plot": ["Zeitreihen-Streudiagramm"],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         "„Glatte Linie“ ist eine Variante des Liniendiagramms. Ohne Winkel und harte Kanten wirkt „Glatte Linie“ manchmal passender und professioneller."
       ],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        "„Zeitreihen-Glatte Linie“ ist eine Variante des Liniendiagramms. Ohne Winkel und harte Kanten wirkt dieser Diagrammtyp manchmal passender und professioneller."
-      ],
-      "Time-series Smooth Line": ["Zeitreihe Glatte Linie"],
       "Step type": ["Schritttyp"],
       "Start": ["Start"],
       "Middle": ["Mitte"],
@@ -3262,11 +3235,7 @@
       "Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
         "Zeitreihen-Stufenliniendiagramm (auch Schrittdiagramm genannt) ist eine Variation des Liniendiagramms, wobei die Linie jedoch eine Reihe von Schritten zwischen Datenpunkten bildet. Ein Schrittdiagramm kann nützlich sein, wenn Sie die Änderungen anzeigen möchten, die in unregelmäßigen Abständen auftreten."
       ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        "Zeitreihen-Stufenliniendiagramm (auch Schrittdiagramm genannt) ist eine Variation des Liniendiagramms, wobei die Linie jedoch eine Reihe von Schritten zwischen Datenpunkten bildet. Ein Schrittdiagramm kann nützlich sein, wenn Sie die Änderungen anzeigen möchten, die in unregelmäßigen Abständen auftreten."
-      ],
       "Stepped Line": ["Stufendiagramm"],
-      "Time-series Stepped Line": ["Zeitreihen-Stufenlinie"],
       "Id": ["ID"],
       "Name of the id column": ["Name der ID-Spalte"],
       "Parent": ["Übergeordnet"],
@@ -3379,6 +3348,9 @@
       ],
       "CSS Styles": ["CSS Stile"],
       "CSS applied to the chart": ["Auf das Diagramm angewendetes CSS"],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": [
         "Spalten, nach denen in den Spalten gruppiert werden soll"
       ],
@@ -4291,37 +4263,6 @@
         "Jede hier ausgewählte Farbpalette überschreibt die Farben, die auf die einzelnen Diagramme dieses Dashboards angewendet werden"
       ],
       "You have unsaved changes.": ["Ungesicherte Änderungen vorhanden."],
-      "Changes saved.": ["Änderungen gespeichert."],
-      "Disable embedding?": ["Einbettung deaktivieren?"],
-      "This will remove your current embed configuration.": [
-        "Dadurch wird Ihre aktuelle Embedded-Konfiguration entfernt."
-      ],
-      "Embedding deactivated.": ["Einbetten deaktiviert."],
-      "Sorry, something went wrong. Embedding could not be deactivated.": [
-        "Entschuldigung, etwas ist schief gelaufen. Die Einbettung konnte nicht deaktiviert werden."
-      ],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        "Dieses Dashboard ist bereit zum Einbetten. Übergeben Sie in Ihrer Anwendung die folgende ID an das SDK:"
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        "Konfigurieren Sie dieses Dashboard, um es in eine externe Webanwendung einzubetten."
-      ],
-      "For further instructions, consult the": [
-        "Weitere Anweisungen finden Sie in der"
-      ],
-      "Superset Embedded SDK documentation.": [
-        "Superset Embedded SDK-Dokumentation."
-      ],
-      "Allowed Domains (comma separated)": [
-        "Zulässige Domänen (durch Kommas getrennt)"
-      ],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        "Eine Liste der Domänennamen, die dieses Dashboard einbetten können. Wenn Sie dieses Feld leer lassen, können Sie von jeder Domäne aus einbetten."
-      ],
-      "Deactivate": ["Deaktivieren"],
-      "Save changes": ["Änderungen speichern"],
-      "Enable embedding": ["Einbettung aktivieren"],
-      "Embed": ["Einbetten"],
       "Drag and drop components and charts to the dashboard": [
         "Ziehen Sie Komponenten und Diagramme per Drag & Drop auf das Dashboard"
       ],
@@ -4385,6 +4326,37 @@
       "Go to the edit mode to configure the dashboard and add charts": [
         "Gehen Sie in den Bearbeitungsmodus, um das Dashboard zu konfigurieren und Diagramme hinzuzufügen"
       ],
+      "Changes saved.": ["Änderungen gespeichert."],
+      "Disable embedding?": ["Einbettung deaktivieren?"],
+      "This will remove your current embed configuration.": [
+        "Dadurch wird Ihre aktuelle Embedded-Konfiguration entfernt."
+      ],
+      "Embedding deactivated.": ["Einbetten deaktiviert."],
+      "Sorry, something went wrong. Embedding could not be deactivated.": [
+        "Entschuldigung, etwas ist schief gelaufen. Die Einbettung konnte nicht deaktiviert werden."
+      ],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        "Dieses Dashboard ist bereit zum Einbetten. Übergeben Sie in Ihrer Anwendung die folgende ID an das SDK:"
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        "Konfigurieren Sie dieses Dashboard, um es in eine externe Webanwendung einzubetten."
+      ],
+      "For further instructions, consult the": [
+        "Weitere Anweisungen finden Sie in der"
+      ],
+      "Superset Embedded SDK documentation.": [
+        "Superset Embedded SDK-Dokumentation."
+      ],
+      "Allowed Domains (comma separated)": [
+        "Zulässige Domänen (durch Kommas getrennt)"
+      ],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        "Eine Liste der Domänennamen, die dieses Dashboard einbetten können. Wenn Sie dieses Feld leer lassen, können Sie von jeder Domäne aus einbetten."
+      ],
+      "Deactivate": ["Deaktivieren"],
+      "Save changes": ["Änderungen speichern"],
+      "Enable embedding": ["Einbettung aktivieren"],
+      "Embed": ["Einbetten"],
       "Applied cross-filters (%d)": ["Kreuzfilter (%d) angewendet"],
       "Applied filters (%d)": ["Angewendete Filter (%d)"],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
@@ -5283,8 +5255,8 @@
       "Width of the sparkline": ["Breite der Sparkline"],
       "Height of the sparkline": ["Höhe der Sparkline"],
       "Time lag": ["Verzögerung"],
-      "Number of periods to compare against": [
-        "Anzahl der zu vergleichenden Perioden"
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
       ],
       "Time Lag": ["Verzögerung"],
       "Time ratio": ["Zeitverhältnis"],

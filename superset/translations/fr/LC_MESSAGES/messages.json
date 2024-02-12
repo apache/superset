@@ -960,6 +960,7 @@
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s ne peut pas être utilisé comme source de données pour des raisons de sécurité."
       ],
+      "Guest user cannot modify chart payload": [""],
       "Failed to execute %(query)s": [""],
       "The parameter %(parameters)s in your query is undefined.": [
         "Le paramètre %(parameters)s de votre requête est indéfini.",
@@ -2205,10 +2206,6 @@
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         ""
       ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        ""
-      ],
-      "Mixed Time-Series": [""],
       "Put the labels outside of the pie?": [""],
       "Label Line": [""],
       "Draw line from Pie to label when labels outside?": [""],
@@ -2248,18 +2245,12 @@
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         ""
       ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        ""
-      ],
       "zoom area": [""],
       "restore zoom": [""],
       "Area chart opacity": [""],
       "Opacity of Area Chart. Also applies to confidence band.": [""],
       "Marker Size": [""],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
-        ""
-      ],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
         ""
       ],
       "AXIS TITLE MARGIN": [""],
@@ -2271,25 +2262,13 @@
         ""
       ],
       "Bar Charts are used to show metrics as a series of bars.": [""],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        ""
-      ],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        ""
-      ],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         ""
       ],
       "Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
         ""
       ],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        ""
-      ],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        ""
-      ],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         ""
       ],
       "Start": ["Date de début"],
@@ -2298,9 +2277,6 @@
         ""
       ],
       "Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        ""
-      ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
         ""
       ],
       "Parent": [""],
@@ -2365,6 +2341,9 @@
       "You need to configure HTML sanitization to use CSS": [""],
       "CSS Styles": [""],
       "CSS applied to the chart": [""],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": [""],
       "Rows": ["Lignes"],
       "Columns to group by on the rows": [""],
@@ -3044,23 +3023,6 @@
       "You have unsaved changes.": [
         "Vous avez des modifications non sauvegardées."
       ],
-      "Changes saved.": [""],
-      "Disable embedding?": [""],
-      "This will remove your current embed configuration.": [""],
-      "Embedding deactivated.": [""],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        ""
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        ""
-      ],
-      "For further instructions, consult the": [""],
-      "Superset Embedded SDK documentation.": [""],
-      "Allowed Domains (comma separated)": [""],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        ""
-      ],
-      "Enable embedding": [""],
       "Drag and drop components and charts to the dashboard": [
         "Glissez/Déposez des composants et des graphiques sur le tableau de bord"
       ],
@@ -3117,6 +3079,23 @@
       "Go to the edit mode to configure the dashboard and add charts": [
         "Allez dans l'edition pour configurer le tableau de bord et ajouter des graphiques"
       ],
+      "Changes saved.": [""],
+      "Disable embedding?": [""],
+      "This will remove your current embed configuration.": [""],
+      "Embedding deactivated.": [""],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        ""
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        ""
+      ],
+      "For further instructions, consult the": [""],
+      "Superset Embedded SDK documentation.": [""],
+      "Allowed Domains (comma separated)": [""],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        ""
+      ],
+      "Enable embedding": [""],
       "Applied filters (%d)": ["Filtres appliqués (%d)"],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
         "Ce tableau de bord est en train de se rafraîchir automatiquement ; le prochain rafraîchissement sera dans %s."
@@ -3775,7 +3754,9 @@
       "Width": ["Largeur"],
       "Width of the sparkline": [""],
       "Height of the sparkline": [""],
-      "Number of periods to compare against": [""],
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
+      ],
       "Number of periods to ratio against": [""],
       "Show Y-axis": [""],
       "Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.": [

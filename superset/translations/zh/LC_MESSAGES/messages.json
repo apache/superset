@@ -756,6 +756,7 @@
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "出于安全原因，%(dialect)s SQLite数据库不能用作数据源。"
       ],
+      "Guest user cannot modify chart payload": [""],
       "Failed to execute %(query)s": [""],
       "The parameter %(parameters)s in your query is undefined.": [
         "查询中的以下参数未定义：%(parameters)s 。"
@@ -2236,7 +2237,6 @@
       "Secondary y-axis format": ["次级y轴格式"],
       "Secondary y-axis title": ["二级轴标题"],
       "Logarithmic scale on secondary y-axis": ["二次y轴上的对数刻度"],
-      "Mixed Time-Series": ["混和时间序列"],
       "Put the labels outside of the pie?": ["是否将标签显示在饼图外侧？"],
       "Label Line": ["标签线"],
       "Draw line from Pie to label when labels outside?": [
@@ -2292,7 +2292,6 @@
       "Sunburst Chart": ["旭日/太阳图"],
       "Multi-Levels": ["多层次"],
       "When using other than adaptive formatting, labels may overlap": [""],
-      "Time-series Chart": ["时间序列图"],
       "zoom area": [""],
       "restore zoom": [""],
       "Series Style": ["线条样式"],
@@ -2301,38 +2300,17 @@
         "区域图的不透明度。也适用于置信带"
       ],
       "Marker Size": ["标记大小"],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-        "时间序列面积图与折线图相似，因为它们表示具有相同比例的变量，但面积图将度量叠加在一起。超级集中的面积图可以是流式、堆栈式或展开式"
-      ],
       "Area Chart": ["面积图"],
-      "Time-series Area Chart": ["时间序列条形图"],
       "AXIS TITLE MARGIN": [""],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        "时间序列条形图用于显示指标随时间的变化"
-      ],
       "Bar Chart": ["条形图"],
-      "Time-series Bar Chart": ["时间序列-条形图"],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        "时间序列折线图用于可视化在规则时间间隔内进行的重复测量。折线图是一种图表，它将信息显示为一系列由直线段连接的数据点。它是许多领域中常见的一种基本类型的图表。"
-      ],
       "Line Chart": ["多线图"],
-      "Time-series Line Chart": ["时间序列折线图"],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        "时间序列散点图在水平轴上以线性单位表示时间，点按顺序连接。它显示了两个变量之间的统计关系"
-      ],
       "Scatter Plot": ["散点图"],
-      "Time-series Scatter Plot": ["时间序列散点图"],
-      "Time-series Smooth Line": ["时间序列光滑曲线图"],
       "Step type": ["数据类型"],
       "Start": ["开始"],
       "End": ["结束"],
       "Defines whether the step should appear at the beginning, middle or end between two data points": [
         "定义步骤应出现在两个数据点之间的开始、中间还是结束处"
       ],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        "“时间序列步进折线图（也称为步进图）是折线图的一种变体，但线条在数据点之间形成一系列步进。当您希望显示不规则间隔发生的变化时，步进图可能很有用。”"
-      ],
-      "Time-series Stepped Line": ["时间序列阶梯图"],
       "Id": ["Id"],
       "Name of the id column": ["ID列名称"],
       "Parent": ["父类"],
@@ -2419,6 +2397,9 @@
       ],
       "You need to configure HTML sanitization to use CSS": [""],
       "CSS applied to the chart": [""],
+      "Filters for comparison must have a value": [""],
+      "Add color for positive/negative change": [""],
+      "Big Number with Time Period Comparison": [""],
       "Columns to group by on the columns": ["必须是分组列"],
       "Rows": ["行"],
       "Columns to group by on the rows": ["行上分组所依据的列"],
@@ -3070,22 +3051,6 @@
         "此处选择的任何调色板都将覆盖应用于此看板的各个图表的颜色"
       ],
       "You have unsaved changes.": ["您有一些未保存的修改。"],
-      "Changes saved.": [""],
-      "Disable embedding?": [""],
-      "This will remove your current embed configuration.": [""],
-      "Embedding deactivated.": [""],
-      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-        ""
-      ],
-      "Configure this dashboard to embed it into an external web application.": [
-        ""
-      ],
-      "For further instructions, consult the": [""],
-      "Superset Embedded SDK documentation.": [""],
-      "Allowed Domains (comma separated)": [""],
-      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        ""
-      ],
       "Drag and drop components and charts to the dashboard": [""],
       "You can create a new chart or use existing ones from the panel on the right": [
         ""
@@ -3128,6 +3093,22 @@
       "Load a CSS template": ["加载一个 CSS 模板"],
       "Live CSS editor": ["即时 CSS 编辑器"],
       "Go to the edit mode to configure the dashboard and add charts": [""],
+      "Changes saved.": [""],
+      "Disable embedding?": [""],
+      "This will remove your current embed configuration.": [""],
+      "Embedding deactivated.": [""],
+      "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
+        ""
+      ],
+      "Configure this dashboard to embed it into an external web application.": [
+        ""
+      ],
+      "For further instructions, consult the": [""],
+      "Superset Embedded SDK documentation.": [""],
+      "Allowed Domains (comma separated)": [""],
+      "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
+        ""
+      ],
       "This dashboard is currently auto refreshing; the next auto refresh will be in %s.": [
         "此看板当前正在强制刷新；下一次强制刷新将在 %s 内执行。"
       ],
@@ -3702,6 +3683,9 @@
       "Type of comparison, value difference or percentage": [""],
       "Width": ["宽度"],
       "Width of the sparkline": [""],
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
+      ],
       "Show Y-axis": [""],
       "Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.": [
         ""
