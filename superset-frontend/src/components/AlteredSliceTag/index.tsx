@@ -38,22 +38,24 @@ export interface ControlMap {
   };
 }
 
-interface Diff {
+type Diff = {
   before: [];
   after: [];
-}
+};
 
-export interface Row {
+export type Row = {
   control: string;
   before: string | number;
   after: string | number;
-}
-interface FilterItem {
+};
+
+type FilterItem = {
   comparator?: string | string[];
   subject: string;
   operator: string;
   label?: string;
-}
+};
+
 interface AlteredSliceTagState {
   rows: Row[];
   hasDiffs: boolean;
