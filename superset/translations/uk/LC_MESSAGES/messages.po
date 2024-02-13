@@ -20387,4 +20387,3 @@ msgstr ""
 #, python-format
 msgid "We have the following keys: %s"
 msgstr "У нас є такі ключі: %s"
-
