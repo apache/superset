@@ -22,7 +22,6 @@ import {
   ControlPanelConfig,
   ControlPanelState,
   formatSelectOptions,
-  sections,
   getStandardizedControls,
   sharedControls,
   ControlState,
@@ -41,7 +40,6 @@ const columnsConfig = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

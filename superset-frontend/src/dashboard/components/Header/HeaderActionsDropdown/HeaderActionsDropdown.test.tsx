@@ -24,11 +24,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import { FeatureFlag } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
 import HeaderActionsDropdown from '.';
-
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -92,6 +88,14 @@ const editModeOnWithFilterScopesProps = {
   },
 };
 
+const guestUserProps = {
+  ...createProps(),
+  dashboardInfo: {
+    ...createProps().dashboardInfo,
+    userId: undefined,
+  },
+};
+
 function setup(props: HeaderDropdownProps) {
   return render(
     <div className="dashboard-header">
@@ -127,63 +131,29 @@ test('should render the menu items', async () => {
 
 test('should render the menu items in edit mode', async () => {
   setup(editModeOnProps);
-  expect(screen.getAllByRole('menuitem')).toHaveLength(5);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
   expect(screen.getByText('Edit properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
   expect(screen.getByText('Download')).toBeInTheDocument();
 });
 
-describe('with native filters feature flag disabled', () => {
-  beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) =>
-          featureFlag !== FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-      );
-  });
-
-  afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
-  });
-
-  it('should render filter mapping in edit mode if explicit filter scopes undefined', async () => {
-    setup(editModeOnProps);
-    expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
-  });
-
-  it('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
-    setup(editModeOnWithFilterScopesProps);
-    expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
-  });
+test('should render the menu items in Embedded mode', async () => {
+  setup(guestUserProps);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(3);
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
 });
 
-describe('with native filters feature flag enabled', () => {
-  beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) =>
-          featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-      );
-  });
+test('should not render filter mapping in edit mode if explicit filter scopes undefined', async () => {
+  setup(editModeOnProps);
+  expect(screen.queryByText('Set filter mapping')).not.toBeInTheDocument();
+});
 
-  afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
-  });
-
-  it('should not render filter mapping in edit mode if explicit filter scopes undefined', async () => {
-    setup(editModeOnProps);
-    expect(screen.queryByText('Set filter mapping')).not.toBeInTheDocument();
-  });
-
-  it('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
-    setup(editModeOnWithFilterScopesProps);
-    expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
-  });
+test('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
+  setup(editModeOnWithFilterScopesProps);
+  expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
 });
 
 test('should show the share actions', async () => {

@@ -78,7 +78,6 @@ import {
   BUILDER_SIDEPANEL_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
   FILTER_BAR_HEADER_HEIGHT,
-  FILTER_BAR_TABS_HEIGHT,
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_MAX_WIDTH,
   OPEN_FILTER_BAR_WIDTH,
@@ -86,71 +85,9 @@ import {
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
+import DashboardWrapper from './DashboardWrapper';
 
 type DashboardBuilderProps = {};
-
-const StyledDiv = styled.div`
-  ${({ theme }) => css`
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto 1fr;
-    flex: 1;
-    /* Special cases */
-
-    /* A row within a column has inset hover menu */
-    .dragdroppable-column .dragdroppable-row .hover-menu--left {
-      left: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
-    }
-
-    .dashboard-component-tabs {
-      position: relative;
-    }
-
-    /* A column within a column or tabs has inset hover menu */
-    .dragdroppable-column .dragdroppable-column .hover-menu--top,
-    .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
-      top: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
-    }
-
-    /* move Tabs hover menu to top near actual Tabs */
-    .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
-      top: 0;
-      transform: unset;
-      background: transparent;
-    }
-
-    /* push Chart actions to upper right */
-    .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
-    .dragdroppable .dashboard-component-header .hover-menu--top {
-      right: ${theme.gridUnit * 2}px;
-      top: ${theme.gridUnit * 2}px;
-      background: transparent;
-      border: none;
-      transform: unset;
-      left: unset;
-    }
-    div:hover > .hover-menu-container .hover-menu,
-    .hover-menu-container .hover-menu:hover {
-      opacity: 1;
-    }
-
-    p {
-      margin: 0 0 ${theme.gridUnit * 2}px 0;
-    }
-
-    i.danger {
-      color: ${theme.colors.error.base};
-    }
-
-    i.warning {
-      color: ${theme.colors.alert.base};
-    }
-  `}
-`;
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -317,7 +254,7 @@ const DashboardContentWrapper = styled.div`
         width: 100%;
       }
 
-      & > .empty-droptarget:first-child {
+      & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
         height: ${theme.gridUnit * 4}px;
         top: -2px;
         z-index: 10;
@@ -448,13 +385,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
   const crossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
         ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.VERTICAL,
+        : FilterBarOrientation.Vertical,
   );
 
   const handleChangeTab = useCallback(
@@ -487,10 +424,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       ? dashboardLayout[rootChildId]
       : undefined;
   const standaloneMode = getUrlParam(URL_PARAMS.standalone);
-  const isReport = standaloneMode === DashboardStandaloneMode.REPORT;
+  const isReport = standaloneMode === DashboardStandaloneMode.Report;
   const hideDashboardHeader =
     uiConfig.hideTitle ||
-    standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
+    standaloneMode === DashboardStandaloneMode.HideNavAndTitle ||
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
@@ -525,18 +462,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     threshold: [1],
   });
 
-  // Filter sets depend on native filters
-  const filterSetEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS);
-
   const showFilterBar =
     (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
-    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT) +
-    (filterSetEnabled ? FILTER_BAR_TABS_HEIGHT : 0);
+    (isSticky || standaloneMode ? 0 : MAIN_HEADER_HEIGHT);
 
   const filterBarHeight = `calc(100vh - ${offset}px)`;
   const filterBarOffset = dashboardFiltersOpen ? 0 : barTopOffset + 20;
@@ -547,7 +478,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         dashboardFiltersOpen ||
         editMode ||
         !nativeFiltersEnabled ||
-        filterBarOrientation === FilterBarOrientation.HORIZONTAL
+        filterBarOrientation === FilterBarOrientation.Horizontal
           ? 0
           : -32,
     }),
@@ -585,9 +516,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       <div>
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
-          filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
+          filterBarOrientation === FilterBarOrientation.Horizontal && (
             <FilterBar
-              orientation={FilterBarOrientation.HORIZONTAL}
+              orientation={FilterBarOrientation.Horizontal}
               hidden={isReport}
             />
           )}
@@ -635,13 +566,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     !dashboardFiltersOpen &&
     !editMode &&
     nativeFiltersEnabled &&
-    filterBarOrientation !== FilterBarOrientation.HORIZONTAL
+    filterBarOrientation !== FilterBarOrientation.Horizontal
       ? 0
       : theme.gridUnit * 8;
 
   return (
-    <StyledDiv>
-      {showFilterBar && filterBarOrientation === FilterBarOrientation.VERTICAL && (
+    <DashboardWrapper>
+      {showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical && (
         <>
           <ResizableSidebar
             id={`dashboard:${dashboardId}`}
@@ -663,7 +594,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
                     <ErrorBoundary>
                       <FilterBar
-                        orientation={FilterBarOrientation.VERTICAL}
+                        orientation={FilterBarOrientation.Vertical}
                         verticalConfig={{
                           filtersOpen: dashboardFiltersOpen,
                           toggleFiltersBar: toggleDashboardFiltersOpen,
@@ -749,7 +680,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           `}
         />
       )}
-    </StyledDiv>
+    </DashboardWrapper>
   );
 };
 

@@ -17,7 +17,6 @@
  * under the License.
  */
 export { default as sharedControls } from './sharedControls';
-export { withDndFallback } from './dndControls';
 // React control components
 export { default as sharedControlComponents } from './components';
 export * from './components';

@@ -42,7 +42,7 @@ import { ChartState } from 'src/explore/types';
 import {
   ReportCreationMethod,
   ReportObject,
-  NOTIFICATION_FORMATS,
+  NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import {
@@ -120,8 +120,8 @@ function ReportModal({
   const isTextBasedChart =
     isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
   const defaultNotificationFormat = isTextBasedChart
-    ? NOTIFICATION_FORMATS.TEXT
-    : NOTIFICATION_FORMATS.PNG;
+    ? NotificationFormats.Text
+    : NotificationFormats.PNG;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -156,8 +156,8 @@ function ReportModal({
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const resourceType = dashboardId
-      ? CreationMethod.DASHBOARDS
-      : CreationMethod.CHARTS;
+      ? CreationMethod.Dashboards
+      : CreationMethod.Charts;
     return (
       reportSelector(state, resourceType, dashboardId || chart?.id) ||
       EMPTY_OBJECT
@@ -253,14 +253,14 @@ function ReportModal({
           value={currentReport.report_format || defaultNotificationFormat}
         >
           {isTextBasedChart && (
-            <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
+            <StyledRadio value={NotificationFormats.Text}>
               {t('Text embedded in email')}
             </StyledRadio>
           )}
-          <StyledRadio value={NOTIFICATION_FORMATS.PNG}>
+          <StyledRadio value={NotificationFormats.PNG}>
             {t('Image (PNG) embedded in email')}
           </StyledRadio>
-          <StyledRadio value={NOTIFICATION_FORMATS.CSV}>
+          <StyledRadio value={NotificationFormats.CSV}>
             {t('Formatted CSV attached in email')}
           </StyledRadio>
         </StyledRadioGroup>

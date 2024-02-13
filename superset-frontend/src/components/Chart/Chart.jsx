@@ -155,27 +155,15 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
-    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
-      // Load saved chart with a GET request
-      this.props.actions.getSavedChart(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    } else {
-      // Create chart with POST request
-      this.props.actions.postChartFormData(
-        this.props.formData,
-        Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    }
+    // Create chart with POST request
+    this.props.actions.postChartFormData(
+      this.props.formData,
+      Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+      this.props.timeout,
+      this.props.chartId,
+      this.props.dashboardId,
+      this.props.ownState,
+    );
   }
 
   handleRenderContainerFailure(error, info) {
@@ -215,7 +203,7 @@ class Chart extends React.PureComponent {
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
-      datasetsStatus !== ResourceStatus.ERROR
+      datasetsStatus !== ResourceStatus.Error
     ) {
       return (
         <Styles
@@ -311,7 +299,7 @@ class Chart extends React.PureComponent {
         >
           <div className="slice_container" data-test="slice-container">
             {this.props.isInView ||
-            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ||
+            !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
             isCurrentUserBot() ? (
               <ChartRenderer
                 {...this.props}

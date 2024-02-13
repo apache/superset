@@ -17,29 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 
-import DraggableNewComponent from 'src/dashboard/components/gridComponents/new/DraggableNewComponent';
 import NewTabs from 'src/dashboard/components/gridComponents/new/NewTabs';
 
 import { NEW_TABS_ID } from 'src/dashboard/util/constants';
 import { TABS_TYPE } from 'src/dashboard/util/componentTypes';
 
-describe('NewTabs', () => {
-  function setup() {
-    return shallow(<NewTabs />);
-  }
+jest.mock(
+  'src/dashboard/components/gridComponents/new/DraggableNewComponent',
+  () =>
+    ({ type, id }) =>
+      <div data-test="mock-draggable-new-component">{`${type}:${id}`}</div>,
+);
 
-  it('should render a DraggableNewComponent', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent)).toExist();
-  });
+function setup() {
+  return render(<NewTabs />);
+}
 
-  it('should set appropriate type and id', () => {
-    const wrapper = setup();
-    expect(wrapper.find(DraggableNewComponent).props()).toMatchObject({
-      type: TABS_TYPE,
-      id: NEW_TABS_ID,
-    });
-  });
+test('should render a DraggableNewComponent', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-draggable-new-component')).toBeInTheDocument();
+});
+
+test('should set appropriate type and id', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('mock-draggable-new-component')).toHaveTextContent(
+    `${TABS_TYPE}:${NEW_TABS_ID}`,
+  );
 });

@@ -72,26 +72,26 @@ Basic.story = {
 Basic.args = {
   items: [
     {
-      type: MetadataType.SQL,
+      type: MetadataType.Sql,
       title: 'Click to view query',
     },
     {
-      type: MetadataType.OWNER,
+      type: MetadataType.Owner,
       createdBy: 'Jane Smith',
       owners: ['John Doe', 'Mary Wilson'],
       createdOn: A_WEEK_AGO,
     },
     {
-      type: MetadataType.LAST_MODIFIED,
+      type: MetadataType.LastModified,
       value: A_WEEK_AGO,
       modifiedBy: 'Jane Smith',
     },
     {
-      type: MetadataType.TAGS,
+      type: MetadataType.Tags,
       values: ['management', 'research', 'poc'],
     },
     {
-      type: MetadataType.DASHBOARDS,
+      type: MetadataType.Dashboards,
       title: 'Added to 452 dashboards',
       description:
         'To preview the list of dashboards go to "More" settings on the right.',

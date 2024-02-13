@@ -33,8 +33,9 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
-import { fetchObjects, fetchSingleTag } from 'src/features/tags/tags';
+import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
+import getOwnerName from 'src/utils/getOwnerName';
 
 interface TaggedObject {
   id: number;
@@ -124,30 +125,34 @@ function AllEntities() {
   const items = [];
   if (tag?.description) {
     const description: Description = {
-      type: MetadataType.DESCRIPTION,
+      type: MetadataType.Description,
       value: tag?.description || '',
     };
     items.push(description);
   }
 
   const owner: Owner = {
-    type: MetadataType.OWNER,
-    createdBy: `${tag?.created_by.first_name} ${tag?.created_by.last_name}`,
+    type: MetadataType.Owner,
+    createdBy: getOwnerName(tag?.created_by),
     createdOn: tag?.created_on_delta_humanized || '',
   };
   items.push(owner);
 
   const lastModified: LastModified = {
-    type: MetadataType.LAST_MODIFIED,
+    type: MetadataType.LastModified,
     value: tag?.changed_on_delta_humanized || '',
-    modifiedBy: `${tag?.changed_by.first_name} ${tag?.changed_by.last_name}`,
+    modifiedBy: getOwnerName(tag?.changed_by),
   };
   items.push(lastModified);
 
   const fetchTaggedObjects = () => {
     setLoading(true);
-    fetchObjects(
-      { tags: tag?.name || '', types: null },
+    if (!tag) {
+      addDangerToast('Error tag object is not referenced!');
+      return;
+    }
+    fetchObjectsByTagIds(
+      { tagIds: [tag?.id] || '', types: null },
       (data: TaggedObject[]) => {
         const objects = { dashboard: [], chart: [], query: [] };
         data.forEach(function (object) {

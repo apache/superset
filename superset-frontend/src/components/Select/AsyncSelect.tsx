@@ -31,8 +31,7 @@ import React, {
 } from 'react';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
-import { isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
@@ -90,8 +89,6 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.

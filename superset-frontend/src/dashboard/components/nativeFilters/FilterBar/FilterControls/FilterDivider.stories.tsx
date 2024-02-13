@@ -65,7 +65,7 @@ export const HorizontalFilterDivider = (props: FilterDividerProps) => (
         background-color: white;
       `}
     >
-      <FilterDivider orientation={FilterBarOrientation.HORIZONTAL} {...props} />
+      <FilterDivider orientation={FilterBarOrientation.Horizontal} {...props} />
     </div>
   </div>
 );

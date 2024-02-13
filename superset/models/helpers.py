@@ -44,9 +44,9 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, Column, or_, UniqueConstraint
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, Session, validates
-from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -461,11 +461,10 @@ class ImportExportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:
+def _user(user: User) -> str:
     if not user:
         return ""
-    url = f"/superset/profile/{user.username}/"
-    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
+    return escape(user)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -512,11 +511,11 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("created_by")
     def creator(self) -> Union[Markup, str]:
-        return _user_link(self.created_by)
+        return _user(self.created_by)
 
     @property
     def changed_by_(self) -> Union[Markup, str]:
-        return _user_link(self.changed_by)
+        return _user(self.changed_by)
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
@@ -1094,7 +1093,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
 
         from_sql = self.get_rendered_sql(template_processor)
-        parsed_query = ParsedQuery(from_sql)
+        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
             or self.db_engine_spec.is_readonly_query(parsed_query)
@@ -1340,19 +1339,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        # always denormalize column name before querying for values
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,
+    ) -> list[Any]:
+        # denormalize column name before querying for values
+        # unless disabled in the dataset configuration
         db_dialect = self.database.get_dialect()
-        denormalized_col_name = self.database.db_engine_spec.denormalize_name(
-            db_dialect, column_name
+        column_name_ = (
+            self.database.db_engine_spec.denormalize_name(db_dialect, column_name)
+            if denormalize_column
+            else column_name
         )
         cols = {col.column_name: col for col in self.columns}
-        target_col = cols[denormalized_col_name]
+        target_col = cols[column_name_]
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
         qry = (
-            sa.select([target_col.get_sqla_col(template_processor=tp)])
+            sa.select(
+                # The alias (label) here is important because some dialects will
+                # automatically add a random alias to the projection because of the
+                # call to DISTINCT; others will uppercase the column names. This
+                # gives us a deterministic column name in the dataframe.
+                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+            )
             .select_from(tbl)
             .distinct()
         )
@@ -1368,7 +1381,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[denormalized_col_name].to_list()
+            # replace NaN with None to ensure it can be serialized to JSON
+            df = df.replace({np.nan: None})
+            return df["column_values"].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1749,10 +1764,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
-            if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if get_column_name(flt_col) in removed_filters:
-                    # Skip generating SQLA filter when the jinja template handles it.
-                    continue
+            if get_column_name(flt_col) in removed_filters:
+                # Skip generating SQLA filter when the jinja template handles it.
+                continue
 
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
@@ -1963,7 +1977,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                col = literal_column(col.name)
+                with self.database.get_sqla_engine_with_context() as engine:
+                    quote = engine.dialect.identifier_preparer.quote
+                    col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 

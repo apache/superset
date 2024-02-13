@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   DataMaskStateWithId,
   FeatureFlag,
@@ -115,7 +115,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
     state => state.dashboardLayout.present,
   );
   const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+    FeatureFlag.DashboardCrossFilters,
   );
   const verboseMaps = useChartsVerboseMaps();
 
@@ -129,12 +129,6 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
     : [];
   const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;
 
-  const actionsElement = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ? actions : null,
-    [actions],
-  );
-
   return (
     <HorizontalBar {...getFilterBarTestId()}>
       <HorizontalBarContent>
@@ -143,7 +137,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
         ) : (
           <>
             <FilterBarSettings />
-            {canEdit && isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+            {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink
                   dashboardId={dashboardId}
@@ -164,7 +158,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
                 onFilterSelectionChange={onSelectionChange}
               />
             )}
-            {actionsElement}
+            {actions}
           </>
         )}
       </HorizontalBarContent>

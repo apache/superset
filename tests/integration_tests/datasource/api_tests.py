@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 
@@ -71,6 +71,16 @@ class TestDatasourceApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["result"], [None])
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_integers_with_nulls(self):
+        self.login(username="admin")
+        table = self.get_virtual_dataset()
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col6/values/")
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        for val in [1, None, 3, 4, 5, 6, 7, 8, 9, 10]:
+            assert val in response["result"]
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_invalid_datasource_type(self):
@@ -135,3 +145,47 @@ class TestDatasourceApi(SupersetTestCase):
             response["message"],
             "Unable to get column values for datasource type: sl_table",
         )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_normalize_columns_enabled(self, values_for_column_mock):
+        self.login(username="admin")
+        table = self.get_virtual_dataset()
+        table.normalize_columns = True
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        values_for_column_mock.assert_called_with(
+            column_name="col2",
+            limit=10000,
+            denormalize_column=False,
+        )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
+    def test_get_column_values_not_denormalize_column(self, denormalize_name_mock):
+        self.login(username="admin")
+        table = self.get_virtual_dataset()
+        table.normalize_columns = True
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        denormalize_name_mock.assert_not_called()
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_normalize_columns_disabled(self, values_for_column_mock):
+        self.login(username="admin")
+        table = self.get_virtual_dataset()
+        table.normalize_columns = False
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        values_for_column_mock.assert_called_with(
+            column_name="col2",
+            limit=10000,
+            denormalize_column=True,
+        )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
+    def test_get_column_values_denormalize_column(self, denormalize_name_mock):
+        self.login(username="admin")
+        table = self.get_virtual_dataset()
+        table.normalize_columns = False
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        denormalize_name_mock.assert_called_with(ANY, "col2")

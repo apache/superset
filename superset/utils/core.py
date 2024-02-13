@@ -1058,7 +1058,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
 def merge_extra_filters(form_data: dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
-    # interactive filters like the ones emitted by the "Filter Box" visualization.
+    # interactive filters.
     # Note extra_filters only support simple filters.
     form_data.setdefault("applied_time_extras", {})
     adhoc_filters = form_data.get("adhoc_filters", [])
@@ -1342,6 +1342,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
         form_data["where"] = " AND ".join([f"({sql})" for sql in sql_where_filters])
         form_data["having"] = " AND ".join([f"({sql})" for sql in sql_having_filters])
         form_data["filters"] = simple_where_filters
+
+
+def get_user() -> User | None:
+    """
+    Get the current user (if defined).
+
+    :returns: The current user
+    """
+    return g.user if hasattr(g, "user") else None
 
 
 def get_username() -> str | None:

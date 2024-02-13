@@ -104,6 +104,19 @@ test('triggers onChange when time lag changes', () => {
   expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
 });
 
+test('time lag allows negative values', () => {
+  const timeLag = '-1';
+  const onChange = jest.fn();
+  render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
+  userEvent.click(screen.getByRole('button'));
+  const timeLagInput = screen.getByPlaceholderText('Time Lag');
+  userEvent.clear(timeLagInput);
+  userEvent.type(timeLagInput, timeLag);
+  expect(onChange).not.toHaveBeenCalled();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ timeLag }));
+});
+
 test('triggers onChange when color bounds changes', () => {
   const min = 1;
   const max = 5;

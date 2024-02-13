@@ -48,9 +48,9 @@ export default class PivotTableChartPlugin extends ChartPlugin<
   constructor() {
     const metadata = new ChartMetadata({
       behaviors: [
-        Behavior.INTERACTIVE_CHART,
-        Behavior.DRILL_TO_DETAIL,
-        Behavior.DRILL_BY,
+        Behavior.InteractiveChart,
+        Behavior.DrillToDetail,
+        Behavior.DrillBy,
       ],
       category: t('Table'),
       description: t(
