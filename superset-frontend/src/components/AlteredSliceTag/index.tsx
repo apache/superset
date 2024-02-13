@@ -38,22 +38,24 @@ export interface ControlMap {
   };
 }
 
-interface Diff {
+type Diff = {
   before: [];
   after: [];
-}
+};
 
-interface Row {
+export type Row = {
   control: string;
-  before: string;
-  after: string;
-}
-interface FilterItem {
+  before: string | number;
+  after: string | number;
+};
+
+type FilterItem = {
   comparator?: string | string[];
   subject: string;
   operator: string;
   label?: string;
-}
+};
+
 interface AlteredSliceTagState {
   rows: Row[];
   hasDiffs: boolean;
@@ -198,7 +200,7 @@ class AlteredSliceTag extends React.Component<
     return safeStringify(value);
   }
 
-  renderModalBody(): JSX.Element {
+  renderModalBody(): React.ReactNode {
     const columns = [
       {
         accessor: 'control',
@@ -227,7 +229,7 @@ class AlteredSliceTag extends React.Component<
     );
   }
 
-  renderTriggerNode(): JSX.Element {
+  renderTriggerNode(): React.ReactNode {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
@@ -235,7 +237,7 @@ class AlteredSliceTag extends React.Component<
     );
   }
 
-  render(): JSX.Element | null {
+  render() {
     // Return nothing if there are no differences
     if (!this.state.hasDiffs) {
       return null;
