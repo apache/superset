@@ -38,7 +38,6 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
-  NumberFormats,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
