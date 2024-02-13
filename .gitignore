@@ -106,8 +106,9 @@ testCSV.csv
 apache-superset-*.tar.gz*
 release.json
 
-# Translation binaries
+# Compiled Translations
 messages.mo
+superset/translations/*/*/*.json
 
 docker/requirements-local.txt
 
