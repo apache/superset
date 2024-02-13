@@ -61,15 +61,21 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Range for Comparison'),
-              default: 'y',
+              default: 'r',
               choices: [
+                ['r', 'Inherit range from time filters'],
                 ['y', 'Year'],
-                ['w', 'Week'],
                 ['m', 'Month'],
-                ['r', 'Range'],
+                ['w', 'Week'],
                 ['c', 'Custom'],
               ],
               rerender: ['adhoc_custom'],
+              description: t(
+                'Set the time range that will be used for the comparison metrics. ' +
+                  'For example, "Year" will compare to the same dates one year earlier. ' +
+                  'Use "Inherit range from time filters" to shift the comparison time range' +
+                  'by the same length as your time range and use "Custom" to set a custom comparison range.',
+              ),
             },
           },
         ],
