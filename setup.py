@@ -86,6 +86,7 @@ setup(
         "flask-appbuilder>=4.3.11, <5.0.0",
         "flask-caching>=2.1.0, <3",
         "flask-compress>=1.13, <2.0",
+        "flask-cors>=4.0.0",
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, < 1.0",
         "flask-migrate>=3.1.0, <4.0",
