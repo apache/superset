@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef } from 'react';
+import React, { createRef, useMemo } from 'react';
 import { css, styled, useTheme } from '@superset-ui/core';
-import { PopKPIComparisonValueStyleProps, PopKPIProps } from './types';
+import {
+  PopKPIComparisonSymbolStyleProps,
+  PopKPIComparisonValueStyleProps,
+  PopKPIProps,
+} from './types';
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   ${({ theme, subheaderFontSize }) => `
@@ -30,6 +34,17 @@ const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   `}
 `;
 
+const SymbolWrapper = styled.div<PopKPIComparisonSymbolStyleProps>`
+  ${({ theme, backgroundColor, textColor }) => `
+    background-color: ${backgroundColor};
+    color: ${textColor};
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    border-radius: ${theme.gridUnit * 2}px;
+    display: inline-block;
+    margin-right: ${theme.gridUnit}px;
+  `}
+`;
+
 export default function PopKPI(props: PopKPIProps) {
   const {
     height,
@@ -37,9 +52,11 @@ export default function PopKPI(props: PopKPIProps) {
     bigNumber,
     prevNumber,
     valueDifference,
-    percentDifference,
+    percentDifferenceFormattedString,
     headerFontSize,
     subheaderFontSize,
+    comparisonColorEnabled,
+    percentDifferenceNumber,
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
@@ -63,9 +80,60 @@ export default function PopKPI(props: PopKPIProps) {
     text-align: center;
   `;
 
+  const getArrowIndicatorColor = () => {
+    if (!comparisonColorEnabled) return theme.colors.grayscale.base;
+    return percentDifferenceNumber > 0
+      ? theme.colors.success.base
+      : theme.colors.error.base;
+  };
+
+  const arrowIndicatorStyle = css`
+    color: ${getArrowIndicatorColor()};
+    margin-left: ${theme.gridUnit}px;
+  `;
+
+  const defaultBackgroundColor = theme.colors.grayscale.light4;
+  const defaultTextColor = theme.colors.grayscale.base;
+  const { backgroundColor, textColor } = useMemo(() => {
+    let bgColor = defaultBackgroundColor;
+    let txtColor = defaultTextColor;
+    if (percentDifferenceNumber > 0) {
+      if (comparisonColorEnabled) {
+        bgColor = theme.colors.success.light2;
+        txtColor = theme.colors.success.base;
+      }
+    } else if (percentDifferenceNumber < 0) {
+      if (comparisonColorEnabled) {
+        bgColor = theme.colors.error.light2;
+        txtColor = theme.colors.error.base;
+      }
+    }
+
+    return {
+      backgroundColor: bgColor,
+      textColor: txtColor,
+    };
+  }, [theme, comparisonColorEnabled, percentDifferenceNumber]);
+
+  const SYMBOLS_WITH_VALUES = useMemo(
+    () => [
+      ['#', prevNumber],
+      ['△', valueDifference],
+      ['%', percentDifferenceFormattedString],
+    ],
+    [prevNumber, valueDifference, percentDifferenceFormattedString],
+  );
+
   return (
     <div ref={rootElem} css={wrapperDivStyles}>
-      <div css={bigValueContainerStyles}>{bigNumber}</div>
+      <div css={bigValueContainerStyles}>
+        {bigNumber}
+        {percentDifferenceNumber !== 0 && (
+          <span css={arrowIndicatorStyle}>
+            {percentDifferenceNumber > 0 ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
       <div
         css={css`
           width: 100%;
@@ -77,18 +145,22 @@ export default function PopKPI(props: PopKPIProps) {
             display: table-row;
           `}
         >
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            #: {prevNumber}
-          </ComparisonValue>
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            Δ: {valueDifference}
-          </ComparisonValue>
-          <ComparisonValue subheaderFontSize={subheaderFontSize}>
-            {' '}
-            %: {percentDifference}
-          </ComparisonValue>
+          {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
+            <ComparisonValue
+              key={`comparison-symbol-${symbol_with_value[0]}`}
+              subheaderFontSize={subheaderFontSize}
+            >
+              <SymbolWrapper
+                backgroundColor={
+                  index > 0 ? backgroundColor : defaultBackgroundColor
+                }
+                textColor={index > 0 ? textColor : defaultTextColor}
+              >
+                {symbol_with_value[0]}
+              </SymbolWrapper>
+              {symbol_with_value[1]}
+            </ComparisonValue>
+          ))}
         </div>
       </div>
     </div>

@@ -78,7 +78,7 @@ REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 
 # Redis URL Params
 {{- if .Values.supersetNode.connections.redis_ssl.enabled }}
-REDIS_URL_PARAMS = f"?ssl_cert_req={env('REDIS_SSL_CERT_REQS')}"
+REDIS_URL_PARAMS = f"?ssl_cert_reqs={env('REDIS_SSL_CERT_REQS')}"
 {{- else }}
 REDIS_URL_PARAMS = ""
 {{- end}}

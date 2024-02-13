@@ -81,6 +81,7 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorEnabled,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const { data: dataB = [] } = queriesData[1];
@@ -138,11 +139,13 @@ export default function transformProps(chartProps: ChartProps) {
     bigNumber,
     prevNumber,
     valueDifference,
-    percentDifference,
+    percentDifferenceFormattedString: percentDifference,
     boldText,
     headerFontSize,
     subheaderFontSize,
     headerText,
     compType,
+    comparisonColorEnabled,
+    percentDifferenceNumber: percentDifferenceNum,
   };
 }
