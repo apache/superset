@@ -52,7 +52,7 @@ port_conversion_dict: dict[str, list[int]] = {
     "Remote Desktop": [3389],
     "dns": [53],
     "ctf": [84],
-    "pdap": [344] 
+    "pdap": [344],
 }
 
 
