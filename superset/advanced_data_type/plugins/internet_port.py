@@ -90,10 +90,6 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
         except (KeyError, ValueError):
             resp["error_message"] = \
                 f"'{string_value}' does not appear to be a port name or number"
-<<<<<<< HEAD
-=======
-            
->>>>>>> e8de7b1c065a77d17d84506c7c121deba97f43d5
             break
         else:
             resp["display_value"] = ", ".join(
