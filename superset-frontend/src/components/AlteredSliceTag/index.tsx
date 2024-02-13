@@ -38,26 +38,37 @@ export interface ControlMap {
   };
 }
 
-type Diff = {
-  before: [];
-  after: [];
-};
-
-export type Row = {
-  control: string;
-  before: string | number;
-  after: string | number;
-};
-
-type FilterItem = {
+type FilterItemType = {
   comparator?: string | string[];
   subject: string;
   operator: string;
   label?: string;
 };
 
+export type DiffItemType<
+  T = FilterItemType | number | string | Record<string | number, any>,
+> =
+  | T[]
+  | boolean
+  | number
+  | string
+  | Record<string | number, any>
+  | null
+  | undefined;
+
+export type DiffType = {
+  before: DiffItemType;
+  after: DiffItemType;
+};
+
+export type RowType = {
+  before: string | number;
+  after: string | number;
+  control: string;
+};
+
 interface AlteredSliceTagState {
-  rows: Row[];
+  rows: RowType[];
   hasDiffs: boolean;
   controlsMap: ControlMap;
 }
@@ -74,7 +85,7 @@ const StyledLabel = styled.span`
   `}
 `;
 
-function alterForComparison(value: string): [] | Object | null {
+function alterForComparison(value?: string | null | []): string | null {
   // Treat `null`, `undefined`, and empty strings as equivalent
   if (value === undefined || value === null || value === '') {
     return null;
@@ -116,9 +127,9 @@ class AlteredSliceTag extends React.Component<
   }
 
   getRowsFromDiffs(
-    diffs: { [key: string]: Diff },
+    diffs: { [key: string]: DiffType },
     controlsMap: ControlMap,
-  ): Row[] {
+  ): RowType[] {
     return Object.entries(diffs).map(([key, diff]) => ({
       control: controlsMap[key]?.label || key,
       before: this.formatValue(diff.before, key, controlsMap),
@@ -126,11 +137,11 @@ class AlteredSliceTag extends React.Component<
     }));
   }
 
-  getDiffs(props: AlteredSliceTagProps): { [key: string]: Diff } {
+  getDiffs(props: AlteredSliceTagProps): { [key: string]: DiffType } {
     const ofd = sanitizeFormData(props.origFormData);
     const cfd = sanitizeFormData(props.currentFormData);
     const fdKeys = Object.keys(cfd);
-    const diffs: { [key: string]: Diff } = {};
+    const diffs: { [key: string]: DiffType } = {};
     fdKeys.forEach(fdKey => {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         return;
@@ -150,17 +161,20 @@ class AlteredSliceTag extends React.Component<
   }
 
   formatValue(
-    value: FilterItem[],
+    value: DiffItemType,
     key: string,
     controlsMap: ControlMap,
-  ): string {
+  ): string | number {
     if (value === undefined) {
       return 'N/A';
     }
     if (value === null) {
       return 'null';
     }
-    if (controlsMap[key]?.type === 'AdhocFilterControl') {
+    if (
+      controlsMap[key]?.type === 'AdhocFilterControl' &&
+      Array.isArray(value)
+    ) {
       if (!value.length) {
         return '[]';
       }
@@ -177,20 +191,20 @@ class AlteredSliceTag extends React.Component<
     if (controlsMap[key]?.type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;
     }
-    if (controlsMap[key]?.type === 'CollectionControl') {
+    if (
+      controlsMap[key]?.type === 'CollectionControl' &&
+      Array.isArray(value)
+    ) {
       return value.map(v => safeStringify(v)).join(', ');
     }
-    if (
-      controlsMap[key]?.type === 'MetricsControl' &&
-      value.constructor === Array
-    ) {
+    if (controlsMap[key]?.type === 'MetricsControl' && Array.isArray(value)) {
       const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
-    if (value.constructor === Array) {
+    if (Array.isArray(value)) {
       const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }

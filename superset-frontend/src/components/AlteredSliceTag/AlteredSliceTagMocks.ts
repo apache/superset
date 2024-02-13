@@ -18,7 +18,7 @@
  */
 import { QueryFormData } from '@superset-ui/core';
 import { ControlPanelConfig } from 'packages/superset-ui-chart-controls/src/types';
-import { Row } from './index';
+import { DiffType, RowType } from './index';
 
 export const defaultProps: Record<string, Partial<QueryFormData>> = {
   origFormData: {
@@ -60,7 +60,7 @@ export const defaultProps: Record<string, Partial<QueryFormData>> = {
   },
 };
 
-export const expectedDiffs: Record<string, Partial<QueryFormData>> = {
+export const expectedDiffs: Record<string, DiffType> = {
   adhoc_filters: {
     before: [
       {
@@ -106,7 +106,7 @@ export const expectedDiffs: Record<string, Partial<QueryFormData>> = {
     after: { x: 'y', z: 'z' },
   },
 };
-export const expectedRows: Partial<Row>[] = [
+export const expectedRows: RowType[] = [
   {
     control: 'Fake Filters',
     before: 'a == hello',
