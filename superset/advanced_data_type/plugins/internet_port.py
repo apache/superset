@@ -48,6 +48,11 @@ port_conversion_dict: dict[str, list[int]] = {
     "ldaps": [636],
     "imap2": [143],  # aka imap
     "imaps": [993],
+    "MySQL": [3306],
+    "Remote Desktop": [3389],
+    "dns": [53],
+    "ctf": [84],
+    "pdap": [344] 
 }
 
 
@@ -85,6 +90,10 @@ def port_translation_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeRespo
         except (KeyError, ValueError):
             resp["error_message"] = \
                 f"'{string_value}' does not appear to be a port name or number"
+<<<<<<< HEAD
+=======
+            
+>>>>>>> e8de7b1c065a77d17d84506c7c121deba97f43d5
             break
         else:
             resp["display_value"] = ", ".join(
