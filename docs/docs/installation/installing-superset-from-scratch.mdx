@@ -111,7 +111,7 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
-Then, save some environmental variables needed by superset:
+Then save some environmental variables required by Superset.  Make note of this randomly-generated SUPERSET_SECRET_KEY, as without it you may be unable to decrypt the application's data in the future.
 
 ```
 echo "FLASK_APP=superset" > superset_env
