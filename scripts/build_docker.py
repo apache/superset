@@ -28,7 +28,7 @@ CACHE_REPO = f"{REPO}-cache"
 BASE_PY_IMAGE = "3.9-slim-bookworm"
 
 
-def run_cmd(command: str) -> str:
+def run_cmd(command: str, raise_on_failure: bool = True) -> str:
     process = subprocess.Popen(
         command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
@@ -41,9 +41,8 @@ def run_cmd(command: str) -> str:
 
     process.wait()  # Wait for the subprocess to finish
 
-    if process.returncode != 0:
+    if process.returncode != 0 and raise_on_failure:
         raise subprocess.CalledProcessError(process.returncode, command, output)
-
     return output
 
 
@@ -73,7 +72,13 @@ def get_build_context_ref(build_context: str) -> str:
 
 
 def is_latest_release(release: str) -> bool:
-    output = run_cmd(f"./scripts/tag_latest_release.sh {release} --dry-run") or ""
+    output = (
+        run_cmd(
+            f"./scripts/tag_latest_release.sh {release} --dry-run",
+            raise_on_failure=False,
+        )
+        or ""
+    )
     return "SKIP_TAG::false" in output
 
 

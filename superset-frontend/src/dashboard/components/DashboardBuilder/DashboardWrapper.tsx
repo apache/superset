@@ -25,6 +25,7 @@ import classNames from 'classnames';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
+    position: relative;
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto 1fr;
