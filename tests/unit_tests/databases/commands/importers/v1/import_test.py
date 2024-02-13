@@ -23,6 +23,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.commands.exceptions import ImportFailedError
 
 
@@ -37,11 +38,11 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config)
-    database = import_database(session, config)
+    database = import_database(config)
     assert database.database_name == "imported_database"
     assert database.sqlalchemy_uri == "someengine://user:pass@host1"
     assert database.cache_timeout is None
@@ -60,9 +61,9 @@ def test_import_database(mocker: MockFixture, session: Session) -> None:
     # missing
     config = copy.deepcopy(database_config)
     del config["allow_dml"]
-    session.delete(database)
-    session.flush()
-    database = import_database(session, config)
+    db.session.delete(database)
+    db.session.flush()
+    database = import_database(config)
     assert database.allow_dml is False
 
 
@@ -78,12 +79,12 @@ def test_import_database_sqlite_invalid(mocker: MockFixture, session: Session) -
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config_sqlite)
     with pytest.raises(ImportFailedError) as excinfo:
-        _ = import_database(session, config)
+        _ = import_database(config)
     assert (
         str(excinfo.value)
         == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
@@ -106,14 +107,14 @@ def test_import_database_managed_externally(
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_database"
 
-    database = import_database(session, config)
+    database = import_database(config)
     assert database.is_managed_externally is True
     assert database.external_url == "https://example.org/my_database"
 
@@ -132,13 +133,13 @@ def test_import_database_without_permission(
 
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config)
 
     with pytest.raises(ImportFailedError) as excinfo:
-        import_database(session, config)
+        import_database(config)
     assert (
         str(excinfo.value)
         == "Database doesn't exist and user doesn't have permission to create databases"
@@ -156,10 +157,10 @@ def test_import_database_with_version(mocker: MockFixture, session: Session) -> 
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     config = copy.deepcopy(database_config)
     config["extra"]["version"] = "1.1.1"
-    database = import_database(session, config)
+    database = import_database(config)
     assert json.loads(database.extra)["version"] == "1.1.1"
