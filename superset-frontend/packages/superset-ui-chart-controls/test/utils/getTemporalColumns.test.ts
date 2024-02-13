@@ -61,7 +61,7 @@ test('get temporal columns from a QueryResponse', () => {
         column_name: 'Column 2',
         is_dttm: true,
         type: 'TIMESTAMP',
-        type_generic: GenericDataType.TEMPORAL,
+        type_generic: GenericDataType.Temporal,
       },
     ],
     defaultTemporalColumn: 'Column 2',

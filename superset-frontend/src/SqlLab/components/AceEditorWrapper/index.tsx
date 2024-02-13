@@ -25,6 +25,7 @@ import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
 import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import type { CursorPosition } from 'src/SqlLab/types';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
@@ -40,6 +41,7 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
+  onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
   hotkeys: HotKey[];
 };
@@ -69,6 +71,7 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
+  onCursorPositionChange,
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
@@ -79,10 +82,11 @@ const AceEditorWrapper = ({
     'sql',
     'schema',
     'templateParams',
+    'cursorPosition',
   ]);
 
   const currentSql = queryEditor.sql ?? '';
-
+  const cursorPosition = queryEditor.cursorPosition ?? { row: 0, column: 0 };
   const [sql, setSql] = useState(currentSql);
 
   // The editor changeSelection is called multiple times in a row,
@@ -143,6 +147,15 @@ const AceEditorWrapper = ({
 
       currentSelectionCache.current = selectedText;
     });
+    editor.selection.on('changeCursor', () => {
+      const cursor = editor.getCursorPosition();
+      onCursorPositionChange(cursor);
+    });
+
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {

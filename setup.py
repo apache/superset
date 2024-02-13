@@ -83,7 +83,7 @@ setup(
         "cryptography>=41.0.2, <41.1.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
-        "flask-appbuilder>=4.3.10, <5.0.0",
+        "flask-appbuilder>=4.3.11, <5.0.0",
         "flask-caching>=2.1.0, <3",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
@@ -118,7 +118,7 @@ setup(
         "PyJWT>=2.4.0, <3.0",
         "redis>=4.5.4, <5.0",
         "selenium>=3.141.0, <4.10.0",
-        "shillelagh>=1.2.10, <2.0",
+        "shillelagh[gsheetsapi]>=1.2.10, <2.0",
         "shortid",
         "sshtunnel>=0.4.0, <0.5",
         "simplejson>=3.15.0",
@@ -154,7 +154,7 @@ setup(
         ],
         "db2": ["ibm-db-sa>0.3.8, <=0.4.0"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
-        "drill": ["sqlalchemy-drill==0.1.dev"],
+        "drill": ["sqlalchemy-drill>=1.1.4, <2"],
         "druid": ["pydruid>=0.6.5,<0.7"],
         "duckdb": ["duckdb-engine>=0.9.5, <0.10"],
         "dynamodb": ["pydynamodb>=0.4.2"],
@@ -192,9 +192,7 @@ setup(
         "prophet": ["prophet>=1.1.5, <2"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, <0.9"],
         "rockset": ["rockset-sqlalchemy>=0.0.1, <1"],
-        "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.2.10, <2"
-        ],
+        "shillelagh": ["shillelagh[all]>=1.2.10, <2"],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": [
             "pyhive[hive]>=0.6.5;python_version<'3.11'",

@@ -40,10 +40,16 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     @staticmethod
     def _file_name(model: SavedQuery) -> str:
         # build filename based on database, optional schema, and label
+        # we call secure_filename() multiple times and join the directories afterwards,
+        # as secure_filename() replaces "/" with "_".
         database_slug = secure_filename(model.database.database_name)
-        schema_slug = secure_filename(model.schema)
         query_slug = secure_filename(model.label) or str(model.uuid)
-        return f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
+        if model.schema is None:
+            file_name = f"queries/{database_slug}/{query_slug}.yaml"
+        else:
+            schema_slug = secure_filename(model.schema)
+            file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
+        return file_name
 
     @staticmethod
     def _file_content(model: SavedQuery) -> str:

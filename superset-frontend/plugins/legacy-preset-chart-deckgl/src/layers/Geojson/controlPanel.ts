@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t, legacyValidateInteger } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -39,7 +39,6 @@ import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

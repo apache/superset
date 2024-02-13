@@ -153,7 +153,7 @@ const useFilterControlDisplay = (
   overflow: boolean,
 ) =>
   useMemo(() => {
-    if (orientation === FilterBarOrientation.HORIZONTAL) {
+    if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return {
           FilterControlContainer: HorizontalOverflowFilterControlContainer,
@@ -228,7 +228,7 @@ const FilterControl = ({
   inView,
   showOverflow,
   parentRef,
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   overflow = false,
 }: FilterControlProps) => {
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
@@ -275,7 +275,7 @@ const FilterControl = ({
 
   const isScrolling = useContext(FilterBarScrollContext);
   const filterCardPlacement = useMemo(() => {
-    if (orientation === FilterBarOrientation.HORIZONTAL) {
+    if (orientation === FilterBarOrientation.Horizontal) {
       if (overflow) {
         return FilterCardPlacement.Left;
       }
@@ -302,7 +302,7 @@ const FilterControl = ({
       </InPortal>
       <FilterControlContainer
         layout={
-          orientation === FilterBarOrientation.HORIZONTAL && !overflow
+          orientation === FilterBarOrientation.Horizontal && !overflow
             ? 'horizontal'
             : 'vertical'
         }

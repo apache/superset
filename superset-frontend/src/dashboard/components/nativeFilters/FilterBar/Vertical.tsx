@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import throttle from 'lodash/throttle';
+import { throttle } from 'lodash';
 import React, {
   useEffect,
   useState,
@@ -190,7 +190,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
 
   const crossFilters = useMemo(
     () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
+      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
         <CrossFiltersVertical />
       ) : null,
     [],

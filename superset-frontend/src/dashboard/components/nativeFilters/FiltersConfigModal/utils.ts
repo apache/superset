@@ -106,10 +106,10 @@ export const createHandleSave =
         const formInputs = values.filters?.[id];
         // if user didn't open a filter, return the original config
         if (!formInputs) return filterConfigMap[id];
-        if (formInputs.type === NativeFilterType.DIVIDER) {
+        if (formInputs.type === NativeFilterType.Divider) {
           return {
             id,
-            type: NativeFilterType.DIVIDER,
+            type: NativeFilterType.Divider,
             scope: {
               rootPath: [DASHBOARD_ROOT_ID],
               excluded: [],
@@ -194,7 +194,7 @@ export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
 export const NATIVE_FILTER_DIVIDER_PREFIX = 'NATIVE_FILTER_DIVIDER-';
 export const generateFilterId = (type: NativeFilterType) => {
   const prefix =
-    type === NativeFilterType.NATIVE_FILTER
+    type === NativeFilterType.NativeFilter
       ? NATIVE_FILTER_PREFIX
       : NATIVE_FILTER_DIVIDER_PREFIX;
   return `${prefix}${shortid.generate()}`;

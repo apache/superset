@@ -31,6 +31,7 @@ These features are considered **unfinished** and should only be used on developm
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
+- CHART_PLUGINS_EXPERIMENTAL
 
 ## In Testing
 
@@ -44,8 +45,8 @@ These features are **finished** but currently being tested. They are usable, but
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
+- ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/databases/meta-database/)
 - ESTIMATE_QUERY_COST
-- GENERIC_CHART_AXES
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
 - PLAYWRIGHT_REPORTS_AND_THUMBNAILS
@@ -85,5 +86,4 @@ These features flags currently default to True and **will be removed in a future
 
 - DASHBOARD_CROSS_FILTERS
 - ENABLE_JAVASCRIPT_CONTROLS
-- GENERIC_CHART_AXES
 - KV_STORE

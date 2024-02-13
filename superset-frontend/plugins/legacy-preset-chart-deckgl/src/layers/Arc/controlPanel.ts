@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty, legacyValidateInteger } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides, {
   columnChoices,
@@ -39,7 +39,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

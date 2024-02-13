@@ -312,12 +312,12 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+      if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (
-        itemValue.type_generic === GenericDataType.STRING ||
-        itemValue.type_generic === GenericDataType.BOOLEAN ||
-        itemValue.type_generic === GenericDataType.TEMPORAL
+        itemValue.type_generic === GenericDataType.String ||
+        itemValue.type_generic === GenericDataType.Boolean ||
+        itemValue.type_generic === GenericDataType.Temporal
       ) {
         config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }

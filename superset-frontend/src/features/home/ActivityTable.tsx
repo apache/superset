@@ -151,7 +151,7 @@ export default function ActivityTable({
       label: t('Edited'),
       onClick: () => {
         setActiveChild(TableTab.Edited);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Edited);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Edited);
       },
     },
     {
@@ -159,7 +159,7 @@ export default function ActivityTable({
       label: t('Created'),
       onClick: () => {
         setActiveChild(TableTab.Created);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Created);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Created);
       },
     },
   ];
@@ -170,7 +170,7 @@ export default function ActivityTable({
       label: t('Viewed'),
       onClick: () => {
         setActiveChild(TableTab.Viewed);
-        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Viewed);
+        setItem(LocalStorageKeys.HomepageActivityFilter, TableTab.Viewed);
       },
     });
   }

@@ -44,7 +44,7 @@ function SafeMarkdown({
   htmlSanitization = true,
   htmlSchemaOverrides = {},
 }: SafeMarkdownProps) {
-  const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
+  const escapeHtml = isFeatureEnabled(FeatureFlag.EscapeMarkdownHtml);
 
   const rehypePlugins = useMemo(() => {
     const rehypePlugins: any = [];

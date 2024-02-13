@@ -19,9 +19,9 @@
 
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
+import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
@@ -99,13 +99,23 @@ const createProps = (viz_type = 'sunburst_v2') =>
     exploreUrl: '/explore',
   } as SliceHeaderControlsProps);
 
-const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
+const renderWrapper = (
+  overrideProps?: SliceHeaderControlsProps,
+  roles?: Record<string, string[][]>,
+) => {
   const props = overrideProps || createProps();
-  const store = getMockStore();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
-    store,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: roles ?? {
+          Admin: [['can_samples', 'Datasource']],
+        },
+      },
+    },
   });
 };
 
@@ -186,7 +196,7 @@ test('Should "export to Excel"', async () => {
 test('Export full CSV is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -198,7 +208,7 @@ test('Export full CSV is under featureflag', async () => {
 test('Should "export full CSV"', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -212,7 +222,7 @@ test('Should "export full CSV"', async () => {
 test('Should not show export full CSV if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -223,7 +233,7 @@ test('Should not show export full CSV if report is not table', async () => {
 test('Export full Excel is under featureflag', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: false,
+    [FeatureFlag.AllowFullCsvExport]: false,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -235,7 +245,7 @@ test('Export full Excel is under featureflag', async () => {
 test('Should "export full Excel"', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps('table');
   renderWrapper(props);
@@ -249,7 +259,7 @@ test('Should "export full Excel"', async () => {
 test('Should not show export full Excel if report is not table', async () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.ALLOW_FULL_CSV_EXPORT]: true,
+    [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
   userEvent.hover(screen.getByText('Download'));
@@ -288,20 +298,105 @@ test('Should "Enter fullscreen"', () => {
 test('Drill to detail modal is under featureflag', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: false,
+    [FeatureFlag.DrillToDetail]: false,
   };
   const props = createProps();
   renderWrapper(props);
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show the "Drill to detail"', () => {
+test('Should show "Drill to detail"', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
+    [FeatureFlag.DrillToDetail]: true,
   };
-  const props = createProps();
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
   props.slice.slice_id = 18;
-  renderWrapper(props);
+  renderWrapper(props, {
+    Admin: [['can_samples', 'Datasource']],
+  });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
+});
+
+test('Should not show "Drill to detail"', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DrillToDetail]: true,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
+});
+
+test('Should show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_query', 'Dashboard']],
+  });
+  expect(screen.getByText('View query')).toBeInTheDocument();
+});
+
+test('Should not show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+});
+
+test('Should show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_chart_as_table', 'Dashboard']],
+  });
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should not show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" button', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_view_query', 'Dashboard'],
+      ['can_view_chart_as_table', 'Dashboard'],
+    ],
+  });
+  expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

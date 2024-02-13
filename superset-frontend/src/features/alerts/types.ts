@@ -18,7 +18,7 @@
  */
 
 import Owner from 'src/types/Owner';
-import { NOTIFICATION_FORMATS } from 'src/features/reports/types';
+import { NotificationFormats } from 'src/features/reports/types';
 
 type user = {
   id: number;
@@ -85,7 +85,7 @@ export type AlertObject = {
   sql?: string;
   timezone?: string;
   recipients?: Array<Recipient>;
-  report_format?: NOTIFICATION_FORMATS;
+  report_format?: NotificationFormats;
   type?: string;
   validator_config_json?: {
     op?: Operator;

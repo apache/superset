@@ -164,7 +164,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
-  const isThumbnailsEnabled = isFeatureEnabled(FeatureFlag.THUMBNAILS);
+  const isThumbnailsEnabled = isFeatureEnabled(FeatureFlag.Thumbnails);
   if (isThumbnailsEnabled) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
@@ -178,12 +178,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
 
-  const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
+  const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
   const handleCollapse = (state: Array<string>) => {
     setActiveState(state);
-    setItem(LocalStorageKeys.homepage_collapse_state, state);
+    setItem(LocalStorageKeys.HomepageCollapseState, state);
   };
 
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
@@ -220,7 +220,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     if (!otherTabFilters) {
       return;
     }
-    const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
+    const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {

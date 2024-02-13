@@ -122,7 +122,7 @@ export default function DrillDetailPane({
         key: column,
         dataIndex: column,
         title:
-          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+          resultsPage?.colTypes[index] === GenericDataType.Temporal ? (
             <HeaderWithRadioGroup
               headerTitle={column}
               groupTitle={t('Formatting')}
@@ -153,7 +153,7 @@ export default function DrillDetailPane({
             return <NullCell />;
           }
           if (
-            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            resultsPage?.colTypes[index] === GenericDataType.Temporal &&
             timeFormatting[column] !== TimeFormatting.Original &&
             (typeof value === 'number' || value instanceof Date)
           ) {
@@ -262,7 +262,7 @@ export default function DrillDetailPane({
 
   const bootstrapping =
     (!responseError && !resultsPages.size) ||
-    metadataBarStatus === ResourceStatus.LOADING;
+    metadataBarStatus === ResourceStatus.Loading;
 
   let tableContent = null;
   if (responseError) {
@@ -290,7 +290,7 @@ export default function DrillDetailPane({
         <Table
           data={data}
           columns={mappedColumns}
-          size={TableSize.SMALL}
+          size={TableSize.Small}
           defaultPageSize={PAGE_SIZE}
           recordCount={resultsPage?.total}
           usePagination

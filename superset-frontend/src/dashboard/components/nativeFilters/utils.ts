@@ -130,7 +130,7 @@ export function mergeExtraFormData(
 export function isCrossFilter(vizType: string) {
   // @ts-ignore need export from superset-ui `ItemWithValue`
   return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
-    Behavior.INTERACTIVE_CHART,
+    Behavior.InteractiveChart,
   );
 }
 
@@ -150,9 +150,9 @@ export function getExtraFormData(
 
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
-    !behaviors.includes(Behavior.NATIVE_FILTER) ||
-    (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-      behaviors.includes(Behavior.INTERACTIVE_CHART))
+    !behaviors.includes(Behavior.NativeFilter) ||
+    (isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
+      behaviors.includes(Behavior.InteractiveChart))
   );
 }
 

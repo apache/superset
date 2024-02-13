@@ -51,7 +51,7 @@ it('returns false and raises console error if feature flags have not been initia
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(false);
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
   expect(uiCore.logging.error).toHaveBeenCalled();
   expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
@@ -60,7 +60,7 @@ it('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(false);
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
 });
 
 it('returns true for set feature flag', () => {
@@ -69,5 +69,5 @@ it('returns true for set feature flag', () => {
       DRILL_BY: true,
     },
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DRILL_BY)).toEqual(true);
+  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(true);
 });
