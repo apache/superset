@@ -43,8 +43,6 @@
     "build-instrumented": "npm run build-translations && cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "storybook build",
     "build-translations": "../scripts/po2json.sh",
-    "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
     "core:cover": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",

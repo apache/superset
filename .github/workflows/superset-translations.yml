@@ -39,11 +39,6 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
-      - name: lint
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run check-translation
 
   babel-extract:
     runs-on: ubuntu-20.04
