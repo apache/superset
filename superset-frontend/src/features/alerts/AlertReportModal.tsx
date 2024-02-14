@@ -478,15 +478,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     hasErrors: boolean,
     errors?: string[],
   ) => {
-    const hasErrorsStatus =
-      !hasErrors || (section === Sections.Alert && isReport) ? false : true;
+    const errorsStatus = hasErrors || !(section === Sections.Alert && isReport);
 
-    const errorsArray = hasErrorsStatus ? errors : [];
+    const errorsArray = errorsStatus ? errors : [];
 
     setValidationStatus(currentValidationData => ({
       ...currentValidationData,
       [section]: {
-        hasErrors: hasErrorsStatus,
+        hasErrors: errorsStatus,
         name: currentValidationData[section].name,
         errors: errorsArray,
       },
