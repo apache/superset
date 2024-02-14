@@ -1043,6 +1043,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       updateValidationStatus(Sections.Alert, false);
     }
   };
+
   const validateScheduleSection = () => {
     const errors = [];
     if (!currentAlert?.crontab?.length) {
@@ -1052,20 +1053,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.WORKING_TIMEOUT_ERROR_TEXT);
     }
 
-    if (errors.length) {
-      updateValidationStatus(Sections.Schedule, true, errors);
-    } else {
-      updateValidationStatus(Sections.Schedule, false);
-    }
+    updateValidationStatus(Sections.Schedule, errors.length > 0, errors);
   };
+
   const validateNotificationSection = () => {
-    if (checkNotificationSettings()) {
-      updateValidationStatus(Sections.Notification, false);
-    } else {
-      updateValidationStatus(Sections.Notification, true, [
-        TRANSLATIONS.RECIPIENTS_ERROR_TEXT,
-      ]);
-    }
+    const hasErrors = !checkNotificationSettings();
+    const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
+    updateValidationStatus(Sections.Notification, hasErrors, errors);
   };
 
   const validateAll = () => {
@@ -1077,20 +1071,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const enforceValidation = () => {
-    // if no active sections have errors
-    if (
-      !validationStatus[Sections.General].hasErrors &&
-      !validationStatus[Sections.Content].hasErrors &&
-      (isReport || !validationStatus[Sections.Alert].hasErrors) &&
-      !validationStatus[Sections.Schedule].hasErrors &&
-      !validationStatus[Sections.Notification].hasErrors
-    ) {
-      buildErrorTooltipMessage(false, setErrorTooltipMessage, validationStatus);
-      setDisableSave(false);
-    } else {
-      buildErrorTooltipMessage(true, setErrorTooltipMessage, validationStatus);
-      setDisableSave(true);
-    }
+    const sections = [
+      Sections.General,
+      Sections.Content,
+      isReport ? undefined : Sections.Alert,
+      Sections.Schedule,
+      Sections.Notification,
+    ];
+
+    const hasErrors = sections.some(
+      section => section && validationStatus[section].hasErrors,
+    );
+
+    buildErrorTooltipMessage(
+      hasErrors,
+      setErrorTooltipMessage,
+      validationStatus,
+    );
+    setDisableSave(hasErrors);
   };
 
   // Initialize
