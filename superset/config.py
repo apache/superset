@@ -595,7 +595,16 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
 #     }]
 
 # This is merely a default
-EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+# EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [{
+    "id": 'stacksColorSet',
+    "description": '',
+    "label": 'Stacks Color Schema',
+    "isDefault": True,
+    "colors":
+        ['#FB6331', '#264653', '#2A9D8F', '#E9C46A', '#F7DBA7', '#1E212B', '#4D8B31',
+        '#FFC800', '#FFFFFF', '#78E0DC', '#8EEDF7', '#9977BB', '#A1CDF1', '#555B6E']
+}]
 
 # THEME_OVERRIDES is used for adding custom theme to superset
 # example code for "My theme" custom scheme
