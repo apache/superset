@@ -250,7 +250,7 @@ const transformProps = (
     !Number.isNaN(formData.server_page_length) &&
     (formData.server_page_length || 0) <= data.length &&
     !formData.server_page_length_options?.some(
-      (option: [number, string]) => option[0] == formData.server_page_length,
+      (option: [number, string]) => option[0] === formData.server_page_length,
     )
   ) {
     formData.server_page_length_options?.push([
