@@ -65,7 +65,6 @@ from sqlalchemy.orm import (
     reconstructor,
     relationship,
     RelationshipProperty,
-    Session,
 )
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
@@ -1902,13 +1901,12 @@ class SqlaTable(
     @classmethod
     def query_datasources_by_name(
         cls,
-        session: Session,
         database: Database,
         datasource_name: str,
         schema: str | None = None,
     ) -> list[SqlaTable]:
         query = (
-            session.query(cls)
+            db.session.query(cls)
             .filter_by(database_id=database.id)
             .filter_by(table_name=datasource_name)
         )
@@ -1919,14 +1917,13 @@ class SqlaTable(
     @classmethod
     def query_datasources_by_permissions(  # pylint: disable=invalid-name
         cls,
-        session: Session,
         database: Database,
         permissions: set[str],
         schema_perms: set[str],
     ) -> list[SqlaTable]:
         # TODO(hughhhh): add unit test
         return (
-            session.query(cls)
+            db.session.query(cls)
             .filter_by(database_id=database.id)
             .filter(
                 or_(
@@ -1951,8 +1948,8 @@ class SqlaTable(
         )
 
     @classmethod
-    def get_all_datasources(cls, session: Session) -> list[SqlaTable]:
-        qry = session.query(cls)
+    def get_all_datasources(cls) -> list[SqlaTable]:
+        qry = db.session.query(cls)
         qry = cls.default_query(qry)
         return qry.all()
 
@@ -2034,7 +2031,7 @@ class SqlaTable(
         :param connection: Unused.
         :param target: The metric or column that was updated.
         """
-        session = inspect(target).session
+        session = inspect(target).session  # pylint: disable=disallowed-name
 
         # Forces an update to the table's changed_on value when a metric or column on the
         # table is updated. This busts the cache key for all charts that use the table.
@@ -2068,7 +2065,7 @@ class SqlaTable(
         if self.database_id and (
             not self.database or self.database.id != self.database_id
         ):
-            session = inspect(self).session
+            session = inspect(self).session  # pylint: disable=disallowed-name
             self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 

@@ -1704,11 +1704,11 @@ class TestSecurityManager(SupersetTestCase):
         mock_is_owner,
     ):
         births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls", db.session, expunge_from_session=False)
+        girls = self.get_slice("Girls", expunge_from_session=False)
         birth_names = girls.datasource
 
         world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
+        treemap = self.get_slice("Treemap", expunge_from_session=False)
 
         births.json_metadata = json.dumps(
             {

@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { styled, t } from '@superset-ui/core';
+import { QueryFormData, styled, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -27,10 +26,52 @@ import { Tooltip } from 'src/components/Tooltip';
 import ModalTrigger from '../ModalTrigger';
 import TableView from '../TableView';
 
-const propTypes = {
-  origFormData: PropTypes.object.isRequired,
-  currentFormData: PropTypes.object.isRequired,
+interface AlteredSliceTagProps {
+  origFormData: QueryFormData;
+  currentFormData: QueryFormData;
+}
+
+export interface ControlMap {
+  [key: string]: {
+    label?: string;
+    type?: string;
+  };
+}
+
+type FilterItemType = {
+  comparator?: string | string[];
+  subject: string;
+  operator: string;
+  label?: string;
 };
+
+export type DiffItemType<
+  T = FilterItemType | number | string | Record<string | number, any>,
+> =
+  | T[]
+  | boolean
+  | number
+  | string
+  | Record<string | number, any>
+  | null
+  | undefined;
+
+export type DiffType = {
+  before: DiffItemType;
+  after: DiffItemType;
+};
+
+export type RowType = {
+  before: string | number;
+  after: string | number;
+  control: string;
+};
+
+interface AlteredSliceTagState {
+  rows: RowType[];
+  hasDiffs: boolean;
+  controlsMap: ControlMap;
+}
 
 const StyledLabel = styled.span`
   ${({ theme }) => `
@@ -38,42 +79,43 @@ const StyledLabel = styled.span`
     color: ${theme.colors.grayscale.dark1};
     background-color: ${theme.colors.alert.base};
 
-    &: hover {
+    &:hover {
       background-color: ${theme.colors.alert.dark1};
     }
   `}
 `;
 
-function alterForComparison(value) {
-  // Considering `[]`, `{}`, `null` and `undefined` as identical
-  // for this purpose
+function alterForComparison(value?: string | null | []): string | null {
+  // Treat `null`, `undefined`, and empty strings as equivalent
   if (value === undefined || value === null || value === '') {
     return null;
   }
-  if (typeof value === 'object') {
-    if (Array.isArray(value) && value.length === 0) {
-      return null;
-    }
-    const keys = Object.keys(value);
-    if (keys && keys.length === 0) {
-      return null;
-    }
+  // Treat empty arrays and objects as equivalent to null
+  if (Array.isArray(value) && value.length === 0) {
+    return null;
+  }
+  if (typeof value === 'object' && Object.keys(value).length === 0) {
+    return null;
   }
   return value;
 }
 
-export default class AlteredSliceTag extends React.Component {
-  constructor(props) {
+class AlteredSliceTag extends React.Component<
+  AlteredSliceTagProps,
+  AlteredSliceTagState
+> {
+  constructor(props: AlteredSliceTagProps) {
     super(props);
     const diffs = this.getDiffs(props);
-    const controlsMap = getControlsForVizType(this.props.origFormData.viz_type);
+    const controlsMap: ControlMap = getControlsForVizType(
+      props.origFormData.viz_type,
+    ) as ControlMap;
     const rows = this.getRowsFromDiffs(diffs, controlsMap);
 
     this.state = { rows, hasDiffs: !isEmpty(diffs), controlsMap };
   }
 
-  UNSAFE_componentWillReceiveProps(newProps) {
-    // Update differences if need be
+  UNSAFE_componentWillReceiveProps(newProps: AlteredSliceTagProps): void {
     if (isEqual(this.props, newProps)) {
       return;
     }
@@ -84,22 +126,22 @@ export default class AlteredSliceTag extends React.Component {
     }));
   }
 
-  getRowsFromDiffs(diffs, controlsMap) {
+  getRowsFromDiffs(
+    diffs: { [key: string]: DiffType },
+    controlsMap: ControlMap,
+  ): RowType[] {
     return Object.entries(diffs).map(([key, diff]) => ({
-      control: (controlsMap[key] && controlsMap[key].label) || key,
+      control: controlsMap[key]?.label || key,
       before: this.formatValue(diff.before, key, controlsMap),
       after: this.formatValue(diff.after, key, controlsMap),
     }));
   }
 
-  getDiffs(props) {
-    // Returns all properties that differ in the
-    // current form data and the saved form data
+  getDiffs(props: AlteredSliceTagProps): { [key: string]: DiffType } {
     const ofd = sanitizeFormData(props.origFormData);
     const cfd = sanitizeFormData(props.currentFormData);
-
     const fdKeys = Object.keys(cfd);
-    const diffs = {};
+    const diffs: { [key: string]: DiffType } = {};
     fdKeys.forEach(fdKey => {
       if (!ofd[fdKey] && !cfd[fdKey]) {
         return;
@@ -114,20 +156,25 @@ export default class AlteredSliceTag extends React.Component {
     return diffs;
   }
 
-  isEqualish(val1, val2) {
+  isEqualish(val1: string, val2: string): boolean {
     return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
-  formatValue(value, key, controlsMap) {
-    // Format display value based on the control type
-    // or the value type
+  formatValue(
+    value: DiffItemType,
+    key: string,
+    controlsMap: ControlMap,
+  ): string | number {
     if (value === undefined) {
       return 'N/A';
     }
     if (value === null) {
       return 'null';
     }
-    if (controlsMap[key]?.type === 'AdhocFilterControl') {
+    if (
+      controlsMap[key]?.type === 'AdhocFilterControl' &&
+      Array.isArray(value)
+    ) {
       if (!value.length) {
         return '[]';
       }
@@ -144,20 +191,20 @@ export default class AlteredSliceTag extends React.Component {
     if (controlsMap[key]?.type === 'BoundsControl') {
       return `Min: ${value[0]}, Max: ${value[1]}`;
     }
-    if (controlsMap[key]?.type === 'CollectionControl') {
+    if (
+      controlsMap[key]?.type === 'CollectionControl' &&
+      Array.isArray(value)
+    ) {
       return value.map(v => safeStringify(v)).join(', ');
     }
-    if (
-      controlsMap[key]?.type === 'MetricsControl' &&
-      value.constructor === Array
-    ) {
+    if (controlsMap[key]?.type === 'MetricsControl' && Array.isArray(value)) {
       const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
-    if (value.constructor === Array) {
+    if (Array.isArray(value)) {
       const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
@@ -167,7 +214,7 @@ export default class AlteredSliceTag extends React.Component {
     return safeStringify(value);
   }
 
-  renderModalBody() {
+  renderModalBody(): React.ReactNode {
     const columns = [
       {
         accessor: 'control',
@@ -196,7 +243,7 @@ export default class AlteredSliceTag extends React.Component {
     );
   }
 
-  renderTriggerNode() {
+  renderTriggerNode(): React.ReactNode {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <StyledLabel className="label">{t('Altered')}</StyledLabel>
@@ -223,4 +270,4 @@ export default class AlteredSliceTag extends React.Component {
   }
 }
 
-AlteredSliceTag.propTypes = propTypes;
+export default AlteredSliceTag;

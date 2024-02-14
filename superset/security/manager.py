@@ -453,7 +453,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.ERROR,
         )
 
-    def get_chart_access_error_object(  # pylint: disable=invalid-name
+    def get_chart_access_error_object(
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
     ) -> SupersetError:
@@ -576,7 +576,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         # group all datasources by database
-        all_datasources = SqlaTable.get_all_datasources(self.get_session)
+        all_datasources = SqlaTable.get_all_datasources()
         datasources_by_database: dict["Database", set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
@@ -714,7 +714,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = SqlaTable.query_datasources_by_permissions(
-            self.get_session, database, user_perms, schema_perms
+            database, user_perms, schema_perms
         )
         if schema:
             names = {d.table_name for d in user_datasources if d.schema == schema}
@@ -781,7 +781,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = SqlaTable.get_all_datasources(self.get_session)
+        datasources = SqlaTable.get_all_datasources()
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
@@ -797,8 +797,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         logger.info("Cleaning faulty perms")
-        sesh = self.get_session
-        pvms = sesh.query(PermissionView).filter(
+        pvms = self.get_session.query(PermissionView).filter(
             or_(
                 PermissionView.permission  # pylint: disable=singleton-comparison
                 == None,
@@ -806,7 +805,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,
             )
         )
-        sesh.commit()
+        self.get_session.commit()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
@@ -1925,7 +1924,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                 if not (schema_perm and self.can_access("schema_access", schema_perm)):
                     datasources = SqlaTable.query_datasources_by_name(
-                        self.get_session, database, table_.table, schema=table_.schema
+                        database, table_.table, schema=table_.schema
                     )
 
                     # Access to any datasource is suffice.
