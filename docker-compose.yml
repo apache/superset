@@ -39,17 +39,32 @@ services:
     volumes:
       - redis:/data
 
+#  db:
+#    platform: linux/amd64
+#    env_file: docker/.env
+#    image: postgres:14
+#    container_name: superset_db
+#    restart: unless-stopped
+#    ports:
+#      - "127.0.0.1:5432:5432"
+#    volumes:
+#      - db_home:/var/lib/postgresql/data
+#      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+
   db:
+    image: mysql
     platform: linux/amd64
-    env_file: docker/.env
-    image: postgres:14
-    container_name: superset_db
-    restart: unless-stopped
+    # NOTE: use of "mysql_native_password" is not recommended: https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password
+    # (this is just an example, not intended to be a production configuration)
+    #    command: --default-authentication-plugin=caching_sha2_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: "superset"
+      MYSQL_USER: "superset"
+      MYSQL_PASSWORD: "superset"
     ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - "3306:3306"
 
   superset:
     platform: linux/amd64
