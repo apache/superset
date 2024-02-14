@@ -49,7 +49,7 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         filtering.
         """
 
-        if dynamic_filters := current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"]:
+        if dynamic_filters := current_app.config.get("EXTRA_DYNAMIC_QUERY_FILTERS", {}):
             if dynamic_databases_filter := dynamic_filters.get("databases"):
                 query = dynamic_databases_filter(query)
 
