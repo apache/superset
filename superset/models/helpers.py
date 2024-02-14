@@ -89,6 +89,7 @@ from superset.utils.core import (
     get_column_name,
     get_user_id,
     is_adhoc_column,
+    MediumText,
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -584,7 +585,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
 class ExtraJSONMixin:
     """Mixin to add an `extra` column (JSON) and utility methods"""
 
-    extra_json = sa.Column(sa.Text, default="{}")
+    extra_json = sa.Column(MediumText(), default="{}")
 
     @property
     def extra(self) -> dict[str, Any]:
