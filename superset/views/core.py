@@ -918,24 +918,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose(
-        "/sqllab/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/sqllab")
-    def sqllab(self) -> FlaskResponse:
-        """SQL Editor"""
-        url = "/sqllab"
-        if url_params := request.args:
-            params = parse.urlencode(url_params)
-            url = f"{url}?{params}"
-        return redirect(url)
-
-    @has_access
-    @event_logger.log_this
     @expose("/sqllab/history/", methods=("GET",))
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
