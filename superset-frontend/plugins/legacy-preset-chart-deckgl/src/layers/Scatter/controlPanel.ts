@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -49,7 +49,6 @@ const config: ControlPanelConfig = {
     },
   }),
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -62,10 +61,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [
-        [mapboxStyle, viewport],
-        [autozoom, null],
-      ],
+      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
     },
     {
       label: t('Point Size'),
@@ -119,7 +115,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 250,
               description: t(
-                'Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+                'Maximum radius size of the circle, in pixels. As the zoom level changes, this ' +
                   'insures that the circle respects this maximum radius.',
               ),
             },

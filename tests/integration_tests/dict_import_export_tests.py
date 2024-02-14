@@ -61,7 +61,7 @@ class TestDictImportExport(SupersetTestCase):
         self, name, schema=None, id=0, cols_names=[], cols_uuids=None, metric_names=[]
     ):
         database_name = "main"
-        name = "{0}{1}".format(NAME_PREFIX, name)
+        name = f"{NAME_PREFIX}{name}"
         params = {DBREF: id, "database_name": database_name}
 
         if cols_uuids is None:
@@ -100,12 +100,12 @@ class TestDictImportExport(SupersetTestCase):
         self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
         self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
         self.assertEqual(
-            set([c.column_name for c in expected_ds.columns]),
-            set([c.column_name for c in actual_ds.columns]),
+            {c.column_name for c in expected_ds.columns},
+            {c.column_name for c in actual_ds.columns},
         )
         self.assertEqual(
-            set([m.metric_name for m in expected_ds.metrics]),
-            set([m.metric_name for m in actual_ds.metrics]),
+            {m.metric_name for m in expected_ds.metrics},
+            {m.metric_name for m in actual_ds.metrics},
         )
 
     def assert_datasource_equals(self, expected_ds, actual_ds):
@@ -114,12 +114,12 @@ class TestDictImportExport(SupersetTestCase):
         self.assertEqual(len(expected_ds.metrics), len(actual_ds.metrics))
         self.assertEqual(len(expected_ds.columns), len(actual_ds.columns))
         self.assertEqual(
-            set([c.column_name for c in expected_ds.columns]),
-            set([c.column_name for c in actual_ds.columns]),
+            {c.column_name for c in expected_ds.columns},
+            {c.column_name for c in actual_ds.columns},
         )
         self.assertEqual(
-            set([m.metric_name for m in expected_ds.metrics]),
-            set([m.metric_name for m in actual_ds.metrics]),
+            {m.metric_name for m in expected_ds.metrics},
+            {m.metric_name for m in actual_ds.metrics},
         )
 
     def test_import_table_no_metadata(self):

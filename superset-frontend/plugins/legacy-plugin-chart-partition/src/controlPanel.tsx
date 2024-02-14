@@ -21,17 +21,16 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -241,7 +240,11 @@ const config: ControlPanelConfig = {
       ),
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Rolling Window')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Rolling Window')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'rolling_type',
@@ -293,7 +296,11 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Time Comparison')}</div>],
+        [
+          <ControlSubSectionHeader>
+            {t('Time Comparison')}
+          </ControlSubSectionHeader>,
+        ],
         [
           {
             name: 'time_compare',
@@ -317,7 +324,7 @@ const config: ControlPanelConfig = {
               description: t(
                 'Overlay one or more timeseries from a ' +
                   'relative time period. Expects relative time deltas ' +
-                  'in natural language (example:  24 hours, 7 days, ' +
+                  'in natural language (example: 24 hours, 7 days, ' +
                   '52 weeks, 365 days). Free text is supported.',
               ),
             },
@@ -342,7 +349,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<div className="section-header">{t('Resample')}</div>],
+        [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
             name: 'resample_rule',

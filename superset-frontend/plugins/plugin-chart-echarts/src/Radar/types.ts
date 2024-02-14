@@ -50,7 +50,6 @@ export type EchartsRadarFormData = QueryFormData &
     isCircle: boolean;
     numberFormat: string;
     dateFormat: string;
-    emitFilter: boolean;
   };
 
 export enum EchartsRadarLabelType {
@@ -73,7 +72,6 @@ export const DEFAULT_FORM_DATA: EchartsRadarFormData = {
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',
   showLabels: true,
-  emitFilter: false,
   dateFormat: 'smart_date',
   isCircle: false,
 };

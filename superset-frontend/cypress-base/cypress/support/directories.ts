@@ -84,11 +84,11 @@ export const databasesPage = {
     step: '.helper-top',
     selectDbStepTitle: '.select-db > h4',
     preferredBlockBigQuery: '.preferred > :nth-child(1)',
-    prefferedBlockPostgreSQL: '.preferred > :nth-child(2)',
-    prefferedBlockSnowflake: '.preferred > :nth-child(3)',
-    prefferedBlockMySQL: '.preferred > :nth-child(4)',
-    prefferedBlockAthena: '.preferred > :nth-child(5)',
-    prefferedBlockSheets: '.preferred > :nth-child(6)',
+    preferredBlockPostgreSQL: '.preferred > :nth-child(2)',
+    preferredBlockSnowflake: '.preferred > :nth-child(3)',
+    preferredBlockMySQL: '.preferred > :nth-child(4)',
+    preferredBlockAthena: '.preferred > :nth-child(5)',
+    preferredBlockSheets: '.preferred > :nth-child(6)',
     supportedDatabasesText: '.control-label',
     orChoose: '.available-label',
     dbDropdown: '[class="ant-select-selection-search-input"]',
@@ -590,7 +590,7 @@ export const exploreView = {
       okButton: '.ant-modal-confirm-btns .ant-btn-primary',
     },
   },
-  vizualizationTypeModal: {
+  visualizationTypeModal: {
     vizTypeButton: dataTestLocator('viztype-selector-container'),
   },
 };
@@ -657,7 +657,7 @@ export const dashboardView = {
   treeMapChartModal: {
     selectItem: '.Select_control',
     selectItemInput: '.Select__control input[type=text]',
-    applyButton: '.filter_box button:not(:disabled)',
+    applyButton: '.filter button:not(:disabled)',
     clearItemIcon: '.Select__clear-indicator',
   },
   sliceThreeDots: '[aria-label="More Options"]',

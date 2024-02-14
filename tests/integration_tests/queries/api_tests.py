@@ -52,6 +52,7 @@ class TestQueryApi(SupersetTestCase):
         rows: int = 100,
         tab_name: str = "",
         status: str = "success",
+        changed_on: datetime = datetime(2020, 1, 1),
     ) -> Query:
         database = db.session.query(Database).get(database_id)
         user = db.session.query(security_manager.user_model).get(user_id)
@@ -67,7 +68,7 @@ class TestQueryApi(SupersetTestCase):
             rows=rows,
             tab_name=tab_name,
             status=status,
-            changed_on=datetime(2020, 1, 1),
+            changed_on=changed_on,
         )
         db.session.add(query)
         db.session.commit()
@@ -201,6 +202,10 @@ class TestQueryApi(SupersetTestCase):
         gamma2 = self.create_user(
             "gamma_2", "password", "Gamma", email="gamma2@superset.org"
         )
+        # Add SQLLab role to these gamma users, so they have access to queries
+        sqllab_role = self.get_role("sql_lab")
+        gamma1.roles.append(sqllab_role)
+        gamma2.roles.append(sqllab_role)
 
         gamma1_client_id = self.get_random_string()
         gamma2_client_id = self.get_random_string()
@@ -280,7 +285,6 @@ class TestQueryApi(SupersetTestCase):
             "first_name",
             "id",
             "last_name",
-            "username",
         ]
         assert list(data["result"][0]["database"].keys()) == [
             "database_name",
@@ -382,7 +386,7 @@ class TestQueryApi(SupersetTestCase):
             sql="SELECT col1, col2 from table1",
         )
 
-        self.login(username="gamma")
+        self.login(username="gamma_sqllab")
         arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
@@ -392,6 +396,59 @@ class TestQueryApi(SupersetTestCase):
 
         # rollback changes
         db.session.delete(query)
+        db.session.commit()
+
+    def test_get_updated_since(self):
+        """
+        Query API: Test get queries updated since timestamp
+        """
+        now = datetime.utcnow()
+        client_id = self.get_random_string()
+
+        admin = self.get_user("admin")
+        example_db = get_example_database()
+
+        old_query = self.insert_query(
+            example_db.id,
+            admin.id,
+            self.get_random_string(),
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=now - timedelta(days=3),
+        )
+        updated_query = self.insert_query(
+            example_db.id,
+            admin.id,
+            client_id,
+            sql="SELECT col1, col2 from table1",
+            select_sql="SELECT col1, col2 from table1",
+            executed_sql="SELECT col1, col2 from table1 LIMIT 100",
+            changed_on=now - timedelta(days=1),
+        )
+
+        self.login(username="admin")
+        timestamp = datetime.timestamp(now - timedelta(days=2)) * 1000
+        uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+
+        expected_result = updated_query.to_dict()
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 1)
+        for key, value in data["result"][0].items():
+            # We can't assert timestamp
+            if key not in (
+                "changed_on",
+                "end_time",
+                "start_running_time",
+                "start_time",
+                "id",
+            ):
+                self.assertEqual(value, expected_result[key])
+        # rollback changes
+        db.session.delete(old_query)
+        db.session.delete(updated_query)
         db.session.commit()
 
     @mock.patch("superset.sql_lab.cancel_query")

@@ -16,16 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord } from '@superset-ui/core';
-import _ from 'lodash';
+import { DataRecord, DataRecordValue } from '@superset-ui/core';
+import { groupBy as _groupBy, isNumber, transform } from 'lodash';
 
 export type TreeNode = {
-  name: string;
+  name: DataRecordValue;
   value: number;
   secondaryValue: number;
   groupBy: string;
   children?: TreeNode[];
 };
+
+function getMetricValue(datum: DataRecord, metric: string) {
+  return isNumber(datum[metric]) ? (datum[metric] as number) : 0;
+}
 
 export function treeBuilder(
   data: DataRecord[],
@@ -34,10 +38,11 @@ export function treeBuilder(
   secondaryMetric?: string,
 ): TreeNode[] {
   const [curGroupBy, ...restGroupby] = groupBy;
-  const curData = _.groupBy(data, curGroupBy);
-  return _.transform(
+  const curData = _groupBy(data, curGroupBy);
+  return transform(
     curData,
-    (result, value, name) => {
+    (result, value, key) => {
+      const name = curData[key][0][curGroupBy]!;
       if (!restGroupby.length) {
         (value ?? []).forEach(datum => {
           const metricValue = getMetricValue(datum, metric);
@@ -80,8 +85,4 @@ export function treeBuilder(
     },
     [] as TreeNode[],
   );
-}
-
-function getMetricValue(datum: DataRecord, metric: string) {
-  return _.isNumber(datum[metric]) ? (datum[metric] as number) : 0;
 }

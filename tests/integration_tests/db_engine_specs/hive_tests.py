@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from datetime import datetime
 from unittest import mock
-from typing import List
 
 import pytest
 import pandas as pd
@@ -147,15 +145,6 @@ def test_hive_error_msg():
     assert (
         HiveEngineSpec.extract_error_message(Exception(msg))
         == "hive error: Error while compiling statement"
-    )
-
-
-def test_convert_dttm():
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    assert HiveEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"
-    assert (
-        HiveEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)"
     )
 
 
@@ -386,7 +375,7 @@ def test_where_latest_partition_no_columns_no_values(mock_method):
 
 
 def test__latest_partition_from_df():
-    def is_correct_result(data: List, result: List) -> bool:
+    def is_correct_result(data: list, result: list) -> bool:
         df = pd.DataFrame({"partition": data})
         return HiveEngineSpec._latest_partition_from_df(df) == result
 

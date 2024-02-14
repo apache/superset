@@ -17,7 +17,6 @@
  * under the License.
  */
 import { DataMask, FilterConfiguration, Filters } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import { getInitialDataMask } from './reducer';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
@@ -68,14 +67,10 @@ export function updateDataMask(
   filterId: string | number,
   dataMask: DataMask,
 ): UpdateDataMask {
-  // Only apply data mask if one of the relevant features is enabled
-  const isFeatureFlagActive =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
-    dataMask: isFeatureFlagActive ? dataMask : {},
+    dataMask,
   };
 }
 

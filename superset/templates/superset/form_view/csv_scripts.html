@@ -16,7 +16,9 @@ KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 #}
-<script>
+{% import "superset/macros.html" as macros %}
+
+<script nonce="{{ macros.get_nonce() }}">
   $('#delimiter').on('change', function () {
     var delimiterOptions = $('#delimiter').val();
     if (delimiterOptions?.includes("other")) {

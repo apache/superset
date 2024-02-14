@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from tests.common.query_context_generator import QueryContextGenerator
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -29,8 +29,8 @@ def get_query_context(
     query_name: str,
     add_postprocessing_operations: bool = False,
     add_time_offsets: bool = False,
-    form_data: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    form_data: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """
     Create a request payload for retrieving a QueryContext object via the
     `api/v1/chart/data` endpoint. By default returns a payload corresponding to one

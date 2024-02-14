@@ -16,31 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   CategoricalColorNamespace,
+  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getValueFormatter,
   NumberFormats,
-  NumberFormatter,
+  SupersetTheme,
   t,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
-import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { OpacityEnum } from '../constants';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { NULL_STRING, OpacityEnum } from '../constants';
+import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
 import {
   EchartsSunburstChartProps,
   EchartsSunburstLabelType,
+  NodeItemOption,
   SunburstTransformedProps,
 } from './types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -72,7 +75,7 @@ export function formatLabel({
 }: {
   params: CallbackDataParams;
   labelType: EchartsSunburstLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(value as number);
@@ -91,11 +94,13 @@ export function formatLabel({
 
 export function formatTooltip({
   params,
-  numberFormatter,
+  primaryValueFormatter,
+  secondaryValueFormatter,
   colorByCategory,
   totalValue,
   metricLabel,
   secondaryMetricLabel,
+  theme,
 }: {
   params: CallbackDataParams & {
     treePathInfo: {
@@ -104,50 +109,66 @@ export function formatTooltip({
       value: number;
     }[];
   };
-  numberFormatter: NumberFormatter;
+  primaryValueFormatter: ValueFormatter;
+  secondaryValueFormatter: ValueFormatter | undefined;
   colorByCategory: boolean;
   totalValue: number;
   metricLabel: string;
   secondaryMetricLabel?: string;
+  theme: SupersetTheme;
 }): string {
   const { data, treePathInfo = [] } = params;
-  treePathInfo.shift();
   const node = data as TreeNode;
-  const formattedValue = numberFormatter(node.value);
-  const formattedSecondaryValue = numberFormatter(node.secondaryValue);
+  const formattedValue = primaryValueFormatter(node.value);
+  const formattedSecondaryValue = secondaryValueFormatter?.(
+    node.secondaryValue,
+  );
 
   const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
   const compareValuePercentage = percentFormatter(
     node.secondaryValue / node.value,
   );
   const absolutePercentage = percentFormatter(node.value / totalValue);
-  const parentNode = treePathInfo[treePathInfo.length - 1];
+  const parentNode =
+    treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
+
   const result = [
-    `<div style="font-size: 14px;font-weight: 600">${absolutePercentage} of total</div>`,
+    `<div style="
+      font-size: ${theme.typography.sizes.m}px;
+      color: ${theme.colors.grayscale.base}"
+     >`,
+    `<div style="font-weight: ${theme.typography.weights.bold}">
+      ${(node.name || NULL_STRING)
+        .toString()
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')}
+     </div>`,
+    `<div">
+      ${absolutePercentage} of total
+     </div>`,
   ];
   if (parentNode) {
     const conditionalPercentage = percentFormatter(
       node.value / parentNode.value,
     );
     result.push(`
-    <div style="font-size: 12px;">
-      ${conditionalPercentage} of parent
+    <div>
+      ${conditionalPercentage} of ${parentNode.name}
     </div>`);
   }
   result.push(
-    `<div style="color: '#666666'">
+    `<div>
     ${metricLabel}: ${formattedValue}${
       colorByCategory
         ? ''
         : `, ${secondaryMetricLabel}: ${formattedSecondaryValue}`
     }
-    </div>`,
+     </div>`,
     colorByCategory
       ? ''
-      : `<div style="color: '#666666'">
-       ${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}
-      </div>`,
+      : `<div>${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}</div>`,
   );
+  result.push('</div>');
   return result.join('\n');
 }
 
@@ -163,6 +184,8 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
+    datasource,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -175,19 +198,37 @@ export default function transformProps(
     linearColorScheme,
     labelType,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showLabelsThreshold,
     showTotal,
     sliceId,
-    emitFilter,
   } = formData;
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
   const refs: Refs = {};
+  const primaryValueFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
+  const secondaryValueFormatter = secondaryMetric
+    ? getValueFormatter(
+        secondaryMetric,
+        currencyFormats,
+        columnFormats,
+        numberFormat,
+        currencyFormat,
+      )
+    : undefined;
+
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
       params,
-      numberFormatter,
+      numberFormatter: primaryValueFormatter,
       labelType,
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -247,9 +288,14 @@ export default function transformProps(
     linearColorScale(totalSecondaryValue / totalValue);
   }
 
-  const traverse = (treeNodes: TreeNode[], path: string[]) =>
+  const traverse = (
+    treeNodes: TreeNode[],
+    path: string[],
+    pathRecords?: DataRecordValue[],
+  ) =>
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
+      const records = [...(pathRecords || []), nodeName];
       let name = formatSeriesName(nodeName, {
         numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
@@ -258,10 +304,10 @@ export default function transformProps(
         }),
       });
       const newPath = path.concat(name);
-      let item: SunburstSeriesNodeItemOption = {
+      let item: NodeItemOption = {
+        records,
         name,
         value,
-        // @ts-ignore
         secondaryValue,
         itemStyle: {
           color: colorByCategory
@@ -270,7 +316,7 @@ export default function transformProps(
         },
       };
       if (treeNode.children?.length) {
-        item.children = traverse(treeNode.children, newPath);
+        item.children = traverse(treeNode.children, newPath, records);
       } else {
         name = newPath.join(',');
       }
@@ -295,17 +341,19 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatTooltip({
           params,
-          numberFormatter,
+          primaryValueFormatter,
+          secondaryValueFormatter,
           colorByCategory,
           totalValue,
           metricLabel,
           secondaryMetricLabel,
+          theme,
         }),
     },
     series: [
@@ -337,7 +385,7 @@ export default function transformProps(
           top: 'center',
           left: 'center',
           style: {
-            text: t('Total: %s', numberFormatter(totalValue)),
+            text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
           },
@@ -352,11 +400,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     refs,
+    coltypeMapping,
   };
 }

@@ -26,9 +26,8 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { logging, NativeFilterScope, t } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
-export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
-  (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
-  (!charts || charts[meta?.chartId]?.form_data?.viz_type !== 'filter_box');
+export const isShowTypeInTree = ({ type }: LayoutItem) =>
+  type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE;
 
 export const getNodeTitle = (node: LayoutItem) =>
   node?.meta?.sliceNameOverride ??
@@ -51,7 +50,7 @@ export const buildTree = (
   if (
     node &&
     treeItem &&
-    isShowTypeInTree(node, charts) &&
+    isShowTypeInTree(node) &&
     node.type !== DASHBOARD_ROOT_TYPE &&
     validNodes?.includes?.(node.id)
   ) {
@@ -85,7 +84,7 @@ export const buildTree = (
       );
     } else {
       logging.warn(
-        `Unable to find item with id: ${child} in the dashboard layout.  This may indicate you have invalid references in your dashboard and the references to id: ${child} should be removed.`,
+        `Unable to find item with id: ${child} in the dashboard layout. This may indicate you have invalid references in your dashboard and the references to id: ${child} should be removed.`,
       );
     }
   });

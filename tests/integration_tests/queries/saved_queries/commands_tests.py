@@ -23,13 +23,11 @@ import yaml
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.commands.query.exceptions import SavedQueryNotFoundError
+from superset.commands.query.export import ExportSavedQueriesCommand
+from superset.commands.query.importers.v1 import ImportSavedQueriesCommand
 from superset.models.core import Database
 from superset.models.sql_lab import SavedQuery
-from superset.queries.saved_queries.commands.exceptions import SavedQueryNotFoundError
-from superset.queries.saved_queries.commands.export import ExportSavedQueriesCommand
-from superset.queries.saved_queries.commands.importers.v1 import (
-    ImportSavedQueriesCommand,
-)
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -142,8 +140,11 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
 
 class TestImportSavedQueriesCommand(SupersetTestCase):
-    def test_import_v1_saved_queries(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_saved_queries(self, mock_g):
         """Test that we can import a saved query"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -169,8 +170,11 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_saved_queries_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_saved_queries_multiple(self, mock_g):
         """Test that a saved query can be imported multiple times"""
+        mock_g.user = security_manager.find_user("admin")
+
         contents = {
             "metadata.yaml": yaml.safe_dump(saved_queries_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),

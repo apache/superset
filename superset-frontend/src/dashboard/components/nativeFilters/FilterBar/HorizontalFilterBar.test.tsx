@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { NativeFilterType } from '@superset-ui/core';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
@@ -36,6 +35,11 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
+      initialState: {
+        dashboardInfo: {
+          dash_edit_perm: true,
+        },
+      },
     }),
   );
 
@@ -49,7 +53,7 @@ test('should not render the empty message', async () => {
     filterValues: [
       {
         id: 'test',
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
       },
     ],
   });
@@ -63,19 +67,6 @@ test('should render the empty message', async () => {
   expect(
     screen.getByText('No filters are currently added to this dashboard.'),
   ).toBeInTheDocument();
-});
-
-test('should render the gear icon', async () => {
-  await renderWrapper();
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
-});
-
-test('should not render the gear icon', async () => {
-  await renderWrapper({
-    canEdit: false,
-  });
-
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
 test('should not render the loading icon', async () => {

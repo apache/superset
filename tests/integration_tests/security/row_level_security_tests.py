@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
@@ -55,7 +55,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj: Dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(
         groupby=[],
         metrics=None,
         filter=[],
@@ -158,7 +158,6 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.fixture()
     def create_dataset(self):
         with self.create_app().app_context():
-
             dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
             db.session.add(dataset)
             db.session.flush()
@@ -305,6 +304,21 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_rls_cache_key(self):
+        g.user = self.get_user(username="admin")
+        tbl = self.get_table(name="birth_names")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == []
+
+        g.user = self.get_user(username="gamma")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == [
+            "name like 'A%' or name like 'B%'-name",
+            "name like 'Q%'-name",
+            "gender = 'boy'-gender",
+        ]
 
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
@@ -484,7 +498,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         db.session.commit()
 
 
-class TestRowLevelSecurityBulkDeleteAPI(SupersetTestCase):
+class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login("Admin")
 
@@ -543,8 +557,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
         db_tables = db.session.query(SqlaTable).all()
 
-        db_table_names = set([t.name for t in db_tables])
-        received_tables = set([table["text"] for table in result])
+        db_table_names = {t.name for t in db_tables}
+        received_tables = {table["text"] for table in result}
 
         assert data["count"] == len(db_tables)
         assert len(result) == len(db_tables)
@@ -559,8 +573,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
-        db_role_names = set([r.name for r in security_manager.get_all_roles()])
-        received_roles = set([role["text"] for role in result])
+        db_role_names = {r.name for r in security_manager.get_all_roles()}
+        received_roles = {role["text"] for role in result}
 
         assert data["count"] == len(db_role_names)
         assert len(result) == len(db_role_names)
@@ -581,64 +595,30 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
-        received_tables = set([table["text"].split(".")[-1] for table in result])
+        received_tables = {table["text"].split(".")[-1] for table in result}
 
         assert data["count"] == 1
         assert len(result) == 1
         assert {"birth_names"} == received_tables
 
-    @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
-        {"roles": [["name", filters.FilterEqual, "Admin"]]},
-    )
-    def test_role_related_filter(self):
-        self.login("Admin")
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(username="admin")
 
-        params = prison.dumps({"page": 0, "page_size": 10})
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
 
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_roles = set([role["text"] for role in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"Admin"} == received_roles
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
-        {
-            "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-            "roles": [["name", filters.FilterEqual, "Admin"]],
-        },
-    )
-    def test_table_and_role_related_filter(self):
-        self.login("Admin")
-
-        params = prison.dumps({"page": 0, "page_size": 10})
-
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_tables = set([table["text"].split(".")[-1] for table in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"birth_names"} == received_tables
-
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        result = data["result"]
-        received_roles = set([role["text"] for role in result])
-
-        assert data["count"] == 1
-        assert len(result) == 1
-        assert {"Admin"} == received_roles
+        with mock.patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
+        ):
+            rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles")
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
@@ -650,7 +630,7 @@ RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
     EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
-    query_obj: Dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(
         groupby=[],
         metrics=None,
         filter=[],
@@ -668,7 +648,7 @@ class GuestTokenRowLevelSecurityTests(SupersetTestCase):
             "clause": "name = 'Alice'",
         }
 
-    def guest_user_with_rls(self, rules: Optional[List[Any]] = None) -> GuestUser:
+    def guest_user_with_rls(self, rules: Optional[list[Any]] = None) -> GuestUser:
         if rules is None:
             rules = [self.default_rls_rule()]
         return security_manager.get_guest_user_from_token(

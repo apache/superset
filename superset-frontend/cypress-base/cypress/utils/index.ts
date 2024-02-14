@@ -34,15 +34,30 @@ export function toggleBulkSelect() {
 }
 
 export function clearAllInputs() {
-  cy.get('[aria-label="close-circle"]').click({ multiple: true, force: true });
+  cy.get('body').then($body => {
+    if ($body.find('.ant-select-clear').length) {
+      cy.get('.ant-select-clear').click({ multiple: true, force: true });
+    }
+  });
 }
 
-const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
-  slice_id: parseInt($chart.attr('data-test-chart-id')!, 10),
-  form_data: {
-    viz_type: $chart.attr('data-test-viz-type')!,
-  },
-});
+const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => {
+  const chartId = $chart.attr('data-test-chart-id');
+  const vizType = $chart.attr('data-test-viz-type');
+
+  return {
+    slice_id: chartId ? parseInt(chartId, 10) : null,
+    form_data: {
+      viz_type: vizType || null,
+    },
+  };
+};
+
+export function getChartGridComponent({ name, viz }: ChartSpec) {
+  return cy
+    .get(`[data-test-chart-name="${name}"]`)
+    .should('have.attr', 'data-test-viz-type', viz);
+}
 
 export function getChartAliasBySpec(chart: ChartSpec) {
   return getChartGridComponent(chart).then($chart =>
@@ -61,12 +76,6 @@ export function getChartAliasesBySpec(charts: readonly ChartSpec[]) {
   // That way callers can chain off this function
   // and actually get the list of aliases.
   return cy.wrap(aliases);
-}
-
-export function getChartGridComponent({ name, viz }: ChartSpec) {
-  return cy
-    .get(`[data-test-chart-name="${name}"]`)
-    .should('have.attr', 'data-test-viz-type', viz);
 }
 
 export function waitForChartLoad(chart: ChartSpec) {

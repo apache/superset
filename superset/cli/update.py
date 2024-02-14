@@ -81,7 +81,7 @@ def update_api_docs() -> None:
         title=current_app.appbuilder.app_name,
         version=api_version,
         openapi_version="3.0.2",
-        info=dict(description=current_app.appbuilder.app_name),
+        info={"description": current_app.appbuilder.app_name},
         plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
         servers=[{"url": "http://localhost:8088"}],
     )
@@ -120,7 +120,7 @@ def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
     except ValueError as exc:
         click.secho(
             f"An error occurred, "
-            f"probably an invalid previoud secret key was provided. Error:[{exc}]",
+            f"probably an invalid previous secret key was provided. Error:[{exc}]",
             err=True,
         )
         sys.exit(1)

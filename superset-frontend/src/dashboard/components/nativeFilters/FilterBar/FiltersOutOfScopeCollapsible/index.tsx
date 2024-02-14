@@ -26,6 +26,7 @@ export interface FiltersOutOfScopeCollapsibleProps {
   renderer: (filter: Filter | Divider, index: number) => ReactNode;
   hasTopMargin?: boolean;
   horizontalOverflow?: boolean;
+  forceRender?: boolean;
 }
 
 export const FiltersOutOfScopeCollapsible = ({
@@ -33,6 +34,7 @@ export const FiltersOutOfScopeCollapsible = ({
   renderer,
   hasTopMargin,
   horizontalOverflow,
+  forceRender = false,
 }: FiltersOutOfScopeCollapsibleProps) => (
   <AntdCollapse
     ghost
@@ -80,7 +82,16 @@ export const FiltersOutOfScopeCollapsible = ({
     }
   >
     <AntdCollapse.Panel
-      header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
+      forceRender={forceRender}
+      header={
+        <span
+          css={(theme: SupersetTheme) => css`
+            font-size: ${theme.typography.sizes.s}px;
+          `}
+        >
+          {t('Filters out of scope (%d)', filtersOutOfScope.length)}
+        </span>
+      }
       key="1"
     >
       {filtersOutOfScope.map(renderer)}

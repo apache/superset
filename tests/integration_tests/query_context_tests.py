@@ -16,7 +16,7 @@
 # under the License.
 import re
 import time
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
@@ -49,7 +49,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
-def get_sql_text(payload: Dict[str, Any]) -> str:
+def get_sql_text(payload: dict[str, Any]) -> str:
     payload["result_type"] = ChartDataResultType.QUERY.value
     query_context = ChartDataQueryContextSchema().load(payload)
     responses = query_context.get_payload()
@@ -74,7 +74,7 @@ class TestQueryContext(SupersetTestCase):
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
 
-            # check basic properies
+            # check basic properties
             self.assertEqual(query.extras, payload_query["extras"])
             self.assertEqual(query.filter, payload_query["filters"])
             self.assertEqual(query.columns, payload_query["columns"])
@@ -121,6 +121,7 @@ class TestQueryContext(SupersetTestCase):
 
         cached = cache_manager.cache.get(cache_key)
         assert cached is not None
+        assert "form_data" in cached["data"]
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]
@@ -144,7 +145,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )
@@ -168,7 +168,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )

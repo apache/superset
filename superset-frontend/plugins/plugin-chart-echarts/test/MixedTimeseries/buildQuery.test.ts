@@ -17,7 +17,7 @@
  * under the License.
  */
 import {
-  ComparisionType,
+  ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
   TimeGranularity,
@@ -46,7 +46,6 @@ const formDataMixedChart = {
   row_limit: 10,
   timeseries_limit_metric: 'count',
   order_desc: true,
-  emit_filter: true,
   truncate_metric: true,
   show_empty_columns: true,
   //   -- query b
@@ -63,7 +62,6 @@ const formDataMixedChart = {
   row_limit_b: 100,
   timeseries_limit_metric_b: undefined,
   order_desc_b: false,
-  emit_filter_b: undefined,
   truncate_metric_b: true,
   show_empty_columns_b: true,
   // chart configs
@@ -74,14 +72,14 @@ const formDataMixedChartWithAA = {
   ...formDataMixedChart,
   rolling_type: RollingType.Cumsum,
   time_compare: ['1 years ago'],
-  comparison_type: ComparisionType.Values,
+  comparison_type: ComparisonType.Values,
   resample_rule: '1AS',
   resample_method: 'zerofill',
 
   rolling_type_b: RollingType.Sum,
   rolling_periods_b: 1,
   min_periods_b: 1,
-  comparison_type_b: ComparisionType.Difference,
+  comparison_type_b: ComparisonType.Difference,
   time_compare_b: ['3 years ago'],
   resample_rule_b: '1A',
   resample_method_b: 'asfreq',
@@ -200,6 +198,21 @@ test('should compile AA in query A', () => {
   // time comparison
   expect(query.time_offsets).toEqual(['1 years ago']);
 
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['__timestamp'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
   // cumsum
   expect(
     // prettier-ignore
@@ -265,142 +278,7 @@ test('should compile AA in query B', () => {
   });
 });
 
-test('should convert a queryObject with x-axis although FF is disabled', () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: false,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
-  const { queries } = buildQuery({
-    ...formDataMixedChart,
-    x_axis: 'my_index',
-  });
-  expect(queries[0]).toEqual({
-    time_range: '1980 : 2000',
-    since: undefined,
-    until: undefined,
-    granularity: 'ds',
-    filters: [],
-    extras: {
-      having: '',
-      where: "(foo in ('a', 'b'))",
-    },
-    applied_time_extras: {},
-    columns: [
-      {
-        columnType: 'BASE_AXIS',
-        expressionType: 'SQL',
-        label: 'my_index',
-        sqlExpression: 'my_index',
-        timeGrain: 'P1W',
-      },
-      'foo',
-    ],
-    metrics: ['sum(sales)'],
-    annotation_layers: [],
-    row_limit: 10,
-    row_offset: undefined,
-    series_columns: ['foo'],
-    series_limit: 5,
-    series_limit_metric: undefined,
-    url_params: {},
-    custom_params: {},
-    custom_form_data: {},
-    time_offsets: [],
-    post_processing: [
-      {
-        operation: 'pivot',
-        options: {
-          aggregates: {
-            'sum(sales)': {
-              operator: 'mean',
-            },
-          },
-          columns: ['foo'],
-          drop_missing_columns: false,
-          index: ['my_index'],
-        },
-      },
-      {
-        operation: 'rename',
-        options: {
-          columns: {
-            'sum(sales)': null,
-          },
-          inplace: true,
-          level: 0,
-        },
-      },
-      {
-        operation: 'flatten',
-      },
-    ],
-    orderby: [['count', false]],
-  });
-
-  // check the main props on the second query
-  expect(queries[1]).toEqual(
-    expect.objectContaining({
-      columns: [
-        {
-          columnType: 'BASE_AXIS',
-          expressionType: 'SQL',
-          label: 'my_index',
-          sqlExpression: 'my_index',
-          timeGrain: 'P1W',
-        },
-      ],
-      granularity: 'ds',
-      series_columns: [],
-      metrics: ['count'],
-      post_processing: [
-        {
-          operation: 'pivot',
-          options: {
-            aggregates: {
-              count: {
-                operator: 'mean',
-              },
-            },
-            columns: [],
-            drop_missing_columns: false,
-            index: ['my_index'],
-          },
-        },
-        {
-          operation: 'flatten',
-        },
-      ],
-    }),
-  );
-});
-
-test("shouldn't convert a queryObject with axis although FF is enabled", () => {
-  let windowSpy: any;
-
-  beforeAll(() => {
-    // @ts-ignore
-    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
-      featureFlags: {
-        GENERIC_CHART_AXES: true,
-      },
-    }));
-  });
-
-  afterAll(() => {
-    windowSpy.mockRestore();
-  });
-
+test("shouldn't convert a queryObject with axis", () => {
   const { queries } = buildQuery(formDataMixedChart);
   expect(queries[0]).toEqual(
     expect.objectContaining({
@@ -470,4 +348,27 @@ test("shouldn't convert a queryObject with axis although FF is enabled", () => {
       ],
     }),
   );
+});
+
+test('ensure correct pivot columns', () => {
+  const query = buildQuery({ ...formDataMixedChartWithAA, x_axis: 'ds' })
+    .queries[0];
+
+  expect(query.time_offsets).toEqual(['1 years ago']);
+
+  // pivot
+  expect(
+    query.post_processing?.find(operator => operator?.operation === 'pivot'),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      index: ['ds'],
+      columns: ['foo'],
+      drop_missing_columns: false,
+      aggregates: {
+        'sum(sales)': { operator: 'mean' },
+        'sum(sales)__1 years ago': { operator: 'mean' },
+      },
+    },
+  });
 });

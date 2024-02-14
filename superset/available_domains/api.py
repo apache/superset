@@ -17,43 +17,43 @@
 import logging
 
 from flask import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset import conf
 from superset.available_domains.schemas import AvailableDomainsSchema
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.extensions import event_logger
+from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class AvailableDomainsRestApi(BaseApi):
+class AvailableDomainsRestApi(BaseSupersetApi):
     available_domains_schema = AvailableDomainsSchema()
 
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {RouteMethod.GET}
     allow_browser_login = True
     class_permission_name = "AvailableDomains"
     resource_name = "available_domains"
     openapi_spec_tag = "Available Domains"
     openapi_spec_component_schemas = (AvailableDomainsSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=True,
     )
     def get(self) -> Response:
         """
-        Returns the list of available Superset Webserver domains (if any)
+        Get the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         ---
         get:
-          description: >-
-            Get all available domains
+          summary: Get all available domains
           responses:
             200:
               description: a list of available domains

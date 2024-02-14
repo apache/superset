@@ -24,7 +24,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 VALUE_MAX_SIZE = 2**24 - 1
 
 
-class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
+class KeyValueEntry(AuditMixinNullable, ImportExportMixin, Model):
     """Key value store entity"""
 
     __tablename__ = "key_value"

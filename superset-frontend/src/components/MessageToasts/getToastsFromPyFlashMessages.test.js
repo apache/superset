@@ -23,7 +23,7 @@ describe('getToastsFromPyFlashMessages', () => {
   it('should return an info toast', () => {
     const toast = getToastsFromPyFlashMessages([['info', 'info test']])[0];
     expect(toast).toMatchObject({
-      toastType: ToastType.INFO,
+      toastType: ToastType.Info,
       text: 'info test',
     });
   });
@@ -33,7 +33,7 @@ describe('getToastsFromPyFlashMessages', () => {
       ['success', 'success test'],
     ])[0];
     expect(toast).toMatchObject({
-      toastType: ToastType.SUCCESS,
+      toastType: ToastType.Success,
       text: 'success test',
     });
   });
@@ -41,7 +41,7 @@ describe('getToastsFromPyFlashMessages', () => {
   it('should return a danger toast', () => {
     const toast = getToastsFromPyFlashMessages([['danger', 'danger test']])[0];
     expect(toast).toMatchObject({
-      toastType: ToastType.DANGER,
+      toastType: ToastType.Danger,
       text: 'danger test',
     });
   });

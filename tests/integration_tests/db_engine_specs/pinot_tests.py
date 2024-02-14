@@ -27,61 +27,80 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1D")
         result = str(expr.compile())
+        expected = (
+            "CAST(DATE_TRUNC('day', CAST("
+            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', "
+            + "'1:SECONDS:EPOCH', '1:SECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
+        )
         self.assertEqual(
             result,
-            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:DAYS')",
+            expected,
         )
 
     def test_pinot_time_expression_simple_date_format_1d_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "P1D")
         result = str(expr.compile())
+        expected = "CAST(DATE_TRUNC('day', CAST(tstamp AS TIMESTAMP)) AS TIMESTAMP)"
         self.assertEqual(
             result,
-            (
-                "DATETIMECONVERT(tstamp, "
-                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', "
-                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', '1:DAYS')"
-            ),
+            expected,
         )
 
     def test_pinot_time_expression_simple_date_format_10m_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "PT10M")
         result = str(expr.compile())
+        expected = (
+            "CAST(ROUND(DATE_TRUNC('minute', CAST(tstamp AS "
+            + "TIMESTAMP)), 600000) AS TIMESTAMP)"
+        )
         self.assertEqual(
             result,
-            (
-                "DATETIMECONVERT(tstamp, "
-                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', "
-                + "'1:SECONDS:SIMPLE_DATE_FORMAT:yyyy-MM-dd HH:mm:ss', '10:MINUTES')"
-            ),
+            expected,
         )
 
     def test_pinot_time_expression_simple_date_format_1w_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "%Y-%m-%d %H:%M:%S", "P1W")
         result = str(expr.compile())
+        expected = "CAST(DATE_TRUNC('week', CAST(tstamp AS TIMESTAMP)) AS TIMESTAMP)"
         self.assertEqual(
             result,
-            (
-                "ToDateTime(DATETRUNC('week', FromDateTime(tstamp, "
-                + "'yyyy-MM-dd HH:mm:ss'), 'MILLISECONDS'), 'yyyy-MM-dd HH:mm:ss')"
-            ),
+            expected,
         )
 
     def test_pinot_time_expression_sec_one_1m_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1M")
         result = str(expr.compile())
+        expected = (
+            "CAST(DATE_TRUNC('month', CAST("
+            + "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', "
+            + "'1:SECONDS:EPOCH', '1:SECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
+        )
         self.assertEqual(
             result,
-            "DATETRUNC('month', tstamp, 'SECONDS')",
+            expected,
+        )
+
+    def test_pinot_time_expression_millisec_one_1m_grain(self):
+        col = column("tstamp")
+        expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_ms", "P1M")
+        result = str(expr.compile())
+        expected = (
+            "CAST(DATE_TRUNC('month', CAST("
+            + "DATETIMECONVERT(tstamp, '1:MILLISECONDS:EPOCH', "
+            + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS') AS TIMESTAMP)) AS TIMESTAMP)"
+        )
+        self.assertEqual(
+            result,
+            expected,
         )
 
     def test_invalid_get_time_expression_arguments(self):
         with self.assertRaises(NotImplementedError):
-            PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P1M")
+            PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P0.25Y")
 
         with self.assertRaises(NotImplementedError):
             PinotEngineSpec.get_timestamp_expr(

@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from flask import current_app, g
 
@@ -32,10 +32,10 @@ if TYPE_CHECKING:
 
 # pylint: disable=too-many-branches
 def get_executor(
-    executor_types: List[ExecutorType],
-    model: Union[Dashboard, ReportSchedule, Slice],
-    current_user: Optional[str] = None,
-) -> Tuple[ExecutorType, str]:
+    executor_types: list[ExecutorType],
+    model: Dashboard | ReportSchedule | Slice,
+    current_user: str | None = None,
+) -> tuple[ExecutorType, str]:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
     types extract the user from the underlying object (e.g. CREATOR), the constant
@@ -86,7 +86,7 @@ def get_executor(
     raise ExecutorNotFoundError()
 
 
-def get_current_user() -> Optional[str]:
+def get_current_user() -> str | None:
     user = g.user if hasattr(g, "user") and g.user else None
     if user and not user.is_anonymous:
         return user.username

@@ -5,13 +5,14 @@
   "keywords": [
     "superset"
   ],
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-sankey-loop#readme",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/legacy-plugin-chart-sankey-loop"
   },
   "license": "Apache-2.0",
   "author": "Superset",
@@ -23,8 +24,8 @@
   ],
   "dependencies": {
     "d3-sankey-diagram": "^0.7.3",
-    "d3-selection": "^1.4.0",
-    "prop-types": "^15.6.2"
+    "d3-selection": "^3.0.0",
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

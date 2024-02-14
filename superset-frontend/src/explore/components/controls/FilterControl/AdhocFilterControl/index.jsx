@@ -45,14 +45,12 @@ import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
-import AdhocFilter, {
-  CLAUSES,
-  EXPRESSION_TYPES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
+import { Clauses, ExpressionTypes } from '../types';
 
-const { confirm } = Modal;
+const { warning } = Modal;
 
 const selectedMetricType = PropTypes.oneOfType([
   PropTypes.string,
@@ -74,11 +72,7 @@ const propTypes = {
     PropTypes.arrayOf(selectedMetricType),
   ]),
   isLoading: PropTypes.bool,
-  confirmDeletion: PropTypes.shape({
-    triggerCondition: PropTypes.func,
-    confirmationTitle: PropTypes.string,
-    confirmationText: PropTypes.string,
-  }),
+  canDelete: PropTypes.func,
 };
 
 const defaultProps = {
@@ -121,7 +115,10 @@ class AdhocFilterControl extends React.Component {
         sections={this.props.sections}
         operators={this.props.operators}
         datasource={this.props.datasource}
-        onRemoveFilter={() => this.onRemoveFilter(index)}
+        onRemoveFilter={e => {
+          e.stopPropagation();
+          this.onRemoveFilter(index);
+        }}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.values)}
         partitionColumn={this.state.partitionColumn}
@@ -193,21 +190,12 @@ class AdhocFilterControl extends React.Component {
   }
 
   onRemoveFilter(index) {
-    const { confirmDeletion } = this.props;
+    const { canDelete } = this.props;
     const { values } = this.state;
-    if (confirmDeletion) {
-      const { confirmationText, confirmationTitle, triggerCondition } =
-        confirmDeletion;
-      if (triggerCondition(values[index], values)) {
-        confirm({
-          title: confirmationTitle,
-          content: confirmationText,
-          onOk() {
-            this.removeFilter(index);
-          },
-        });
-        return;
-      }
+    const result = canDelete?.(values[index], values);
+    if (typeof result === 'string') {
+      warning({ title: t('Warning'), content: result });
+      return;
     }
     this.removeFilter(index);
   }
@@ -270,33 +258,33 @@ class AdhocFilterControl extends React.Component {
     // via datasource saved metric
     if (option.saved_metric_name) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
         subject: this.getMetricExpression(option.saved_metric_name),
         operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: CLAUSES.HAVING,
+        clause: Clauses.Having,
       });
     }
     // has a custom label, meaning it's custom column
     if (option.label) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
         subject: new AdhocMetric(option).translateToSql(),
         operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: CLAUSES.HAVING,
+        clause: Clauses.Having,
       });
     }
     // add a new filter item
     if (option.column_name) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
         subject: option.column_name,
-        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
         comparator: '',
-        clause: CLAUSES.WHERE,
+        clause: Clauses.Where,
         isNew: true,
       });
     }

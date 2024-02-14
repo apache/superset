@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlSubSectionHeader,
   D3_TIME_FORMAT_DOCS,
   getStandardizedControls,
   sections,
@@ -28,14 +29,20 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { EchartsTimeseriesSeriesType } from '../types';
-import { DEFAULT_FORM_DATA } from '../constants';
+import { DEFAULT_FORM_DATA, TIME_SERIES_DESCRIPTION_TEXT } from '../constants';
 import {
   legendSection,
   onlyTotalControl,
   showValueControl,
   richTooltipSection,
+  seriesOrderSection,
+  percentageThresholdControl,
+  xAxisLabelRotation,
+  truncateXAxis,
+  xAxisBounds,
+  minorTicks,
 } from '../../controls';
-import { AreaChartExtraControlsOptions } from '../../constants';
+import { AreaChartStackControlOptions } from '../../constants';
 
 const {
   logAxis,
@@ -48,12 +55,10 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    sections.echartsTimeSeriesQuery,
+    sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -62,6 +67,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ...seriesOrderSection,
         ['color_scheme'],
         [
           {
@@ -107,13 +113,14 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Stacked Style'),
               renderTrigger: true,
-              choices: AreaChartExtraControlsOptions,
+              choices: AreaChartStackControlOptions,
               default: null,
               description: t('Stack series on top of each other'),
             },
           },
         ],
         [onlyTotalControl],
+        [percentageThresholdControl],
         [
           {
             name: 'show_extra_controls',
@@ -162,6 +169,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         [
           {
             name: 'zoomable',
@@ -175,43 +183,23 @@ const config: ControlPanelConfig = {
           },
         ],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'x_axis_time_format',
             config: {
               ...sharedControls.x_axis_time_format,
               default: 'smart_date',
-              description: `${D3_TIME_FORMAT_DOCS}. ${t(
-                'When using other than adaptive formatting, labels may overlap.',
-              )}`,
+              description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
             },
           },
         ],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -236,6 +224,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',

@@ -40,7 +40,7 @@ import { Input } from 'src/components/Input';
 import {
   PAGE_SIZE as DATASET_PAGE_SIZE,
   SORT_BY as DATASET_SORT_BY,
-} from 'src/views/CRUD/data/dataset/constants';
+} from 'src/features/datasets/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import FacePile from '../FacePile';
 
@@ -173,10 +173,12 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}/`,
+      endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
     })
       .then(({ json }) => {
-        onDatasourceSave(json);
+        // eslint-disable-next-line no-param-reassign
+        json.result.type = 'table';
+        onDatasourceSave(json.result);
         onChange(`${confirmedDataset?.id}__table`);
       })
       .catch(response => {
@@ -190,7 +192,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed dataset!');
+    addSuccessToast(t('Successfully changed dataset!'));
   };
 
   const handlerCancelConfirm = () => {

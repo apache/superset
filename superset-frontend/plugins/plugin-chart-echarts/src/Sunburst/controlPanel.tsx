@@ -21,12 +21,12 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
+  ControlSubSectionHeader,
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  emitFilterControl,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -34,7 +34,6 @@ const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -43,7 +42,6 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['secondary_metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['row_limit'],
         [
           {
@@ -65,7 +63,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ['linear_color_scheme'],
-        [<div className="section-header">{t('Labels')}</div>],
+        [<ControlSubSectionHeader>{t('Labels')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_labels',
@@ -132,12 +130,11 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'date_format',
@@ -191,9 +188,10 @@ const config: ControlPanelConfig = {
             controls?.secondary_metric?.value !== controls?.metric.value,
         ),
     },
-    groupby: {
+    columns: {
       label: t('Hierarchy'),
-      description: t('This defines the level of the hierarchy'),
+      description: t(`Sets the hierarchy levels of the chart. Each level is
+        represented by one ring with the innermost circle as the top of the hierarchy.`),
     },
   },
   formDataOverrides: formData => ({

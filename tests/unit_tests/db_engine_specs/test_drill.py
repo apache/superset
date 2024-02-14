@@ -16,7 +16,14 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from pytest import raises
+from datetime import datetime
+from typing import Optional
+
+import pytest
+from sqlalchemy.engine.url import make_url
+
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
 def test_odbc_impersonation() -> None:
@@ -29,7 +36,7 @@ def test_odbc_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+odbc")
+    url = URL.create("drill+odbc")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["DelegationUID"] == username
@@ -45,7 +52,7 @@ def test_jdbc_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+jdbc")
+    url = URL.create("drill+jdbc")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
@@ -61,7 +68,7 @@ def test_sadrill_impersonation() -> None:
 
     from superset.db_engine_specs.drill import DrillEngineSpec
 
-    url = URL("drill+sadrill")
+    url = URL.create("drill+sadrill")
     username = "DoAsUser"
     url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
@@ -79,8 +86,39 @@ def test_invalid_impersonation() -> None:
     from superset.db_engine_specs.drill import DrillEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 
-    url = URL("drill+foobar")
+    url = URL.create("drill+foobar")
     username = "DoAsUser"
 
-    with raises(SupersetDBAPIProgrammingError):
+    with pytest.raises(SupersetDBAPIProgrammingError):
         DrillEngineSpec.get_url_for_impersonation(url, True, username)
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "TO_DATE('2019-01-02', 'yyyy-MM-dd')"),
+        ("TimeStamp", "TO_TIMESTAMP('2019-01-02 03:04:05', 'yyyy-MM-dd HH:mm:ss')"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.drill import DrillEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test ``get_schema_from_engine_params``.
+    """
+    from superset.db_engine_specs.drill import DrillEngineSpec
+
+    assert (
+        DrillEngineSpec.get_schema_from_engine_params(
+            make_url("drill+sadrill://localhost:8047/dfs/test?use_ssl=False"),
+            {},
+        )
+        == "dfs.test"
+    )

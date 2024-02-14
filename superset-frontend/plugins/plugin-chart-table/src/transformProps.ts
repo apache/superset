@@ -18,6 +18,7 @@
  */
 import memoizeOne from 'memoize-one';
 import {
+  CurrencyFormatter,
   DataRecord,
   extractTimegrain,
   GenericDataType,
@@ -57,11 +58,11 @@ const processDataRecords = memoizeOne(function processDataRecords(
   data: DataRecord[] | undefined,
   columns: DataColumnMeta[],
 ) {
-  if (!data || !data[0]) {
+  if (!data?.[0]) {
     return data || [];
   }
   const timeColumns = columns.filter(
-    column => column.dataType === GenericDataType.TEMPORAL,
+    column => column.dataType === GenericDataType.Temporal,
   );
 
   if (timeColumns.length > 0) {
@@ -84,7 +85,7 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, verboseMap },
+    datasource: { columnFormats, currencyFormats, verboseMap },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
@@ -111,16 +112,24 @@ const processColumns = memoizeOne(function processColumns(
         !(rawPercentMetricsSet.has(key) && !metricsSet.has(key)),
     )
     .map((key: string, i) => {
-      const label = verboseMap?.[key] || key;
       const dataType = coltypes[i];
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
-      const isTime = dataType === GenericDataType.TEMPORAL;
+      const label =
+        isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
+          ? `%${verboseMap[key.replace('%', '')]}`
+          : verboseMap?.[key] || key;
+      const isTime = dataType === GenericDataType.Temporal;
+      const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];
+      const savedCurrency = currencyFormats?.[key];
       const numberFormat = config.d3NumberFormat || savedFormat;
+      const currency = config.currencyFormat?.symbol
+        ? config.currencyFormat
+        : savedCurrency;
 
       let formatter;
 
@@ -151,14 +160,19 @@ const processColumns = memoizeOne(function processColumns(
       } else if (isPercentMetric) {
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
-      } else if (isMetric || numberFormat) {
-        formatter = getNumberFormatter(numberFormat);
+      } else if (isMetric || (isNumber && (numberFormat || currency))) {
+        formatter = currency
+          ? new CurrencyFormatter({
+              d3Format: numberFormat,
+              currency,
+            })
+          : getNumberFormatter(numberFormat);
       }
       return {
         key,
         label,
         dataType,
-        isNumeric: dataType === GenericDataType.NUMERIC,
+        isNumeric: dataType === GenericDataType.Numeric,
         isMetric,
         isPercentMetric,
         formatter,
@@ -209,6 +223,7 @@ const transformProps = (
       setDataMask = () => {},
       onContextMenu,
     },
+    emitCrossFilters,
   } = chartProps;
 
   const {
@@ -217,7 +232,6 @@ const transformProps = (
     show_cell_bars: showCellBars = true,
     include_search: includeSearch = false,
     page_length: pageLength,
-    emit_filter: emitFilter,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
     order_desc: sortDesc = false,
@@ -243,7 +257,7 @@ const transformProps = (
   }
   const data = processDataRecords(baseQuery?.data, columns);
   const totals =
-    showTotals && queryMode === QueryMode.aggregate
+    showTotals && queryMode === QueryMode.Aggregate
       ? totalQuery?.data[0]
       : undefined;
   const columnColorFormatters =
@@ -252,7 +266,7 @@ const transformProps = (
   return {
     height,
     width,
-    isRawRecords: queryMode === QueryMode.raw,
+    isRawRecords: queryMode === QueryMode.Raw,
     data,
     totals,
     columns,
@@ -273,7 +287,7 @@ const transformProps = (
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
     filters: filterState.filters,
-    emitFilter,
+    emitCrossFilters,
     onChangeFilter,
     columnColorFormatters,
     timeGrain,

@@ -17,7 +17,7 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Optional
 from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
@@ -39,11 +39,7 @@ from slack_sdk.errors import (
 from sqlalchemy.sql import func
 
 from superset import db
-from superset.exceptions import SupersetException
-from superset.models.core import Database
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
-from superset.reports.commands.exceptions import (
+from superset.commands.report.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
@@ -58,11 +54,15 @@ from superset.reports.commands.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleWorkingTimeoutError,
 )
-from superset.reports.commands.execute import (
+from superset.commands.report.execute import (
     AsyncExecuteReportScheduleCommand,
     BaseReportState,
 )
-from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.exceptions import SupersetException
+from superset.models.core import Database
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.reports.models import (
     ReportDataFormat,
     ReportExecutionLog,
@@ -100,7 +100,7 @@ pytestmark = pytest.mark.usefixtures(
 )
 
 
-def get_target_from_report_schedule(report_schedule: ReportSchedule) -> List[str]:
+def get_target_from_report_schedule(report_schedule: ReportSchedule) -> list[str]:
     return [
         json.loads(recipient.recipient_config_json)["target"]
         for recipient in report_schedule.recipients
@@ -466,7 +466,6 @@ def create_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -549,7 +548,6 @@ def create_no_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -584,7 +582,6 @@ def create_mul_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -619,7 +616,6 @@ def create_invalid_sql_alert_email_chart(request):
         chart = db.session.query(Slice).first()
         example_database = get_example_database()
         with create_test_table_context(example_database):
-
             report_schedule = create_report_notification(
                 email_target="target@email.com",
                 chart=chart,
@@ -663,11 +659,9 @@ def test_email_chart_report_schedule(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?'
-            "form_data=%7B%22slice_id%22%3A%20"
-            f"{create_report_email_chart.chart.id}%7D&"
-            'standalone=0&force=false">Explore in Superset</a>'
-            in email_mock.call_args[0][2]
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_report_email_chart.chart.id}"
+            '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
@@ -720,11 +714,9 @@ def test_email_chart_report_schedule_alpha_owner(
 
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?'
-            "form_data=%7B%22slice_id%22%3A%20"
-            f"{create_report_email_chart_alpha_owner.chart.id}%7D&"
-            'standalone=0&force=false">Explore in Superset</a>'
-            in email_mock.call_args[0][2]
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_report_email_chart_alpha_owner.chart.id}"
+            '%7D&force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
@@ -767,11 +759,9 @@ def test_email_chart_report_schedule_force_screenshot(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?'
-            "form_data=%7B%22slice_id%22%3A%20"
-            f"{create_report_email_chart_force_screenshot.chart.id}%7D&"
-            'standalone=0&force=true">Explore in Superset</a>'
-            in email_mock.call_args[0][2]
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_report_email_chart_force_screenshot.chart.id}"
+            '%7D&force=true">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
@@ -806,11 +796,9 @@ def test_email_chart_alert_schedule(
         notification_targets = get_target_from_report_schedule(create_alert_email_chart)
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?'
-            "form_data=%7B%22slice_id%22%3A%20"
-            f"{create_alert_email_chart.chart.id}%7D&"
-            'standalone=0&force=true">Explore in Superset</a>'
-            in email_mock.call_args[0][2]
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
+            f"{create_alert_email_chart.chart.id}"
+            '%7D&force=true">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
@@ -880,11 +868,9 @@ def test_email_chart_report_schedule_with_csv(
         )
         # assert that the link sent is correct
         assert (
-            '<a href="http://0.0.0.0:8080/explore/?'
-            "form_data=%7B%22slice_id%22%3A%20"
+            '<a href="http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+'
             f"{create_report_email_chart_with_csv.chart.id}%7D&"
-            'standalone=0&force=false">Explore in Superset</a>'
-            in email_mock.call_args[0][2]
+            'force=false">Explore in Superset</a>' in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
         assert email_mock.call_args[0][0] == notification_targets[0]
@@ -1082,7 +1068,6 @@ def test_email_dashboard_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
             ).run()
@@ -1153,7 +1138,6 @@ def test_slack_chart_report_schedule(
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1202,7 +1186,6 @@ def test_slack_chart_report_schedule_with_errors(
         web_client_mock.side_effect = er
 
         with pytest.raises(ReportScheduleClientErrorsException):
-
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart.id, datetime.utcnow()
             ).run()
@@ -1313,7 +1296,7 @@ def test_slack_chart_report_schedule_with_text(
 |  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
         assert (
-            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A%20{create_report_slack_chart_with_text.chart.id}%7D&standalone=0&force=false|Explore in Superset>"
+            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"
             in post_message_mock.call_args[1]["text"]
         )
 
@@ -1359,7 +1342,6 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
         seconds=create_report_slack_chart_working.working_timeout + 1
     )
     with freeze_time(current_time):
-
         with pytest.raises(ReportScheduleWorkingTimeoutError):
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chart_working.id, datetime.utcnow()
@@ -1625,7 +1607,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
     """
     from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.reports.commands.exceptions import AlertQueryTimeout
+    from superset.commands.report.exceptions import AlertQueryTimeout
 
     with patch.object(
         create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
@@ -1766,7 +1748,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     """
     from celery.exceptions import SoftTimeLimitExceeded
 
-    from superset.reports.commands.exceptions import AlertQueryTimeout
+    from superset.commands.report.exceptions import AlertQueryTimeout
 
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
@@ -1937,7 +1919,6 @@ def test_grace_period_error_flap(
     # Change report_schedule to valid
     create_invalid_sql_alert_email_chart.sql = "SELECT 1 AS metric"
     create_invalid_sql_alert_email_chart.grace_period = 0
-    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     with freeze_time("2020-01-01T00:31:00Z"):
@@ -1954,7 +1935,6 @@ def test_grace_period_error_flap(
 
     create_invalid_sql_alert_email_chart.sql = "SELECT 'first'"
     create_invalid_sql_alert_email_chart.grace_period = 10
-    db.session.merge(create_invalid_sql_alert_email_chart)
     db.session.commit()
 
     # assert that after a success, when back to error we send the error notification
@@ -1973,7 +1953,7 @@ def test_grace_period_error_flap(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
 )
-@patch("superset.reports.dao.ReportScheduleDAO.bulk_delete_logs")
+@patch("superset.daos.report.ReportScheduleDAO.bulk_delete_logs")
 def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard):
     from celery.exceptions import SoftTimeLimitExceeded
 
@@ -1983,8 +1963,8 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
 
 
-@patch("superset.reports.commands.execute.logger")
-@patch("superset.reports.commands.execute.create_notification")
+@patch("superset.commands.report.execute.logger")
+@patch("superset.commands.report.execute.create_notification")
 def test__send_with_client_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
@@ -1994,14 +1974,12 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 
     assert excinfo.errisinstance(SupersetException)
     logger_mock.warning.assert_called_with(
-        (
-            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
-        )
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
     )
 
 
-@patch("superset.reports.commands.execute.logger")
-@patch("superset.reports.commands.execute.create_notification")
+@patch("superset.commands.report.execute.logger")
+@patch("superset.commands.report.execute.create_notification")
 def test__send_with_multiple_errors(notification_mock, logger_mock):
     notification_content = "I am some content"
     recipients = ["test@foo.com", "test2@bar.com"]
@@ -2027,10 +2005,9 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
     )
 
 
-@patch("superset.reports.commands.execute.logger")
-@patch("superset.reports.commands.execute.create_notification")
+@patch("superset.commands.report.execute.logger")
+@patch("superset.commands.report.execute.create_notification")
 def test__send_with_server_errors(notification_mock, logger_mock):
-
     notification_content = "I am some content"
     recipients = ["test@foo.com"]
     notification_mock.return_value.send.side_effect = NotificationError()
@@ -2040,7 +2017,5 @@ def test__send_with_server_errors(notification_mock, logger_mock):
     assert excinfo.errisinstance(SupersetException)
     # it logs the error
     logger_mock.warning.assert_called_with(
-        (
-            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
-        )
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
     )

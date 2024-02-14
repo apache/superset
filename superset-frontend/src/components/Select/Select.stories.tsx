@@ -103,6 +103,11 @@ const ARG_TYPES = {
       disable: true,
     },
   },
+  mappedMode: {
+    table: {
+      disable: true,
+    },
+  },
   mode: {
     description: `It defines whether the Select should allow for
       the selection of multiple options or single. Single by default.
@@ -158,7 +163,7 @@ const mountHeader = (type: String) => {
     header = (
       <ControlHeader
         label="Control header"
-        warning="Example of warning messsage"
+        warning="Example of warning message"
       />
     );
   }
@@ -208,6 +213,8 @@ InteractiveSelect.args = {
   autoFocus: true,
   allowNewOptions: false,
   allowClear: false,
+  autoClearSearchValue: false,
+  allowSelectAll: true,
   showSearch: true,
   disabled: false,
   invertSelection: false,

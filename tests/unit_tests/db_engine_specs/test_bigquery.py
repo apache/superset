@@ -18,11 +18,18 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 import json
+from datetime import datetime
+from typing import Optional
 
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
+
+from superset.superset_typing import ResultSetColumnType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
 def test_get_fields() -> None:
@@ -58,7 +65,16 @@ def test_get_fields() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    columns = [{"name": "limit"}, {"name": "name"}, {"name": "project.name"}]
+    columns: list[ResultSetColumnType] = [
+        {"column_name": "limit", "name": "limit", "type": "STRING", "is_dttm": False},
+        {"column_name": "name", "name": "name", "type": "STRING", "is_dttm": False},
+        {
+            "column_name": "project.name",
+            "name": "project.name",
+            "type": "STRING",
+            "is_dttm": False,
+        },
+    ]
     fields = BigQueryEngineSpec._get_fields(columns)
 
     query = select(fields)
@@ -78,8 +94,9 @@ def test_select_star(mocker: MockFixture) -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    cols = [
+    cols: list[ResultSetColumnType] = [
         {
+            "column_name": "trailer",
             "name": "trailer",
             "type": sqltypes.ARRAY(sqltypes.JSON()),
             "nullable": True,
@@ -88,8 +105,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.key",
             "name": "trailer.key",
             "type": sqltypes.String(),
             "nullable": True,
@@ -98,8 +117,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.value",
             "name": "trailer.value",
             "type": sqltypes.String(),
             "nullable": True,
@@ -108,8 +129,10 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
         {
+            "column_name": "trailer.email",
             "name": "trailer.email",
             "type": sqltypes.String(),
             "nullable": True,
@@ -118,6 +141,7 @@ def test_select_star(mocker: MockFixture) -> None:
             "precision": None,
             "scale": None,
             "max_length": None,
+            "is_dttm": False,
         },
     ]
 
@@ -285,3 +309,24 @@ def test_parse_error_raises_exception() -> None:
         == expected_result
     )
     assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_2))) == "6"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+        ("TimeStamp", "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"),
+        ("Time", "CAST('03:04:05.678900' AS TIME)"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    """
+    DB Eng Specs (bigquery): Test conversion to date time
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

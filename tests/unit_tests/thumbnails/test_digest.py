@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
-_DEFAULT_DASHBOARD_KWARGS: Dict[str, Any] = {
+_DEFAULT_DASHBOARD_KWARGS: dict[str, Any] = {
     "id": 1,
     "dashboard_title": "My Title",
     "slices": [{"id": 1, "slice_name": "My Chart"}],
@@ -150,11 +150,11 @@ def CUSTOM_CHART_FUNC(
     ],
 )
 def test_dashboard_digest(
-    dashboard_overrides: Optional[Dict[str, Any]],
-    execute_as: List[ExecutorType],
+    dashboard_overrides: dict[str, Any] | None,
+    execute_as: list[ExecutorType],
     has_current_user: bool,
     use_custom_digest: bool,
-    expected_result: Union[str, Exception],
+    expected_result: str | Exception,
 ) -> None:
     from superset import app
     from superset.models.dashboard import Dashboard
@@ -167,7 +167,7 @@ def test_dashboard_digest(
     }
     slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
     dashboard = Dashboard(**kwargs, slices=slices)
-    user: Optional[User] = None
+    user: User | None = None
     if has_current_user:
         user = User(id=1, username="1")
     func = CUSTOM_DASHBOARD_FUNC if use_custom_digest else None
@@ -222,11 +222,11 @@ def test_dashboard_digest(
     ],
 )
 def test_chart_digest(
-    chart_overrides: Optional[Dict[str, Any]],
-    execute_as: List[ExecutorType],
+    chart_overrides: dict[str, Any] | None,
+    execute_as: list[ExecutorType],
     has_current_user: bool,
     use_custom_digest: bool,
-    expected_result: Union[str, Exception],
+    expected_result: str | Exception,
 ) -> None:
     from superset import app
     from superset.models.slice import Slice
@@ -237,7 +237,7 @@ def test_chart_digest(
         **(chart_overrides or {}),
     }
     chart = Slice(**kwargs)
-    user: Optional[User] = None
+    user: User | None = None
     if has_current_user:
         user = User(id=1, username="1")
     func = CUSTOM_CHART_FUNC if use_custom_digest else None

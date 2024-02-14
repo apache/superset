@@ -58,11 +58,11 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+enum Sections {
+  AllCharts = 'ALL_CHARTS',
+  Category = 'CATEGORY',
+  Tags = 'TAGS',
+  RecommendedTags = 'RECOMMENDED_TAGS',
 }
 
 const DEFAULT_ORDER = [
@@ -77,7 +77,6 @@ const DEFAULT_ORDER = [
   'echarts_timeseries_scatter',
   'pie',
   'mixed_timeseries',
-  'filter_box',
   'dist_bar',
   'area',
   'bar',
@@ -90,12 +89,9 @@ const DEFAULT_ORDER = [
   'deck_arc',
   'heatmap',
   'deck_grid',
-  'dual_line',
   'deck_screengrid',
-  'line_multi',
-  'treemap',
+  'treemap_v2',
   'box_plot',
-  'sunburst',
   'sankey',
   'word_cloud',
   'mapbox',
@@ -103,6 +99,7 @@ const DEFAULT_ORDER = [
   'cal_heatmap',
   'rose',
   'bubble',
+  'bubble_v2',
   'deck_geojson',
   'horizon',
   'deck_multi',
@@ -576,8 +573,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const [activeSection, setActiveSection] = useState<string>(() =>
     selectedVizMetadata?.category
-      ? SECTIONS.CATEGORY
-      : SECTIONS.RECOMMENDED_TAGS,
+      ? Sections.Category
+      : Sections.RecommendedTags,
   );
 
   // get a fuse instance for fuzzy search
@@ -669,17 +666,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [SECTIONS.RECOMMENDED_TAGS]: {
+      [Sections.RecommendedTags]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      [SECTIONS.CATEGORY]: {
+      [Sections.Category]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      [SECTIONS.TAGS]: {
+      [Sections.Tags]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -692,21 +689,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (isActivelySearching) {
       return searchResults;
     }
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
-    ) {
+    if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
     if (
-      activeSection === SECTIONS.CATEGORY &&
+      activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
     if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
+      (activeSection === Sections.Tags ||
+        activeSection === Sections.RecommendedTags) &&
       chartsByTags[activeSelector]
     ) {
       return chartsByTags[activeSelector];
@@ -728,13 +722,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
-          sectionId={SECTIONS.ALL_CHARTS}
+          sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            SECTIONS.ALL_CHARTS === activeSection
+            Sections.AllCharts === activeSection
           }
           onClick={clickSelector}
         />
@@ -850,11 +844,20 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                 grid-area: examples-header;
               `}
             >
-              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+              {t('Examples')}
             </SectionTitle>
             <Examples>
-              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+              {(selectedVizMetadata?.exampleGallery?.length
+                ? selectedVizMetadata.exampleGallery
+                : [
+                    {
+                      url: selectedVizMetadata?.thumbnail,
+                      caption: selectedVizMetadata?.name,
+                    },
+                  ]
+              ).map(example => (
                 <img
+                  key={example.url}
                   src={example.url}
                   alt={example.caption}
                   title={example.caption}

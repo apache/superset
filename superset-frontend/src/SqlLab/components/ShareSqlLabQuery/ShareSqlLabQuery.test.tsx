@@ -20,7 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import * as featureFlags from 'src/featureFlags';
+import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { render, screen, act } from '@testing-library/react';
@@ -43,7 +43,6 @@ const mockQueryEditor = {
   autorun: false,
   sql: 'SELECT * FROM ...',
   remoteId: 999,
-  schemaOptions: [{ value: 'query_schema' }, { value: 'query_schema_updated' }],
 };
 const disabled = {
   id: 'disabledEditorId',
@@ -83,7 +82,6 @@ const standardProviderWithUnsaved: React.FC = ({ children }) => (
         ...initialState,
         sqlLab: {
           ...initialState.sqlLab,
-          queryEditors: [mockQueryEditor],
           unsavedQueryEditor,
         },
       })}
@@ -110,7 +108,7 @@ describe('ShareSqlLabQuery', () => {
   describe('via /kv/store', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => true);
     });
 
@@ -125,7 +123,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, schemaOptions, ...expected } = mockQueryEditor;
+      const { id, remoteId, ...expected } = mockQueryEditor;
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
@@ -152,7 +150,7 @@ describe('ShareSqlLabQuery', () => {
   describe('via saved query', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
+        .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(() => false);
     });
 

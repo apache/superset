@@ -65,7 +65,7 @@ export default function MetricDefinitionValue({
 
   if (option instanceof AdhocMetric || savedMetric) {
     const adhocMetric =
-      option instanceof AdhocMetric ? option : new AdhocMetric({ isNew: true });
+      option instanceof AdhocMetric ? option : new AdhocMetric({});
 
     const metricOptionProps = {
       onMetricEdit,

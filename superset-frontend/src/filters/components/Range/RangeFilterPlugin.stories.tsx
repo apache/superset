@@ -52,7 +52,7 @@ export const range = ({ width, height }: { width: number; height: number }) => (
           column: {
             column_name: 'SP_POP_TOTL',
             id: 1,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
@@ -63,7 +63,7 @@ export const range = ({ width, height }: { width: number; height: number }) => (
           column: {
             column_name: 'SP_POP_TOTL',
             id: 2,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,

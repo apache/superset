@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEmpty from 'lodash/isEmpty';
-import isBoolean from 'lodash/isBoolean';
+import { isEmpty, isBoolean } from 'lodash';
 
 import { QueryObject } from './types';
 
@@ -56,7 +55,7 @@ export default function normalizeOrderBy(
     };
   }
 
-  // todo: Removed `legacy_ordery_by` after refactoring
+  // todo: Removed `legacy_order_by` after refactoring
   if (
     queryObject.legacy_order_by !== undefined &&
     queryObject.legacy_order_by !== null &&

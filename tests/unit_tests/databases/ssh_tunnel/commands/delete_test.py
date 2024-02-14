@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
@@ -50,9 +51,11 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.rollback()
 
 
-def test_delete_ssh_tunnel_command(session_with_data: Session) -> None:
-    from superset.databases.dao import DatabaseDAO
-    from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
+def test_delete_ssh_tunnel_command(
+    mocker: MockFixture, session_with_data: Session
+) -> None:
+    from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
+    from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)
@@ -60,9 +63,11 @@ def test_delete_ssh_tunnel_command(session_with_data: Session) -> None:
     assert result
     assert isinstance(result, SSHTunnel)
     assert 1 == result.database_id
-
+    mocker.patch(
+        "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
+        return_value=True,
+    )
     DeleteSSHTunnelCommand(1).run()
-
     result = DatabaseDAO.get_ssh_tunnel(1)
 
     assert result is None

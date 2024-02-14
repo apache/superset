@@ -28,8 +28,6 @@ down_revision = "80a67c5192fa"
 
 
 import json
-import uuid
-from collections import defaultdict
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text

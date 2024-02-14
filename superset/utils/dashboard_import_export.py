@@ -27,8 +27,8 @@ def export_dashboards(session: Session) -> str:
     """Returns all dashboards metadata as a json dump"""
     logger.info("Starting export")
     dashboards = session.query(Dashboard)
-    dashboard_ids = []
+    dashboard_ids = set()
     for dashboard in dashboards:
-        dashboard_ids.append(dashboard.id)
+        dashboard_ids.add(dashboard.id)
     data = Dashboard.export_dashboards(dashboard_ids)
     return data

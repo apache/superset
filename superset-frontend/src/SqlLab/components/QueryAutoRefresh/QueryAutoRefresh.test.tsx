@@ -16,14 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
 import React from 'react';
-import { render } from '@testing-library/react';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import {
+  CLEAR_INACTIVE_QUERIES,
+  REFRESH_QUERIES,
+} from 'src/SqlLab/actions/sqlLab';
 import QueryAutoRefresh, {
   isQueryRunning,
   shouldCheckForQueries,
+  QUERY_UPDATE_FREQ,
 } from 'src/SqlLab/components/QueryAutoRefresh';
 import { successfulQuery, runningQuery } from 'src/SqlLab/fixtures';
 import { QueryDictionary } from 'src/SqlLab/types';
+
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
 
 // NOTE: The uses of @ts-ignore in this file is to enable testing of bad inputs to verify the
 // function / component handles bad data elegantly
@@ -34,9 +45,13 @@ describe('QueryAutoRefresh', () => {
   const successfulQueries: QueryDictionary = {};
   successfulQueries[successfulQuery.id] = successfulQuery;
 
-  const refreshQueries = jest.fn();
-
   const queriesLastUpdate = Date.now();
+
+  const refreshApi = 'glob:*/api/v1/query/updated_since?*';
+
+  afterEach(() => {
+    fetchMock.reset();
+  });
 
   it('isQueryRunning returns true for valid running query', () => {
     const running = isQueryRunning(runningQuery);
@@ -91,43 +106,119 @@ describe('QueryAutoRefresh', () => {
     ).toBe(false);
   });
 
-  it('Attempts to refresh when given pending query', () => {
+  it('Attempts to refresh when given pending query', async () => {
+    const store = mockStore();
+    fetchMock.get(refreshApi, {
+      result: [
+        {
+          id: runningQuery.id,
+          status: 'success',
+        },
+      ],
+    });
+
     render(
       <QueryAutoRefresh
         queries={runningQueries}
-        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
+      { useRedux: true, store },
     );
-    setTimeout(() => {
-      expect(refreshQueries).toHaveBeenCalled();
-    }, 1000);
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            type: REFRESH_QUERIES,
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+    );
   });
 
-  it('Does not fail and attempts to refresh when given pending query and invlaid query', () => {
+  it('Attempts to clear inactive queries when updated queries are empty', async () => {
+    const store = mockStore();
+    fetchMock.get(refreshApi, {
+      result: [],
+    });
+
+    render(
+      <QueryAutoRefresh
+        queries={runningQueries}
+        queriesLastUpdate={queriesLastUpdate}
+      />,
+      { useRedux: true, store },
+    );
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            type: CLEAR_INACTIVE_QUERIES,
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+    );
+    expect(
+      store.getActions().filter(({ type }) => type === REFRESH_QUERIES),
+    ).toHaveLength(0);
+    expect(fetchMock.calls(refreshApi)).toHaveLength(1);
+  });
+
+  it('Does not fail and attempts to refresh when given pending query and invlaid query', async () => {
+    const store = mockStore();
+    fetchMock.get(refreshApi, {
+      result: [
+        {
+          id: runningQuery.id,
+          status: 'success',
+        },
+      ],
+    });
+
     render(
       <QueryAutoRefresh
         // @ts-ignore
         queries={{ ...runningQueries, g324t: null }}
-        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
+      { useRedux: true, store },
     );
-    setTimeout(() => {
-      expect(refreshQueries).toHaveBeenCalled();
-    }, 1000);
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            type: REFRESH_QUERIES,
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+    );
   });
 
-  it('Does NOT Attempt to refresh when given only completed queries', () => {
+  it('Does NOT Attempt to refresh when given only completed queries', async () => {
+    const store = mockStore();
+    fetchMock.get(refreshApi, {
+      result: [
+        {
+          id: runningQuery.id,
+          status: 'success',
+        },
+      ],
+    });
     render(
       <QueryAutoRefresh
         queries={successfulQueries}
-        refreshQueries={refreshQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
+      { useRedux: true, store },
     );
-    setTimeout(() => {
-      expect(refreshQueries).not.toHaveBeenCalled();
-    }, 1000);
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            type: CLEAR_INACTIVE_QUERIES,
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+    );
+    expect(fetchMock.calls(refreshApi)).toHaveLength(0);
   });
 });

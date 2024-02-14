@@ -21,7 +21,7 @@ import {
   DataRecordValue,
   PartialFilters,
 } from '@superset-ui/core';
-import { ChartConfiguration } from 'src/dashboard/reducers/types';
+import { ChartConfiguration } from 'src/dashboard/types';
 
 export interface DashboardContextForExplore {
   labelColors: Record<string, string>;

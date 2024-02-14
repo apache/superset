@@ -17,7 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { t, RollingType, ComparisionType } from '@superset-ui/core';
+import { t, RollingType, ComparisonType } from '@superset-ui/core';
+
+import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
@@ -30,7 +32,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
       'of query results',
   ),
   controlSetRows: [
-    [<div className="section-header">{t('Rolling window')}</div>],
+    [<ControlSubSectionHeader>{t('Rolling window')}</ControlSubSectionHeader>],
     [
       {
         name: 'rolling_type',
@@ -99,7 +101,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Time comparison')}</div>],
+    [<ControlSubSectionHeader>{t('Time comparison')}</ControlSubSectionHeader>],
     [
       {
         name: 'time_compare',
@@ -137,10 +139,10 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
           label: t('Calculation type'),
           default: 'values',
           choices: [
-            [ComparisionType.Values, t('Actual values')],
-            [ComparisionType.Difference, t('Difference')],
-            [ComparisionType.Percentage, t('Percentage change')],
-            [ComparisionType.Ratio, t('Ratio')],
+            [ComparisonType.Values, t('Actual values')],
+            [ComparisonType.Difference, t('Difference')],
+            [ComparisonType.Percentage, t('Percentage change')],
+            [ComparisonType.Ratio, t('Ratio')],
           ],
           description: t(
             'How to display time shifts: as individual lines; as the ' +
@@ -150,7 +152,7 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
-    [<div className="section-header">{t('Resample')}</div>],
+    [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
     [
       {
         name: 'resample_rule',

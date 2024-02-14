@@ -68,8 +68,8 @@ const MenuDotsWrapper = styled.div`
 `;
 
 export enum IconOrientation {
-  VERTICAL = 'vertical',
-  HORIZONTAL = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 export interface DropdownProps extends DropDownProps {
   overlay: React.ReactElement;
@@ -77,10 +77,10 @@ export interface DropdownProps extends DropDownProps {
 }
 
 const RenderIcon = (
-  iconOrientation: IconOrientation = IconOrientation.VERTICAL,
+  iconOrientation: IconOrientation = IconOrientation.Vertical,
 ) => {
   const component =
-    iconOrientation === IconOrientation.HORIZONTAL ? (
+    iconOrientation === IconOrientation.Horizontal ? (
       <Icons.MoreHoriz iconSize="xl" />
     ) : (
       <MenuDots />
@@ -90,7 +90,7 @@ const RenderIcon = (
 
 export const Dropdown = ({
   overlay,
-  iconOrientation = IconOrientation.VERTICAL,
+  iconOrientation = IconOrientation.Vertical,
   ...rest
 }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
@@ -104,12 +104,6 @@ interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-// @z-index-below-dashboard-header (100) - 1 = 99
 export const NoAnimationDropdown = (
   props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <AntdDropdown
-    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
-    {...props}
-  />
-);
+) => <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;

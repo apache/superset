@@ -17,13 +17,16 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 import json
+from datetime import datetime
+from typing import Optional
 
 import pytest
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm
 
 
 def test_get_parameters_from_uri() -> None:
@@ -99,7 +102,6 @@ def test_parameters_json_schema() -> None:
             "http_path": {"type": "string"},
             "port": {
                 "description": "Database port",
-                "format": "int32",
                 "maximum": 65536,
                 "minimum": 0,
                 "type": "integer",
@@ -107,37 +109,6 @@ def test_parameters_json_schema() -> None:
         },
         "required": ["access_token", "database", "host", "http_path", "port"],
     }
-
-
-def test_generic_type() -> None:
-    """
-    assert that generic types match
-    """
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
-    from tests.integration_tests.db_engine_specs.base_tests import assert_generic_types
-
-    type_expectations = (
-        # Numeric
-        ("SMALLINT", GenericDataType.NUMERIC),
-        ("INTEGER", GenericDataType.NUMERIC),
-        ("BIGINT", GenericDataType.NUMERIC),
-        ("DECIMAL", GenericDataType.NUMERIC),
-        ("NUMERIC", GenericDataType.NUMERIC),
-        ("REAL", GenericDataType.NUMERIC),
-        ("DOUBLE PRECISION", GenericDataType.NUMERIC),
-        ("MONEY", GenericDataType.NUMERIC),
-        # String
-        ("CHAR", GenericDataType.STRING),
-        ("VARCHAR", GenericDataType.STRING),
-        ("TEXT", GenericDataType.STRING),
-        # Temporal
-        ("DATE", GenericDataType.TEMPORAL),
-        ("TIMESTAMP", GenericDataType.TEMPORAL),
-        ("TIME", GenericDataType.TEMPORAL),
-        # Boolean
-        ("BOOLEAN", GenericDataType.BOOLEAN),
-    )
-    assert_generic_types(DatabricksNativeEngineSpec, type_expectations)
 
 
 def test_get_extra_params(mocker: MockerFixture) -> None:
@@ -253,3 +224,22 @@ def test_extract_errors_with_context() -> None:
             },
         )
     ]
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        (
+            "TimeStamp",
+            "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)",
+        ),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

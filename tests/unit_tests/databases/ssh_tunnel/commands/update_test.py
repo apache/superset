@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from sqlalchemy.orm.session import Session
 
-from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelInvalidError
 
 
 @pytest.fixture
@@ -50,8 +50,8 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_update_shh_tunnel_command(session_with_data: Session) -> None:
-    from superset.databases.dao import DatabaseDAO
-    from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+    from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)
@@ -72,8 +72,8 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
 
 
 def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
-    from superset.databases.dao import DatabaseDAO
-    from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+    from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)
