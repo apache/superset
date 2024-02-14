@@ -70,13 +70,13 @@ module.exports = {
     },
   },
   plugins: [
-    'prettier',
     'react',
     'file-progress',
     'lodash',
     'theme-colors',
     'translation-vars',
     'react-prefer-function-component',
+    'prettier',
   ],
   overrides: [
     {
@@ -89,7 +89,7 @@ module.exports = {
         'prettier/@typescript-eslint',
         'prettier/react',
       ],
-      plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
+      plugins: ['@typescript-eslint/eslint-plugin', 'react', 'prettier'],
       rules: {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
