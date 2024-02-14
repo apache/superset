@@ -68,7 +68,7 @@
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
     "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
-    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006 --debug-webpack",
+    "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006",
     "tdd": "cross-env NODE_ENV=test jest --watch",
     "test": "cross-env NODE_ENV=test jest",
     "type": "tsc --noEmit",
