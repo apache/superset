@@ -30,17 +30,16 @@ const args = { id: 'id', widthMultiple: 1, heightMultiple: 3 };
 jest.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
-    ({ onResizeStart, onResizeStop }) =>
-      (
-        <button
-          type="button"
-          data-test="mock-dashboard-component"
-          onClick={() => onResizeStart()}
-          onBlur={() => onResizeStop(args)}
-        >
-          Mock
-        </button>
-      ),
+    ({ onResizeStart, onResizeStop }) => (
+      <button
+        type="button"
+        data-test="mock-dashboard-component"
+        onClick={() => onResizeStart()}
+        onBlur={() => onResizeStop(args)}
+      >
+        Mock
+      </button>
+    ),
 );
 
 const props = {

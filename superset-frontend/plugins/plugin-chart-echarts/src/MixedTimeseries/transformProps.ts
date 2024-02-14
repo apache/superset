@@ -234,16 +234,19 @@ export default function transformProps(
   const formatter = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormat?.symbol
-    ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
-    : getNumberFormatter(yAxisFormat);
+      ? new CurrencyFormatter({
+          d3Format: yAxisFormat,
+          currency: currencyFormat,
+        })
+      : getNumberFormatter(yAxisFormat);
   const formatterSecondary = contributionMode
     ? getNumberFormatter(',.0%')
     : currencyFormatSecondary?.symbol
-    ? new CurrencyFormatter({
-        d3Format: yAxisFormatSecondary,
-        currency: currencyFormatSecondary,
-      })
-    : getNumberFormatter(yAxisFormatSecondary);
+      ? new CurrencyFormatter({
+          d3Format: yAxisFormatSecondary,
+          currency: currencyFormatSecondary,
+        })
+      : getNumberFormatter(yAxisFormatSecondary);
   const customFormatters = buildCustomFormatters(
     [...ensureIsArray(metrics), ...ensureIsArray(metricsB)],
     currencyFormats,

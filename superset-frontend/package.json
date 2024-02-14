@@ -351,7 +351,8 @@
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.15.1",
     "webpack-manifest-plugin": "^4.1.1",
-    "webpack-sources": "^3.2.3"
+    "webpack-sources": "^3.2.3",
+    "xdm": "^3.4.0"
   },
   "engines": {
     "node": "^16.20.2",

@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { Source } from '@storybook/addon-docs';
-import { Story } from '@storybook/addon-docs';
+import { Source, Story } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
 import React from 'react';
 

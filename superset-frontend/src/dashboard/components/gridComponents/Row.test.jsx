@@ -31,34 +31,31 @@ import { initialState } from 'src/SqlLab/fixtures';
 jest.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
-    ({ availableColumnCount, depth }) =>
-      (
-        <div data-test="mock-dashboard-component" depth={depth}>
-          {availableColumnCount}
-        </div>
-      ),
+    ({ availableColumnCount, depth }) => (
+      <div data-test="mock-dashboard-component" depth={depth}>
+        {availableColumnCount}
+      </div>
+    ),
 );
 
 jest.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
-    ({ children }) =>
-      <div data-test="mock-with-popover-menu">{children}</div>,
+    ({ children }) => <div data-test="mock-with-popover-menu">{children}</div>,
 );
 
 jest.mock(
   'src/dashboard/components/DeleteComponentButton',
   () =>
-    ({ onDelete }) =>
-      (
-        <button
-          type="button"
-          data-test="mock-delete-component-button"
-          onClick={onDelete}
-        >
-          Delete
-        </button>
-      ),
+    ({ onDelete }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
 );
 
 const rowWithoutChildren = { ...mockLayout.present.ROW_ID, children: [] };
