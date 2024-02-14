@@ -1,5 +1,6 @@
 import { Source } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
+import React from 'react';
 
 export default {
   title: 'Design System/Components/MetadataBar/Overview',
@@ -8,7 +9,7 @@ export default {
 export const MetadataBarOverview = () => (
   <>
     <Markdown>
-    {`
+      {`
 # Metadata bar
 
 The metadata bar component is used to display additional information about an entity.
@@ -45,9 +46,9 @@ Below you can find the configurations for each content type:
     `}
     </Markdown>
     <Source
-    language="jsx"
-    format={true}
-    code={`
+      language="jsx"
+      format
+      code={`
       export enum MetadataType {
         Dashboards = 'dashboards',
         Description = 'description',
@@ -58,47 +59,47 @@ Below you can find the configurations for each content type:
         Table = 'table',
         Tags = 'tags',
       }`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Dashboards = {
         type: MetadataType.Dashboards;
         title: string;
         description?: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Description = {
         type: MetadataType.Description;
         value: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type LastModified = {
         type: MetadataType.LastModified;
         value: Date;
         modifiedBy: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Owner = {
         type: MetadataType.Owner;
         createdBy: string;
@@ -106,51 +107,50 @@ Below you can find the configurations for each content type:
         createdOn: Date;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Rows = {
         type: MetadataType.Rows;
         title: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Sql = {
         type: MetadataType.Sql;
         title: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Table = {
         type: MetadataType.Table;
         title: string;
         onClick?: (type: string) => void;
       };`}
-  />
+    />
 
-  <Source
-    language="jsx"
-    format={true}
-    code={`
+    <Source
+      language="jsx"
+      format
+      code={`
       export type Tags = {
         type: MetadataType.Tags;
         values: string[];
         onClick?: (type: string) => void;
       };`}
-  />
+    />
   </>
 );
-

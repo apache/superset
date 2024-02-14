@@ -1,5 +1,6 @@
 // import { Meta, Source } from '@storybook/addon-docs';
 import Markdown from 'markdown-to-jsx';
+import React from 'react';
 
 export default {
   title: 'Design System/Components/DropdownContainer/Overview',
@@ -23,5 +24,5 @@ The component accepts any React element which ensures a high level of variabilit
 To check the component in detail and its interactions, check the [DropdownContainer](/story/design-system-components-dropdowncontainer--component) page.
 
     `}
-    </Markdown>
+  </Markdown>
 );

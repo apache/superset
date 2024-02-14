@@ -8,8 +8,8 @@ export default {
 
 export const Overview = () => (
   <>
-  <Markdown>
-    {`
+    <Markdown>
+      {`
 # Table
 
 A table is UI that allows the user to explore data in a tabular format.
@@ -30,10 +30,10 @@ This component provides a general use Table.
 `}
     </Markdown>
 
-<Story id="design-system-components-table-examples--basic" />
+    <Story id="design-system-components-table-examples--basic" />
 
-<Markdown>
-    {`
+    <Markdown>
+      {`
 ### Data and Columns
 
 To set the visible columns and data for the table you use the \`columns\` and \`data\` props.
@@ -155,10 +155,10 @@ By default, each column will render the value as simple text. Often you will wan
 Cell Renderers are React components provided to the optional \`render\` attribute on a column definition that enables injecting a specific React component to enable this.
 
 `}
-</Markdown>
-<Story id="design-system-components-table-examples--cell-renderers" />
-<Markdown>
-    {`
+    </Markdown>
+    <Story id="design-system-components-table-examples--cell-renderers" />
+    <Markdown>
+      {`
 
 For convenience and consistency, the Table component provides pre-built Cell Renderers for:
 The following data types can be displayed in table cells.
@@ -182,9 +182,9 @@ The table can be set to a loading state simply by setting the loading prop to tr
   `}
     </Markdown>
 
-<Story id="design-system-components-table-examples--loading" />
-<Markdown>
-    {`
+    <Story id="design-system-components-table-examples--loading" />
+    <Markdown>
+      {`
 ---
 
 ### Pagination
@@ -193,10 +193,10 @@ The table displays a set number of rows at a time, the user navigates the table 
 The default page size and page size options for the menu are configurable via the \`pageSizeOptions\` and \`defaultPageSize\` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 `}
-</Markdown>
-<Story id="design-system-components-table-examples--pagination" />
-<Markdown>
-    {`
+    </Markdown>
+    <Story id="design-system-components-table-examples--pagination" />
+    <Markdown>
+      {`
 
 \`\`\`
 <Table pageSizeOptions={[5, 10, 15, 20, 25] defaultPageSize={10} />
@@ -215,7 +215,7 @@ function enabling data fetching to occur when the user changes the page.
     </Markdown>
     <Story id="design-system-components-table-examples--server-pagination" />
     <Markdown>
-    {`
+      {`
 
 \`\`\`
 interface BasicData {
@@ -287,7 +287,7 @@ Support for row event handlers may be added in future versions of the Table.
     </Markdown>
     <Story id="design-system-components-table-examples--virtualized-performance" />
     <Markdown>
-    {`
+      {`
 
 ---
 
@@ -343,7 +343,7 @@ column to increase or decrease the columns' width
     </Markdown>
     <Story id="design-system-components-table-examples--resizable-columns" />
     <Markdown>
-    {`
+      {`
 
 ### Drag & Drop Columns
 
@@ -365,4 +365,3 @@ const handleDrop = (ev:Event) => {
     <Story id="design-system-components-table-examples--reorderable-columns" />
   </>
 );
-
