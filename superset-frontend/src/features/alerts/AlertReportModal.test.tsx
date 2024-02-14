@@ -187,7 +187,7 @@ const comboboxSelect = async (
 };
 
 // --------------- TEST SECTION ------------------
-it('properly renders add alert text', () => {
+test('properly renders add alert text', () => {
   const addAlertProps = generateMockedProps();
   render(<AlertReportModal {...addAlertProps} />, { useRedux: true });
   const addAlertHeading = screen.getByRole('heading', { name: /add alert/i });
@@ -196,7 +196,7 @@ it('properly renders add alert text', () => {
   expect(addButton).toBeInTheDocument();
 });
 
-it('properly renders edit alert text', async () => {
+test('properly renders edit alert text', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true)} />, {
     useRedux: true,
   });
@@ -208,7 +208,7 @@ it('properly renders edit alert text', async () => {
   expect(saveButton).toBeInTheDocument();
 });
 
-it('properly renders add report text', () => {
+test('properly renders add report text', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
@@ -220,7 +220,7 @@ it('properly renders add report text', () => {
   expect(addButton).toBeInTheDocument();
 });
 
-it('properly renders edit report text', async () => {
+test('properly renders edit report text', async () => {
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,
   });
@@ -233,7 +233,7 @@ it('properly renders edit report text', async () => {
   expect(saveButton).toBeInTheDocument();
 });
 
-it('renders 4 sections for reports', () => {
+test('renders 4 sections for reports', () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
     useRedux: true,
   });
@@ -241,7 +241,7 @@ it('renders 4 sections for reports', () => {
   expect(sections.length).toBe(4);
 });
 
-it('renders 5 sections for alerts', () => {
+test('renders 5 sections for alerts', () => {
   render(<AlertReportModal {...generateMockedProps(false)} />, {
     useRedux: true,
   });
@@ -251,7 +251,7 @@ it('renders 5 sections for alerts', () => {
 });
 
 // Validation
-it('renders 5 checkmarks for a valid alert', async () => {
+test('renders 5 checkmarks for a valid alert', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -261,7 +261,7 @@ it('renders 5 checkmarks for a valid alert', async () => {
   expect(checkmarks.length).toEqual(5);
 });
 
-it('renders single checkmarks when creating a new alert', async () => {
+test('renders single checkmarks when creating a new alert', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -271,7 +271,7 @@ it('renders single checkmarks when creating a new alert', async () => {
   expect(checkmarks.length).toEqual(1);
 });
 
-it('disables save when validation fails', () => {
+test('disables save when validation fails', () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -279,7 +279,7 @@ it('disables save when validation fails', () => {
   expect(screen.getByRole('button', { name: /add/i })).toBeDisabled();
 });
 
-it('calls build tooltip', async () => {
+test('calls build tooltip', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -314,7 +314,7 @@ it('calls build tooltip', async () => {
 });
 
 // General Section
-it('opens General Section on click', async () => {
+test('opens General Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -325,7 +325,7 @@ it('opens General Section on click', async () => {
   expect(general_header).toBeInTheDocument();
 });
 
-it('renders all fields in General Section', () => {
+test('renders all fields in General Section', () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -346,7 +346,7 @@ it('renders all fields in General Section', () => {
 // Alert Condition Section
 /* A Note on textbox total numbers:
   Because the General Info panel is open by default, the Name and Description textboxes register as being in the document on all tests, thus the total number of textboxes in each subsequent panel's tests will always be n+2. This is most significant in the Alert Condition panel tests because the nature of the SQL field as a TextAreaContol component may only be queried by role */
-it('opens Alert Condition Section on click', async () => {
+test('opens Alert Condition Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -356,7 +356,7 @@ it('opens Alert Condition Section on click', async () => {
   ).queryByText(/alert condition/i);
   expect(alertConditionHeader).toBeInTheDocument();
 });
-it('renders all Alert Condition fields', async () => {
+test('renders all Alert Condition fields', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -370,7 +370,7 @@ it('renders all Alert Condition fields', async () => {
   expect(condition).toBeInTheDocument();
   expect(threshold).toBeInTheDocument();
 });
-it('disables condition threshold if not null condition is selected', async () => {
+test('disables condition threshold if not null condition is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -386,7 +386,7 @@ it('disables condition threshold if not null condition is selected', async () =>
 });
 
 // Content Section
-it('opens Contents Section on click', async () => {
+test('opens Contents Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -397,7 +397,7 @@ it('opens Contents Section on click', async () => {
   expect(contentsHeader).toBeInTheDocument();
 });
 
-it('renders screenshot options when dashboard is selected', async () => {
+test('renders screenshot options when dashboard is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
     useRedux: true,
   });
@@ -417,7 +417,7 @@ it('renders screenshot options when dashboard is selected', async () => {
   ).toBeInTheDocument();
 });
 
-it('changes to content options when chart is selected', async () => {
+test('changes to content options when chart is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
     useRedux: true,
   });
@@ -436,7 +436,7 @@ it('changes to content options when chart is selected', async () => {
   ).toBeInTheDocument();
 });
 
-it('removes ignore cache checkbox when chart is selected', async () => {
+test('removes ignore cache checkbox when chart is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
     useRedux: true,
   });
@@ -462,7 +462,7 @@ it('removes ignore cache checkbox when chart is selected', async () => {
   ).toBe(null);
 });
 
-it('does not show screenshot width when csv is selected', async () => {
+test('does not show screenshot width when csv is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -486,7 +486,7 @@ it('does not show screenshot width when csv is selected', async () => {
 });
 
 // Schedule Section
-it('opens Schedule Section on click', async () => {
+test('opens Schedule Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -496,7 +496,7 @@ it('opens Schedule Section on click', async () => {
   ).queryAllByText(/schedule/i)[0];
   expect(scheduleHeader).toBeInTheDocument();
 });
-it('renders default Schedule fields', async () => {
+test('renders default Schedule fields', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -516,21 +516,21 @@ it('renders default Schedule fields', async () => {
   expect(logRetention).toBeInTheDocument();
   expect(gracePeriod).toBeInTheDocument();
 });
-it('renders working timout as report', async () => {
+test('renders working timout as report', async () => {
   render(<AlertReportModal {...generateMockedProps(true, false, false)} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
   expect(screen.getByText(/working timeout/i)).toBeInTheDocument();
 });
-it('renders grace period as alert', async () => {
+test('renders grace period as alert', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
   expect(screen.getByText(/grace period/i)).toBeInTheDocument();
 });
-it('shows CRON Expression when CRON is selected', async () => {
+test('shows CRON Expression when CRON is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(true, false, false)} />, {
     useRedux: true,
   });
@@ -542,7 +542,7 @@ it('shows CRON Expression when CRON is selected', async () => {
   );
   expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
 });
-it('defaults to day when CRON is not selected', async () => {
+test('defaults to day when CRON is not selected', async () => {
   render(<AlertReportModal {...generateMockedProps(true, false, false)} />, {
     useRedux: true,
   });
@@ -552,7 +552,7 @@ it('defaults to day when CRON is not selected', async () => {
 });
 
 // Notification Method Section
-it('opens Notification Method Section on click', async () => {
+test('opens Notification Method Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -563,7 +563,7 @@ it('opens Notification Method Section on click', async () => {
   expect(notificationMethodHeader).toBeInTheDocument();
 });
 
-it('renders all notification fields', async () => {
+test('renders all notification fields', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -579,7 +579,7 @@ it('renders all notification fields', async () => {
   expect(recipients).toBeInTheDocument();
   expect(addNotificationMethod).toBeInTheDocument();
 });
-it('adds another notification method section after clicking add notification method', async () => {
+test('adds another notification method section after clicking add notification method', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });
@@ -603,7 +603,7 @@ it('adds another notification method section after clicking add notification met
   expect(screen.getAllByTestId('recipients').length).toBe(2);
 });
 
-it('removes notification method on clicking trash can', async () => {
+test('removes notification method on clicking trash can', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
   });

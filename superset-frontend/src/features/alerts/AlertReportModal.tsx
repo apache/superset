@@ -187,9 +187,6 @@ const noMarginBottom = css`
 
 /*
 Height of modal body defined here, total width defined at component invocation as antd prop.
-
-.inline-container applies to Alert Condition panel <div> containing trigger
-and value inputs.
  */
 const StyledModal = styled(Modal)`
   .ant-modal-body {
@@ -506,6 +503,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Chart metadata
   const [chartVizType, setChartVizType] = useState<string>('');
 
+  const reportOrAlert = isReport ? 'report' : 'alert';
   const isEditMode = alert !== null;
   const formatOptionEnabled =
     contentType === 'chart' &&
@@ -1341,11 +1339,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   type="text"
                   name="description"
                   value={currentAlert ? currentAlert.description || '' : ''}
-                  placeholder={
-                    isReport
-                      ? t('Include description to be sent with report')
-                      : t('Include description to be sent with alert')
-                  }
+                  placeholder={t(
+                    'Include description to be sent with %s',
+                    reportOrAlert,
+                  )}
                   onChange={onInputChange}
                 />
               </div>
