@@ -198,12 +198,10 @@ const calculatePrev = (
   return [startDatePrev, endDatePrev];
 };
 
-export const computeQueryBComparator = (
+const getTimeRange = (
   adhocFilters: AdhocFilter[],
-  timeComparison: string,
   extraFormData: any,
-  join = ':',
-) => {
+): string | null => {
   const timeFilterIndex =
     adhocFilters?.findIndex(
       filter => 'operator' in filter && filter.operator === 'TEMPORAL_RANGE',
@@ -211,9 +209,6 @@ export const computeQueryBComparator = (
 
   const timeFilter =
     timeFilterIndex !== -1 ? adhocFilters[timeFilterIndex] : null;
-
-  let testSince = null;
-  let testUntil = null;
 
   if (
     timeFilter &&
@@ -224,6 +219,24 @@ export const computeQueryBComparator = (
     if (extraFormData?.time_range) {
       timeRange = extraFormData.time_range;
     }
+    return timeRange;
+  }
+
+  return null;
+};
+
+export const computeQueryBComparator = (
+  adhocFilters: AdhocFilter[],
+  timeComparison: string,
+  extraFormData: any,
+  join = ':',
+) => {
+  const timeRange = getTimeRange(adhocFilters, extraFormData);
+
+  let testSince = null;
+  let testUntil = null;
+
+  if (timeRange) {
     [testSince, testUntil] = getSinceUntil(timeRange);
   }
 
@@ -243,4 +256,22 @@ export const computeQueryBComparator = (
   }
 
   return null;
+};
+
+export const formatCustomComparator = (
+  adhocFilters: AdhocFilter[],
+  extraFormData: any,
+): string => {
+  const timeRange = getTimeRange(adhocFilters, extraFormData);
+
+  if (timeRange) {
+    const [start, end] = timeRange.split(' : ').map(dateStr => {
+      const formattedDate = moment(dateStr).format('YYYY-MM-DDTHH:mm:ss');
+      return formattedDate.replace(/Z/g, '');
+    });
+
+    return `${start} - ${end}`;
+  }
+
+  return '';
 };

@@ -24,6 +24,7 @@ import {
   NumberFormats,
   getNumberFormatter,
 } from '@superset-ui/core';
+import { computeQueryBComparator, formatCustomComparator } from '../utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -128,6 +129,18 @@ export default function transformProps(chartProps: ChartProps) {
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
+  const comparatorText =
+    formData.timeComparison !== 'c'
+      ? ` ${computeQueryBComparator(
+          formData.adhocFilters,
+          formData.timeComparison,
+          formData.extraFormData,
+          ' - ',
+        )}`
+      : `${formatCustomComparator(
+          formData.adhocCustom,
+          formData.extraFormData,
+        )}`;
 
   return {
     width,
@@ -147,5 +160,6 @@ export default function transformProps(chartProps: ChartProps) {
     compType,
     comparisonColorEnabled,
     percentDifferenceNumber: percentDifferenceNum,
+    comparatorText,
   };
 }
