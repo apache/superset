@@ -478,27 +478,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     hasErrors: boolean,
     errors?: string[],
   ) => {
-    if (!hasErrors || (section === Sections.Alert && isReport)) {
-      // clear set false and clear errors
-      setValidationStatus(currentValidationData => ({
-        ...currentValidationData,
-        [section]: {
-          hasErrors: false,
-          name: currentValidationData[section].name,
-          errors: [],
-        },
-      }));
-    } else {
-      // push errors
-      setValidationStatus(currentValidationData => ({
-        ...currentValidationData,
-        [section]: {
-          hasErrors: true,
-          name: currentValidationData[section].name,
-          errors,
-        },
-      }));
-    }
+    const hasErrorsStatus =
+      !hasErrors || (section === Sections.Alert && isReport) ? false : true;
+
+    const errorsArray = hasErrorsStatus ? errors : [];
+
+    setValidationStatus(currentValidationData => ({
+      ...currentValidationData,
+      [section]: {
+        hasErrors: hasErrorsStatus,
+        name: currentValidationData[section].name,
+        errors: errorsArray,
+      },
+    }));
   };
   // Chart metadata
   const [chartVizType, setChartVizType] = useState<string>('');
