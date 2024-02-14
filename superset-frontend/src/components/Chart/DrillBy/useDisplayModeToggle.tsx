@@ -32,9 +32,7 @@ export const useDisplayModeToggle = () => {
       <div
         css={(theme: SupersetTheme) => css`
           margin-bottom: ${theme.gridUnit * 6}px;
-          .ant-radio-button-wrapper-checked:not(
-              .ant-radio-button-wrapper-disabled
-            ):focus-within {
+          .ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled):focus-within {
             box-shadow: none;
           }
         `}
