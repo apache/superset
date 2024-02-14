@@ -135,7 +135,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -175,7 +175,7 @@ class TestCore(SupersetTestCase):
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
@@ -242,7 +242,6 @@ class TestCore(SupersetTestCase):
         self.login(username="admin")
         slc = self.get_slice(
             slice_name="Top 10 Girl Name Share",
-            session=db.session,
             expunge_from_session=False,
         )
         slc_data_attributes = slc.data.keys()
@@ -356,7 +355,7 @@ class TestCore(SupersetTestCase):
     )
     def test_warm_up_cache(self):
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -381,7 +380,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(
             ChartDataCommand,
@@ -406,7 +405,7 @@ class TestCore(SupersetTestCase):
         self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{slc.table.id}__table"
@@ -1172,7 +1171,7 @@ class TestCore(SupersetTestCase):
         random_key = "random_key"
         mock_command.return_value = random_key
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
         rv = self.client.get(
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"

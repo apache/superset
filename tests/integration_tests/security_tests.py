@@ -1337,7 +1337,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), perm_set)
         self.assert_can_menu("Databases", perm_set)
         self.assert_can_menu("Datasets", perm_set)
         self.assert_can_menu("Data", perm_set)
@@ -1505,7 +1506,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
@@ -1702,11 +1704,11 @@ class TestSecurityManager(SupersetTestCase):
         mock_is_owner,
     ):
         births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls", db.session, expunge_from_session=False)
+        girls = self.get_slice("Girls", expunge_from_session=False)
         birth_names = girls.datasource
 
         world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
+        treemap = self.get_slice("Treemap", expunge_from_session=False)
 
         births.json_metadata = json.dumps(
             {

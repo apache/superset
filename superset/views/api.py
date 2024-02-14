@@ -105,7 +105,9 @@ class Api(BaseSupersetView):
             }
             return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": _(f"Unexpected time range: {error}")}
+            error_msg = {
+                "message": _("Unexpected time range: %(error)s") % {"error": error}
+            }
             return self.json_response(error_msg, 400)
 
     def get_query_context_factory(self) -> QueryContextFactory:

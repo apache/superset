@@ -1365,12 +1365,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
-        session = db.session
         table = SqlaTable(
             schema="main", table_name="ab_permission", database=get_main_database()
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         tmp_table_perm = security_manager.find_permission_view_menu(
             "datasource_access", table.get_perm()
@@ -1732,15 +1731,14 @@ class TestDatabaseApi(SupersetTestCase):
         with self.create_app().app_context():
             main_db = get_main_database()
             main_db.allow_file_upload = True
-            session = db.session
             table = SqlaTable(
                 schema="public",
                 table_name="ab_permission",
                 database=get_main_database(),
             )
 
-            session.add(table)
-            session.commit()
+            db.session.add(table)
+            db.session.commit()
             tmp_table_perm = security_manager.find_permission_view_menu(
                 "datasource_access", table.get_perm()
             )

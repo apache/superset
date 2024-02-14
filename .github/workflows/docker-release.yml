@@ -2,7 +2,7 @@ name: Docker Publish Release
 
 on:
   release:
-    types: [published]
+    types: [published, edited]
 
   # Can be triggered manually
   workflow_dispatch:
@@ -43,14 +43,6 @@ jobs:
     strategy:
       matrix:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
-        platform: ["linux/amd64", "linux/arm64"]
-        exclude:
-          # disabling because slow! no python wheels for arm/py39 and
-          # QEMU is slow!
-          - build_preset: "dev"
-            platform: "linux/arm64"
-          - build_preset: "lean"
-            platform: "linux/arm64"
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -88,8 +80,10 @@ jobs:
             EVENT="release"
           fi
           pip install click
+          # Make a multi-platform image
           ./scripts/build_docker.py \
             ${{ matrix.build_preset }} \
             "$EVENT" \
-            --build_context_ref "$RELEASE" \
-            --platform ${{ matrix.platform }} $FORCE_LATEST
+            --build_context_ref "$RELEASE" $FORCE_LATEST \
+            --platform "linux/arm64" \
+            --platform "linux/amd64"

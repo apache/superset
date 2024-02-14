@@ -19,9 +19,9 @@
 
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
+import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/components/Dropdown', () => {
@@ -104,8 +104,6 @@ const renderWrapper = (
   roles?: Record<string, string[][]>,
 ) => {
   const props = overrideProps || createProps();
-  const store = getMockStore();
-  const mockState = store.getState();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
@@ -113,7 +111,9 @@ const renderWrapper = (
       ...mockState,
       user: {
         ...mockState.user,
-        roles: roles ?? mockState.user.roles,
+        roles: roles ?? {
+          Admin: [['can_samples', 'Datasource']],
+        },
       },
     },
   });
@@ -310,18 +310,18 @@ test('Should show "Drill to detail"', () => {
   global.featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
-  const props = createProps();
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [
-      ['can_view_and_drill', 'Dashboard'],
-      ['can_samples', 'Datasource'],
-    ],
+    Admin: [['can_samples', 'Datasource']],
   });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
-test('Should show menu items tied to can_view_and_drill permission', () => {
+test('Should not show "Drill to detail"', () => {
   // @ts-ignore
   global.featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
@@ -332,21 +332,71 @@ test('Should show menu items tied to can_view_and_drill permission', () => {
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_view_and_drill', 'Dashboard']],
+    Admin: [['invalid_permission', 'Dashboard']],
   });
-  expect(screen.getByText('View query')).toBeInTheDocument();
-  expect(screen.getByText('View as table')).toBeInTheDocument();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should not show the "Edit chart" without proper permissions', () => {
+test('Should show "View query"', () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_view_and_drill', 'Dashboard']],
+    Admin: [['can_view_query', 'Dashboard']],
+  });
+  expect(screen.getByText('View query')).toBeInTheDocument();
+});
+
+test('Should not show "View query"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+});
+
+test('Should show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['can_view_chart_as_table', 'Dashboard']],
+  });
+  expect(screen.getByText('View as table')).toBeInTheDocument();
+});
+
+test('Should not show "View as table"', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [['invalid_permission', 'Dashboard']],
+  });
+  expect(screen.queryByText('View as table')).not.toBeInTheDocument();
+});
+
+test('Should not show the "Edit chart" button', () => {
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  props.slice.slice_id = 18;
+  renderWrapper(props, {
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_view_query', 'Dashboard'],
+      ['can_view_chart_as_table', 'Dashboard'],
+    ],
   });
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

@@ -108,7 +108,7 @@ test('should render "Edit chart" as disabled without can_explore permission', as
   await renderModal({
     user: {
       ...drillToDetailModalState.user,
-      roles: { Admin: [['test_invalid_role', 'Superset']] },
+      roles: { Admin: [['invalid_permission', 'Superset']] },
     },
   });
   expect(screen.getByRole('button', { name: 'Edit chart' })).toBeDisabled();
