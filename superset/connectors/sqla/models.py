@@ -2116,4 +2116,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         secondary=RLSFilterTables,
         backref="row_level_security_filters",
     )
-    clause = Column(Text, nullable=False)
+    clause = Column(MediumText(), nullable=False)
