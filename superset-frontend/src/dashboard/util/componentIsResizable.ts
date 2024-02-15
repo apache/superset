@@ -24,6 +24,7 @@ import {
   IKI_DEEPCAST_TYPE,
   IKI_RUN_PIPELINE_TYPE,
   IKI_FORECAST_MODULE_TYPE,
+  IKI_DATASET_DOWNLOAD_TYPE,
 } from './componentTypes';
 
 export default function componentIsResizable(entity: { type: string }) {
@@ -36,6 +37,7 @@ export default function componentIsResizable(entity: { type: string }) {
       IKI_RUN_PIPELINE_TYPE,
       IKI_DEEPCAST_TYPE,
       IKI_FORECAST_MODULE_TYPE,
+      IKI_DATASET_DOWNLOAD_TYPE,
     ].indexOf(entity.type) > -1
   );
 }
