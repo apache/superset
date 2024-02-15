@@ -80,7 +80,8 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=42.0.0, <43.0.0",
+        # snowflake-connector-python as of 3.7.0 doesn't support >=42.* therefore lowering the min to 41.0.2
+        "cryptography>=41.0.2, <43.0.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
         "flask-appbuilder>=4.3.11, <5.0.0",
