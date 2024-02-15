@@ -173,6 +173,7 @@ Join our growing community!
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [GEOTAB](https://www.geotab.com) [@JZ6]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [Increff](https://www.increff.com/) [@ishansinghania]
 - [komoot](https://www.komoot.com/) [@christophlingg]
