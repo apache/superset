@@ -33,10 +33,10 @@ export const buildErrorTooltipMessage = (
 ) => {
   if (build) {
     const sectionErrors: string[] = [];
-    Object.values(validationStatus).forEach(validationData => {
-      if (!validationData.status) {
-        const sectionTitle = `${validationData.name}: `;
-        sectionErrors.push(sectionTitle + validationData.errors.join(', '));
+    Object.values(validationStatus).forEach(section => {
+      if (section.hasErrors) {
+        const sectionTitle = `${section.name}: `;
+        sectionErrors.push(sectionTitle + section.errors.join(', '));
       }
     });
     setErrorTooltipMessage(
