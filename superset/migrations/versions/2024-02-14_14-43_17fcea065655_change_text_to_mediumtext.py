@@ -28,6 +28,7 @@ down_revision = "87d38ad83218"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 from superset.utils.core import MediumText
 
@@ -63,22 +64,24 @@ NOT_NULL_COLUMNS = ["keyvalue.value", "row_level_security_filters.clause"]
 
 
 def upgrade():
-    for column in TABLE_COLUMNS:
-        with op.batch_alter_table(column.split(".")[0]) as batch_op:
-            batch_op.alter_column(
-                column.split(".")[1],
-                existing_type=sa.Text(),
-                type_=MediumText(),
-                existing_nullable=column not in NOT_NULL_COLUMNS,
-            )
+    if isinstance(op.get_bind().dialect, MySQLDialect):
+        for column in TABLE_COLUMNS:
+            with op.batch_alter_table(column.split(".")[0]) as batch_op:
+                batch_op.alter_column(
+                    column.split(".")[1],
+                    existing_type=sa.Text(),
+                    type_=MediumText(),
+                    existing_nullable=column not in NOT_NULL_COLUMNS,
+                )
 
 
 def downgrade():
-    for column in TABLE_COLUMNS:
-        with op.batch_alter_table(column.split(".")[0]) as batch_op:
-            batch_op.alter_column(
-                column.split(".")[1],
-                existing_type=MediumText(),
-                type_=sa.Text(),
-                existing_nullable=column not in NOT_NULL_COLUMNS,
-            )
+    if isinstance(op.get_bind().dialect, MySQLDialect):
+        for column in TABLE_COLUMNS:
+            with op.batch_alter_table(column.split(".")[0]) as batch_op:
+                batch_op.alter_column(
+                    column.split(".")[1],
+                    existing_type=MediumText(),
+                    type_=sa.Text(),
+                    existing_nullable=column not in NOT_NULL_COLUMNS,
+                )
