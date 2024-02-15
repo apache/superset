@@ -328,7 +328,7 @@
     "mini-css-extract-plugin": "^2.7.6",
     "mock-socket": "^9.3.1",
     "node-fetch": "^2.6.7",
-    "prettier": "3.1.0",
+    "prettier": "3.2.5",
     "prettier-plugin-packagejson": "^2.4.10",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
