@@ -12,7 +12,7 @@ export default function DraggableNewDivider() {
       type={IKI_FORECAST_MODULE_TYPE}
       label={t('Forecast')}
       description="Modular Interactive Forecasting Component"
-      className="fa fa-bars"
+      className="fa fa-line-chart"
     />
   );
 }

@@ -29,7 +29,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-// import { bindActionCreators } from 'redux';
+import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
@@ -37,7 +37,7 @@ import { t, SafeMarkdown } from '@superset-ui/core';
 import {
   Logger,
   LOG_ACTIONS_RENDER_CHART,
-  // LOG_ACTIONS_FORCE_REFRESH_CHART,
+  LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -53,7 +53,9 @@ import {
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
-// import { chart } from 'src/components/Chart/chartReducer';
+import { refreshChart } from 'src/components/Chart/chartAction';
+
+const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -220,9 +222,6 @@ class IkiInteractiveForecast extends React.PureComponent {
           }
 
           if (messageObject.info === 'widget-to-superset/sending-dataset-ids') {
-            // console.info(messageData);
-            const explainability = messageData.explainabilityEnabled;
-
             widgetUrlQuery = new URLSearchParams(widgetUrl);
             widgetUrlQuery.set('mode', 'preview');
             widgetUrlQuery.set('dataset_id', messageData.dataset_id);
@@ -235,26 +234,13 @@ class IkiInteractiveForecast extends React.PureComponent {
             widgetUrlQuery.set('metrics_type', messageData.metrics_type);
             widgetUrlQuery.set('filter_columns', messageData.filter_columns);
             widgetUrlQuery.set('isModule', messageData.isModule);
-            if (explainability) {
-              widgetUrlQuery.set('explainability', explainability);
-              widgetUrlQuery.set(
-                'forecastAliasId',
-                messageData.forecastAliasId,
-              );
-              widgetUrlQuery.set(
-                'insightsAliasId',
-                messageData.insightsAliasId,
-              );
-              widgetUrlQuery.set(
-                'seasonalityAliasId',
-                messageData.seasonalityAliasId,
-              );
-              widgetUrlQuery.set(
-                'skuCompositionAliasId',
-                messageData.skuCompositionAliasId,
-              );
-              widgetUrl.search = widgetUrlQuery.toString();
-              const tempIframe = `<iframe
+            widgetUrlQuery.set('aliasPipelineId', messageData.aliasPipelineId);
+            widgetUrlQuery.set('pipelineId', messageData.pipelineId);
+            const jsonString = JSON.stringify(messageData.selectedCharts);
+            const base64String = Buffer.from(jsonString).toString('base64');
+            widgetUrlQuery.set('selectedCharts', base64String);
+            widgetUrl.search = widgetUrlQuery.toString();
+            const tempIframe = `<iframe
                                   id="ikiinteractiveforecast-widget-${this.props.component.id}"
                                   name="ikiinteractiveforecast"
                                   src="${widgetUrl}"
@@ -262,23 +248,31 @@ class IkiInteractiveForecast extends React.PureComponent {
                                   className="ikirunpipeline-widget"
                                   style="min-height: 100%;"
                               />`;
-              this.handleIkiRunPipelineChange(tempIframe);
-            } else {
-              widgetUrl.search = widgetUrlQuery.toString();
-              console.info(widgetUrl);
-              const tempIframe = `<iframe
-                                  id="ikiinteractiveforecast-widget-${this.props.component.id}"
-                                  name="ikiinteractiveforecast"
-                                  src="${widgetUrl}"
-                                  title="Hero Section Component"
-                                  className="ikirunpipeline-widget"
-                                  style="min-height: 100%;"
-                              />`;
-              this.handleIkiRunPipelineChange(tempIframe);
-            }
+            this.handleIkiRunPipelineChange(tempIframe);
+          } else if (
+            messageObject.info ===
+            'widget-to-superset/sending-charts-to-refresh'
+          ) {
+            const { selectedCharts } = messageData;
+            this.refreshCharts(selectedCharts);
           }
         }
       }
+    });
+  }
+
+  refreshChart(chartId, dashboardId, isCached) {
+    this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: chartId,
+      is_cached: isCached,
+    });
+    return this.props.refreshChart(chartId, true, dashboardId);
+  }
+
+  refreshCharts(selectedCharts) {
+    console.info('selectedCharts', selectedCharts);
+    selectedCharts.forEach(selectedChart => {
+      this.refreshChart(selectedChart.id, this.state.dashboardId, false);
     });
   }
 
@@ -405,6 +399,17 @@ class IkiInteractiveForecast extends React.PureComponent {
           ? iframeSrcUrl.searchParams.get('metrics_type')
           : '';
         const isModule = iframeSrcUrl.searchParams.get('isModule');
+        const paramAliasId = iframeSrcUrl.searchParams.get('aliasPipelineId')
+          ? iframeSrcUrl.searchParams.get('aliasPipelineId')
+          : '';
+        const paramSelectedCharts = iframeSrcUrl.searchParams.get(
+          'selectedCharts',
+        )
+          ? iframeSrcUrl.searchParams.get('selectedCharts')
+          : '';
+        const paramPipelineId = iframeSrcUrl.searchParams.get('pipelineId')
+          ? iframeSrcUrl.searchParams.get('pipelineId')
+          : '';
         if (iframeSrcUrl.searchParams.get('explainability')) {
           const explainability =
             iframeSrcUrl.searchParams.get('explainability');
@@ -420,12 +425,27 @@ class IkiInteractiveForecast extends React.PureComponent {
           const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}&&explainability=${explainability}&forecastAliasId=${forecastAliasId}&insightsAliasId=${insightsAliasId}&seasonalityAliasId=${seasonalityAliasId}&skuCompositionAliasId=${skuCompositionAliasId}`;
           iframeSrc = newIframeSrc;
         } else {
-          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}&isModule=${isModule}`;
+          const newIframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=${paramMode}&dataset_id=${datasetId}&datetime_column=${datetimeColumn}&data_series=${dataSeries}&dimensions_column=${dimensionsColumn}&metrics_type=${metricsType}&filter_columns=${filterColumns}&isModule=${isModule}&aliasPipelineId=${paramAliasId}&selectedCharts=${paramSelectedCharts}&pipelineId=${paramPipelineId}`;
           iframeSrc = newIframeSrc;
         }
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit&isModule=true`;
       }
+
+      const allChartElements = document.querySelectorAll(
+        '[data-test-chart-id]',
+      );
+      const chartsList = [];
+      allChartElements.forEach(chartElement => {
+        const tempChartID = chartElement.getAttribute('data-test-chart-id');
+        const tempChartName = chartElement.getAttribute('data-test-chart-name');
+        chartsList.push({ id: tempChartID, name: tempChartName });
+      });
+      const jsonString3 = JSON.stringify(chartsList);
+      const base64String3 = Buffer.from(jsonString3).toString('base64');
+
+      iframeSrc = `${iframeSrc}&charts_list=${base64String3}`;
+
       iframe = `<iframe
                     id="ikiinteractiveforecast-widget-${this.props.component.id}"
                     name="ikiinteractiveforecast-${timestamp}"
@@ -554,4 +574,16 @@ function mapStateToProps(state) {
   };
 }
 
-export default connect(mapStateToProps)(IkiInteractiveForecast);
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators(
+    {
+      refreshChart,
+    },
+    dispatch,
+  );
+}
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(IkiInteractiveForecast);
