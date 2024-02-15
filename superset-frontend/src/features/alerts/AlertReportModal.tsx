@@ -1270,7 +1270,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={t(
                 'Set up basic details, such as name and description.',
               )}
-              required
               validateCheckStatus={
                 !validationStatus[Sections.General].hasErrors
               }
@@ -1356,7 +1355,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 subtitle={t(
                   'Define the database, SQL query, and triggering conditions for alert.',
                 )}
-                required={false}
                 validateCheckStatus={
                   !validationStatus[Sections.Alert].hasErrors
                 }
@@ -1461,7 +1459,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   : TRANSLATIONS.ALERT_CONTENTS_TITLE
               }
               subtitle={t('Customize data source, filters, and layout.')}
-              required
               validateCheckStatus={
                 !validationStatus[Sections.Content].hasErrors
               }
@@ -1593,7 +1590,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               subtitle={t(
                 'Define delivery schedule, timezone, and frequency settings.',
               )}
-              required
               validateCheckStatus={
                 !validationStatus[Sections.Schedule].hasErrors
               }
@@ -1677,7 +1673,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <ValidatedPanelHeader
               title={TRANSLATIONS.NOTIFICATION_TITLE}
               subtitle={t('Choose notification method and recipients.')}
-              required
               validateCheckStatus={
                 !validationStatus[Sections.Notification].hasErrors
               }
