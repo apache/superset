@@ -16,35 +16,80 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, SupersetTheme, SwitchProps } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { t, SupersetTheme } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { isEmpty } from 'lodash';
-import { ActionType } from '.';
 import { infoTooltip, toggleStyle } from './styles';
+import { DatabaseObject, FieldPropTypes } from '../types';
+
+type ChangeMethodsType = FieldPropTypes['changeMethods'];
+
+// changeMethods compatibility with dynamic forms
+type SwitchPropsChangeMethodsType = {
+  onParametersChange: ChangeMethodsType['onParametersChange'];
+};
+
+type SwitchProps = {
+  db: DatabaseObject;
+  changeMethods: SwitchPropsChangeMethodsType;
+  isSSHTunnelEnabled?: boolean;
+};
 
 const SSHTunnelSwitch = ({
-  isEditMode,
-  dbFetched,
-  useSSHTunneling,
-  setUseSSHTunneling,
-  setDB,
-  isSSHTunneling,
-}: SwitchProps) =>
-  isSSHTunneling ? (
+  // true by default for compatibility with dynamic forms
+  isSSHTunnelEnabled = true,
+  changeMethods,
+  db,
+}: SwitchProps) => {
+  const [isChecked, setChecked] = useState(false);
+
+  const handleOnChange = (changed: boolean) => {
+    setChecked(changed);
+
+    changeMethods.onParametersChange({
+      target: {
+        type: 'toggle',
+        name: 'ssh',
+        checked: true,
+        value: changed,
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (
+      isSSHTunnelEnabled &&
+      db?.parameters?.ssh !== undefined &&
+      db.parameters.ssh !== isChecked
+    ) {
+      setChecked(db.parameters.ssh);
+    }
+  }, [db?.parameters?.ssh]);
+
+  useEffect(() => {
+    if (
+      isSSHTunnelEnabled &&
+      !db?.parameters?.ssh &&
+      !isEmpty(db?.ssh_tunnel)
+    ) {
+      changeMethods.onParametersChange({
+        target: {
+          type: 'toggle',
+          name: 'ssh',
+          checked: true,
+          value: true,
+        },
+      });
+    }
+  }, [db?.ssh_tunnel]);
+
+  return isSSHTunnelEnabled ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
       <AntdSwitch
-        disabled={isEditMode && !isEmpty(dbFetched?.ssh_tunnel)}
-        checked={useSSHTunneling}
-        onChange={changed => {
-          setUseSSHTunneling(changed);
-          if (!changed) {
-            setDB({
-              type: ActionType.RemoveSSHTunnelConfig,
-            });
-          }
-        }}
+        checked={isChecked}
+        onChange={handleOnChange}
         data-test="ssh-tunnel-switch"
       />
       <span css={toggleStyle}>{t('SSH Tunnel')}</span>
@@ -55,4 +100,6 @@ const SSHTunnelSwitch = ({
       />
     </div>
   ) : null;
+};
+
 export default SSHTunnelSwitch;

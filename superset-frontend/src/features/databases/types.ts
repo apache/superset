@@ -1,3 +1,7 @@
+import { JsonObject } from '@superset-ui/core';
+import { InputProps } from 'antd/lib/input';
+import { FormEvent } from 'react';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -230,4 +234,43 @@ export interface ExtraJson {
     expand_rows?: boolean;
   };
   version?: string;
+}
+
+type ParametersChangeValueType = HTMLInputElement & {
+  value: string | boolean;
+};
+
+type ParametersChangeType<T = ParametersChangeValueType> =
+  | FormEvent<InputProps>
+  | { target: T };
+
+export interface FieldPropTypes {
+  required: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: (value: any) => string;
+  placeholder?: string;
+  onParametersChange: (event: ParametersChangeType) => void;
+  onParametersUploadFileChange: (value: any) => string;
+  changeMethods: {
+    onParametersChange: (event: ParametersChangeType) => void;
+  } & {
+    onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: (value: any) => string;
+  };
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  db?: DatabaseObject;
+  field: string;
+  isEditMode?: boolean;
+  sslForced?: boolean;
+  defaultDBName?: string;
+  editNewDb?: boolean;
 }

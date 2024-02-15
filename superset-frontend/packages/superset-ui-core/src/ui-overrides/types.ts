@@ -44,16 +44,6 @@ interface MenuObjectChildProps {
   disable?: boolean;
 }
 
-export interface SwitchProps {
-  isEditMode: boolean;
-  dbFetched: any;
-  disableSSHTunnelingForEngine?: boolean;
-  useSSHTunneling: boolean;
-  setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
-  setDB: React.Dispatch<any>;
-  isSSHTunneling: boolean;
-}
-
 type ConfigDetailsProps = {
   embeddedId: string;
 };
