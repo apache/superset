@@ -41,6 +41,7 @@ import NewIkiEitlRow from '../gridComponents/new/components/NewIkiEitlRow';
 import NewIkiEitlColumn from '../gridComponents/new/components/NewIkiEitlColumn';
 // import NewIkiExplainability from '../gridComponents/new/NewIkiExplainability';
 import NewIkiModelMetrics from '../gridComponents/new/NewIkiModelMetrics';
+import NewIkiDatasetDownload from '../gridComponents/new/components/NewIkiDatasetDownload';
 import NewExternalDatasets from '../gridComponents/new/components/NewExternalDatasets';
 import NewForecast from '../gridComponents/new/components/NewForecast';
 import NewForecastModule from '../gridComponents/new/components/NewForecastModule';
@@ -128,9 +129,11 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
                       <NewIkiEitlRow />
                       <NewIkiEitlColumn />
                       <NewForecastModule />
+                      <NewIkiDatasetDownload />
                       <NewIkiModelMetrics />
                       <NewExternalDatasets />
                       <NewForecast />
+
                       {/* <NewIkiExplainability /> */}
                       {dashboardComponents
                         .getAll()

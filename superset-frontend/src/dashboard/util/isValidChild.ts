@@ -55,6 +55,7 @@ import {
   IKI_EXTERNAL_DATASETS_TYPE,
   IKI_EXPLAINABILITY_TYPE,
   IKI_FORECAST_MODULE_TYPE,
+  IKI_DATASET_DOWNLOAD_TYPE,
 } from './componentTypes';
 
 import { DASHBOARD_ROOT_DEPTH as rootDepth } from './constants';
@@ -85,6 +86,7 @@ const parentMaxDepthLookup = {
     [IKI_MODEL_METRICS_TYPE]: depthOne,
     [IKI_FORECAST_TYPE]: depthOne,
     [IKI_FORECAST_MODULE_TYPE]: depthOne,
+    [IKI_DATASET_DOWNLOAD_TYPE]: depthOne,
     [IKI_EXTERNAL_DATASETS_TYPE]: depthOne,
     [IKI_EXPLAINABILITY_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
@@ -101,6 +103,7 @@ const parentMaxDepthLookup = {
     [COLUMN_TYPE]: depthFour,
     [IKI_DEEPCAST_TYPE]: depthFour,
     [IKI_FORECAST_MODULE_TYPE]: depthFour,
+    [IKI_DATASET_DOWNLOAD_TYPE]: depthFour,
     [IKI_EITL_ROW_TYPE]: depthFour,
     [IKI_EXPLAINABILITY_TYPE]: depthFour,
     [IKI_RUN_PIPELINE_TYPE]: depthFour,
@@ -123,6 +126,7 @@ const parentMaxDepthLookup = {
     [IKI_EITL_ROW_TYPE]: depthFive,
     [IKI_EITL_COLUMN_TYPE]: depthFive,
     [IKI_MODEL_METRICS_TYPE]: depthFive,
+    [IKI_DATASET_DOWNLOAD_TYPE]: depthFive,
     [IKI_FORECAST_TYPE]: depthFive,
     [IKI_FORECAST_MODULE_TYPE]: depthFive,
     [IKI_EXTERNAL_DATASETS_TYPE]: depthFive,
@@ -145,6 +149,7 @@ const parentMaxDepthLookup = {
     [IKI_EITL_ROW_TYPE]: depthFive,
     [IKI_EITL_COLUMN_TYPE]: depthFive,
     [IKI_MODEL_METRICS_TYPE]: depthFive,
+    [IKI_DATASET_DOWNLOAD_TYPE]: depthFive,
     [IKI_FORECAST_TYPE]: depthFive,
     [IKI_FORECAST_MODULE_TYPE]: depthFive,
     [IKI_EXTERNAL_DATASETS_TYPE]: depthFive,
@@ -167,6 +172,7 @@ const parentMaxDepthLookup = {
   [IKI_EITL_ROW_TYPE]: {},
   [IKI_EITL_COLUMN_TYPE]: {},
   [IKI_MODEL_METRICS_TYPE]: {},
+  [IKI_DATASET_DOWNLOAD_TYPE]: {},
   [IKI_EXPLAINABILITY_TYPE]: {},
   [IKI_FORECAST_TYPE]: {},
   [IKI_FORECAST_MODULE_TYPE]: {},
