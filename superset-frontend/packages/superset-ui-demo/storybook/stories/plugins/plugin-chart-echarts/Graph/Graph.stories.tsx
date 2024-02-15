@@ -19,45 +19,37 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { select, withKnobs } from '@storybook/addon-knobs';
 import {
-  EchartsBoxPlotChartPlugin,
-  BoxPlotTransformProps,
+  EchartsGraphChartPlugin,
+  GraphTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
-import data from './data';
+import { basic } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsBoxPlotChartPlugin()
-  .configure({ key: 'echarts-boxplot' })
-  .register();
+new EchartsGraphChartPlugin().configure({ key: 'echarts-graph' }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-boxplot',
-  BoxPlotTransformProps,
+  'echarts-graph',
+  GraphTransformProps,
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/Graph',
+  decorators: [withResizableChartDemo],
 };
 
-export const BoxPlot = ({ width, height }) => (
+export const Graph = ({ width, height }) => (
   <SuperChart
-    chartType="echarts-boxplot"
+    chartType="echarts-graph"
     width={width}
     height={height}
-    queriesData={[{ data }]}
+    queriesData={[{ data: basic }]}
     formData={{
-      columns: [],
-      groupby: ['type', 'region'],
-      metrics: ['AVG(averageprice)'],
-      whiskerOptions: 'Tukey',
-      xTicksLayout: select(
-        'X Tick Layout',
-        ['auto', 'flat', '45°', '90°', 'staggered'],
-        '45°',
-      ),
-      yAxisFormat: 'SMART_NUMBER',
+      source: 'source',
+      target: 'target',
+      sourceCategory: 'sourceCategory',
+      targetCategory: 'targetCategory',
+      metric: 'value',
     }}
   />
 );

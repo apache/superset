@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsTimeseriesChartPlugin,
   TimeseriesTransformProps,
@@ -40,12 +39,42 @@ getChartTransformPropsRegistry().registerValue(
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/Timeseries',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/SeriesChart',
+  decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = ({ width, height }) => {
-  const forecastEnabled = boolean('Enable forecast', true);
+export const Timeseries = (
+  {
+    forecastEnabled,
+    seriesType,
+    logAxis,
+    stack,
+    showValue,
+    onlyTotal,
+    percentageThreshold,
+    area,
+    markerEnabled,
+    markerSize,
+    minorSplitLine,
+    opacity,
+    zoomable,
+  }: {
+    forecastEnabled: boolean;
+    seriesType: string;
+    logAxis: boolean;
+    stack: boolean;
+    showValue: boolean;
+    onlyTotal: boolean;
+    percentageThreshold: number;
+    area: boolean;
+    markerEnabled: boolean;
+    markerSize: number;
+    minorSplitLine: boolean;
+    opacity: number;
+    zoomable: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const queryData = data
     .map(row =>
       forecastEnabled
@@ -70,30 +99,74 @@ export const Timeseries = ({ width, height }) => {
       formData={{
         forecastEnabled,
         color_scheme: 'supersetColors',
-        seriesType: select(
-          'Line type',
-          ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-          'line',
-        ),
-        logAxis: boolean('Log axis', false),
+        seriesType,
+        logAxis,
         y_axis_format: 'SMART_NUMBER',
-        stack: boolean('Stack', false),
-        show_value: boolean('Show Values', false),
-        only_total: boolean('Only Total', false),
-        percentage_threshold: number('Percentage Threshold', 0),
-        area: boolean('Area chart', false),
-        markerEnabled: boolean('Enable markers', false),
-        markerSize: number('Marker Size', 6),
-        minorSplitLine: boolean('Minor splitline', false),
-        opacity: number('Opacity', 0.2),
-        zoomable: boolean('Zoomable', false),
+        stack,
+        show_value: showValue,
+        only_total: onlyTotal,
+        percentage_threshold: percentageThreshold,
+        area,
+        markerEnabled,
+        markerSize,
+        minorSplitLine,
+        opacity,
+        zoomable,
         x_axis: '__timestamp',
       }}
     />
   );
 };
 
-export const WithNegativeNumbers = ({ width, height }) => (
+Timeseries.args = {
+  forecastEnabled: true,
+  seriesType: 'line',
+  logAxis: false,
+  stack: false,
+  showValue: false,
+  onlyTotal: false,
+  percentageThreshold: 0,
+  area: false,
+  markerEnabled: false,
+  markerSize: 6,
+  minorSplitLine: false,
+  opacity: 0.2,
+  zoomable: false,
+};
+
+Timeseries.argTypes = {
+  forecastEnabled: { control: 'boolean' },
+  seriesType: {
+    control: 'select',
+    options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+  },
+  logAxis: { control: 'boolean' },
+  stack: { control: 'boolean' },
+  showValue: { control: 'boolean' },
+  onlyTotal: { control: 'boolean' },
+  percentageThreshold: { control: 'number' },
+  area: { control: 'boolean' },
+  markerEnabled: { control: 'boolean' },
+  markerSize: { control: 'number' },
+  minorSplitLine: { control: 'boolean' },
+  opacity: { control: 'number' },
+  zoomable: { control: 'boolean' },
+};
+
+export const WithNegativeNumbers = (
+  {
+    seriesType,
+    stack,
+    onlyTotal,
+    orientation,
+  }: {
+    seriesType: string;
+    stack: boolean;
+    onlyTotal: boolean;
+    orientation: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-timeseries"
     width={width}
@@ -103,25 +176,33 @@ export const WithNegativeNumbers = ({ width, height }) => (
     ]}
     formData={{
       color_scheme: 'supersetColors',
-      seriesType: select(
-        'Line type',
-        ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-        'line',
-      ),
+      seriesType,
       y_axis_format: '$,.2f',
-      stack: boolean('Stack', true),
+      stack,
       show_value: true,
       show_legend: true,
-      only_total: boolean('Only Total', true),
-      orientation: select(
-        'Orientation',
-        ['vertical', 'horizontal'],
-        'vertical',
-      ),
+      only_total: onlyTotal,
+      orientation,
       x_axis: '__timestamp',
     }}
   />
 );
+
+WithNegativeNumbers.args = {
+  seriesType: 'line',
+  stack: true,
+  onlyTotal: true,
+  orientation: 'vertical',
+};
+WithNegativeNumbers.argTypes = {
+  seriesType: {
+    control: 'select',
+    options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+  },
+  stack: { control: 'boolean' },
+  onlyTotal: { control: 'boolean' },
+  orientation: { control: 'select', options: ['vertical', 'horizontal'] },
+};
 
 export const ConfidenceBand = ({ width, height }) => (
   <SuperChart

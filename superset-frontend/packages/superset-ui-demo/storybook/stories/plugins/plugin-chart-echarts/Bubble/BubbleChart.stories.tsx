@@ -17,18 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import {
-  boolean,
-  number,
-  select,
-  text,
-  withKnobs,
-} from '@storybook/addon-knobs';
 import {
   EchartsBubbleChartPlugin,
   BubbleTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
+import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -40,11 +33,77 @@ getChartTransformPropsRegistry().registerValue(
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/Bubble',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts',
+  decorators: [withResizableChartDemo],
+  args: {
+    maxBubbleSize: 10,
+    xAxisTitle: '',
+    xAxisTitleMargin: 30,
+    yAxisTitle: '',
+    yAxisTitleMargin: 30,
+    logYAxis: false,
+    logXAxis: false,
+  },
+  argTypes: {
+    maxBubbleSize: {
+      control: 'select',
+      options: [5, 10, 25, 50, 100, 125],
+      name: 'Max Bubble Size',
+      description: 'Maximum size of bubbles',
+    },
+    xAxisTitle: {
+      control: 'text',
+      name: 'X Axis Title',
+      description: 'Title for the X axis',
+    },
+    xAxisTitleMargin: {
+      control: 'number',
+      name: 'X Axis Title Margin',
+      description: 'Margin for the X axis title',
+    },
+    yAxisTitle: {
+      control: 'text',
+      name: 'Y Axis Title',
+      description: 'Title for the Y axis',
+    },
+    yAxisTitleMargin: {
+      control: 'number',
+      name: 'Y Axis Title Margin',
+      description: 'Margin for the Y axis title',
+    },
+    logYAxis: {
+      control: 'boolean',
+      name: 'Log Y Axis',
+      description: 'Whether to use a logarithmic scale for the Y axis',
+    },
+    logXAxis: {
+      control: 'boolean',
+      name: 'Log X Axis',
+      description: 'Whether to use a logarithmic scale for the X axis',
+    },
+  },
 };
 
-export const SimpleBubble = ({ width, height }) => (
+export const BubbleChart = (
+  {
+    maxBubbleSize,
+    xAxisTitle,
+    xAxisTitleMargin,
+    yAxisTitle,
+    yAxisTitleMargin,
+    logYAxis,
+    logXAxis,
+  }: {
+    maxBubbleSize: number;
+    xAxisTitle: string;
+    xAxisTitleMargin: number;
+    yAxisTitle: string;
+    yAxisTitleMargin: number;
+    logYAxis: boolean;
+    logXAxis: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="bubble_v2"
     width={width}
@@ -110,16 +169,16 @@ export const SimpleBubble = ({ width, height }) => (
       },
       limit: 10,
       colorScheme: 'supersetColors',
-      maxBubbleSize: select('Max bubble size', [5, 10, 25, 50, 100, 125], 10),
-      xAxisTitle: text('X axis title', ''),
-      xAxisTitleMargin: number('X axis title margin', 30),
-      yAxisTitle: text('Y axis title', ''),
-      yAxisTitleMargin: number('Y axis title margin', 30),
+      maxBubbleSize,
+      xAxisTitle,
+      xAxisTitleMargin,
+      yAxisTitle,
+      yAxisTitleMargin,
       yAxisTitlePosition: 'Left',
       xAxisFormat: null,
-      logYAxis: boolean('Log Y axis', false),
+      logYAxis,
       yAxisFormat: null,
-      logXAxis: boolean('Log X axis', false),
+      logXAxis,
       truncateYAxis: false,
       yAxisBounds: [],
       extraFormData: {},

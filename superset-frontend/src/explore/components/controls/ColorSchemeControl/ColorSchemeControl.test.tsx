@@ -28,7 +28,7 @@ const defaultProps = {
   value: 'supersetDefault',
   clearable: true,
   choices: [],
-  schemes: () => ({} as ColorSchemes),
+  schemes: () => ({}) as ColorSchemes,
   isLinear: false,
 };
 

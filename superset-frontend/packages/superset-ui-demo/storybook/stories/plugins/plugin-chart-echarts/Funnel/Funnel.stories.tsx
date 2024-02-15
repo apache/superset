@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, number, select, withKnobs } from '@storybook/addon-knobs';
 import {
   EchartsFunnelChartPlugin,
   FunnelTransformProps,
@@ -36,10 +35,59 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Funnel',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  args: {
+    orient: 'vertical',
+    sort: 'descending',
+    gap: 0,
+    labelType: 'key',
+    labelLine: true,
+    showLabels: true,
+    showLegend: false,
+  },
+  argTypes: {
+    width: { control: 'number' },
+    height: { control: 'number' },
+    orient: { control: 'select', options: ['horizontal', 'vertical'] },
+    sort: { control: 'select', options: ['descending', 'ascending', 'none'] },
+    gap: { control: 'number' },
+    labelType: {
+      control: 'select',
+      options: [
+        'key',
+        'value',
+        'percent',
+        'key_value',
+        'key_percent',
+        'key_value_percent',
+      ],
+    },
+    labelLine: { control: 'boolean' },
+    showLabels: { control: 'boolean' },
+    showLegend: { control: 'boolean' },
+  },
 };
 
-export const Funnel = ({ width, height }) => (
+export const Funnel = (
+  {
+    orient,
+    sort,
+    gap,
+    labelType,
+    labelLine,
+    showLabels,
+    showLegend,
+  }: {
+    orient: string;
+    sort: string;
+    gap: number;
+    labelType: string;
+    labelLine: boolean;
+    showLabels: boolean;
+    showLegend: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-funnel"
     width={width}
@@ -50,24 +98,13 @@ export const Funnel = ({ width, height }) => (
       groupby: ['name'],
       metric: 'value',
       numberFormat: 'SMART_NUMBER',
-      orient: select('orient', ['horizontal', 'vertical'], 'vertical'),
-      sort: select('sort', ['descending', 'ascending', 'none'], 'descending'),
-      gap: number('gap', 0),
-      labelType: select(
-        'label type',
-        [
-          'key',
-          'value',
-          'percent',
-          'key_value',
-          'key_percent',
-          'key_value_percent',
-        ],
-        'key',
-      ),
-      labelLine: boolean('Label line', true),
-      showLabels: boolean('Show labels', true),
-      showLegend: boolean('Show legend', false),
+      orient,
+      sort,
+      gap,
+      labelType,
+      labelLine,
+      showLabels,
+      showLegend,
     }}
   />
 );

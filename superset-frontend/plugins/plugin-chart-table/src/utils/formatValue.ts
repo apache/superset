@@ -66,11 +66,11 @@ export function formatColumnValue(
     config.d3SmallNumberFormat === undefined
       ? formatter
       : config.currencyFormat
-      ? new CurrencyFormatter({
-          d3Format: config.d3SmallNumberFormat,
-          currency: config.currencyFormat,
-        })
-      : getNumberFormatter(config.d3SmallNumberFormat);
+        ? new CurrencyFormatter({
+            d3Format: config.d3SmallNumberFormat,
+            currency: config.currencyFormat,
+          })
+        : getNumberFormatter(config.d3SmallNumberFormat);
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter

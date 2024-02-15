@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, withKnobs, select } from '@storybook/addon-knobs';
 import {
   EchartsTreemapChartPlugin,
   TreemapTransformProps,
@@ -38,10 +37,21 @@ getChartTransformPropsRegistry().registerValue(
 
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Treemap',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
 };
 
-export const Treemap = ({ width, height }) => (
+export const Treemap = (
+  {
+    showLabels,
+    showUpperLabels,
+    labelType,
+  }: {
+    showLabels: boolean;
+    showUpperLabels: boolean;
+    labelType: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
     chartType="echarts-treemap"
     width={width}
@@ -51,13 +61,24 @@ export const Treemap = ({ width, height }) => (
       colorScheme: 'supersetColors',
       groupby: ['genre'],
       metric: 'count',
-      showLabels: boolean('Show labels', true),
-      showUpperLabels: boolean('Show upperLabels', true),
-      labelType: select(
-        'Treemap label type',
-        ['key', 'value', 'key_value'],
-        'key_value',
-      ),
+      showLabels,
+      showUpperLabels,
+      labelType,
     }}
   />
 );
+
+Treemap.args = {
+  showLabels: true,
+  showUpperLabels: true,
+  labelType: 'key_value',
+};
+
+Treemap.argTypes = {
+  showLabels: { control: 'boolean' },
+  showUpperLabels: { control: 'boolean' },
+  labelType: {
+    control: 'select',
+    options: ['key', 'value', 'key_value'],
+  },
+};

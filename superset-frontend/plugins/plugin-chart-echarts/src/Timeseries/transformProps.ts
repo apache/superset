@@ -219,7 +219,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby.length || metrics.length > 1;
+  const isMultiSeries = groupby?.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -297,7 +297,7 @@ export default function transformProps(
           : getCustomFormatter(
               customFormatters,
               metrics,
-              labelMap[seriesName]?.[0],
+              labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter,
         showValue,
         onlyTotal,

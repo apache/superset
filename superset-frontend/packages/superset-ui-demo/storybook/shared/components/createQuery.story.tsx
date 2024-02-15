@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { text, select } from '@storybook/addon-knobs';
 import {
   SuperChart,
   ChartDataProvider,
@@ -40,19 +39,14 @@ export default function createQueryStory({
   };
 }) {
   const keys = Object.keys(choices);
-  const story = () => {
-    const host = text(
-      'Set Superset App host for CORS request',
-      'localhost:8088',
-    );
-    const mode = select('Choose mode:', keys, keys[0]);
-    const { formData: presetFormData, chartType } = choices[mode];
-    const width = text('Vis width', '400');
-    const height = text('Vis height', '400');
-    const formData = text(
-      'Override formData',
-      JSON.stringify(presetFormData, null, 2),
-    );
+  const story = (
+    host: string,
+    mode: string | number,
+    width: number,
+    height: number,
+    formData: any,
+  ) => {
+    const { chartType } = choices[mode];
 
     return (
       <div style={{ margin: 16 }}>
@@ -98,6 +92,23 @@ export default function createQueryStory({
   };
   story.parameters = {
     chromatic: { disable: true },
+  };
+  story.args = {
+    host: 'localhost:8088',
+    mode: keys[0],
+    width: '400',
+    height: '400',
+    formData: JSON.stringify(choices[keys[0]].formData, null, 2),
+  };
+  story.argTypes = {
+    host: {
+      control: 'text',
+      description: 'Superset App host for CORS request',
+    },
+    mode: { control: 'select', options: keys, description: 'Choose mode' },
+    width: { control: 'text', description: 'Vis width' },
+    height: { control: 'text', description: 'Vis height' },
+    formData: { control: 'text', description: 'Override formData' },
   };
   return story;
 }

@@ -1,7 +1,33 @@
-import { Meta, Source, Story, ArgsTable } from '@storybook/addon-docs';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { Story } from '@storybook/addon-docs';
+import Markdown from 'markdown-to-jsx';
+import React from 'react';
 
-<Meta title="Design System/Components/Table/Overview" />
+export default {
+  title: 'Design System/Components/Table"',
+};
 
+export const Overview = () => (
+  <>
+    <Markdown>
+      {`
 # Table
 
 A table is UI that allows the user to explore data in a tabular format.
@@ -19,17 +45,20 @@ This component provides a general use Table.
 
 ### [Basic example](./?path=/docs/design-system-components-table-examples--basic)
 
-<Story id="design-system-components-table-examples--basic" />
+`}
+    </Markdown>
 
+    <Story id="design-system-components-table-examples--basic" />
+
+    <Markdown>
+      {`
 ### Data and Columns
 
-To set the visible columns and data for the table you use the `columns` and `data` props.
+To set the visible columns and data for the table you use the \`columns\` and \`data\` props.
 
-<details>
+The basic table example for the \`columns\` prop is:
 
-The basic table example for the `columns` prop is:
-
-```
+\`\`\`
 const basicColumns: = [
   {
     title: 'Name',
@@ -59,11 +88,11 @@ const basicColumns: = [
     key: 'description',
   },
 ];
-```
+\`\`\`
 
 The data prop is:
 
-```
+\`\`\`
 const basicData: = [
   {
     key: 1,
@@ -87,25 +116,21 @@ const basicData: = [
     description: 'Reliable and fast data storage',
   },
 ];
-```
-
-</details>
+\`\`\`
 
 ### Column Sort Functions
 
 To ensure consistency for column sorting and to avoid redundant definitions for common column sorters, reusable sort functions are provided.
-When defining the object for the `columns` prop you can provide an optional attribute `sorter`.
-The function provided in the `sorter` prop is given the entire record representing a row as props `a` and `b`.
-When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specific attribute value from `dataIndex`, representing a column
+When defining the object for the \`columns\` prop you can provide an optional attribute \`sorter\`.
+The function provided in the \`sorter\` prop is given the entire record representing a row as props \`a\` and \`b\`.
+When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specific attribute value from \`dataIndex\`, representing a column
 of the data object for that row, as the first argument of the sorter function.
 
 #### alphabeticalSort
 
 The alphabeticalSort is for columns that display a string of text.
 
-<details>
-
-```
+\`\`\`
 import { alphabeticalSort } from 'src/components/Table/sorters';
 
 const basicColumns = [
@@ -117,17 +142,14 @@ const basicColumns = [
       alphabeticalSort('columnName', a, b),
   }
 ]
-```
-
-</details>
+\`\`\`
 
 #### numericSort
 
 The numericalSort is for columns that display a numeric value.
 
-<details>
 
-```
+\`\`\`
 import { numericalSort } from './sorters';
 
 const basicColumns = [
@@ -139,9 +161,7 @@ const basicColumns = [
       numericalSort('height', a, b),
   }
 ]
-```
-
-</details>
+\`\`\`
 
 If a different sort option is needed, consider adding it as a reusable sort function following the pattern provided above.
 
@@ -150,9 +170,13 @@ If a different sort option is needed, consider adding it as a reusable sort func
 ### Cell Content Renderers
 
 By default, each column will render the value as simple text. Often you will want to show formatted values, such as a numeric column showing as currency, or a more complex component such as a button or action menu as a cell value.
-Cell Renderers are React components provided to the optional `render` attribute on a column definition that enables injecting a specific React component to enable this.
+Cell Renderers are React components provided to the optional \`render\` attribute on a column definition that enables injecting a specific React component to enable this.
 
-<Story id="design-system-components-table-examples--cell-renderers" />
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--cell-renderers" />
+    <Markdown>
+      {`
 
 For convenience and consistency, the Table component provides pre-built Cell Renderers for:
 The following data types can be displayed in table cells.
@@ -173,34 +197,45 @@ The following data types can be displayed in table cells.
 
 The table can be set to a loading state simply by setting the loading prop to true | false
 
-<Story id="design-system-components-table-examples--loading" />
+  `}
+    </Markdown>
 
+    <Story id="design-system-components-table-examples--loading" />
+    <Markdown>
+      {`
 ---
 
 ### Pagination
 
 The table displays a set number of rows at a time, the user navigates the table via pagination. Use in scenarios where the user is searching for a specific piece of content.
-The default page size and page size options for the menu are configurable via the `pageSizeOptions` and `defaultPageSize` props.
+The default page size and page size options for the menu are configurable via the \`pageSizeOptions\` and \`defaultPageSize\` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--pagination" />
+    <Markdown>
+      {`
 
-<Story id="design-system-components-table-examples--pagination" />
-
-```
+\`\`\`
 <Table pageSizeOptions={[5, 10, 15, 20, 25] defaultPageSize={10} />
-```
+\`\`\`
 
 ---
 
 ### Server Pagination
 
 The table can be configured for async data fetching to get partial data sets while showing pagination controls that let the user navigate through data.
-To override the default paging, which uses `data.length` to determine the record count, populate the `recordCount` prop with the total number of records
-contained in the dataset on the server being paged through. When the user navigates through the paged data it will invoke the `onChange` callback
+To override the default paging, which uses \`data.length\` to determine the record count, populate the \`recordCount\` prop with the total number of records
+contained in the dataset on the server being paged through. When the user navigates through the paged data it will invoke the \`onChange\` callback
 function enabling data fetching to occur when the user changes the page.
 
-<Story id="design-system-components-table-examples--server-pagination" />
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--server-pagination" />
+    <Markdown>
+      {`
 
-```
+\`\`\`
 interface BasicData {
   name: string;
   category: string;
@@ -215,7 +250,7 @@ const generateData = (startIndex: number, pageSize: number): BasicData[] => {
     const recordIndex = startIndex + i;
     data.push({
       key: recordIndex,
-      name: `Dynamic Record ${recordIndex}`,
+      name: \`Dynamic Record \${recordIndex}\`,
       category: 'Disk Storage',
       price: recordIndex * 2.59,
       description: 'A random description',
@@ -254,19 +289,23 @@ const ServerPaginationTable = () => {
     />
   );
 };
-```
+\`\`\`
 
 ---
 
 ### Virtualization for Performance
 
 Table virtualization can enable viewing data with many columns and/or rows.
-Virtualization can be enabled via the `virtualize` prop.
+Virtualization can be enabled via the \`virtualize\` prop.
 
-NOTE: Row event handlers will be ignored when table is running with `virtualize={true}`.
+NOTE: Row event handlers will be ignored when table is running with \`virtualize={true}\`.
 Support for row event handlers may be added in future versions of the Table.
 
-<Story id="design-system-components-table-examples--virtualized-performance" />
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--virtualized-performance" />
+    <Markdown>
+      {`
 
 ---
 
@@ -315,18 +354,22 @@ These features are intended to be made fully stable in future releases.
 
 ### Resizable Columns
 
-The prop `resizable` enables table columns to be resized by the user dragging from the right edge of each
+The prop \`resizable\` enables table columns to be resized by the user dragging from the right edge of each
 column to increase or decrease the columns' width
 
-<Story id="design-system-components-table-examples--resizable-columns" />
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--resizable-columns" />
+    <Markdown>
+      {`
 
 ### Drag & Drop Columns
 
-The prop `reorderable` can enable column drag and drop reordering as well as dragging a column to another component. If you want to accept the drop event of a Table Column
-you can register `onDragOver` and `onDragDrop` event handlers on the destination component. In the `onDragDrop` handler you can check for `SUPERSET_TABLE_COLUMN`
+The prop \`reorderable\` can enable column drag and drop reordering as well as dragging a column to another component. If you want to accept the drop event of a Table Column
+you can register \`onDragOver\` and \`onDragDrop\` event handlers on the destination component. In the \`onDragDrop\` handler you can check for \`SUPERSET_TABLE_COLUMN\`
 as the getData key as shown below.
 
-```
+\`\`\`
 import { SUPERSET_TABLE_COLUMN } from 'src/components/table';
 
 const handleDrop = (ev:Event) => {
@@ -334,6 +377,9 @@ const handleDrop = (ev:Event) => {
   const data = JSON.parse(json);
   // ... do something with the data here
 }
-```
-
-<Story id="design-system-components-table-examples--reorderable-columns" />
+\`\`\`
+`}
+    </Markdown>
+    <Story id="design-system-components-table-examples--reorderable-columns" />
+  </>
+);

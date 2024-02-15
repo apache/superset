@@ -36,8 +36,9 @@ import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 jest.mock(
   'src/dashboard/components/FiltersBadge/DetailsPanel',
   () =>
-    ({ children }: { children: React.ReactNode }) =>
-      <div data-test="mock-details-panel">{children}</div>,
+    ({ children }: { children: React.ReactNode }) => (
+      <div data-test="mock-details-panel">{children}</div>
+    ),
 );
 
 const defaultStore = getMockStoreWithFilters();

@@ -16,42 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { boolean, withKnobs } from '@storybook/addon-knobs';
 import {
-  EchartsSunburstChartPlugin,
-  SunburstTransformProps,
+  EchartsWaterfallChartPlugin,
+  WaterfallTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
-import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 import data from './data';
+import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsSunburstChartPlugin()
-  .configure({ key: 'echarts-sunburst' })
+new EchartsWaterfallChartPlugin()
+  .configure({ key: 'echarts-waterfall' })
   .register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-sunburst',
-  SunburstTransformProps,
+  'echarts-waterfall',
+  WaterfallTransformProps,
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/Sunburst',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/Waterfall',
+  decorators: [withResizableChartDemo],
 };
 
-export const Sunburst = ({ width, height }) => (
+export const Waterfall = ({ width, height }) => (
   <SuperChart
-    chartType="echarts-sunburst"
+    chartType="echarts-waterfall"
     width={width}
     height={height}
     queriesData={[{ data }]}
     formData={{
-      columns: ['genre', 'platform'],
-      metric: 'count',
-      showLabels: boolean('Show labels', true),
-      showTotal: boolean('Show total', true),
+      metric: `SUM(decomp_volume)`,
+      columns: 'due_to_group',
+      series: 'period',
+      x_ticks_layout: '45°',
+      adhocFilters: [
+        {
+          clause: 'WHERE',
+          comparator: '0',
+          expressionType: 'SIMPLE',
+          filterOptionName: 'filter_8ix98su8zu4_t4767ixmbp9',
+          isExtra: false,
+          isNew: false,
+          operator: '!=',
+          sqlExpression: null,
+          subject: 'period',
+        },
+      ],
     }}
   />
 );

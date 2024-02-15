@@ -63,11 +63,3 @@ InteractiveTable.args = {
 };
 
 InteractiveTable.argTypes = {};
-
-InteractiveTable.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
