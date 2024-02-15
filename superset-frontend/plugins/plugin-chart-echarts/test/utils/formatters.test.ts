@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { NumberFormats } from '@superset-ui/core';
+import { getPercentFormatter } from '../../src/utils/formatters';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
-
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
-
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/MetricOption';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Tooltip';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+describe('getPercentFormatter', () => {
+  const value = 0.6;
+  it('should format as percent if no format is specified', () => {
+    expect(getPercentFormatter().format(value)).toEqual('60%');
+  });
+  it('should format as percent if SMART_NUMBER is specified', () => {
+    expect(
+      getPercentFormatter(NumberFormats.SMART_NUMBER).format(value),
+    ).toEqual('60%');
+  });
+  it('should format using a provided format', () => {
+    expect(
+      getPercentFormatter(NumberFormats.PERCENT_2_POINT).format(value),
+    ).toEqual('60.00%');
+  });
+});
