@@ -1483,11 +1483,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            DeleteSSHTunnelCommand(pk).run()
-            return self.response(200, message="OK")
-        except SSHTunnelNotFoundError:
+
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
             return self.response_404()
+        try:
+            existing_ssh_tunnel_model = database.ssh_tunnels
+            if existing_ssh_tunnel_model:
+                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
+                return self.response(200, message="OK")
+            else:
+                return self.response_404()
         except SSHTunnelDeleteFailedError as ex:
             logger.error(
                 "Error deleting SSH Tunnel %s: %s",
