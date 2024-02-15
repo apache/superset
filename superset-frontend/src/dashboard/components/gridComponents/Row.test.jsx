@@ -32,6 +32,7 @@ jest.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
     ({ availableColumnCount, depth }) => (
+      // eslint-disable-next-line react/no-unknown-property
       <div data-test="mock-dashboard-component" depth={depth}>
         {availableColumnCount}
       </div>

@@ -295,9 +295,7 @@ function ColumnCollectionTable({
                   />
                 }
               />
-            ) : (
-              <></>
-            )}
+            ) : null}
             <Field
               fieldKey="python_date_format"
               label={t('Datetime format')}

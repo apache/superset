@@ -64,9 +64,10 @@ class WithLegend extends React.Component {
         return 'row-reverse';
       case 'bottom':
         return 'column-reverse';
-      default:
       case 'top':
         return 'column';
+      default:
+        return 'row'; // this is the default value for flex-direction
     }
   }
 
@@ -82,9 +83,10 @@ class WithLegend extends React.Component {
         return 'flex-start';
       case 'bottom':
         return 'flex-end';
-      default:
       case 'top':
         return 'flex-end';
+      default:
+        return 'flex-start'; // this is the default value for justify-content
     }
   }
 

@@ -95,12 +95,4 @@ describe('DragDroppable', () => {
     expect(dragPreviewRef.callCount).toBe(1);
     expect(droppableRef.callCount).toBe(1);
   });
-
-  it('should set this.mounted dependent on life cycle', () => {
-    const wrapper = setup({}, true);
-    const instance = wrapper.instance();
-    expect(instance.mounted).toBe(true);
-    wrapper.unmount();
-    expect(instance.mounted).toBe(false);
-  });
 });

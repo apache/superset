@@ -353,11 +353,8 @@ module.exports = {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
     // TODO: temporary rules to help with migration - please re-enable!
-    'jest/no-alias-methods': 2,
-    'no-promise-executor-return': 2,
-    'react/no-unused-class-component-methods': 2,
-    'react/no-unknown-property': 0,
-    'react/no-void-elements': 0,
+    'default-param-last': 0, // might not be worth re-enabling
+    'react/no-unknown-property': ['error', { ignore: ['css'] }],
     'react/function-component-definition': [
       0,
       {
@@ -365,11 +362,8 @@ module.exports = {
       },
     ],
     'react/no-unstable-nested-components': 0,
-    'react/jsx-no-useless-fragment': 0,
-    'default-param-last': 0,
     'no-import-assign': 0,
     'import/no-relative-packages': 0,
-    'default-case-last': 0,
   },
   ignorePatterns,
 };

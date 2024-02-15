@@ -89,23 +89,19 @@ class CopyToClipboard extends React.Component {
   }
 
   renderTooltip(cursor) {
-    return (
-      <>
-        {!this.props.hideTooltip ? (
-          <Tooltip
-            id="copy-to-clipboard-tooltip"
-            placement="topRight"
-            style={{ cursor }}
-            title={this.props.tooltipText}
-            trigger={['hover']}
-            arrowPointAtCenter
-          >
-            {this.getDecoratedCopyNode()}
-          </Tooltip>
-        ) : (
-          this.getDecoratedCopyNode()
-        )}
-      </>
+    return !this.props.hideTooltip ? (
+      <Tooltip
+        id="copy-to-clipboard-tooltip"
+        placement="topRight"
+        style={{ cursor }}
+        title={this.props.tooltipText}
+        trigger={['hover']}
+        arrowPointAtCenter
+      >
+        {this.getDecoratedCopyNode()}
+      </Tooltip>
+    ) : (
+      this.getDecoratedCopyNode()
     );
   }
 
