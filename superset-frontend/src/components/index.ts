@@ -70,9 +70,7 @@ export {
   Tooltip as AntdTooltip,
 } from 'antd';
 
-export {
-  Modal as AntdModal,
-} from 'antd-next';
+export { Modal as AntdModal } from 'antd-next';
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
