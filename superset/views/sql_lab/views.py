@@ -17,7 +17,7 @@
 import logging
 
 import simplejson as json
-from flask import redirect, request, Response
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -264,16 +264,3 @@ class TableSchemaView(BaseSupersetView):
         db.session.commit()
         response = json.dumps({"id": table_schema_id, "expanded": payload})
         return json_success(response)
-
-
-class SqlLab(BaseSupersetView):
-    """The base views for Superset!"""
-
-    @expose("/my_queries/")
-    @has_access
-    def my_queries(self) -> FlaskResponse:
-        """Assigns a list of found users to the given role."""
-        logger.warning(
-            "This endpoint is deprecated and will be removed in the next major release"
-        )
-        return redirect(f"/savedqueryview/list/?_flt_0_user={get_user_id()}")
