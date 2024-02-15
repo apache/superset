@@ -175,15 +175,13 @@ const FORMAT_OPTIONS = {
 
 // Apply to collapse panels as 'css' prop value
 const panelBorder = css`
-  borderbottom: 'none';
+  border-bottom: none;
 `;
 
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
 `;
-
-// Styled Components
 
 /*
 Height of modal body defined here, total width defined at component invocation as antd prop.

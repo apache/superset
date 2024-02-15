@@ -146,7 +146,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       {method !== undefined ? (
         <StyledInputContainer>
           <div className="control-label">
-            {t(method)} {t('recipients')}
+            {t('%s recipients', method)}
             <span className="required">*</span>
           </div>
           <div className="input-container">

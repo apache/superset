@@ -34,8 +34,6 @@ enum ScheduleType {
   Input = 'input',
 }
 
-type ScheduleTypeOption = `${ScheduleType}`;
-
 const SCHEDULE_TYPE_OPTIONS = [
   {
     label: t('Recurring (every)'),
@@ -51,8 +49,9 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
-    const [scheduleFormat, setScheduleFormat] =
-      useState<ScheduleTypeOption>('picker');
+    const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
+      ScheduleType.Picker,
+    );
 
     const customSetValue = useCallback(
       (newValue: string) => {
@@ -86,7 +85,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
             <Select
               ariaLabel={t('Schedule type')}
               placeholder={t('Schedule type')}
-              onChange={(e: ScheduleTypeOption) => {
+              onChange={(e: ScheduleType) => {
                 setScheduleFormat(e);
               }}
               value={scheduleFormat}
@@ -103,7 +102,7 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
             {t('Schedule')}
             <span className="required">*</span>
           </div>
-          {scheduleFormat === 'input' && (
+          {scheduleFormat === ScheduleType.Input && (
             <Input
               type="text"
               name="crontab"
@@ -116,12 +115,12 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
               onPressEnter={handlePressEnter}
             />
           )}
-          {scheduleFormat === 'picker' && (
+          {scheduleFormat === ScheduleType.Picker && (
             <CronPicker
               clearButton={false}
               value={value}
               setValue={customSetValue}
-              displayError={scheduleFormat === 'picker'}
+              displayError={scheduleFormat === ScheduleType.Picker}
               onError={onError}
             />
           )}
