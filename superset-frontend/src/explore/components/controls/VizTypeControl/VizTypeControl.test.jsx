@@ -43,8 +43,9 @@ const waitForEffects = () =>
   act(
     () =>
       new Promise(resolve => {
-        setTimeout(resolve, 0);
-        return undefined;
+        setTimeout(() => {
+          resolve();
+        }, 0);
       }),
   );
 
