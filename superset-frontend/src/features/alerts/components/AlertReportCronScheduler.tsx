@@ -28,14 +28,22 @@ export interface AlertReportCronSchedulerProps {
   value: string;
   onChange: (change: string) => any;
 }
+
+enum ScheduleType {
+  Picker = 'picker',
+  Input = 'input',
+}
+
+type ScheduleTypeOption = `${ScheduleType}`;
+
 const SCHEDULE_TYPE_OPTIONS = [
   {
     label: t('Recurring (every)'),
-    value: 'picker',
+    value: ScheduleType.Picker,
   },
   {
     label: t('CRON Schedule'),
-    value: 'input',
+    value: ScheduleType.Input,
   },
 ];
 
@@ -43,9 +51,8 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
   ({ value, onChange }) => {
     const theme = useTheme();
     const inputRef = useRef<AntdInput>(null);
-    const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
-      'picker',
-    );
+    const [scheduleFormat, setScheduleFormat] =
+      useState<ScheduleTypeOption>('picker');
 
     const customSetValue = useCallback(
       (newValue: string) => {
@@ -79,9 +86,10 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
             <Select
               ariaLabel={t('Schedule type')}
               placeholder={t('Schedule type')}
-              onChange={(e: any) => {
+              onChange={(e: ScheduleTypeOption) => {
                 setScheduleFormat(e);
               }}
+              value={scheduleFormat}
               options={SCHEDULE_TYPE_OPTIONS}
             />
           </div>
@@ -95,25 +103,24 @@ export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
             {t('Schedule')}
             <span className="required">*</span>
           </div>
-          {scheduleFormat === 'input' ? (
+          {scheduleFormat === 'input' && (
             <Input
               type="text"
               name="crontab"
               ref={inputRef}
               style={error ? { borderColor: theme.colors.error.base } : {}}
               placeholder={t('CRON expression')}
-              disabled={scheduleFormat !== 'input'}
               value={value}
               onBlur={handleBlur}
               onChange={e => customSetValue(e.target.value)}
               onPressEnter={handlePressEnter}
             />
-          ) : (
+          )}
+          {scheduleFormat === 'picker' && (
             <CronPicker
               clearButton={false}
               value={value}
               setValue={customSetValue}
-              disabled={scheduleFormat !== 'picker'}
               displayError={scheduleFormat === 'picker'}
               onError={onError}
             />
