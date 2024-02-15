@@ -8,7 +8,7 @@ import { t, SafeMarkdown } from '@superset-ui/core';
 import {
   Logger,
   LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_FORCE_REFRESH_CHART,
+  // LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -25,8 +25,6 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
-
-const { Buffer } = require('buffer');
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -199,7 +197,7 @@ class IkiDatasetDownload extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-           let widgetUrlQueryMode;
+          let widgetUrlQueryMode;
 
           const allChartElements = document.querySelectorAll(
             '[data-test-chart-id]',
@@ -228,26 +226,21 @@ class IkiDatasetDownload extends React.PureComponent {
                 `ikidatasetdownload-widget-${this.props.component.id}`,
               ).src,
             );
-             widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/dataset-download/run?mode=edit&v=1&run_flow_times=${timestamp}`;
           }
 
-          if (
-            messageObject.info === 'widget-to-superset/sending-dataset-id'
-          ) {
+          if (messageObject.info === 'widget-to-superset/sending-dataset-id') {
             if (
-              widgetUrlQueryMode === 'edit' 
-            //   JSON.parse(messageObject.data).scId === this.props.component.id
+              widgetUrlQueryMode === 'edit'
+              //   JSON.parse(messageObject.data).scId === this.props.component.id
             ) {
               widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('dataset_id', messageData.dataset_id);
               widgetUrlQuery.set('alias_id', messageData.alias_id);
-              widgetUrlQuery.set(
-                'button_label',
-                messageData.button_label,
-              );
+              widgetUrlQuery.set('button_label', messageData.button_label);
               widgetUrlQuery.set('type', messageData.type);
               widgetUrlQuery.set('btn_color', messageData.btn_color);
               widgetUrlQuery.set('btn_txt_color', messageData.btn_txt_color);
@@ -270,7 +263,6 @@ class IkiDatasetDownload extends React.PureComponent {
       }
     });
   }
-
 
   setEditor(editor) {
     editor.getSession().setUseWrapMode(true);
@@ -384,7 +376,6 @@ class IkiDatasetDownload extends React.PureComponent {
   renderIframe() {
     const { markdownSource, hasError } = this.state;
     const { ikigaiOrigin } = this.props;
-     //const ikigaiOrigin = 'http://localhost:3000';
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
@@ -397,7 +388,7 @@ class IkiDatasetDownload extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-          const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
+        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
           ? iframeSrcUrl.searchParams.get('alias_id')
           : '';
         const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id')
@@ -408,29 +399,19 @@ class IkiDatasetDownload extends React.PureComponent {
         )
           ? iframeSrcUrl.searchParams.get('button_label')
           : '';
-        const paramType = iframeSrcUrl.searchParams.get(
-          'type',
-        )
+        const paramType = iframeSrcUrl.searchParams.get('type')
           ? iframeSrcUrl.searchParams.get('type')
           : '';
-        const paramBtnColor = iframeSrcUrl.searchParams.get(
-          'btn_color',
-        )
+        const paramBtnColor = iframeSrcUrl.searchParams.get('btn_color')
           ? iframeSrcUrl.searchParams.get('btn_color')
           : '';
-        const paramBtnTextColor = iframeSrcUrl.searchParams.get(
-          'btn_txt_color',
-        )
+        const paramBtnTextColor = iframeSrcUrl.searchParams.get('btn_txt_color')
           ? iframeSrcUrl.searchParams.get('btn_txt_color')
           : '';
-        const paramBtnPos = iframeSrcUrl.searchParams.get(
-          'btn_pos',
-        )
+        const paramBtnPos = iframeSrcUrl.searchParams.get('btn_pos')
           ? iframeSrcUrl.searchParams.get('btn_pos')
           : '';
-        const paramShowHeader = iframeSrcUrl.searchParams.get(
-          'show_header',
-        )
+        const paramShowHeader = iframeSrcUrl.searchParams.get('show_header')
           ? iframeSrcUrl.searchParams.get('show_header')
           : '';
         const newIframeSrc = `${ikigaiOrigin}/widget/dataset-download?mode=${paramMode}&dataset_id=${paramDatasetId}&alias_id=${paramAliasId}&button_label=${paramSubmitButtonLabel}&type=${paramType}&btn_color=${paramBtnColor}&btn_txt_color=${paramBtnTextColor}&btn_pos=${paramBtnPos}&show_header=${paramShowHeader}`;

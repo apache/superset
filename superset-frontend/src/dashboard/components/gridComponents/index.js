@@ -82,7 +82,7 @@ export { default as IkiExternalDatasets } from './IkiExternalDatasets';
 export { default as IkiForecast } from './IkiForecast';
 export { default as IkiExplainability } from './IkiExplainability';
 export { default as IkiForecastModule } from './IkiForecastModule';
-export {default as IkiDatasetDownload} from './IkiDatasetDownload'
+export { default as IkiDatasetDownload } from './IkiDatasetDownload';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
