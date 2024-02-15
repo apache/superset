@@ -95,11 +95,9 @@ COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # version_info.json is used by setup.py
 COPY --chown=superset:superset --from=pre_lean /app/version.txt ./
 
-RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
-    --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
-    --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
+RUN --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
     --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/local.txt
+    pip install -r requirements/base.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
