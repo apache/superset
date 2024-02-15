@@ -24,7 +24,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
@@ -67,7 +67,7 @@ def test_import_dashboard(mocker: MockFixture, session_with_schema: Session) -> 
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    dashboard = import_dashboard(session_with_schema, dashboard_config)
+    dashboard = import_dashboard(dashboard_config)
     assert dashboard.dashboard_title == "Test dash"
     assert dashboard.description is None
     assert dashboard.is_managed_externally is False
@@ -88,8 +88,7 @@ def test_import_dashboard_managed_externally(
     config = copy.deepcopy(dashboard_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_dashboard"
-
-    dashboard = import_dashboard(session_with_schema, config)
+    dashboard = import_dashboard(config)
     assert dashboard.is_managed_externally is True
     assert dashboard.external_url == "https://example.org/my_dashboard"
 
@@ -107,7 +106,7 @@ def test_import_dashboard_without_permission(
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
     with pytest.raises(ImportFailedError) as excinfo:
-        import_dashboard(session_with_schema, dashboard_config)
+        import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
         == "Dashboard doesn't exist and user doesn't have permission to create dashboards"
@@ -135,7 +134,7 @@ def test_import_existing_dashboard_without_permission(
 
     with override_user("admin"):
         with pytest.raises(ImportFailedError) as excinfo:
-            import_dashboard(session_with_data, dashboard_config, overwrite=True)
+            import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
             == "A dashboard already exists and user doesn't have permissions to overwrite it"
@@ -171,7 +170,8 @@ def test_import_existing_dashboard_with_permission(
     )
 
     with override_user(admin):
-        import_dashboard(session_with_data, dashboard_config, overwrite=True)
+        import_dashboard(dashboard_config, overwrite=True)
+
     # Assert that the can write to dashboard was checked
     security_manager.can_access.assert_called_once_with("can_write", "Dashboard")
     security_manager.can_access_dashboard.assert_called_once_with(dashboard)

@@ -16,11 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlPanelState,
+  ControlState,
   sharedControls,
 } from '@superset-ui/chart-controls';
+
+const validateTimeComparisonRangeValues = (
+  timeRangeValue?: any,
+  controlValue?: any,
+) => {
+  const isCustomTimeRange = timeRangeValue === 'c';
+  const isCustomControlEmpty = controlValue?.every(
+    (val: any) => ensureIsArray(val).length === 0,
+  );
+  return isCustomTimeRange && isCustomControlEmpty
+    ? [t('Filters for comparison must have a value')]
+    : [];
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -46,14 +61,47 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Range for Comparison'),
-              default: 'y',
+              default: 'r',
               choices: [
+                ['r', 'Inherit range from time filters'],
                 ['y', 'Year'],
-                ['w', 'Week'],
                 ['m', 'Month'],
-                ['r', 'Range'],
+                ['w', 'Week'],
                 ['c', 'Custom'],
               ],
+              rerender: ['adhoc_custom'],
+              description: t(
+                'Set the time range that will be used for the comparison metrics. ' +
+                  'For example, "Year" will compare to the same dates one year earlier. ' +
+                  'Use "Inherit range from time filters" to shift the comparison time range' +
+                  'by the same length as your time range and use "Custom" to set a custom comparison range.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: `adhoc_custom`,
+            config: {
+              ...sharedControls.adhoc_filters,
+              label: t('Filters for Comparison'),
+              description:
+                'This only applies when selecting the Range for Comparison Type: Custom',
+              visibility: ({ controls }) =>
+                controls?.time_comparison?.value === 'c',
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => ({
+                ...(sharedControls.adhoc_filters.mapStateToProps?.(
+                  state,
+                  controlState,
+                ) || {}),
+                externalValidationErrors: validateTimeComparisonRangeValues(
+                  state.controls?.time_comparison?.value,
+                  controlState.value,
+                ),
+              }),
             },
           },
         ],
@@ -61,23 +109,6 @@ const config: ControlPanelConfig = {
           {
             name: 'row_limit',
             config: sharedControls.row_limit,
-          },
-        ],
-      ],
-    },
-    {
-      label: t('Custom Time Range'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: `adhoc_custom`,
-            config: {
-              ...sharedControls.adhoc_filters,
-              label: t('FILTERS (Custom)'),
-              description:
-                'This only applies when selecting the Range for Comparison Type- Custom',
-            },
           },
         ],
       ],
@@ -153,6 +184,18 @@ const config: ControlPanelConfig = {
                   value: 40,
                 },
               ],
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add color for positive/negative change'),
+              renderTrigger: true,
+              default: false,
+              description: t('Add color for positive/negative change'),
             },
           },
         ],

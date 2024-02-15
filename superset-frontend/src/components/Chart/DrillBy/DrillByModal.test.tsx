@@ -246,7 +246,7 @@ test('should render "Edit chart" as disabled without can_explore permission', as
     {
       user: {
         ...drillByModalState.user,
-        roles: { Admin: [['test_invalid_role', 'Superset']] },
+        roles: { Admin: [['invalid_permission', 'Superset']] },
       },
     },
   );

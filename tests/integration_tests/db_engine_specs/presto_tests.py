@@ -550,13 +550,17 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     def test_presto_extra_table_metadata(self):
-        db = mock.Mock()
-        db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
-        db.get_extra = mock.Mock(return_value={})
+        database = mock.Mock()
+        database.get_indexes = mock.Mock(
+            return_value=[{"column_names": ["ds", "hour"]}]
+        )
+        database.get_extra = mock.Mock(return_value={})
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
-        db.get_df = mock.Mock(return_value=df)
+        database.get_df = mock.Mock(return_value=df)
         PrestoEngineSpec.get_create_view = mock.Mock(return_value=None)
-        result = PrestoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
+        result = PrestoEngineSpec.extra_table_metadata(
+            database, "test_table", "test_schema"
+        )
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 

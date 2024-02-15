@@ -79,7 +79,6 @@ class TestDatasource(SupersetTestCase):
 
     def test_always_filter_main_dttm(self):
         self.login(username="admin")
-        session = db.session
         database = get_example_database()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
@@ -115,8 +114,8 @@ class TestDatasource(SupersetTestCase):
             sql=sql,
         )
 
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         table.always_filter_main_dttm = False
         result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
@@ -126,27 +125,26 @@ class TestDatasource(SupersetTestCase):
         result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
         assert "default_dttm" in result and "additional_dttm" in result
 
-        session.delete(table)
-        session.commit()
+        db.session.delete(table)
+        db.session.commit()
 
     def test_external_metadata_for_virtual_table(self):
         self.login(username="admin")
-        session = db.session
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         table = self.get_table(name="dummy_sql_table")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
-        session.delete(table)
-        session.commit()
+        db.session.delete(table)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
@@ -171,15 +169,14 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(username="admin")
-        session = db.session
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
             schema=get_example_default_schema(),
             sql="select 123 as intcol, 'abc' as strcol",
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         tbl = self.get_table(name="dummy_sql_table")
         params = prison.dumps(
@@ -195,8 +192,8 @@ class TestDatasource(SupersetTestCase):
         url = f"/datasource/external_metadata_by_name/?q={params}"
         resp = self.get_json_resp(url)
         assert {o.get("column_name") for o in resp} == {"intcol", "strcol"}
-        session.delete(tbl)
-        session.commit()
+        db.session.delete(tbl)
+        db.session.commit()
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
         self.login(username="admin")
@@ -265,7 +262,6 @@ class TestDatasource(SupersetTestCase):
 
     def test_external_metadata_for_virtual_table_template_params(self):
         self.login(username="admin")
-        session = db.session
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
@@ -273,15 +269,15 @@ class TestDatasource(SupersetTestCase):
             sql="select {{ foo }} as intcol",
             template_params=json.dumps({"foo": "123"}),
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         table = self.get_table(name="dummy_sql_table_with_template_params")
         url = f"/datasource/external_metadata/table/{table.id}/"
         resp = self.get_json_resp(url)
         assert {o.get("column_name") for o in resp} == {"intcol"}
-        session.delete(table)
-        session.commit()
+        db.session.delete(table)
+        db.session.commit()
 
     def test_external_metadata_for_malicious_virtual_table(self):
         self.login(username="admin")

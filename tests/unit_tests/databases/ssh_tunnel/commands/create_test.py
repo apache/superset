@@ -27,17 +27,17 @@ def test_create_ssh_tunnel_command() -> None:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
     properties = {
-        "database_id": db.id,
+        "database_id": database.id,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",
         "password": "bar",
     }
 
-    result = CreateSSHTunnelCommand(db, properties).run()
+    result = CreateSSHTunnelCommand(database, properties).run()
 
     assert result is not None
     assert isinstance(result, SSHTunnel)
@@ -48,19 +48,19 @@ def test_create_ssh_tunnel_command_invalid_params() -> None:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
     # If we are trying to create a tunnel with a private_key_password
     # then a private_key is mandatory
     properties = {
-        "database": db,
+        "database": database,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",
         "private_key_password": "bar",
     }
 
-    command = CreateSSHTunnelCommand(db, properties)
+    command = CreateSSHTunnelCommand(database, properties)
 
     with pytest.raises(SSHTunnelInvalidError) as excinfo:
         command.run()

@@ -121,7 +121,7 @@ PARAMETER_MISSING_ERR = __(
 SqlResults = dict[str, Any]
 
 
-class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
+class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
@@ -915,24 +915,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
-
-    @has_access
-    @event_logger.log_this
-    @expose(
-        "/sqllab/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/sqllab")
-    def sqllab(self) -> FlaskResponse:
-        """SQL Editor"""
-        url = "/sqllab"
-        if url_params := request.args:
-            params = parse.urlencode(url_params)
-            url = f"{url}?{params}"
-        return redirect(url)
 
     @has_access
     @event_logger.log_this

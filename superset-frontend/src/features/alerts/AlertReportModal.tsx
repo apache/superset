@@ -1183,10 +1183,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {isEditMode && isReport
             ? TRANSLATIONS.EDIT_REPORT_TEXT
             : isEditMode
-            ? TRANSLATIONS.EDIT_ALERT_TEXT
-            : isReport
-            ? TRANSLATIONS.ADD_REPORT_TEXT
-            : TRANSLATIONS.ADD_ALERT_TEXT}
+              ? TRANSLATIONS.EDIT_ALERT_TEXT
+              : isReport
+                ? TRANSLATIONS.ADD_REPORT_TEXT
+                : TRANSLATIONS.ADD_ALERT_TEXT}
         </h4>
       }
     >

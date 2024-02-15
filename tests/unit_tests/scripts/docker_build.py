@@ -256,7 +256,7 @@ def test_get_docker_tags(
             SHA,
             "push",
             "master",
-            ["--load", f"-t {REPO}:master-dev "],
+            ["--load", f"-t {REPO}:master-dev ", "--target dev"],
         ),
         # multi-platform
         (
