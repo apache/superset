@@ -244,7 +244,6 @@ class Chart extends React.PureComponent {
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-    this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
       return queriesResponse.map(item => this.renderErrorMessage(item));
     }
