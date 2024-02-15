@@ -24,7 +24,7 @@ install: superset pre-commit
 
 superset:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
@@ -53,7 +53,7 @@ update: update-py update-js
 
 update-py:
 	# Install external dependencies
-	pip install -r requirements/local.txt
+	pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
 	pip install -e .
