@@ -48,7 +48,6 @@ from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
-    SSHTunnelNotFoundError,
 )
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
@@ -1492,8 +1491,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if existing_ssh_tunnel_model:
                 DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
                 return self.response(200, message="OK")
-            else:
-                return self.response_404()
+            return self.response_404()
         except SSHTunnelDeleteFailedError as ex:
             logger.error(
                 "Error deleting SSH Tunnel %s: %s",
