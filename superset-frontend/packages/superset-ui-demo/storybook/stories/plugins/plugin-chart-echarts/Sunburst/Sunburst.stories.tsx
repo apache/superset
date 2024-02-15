@@ -19,36 +19,55 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { withKnobs } from '@storybook/addon-knobs';
 import {
-  EchartsGaugeChartPlugin,
-  GaugeTransformProps,
+  EchartsSunburstChartPlugin,
+  SunburstTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
-import { speed } from './data';
+import data from './data';
 
-new EchartsGaugeChartPlugin().configure({ key: 'echarts-gauge' }).register();
+new EchartsSunburstChartPlugin()
+  .configure({ key: 'echarts-sunburst' })
+  .register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-gauge',
-  GaugeTransformProps,
+  'echarts-sunburst',
+  SunburstTransformProps,
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/Gauge',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/Sunburst',
+  decorators: [withResizableChartDemo],
 };
 
-export const Gauge = ({ width, height }) => (
+export const Sunburst = (
+  {
+    showLabels,
+    showTotal,
+  }: {
+    showLabels: boolean;
+    showTotal: boolean;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
-    chartType="echarts-gauge"
+    chartType="echarts-sunburst"
     width={width}
     height={height}
-    queriesData={[{ data: speed }]}
+    queriesData={[{ data }]}
     formData={{
-      columns: [],
-      groupby: ['name'],
-      metric: 'value',
+      columns: ['genre', 'platform'],
+      metric: 'count',
+      showLabels,
+      showTotal,
     }}
   />
 );
+Sunburst.args = {
+  showLabels: true,
+  showTotal: true,
+};
+Sunburst.argTypes = {
+  showLabels: { control: 'boolean' },
+  showTotal: { control: 'boolean' },
+};

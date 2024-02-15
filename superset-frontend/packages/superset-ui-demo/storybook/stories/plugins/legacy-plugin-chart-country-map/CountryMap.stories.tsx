@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React, { useEffect, useState } from 'react';
 import {
   JsonObject,
-  seedRandom,
+  seed,
   SuperChart,
   SequentialD3,
   useTheme,
@@ -27,31 +28,37 @@ import {
 import CountryMapChartPlugin, {
   countries,
 } from '@superset-ui/legacy-plugin-chart-country-map';
-import { withKnobs, select } from '@storybook/addon-knobs';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
 new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-country-map',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
+  component: SuperChart,
+  parameters: {
+    initialSize: { width: 500, height: 300 },
+  },
 };
 
 function generateData(geojson: JsonObject) {
   return geojson.features.map(feat => ({
-    metric: Math.round(seedRandom() * 10000) / 100,
+    metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
     country_id: feat.properties.ISO,
   }));
 }
 
-export const basic = function BasicCountryMapStory({ width, height }) {
+export const BasicCountryMapStory = (
+  {
+    country,
+    colorSchema,
+  }: {
+    country: string;
+    colorSchema: string;
+  },
+  { width, height }: { width: number; height: number },
+) => {
   const theme = useTheme();
-  const country = select('Country', Object.keys(countries!), 'france');
-  const colorSchema = select<any>(
-    'Color schema',
-    SequentialD3,
-    SequentialD3.find(x => x.id === 'schemeOranges'),
-  );
   const [data, setData] = useState<JsonObject>();
 
   useEffect(() => {
@@ -80,7 +87,6 @@ export const basic = function BasicCountryMapStory({ width, height }) {
       </div>
     );
   }
-
   return (
     <SuperChart
       chartType="country-map"
@@ -88,10 +94,27 @@ export const basic = function BasicCountryMapStory({ width, height }) {
       height={height}
       queriesData={[{ data }]}
       formData={{
-        linearColorScheme: colorSchema.id,
+        linearColorScheme: colorSchema,
         numberFormat: '.3s',
         selectCountry: country,
       }}
     />
   );
+};
+
+BasicCountryMapStory.args = {
+  country: 'finland',
+  colorSchema: 'schemeOranges',
+};
+BasicCountryMapStory.argTypes = {
+  country: {
+    control: 'select',
+    options: Object.keys(countries),
+  },
+  colorSchema: {
+    control: 'select',
+    options: SequentialD3.map(x => x.id),
+    description: 'Choose a color schema',
+    defaultValue: 'schemeOranges',
+  },
 };

@@ -80,7 +80,7 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        "cryptography>=41.0.2, <41.1.0",
+        "cryptography>=42.0.0, <43.0.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
         "flask-appbuilder>=4.3.11, <5.0.0",
@@ -163,7 +163,8 @@ setup(
         "exasol": ["sqlalchemy-exasol >= 2.4.0, <3.0"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "firebird": ["sqlalchemy-firebird>=0.7.0, <0.8"],
-        "firebolt": ["firebolt-sqlalchemy>=0.0.1"],
+        "firebolt": ["firebolt-sqlalchemy>=1.0.0, <2"],
+        "gevent": ["gevent>=23.9.1"],
         "gsheets": ["shillelagh[gsheetsapi]>=1.2.10, <2"],
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": [

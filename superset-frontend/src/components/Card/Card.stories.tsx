@@ -48,11 +48,3 @@ InteractiveCard.argTypes = {
     },
   },
 };
-
-InteractiveCard.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

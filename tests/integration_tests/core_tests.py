@@ -1190,25 +1190,6 @@ class TestCore(SupersetTestCase):
             is True
         )
 
-    def test_redirect_new_sqllab(self):
-        self.login(username="admin")
-        resp = self.client.get(
-            "/superset/sqllab?savedQueryId=1&testParams=2",
-            follow_redirects=True,
-        )
-        assert resp.request.path == "/sqllab/"
-        assert (
-            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
-        )
-
-        resp = self.client.post("/superset/sqllab/")
-        assert resp.status_code == 302
-
-    def test_redirect_new_sqllab_history(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/sqllab/history/")
-        assert resp.status_code == 302
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,3 +23,5 @@ jobs:
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html
           # find SPDX identifiers here: https://spdx.org/licenses/
           deny-licenses: MS-LPL, BUSL-1.1, QPL-1.0, Sleepycat, SSPL-1.0, CPOL-1.02, AGPL-3.0, GPL-1.0+, BSD-4-Clause-UC, NPL-1.0, NPL-1.1, JSON
+          # adding an exception for an ambigious license on store2, which has been resolved in the latest version. It's MIT: https://github.com/nbubna/store/blob/master/LICENSE-MIT
+          allow-dependencies-licenses: 'pkg:npm/store2@2.14.2'

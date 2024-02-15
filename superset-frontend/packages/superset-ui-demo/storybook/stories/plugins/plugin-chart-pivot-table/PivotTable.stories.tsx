@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { withKnobs } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/core';
 import { PivotTableChartPlugin } from '@superset-ui/plugin-chart-pivot-table';
 import { basicFormData, basicData } from './testData';
@@ -26,12 +25,12 @@ import { withResizableChartDemo } from '../../../shared/components/ResizableChar
 
 export default {
   title: 'Chart Plugins/plugin-chart-pivot-table',
-  decorators: [withKnobs, withResizableChartDemo],
+  decorators: [withResizableChartDemo],
 };
 
 new PivotTableChartPlugin().configure({ key: 'pivot_table_v2' }).register();
 
-export const basic = ({ width, height }) => (
+export const Basic = ({ width, height }) => (
   <SuperChart
     chartType="pivot_table_v2"
     datasource={{
@@ -43,12 +42,10 @@ export const basic = ({ width, height }) => (
     formData={basicFormData}
   />
 );
-basic.story = {
-  parameters: {
-    initialSize: {
-      width: 680,
-      height: 420,
-    },
+Basic.parameters = {
+  initialSize: {
+    width: 680,
+    height: 420,
   },
 };
 
@@ -64,11 +61,9 @@ export const MaximumAggregation = ({ width, height }) => (
     formData={{ ...basicFormData, aggregateFunction: 'Maximum' }}
   />
 );
-basic.story = {
-  parameters: {
-    initialSize: {
-      width: 680,
-      height: 420,
-    },
+MaximumAggregation.parameters = {
+  initialSize: {
+    width: 680,
+    height: 420,
   },
 };

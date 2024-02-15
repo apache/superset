@@ -169,7 +169,8 @@ const VizTile = ({
           css`
             width: 100%;
             background-color: ${theme.colors.grayscale.light4};
-            transition: width ${TILE_TRANSITION_TIME}s ease-out,
+            transition:
+              width ${TILE_TRANSITION_TIME}s ease-out,
               background-color ${TILE_TRANSITION_TIME}s ease-out;
             cursor: default;
             svg path {

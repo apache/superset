@@ -16,54 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { withKnobs } from '@storybook/addon-knobs';
 import {
-  EchartsWaterfallChartPlugin,
-  WaterfallTransformProps,
+  EchartsGaugeChartPlugin,
+  GaugeTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
-import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
+import { speed } from './data';
 
-new EchartsWaterfallChartPlugin()
-  .configure({ key: 'echarts-waterfall' })
-  .register();
+new EchartsGaugeChartPlugin().configure({ key: 'echarts-gauge' }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-waterfall',
-  WaterfallTransformProps,
+  'echarts-gauge',
+  GaugeTransformProps,
 );
 
 export default {
-  title: 'Chart Plugins|plugin-chart-echarts/Waterfall',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/Gauge',
+  decorators: [withResizableChartDemo],
 };
 
-export const Waterfall = ({ width, height }) => (
+export const Gauge = ({ width, height }) => (
   <SuperChart
-    chartType="echarts-waterfall"
+    chartType="echarts-gauge"
     width={width}
     height={height}
-    queriesData={[{ data }]}
+    queriesData={[{ data: speed }]}
     formData={{
-      metric: `SUM(decomp_volume)`,
-      columns: 'due_to_group',
-      series: 'period',
-      x_ticks_layout: '45°',
-      adhocFilters: [
-        {
-          clause: 'WHERE',
-          comparator: '0',
-          expressionType: 'SIMPLE',
-          filterOptionName: 'filter_8ix98su8zu4_t4767ixmbp9',
-          isExtra: false,
-          isNew: false,
-          operator: '!=',
-          sqlExpression: null,
-          subject: 'period',
-        },
-      ],
+      columns: [],
+      groupby: ['name'],
+      metric: 'value',
     }}
   />
 );

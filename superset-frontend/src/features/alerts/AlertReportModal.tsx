@@ -1246,10 +1246,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {isEditMode && isReport
             ? t('Edit Report')
             : isEditMode
-            ? t('Edit Alert')
-            : isReport
-            ? t('Add Report')
-            : t('Add Alert')}
+              ? t('Edit Alert')
+              : isReport
+                ? t('Add Report')
+                : t('Add Alert')}
         </h4>
       }
     >

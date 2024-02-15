@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { text, select, withKnobs } from '@storybook/addon-knobs';
 
 import {
   SuperChart,
@@ -62,64 +61,83 @@ const FORM_DATA_LOOKUP = {
 
 export default {
   title: 'Others/DataProvider',
-  decorators: [
-    withKnobs({
-      escapeHTML: false,
-    }),
-  ],
+  decorators: [],
 };
 
-export const dataProvider = () => {
-  const host = text('Set Superset App host for CORS request', 'localhost:8088');
-  const visType = select('Chart Plugin Type', VIS_TYPES, VIS_TYPES[0]);
-  const width = text('Vis width', '500');
-  const height = text('Vis height', '300');
-  const formData = text(
-    'Override formData',
-    JSON.stringify(FORM_DATA_LOOKUP[visType]),
-  );
+export const dataProvider = ({
+  host,
+  visType,
+  width,
+  height,
+  formData,
+}: {
+  host: string;
+  visType: string;
+  width: number;
+  height: number;
+  formData: string;
+}) => (
+  <div style={{ margin: 16 }}>
+    <VerifyCORS host={host}>
+      {() => (
+        <ChartDataProvider
+          client={SupersetClient}
+          formData={JSON.parse(formData)}
+        >
+          {({ loading, payload, error }) => {
+            if (loading) return <div>Loading!</div>;
 
-  return (
-    <div style={{ margin: 16 }}>
-      <VerifyCORS host={host}>
-        {() => (
-          <ChartDataProvider
-            client={SupersetClient}
-            formData={JSON.parse(formData)}
-          >
-            {({ loading, payload, error }) => {
-              if (loading) return <div>Loading!</div>;
+            if (error) return renderError(error);
 
-              if (error) return renderError(error);
+            if (payload)
+              return (
+                <>
+                  <SuperChart
+                    chartType={visType}
+                    formData={payload.formData}
+                    height={Number(height)}
+                    // @TODO fix typing
+                    // all vis's now expect objects but api/v1/ returns an array
+                    queriesData={payload.queriesData}
+                    width={Number(width)}
+                  />
+                  <br />
+                  <Expandable expandableWhat="payload">
+                    <pre style={{ fontSize: 11 }}>
+                      {JSON.stringify(payload, null, 2)}
+                    </pre>
+                  </Expandable>
+                </>
+              );
 
-              if (payload)
-                return (
-                  <>
-                    <SuperChart
-                      chartType={visType}
-                      formData={payload.formData}
-                      height={Number(height)}
-                      // @TODO fix typing
-                      // all vis's now expect objects but api/v1/ returns an array
-                      queriesData={payload.queriesData}
-                      width={Number(width)}
-                    />
-                    <br />
-                    <Expandable expandableWhat="payload">
-                      <pre style={{ fontSize: 11 }}>
-                        {JSON.stringify(payload, null, 2)}
-                      </pre>
-                    </Expandable>
-                  </>
-                );
+            return null;
+          }}
+        </ChartDataProvider>
+      )}
+    </VerifyCORS>
+  </div>
+);
 
-              return null;
-            }}
-          </ChartDataProvider>
-        )}
-      </VerifyCORS>
-    </div>
-  );
+dataProvider.storyName = 'ChartDataProvider';
+
+dataProvider.args = {
+  host: 'localhost:8088',
+  visType: VIS_TYPES[0],
+  width: '500',
+  height: '300',
+  formData: JSON.stringify(FORM_DATA_LOOKUP[VIS_TYPES[0]]),
 };
-
-dataProvider.story = { name: 'ChartDataProvider' };
+dataProvider.argTypes = {
+  host: {
+    control: 'text',
+    description: 'Set Superset App host for CORS request',
+  },
+  visType: {
+    control: 'select',
+    options: VIS_TYPES,
+    description: 'Chart Plugin Type',
+  },
+  width: { control: 'text', description: 'Vis width' },
+  height: { control: 'text', description: 'Vis height' },
+  formData: { control: 'text', description: 'Override formData' },
+};

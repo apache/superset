@@ -60,12 +60,12 @@ googleapis-common-protos==1.59.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.54.0
+grpcio==1.60.1
     # via
     #   google-api-core
     #   google-cloud-bigquery
     #   grpcio-status
-grpcio-status==1.54.0
+grpcio-status==1.60.1
     # via google-api-core
 iniconfig==2.0.0
     # via pytest

@@ -19,51 +19,57 @@
 
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { withKnobs } from '@storybook/addon-knobs';
 import {
-  EchartsRadarChartPlugin,
-  RadarTransformProps,
+  EchartsBoxPlotChartPlugin,
+  BoxPlotTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
+import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
-import { basic } from './data';
 
-new EchartsRadarChartPlugin().configure({ key: 'echarts-radar' }).register();
+new EchartsBoxPlotChartPlugin()
+  .configure({ key: 'echarts-boxplot' })
+  .register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-radar',
-  RadarTransformProps,
+  'echarts-boxplot',
+  BoxPlotTransformProps,
 );
 
 export default {
-  title: 'Chart Plugins/plugin-chart-echarts/Radar',
-  decorators: [withKnobs, withResizableChartDemo],
+  title: 'Chart Plugins/plugin-chart-echarts/BoxPlot',
+  decorators: [withResizableChartDemo],
+  args: {
+    xTicksLayout: '45°', // Initial value
+  },
+  argTypes: {
+    xTicksLayout: {
+      control: 'select',
+      options: ['auto', 'flat', '45°', '90°', 'staggered'],
+      defaultValue: '45°', // Default value here
+    },
+  },
 };
 
-export const Radar = ({ width, height }) => (
+export const BoxPlot = (
+  {
+    xTicksLayout,
+  }: {
+    xTicksLayout: string;
+  },
+  { width, height }: { width: number; height: number },
+) => (
   <SuperChart
-    chartType="echarts-radar"
+    chartType="echarts-boxplot"
     width={width}
     height={height}
-    queriesData={[{ data: basic }]}
+    queriesData={[{ data }]}
     formData={{
       columns: [],
-      groupby: ['Sales'],
-      metrics: [
-        'Sales',
-        'Administration',
-        'Information Technology',
-        'Customer Support',
-        'Development',
-        'Marketing',
-      ],
-      columnConfig: {
-        Sales: { radarMetricMaxValue: 6500 },
-        Administration: { radarMetricMaxValue: 16000 },
-        'Information Technology': { radarMetricMaxValue: 30000 },
-        'Customer Support': { radarMetricMaxValue: 38000 },
-        Development: { radarMetricMaxValue: 52000 },
-        Marketing: { radarMetricMaxValue: 25000 },
-      },
+      groupby: ['type', 'region'],
+      metrics: ['AVG(averageprice)'],
+      whiskerOptions: 'Tukey',
+      xTicksLayout,
+      yAxisFormat: 'SMART_NUMBER',
     }}
   />
 );

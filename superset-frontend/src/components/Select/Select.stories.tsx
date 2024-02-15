@@ -250,14 +250,6 @@ InteractiveSelect.argTypes = {
   },
 };
 
-InteractiveSelect.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 export const AtEveryCorner = () => (
   <>
     {selectPositions.map(position => (
@@ -285,17 +277,12 @@ export const AtEveryCorner = () => (
   </>
 );
 
-AtEveryCorner.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+AtEveryCorner.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
@@ -335,16 +322,11 @@ export const PageScroll = () => (
   </div>
 );
 
-PageScroll.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+PageScroll.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };

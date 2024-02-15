@@ -45,86 +45,84 @@ const SCHEDULE_TYPE_OPTIONS = [
   },
 ];
 
-export const AlertReportCronScheduler: React.FC<AlertReportCronSchedulerProps> =
-  ({ value, onChange }) => {
-    const theme = useTheme();
-    const inputRef = useRef<AntdInput>(null);
-    const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
-      ScheduleType.Picker,
-    );
+export const AlertReportCronScheduler: React.FC<
+  AlertReportCronSchedulerProps
+> = ({ value, onChange }) => {
+  const theme = useTheme();
+  const inputRef = useRef<AntdInput>(null);
+  const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
+    ScheduleType.Picker,
+  );
 
-    const customSetValue = useCallback(
-      (newValue: string) => {
-        onChange(newValue);
-        inputRef.current?.setValue(newValue);
-      },
-      [inputRef, onChange],
-    );
+  const customSetValue = useCallback(
+    (newValue: string) => {
+      onChange(newValue);
+      inputRef.current?.setValue(newValue);
+    },
+    [inputRef, onChange],
+  );
 
-    const handleBlur = useCallback(
-      (event: FocusEvent<HTMLInputElement>) => {
-        onChange(event.target.value);
-      },
-      [onChange],
-    );
+  const handleBlur = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      onChange(event.target.value);
+    },
+    [onChange],
+  );
 
-    const handlePressEnter = useCallback(() => {
-      onChange(inputRef.current?.input.value || '');
-    }, [onChange]);
+  const handlePressEnter = useCallback(() => {
+    onChange(inputRef.current?.input.value || '');
+  }, [onChange]);
 
-    const [error, onError] = useState<CronError>();
+  const [error, onError] = useState<CronError>();
 
-    return (
-      <>
-        <StyledInputContainer>
-          <div className="control-label">
-            {t('Schedule type')}
-            <span className="required">*</span>
-          </div>
-          <div className="input-container">
-            <Select
-              ariaLabel={t('Schedule type')}
-              placeholder={t('Schedule type')}
-              onChange={(e: ScheduleType) => {
-                setScheduleFormat(e);
-              }}
-              value={scheduleFormat}
-              options={SCHEDULE_TYPE_OPTIONS}
-            />
-          </div>
-        </StyledInputContainer>
+  return (
+    <>
+      <StyledInputContainer>
+        <div className="control-label">
+          {t('Schedule type')}
+          <span className="required">*</span>
+        </div>
+        <div className="input-container">
+          <Select
+            ariaLabel={t('Schedule type')}
+            placeholder={t('Schedule type')}
+            onChange={(e: ScheduleType) => {
+              setScheduleFormat(e);
+            }}
+            value={scheduleFormat}
+            options={SCHEDULE_TYPE_OPTIONS}
+          />
+        </div>
+      </StyledInputContainer>
 
-        <StyledInputContainer
-          data-test="input-content"
-          className="styled-input"
-        >
-          <div className="control-label">
-            {t('Schedule')}
-            <span className="required">*</span>
-          </div>
-          {scheduleFormat === ScheduleType.Input && (
-            <Input
-              type="text"
-              name="crontab"
-              ref={inputRef}
-              style={error ? { borderColor: theme.colors.error.base } : {}}
-              placeholder={t('CRON expression')}
-              value={value}
-              onBlur={handleBlur}
-              onChange={e => customSetValue(e.target.value)}
-              onPressEnter={handlePressEnter}
-            />
-          )}
-          {scheduleFormat === ScheduleType.Picker && (
-            <CronPicker
-              clearButton={false}
-              value={value}
-              setValue={customSetValue}
-              displayError={scheduleFormat === ScheduleType.Picker}
-              onError={onError}
-            />
-          )}
-        </StyledInputContainer>
-      </>
-    );
-  };
+      <StyledInputContainer data-test="input-content" className="styled-input">
+        <div className="control-label">
+          {t('Schedule')}
+          <span className="required">*</span>
+        </div>
+        {scheduleFormat === ScheduleType.Input && (
+          <Input
+            type="text"
+            name="crontab"
+            ref={inputRef}
+            style={error ? { borderColor: theme.colors.error.base } : {}}
+            placeholder={t('CRON expression')}
+            value={value}
+            onBlur={handleBlur}
+            onChange={e => customSetValue(e.target.value)}
+            onPressEnter={handlePressEnter}
+          />
+        )}
+        {scheduleFormat === ScheduleType.Picker && (
+          <CronPicker
+            clearButton={false}
+            value={value}
+            setValue={customSetValue}
+            displayError={scheduleFormat === ScheduleType.Picker}
+            onError={onError}
+          />
+        )}
+      </StyledInputContainer>
+    </>
+  );
+};
