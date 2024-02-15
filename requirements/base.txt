@@ -236,7 +236,7 @@ packaging==23.1
     #   shillelagh
 pandas[performance]==2.0.3
     # via apache-superset
-paramiko==2.11.0
+paramiko==3.4.0
     # via sshtunnel
 parsedatetime==2.6
     # via apache-superset
