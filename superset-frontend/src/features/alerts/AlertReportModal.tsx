@@ -173,11 +173,6 @@ const FORMAT_OPTIONS = {
   },
 };
 
-// Apply to collapse panels as 'css' prop value
-const panelBorder = css`
-  border-bottom: none;
-`;
-
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
@@ -193,6 +188,10 @@ const StyledModal = styled(Modal)`
 
   .control-label {
     margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  .ant-collapse > .ant-collapse-item {
+    border-bottom: none;
   }
 
   .inline-container {
@@ -1255,7 +1254,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     >
       <Collapse
         expandIconPosition="right"
-        defaultActiveKey="1"
+        defaultActiveKey="general"
         accordion
         css={css`
           border: 'none';
@@ -1275,7 +1274,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           }
           key="general"
-          css={panelBorder}
         >
           <div className="header-section">
             <StyledInputContainer>
@@ -1360,7 +1358,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             }
             key="condition"
-            css={panelBorder}
           >
             <StyledInputContainer>
               <div className="control-label">
@@ -1464,7 +1461,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           }
           key="contents"
-          css={panelBorder}
         >
           <StyledInputContainer>
             <div className="control-label">
@@ -1595,7 +1591,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           }
           key="schedule"
-          css={panelBorder}
         >
           <AlertReportCronScheduler
             value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
@@ -1678,7 +1673,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
           }
           key="notification"
-          css={panelBorder}
         >
           {notificationSettings.map((notificationSetting, i) => (
             <StyledNotificationMethodWrapper>

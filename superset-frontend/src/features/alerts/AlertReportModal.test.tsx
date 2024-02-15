@@ -314,11 +314,10 @@ test('calls build tooltip', async () => {
 });
 
 // General Section
-test('opens General Section on click', async () => {
+test('opens General Section on render', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getByTestId('general-information-panel'));
   const general_header = within(
     screen.getByRole('tab', { expanded: true }),
   ).queryByText(/general information/i);
@@ -329,7 +328,6 @@ test('renders all fields in General Section', () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getByTestId('general-information-panel'));
   const name = screen.getByPlaceholderText(/enter alert name/i);
   const owners = screen.getByTestId('owners-select');
   const description = screen.getByPlaceholderText(
@@ -362,7 +360,7 @@ test('renders all Alert Condition fields', async () => {
   });
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   const database = screen.getByRole('combobox', { name: /database/i });
-  const sql = screen.getByRole('textbox');
+  const sql = screen.getAllByRole('textbox')[2];
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const threshold = screen.getByRole('spinbutton');
   expect(database).toBeInTheDocument();
