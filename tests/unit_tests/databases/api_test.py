@@ -458,7 +458,9 @@ def test_delete_ssh_tunnel(
         assert 1 == response_tunnel.database_id
 
         # Delete the recently created SSHTunnel
-        response_delete_tunnel = client.delete("/api/v1/database/1/ssh_tunnel/")
+        response_delete_tunnel = client.delete(
+            f"/api/v1/database/{database.id}/ssh_tunnel/"
+        )
         assert response_delete_tunnel.json["message"] == "OK"
 
         response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
