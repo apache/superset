@@ -261,7 +261,9 @@ const CustomModal = ({
   if (React.isValidElement(footer)) {
     // If a footer component is provided inject a closeModal function
     // so the footer can provide a "close" button if desired
-    FooterComponent = React.cloneElement(footer, { closeModal: onHide } as Partial<unknown>);
+    FooterComponent = React.cloneElement(footer, {
+      closeModal: onHide,
+    } as Partial<unknown>);
   }
   const modalFooter = isNil(FooterComponent)
     ? [
