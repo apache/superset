@@ -86,23 +86,23 @@ else
   DEV_TAG="${REPO_NAME}:${LATEST_TAG}-dev"
 fi
 
-# #
-# # Build the dev image
-# #
-# docker buildx build --target dev \
-#   $DOCKER_ARGS \
-#   --cache-from=type=registry,ref=apache/superset:master-dev \
-#   --cache-from=type=local,src=/tmp/superset \
-#   --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-#   -t "${REPO_NAME}:${SHA}-dev" \
-#   -t "${REPO_NAME}:${REFSPEC}-dev" \
-#   -t "${DEV_TAG}" \
-#   --platform linux/amd64 \
-#   --label "sha=${SHA}" \
-#   --label "built_at=$(date)" \
-#   --label "target=dev" \
-#   --label "build_actor=${GITHUB_ACTOR}" \
-#   .
+#
+# Build the dev image
+#
+docker buildx build --target dev \
+  $DOCKER_ARGS \
+  --cache-from=type=registry,ref=apache/superset:master-dev \
+  --cache-from=type=local,src=/tmp/superset \
+  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+  -t "${REPO_NAME}:${SHA}-dev" \
+  -t "${REPO_NAME}:${REFSPEC}-dev" \
+  -t "${DEV_TAG}" \
+  --platform linux/amd64 \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=dev" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  .
 
 #
 # Build the "lean" image
@@ -121,23 +121,23 @@ docker buildx build --target lean \
   --label "build_actor=${GITHUB_ACTOR}" \
   .
 
-#
-# Build the "lean310" image
-#
-docker buildx build --target lean \
-  $DOCKER_ARGS \
-  --cache-from=type=local,src=/tmp/superset \
-  --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
-  -t "${REPO_NAME}:${SHA}-py310" \
-  -t "${REPO_NAME}:${REFSPEC}-py310" \
-  -t "${REPO_NAME}:${LATEST_TAG}-py310" \
-  --platform linux/amd64 \
-  --build-arg PY_VER="3.10-slim-bookworm"\
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=lean310" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  .
+# #
+# # Build the "lean310" image
+# #
+# docker buildx build --target lean \
+#   $DOCKER_ARGS \
+#   --cache-from=type=local,src=/tmp/superset \
+#   --cache-to=type=local,ignore-error=true,dest=/tmp/superset \
+#   -t "${REPO_NAME}:${SHA}-py310" \
+#   -t "${REPO_NAME}:${REFSPEC}-py310" \
+#   -t "${REPO_NAME}:${LATEST_TAG}-py310" \
+#   --platform linux/amd64 \
+#   --build-arg PY_VER="3.10-slim-bookworm"\
+#   --label "sha=${SHA}" \
+#   --label "built_at=$(date)" \
+#   --label "target=lean310" \
+#   --label "build_actor=${GITHUB_ACTOR}" \
+#   .
 
 # #
 # # Build the "lean39" image
@@ -159,21 +159,21 @@ docker buildx build --target lean \
 
 
 for BUILD_PLATFORM in $ARCHITECTURE_FOR_BUILD; do
-#
-# Build the "websocket" image
-#
-docker buildx build \
-  $DOCKER_ARGS \
-  --cache-from=type=registry,ref=apache/superset:master-websocket \
-  -t "${REPO_NAME}:${SHA}-websocket" \
-  -t "${REPO_NAME}:${REFSPEC}-websocket" \
-  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
-  --platform ${BUILD_PLATFORM} \
-  --label "sha=${SHA}" \
-  --label "built_at=$(date)" \
-  --label "target=websocket" \
-  --label "build_actor=${GITHUB_ACTOR}" \
-  superset-websocket
+# #
+# # Build the "websocket" image
+# #
+# docker buildx build \
+#   $DOCKER_ARGS \
+#   --cache-from=type=registry,ref=apache/superset:master-websocket \
+#   -t "${REPO_NAME}:${SHA}-websocket" \
+#   -t "${REPO_NAME}:${REFSPEC}-websocket" \
+#   -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
+#   --platform ${BUILD_PLATFORM} \
+#   --label "sha=${SHA}" \
+#   --label "built_at=$(date)" \
+#   --label "target=websocket" \
+#   --label "build_actor=${GITHUB_ACTOR}" \
+#   superset-websocket
 
 #
 # Build the dockerize image
