@@ -835,7 +835,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return {
             "column_name": name,
             "name": name,
-            "type": f"{data_type}",
+            "type": data_type,
             "is_dttm": None,
             "type_generic": None,
         }
