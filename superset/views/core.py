@@ -121,7 +121,7 @@ PARAMETER_MISSING_ERR = __(
 SqlResults = dict[str, Any]
 
 
-class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
+class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)

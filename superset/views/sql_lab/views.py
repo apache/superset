@@ -17,7 +17,7 @@
 import logging
 
 import simplejson as json
-from flask import redirect, request, Response
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
