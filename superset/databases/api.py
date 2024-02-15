@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
+from deprecation import deprecated
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1446,6 +1447,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
     @protect()
     @statsd_metrics
+    @deprecated(deprecated_in="5.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".delete_ssh_tunnel",
