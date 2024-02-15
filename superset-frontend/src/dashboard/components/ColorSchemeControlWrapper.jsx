@@ -45,10 +45,6 @@ class ColorSchemeControlWrapper extends React.PureComponent {
     this.schemes = this.categoricalSchemeRegistry.getMap();
   }
 
-  setHover(hovered) {
-    this.setState({ hovered });
-  }
-
   render() {
     const { colorScheme, labelMargin = 0, hasCustomLabelColors } = this.props;
     return (

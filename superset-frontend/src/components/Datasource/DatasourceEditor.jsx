@@ -27,8 +27,6 @@ import shortid from 'shortid';
 import {
   css,
   isFeatureEnabled,
-  getCurrencySymbol,
-  ensureIsArray,
   FeatureFlag,
   styled,
   SupersetClient,
@@ -50,7 +48,6 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Icons from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
@@ -629,12 +626,6 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
-      value: currencyCode,
-      label: `${getCurrencySymbol({
-        symbol: currencyCode,
-      })} (${currencyCode})`,
-    }));
   }
 
   onChange() {
@@ -1009,37 +1000,6 @@ class DatasourceEditor extends React.PureComponent {
           control={<CheckboxControl controlId="always_filter_main_dttm" />}
         />
       </Fieldset>
-    );
-  }
-
-  renderSpatialTab() {
-    const { datasource } = this.state;
-    const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tabs.TabPane
-        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
-      >
-        <CollectionTable
-          tableColumns={['name', 'config']}
-          onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
-          itemGenerator={() => ({
-            name: t('<new spatial>'),
-            type: t('<no type>'),
-            config: null,
-          })}
-          collection={spatials}
-          allowDeletes
-          itemRenderers={{
-            name: (d, onChange) => (
-              <EditableTitle canEdit title={d} onSaveTitle={onChange} />
-            ),
-            config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={allCols} />
-            ),
-          }}
-        />
-      </Tabs.TabPane>
     );
   }
 

@@ -40,7 +40,13 @@ const defaultProps = {
  * on and prevents those warnings.
  */
 const waitForEffects = () =>
-  act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  act(
+    () =>
+      new Promise(resolve => {
+        setTimeout(resolve, 0);
+        return undefined;
+      }),
+  );
 
 describe('VizTypeControl', () => {
   const registry = getChartMetadataRegistry();

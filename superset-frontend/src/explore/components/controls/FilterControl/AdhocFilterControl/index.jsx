@@ -34,7 +34,6 @@ import {
   Operators,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
-import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
   AddIconButton,
@@ -104,7 +103,6 @@ class AdhocFilterControl extends React.Component {
       isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
     );
 
-    this.optionRenderer = option => <FilterDefinitionOption option={option} />;
     this.valueRenderer = (adhocFilter, index) => (
       <AdhocFilterOption
         key={index}

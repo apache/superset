@@ -147,16 +147,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
     this.setRef = this.setRef.bind(this);
   }
 
-  componentDidMount() {
-    this.mounted = true;
-  }
-
-  componentWillUnmount() {
-    this.mounted = false;
-  }
-
   setRef(ref) {
-    this.ref = ref;
     // this is needed for a custom drag preview
     if (this.props.useEmptyDragPreview) {
       this.props.dragPreviewRef(getEmptyImage(), {
