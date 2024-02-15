@@ -236,7 +236,7 @@ packaging==23.1
     #   shillelagh
 pandas[performance]==2.0.3
     # via apache-superset
-paramiko==2.11.0
+paramiko==3.4.0
     # via sshtunnel
 parsedatetime==2.6
     # via apache-superset
@@ -364,7 +364,7 @@ tzdata==2023.3
     #   pandas
 url-normalize==1.4.3
     # via requests-cache
-urllib3==1.26.6
+urllib3==1.26.18
     # via
     #   requests
     #   requests-cache
