@@ -213,12 +213,6 @@ class DatasourceControl extends React.PureComponent {
     }
   };
 
-  toggleShowDatasource = () => {
-    this.setState(({ showDatasource }) => ({
-      showDatasource: !showDatasource,
-    }));
-  };
-
   toggleChangeDatasourceModal = () => {
     this.setState(({ showChangeDatasourceModal }) => ({
       showChangeDatasourceModal: !showChangeDatasourceModal,
