@@ -22,6 +22,7 @@ rat-results.txt
 babel-node
 dist
 superset/static/*
+version.txt
 build
 superset.egg-info
 apache_superset.egg-info
