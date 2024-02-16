@@ -133,7 +133,7 @@
     "classnames": "^2.2.5",
     "core-js": "^3.6.5",
     "d3-scale": "^2.1.2",
-    "d3-array": "^3.2.4",
+    "d3-array": "^1.2.4",
     "dom-to-image-more": "^3.2.0",
     "dom-to-pdf": "^0.3.2",
     "emotion-rgba": "0.0.12",
