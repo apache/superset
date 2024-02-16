@@ -23,8 +23,10 @@ import {
   getValueFormatter,
   NumberFormats,
   getNumberFormatter,
+  getComparisonTimeRangeText,
+  getComparisonTimeRangeComparator,
+  ComparisonTimeRangeType,
 } from '@superset-ui/core';
-import { computeQueryBComparator, formatCustomComparator } from '../utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -130,14 +132,14 @@ export default function transformProps(chartProps: ChartProps) {
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
   const comparatorText =
-    formData.timeComparison !== 'c'
-      ? ` ${computeQueryBComparator(
+    formData.timeComparison !== ComparisonTimeRangeType.Custom
+      ? ` ${getComparisonTimeRangeComparator(
           formData.adhocFilters,
           formData.timeComparison,
           formData.extraFormData,
           ' - ',
         )}`
-      : `${formatCustomComparator(
+      : `${getComparisonTimeRangeText(
           formData.adhocCustom,
           formData.extraFormData,
         )}`;
