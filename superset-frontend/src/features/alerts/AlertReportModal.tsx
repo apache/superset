@@ -1206,14 +1206,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }
 
   const getTitleText = () => {
-    if (isEditMode && isReport) {
-      return t('Edit Report');
-    } else if (isEditMode) {
-      return t('Edit Alert');
-    } else if (isReport) {
-      return t('Add Report');
+    let titleText;
+
+    switch (true) {
+      case isEditMode && isReport:
+        titleText = t('Edit Report');
+        break;
+      case isEditMode:
+        titleText = t('Edit Alert');
+        break;
+      case isReport:
+        titleText = t('Add Report');
+        break;
+      default:
+        titleText = t('Add Alert');
+        break;
     }
-    return t('Add Alert');
+
+    return titleText;
   };
 
   return (
