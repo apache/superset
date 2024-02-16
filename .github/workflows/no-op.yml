@@ -45,6 +45,23 @@ jobs:
   python-lint:
     strategy:
       matrix:
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
+        platform: ["linux/amd64", "linux/arm64"]
+        exclude:
+          - build_preset: "dev"
+            platform: "linux/arm64"
+          - build_preset: "lean"
+            platform: "linux/arm64"
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for python-lint
+        run: |
+          echo "This is a no-op step for python-lint to ensure a successful status."
+          exit 0
+  # section to be deleted after master merge
+  docker:
+    strategy:
+      matrix:
         python-version: ["3.9"]
     runs-on: ubuntu-latest
     steps:
@@ -52,3 +69,11 @@ jobs:
         run: |
           echo "This is a no-op step for python-lint to ensure a successful status."
           exit 0
+          - docker-build (dev, linux/amd64)
+          - docker-build (lean, linux/amd64)
+          - docker-build (py310, linux/arm64)
+          - docker-build (py310, linux/amd64)
+          - docker-build (websocket, linux/arm64)
+          - docker-build (websocket, linux/amd64)
+          - docker-build (dockerize, linux/arm64)
+          - docker-build (dockerize, linux/amd64)
