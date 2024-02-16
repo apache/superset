@@ -1,5 +1,5 @@
 /* eslint-disable theme-colors/no-literal-colors */
-import React, { useEffect, createRef, useMemo } from 'react';
+import React, { createRef, useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { useTable, Column, useSortBy } from 'react-table';
 import {
@@ -64,6 +64,9 @@ const TableHeader = styled.div`
   text-transform: capitalize;
   padding: 0.875rem;
   min-height: 45px;
+  &:hover {
+    background-color: #ffd9b3;
+  }
 `;
 
 const TableColumn = styled.div`
@@ -81,6 +84,9 @@ const TableColumnText = styled.div`
 
 const TableRow = styled.div`
   display: flex;
+  &:hover {
+    background-color: #fff7ed;
+  }
 `;
 
 const TableCell = styled.div`
@@ -102,16 +108,9 @@ export default function SupersetPluginChartImmersatable(
 
   const rootElem = createRef<HTMLDivElement>();
 
-  useEffect(() => {
-    const root = rootElem.current as HTMLElement;
-    console.log('Plugin element', root);
-  });
-
-  console.log('Plugin props', props);
-
   const DEFAULT_COLUMN_MIN_WIDTH = 160;
 
-  const columnNames = Object.keys(data[0]);
+  const columnNames = useMemo(() => Object.keys(data[0]), [data]);
 
   const columnsMetadata = useMemo(
     () =>

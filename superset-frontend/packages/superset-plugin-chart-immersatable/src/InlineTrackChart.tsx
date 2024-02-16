@@ -2,7 +2,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React, { ComponentProps, ComponentType, memo, useMemo } from 'react';
 import { scaleLinear, scaleTime } from '@visx/scale';
-import { extent, max } from 'd3-array';
+import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { useTooltip, defaultStyles, useTooltipInPortal } from '@visx/tooltip';
 
 import { ParentSize } from '@visx/responsive';
@@ -75,7 +75,7 @@ const InlineTrackChart = withResponsive(
       () =>
         scaleLinear({
           range: [yMax, 0],
-          domain: [0, max(data, getValue) || 0],
+          domain: [0, d3Max(data, getValue) || 0],
           nice: true,
         }),
       [data, yMax],
@@ -85,7 +85,7 @@ const InlineTrackChart = withResponsive(
       () =>
         scaleTime({
           range: [0, xMax],
-          domain: extent(data, getDate) as unknown as [Date, Date],
+          domain: d3Extent(data, getDate) as unknown as [Date, Date],
         }),
       [data, xMax],
     );

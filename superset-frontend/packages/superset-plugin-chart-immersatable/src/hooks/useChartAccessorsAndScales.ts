@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { scaleTime, scaleLinear, scaleBand } from '@visx/scale';
-import { extent } from 'd3-array';
+// import { extent } from 'd3-array';
+import { extent as d3Extent } from 'd3-array';
 import { rgb } from 'd3-color';
 
 import {
@@ -89,7 +90,7 @@ export const useChartAccessorsAndScales = ({
 
     return scaleTime<number>({
       range: [0, width],
-      domain: extent(data as never, getXAxisValue as never) as unknown as [
+      domain: d3Extent(data as never, getXAxisValue as never) as unknown as [
         Date,
         Date,
       ],

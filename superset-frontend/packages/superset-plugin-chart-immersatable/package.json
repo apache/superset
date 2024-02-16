@@ -40,7 +40,8 @@
     "@visx/xychart": "^3.0.0",
     "d3-scale": "^2.1.2",
     "@types/d3-array": "^3.0.4",
-    "d3-array": "^1.2.4",
+    "@types/d3":"3.5.38",
+    "d3-array": "^2.0.3",
     "@types/d3-color": "3.1.0",
     "@visx/tooltip": "3.0.0",
     "@visx/gradient": "^3.0.0"
