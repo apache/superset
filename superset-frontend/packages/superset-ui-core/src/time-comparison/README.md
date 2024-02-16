@@ -38,7 +38,6 @@ or
 import { ComparisonTimeRangeType } from '@superset-ui/core';
 ComparisonTimeRangeType.Custom; // 'c'
 ComparisonTimeRangeType.InheritRange; // 'r'
-
 ```
 
 #### API
