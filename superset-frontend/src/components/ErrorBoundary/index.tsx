@@ -68,9 +68,7 @@ export default class ErrorBoundary extends React.Component<
           <ErrorMessageWithStackTrace
             subtitle={messageElement}
             copyText={messageString}
-            stackTrace={
-              this.state.info ? this.state.info.componentStack : undefined
-            }
+            stackTrace={info?.componentStack}
           />
         );
       }
