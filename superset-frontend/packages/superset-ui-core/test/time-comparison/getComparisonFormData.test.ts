@@ -110,4 +110,55 @@ describe('getComparisonFormData', () => {
     expect(result.adhoc_filters).toEqual(form_data.adhoc_custom);
     expect(result.extra_form_data).toMatchObject({ time_range: undefined });
   });
+
+  it('handles no time range filters', () => {
+    const result = getComparisonFormData(
+      {
+        ...form_data,
+        adhoc_filters: [
+          {
+            expressionType: 'SIMPLE',
+            subject: 'address_line1',
+            operator: 'IN',
+            comparator: ['7734 Strong St.'],
+            clause: 'WHERE',
+            isExtra: false,
+          },
+        ],
+      },
+      ComparisonTimeRangeType.Year,
+      {},
+    );
+
+    const expectedFormData = {
+      adhoc_filters: [
+        { comparator: 'undefined : undefined' },
+        {
+          expressionType: 'SIMPLE',
+          subject: 'address_line1',
+          operator: 'IN',
+          comparator: ['7734 Strong St.'],
+          clause: 'WHERE',
+          isExtra: false,
+        },
+      ],
+    };
+    expect(result.adhoc_filters).toEqual(expectedFormData.adhoc_filters);
+  });
+
+  it('If adhoc_filter is undefrined the code wont break', () => {
+    const result = getComparisonFormData(
+      {
+        ...form_data,
+        adhoc_filters: undefined,
+      },
+      ComparisonTimeRangeType.Year,
+      {},
+    );
+
+    const expectedFormData = {
+      adhoc_filters: [{ comparator: 'undefined : undefined' }],
+    };
+    expect(result.adhoc_filters).toEqual(expectedFormData.adhoc_filters);
+  });
 });

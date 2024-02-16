@@ -19,13 +19,14 @@
 
 import moment, { Moment } from 'moment';
 import { AdhocFilter } from '../types';
+import { t } from '../translation';
 
 type MomentTuple = [moment.Moment | null, moment.Moment | null];
 
 const getSinceUntil = (
-  timeRange: string | null = null,
-  relativeStart: string | null = null,
-  relativeEnd: string | null = null,
+  timeRange?: string,
+  relativeStart?: string,
+  relativeEnd?: string,
 ): MomentTuple => {
   const separator = ' : ';
   const effectiveRelativeStart = relativeStart || 'today';
@@ -37,7 +38,7 @@ const getSinceUntil = (
 
   let modTimeRange: string | null = timeRange;
 
-  if (timeRange === 'NO_TIME_RANGE' || timeRange === '_(NO_TIME_RANGE)') {
+  if (timeRange === 'No filter' || timeRange === t('No filter')) {
     return [null, null];
   }
 
@@ -121,14 +122,10 @@ const getSinceUntil = (
     .map(part => part.trim());
 
   const sinceAndUntil: (Moment | null)[] = sinceAndUntilPartition.map(part => {
-    if (!part) {
-      return null;
-    }
-
     let transformedValue: Moment | null = null;
     // Matching time_range_lookup
     const matched = timeRangeLookup.some(([pattern, fn]) => {
-      const result = part.match(pattern);
+      const result = part?.match(pattern);
       if (result) {
         transformedValue = fn(...result.slice(1));
         return true;
@@ -166,16 +163,16 @@ const getSinceUntil = (
 };
 
 const getTimeRange = (
-  adhocFilters: AdhocFilter[],
-  extraFormData: any,
-): string | null => {
+  adhocFilters?: AdhocFilter[],
+  extraFormData?: any,
+): string | undefined => {
   const timeFilterIndex =
     adhocFilters?.findIndex(
       filter => 'operator' in filter && filter.operator === 'TEMPORAL_RANGE',
     ) ?? -1;
 
   const timeFilter =
-    timeFilterIndex !== -1 ? adhocFilters[timeFilterIndex] : null;
+    timeFilterIndex !== -1 ? adhocFilters?.[timeFilterIndex] : null;
 
   if (
     timeFilter &&
@@ -189,20 +186,18 @@ const getTimeRange = (
     return timeRange;
   }
 
-  return null;
+  return undefined;
 };
 
 export const getComparisonTimeRangeInfo = (
-  adhocFilters: AdhocFilter[],
-  extraFormData: any,
+  adhocFilters?: AdhocFilter[],
+  extraFormData?: any,
 ) => {
   const timeRange = getTimeRange(adhocFilters, extraFormData);
   let since = null;
   let until = null;
 
-  if (timeRange) {
-    [since, until] = getSinceUntil(timeRange);
-  }
+  [since, until] = getSinceUntil(timeRange);
 
   return {
     timeRange,

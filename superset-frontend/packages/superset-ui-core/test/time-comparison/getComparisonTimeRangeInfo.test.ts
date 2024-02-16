@@ -91,4 +91,54 @@ describe('getComparisonTimeRangeInfo', () => {
     expect(result.since?.isValid()).toBeFalsy();
     expect(result.until?.isValid()).toBeFalsy();
   });
+
+  it('handles specific time range lookup patterns', () => {
+    const patterns = [
+      'last day',
+      'last 2 weeks',
+      'next 3 months',
+      'previous calendar month',
+      'previous calendar year',
+      'DATEADD(DATETIME("now"), 1, day)',
+      'DATEADD(DATETIME("2024-02-01"), 1, day)',
+      'DATEADD(DATETIME("invalid"), 1, day)',
+      'now',
+      'previous calendar week',
+      'next week',
+      'last week',
+    ];
+    patterns.forEach(pattern => {
+      const extraFormData = { time_range: pattern };
+      const result = getComparisonTimeRangeInfo(adhocFilters, extraFormData);
+      expect(result.timeRange).toBe(pattern);
+    });
+  });
+
+  it('returns null for No filter', () => {
+    const extraFormData = { time_range: 'No filter' };
+    const result = getComparisonTimeRangeInfo(adhocFilters, extraFormData);
+    expect(result.since?.isValid()).toBeFalsy();
+    expect(result.until?.isValid()).toBeFalsy();
+  });
+
+  it('returns null for 40 years ago', () => {
+    // TODO: Handle Human readable Formats and assert with it
+    const extraFormData = { time_range: '40 years ago' };
+    const result = getComparisonTimeRangeInfo(adhocFilters, extraFormData);
+    expect(result.since?.isValid()).toBeFalsy();
+    expect(result.until?.isValid()).toBeFalsy();
+  });
+
+  it('throws an error when since date is after until date', () => {
+    const extraFormData = { time_range: '2024-02-16 : 2004-02-16' };
+    expect(() => {
+      getComparisonTimeRangeInfo(adhocFilters, extraFormData);
+    }).toThrow('From date cannot be larger than to date');
+  });
+
+  it('Code doesnt break if adhoc_filter is undefined', () => {
+    const result = getComparisonTimeRangeInfo(undefined as any, {});
+    expect(result.since).toBeNull();
+    expect(result.until).toBeNull();
+  });
 });
