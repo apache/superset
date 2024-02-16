@@ -29,21 +29,21 @@ const StyledList = styled.ul`
 export const buildErrorTooltipMessage = (
   validationStatus: ValidationObject,
 ) => {
-    const sectionErrors: string[] = [];
-    Object.values(validationStatus).forEach(section => {
-      if (section.hasErrors) {
-        const sectionTitle = `${section.name}: `;
-        sectionErrors.push(sectionTitle + section.errors.join(', '));
-      }
-    });
-    return (
-      <div>
-        {TRANSLATIONS.ERROR_TOOLTIP_MESSAGE}
-        <StyledList>
-          {sectionErrors.map(err => (
-            <li key={err}>{err}</li>
-          ))}
-        </StyledList>
-      </div>
-    )
+  const sectionErrors: string[] = [];
+  Object.values(validationStatus).forEach(section => {
+    if (section.hasErrors) {
+      const sectionTitle = `${section.name}: `;
+      sectionErrors.push(sectionTitle + section.errors.join(', '));
+    }
+  });
+  return (
+    <div>
+      {TRANSLATIONS.ERROR_TOOLTIP_MESSAGE}
+      <StyledList>
+        {sectionErrors.map(err => (
+          <li key={err}>{err}</li>
+        ))}
+      </StyledList>
+    </div>
+  );
 };

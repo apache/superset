@@ -470,17 +470,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   });
   const [errorTooltipMessage, setErrorTooltipMessage] = useState<ReactNode>('');
 
-  const updateValidationStatus = (
-    section: Sections,
-    errors: string[],
-  ) => {
-
+  const updateValidationStatus = (section: Sections, errors: string[]) => {
     setValidationStatus(currentValidationData => ({
       ...currentValidationData,
       [section]: {
         hasErrors: errors.length > 0,
         name: currentValidationData[section].name,
-        errors: errors,
+        errors,
       },
     }));
   };
@@ -992,7 +988,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.owners?.length) {
       errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
-      updateValidationStatus(Sections.General, errors);
+    updateValidationStatus(Sections.General, errors);
   };
   const validateContentSection = () => {
     const errors = [];
@@ -1004,7 +1000,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
-      updateValidationStatus(Sections.Content, errors);
+    updateValidationStatus(Sections.Content, errors);
   };
   const validateAlertSection = () => {
     const errors = [];
@@ -1023,7 +1019,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
-      updateValidationStatus(Sections.Alert, errors);
+    updateValidationStatus(Sections.Alert, errors);
   };
 
   const validateScheduleSection = () => {
@@ -1064,8 +1060,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const hasErrors = sections.some(
       section => section && validationStatus[section].hasErrors,
     );
-    const tooltip = hasErrors ? buildErrorTooltipMessage(validationStatus) : '' 
-    setErrorTooltipMessage(tooltip)
+    const tooltip = hasErrors ? buildErrorTooltipMessage(validationStatus) : '';
+    setErrorTooltipMessage(tooltip);
     setDisableSave(hasErrors);
   };
 

@@ -284,33 +284,29 @@ test('calls build tooltip', async () => {
     useRedux: true,
   });
   expect(buildErrorTooltipMessage).toHaveBeenCalled();
-  expect(buildErrorTooltipMessage).toHaveBeenLastCalledWith(
-    true,
-    expect.anything(),
-    {
-      alertConditionSection: {
-        errors: ['database', 'sql', 'alert condition'],
-        name: 'Alert condition',
-        hasErrors: true,
-      },
-      contentSection: {
-        errors: ['content type'],
-        name: 'Alert contents',
-        hasErrors: true,
-      },
-      generalSection: {
-        errors: ['name'],
-        name: 'General information',
-        hasErrors: true,
-      },
-      notificationSection: {
-        errors: ['recipients'],
-        name: 'Notification method',
-        hasErrors: true,
-      },
-      scheduleSection: { errors: [], name: 'Schedule', hasErrors: false },
+  expect(buildErrorTooltipMessage).toHaveBeenLastCalledWith({
+    alertConditionSection: {
+      errors: ['database', 'sql', 'alert condition'],
+      name: 'Alert condition',
+      hasErrors: true,
     },
-  );
+    contentSection: {
+      errors: ['content type'],
+      name: 'Alert contents',
+      hasErrors: true,
+    },
+    generalSection: {
+      errors: ['name'],
+      name: 'General information',
+      hasErrors: true,
+    },
+    notificationSection: {
+      errors: ['recipients'],
+      name: 'Notification method',
+      hasErrors: true,
+    },
+    scheduleSection: { errors: [], name: 'Schedule', hasErrors: false },
+  });
 });
 
 // General Section
