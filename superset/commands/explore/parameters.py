@@ -17,8 +17,6 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from flask_appbuilder.security.sqla.models import User
-
 
 @dataclass
 class CommandParameters:
