@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 
 from superset.commands.chart.exceptions import ChartNotFoundError
