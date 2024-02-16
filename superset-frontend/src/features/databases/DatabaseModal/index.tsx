@@ -596,7 +596,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const SSHTunnelSwitchComponent =
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
-  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean | undefined>(
+    undefined,
+  );
 
   let dbConfigExtraExtension = extensionsRegistry.get(
     'databaseconnection.extraOption',
@@ -724,7 +726,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
     setConfirmedOverwrite(false);
-    setUseSSHTunneling(false);
+    setUseSSHTunneling(undefined);
     onHide();
   };
 
@@ -850,27 +852,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     setLoading(true);
 
-    // tunnel config is kept until db is saved for UX convenience (toggling on and off)
     // strictly checking for false as an indication that the toggle got unchecked
-    if (isSSHTunneling && dbToUpdate?.parameters?.ssh === false) {
-      if (db?.id && dbFetched?.ssh_tunnel) {
-        // the db and ssh tunnel exist, should be removed
-        try {
-          await SupersetClient.delete({
-            endpoint: `/api/v1/database/${db.id}/ssh_tunnel/`,
-          });
-        } catch (e) {
-          addDangerToast(
-            t('There was an error removing the SSH tunnel configuration'),
-          );
-          setLoading(false);
-          console.error(e);
-          return;
-        }
-      }
-      handleClearSSHTunnelConfig();
-      // remove ssh tunnel from payload
-      dbToUpdate.ssh_tunnel = undefined;
+    if (isSSHTunneling && useSSHTunneling === false) {
+      // remove ssh tunnel
+      dbToUpdate.ssh_tunnel = null;
     }
 
     if (db?.id) {
@@ -1325,8 +1310,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
-    if (isSSHTunneling) {
-      setUseSSHTunneling(!!db?.parameters?.ssh);
+    if (isSSHTunneling && db?.parameters?.ssh !== undefined) {
+      setUseSSHTunneling(db?.parameters?.ssh);
       handleClearValidationErrors();
     }
   }, [db?.parameters?.ssh]);

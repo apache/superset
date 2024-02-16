@@ -112,7 +112,7 @@ export type DatabaseObject = {
   };
 
   // SSH Tunnel information
-  ssh_tunnel?: SSHTunnelObject;
+  ssh_tunnel?: SSHTunnelObject | null;
 };
 
 export type DatabaseForm = {
@@ -236,8 +236,8 @@ export interface ExtraJson {
   version?: string;
 }
 
-type ParametersChangeValueType = HTMLInputElement & {
-  value: string | boolean;
+type ParametersChangeValueType = Partial<Omit<HTMLInputElement, 'value'>> & {
+  value?: string | boolean;
 };
 
 type ParametersChangeType<T = ParametersChangeValueType> =
