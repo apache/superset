@@ -1205,6 +1205,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(false);
   }
 
+  const getTitleText = () => {
+    if (isEditMode && isReport) {
+      return t('Edit Report');
+    } else if (isEditMode) {
+      return t('Edit Alert');
+    } else if (isReport) {
+      return t('Add Report');
+    } else {
+      return t('Add Alert');
+    }
+  };
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -1217,17 +1229,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       show={show}
       width="500px"
       centered
-      title={
-        <h4 data-test="alert-report-modal-title">
-          {isEditMode && isReport
-            ? t('Edit Report')
-            : isEditMode
-              ? t('Edit Alert')
-              : isReport
-                ? t('Add Report')
-                : t('Add Alert')}
-        </h4>
-      }
+      title={<h4 data-test="alert-report-modal-title">{getTitleText()}</h4>}
     >
       <Collapse
         expandIconPosition="right"
