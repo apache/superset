@@ -36,16 +36,15 @@ jest.mock('src/dashboard/containers/DashboardComponent', () => ({ id }) => (
 jest.mock(
   'src/dashboard/components/DeleteComponentButton',
   () =>
-    ({ onDelete }) =>
-      (
-        <button
-          type="button"
-          data-test="mock-delete-component-button"
-          onClick={onDelete}
-        >
-          Delete
-        </button>
-      ),
+    ({ onDelete }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
 );
 
 fetchMock.post('glob:*/r/shortener/', {});

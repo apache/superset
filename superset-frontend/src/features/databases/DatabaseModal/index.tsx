@@ -1541,8 +1541,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         typeof dbErrors === 'object'
           ? Object.values(dbErrors)
           : typeof dbErrors === 'string'
-          ? [dbErrors]
-          : [];
+            ? [dbErrors]
+            : [];
     } else if (
       !isEmpty(validationErrors) &&
       validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'

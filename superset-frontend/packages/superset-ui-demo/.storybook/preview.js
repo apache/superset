@@ -1,4 +1,3 @@
-import { addParameters, addDecorator } from '@storybook/react';
 import { jsxDecorator } from 'storybook-addon-jsx';
 import {
   configure,
@@ -16,10 +15,9 @@ import themeDecorator from './themeDecorator';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './storybook.css';
 
-addDecorator(jsxDecorator);
-addDecorator(themeDecorator);
+export const decorators = [jsxDecorator, themeDecorator];
 
-addParameters({
+export const parameters = {
   passArgsFirst: false,
   options: {
     name: '✨ Superset UI',
@@ -36,25 +34,25 @@ addParameters({
     sortStoriesByKind: false,
     url: '#',
     storySort: (a, b) => {
-      if (a[1].kind === b[1].kind) {
+      if (a.kind === b.kind) {
         return 0;
       }
       if (
-        a[1].id.startsWith('core-packages') &&
-        !b[1].id.startsWith('core-packages')
+        a.id.startsWith('core-packages') &&
+        !b.id.startsWith('core-packages')
       ) {
         return -1;
       }
       if (
-        !a[1].id.startsWith('core-packages') &&
-        b[1].id.startsWith('core-packages')
+        !a.id.startsWith('core-packages') &&
+        b.id.startsWith('core-packages')
       ) {
         return 1;
       }
-      return a[1].id.localeCompare(b[1].id, undefined, { numeric: true });
+      return a.id.localeCompare(b.id, undefined, { numeric: true });
     },
   },
-});
+};
 
 // Superset setup
 

@@ -60,4 +60,5 @@ export type PopKPIProps = PopKPIStylesProps &
     percentDifferenceFormattedString: string;
     compType: string;
     percentDifferenceNumber: number;
+    comparatorText: string;
   };

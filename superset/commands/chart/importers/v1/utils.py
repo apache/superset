@@ -20,9 +20,7 @@ import json
 from inspect import isclass
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
@@ -46,13 +44,12 @@ def filter_chart_annotations(chart_config: dict[str, Any]) -> None:
 
 
 def import_chart(
-    session: Session,
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
-    existing = session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
     if existing:
         if overwrite and can_write and get_user():
             if not security_manager.can_access_chart(existing):
@@ -76,11 +73,9 @@ def import_chart(
     # migrate old viz types to new ones
     config = migrate_chart(config)
 
-    chart = Slice.import_from_dict(
-        session, config, recursive=False, allow_reparenting=True
-    )
+    chart = Slice.import_from_dict(config, recursive=False, allow_reparenting=True)
     if chart.id is None:
-        session.flush()
+        db.session.flush()
 
     if user := get_user():
         chart.owners.append(user)
