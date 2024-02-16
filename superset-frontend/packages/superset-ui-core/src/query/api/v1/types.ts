@@ -28,8 +28,8 @@ import {
 export type ParsedResponseType<T> = T extends 'text'
   ? string
   : T extends 'raw' | null
-  ? Response
-  : JsonValue;
+    ? Response
+    : JsonValue;
 
 /**
  * Runtime options when calling a Superset API. Currently only allow overriding

@@ -24,6 +24,7 @@ import {
   NumberFormats,
   getNumberFormatter,
 } from '@superset-ui/core';
+import { computeQueryBComparator, formatCustomComparator } from '../utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -81,6 +82,7 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorEnabled,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const { data: dataB = [] } = queriesData[1];
@@ -112,15 +114,33 @@ export default function transformProps(chartProps: ChartProps) {
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
-  const percentDifferenceNum = prevNumber
-    ? (bigNumber - prevNumber) / Math.abs(prevNumber)
-    : 0;
+  let percentDifferenceNum;
+
+  if (!bigNumber && !prevNumber) {
+    percentDifferenceNum = 0;
+  } else if (!bigNumber || !prevNumber) {
+    percentDifferenceNum = bigNumber ? 1 : -1;
+  } else {
+    percentDifferenceNum = (bigNumber - prevNumber) / Math.abs(prevNumber);
+  }
 
   const compType = compTitles[formData.timeComparison];
   bigNumber = numberFormatter(bigNumber);
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
+  const comparatorText =
+    formData.timeComparison !== 'c'
+      ? ` ${computeQueryBComparator(
+          formData.adhocFilters,
+          formData.timeComparison,
+          formData.extraFormData,
+          ' - ',
+        )}`
+      : `${formatCustomComparator(
+          formData.adhocCustom,
+          formData.extraFormData,
+        )}`;
 
   return {
     width,
@@ -132,11 +152,14 @@ export default function transformProps(chartProps: ChartProps) {
     bigNumber,
     prevNumber,
     valueDifference,
-    percentDifference,
+    percentDifferenceFormattedString: percentDifference,
     boldText,
     headerFontSize,
     subheaderFontSize,
     headerText,
     compType,
+    comparisonColorEnabled,
+    percentDifferenceNumber: percentDifferenceNum,
+    comparatorText,
   };
 }

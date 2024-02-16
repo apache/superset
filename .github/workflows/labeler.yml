@@ -10,3 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/labeler@v5
+      with:
+        sync-labels: true
+
+    # TODO: run scripts based on labels!
+    # - id: run-translation-scripts
+    #   if: contains(steps.label-the-PR.outputs.all-labels, 'i18n')
+    #   run: |
+    #     echo "Running translation scripts"
+    #     # Generate .pot -> .po -> .json files

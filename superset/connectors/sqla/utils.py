@@ -26,10 +26,10 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import ObjectDeletedError
 from sqlalchemy.sql.type_api import TypeEngine
 
+from superset import db
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -168,14 +168,12 @@ logger = logging.getLogger(__name__)
 
 
 def find_cached_objects_in_session(
-    session: Session,
     cls: type[DeclarativeModel],
     ids: Iterable[int] | None = None,
     uuids: Iterable[UUID] | None = None,
 ) -> Iterator[DeclarativeModel]:
     """Find known ORM instances in cached SQLA session states.
 
-    :param session: a SQLA session
     :param cls: a SQLA DeclarativeModel
     :param ids: ids of the desired model instances (optional)
     :param uuids: uuids of the desired instances, will be ignored if `ids` are provides
@@ -184,7 +182,7 @@ def find_cached_objects_in_session(
         return iter([])
     uuids = uuids or []
     try:
-        items = list(session)
+        items = list(db.session)
     except ObjectDeletedError:
         logger.warning("ObjectDeletedError", exc_info=True)
         return iter(())

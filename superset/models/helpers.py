@@ -46,13 +46,13 @@ from jinja2.exceptions import TemplateError
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, Session, validates
+from sqlalchemy.orm import Mapper, validates
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -89,6 +89,7 @@ from superset.utils.core import (
     get_column_name,
     get_user_id,
     is_adhoc_column,
+    MediumText,
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -245,7 +246,6 @@ class ImportExportMixin:
     def import_from_dict(
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
-        session: Session,
         dict_rep: dict[Any, Any],
         parent: Optional[Any] = None,
         recursive: bool = True,
@@ -303,7 +303,7 @@ class ImportExportMixin:
 
         # Check if object already exists in DB, break if more than one is found
         try:
-            obj_query = session.query(cls).filter(and_(*filters))
+            obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
         except MultipleResultsFound as ex:
             logger.error(
@@ -322,7 +322,7 @@ class ImportExportMixin:
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
-            session.add(obj)
+            db.session.add(obj)
         else:
             is_new_obj = False
             logger.info("Updating %s %s", obj.__tablename__, str(obj))
@@ -341,7 +341,7 @@ class ImportExportMixin:
                 for c_obj in new_children.get(child, []):
                     added.append(
                         child_class.import_from_dict(
-                            session=session, dict_rep=c_obj, parent=obj, sync=sync
+                            dict_rep=c_obj, parent=obj, sync=sync
                         )
                     )
                 # If children should get synced, delete the ones that did not
@@ -353,11 +353,11 @@ class ImportExportMixin:
                         for k in back_refs.keys()
                     ]
                     to_delete = set(
-                        session.query(child_class).filter(and_(*delete_filters))
+                        db.session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
                         logger.info("Deleting %s %s", child, str(obj))
-                        session.delete(o)
+                        db.session.delete(o)
 
         return obj
 
@@ -585,7 +585,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
 class ExtraJSONMixin:
     """Mixin to add an `extra` column (JSON) and utility methods"""
 
-    extra_json = sa.Column(sa.Text, default="{}")
+    extra_json = sa.Column(MediumText(), default="{}")
 
     @property
     def extra(self) -> dict[str, Any]:
@@ -1340,7 +1340,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return and_(*l)
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, denormalize_column: bool = False
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -1378,6 +1381,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
+            # replace NaN with None to ensure it can be serialized to JSON
+            df = df.replace({np.nan: None})
             return df["column_values"].to_list()
 
     def get_timestamp_expression(

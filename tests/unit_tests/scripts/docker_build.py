@@ -56,53 +56,57 @@ def test_is_latest_release(release, expected_bool):
 
 
 @pytest.mark.parametrize(
-    "build_preset, build_platform, sha, build_context, build_context_ref, expected_tags",
+    "build_preset, build_platforms, sha, build_context, build_context_ref, expected_tags",
     [
         # PRs
         (
             "lean",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-arm", f"{REPO}:{SHA}-arm"],
+            [f"{REPO}:22e7c60-arm", f"{REPO}:{SHA}-arm", f"{REPO}:pr-{PR_ID}-arm"],
         ),
         (
             "ci",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-ci", f"{REPO}:{SHA}-ci"],
+            [f"{REPO}:22e7c60-ci", f"{REPO}:{SHA}-ci", f"{REPO}:pr-{PR_ID}-ci"],
         ),
         (
             "lean",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60", f"{REPO}:{SHA}"],
+            [f"{REPO}:22e7c60", f"{REPO}:{SHA}", f"{REPO}:pr-{PR_ID}"],
         ),
         (
             "dev",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-dev-arm", f"{REPO}:{SHA}-dev-arm"],
+            [
+                f"{REPO}:22e7c60-dev-arm",
+                f"{REPO}:{SHA}-dev-arm",
+                f"{REPO}:pr-{PR_ID}-dev-arm",
+            ],
         ),
         (
             "dev",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "pull_request",
             PR_ID,
-            [f"{REPO}:22e7c60-dev", f"{REPO}:{SHA}-dev"],
+            [f"{REPO}:22e7c60-dev", f"{REPO}:{SHA}-dev", f"{REPO}:pr-{PR_ID}-dev"],
         ),
         # old releases
         (
             "lean",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "release",
             OLD_REL,
@@ -110,7 +114,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "lean",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "release",
             OLD_REL,
@@ -118,7 +122,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "release",
             OLD_REL,
@@ -130,7 +134,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "release",
             OLD_REL,
@@ -139,7 +143,7 @@ def test_is_latest_release(release, expected_bool):
         # new releases
         (
             "lean",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "release",
             NEW_REL,
@@ -152,7 +156,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "lean",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "release",
             NEW_REL,
@@ -160,7 +164,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "release",
             NEW_REL,
@@ -173,7 +177,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "release",
             NEW_REL,
@@ -187,7 +191,7 @@ def test_is_latest_release(release, expected_bool):
         # merge on master
         (
             "lean",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "push",
             "master",
@@ -195,7 +199,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "lean",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "push",
             "master",
@@ -203,7 +207,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/arm64",
+            ["linux/arm64"],
             SHA,
             "push",
             "master",
@@ -215,7 +219,7 @@ def test_is_latest_release(release, expected_bool):
         ),
         (
             "dev",
-            "linux/amd64",
+            ["linux/amd64"],
             SHA,
             "push",
             "master",
@@ -224,21 +228,21 @@ def test_is_latest_release(release, expected_bool):
     ],
 )
 def test_get_docker_tags(
-    build_preset, build_platform, sha, build_context, build_context_ref, expected_tags
+    build_preset, build_platforms, sha, build_context, build_context_ref, expected_tags
 ):
     tags = docker_utils.get_docker_tags(
-        build_preset, build_platform, sha, build_context, build_context_ref
+        build_preset, build_platforms, sha, build_context, build_context_ref
     )
     for tag in expected_tags:
         assert tag in tags
 
 
 @pytest.mark.parametrize(
-    "build_preset, build_platform, is_authenticated, sha, build_context, build_context_ref, contains",
+    "build_preset, build_platforms, is_authenticated, sha, build_context, build_context_ref, contains",
     [
         (
             "lean",
-            "linux/amd64",
+            ["linux/amd64"],
             True,
             SHA,
             "push",
@@ -247,18 +251,28 @@ def test_get_docker_tags(
         ),
         (
             "dev",
-            "linux/amd64",
+            ["linux/amd64"],
             False,
             SHA,
             "push",
             "master",
-            ["--load", f"-t {REPO}:master-dev "],
+            ["--load", f"-t {REPO}:master-dev ", "--target dev"],
+        ),
+        # multi-platform
+        (
+            "lean",
+            ["linux/arm64", "linux/amd64"],
+            True,
+            SHA,
+            "push",
+            "master",
+            [f"--platform linux/arm64,linux/amd64"],
         ),
     ],
 )
 def test_get_docker_command(
     build_preset,
-    build_platform,
+    build_platforms,
     is_authenticated,
     sha,
     build_context,
@@ -267,7 +281,7 @@ def test_get_docker_command(
 ):
     cmd = docker_utils.get_docker_command(
         build_preset,
-        build_platform,
+        build_platforms,
         is_authenticated,
         sha,
         build_context,

@@ -48,11 +48,3 @@ InteractiveTags.args = {
   editable,
   maxTags,
 };
-
-InteractiveTags.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -60,8 +60,8 @@ const HeaderButton = styled(Button)`
 const Wrapper = styled.div`
   ${({ theme }) => `
     padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
-    theme.gridUnit
-  }px;
+      theme.gridUnit
+    }px;
 
     .ant-dropdown-trigger span {
       padding-right: ${theme.gridUnit * 2}px;

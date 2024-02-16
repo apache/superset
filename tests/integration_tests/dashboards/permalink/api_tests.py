@@ -42,10 +42,8 @@ STATE = {
 
 @pytest.fixture
 def dashboard_id(load_world_bank_dashboard_with_slices) -> int:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        dashboard = session.query(Dashboard).filter_by(slug="world_health").one()
-        return dashboard.id
+    dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+    return dashboard.id
 
 
 @pytest.fixture

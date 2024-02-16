@@ -35,8 +35,17 @@ export default class PopKPIPlugin extends ChartPlugin {
    */
   constructor() {
     const metadata = new ChartMetadata({
-      description: 'KPI viz for comparing multiple period',
+      category: t('KPI'),
+      description:
+        'Showcases a metric along with a comparison of value, change, and percent change for a selected time period.',
       name: t('Big Number with Time Period Comparison'),
+      tags: [
+        t('Comparison'),
+        t('Business'),
+        t('Percentages'),
+        t('Report'),
+        t('Description'),
+      ],
       thumbnail,
     });
 

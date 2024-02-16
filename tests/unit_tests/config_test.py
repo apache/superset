@@ -23,6 +23,8 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
@@ -81,7 +83,7 @@ def test_table(session: Session) -> "SqlaTable":
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     columns = [

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  CurrencyFormatter,
   DataRecordValue,
   GenericDataType,
   getNumberFormatter,
@@ -64,7 +65,12 @@ export function formatColumnValue(
   const smallNumberFormatter =
     config.d3SmallNumberFormat === undefined
       ? formatter
-      : getNumberFormatter(config.d3SmallNumberFormat);
+      : config.currencyFormat
+        ? new CurrencyFormatter({
+            d3Format: config.d3SmallNumberFormat,
+            currency: config.currencyFormat,
+          })
+        : getNumberFormatter(config.d3SmallNumberFormat);
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter

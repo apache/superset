@@ -248,8 +248,8 @@ export const useFilteredTableData = (
       return [];
     }
     return data.filter((_, index: number) =>
-      rowsAsStrings[index].some(value =>
-        value?.includes(filterText.toLowerCase()),
+      rowsAsStrings[index].some(
+        value => value?.includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText, rowsAsStrings]);

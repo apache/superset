@@ -19,6 +19,8 @@ from typing import Any
 
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
 
 def test_put_invalid_dataset(
     session: Session,
@@ -31,7 +33,7 @@ def test_put_invalid_dataset(
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
 
-    SqlaTable.metadata.create_all(session.get_bind())
+    SqlaTable.metadata.create_all(db.session.get_bind())
 
     database = Database(
         database_name="my_db",
@@ -41,8 +43,8 @@ def test_put_invalid_dataset(
         table_name="test_put_invalid_dataset",
         database=database,
     )
-    session.add(dataset)
-    session.flush()
+    db.session.add(dataset)
+    db.session.flush()
 
     response = client.put(
         "/api/v1/dataset/1",
