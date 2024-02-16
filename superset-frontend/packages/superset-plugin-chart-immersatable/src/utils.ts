@@ -12,7 +12,12 @@ export const ChartSliderBorderPadding = 8;
 
 export const ChartSliderHeight = 32;
 
-export const ChartXYContainerDefaultMargin = { top: 0, right: 80, bottom: 25, left: 22 };
+export const ChartXYContainerDefaultMargin = {
+  top: 0,
+  right: 80,
+  bottom: 25,
+  left: 22,
+};
 
 export const ChartDefaultSeriesSecondaryColor = '#40A9FF';
 
@@ -85,18 +90,25 @@ export const ChartBottomAxisLongLabelConfig = {
 };
 
 export const formatISO = (date: string | Date, dateFormat: string) =>
-  date instanceof Date ? format(date, dateFormat) : format(parseISO(date), dateFormat);
+  date instanceof Date
+    ? format(date, dateFormat)
+    : format(parseISO(date), dateFormat);
 
-export const formatDateForChart = (value: string, { includeDay } = { includeDay: true }) =>
-  formatISO(value, `MMM${includeDay ? ' d,' : ''} ''yy`);
+export const formatDateForChart = (
+  value: string,
+  { includeDay } = { includeDay: true },
+) => formatISO(value, `MMM${includeDay ? ' d,' : ''} ''yy`);
 
 export const formatNumber = (
-    rawValue: number | string,
-    options?: Intl.NumberFormatOptions | undefined,
+  rawValue: number | string,
+  options?: Intl.NumberFormatOptions | undefined,
 ) => {
-    const value = Number(rawValue);
-    return Intl.NumberFormat('en', options).format(value);
+  const value = Number(rawValue);
+  return Intl.NumberFormat('en', options).format(value);
 };
 
 export const toStandardAmount = (rawValue: number | string, decimals = 2) =>
-  formatNumber(rawValue, { notation: 'standard', maximumFractionDigits: decimals });
+  formatNumber(rawValue, {
+    notation: 'standard',
+    maximumFractionDigits: decimals,
+  });

@@ -40,11 +40,15 @@ export const TinyTooltip = ({
   data,
 }: TinyTooltipProps) => {
   const bisectDate = bisector<ChartDataItem, Date>(
-    (historicalData) => new Date(historicalData.xAxis),
+    historicalData => new Date(historicalData.xAxis),
   ).left;
 
   const handleTooltip = useCallback(
-    (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
+    (
+      event:
+        | React.TouchEvent<SVGRectElement>
+        | React.MouseEvent<SVGRectElement>,
+    ) => {
       const { x: xPoint } = localPoint(event) || { x: 0 };
       const xPoint0 = xScale.invert(xPoint);
       const index = bisectDate(data, xPoint0, 1);

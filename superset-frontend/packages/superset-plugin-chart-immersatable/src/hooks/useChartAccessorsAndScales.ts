@@ -11,13 +11,20 @@ import {
   ChartGenericDataItem,
 } from '../types';
 
-const getDateValue = (datum: ChartGenericDataItem | ChartDataItem, fieldName: string) =>
-  new Date(datum[fieldName as never]);
+const getDateValue = (
+  datum: ChartGenericDataItem | ChartDataItem,
+  fieldName: string,
+) => new Date(datum[fieldName as never]);
 
-const getNumberValue = (datum: ChartGenericDataItem | ChartDataItem, fieldName: string) =>
-  +datum[fieldName as never] as number;
+const getNumberValue = (
+  datum: ChartGenericDataItem | ChartDataItem,
+  fieldName: string,
+) => +datum[fieldName as never] as number;
 
-const getStringValue = (datum: ChartGenericDataItem | ChartDataItem, fieldName: string) => {
+const getStringValue = (
+  datum: ChartGenericDataItem | ChartDataItem,
+  fieldName: string,
+) => {
   if (datum === undefined) return '';
   return datum[fieldName as never] as string;
 };
@@ -62,7 +69,8 @@ export const useChartAccessorsAndScales = ({
   );
 
   const getYAxisValue = useCallback(
-    (datum: ChartGenericDataItem | ChartDataItem) => getNumberValue(datum, yField) as number,
+    (datum: ChartGenericDataItem | ChartDataItem) =>
+      getNumberValue(datum, yField) as number,
     [yField],
   );
 
@@ -81,7 +89,10 @@ export const useChartAccessorsAndScales = ({
 
     return scaleTime<number>({
       range: [0, width],
-      domain: extent(data as never, getXAxisValue as never) as unknown as [Date, Date],
+      domain: extent(data as never, getXAxisValue as never) as unknown as [
+        Date,
+        Date,
+      ],
     });
   }, [width, data, getXAxisValue]);
 
@@ -92,9 +103,9 @@ export const useChartAccessorsAndScales = ({
 
     if (hasSeries) {
       const uniqueXValues = [...new Set(data.map(getXAxisValue))];
-      const totals = uniqueXValues.map((xValue) => {
+      const totals = uniqueXValues.map(xValue => {
         const subtotal = (data as ChartData)
-          .filter((datum) => datum.xAxis === xValue)
+          .filter(datum => datum.xAxis === xValue)
           .reduce((acc, current) => acc + (current.yAxis as number), 0);
         return subtotal;
       });

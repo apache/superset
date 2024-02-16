@@ -26,9 +26,22 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
+ "dependencies": {
+    "date-fns" : "^2.27.0",
+    "react-table": "^7.8.0",
+    "@visx/curve": "^3.3.0",
+    "@visx/axis": "^3.8.0",
+    "@visx/grid": "^3.5.0",
+    "@visx/responsive": "^3.0.0",
+    "@visx/shape": "3.5.0",
+    "@visx/scale": "^3.0.0",
+    "@visx/event": "3.0.0",
+    "@visx/group": "3.0.0",
+    "@visx/xychart": "^3.0.0",
+    "d3-scale": "^2.1.2",
     "@types/d3-array": "^3.0.4",
     "d3-array": "^3.2.3",
+    "@types/d3-color": "3.1.0",
     "@visx/tooltip": "3.0.0",
     "@visx/gradient": "^3.0.0"
   },

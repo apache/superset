@@ -18,7 +18,6 @@
  */
 import { QueryFormData, supersetTheme } from '@superset-ui/core';
 
-
 export interface SupersetPluginChartImmersatableStylesProps {
   height: number;
   width: number;
@@ -34,13 +33,14 @@ export type SupersetPluginChartHelloWorldQueryFormData = QueryFormData &
   SupersetPluginChartImmersatableStylesProps &
   SupersetPluginChartHelloWorldCustomizeProps;
 
-export type SupersetPluginChartImmersatableProps = SupersetPluginChartImmersatableStylesProps &
-  SupersetPluginChartHelloWorldCustomizeProps & {
-    data: DataType[];
-    // add typing here for the props you pass in from transformProps.ts!
-  };
+export type SupersetPluginChartImmersatableProps =
+  SupersetPluginChartImmersatableStylesProps &
+    SupersetPluginChartHelloWorldCustomizeProps & {
+      data: DataType[];
+      // add typing here for the props you pass in from transformProps.ts!
+    };
 
-  //TData
+// TData
 // export type VaccineData = {
 //   clinical_trials: string
 //   count: number
@@ -67,7 +67,12 @@ export type ColorsVariants = {
 };
 
 export type ChartData = ChartDataItem[];
-export type ChartMargin = { top: number; right: number; bottom: number; left: number };
+export type ChartMargin = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
 export type ChartDataType = 'date' | 'string' | 'number';
 
 export type DataType = Record<string, unknown>;

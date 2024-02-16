@@ -164,7 +164,7 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         new SupersetPluginChartImmersatable().configure({
-          key: "ext-immersa-table",
+          key: 'ext-immersa-table',
         }),
         ...experimentalPlugins,
       ],

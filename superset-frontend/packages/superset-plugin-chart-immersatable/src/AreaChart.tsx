@@ -7,7 +7,13 @@ import { curveMonotoneX } from '@visx/curve';
 
 import { ChartData, ChartMargin, ChartDataType, ChartDataItem } from './types';
 import { useChartAccessorsAndScales } from './hooks';
-import { ChartBottomAxisBaseConfig, ChartLeftAxisBaseConfig, ChartSliderHeight, ChartSliderSeparation, formatDateForChart } from './utils';
+import {
+  ChartBottomAxisBaseConfig,
+  ChartLeftAxisBaseConfig,
+  ChartSliderHeight,
+  ChartSliderSeparation,
+  formatDateForChart,
+} from './utils';
 
 export interface IAreaChartProps {
   id: string;
@@ -58,7 +64,9 @@ export const AreaChart = ({
     let chartHeight = innerHeight;
 
     if (hasSlider) {
-      const sliderSeparation = compact ? ChartSliderSeparation / 2 : ChartSliderSeparation;
+      const sliderSeparation = compact
+        ? ChartSliderSeparation / 2
+        : ChartSliderSeparation;
       chartHeight = innerHeight - sliderSeparation - ChartSliderHeight;
     }
 
@@ -71,14 +79,15 @@ export const AreaChart = ({
     };
   }, [compact, height, margin, width, hasSlider]);
 
-  const { getXAxisValue, getYAxisValue, xScale, yScale } = useChartAccessorsAndScales({
-    data,
-    dataType,
-    xField,
-    yField,
-    width: bounds.xMax,
-    height: bounds.yMax,
-  });
+  const { getXAxisValue, getYAxisValue, xScale, yScale } =
+    useChartAccessorsAndScales({
+      data,
+      dataType,
+      xField,
+      yField,
+      width: bounds.xMax,
+      height: bounds.yMax,
+    });
 
   if (width < 10) return null;
 
@@ -94,8 +103,10 @@ export const AreaChart = ({
 
       <AreaClosed<ChartDataItem>
         data={data}
-        x={(datum) => (xScale as (arg: string | Date) => number)(getXAxisValue(datum)) || 0}
-        y={(datum) => yScale?.(getYAxisValue(datum)) || 0}
+        x={datum =>
+          (xScale as (arg: string | Date) => number)(getXAxisValue(datum)) || 0
+        }
+        y={datum => yScale?.(getYAxisValue(datum)) || 0}
         yScale={yScale as never}
         strokeWidth={1}
         stroke={`url(#${id}-chart-gradient)`}
@@ -108,13 +119,19 @@ export const AreaChart = ({
           top={bounds.yMax}
           scale={xScale as never}
           numTicks={width > 520 ? 10 : 5}
-          tickFormat={dataType === 'date' ? (formatDateForChart as never) : undefined}
+          tickFormat={
+            dataType === 'date' ? (formatDateForChart as never) : undefined
+          }
           {...ChartBottomAxisBaseConfig}
         />
       )}
 
       {!hideLeftAxis && (
-        <AxisLeft scale={yScale as never} numTicks={5} {...ChartLeftAxisBaseConfig} />
+        <AxisLeft
+          scale={yScale as never}
+          numTicks={5}
+          {...ChartLeftAxisBaseConfig}
+        />
       )}
 
       {children}

@@ -1,9 +1,13 @@
 import React, { useEffect, createRef, useMemo } from 'react';
 import { styled } from '@superset-ui/core';
-import { useTable, Column , useSortBy} from 'react-table';
-import { ChartData, DataType, SupersetPluginChartImmersatableProps, SupersetPluginChartImmersatableStylesProps } from './types';
+import { useTable, Column, useSortBy } from 'react-table';
+import {
+  ChartData,
+  DataType,
+  SupersetPluginChartImmersatableProps,
+  SupersetPluginChartImmersatableStylesProps,
+} from './types';
 import { TimeSeriesCell } from './TimeSeries';
-
 
 const Styles = styled.div<SupersetPluginChartImmersatableStylesProps>`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
@@ -75,7 +79,7 @@ const TableColumnText = styled.div`
 `;
 
 const TableRow = styled.div`
- display: flex;
+  display: flex;
 `;
 
 const TableCell = styled.div`
@@ -90,13 +94,13 @@ const TableCell = styled.div`
   text-align: left;
 `;
 
-export default function SupersetPluginChartImmersatable(props: SupersetPluginChartImmersatableProps) {
-
+export default function SupersetPluginChartImmersatable(
+  props: SupersetPluginChartImmersatableProps,
+) {
   const { data, height, width } = props;
 
   const rootElem = createRef<HTMLDivElement>();
 
- 
   useEffect(() => {
     const root = rootElem.current as HTMLElement;
     console.log('Plugin element', root);
@@ -106,62 +110,56 @@ export default function SupersetPluginChartImmersatable(props: SupersetPluginCha
 
   const DEFAULT_COLUMN_MIN_WIDTH = 160;
 
-  const columnNames = Object.keys(data[0])
-  
+  const columnNames = Object.keys(data[0]);
 
-  const columnsMetadata = useMemo(()=>{
-    return   columnNames.map((metadata)=>{
-      return { width: DEFAULT_COLUMN_MIN_WIDTH,
-        name:metadata,
-        label:metadata,
+  const columnsMetadata = useMemo(
+    () =>
+      columnNames.map(metadata => ({
+        width: DEFAULT_COLUMN_MIN_WIDTH,
+        name: metadata,
+        label: metadata,
         minWidth: null,
         maxWidth: null,
         sortable: true,
         sortDescFirst: true,
-      }
-    })
-  },columnNames)
+      })),
+    columnNames,
+  );
 
-  const columns: Column<DataType>[] = useMemo(() => {
-    return columnsMetadata.map((columnMetadata) => {
-      return {
+  const columns: Column<DataType>[] = useMemo(
+    () =>
+      columnsMetadata.map(columnMetadata => ({
         Header: columnMetadata.label,
         accessor: columnMetadata.name,
         Cell: (info: any) => {
-          const value = info.value;
+          const { value } = info;
           if (
             value &&
-            value.toString().includes("[") &&
+            value.toString().includes('[') &&
             Array.isArray(JSON.parse(value as string))
           ) {
-            const chartData = JSON.parse(value).map((row: any) => {
-              return {
-                xAxis: row[0],
-                yAxis: row[1],
-              };
-            });
+            const chartData = JSON.parse(value).map((row: any) => ({
+              xAxis: row[0],
+              yAxis: row[1],
+            }));
             return (
               <TimeSeriesCell value="" chartData={chartData as ChartData} />
             );
-          } else {
-            return value;
           }
+          return value;
         },
-      };
-    });
-  }, [columnsMetadata]);
+      })),
+    [columnsMetadata],
+  );
 
-
-  const {
-  headerGroups,
-  rows,
-  prepareRow,
-  getTableProps,
-  getTableBodyProps,
-} = useTable({
-  columns,
-  data,
-},useSortBy);
+  const { headerGroups, rows, prepareRow, getTableProps, getTableBodyProps } =
+    useTable(
+      {
+        columns,
+        data,
+      },
+      useSortBy,
+    );
 
   return (
     <Styles
@@ -172,102 +170,98 @@ export default function SupersetPluginChartImmersatable(props: SupersetPluginCha
       width={width}
     >
       <ContainerStyle>
-      <HeaderText>{props.headerText}</HeaderText>
-      
-      <div {...getTableProps()}>
-        {headerGroups.map((headerGroup) => (
-        <TableHeaderGroup
-          {...headerGroup.getHeaderGroupProps()}
-          key={headerGroup.id}
-        >
-          {headerGroup.headers.map((column) => {
-            console.log("column",column)
-            return (
-            <TableHeader
-              key={column.id}
+        <HeaderText>{props.headerText}</HeaderText>
+
+        <div {...getTableProps()}>
+          {headerGroups.map(headerGroup => (
+            <TableHeaderGroup
+              {...headerGroup.getHeaderGroupProps()}
+              key={headerGroup.id}
             >
-               <div {...column.getHeaderProps(column.getSortByToggleProps())}>
-                 <TableColumn>
-                  <TableColumnText {...column.getHeaderProps()}
-                  >
-                {column.render('Header')}
-                  </TableColumnText>
-                   <span>
-                        <div
-                          style={{
-                            display: "flex",
-                            position: "relative",
-                          }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
+              {headerGroup.headers.map(column => {
+                console.log('column', column);
+                return (
+                  <TableHeader key={column.id}>
+                    <div
+                      {...column.getHeaderProps(column.getSortByToggleProps())}
+                    >
+                      <TableColumn>
+                        <TableColumnText {...column.getHeaderProps()}>
+                          {column.render('Header')}
+                        </TableColumnText>
+                        <span>
+                          <div
                             style={{
-                              height: "1.35rem",
-                              width: "1.35rem",
-                              color:
-                                column.isSorted && !column.isSortedDesc
-                                  ? "orange"
-                                  : "gray",
+                              display: 'flex',
+                              position: 'relative',
                             }}
                           >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 15a.75.75 0 01-.75-.75V7.612L7.29 9.77a.75.75 0 01-1.08-1.04l3.25-3.5a.75.75 0 011.08 0l3.25 3.5a.75.75 0 11-1.08 1.04l-1.96-2.158v6.638A.75.75 0 0110 15z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            style={{
-                              height: "1.35rem",
-                              width: "1.35rem",
-                              color:
-                                column.isSorted && column.isSortedDesc
-                                  ? "orange"
-                                  : "gray",
-                              marginLeft: "0.4rem",
-                              marginTop: "0.25rem",
-                              position: "absolute",
-                            }}
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 5a.75.75 0 01.75.75v6.638l1.96-2.158a.75.75 0 111.08 1.04l-3.25 3.5a.75.75 0 01-1.08 0l-3.25-3.5a.75.75 0 111.08-1.04l1.96 2.158V5.75A.75.75 0 0110 5z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      </span>
-                </TableColumn>
-               </div>
-            </TableHeader>
-            )
-})}
-        </TableHeaderGroup>
-      ))}
-      </div>
-       <div {...getTableBodyProps()}>
-     {rows.map((row) => {
-  prepareRow(row);
-  return (
-    <TableRow {...row.getRowProps()}>
-      {row.cells.map((cell,index) => (
-        <TableCell {...cell.getCellProps()}>
-          {cell.render("Cell")}
-        </TableCell>
-      ))}
-    </TableRow>
-  );
-})}</div>
-    </ContainerStyle>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              style={{
+                                height: '1.35rem',
+                                width: '1.35rem',
+                                color:
+                                  column.isSorted && !column.isSortedDesc
+                                    ? 'orange'
+                                    : 'gray',
+                              }}
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 15a.75.75 0 01-.75-.75V7.612L7.29 9.77a.75.75 0 01-1.08-1.04l3.25-3.5a.75.75 0 011.08 0l3.25 3.5a.75.75 0 11-1.08 1.04l-1.96-2.158v6.638A.75.75 0 0110 15z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              style={{
+                                height: '1.35rem',
+                                width: '1.35rem',
+                                color:
+                                  column.isSorted && column.isSortedDesc
+                                    ? 'orange'
+                                    : 'gray',
+                                marginLeft: '0.4rem',
+                                marginTop: '0.25rem',
+                                position: 'absolute',
+                              }}
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 5a.75.75 0 01.75.75v6.638l1.96-2.158a.75.75 0 111.08 1.04l-3.25 3.5a.75.75 0 01-1.08 0l-3.25-3.5a.75.75 0 111.08-1.04l1.96 2.158V5.75A.75.75 0 0110 5z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                        </span>
+                      </TableColumn>
+                    </div>
+                  </TableHeader>
+                );
+              })}
+            </TableHeaderGroup>
+          ))}
+        </div>
+        <div {...getTableBodyProps()}>
+          {rows.map(row => {
+            prepareRow(row);
+            return (
+              <TableRow {...row.getRowProps()}>
+                {row.cells.map((cell, index) => (
+                  <TableCell {...cell.getCellProps()}>
+                    {cell.render('Cell')}
+                  </TableCell>
+                ))}
+              </TableRow>
+            );
+          })}
+        </div>
+      </ContainerStyle>
     </Styles>
   );
 }
-
-
-
-
