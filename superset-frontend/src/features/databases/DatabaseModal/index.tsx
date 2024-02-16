@@ -23,7 +23,6 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
-  SupersetClient,
 } from '@superset-ui/core';
 import React, {
   FunctionComponent,
