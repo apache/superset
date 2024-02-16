@@ -22,7 +22,6 @@ from flask_appbuilder.security.sqla.models import User
 
 @dataclass
 class CommandParameters:
-    actor: User
     permalink_key: Optional[str]
     form_data_key: Optional[str]
     datasource_id: Optional[int]
