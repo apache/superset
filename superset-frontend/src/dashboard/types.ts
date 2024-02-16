@@ -117,7 +117,6 @@ export type DashboardState = {
 export type DashboardInfo = {
   id: number;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
   };
   userId: string;

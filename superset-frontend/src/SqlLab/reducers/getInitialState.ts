@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import {
@@ -244,9 +243,6 @@ export default function getInitialState({
       queryCostEstimates: {},
       unsavedQueryEditor,
     },
-    messageToasts: getToastsFromPyFlashMessages(
-      (common || {})?.flash_messages || [],
-    ),
     localStorageUsageInKilobytes: 0,
     common,
     ...otherBootstrapData,
