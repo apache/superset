@@ -50,7 +50,7 @@ export default class ErrorBoundary extends React.Component<
   }
 
   render() {
-    const { error } = this.state;
+    const { error, info } = this.state;
     if (error) {
       const firstLine = error.toString();
       const messageString = `${t('Unexpected error')}${
