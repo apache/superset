@@ -1212,9 +1212,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return t('Edit Alert');
     } else if (isReport) {
       return t('Add Report');
-    } else {
-      return t('Add Alert');
     }
+    return t('Add Alert');
   };
 
   return (
