@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 import React, { useEffect, createRef, useMemo } from 'react';
 import { styled } from '@superset-ui/core';
 import { useTable, Column, useSortBy } from 'react-table';

@@ -1,3 +1,4 @@
+/* eslint-disable theme-colors/no-literal-colors */
 /* eslint-disable react/jsx-props-no-spreading */
 import React, { ComponentProps, ComponentType, memo, useMemo } from 'react';
 import { scaleLinear, scaleTime } from '@visx/scale';
