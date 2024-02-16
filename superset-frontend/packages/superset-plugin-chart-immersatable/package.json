@@ -29,7 +29,7 @@
   "dependencies": {
     "@types/d3-array": "^3.0.4",
     "d3-array": "^3.2.3",
-    "@visx/tooltip": "^3.0.0",
+    "@visx/tooltip": "3.0.0",
     "@visx/gradient": "^3.0.0"
   },
   "peerDependencies": {
