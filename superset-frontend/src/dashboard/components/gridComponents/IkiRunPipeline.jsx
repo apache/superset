@@ -228,80 +228,76 @@ class IkiRunPipeline extends React.PureComponent {
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
       if (event.origin === this.props.ikigaiOrigin) {
-        if (event.origin === 'http://localhost:3000') {
-          const messageObject = JSON.parse(event.data);
-          if (messageObject.info && messageObject.dataType) {
-            const { dataType } = messageObject;
-            const chartsList = [];
+        // if (event.origin === 'http://localhost:3000') {
+        const messageObject = JSON.parse(event.data);
+        if (messageObject.info && messageObject.dataType) {
+          const { dataType } = messageObject;
+          const chartsList = [];
 
-            let messageData;
-            let widgetUrl;
-            let widgetUrlQuery;
-            // let widgetUrlQueryMode;
+          let messageData;
+          let widgetUrl;
+          let widgetUrlQuery;
+          // let widgetUrlQueryMode;
 
-            const allChartElements = document.querySelectorAll(
-              '[data-test-chart-id]',
+          const allChartElements = document.querySelectorAll(
+            '[data-test-chart-id]',
+          );
+          allChartElements.forEach(chartElement => {
+            const tempChartID = chartElement.getAttribute('data-test-chart-id');
+            const tempChartName = chartElement.getAttribute(
+              'data-test-chart-name',
             );
-            allChartElements.forEach(chartElement => {
-              const tempChartID =
-                chartElement.getAttribute('data-test-chart-id');
-              const tempChartName = chartElement.getAttribute(
-                'data-test-chart-name',
-              );
-              chartsList.push({ id: tempChartID, name: tempChartName });
-            });
+            chartsList.push({ id: tempChartID, name: tempChartName });
+          });
 
-            if (dataType === 'object') {
-              messageData = JSON.parse(messageObject.data);
-            } else {
-              messageData = messageObject.data;
-            }
+          if (dataType === 'object') {
+            messageData = JSON.parse(messageObject.data);
+          } else {
+            messageData = messageObject.data;
+          }
 
-            if (
+          if (
+            document.getElementById(
+              `ikirunpipeline-widget-${this.props.component.id}`,
+            )
+          ) {
+            widgetUrl = new URL(
               document.getElementById(
                 `ikirunpipeline-widget-${this.props.component.id}`,
-              )
-            ) {
-              widgetUrl = new URL(
-                document.getElementById(
-                  `ikirunpipeline-widget-${this.props.component.id}`,
-                ).src,
-              );
-              // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
-            } else {
-              widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
-            }
+              ).src,
+            );
+            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+          } else {
+            widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
+          }
 
+          if (
+            messageObject.info === 'widget-to-superset/sending-pipeline-data'
+          ) {
             if (
-              messageObject.info === 'widget-to-superset/sending-pipeline-data'
+              // widgetUrlQueryMode === 'edit' &&
+              JSON.parse(messageObject.data).scId === this.props.component.id
             ) {
-              if (
-                // widgetUrlQueryMode === 'edit' &&
-                JSON.parse(messageObject.data).scId === this.props.component.id
-              ) {
-                widgetUrlQuery = new URLSearchParams(widgetUrl.search);
-                widgetUrlQuery.set('mode', 'preview');
-                widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
-                widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
-                widgetUrlQuery.set(
-                  'submit_button_label',
-                  messageData.buttonLabel,
-                );
-                widgetUrlQuery.set('pipeline_log_type', messageData.logLevel);
-                widgetUrlQuery.set('edit_variables', messageData.variable);
-                const jsonString = JSON.stringify(messageData.selectedCharts);
-                const base64String = Buffer.from(jsonString).toString('base64');
-                widgetUrlQuery.set('selected_charts', base64String);
-                widgetUrlQuery.set('scid', this.props.component.id);
-                widgetUrlQuery.set('btn_color', messageData.buttonColor);
-                widgetUrlQuery.set(
-                  'btn_txt_color',
-                  messageData.buttonTextColor,
-                );
-                widgetUrlQuery.set('btn_pos', messageData.buttonPosition);
-                widgetUrlQuery.set('show_header', messageData.showHeader);
-                widgetUrl.search = widgetUrlQuery.toString();
-                const tempIframe = `<iframe
+              widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+              widgetUrlQuery.set('mode', 'preview');
+              widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
+              widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
+              widgetUrlQuery.set(
+                'submit_button_label',
+                messageData.buttonLabel,
+              );
+              widgetUrlQuery.set('pipeline_log_type', messageData.logLevel);
+              widgetUrlQuery.set('edit_variables', messageData.variable);
+              const jsonString = JSON.stringify(messageData.selectedCharts);
+              const base64String = Buffer.from(jsonString).toString('base64');
+              widgetUrlQuery.set('selected_charts', base64String);
+              widgetUrlQuery.set('scid', this.props.component.id);
+              widgetUrlQuery.set('btn_color', messageData.buttonColor);
+              widgetUrlQuery.set('btn_txt_color', messageData.buttonTextColor);
+              widgetUrlQuery.set('btn_pos', messageData.buttonPosition);
+              widgetUrlQuery.set('show_header', messageData.showHeader);
+              widgetUrl.search = widgetUrlQuery.toString();
+              const tempIframe = `<iframe
                           id="ikirunpipeline-widget-${this.props.component.id}"
                           name="run-flow-component"
                           src="${widgetUrl}"
@@ -309,15 +305,14 @@ class IkiRunPipeline extends React.PureComponent {
                           className="ikirunpipeline-widget"
                           style="min-height: 100%;"
                         />`;
-                this.handleIkiRunPipelineChange(tempIframe, true);
-              }
-            } else if (
-              messageObject.info ===
-              'widget-to-superset/sending-charts-to-refresh'
-            ) {
-              const { selectedCharts } = messageData;
-              this.refreshCharts(selectedCharts);
+              this.handleIkiRunPipelineChange(tempIframe, true);
             }
+          } else if (
+            messageObject.info ===
+            'widget-to-superset/sending-charts-to-refresh'
+          ) {
+            const { selectedCharts } = messageData;
+            this.refreshCharts(selectedCharts);
           }
         }
       }
