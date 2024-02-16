@@ -106,7 +106,6 @@ class ExploreRestApi(BaseSupersetApi):
         """
         try:
             params = CommandParameters(
-                actor=g.user,
                 permalink_key=request.args.get("permalink_key", type=str),
                 form_data_key=request.args.get("form_data_key", type=str),
                 datasource_id=request.args.get("datasource_id", type=int),
