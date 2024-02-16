@@ -472,22 +472,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const updateValidationStatus = (
     section: Sections,
-    hasErrors: boolean,
-    errors?: string[],
+    errors: string[],
   ) => {
-    const errorsStatus = hasErrors && !(section === Sections.Alert && isReport);
-
-    const newErrors = errorsStatus ? errors : [];
 
     setValidationStatus(currentValidationData => ({
       ...currentValidationData,
       [section]: {
-        hasErrors: errorsStatus,
+        hasErrors: errors.length > 0,
         name: currentValidationData[section].name,
-        errors: newErrors,
+        errors: errors,
       },
     }));
   };
+
   // Chart metadata
   const [chartVizType, setChartVizType] = useState<string>('');
 
@@ -995,11 +992,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.owners?.length) {
       errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
     }
-    if (errors.length) {
-      updateValidationStatus(Sections.General, true, errors);
-    } else {
-      updateValidationStatus(Sections.General, false);
-    }
+      updateValidationStatus(Sections.General, errors);
   };
   const validateContentSection = () => {
     const errors = [];
@@ -1011,11 +1004,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
-    if (errors.length) {
-      updateValidationStatus(Sections.Content, true, errors);
-    } else {
-      updateValidationStatus(Sections.Content, false);
-    }
+      updateValidationStatus(Sections.Content, errors);
   };
   const validateAlertSection = () => {
     const errors = [];
@@ -1034,11 +1023,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.ALERT_CONDITION_ERROR_TEXT);
     }
-    if (errors.length) {
-      updateValidationStatus(Sections.Alert, true, errors);
-    } else {
-      updateValidationStatus(Sections.Alert, false);
-    }
+      updateValidationStatus(Sections.Alert, errors);
   };
 
   const validateScheduleSection = () => {
@@ -1050,19 +1035,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       errors.push(TRANSLATIONS.WORKING_TIMEOUT_ERROR_TEXT);
     }
 
-    updateValidationStatus(Sections.Schedule, errors.length > 0, errors);
+    updateValidationStatus(Sections.Schedule, errors);
   };
 
   const validateNotificationSection = () => {
     const hasErrors = !checkNotificationSettings();
     const errors = hasErrors ? [TRANSLATIONS.RECIPIENTS_ERROR_TEXT] : [];
-    updateValidationStatus(Sections.Notification, hasErrors, errors);
+    updateValidationStatus(Sections.Notification, errors);
   };
 
   const validateAll = () => {
     validateGeneralSection();
     validateContentSection();
-    validateAlertSection();
+    if (!isReport) validateAlertSection();
     validateScheduleSection();
     validateNotificationSection();
   };
@@ -1079,12 +1064,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const hasErrors = sections.some(
       section => section && validationStatus[section].hasErrors,
     );
-
-    buildErrorTooltipMessage(
-      hasErrors,
-      setErrorTooltipMessage,
-      validationStatus,
-    );
+    const tooltip = hasErrors ? buildErrorTooltipMessage(validationStatus) : '' 
+    setErrorTooltipMessage(tooltip)
     setDisableSave(hasErrors);
   };
 

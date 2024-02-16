@@ -131,11 +131,7 @@ export type SectionValidationObject = {
 };
 
 export interface ValidationObject {
-  generalSection: SectionValidationObject;
-  contentSection: SectionValidationObject;
-  alertConditionSection: SectionValidationObject;
-  scheduleSection: SectionValidationObject;
-  notificationSection: SectionValidationObject;
+  [key: string]: SectionValidationObject;
 }
 
 export enum Sections {

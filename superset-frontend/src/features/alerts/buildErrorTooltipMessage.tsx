@@ -27,11 +27,8 @@ const StyledList = styled.ul`
 `;
 
 export const buildErrorTooltipMessage = (
-  build = true,
-  setErrorTooltipMessage: Function,
   validationStatus: ValidationObject,
 ) => {
-  if (build) {
     const sectionErrors: string[] = [];
     Object.values(validationStatus).forEach(section => {
       if (section.hasErrors) {
@@ -39,7 +36,7 @@ export const buildErrorTooltipMessage = (
         sectionErrors.push(sectionTitle + section.errors.join(', '));
       }
     });
-    setErrorTooltipMessage(
+    return (
       <div>
         {TRANSLATIONS.ERROR_TOOLTIP_MESSAGE}
         <StyledList>
@@ -47,9 +44,6 @@ export const buildErrorTooltipMessage = (
             <li key={err}>{err}</li>
           ))}
         </StyledList>
-      </div>,
-    );
-  } else {
-    setErrorTooltipMessage('');
-  }
+      </div>
+    )
 };
