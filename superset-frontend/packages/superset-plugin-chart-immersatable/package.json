@@ -44,10 +44,10 @@
     "d3-array": "^2.0.3",
     "@types/d3-color": "3.1.0",
     "@visx/tooltip": "3.0.0",
-    "@visx/gradient": "^3.0.0"
+    "@visx/gradient": "^3.3.0",
+    "@airbnb/config-babel": "^2.0.1"
   },
   "peerDependencies": {
-    "@airbnb/config-babel": "^2.0.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "^0.18.25",
     "react": "^16.13.1"
