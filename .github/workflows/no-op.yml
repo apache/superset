@@ -19,7 +19,7 @@
 # - Ensure that the job names in this workflow match exactly the names of the corresponding jobs in the main workflows.
 # - This workflow should be kept as-is, without path-specific conditions.
 
-name: No Operation Checks
+name: no-op Checks
 on: pull_request
 
 jobs:
@@ -53,7 +53,7 @@ jobs:
           echo "This is a no-op step for python-lint to ensure a successful status."
           exit 0
   # section to be deleted after master merge
-  docker:
+  docker-build:
     strategy:
       matrix:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
@@ -67,5 +67,5 @@ jobs:
     steps:
       - name: No-op for docker
         run: |
-          echo "This is a no-op step for python-lint to ensure a successful status."
+          echo "No-op to get rid of the docker-build checks reqs in .asf.yml"
           exit 0
