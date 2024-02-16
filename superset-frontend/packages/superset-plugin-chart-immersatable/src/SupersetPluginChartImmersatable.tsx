@@ -124,7 +124,7 @@ export default function SupersetPluginChartImmersatable(
         sortable: true,
         sortDescFirst: true,
       })),
-    columnNames,
+    [columnNames],
   );
 
   const columns: Column<DataType>[] = useMemo(
@@ -135,8 +135,7 @@ export default function SupersetPluginChartImmersatable(
         Cell: (info: any) => {
           const { value } = info;
           if (
-            value &&
-            value.toString().includes('[') &&
+            value?.toString().includes('[') &&
             Array.isArray(JSON.parse(value as string))
           ) {
             const chartData = JSON.parse(value).map((row: any) => ({
@@ -179,72 +178,69 @@ export default function SupersetPluginChartImmersatable(
               {...headerGroup.getHeaderGroupProps()}
               key={headerGroup.id}
             >
-              {headerGroup.headers.map(column => {
-                console.log('column', column);
-                return (
-                  <TableHeader key={column.id}>
-                    <div
-                      {...column.getHeaderProps(column.getSortByToggleProps())}
-                    >
-                      <TableColumn>
-                        <TableColumnText {...column.getHeaderProps()}>
-                          {column.render('Header')}
-                        </TableColumnText>
-                        <span>
-                          <div
+              {headerGroup.headers.map(column => (
+                <TableHeader key={column.id}>
+                  <div
+                    {...column.getHeaderProps(column.getSortByToggleProps())}
+                  >
+                    <TableColumn>
+                      <TableColumnText {...column.getHeaderProps()}>
+                        {column.render('Header')}
+                      </TableColumnText>
+                      <span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            position: 'relative',
+                          }}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
                             style={{
-                              display: 'flex',
-                              position: 'relative',
+                              height: '1.35rem',
+                              width: '1.35rem',
+                              color:
+                                column.isSorted && !column.isSortedDesc
+                                  ? 'orange'
+                                  : 'gray',
                             }}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              style={{
-                                height: '1.35rem',
-                                width: '1.35rem',
-                                color:
-                                  column.isSorted && !column.isSortedDesc
-                                    ? 'orange'
-                                    : 'gray',
-                              }}
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 15a.75.75 0 01-.75-.75V7.612L7.29 9.77a.75.75 0 01-1.08-1.04l3.25-3.5a.75.75 0 011.08 0l3.25 3.5a.75.75 0 11-1.08 1.04l-1.96-2.158v6.638A.75.75 0 0110 15z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              style={{
-                                height: '1.35rem',
-                                width: '1.35rem',
-                                color:
-                                  column.isSorted && column.isSortedDesc
-                                    ? 'orange'
-                                    : 'gray',
-                                marginLeft: '0.4rem',
-                                marginTop: '0.25rem',
-                                position: 'absolute',
-                              }}
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 5a.75.75 0 01.75.75v6.638l1.96-2.158a.75.75 0 111.08 1.04l-3.25 3.5a.75.75 0 01-1.08 0l-3.25-3.5a.75.75 0 111.08-1.04l1.96 2.158V5.75A.75.75 0 0110 5z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        </span>
-                      </TableColumn>
-                    </div>
-                  </TableHeader>
-                );
-              })}
+                            <path
+                              fillRule="evenodd"
+                              d="M10 15a.75.75 0 01-.75-.75V7.612L7.29 9.77a.75.75 0 01-1.08-1.04l3.25-3.5a.75.75 0 011.08 0l3.25 3.5a.75.75 0 11-1.08 1.04l-1.96-2.158v6.638A.75.75 0 0110 15z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            style={{
+                              height: '1.35rem',
+                              width: '1.35rem',
+                              color:
+                                column.isSorted && column.isSortedDesc
+                                  ? 'orange'
+                                  : 'gray',
+                              marginLeft: '0.4rem',
+                              marginTop: '0.25rem',
+                              position: 'absolute',
+                            }}
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 5a.75.75 0 01.75.75v6.638l1.96-2.158a.75.75 0 111.08 1.04l-3.25 3.5a.75.75 0 01-1.08 0l-3.25-3.5a.75.75 0 111.08-1.04l1.96 2.158V5.75A.75.75 0 0110 5z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      </span>
+                    </TableColumn>
+                  </div>
+                </TableHeader>
+              ))}
             </TableHeaderGroup>
           ))}
         </div>
