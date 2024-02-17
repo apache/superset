@@ -40,6 +40,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
 from superset.tags.models import ObjectType, Tag, TagType, TaggedObject
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -130,7 +131,7 @@ class TestTagApi(SupersetTestCase):
                 name="test get tag",
                 tag_type="custom",
             )
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             uri = f"api/v1/tag/{tag.id}"
             rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -155,7 +156,7 @@ class TestTagApi(SupersetTestCase):
         """
         tag = self.insert_tag(name="test tag", tag_type="custom")
         max_id = db.session.query(func.max(Tag.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/{max_id + 1}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -168,7 +169,7 @@ class TestTagApi(SupersetTestCase):
         """
         Query API: Test get list query
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/tag/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -195,7 +196,7 @@ class TestTagApi(SupersetTestCase):
                 name=tag["name"],
                 tag_type=tag["type"],
             )
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         # Only user-created tags
         query = {
@@ -225,7 +226,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_add_tagged_objects(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         # clean up tags and tagged objects
         tags = db.session.query(Tag)
         for tag in tags:
@@ -272,7 +273,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_delete_tagged_objects(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dashboard_id = 1
         dashboard_type = ObjectType.dashboard
         tag_names = ["example_tag_1", "example_tag_2"]
@@ -337,7 +338,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_get_objects_by_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "World Bank's Data")
@@ -372,7 +373,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_get_all_objects(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         # tag the dashboard with id 1
         dashboard = (
             db.session.query(Dashboard)
@@ -407,7 +408,7 @@ class TestTagApi(SupersetTestCase):
     # test delete tags
     @pytest.mark.usefixtures("create_tags")
     def test_delete_tags(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         # check that tags exist in the database
         example_tag_names = ["example_tag_1", "example_tag_2", "example_tag_3"]
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
@@ -433,7 +434,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         user_id = self.get_user(username="admin").get_id()
         tag = db.session.query(Tag).first()
         uri = f"api/v1/tag/{tag.id}/favorites/"
@@ -477,7 +478,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
 
@@ -485,7 +486,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag_not_found(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.delete(uri, follow_redirects=True)
 
@@ -494,7 +495,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     @patch("superset.daos.tag.g")
     def test_add_tag_user_not_found(self, flask_g):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         flask_g.user = None
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
@@ -504,7 +505,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     @patch("superset.daos.tag.g")
     def test_delete_favorite_tag_user_not_found(self, flask_g):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         flask_g.user = None
         uri = f"api/v1/tag/123/favorites/"
         rv = self.client.delete(uri, follow_redirects=True)
@@ -513,7 +514,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/"
         dashboard = (
             db.session.query(Dashboard)
@@ -536,7 +537,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_tag_no_name_400(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/"
         dashboard = (
             db.session.query(Dashboard)
@@ -553,7 +554,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_put_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         tag_to_update = db.session.query(Tag).first()
         uri = f"api/v1/tag/{tag_to_update.id}"
@@ -573,7 +574,7 @@ class TestTagApi(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
     def test_failed_put_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         tag_to_update = db.session.query(Tag).first()
         uri = f"api/v1/tag/{tag_to_update.id}"
@@ -583,7 +584,7 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_bulk_tag(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/tag/bulk_create"
         dashboard = (
             db.session.query(Dashboard)
@@ -649,7 +650,7 @@ class TestTagApi(SupersetTestCase):
     def test_post_bulk_tag_skipped_tags_perm(self):
         alpha = self.get_user("alpha")
         self.insert_dashboard("titletag", "slugtag", [alpha.id])
-        self.login(username="alpha")
+        self.login(ALPHA_USERNAME)
         uri = "api/v1/tag/bulk_create"
         dashboard = (
             db.session.query(Dashboard)

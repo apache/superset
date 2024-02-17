@@ -34,6 +34,7 @@ from superset.models.core import Database
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -65,10 +66,11 @@ class TestDatasource(SupersetTestCase):
 
     def tearDown(self):
         db.session.rollback()
+        super().tearDown()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
         resp = self.get_json_resp(url)
@@ -78,7 +80,7 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_always_filter_main_dttm(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = get_example_database()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"
@@ -129,7 +131,7 @@ class TestDatasource(SupersetTestCase):
         db.session.commit()
 
     def test_external_metadata_for_virtual_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
@@ -148,7 +150,7 @@ class TestDatasource(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_by_name_for_physical_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         params = prison.dumps(
             {
@@ -168,7 +170,7 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_external_metadata_by_name_for_virtual_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=get_example_database(),
@@ -196,7 +198,7 @@ class TestDatasource(SupersetTestCase):
         db.session.commit()
 
     def test_external_metadata_by_name_from_sqla_inspector(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_database = get_example_database()
         with create_test_table_context(example_database):
             params = prison.dumps(
@@ -261,7 +263,7 @@ class TestDatasource(SupersetTestCase):
         self.assertIn("error", resp)
 
     def test_external_metadata_for_virtual_table_template_params(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = SqlaTable(
             table_name="dummy_sql_table_with_template_params",
             database=get_example_database(),
@@ -280,7 +282,7 @@ class TestDatasource(SupersetTestCase):
         db.session.commit()
 
     def test_external_metadata_for_malicious_virtual_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = SqlaTable(
             table_name="malicious_sql_table",
             database=get_example_database(),
@@ -293,7 +295,7 @@ class TestDatasource(SupersetTestCase):
             self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
 
     def test_external_metadata_for_multistatement_virtual_table(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = SqlaTable(
             table_name="multistatement_sql_table",
             database=get_example_database(),
@@ -309,7 +311,7 @@ class TestDatasource(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch("superset.connectors.sqla.models.SqlaTable.external_metadata")
     def test_external_metadata_error_return_400(self, mock_get_datasource):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         url = f"/datasource/external_metadata/table/{tbl.id}/"
 
@@ -335,7 +337,7 @@ class TestDatasource(SupersetTestCase):
                     self.assertEqual(obj1.get(k), obj2.get(k))
 
     def test_save(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl_id = self.get_table(name="birth_names").id
 
         datasource_post = get_datasource_post()
@@ -357,7 +359,7 @@ class TestDatasource(SupersetTestCase):
                 self.assertEqual(resp[k], datasource_post[k])
 
     def test_save_default_endpoint_validation_success(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl_id = self.get_table(name="birth_names").id
 
         datasource_post = get_datasource_post()
@@ -375,9 +377,8 @@ class TestDatasource(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_change_database(self):
-        self.login(username="admin")
         admin_user = self.get_user("admin")
-
+        self.login(admin_user.username)
         tbl = self.get_table(name="birth_names")
         tbl_id = tbl.id
         db_id = tbl.database_id
@@ -397,8 +398,8 @@ class TestDatasource(SupersetTestCase):
         self.delete_fake_db()
 
     def test_save_duplicate_key(self):
-        self.login(username="admin")
         admin_user = self.get_user("admin")
+        self.login(admin_user.username)
         tbl_id = self.get_table(name="birth_names").id
 
         datasource_post = get_datasource_post()
@@ -427,8 +428,8 @@ class TestDatasource(SupersetTestCase):
         self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
     def test_get_datasource(self):
-        self.login(username="admin")
         admin_user = self.get_user("admin")
+        self.login(admin_user.username)
         tbl = self.get_table(name="birth_names")
 
         datasource_post = get_datasource_post()
@@ -459,7 +460,7 @@ class TestDatasource(SupersetTestCase):
             return "Warning message!"
 
         app.config["DATASET_HEALTH_CHECK"] = my_check
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
         datasource = db.session.query(SqlaTable).filter_by(id=tbl.id).one_or_none()
         assert datasource.health_check_message == "Warning message!"
@@ -473,7 +474,7 @@ class TestDatasource(SupersetTestCase):
             lambda: DatasourceDAO.get_datasource("table", 9999999),
         )
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/table/500000/", raise_on_error=False)
         self.assertEqual(resp.get("error"), "Datasource does not exist")
 
@@ -485,7 +486,7 @@ class TestDatasource(SupersetTestCase):
             lambda: DatasourceDAO.get_datasource("druid", 9999999),
         )
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         self.assertEqual(resp.get("error"), "'druid' is not a valid DatasourceType")
 
