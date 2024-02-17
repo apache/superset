@@ -41,3 +41,7 @@ class TestElasticsearchDbEngineSpec(TestDbEngineSpec):
             col=col, pdf=None, time_grain=time_grain
         )
         self.assertEqual(str(actual), expected_time_grain_expression)
+
+    def test_get_datatype(self):
+        self.assertEqual("NUMBER", ElasticSearchEngineSpec.get_datatype(2))
+        self.assertEqual("DATETIME", ElasticSearchEngineSpec.get_datatype(4))
