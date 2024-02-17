@@ -48,7 +48,8 @@ from superset.utils.core import (
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
 
-from .base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
@@ -154,6 +155,7 @@ class TestRolePermission(SupersetTestCase):
         delete_schema_perm(schema_perm)
         db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         db.session.commit()
+        super().tearDown()
 
     def test_after_insert_dataset(self):
         security_manager.on_view_menu_after_insert = Mock()
@@ -1207,7 +1209,7 @@ class TestRolePermission(SupersetTestCase):
         dash.published = True
         db.session.commit()
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         data = str(self.client.get("api/v1/dashboard/").data)
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
@@ -1272,10 +1274,9 @@ class TestRolePermission(SupersetTestCase):
             "page_size": -1,
         }
         NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         self.assertEqual(databases_json["count"], 1)
-        self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
         if view_menu in NEW_SECURITY_CONVERGE_VIEWS:

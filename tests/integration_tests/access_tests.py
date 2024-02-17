@@ -43,7 +43,7 @@ from superset.models import core as models
 from superset.utils.core import get_user_id, get_username, override_user
 from superset.utils.database import get_example_database
 
-from .base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
     "role_name": "override_me",
@@ -103,15 +103,12 @@ class TestRequestAccess(SupersetTestCase):
             db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
             db.session.commit()
 
-    def setUp(self):
-        self.login("admin")
-
     def tearDown(self):
-        self.logout()
         override_me = security_manager.find_role("override_me")
         override_me.permissions = []
         db.session.commit()
         db.session.close()
+        super().tearDown()
 
 
 @pytest.mark.parametrize(

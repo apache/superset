@@ -106,6 +106,9 @@ class SupersetTestCase(TestCase):
 
     maxDiff = -1
 
+    def tearDown(self):
+        self.logout()
+
     def create_app(self):
         return app
 
@@ -196,7 +199,7 @@ class SupersetTestCase(TestCase):
         db.session.commit()
         return obj
 
-    def login(self, username="admin", password="general"):
+    def login(self, username, password="general"):
         return login(self.client, username, password)
 
     def get_slice(self, slice_name: str) -> Slice:
@@ -311,7 +314,7 @@ class SupersetTestCase(TestCase):
     ):
         if username:
             self.logout()
-            self.login(username=username)
+            self.login(username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -332,12 +335,13 @@ class SupersetTestCase(TestCase):
         resp = self.get_json_resp(
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
+        if username:
+            self.logout()
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
         return resp
 
     def create_fake_db(self):
-        self.login(username="admin")
         database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
@@ -363,7 +367,6 @@ class SupersetTestCase(TestCase):
             db.session.delete(database)
 
     def create_fake_db_for_macros(self):
-        self.login(username="admin")
         database_name = "db_for_macros_testing"
         db_id = 200
         database = self.get_or_create(

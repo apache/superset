@@ -31,6 +31,11 @@ from superset.charts.data.api import ChartDataRestApi
 from superset.models.sql_lab import Query
 from tests.integration_tests.base_tests import SupersetTestCase, test_client
 from tests.integration_tests.annotation_layers.fixtures import create_annotation_layers
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    GAMMA_NO_CSV_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -92,7 +97,7 @@ class BaseTestChartDataApi(SupersetTestCase):
     query_context_payload_template = None
 
     def setUp(self) -> None:
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         if self.query_context_payload_template is None:
             BaseTestChartDataApi.query_context_payload_template = get_query_context(
                 "birth_names"
@@ -410,7 +415,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data with CSV result format
         """
         self.logout()
-        self.login(username="gamma_no_csv")
+        self.login(GAMMA_NO_CSV_USERNAME)
         self.query_context_payload["result_format"] = "csv"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -422,7 +427,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data with Excel result format
         """
         self.logout()
-        self.login(username="gamma_no_csv")
+        self.login(GAMMA_NO_CSV_USERNAME)
         self.query_context_payload["result_format"] = "xlsx"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
@@ -686,7 +691,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         Chart data API: Test chart data query not allowed
         """
         self.logout()
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
 
         assert rv.status_code == 403
@@ -717,7 +722,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.logout()
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 202)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1236,7 +1241,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test query with adhoc column in both select and where clause
         """
-        self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
         request_payload["queries"][0]["filters"] = [
@@ -1256,7 +1260,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test query with adhoc column that fails to run on this dataset
         """
-        self.login(username="admin")
         request_payload = get_query_context("birth_names")
         request_payload["queries"][0]["columns"] = [ADHOC_COLUMN_FIXTURE]
         request_payload["queries"][0]["filters"] = [

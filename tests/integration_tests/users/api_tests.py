@@ -21,13 +21,14 @@ from unittest.mock import patch
 
 from superset import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 meUri = "/api/v1/me/"
 
 
 class TestCurrentUserApi(SupersetTestCase):
     def test_get_me_logged_in(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri)
 
@@ -38,7 +39,7 @@ class TestCurrentUserApi(SupersetTestCase):
         self.assertEqual(False, response["result"]["is_anonymous"])
 
     def test_get_me_with_roles(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         rv = self.client.get(meUri + "roles/")
         self.assertEqual(200, rv.status_code)
@@ -53,7 +54,6 @@ class TestCurrentUserApi(SupersetTestCase):
         self.assertEqual(401, rv.status_code)
 
     def test_get_me_unauthorized(self):
-        self.logout()
         rv = self.client.get(meUri)
         self.assertEqual(401, rv.status_code)
 

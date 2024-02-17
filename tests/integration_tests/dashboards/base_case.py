@@ -79,7 +79,4 @@ class DashboardTestCase(SupersetTestCase):
 
     def clean_created_objects(self):
         with app.test_request_context():
-            self.logout()
-            self.login("admin")
             delete_all_inserted_objects()
-            self.logout()
