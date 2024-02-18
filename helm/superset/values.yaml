@@ -358,6 +358,9 @@ supersetNode:
 
 # Superset Celery worker configuration
 supersetWorker:
+  image:
+    repository: ~
+    tag: ~
   replicaCount: 1
   autoscaling:
     enabled: false
