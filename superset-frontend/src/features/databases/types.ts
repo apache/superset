@@ -1,6 +1,6 @@
 import { JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
-import { FormEvent } from 'react';
+import { ChangeEvent, EventHandler, FormEvent } from 'react';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -236,23 +236,39 @@ export interface ExtraJson {
   version?: string;
 }
 
-type ParametersChangeValueType = Partial<Omit<HTMLInputElement, 'value'>> & {
-  value?: string | boolean;
+type CustomTextType = {
+  value?: string | boolean | number;
+  type?: string | null;
+  name?: string;
+  checked?: boolean;
 };
 
-type ParametersChangeType<T = ParametersChangeValueType> =
+type CustomHTMLInputElement = Omit<Partial<CustomTextType>, 'value' | 'type'> &
+  CustomTextType;
+
+type CustomHTMLTextAreaElement = Omit<
+  Partial<CustomTextType>,
+  'value' | 'type'
+> &
+  CustomTextType;
+
+export type CustomParametersChangeType<T = CustomTextType> =
   | FormEvent<InputProps>
   | { target: T };
+
+export type CustomEventHandlerType = EventHandler<
+  ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
+>;
 
 export interface FieldPropTypes {
   required: boolean;
   hasTooltip?: boolean;
   tooltipText?: (value: any) => string;
   placeholder?: string;
-  onParametersChange: (event: ParametersChangeType) => void;
+  onParametersChange: (event: CustomParametersChangeType) => void;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: {
-    onParametersChange: (event: ParametersChangeType) => void;
+    onParametersChange: (event: CustomParametersChangeType) => void;
   } & {
     onChange: (value: any) => string;
   } & {
@@ -262,7 +278,7 @@ export interface FieldPropTypes {
     onRemoveTableCatalog: (idx: number) => void;
   } & {
     onExtraInputChange: (value: any) => void;
-    onSSHTunnelParametersChange: (value: any) => string;
+    onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;

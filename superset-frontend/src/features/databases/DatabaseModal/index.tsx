@@ -662,7 +662,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       masked_encrypted_extra: db?.masked_encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
       ssh_tunnel:
-        !isEmpty(db?.ssh_tunnel) && useSSHTunneling ? db.ssh_tunnel : undefined,
+        !isEmpty(db?.ssh_tunnel) && useSSHTunneling
+          ? {
+              ...db.ssh_tunnel,
+              server_port: Number(db.ssh_tunnel!.server_port),
+            }
+          : undefined,
     };
     setTestInProgress(true);
     testDatabaseConnection(
@@ -692,10 +697,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const handleClearValidationErrors = () => {
     setValidationErrors(null);
-  };
-
-  const handleClearSSHTunnelConfig = () => {
-    setDB({ type: ActionType.RemoveSSHTunnelConfig });
   };
 
   const handleParametersChange = ({ target }: { target: HTMLInputElement }) => {
@@ -1541,8 +1542,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         typeof dbErrors === 'object'
           ? Object.values(dbErrors)
           : typeof dbErrors === 'string'
-            ? [dbErrors]
-            : [];
+          ? [dbErrors]
+          : [];
     } else if (
       !isEmpty(validationErrors) &&
       validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
@@ -1578,11 +1579,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderSSHTunnelForm = () => (
     <SSHTunnelForm
       db={db as DatabaseObject}
-      onSSHTunnelParametersChange={({
-        target,
-      }: {
-        target: HTMLInputElement | HTMLTextAreaElement;
-      }) =>
+      onSSHTunnelParametersChange={({ target }) =>
         onChange(ActionType.ParametersSSHTunnelChange, {
           type: target.type,
           name: target.name,
