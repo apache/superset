@@ -12,7 +12,7 @@ export default function DraggableNewDivider() {
       type={IKI_DATASET_DOWNLOAD_TYPE}
       label={t('Dataset Download')}
       description={t('Downlaod a Dataset with a single click')}
-      className="fa fa-bars fa-rotate-90"
+      className="fa fa-table"
     />
   );
 }

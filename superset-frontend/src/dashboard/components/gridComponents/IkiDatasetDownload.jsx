@@ -197,7 +197,7 @@ class IkiDatasetDownload extends React.PureComponent {
           let messageData;
           let widgetUrl;
           let widgetUrlQuery;
-          let widgetUrlQueryMode;
+          // let widgetUrlQueryMode;
 
           const allChartElements = document.querySelectorAll(
             '[data-test-chart-id]',
@@ -226,15 +226,15 @@ class IkiDatasetDownload extends React.PureComponent {
                 `ikidatasetdownload-widget-${this.props.component.id}`,
               ).src,
             );
-            widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
+            // widgetUrlQueryMode = widgetUrl.searchParams.get('mode');
           } else {
             widgetUrl = `${this.props.ikigaiOrigin}/widget/dataset-download/run?mode=edit&v=1&run_flow_times=${timestamp}`;
           }
 
           if (messageObject.info === 'widget-to-superset/sending-dataset-id') {
             if (
-              widgetUrlQueryMode === 'edit'
-              //   JSON.parse(messageObject.data).scId === this.props.component.id
+              // widgetUrlQueryMode === 'edit'
+              JSON.parse(messageObject.data).scId === this.props.component.id
             ) {
               widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
@@ -242,6 +242,7 @@ class IkiDatasetDownload extends React.PureComponent {
               widgetUrlQuery.set('alias_id', messageData.alias_id);
               widgetUrlQuery.set('button_label', messageData.button_label);
               widgetUrlQuery.set('type', messageData.type);
+              widgetUrlQuery.set('scid', this.props.component.id);
               widgetUrlQuery.set('btn_color', messageData.btn_color);
               widgetUrlQuery.set('btn_txt_color', messageData.btn_txt_color);
               widgetUrlQuery.set('btn_pos', messageData.btn_pos);
@@ -420,6 +421,7 @@ class IkiDatasetDownload extends React.PureComponent {
         iframeSrc = `${ikigaiOrigin}/widget/dataset-download?mode=edit`;
       }
 
+      iframeSrc = `${iframeSrc}&scid=${this.props.component.id}`;
       iframe = `<iframe
                     id="ikidatasetdownload-widget-${this.props.component.id}"
                     name="dataset-download-component-${timestamp}"
