@@ -19,9 +19,8 @@
 import React, { useState, useCallback, useRef, FocusEvent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, RadioChangeEvent } from 'src/components';
+import { AntdInput, Select } from 'src/components';
 import { Input } from 'src/components/Input';
-import { Radio } from 'src/components/Radio';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
@@ -30,18 +29,29 @@ export interface AlertReportCronSchedulerProps {
   onChange: (change: string) => any;
 }
 
+enum ScheduleType {
+  Picker = 'picker',
+  Input = 'input',
+}
+
+const SCHEDULE_TYPE_OPTIONS = [
+  {
+    label: t('Recurring (every)'),
+    value: ScheduleType.Picker,
+  },
+  {
+    label: t('CRON Schedule'),
+    value: ScheduleType.Input,
+  },
+];
+
 export const AlertReportCronScheduler: React.FC<
   AlertReportCronSchedulerProps
 > = ({ value, onChange }) => {
   const theme = useTheme();
   const inputRef = useRef<AntdInput>(null);
-  const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
-    'picker',
-  );
-
-  const handleRadioButtonChange = useCallback(
-    (e: RadioChangeEvent) => setScheduleFormat(e.target.value),
-    [],
+  const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
+    ScheduleType.Picker,
   );
 
   const customSetValue = useCallback(
@@ -67,40 +77,52 @@ export const AlertReportCronScheduler: React.FC<
 
   return (
     <>
-      <Radio.Group onChange={handleRadioButtonChange} value={scheduleFormat}>
-        <div className="inline-container add-margin">
-          <Radio data-test="picker" value="picker" />
+      <StyledInputContainer>
+        <div className="control-label">
+          {t('Schedule type')}
+          <span className="required">*</span>
+        </div>
+        <div className="input-container">
+          <Select
+            ariaLabel={t('Schedule type')}
+            placeholder={t('Schedule type')}
+            onChange={(e: ScheduleType) => {
+              setScheduleFormat(e);
+            }}
+            value={scheduleFormat}
+            options={SCHEDULE_TYPE_OPTIONS}
+          />
+        </div>
+      </StyledInputContainer>
+
+      <StyledInputContainer data-test="input-content" className="styled-input">
+        <div className="control-label">
+          {t('Schedule')}
+          <span className="required">*</span>
+        </div>
+        {scheduleFormat === ScheduleType.Input && (
+          <Input
+            type="text"
+            name="crontab"
+            ref={inputRef}
+            style={error ? { borderColor: theme.colors.error.base } : {}}
+            placeholder={t('CRON expression')}
+            value={value}
+            onBlur={handleBlur}
+            onChange={e => customSetValue(e.target.value)}
+            onPressEnter={handlePressEnter}
+          />
+        )}
+        {scheduleFormat === ScheduleType.Picker && (
           <CronPicker
             clearButton={false}
             value={value}
             setValue={customSetValue}
-            disabled={scheduleFormat !== 'picker'}
-            displayError={scheduleFormat === 'picker'}
+            displayError={scheduleFormat === ScheduleType.Picker}
             onError={onError}
           />
-        </div>
-        <div className="inline-container add-margin">
-          <Radio data-test="input" value="input" />
-          <span className="input-label">{t('CRON Schedule')}</span>
-          <StyledInputContainer
-            data-test="input-content"
-            className="styled-input"
-          >
-            <div className="input-container">
-              <Input
-                type="text"
-                name="crontab"
-                ref={inputRef}
-                style={error ? { borderColor: theme.colors.error.base } : {}}
-                placeholder={t('CRON expression')}
-                disabled={scheduleFormat !== 'input'}
-                onBlur={handleBlur}
-                onPressEnter={handlePressEnter}
-              />
-            </div>
-          </StyledInputContainer>
-        </div>
-      </Radio.Group>
+        )}
+      </StyledInputContainer>
     </>
   );
 };
