@@ -1722,11 +1722,11 @@ class TestSecurityManager(SupersetTestCase):
         mock_is_owner,
     ):
         births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls", expunge_from_session=False)
+        girls = self.get_slice("Girls")
         birth_names = girls.datasource
 
         world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap", expunge_from_session=False)
+        treemap = self.get_slice("Treemap")
 
         births.json_metadata = json.dumps(
             {
@@ -1871,8 +1871,6 @@ class TestSecurityManager(SupersetTestCase):
                         )
                     }
                 )
-
-            db.session.expunge_all()
 
     def test_get_user_roles(self):
         admin = security_manager.find_user("admin")

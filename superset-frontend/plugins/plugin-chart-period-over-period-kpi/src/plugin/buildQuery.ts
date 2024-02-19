@@ -87,13 +87,19 @@ export default function buildQuery(formData: QueryFormData) {
     formDataB = {
       ...formData,
       adhoc_filters: queryBFilters,
-      extra_form_data: {},
+      extra_form_data: {
+        ...extraFormData,
+        time_range: undefined,
+      },
     };
   } else {
     formDataB = {
       ...formData,
       adhoc_filters: formData.adhoc_custom,
-      extra_form_data: {},
+      extra_form_data: {
+        ...extraFormData,
+        time_range: undefined,
+      },
     };
   }
 

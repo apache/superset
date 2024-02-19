@@ -257,9 +257,9 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                 ],
             }
         )
-        self.chart = self.get_slice("Girls", expunge_from_session=False)
+        self.chart = self.get_slice("Girls")
         self.datasource = self.chart.datasource
-        self.other_chart = self.get_slice("Treemap", expunge_from_session=False)
+        self.other_chart = self.get_slice("Treemap")
         self.other_datasource = self.other_chart.datasource
         self.native_filter_datasource = (
             db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
