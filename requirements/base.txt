@@ -116,7 +116,7 @@ flask-jwt-extended==4.3.1
     # via flask-appbuilder
 flask-limiter==3.3.1
     # via flask-appbuilder
-flask-login==0.6.0
+flask-login==0.6.3
     # via
     #   apache-superset
     #   flask-appbuilder
