@@ -360,9 +360,7 @@ supersetWorker:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods
-  podDisruptionBudget:
-    maxUnavailable: 1
-
+  podDisruptionBudget: {}
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:

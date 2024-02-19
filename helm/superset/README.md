@@ -298,7 +298,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.livenessProbe.successThreshold | int | `1` |  |
 | supersetWorker.livenessProbe.timeoutSeconds | int | `60` |  |
 | supersetWorker.podAnnotations | object | `{}` | Annotations to be added to supersetWorker pods |
-| supersetWorker.podDisruptionBudget | object | `{"maxUnavailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods |
+| supersetWorker.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods |
 | supersetWorker.podLabels | object | `{}` | Labels to be added to supersetWorker pods |
 | supersetWorker.podSecurityContext | object | `{}` |  |
 | supersetWorker.readinessProbe | object | `{}` | No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic) |
