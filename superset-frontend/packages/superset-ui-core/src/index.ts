@@ -36,3 +36,4 @@ export * from './components';
 export * from './math-expression';
 export * from './ui-overrides';
 export * from './hooks';
+export * from './currency-format';

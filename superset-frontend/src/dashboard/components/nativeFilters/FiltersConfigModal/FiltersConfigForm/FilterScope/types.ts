@@ -20,8 +20,8 @@
 import { ReactNode } from 'react';
 
 export enum ScopingType {
-  all,
-  specific,
+  All,
+  Specific,
 }
 
 /** UI Ant tree type */

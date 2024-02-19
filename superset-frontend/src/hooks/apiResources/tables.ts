@@ -18,7 +18,7 @@
  */
 import { useCallback, useMemo, useEffect, useRef } from 'react';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { api } from './queryApi';
+import { api, JsonResponse } from './queryApi';
 
 import { useSchemas } from './schemas';
 
@@ -56,6 +56,39 @@ export type FetchTablesQueryParams = {
   onError?: (error: Response) => void;
 };
 
+export type FetchTableMetadataQueryParams = {
+  dbId: string | number;
+  schema: string;
+  table: string;
+};
+
+type ColumnKeyTypeType = 'pk' | 'fk' | 'index';
+interface Column {
+  name: string;
+  keys?: { type: ColumnKeyTypeType }[];
+  type: string;
+}
+
+export type TableMetaData = {
+  name: string;
+  partitions?: {
+    partitionQuery: string;
+    latest: object[];
+  };
+  metadata?: Record<string, string>;
+  indexes?: object[];
+  selectStar?: string;
+  view?: string;
+  columns: Column[];
+};
+
+type TableMetadataReponse = {
+  json: TableMetaData;
+  response: Response;
+};
+
+export type TableExtendedMetadata = Record<string, string>;
+
 type Params = Omit<FetchTablesQueryParams, 'forceRefresh'>;
 
 const tableApi = api.injectEndpoints({
@@ -79,10 +112,36 @@ const tableApi = api.injectEndpoints({
         schema,
       }),
     }),
+    tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
+      query: ({ dbId, schema, table }) => ({
+        endpoint: `/api/v1/database/${dbId}/table/${encodeURIComponent(
+          table,
+        )}/${encodeURIComponent(schema)}/`,
+        transformResponse: ({ json }: TableMetadataReponse) => json,
+      }),
+    }),
+    tableExtendedMetadata: builder.query<
+      TableExtendedMetadata,
+      FetchTableMetadataQueryParams
+    >({
+      query: ({ dbId, schema, table }) => ({
+        endpoint: `/api/v1/database/${dbId}/table_extra/${encodeURIComponent(
+          table,
+        )}/${encodeURIComponent(schema)}/`,
+        transformResponse: ({ json }: JsonResponse) => json,
+      }),
+    }),
   }),
 });
 
-export const { useLazyTablesQuery, useTablesQuery } = tableApi;
+export const {
+  useLazyTablesQuery,
+  useTablesQuery,
+  useTableMetadataQuery,
+  useTableExtendedMetadataQuery,
+  endpoints: tableEndpoints,
+  util: tableApiUtil,
+} = tableApi;
 
 export function useTables(options: Params) {
   const isMountedRef = useRef(false);

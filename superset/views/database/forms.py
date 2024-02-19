@@ -33,6 +33,7 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional, Rege
 from superset import app, db, security_manager
 from superset.forms import (
     CommaSeparatedListField,
+    FileSizeLimit,
     filter_not_empty_values,
     JsonListField,
 )
@@ -109,6 +110,7 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         description=_("Select a file to be uploaded to the database"),
         validators=[
             FileRequired(),
+            FileSizeLimit(config["CSV_UPLOAD_MAX_SIZE"]),
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
                 _(
@@ -195,9 +197,9 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         ),
         filters=[filter_not_empty_values],
     )
-    infer_datetime_format = BooleanField(
-        _("Interpret Datetime Format Automatically"),
-        description=_("Interpret the datetime format automatically"),
+    day_first = BooleanField(
+        _("Day First"),
+        description=_("DD/MM format dates, international and European format"),
     )
     decimal = StringField(
         _("Decimal Character"),
@@ -354,10 +356,6 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
         ),
         validators=[Optional(), NumberRange(min=0)],
         widget=BS3TextFieldWidget(),
-    )
-    mangle_dupe_cols = BooleanField(
-        _("Mangle Duplicate Columns"),
-        description=_('Specify duplicate columns as "X.0, X.1".'),
     )
     skiprows = IntegerField(
         _("Skip Rows"),

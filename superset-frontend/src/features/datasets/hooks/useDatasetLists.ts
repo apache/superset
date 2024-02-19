@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -83,7 +83,10 @@ const useDatasetsList = (
     }
   }, [db?.id, schema, encodedSchema, getDatasetsList]);
 
-  const datasetNames = datasets?.map(dataset => dataset.table_name);
+  const datasetNames = useMemo(
+    () => datasets?.map(dataset => dataset.table_name),
+    [datasets],
+  );
 
   return { datasets, datasetNames };
 };

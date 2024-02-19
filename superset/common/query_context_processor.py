@@ -19,25 +19,27 @@ from __future__ import annotations
 import copy
 import logging
 import re
-from typing import Any, ClassVar, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING, TypedDict
 
 import numpy as np
 import pandas as pd
-from flask_babel import _
+from flask_babel import gettext as _
 from pandas import DateOffset
-from typing_extensions import TypedDict
 
 from superset import app
-from superset.annotation_layers.dao import AnnotationLayerDAO
-from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.common.utils.time_range_utils import get_since_until_from_query_object
-from superset.connectors.base.models import BaseDatasource
+from superset.common.utils.time_range_utils import (
+    get_since_until_from_query_object,
+    get_since_until_from_time_range,
+)
+from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CacheRegion, TimeGrain
+from superset.daos.annotation_layer import AnnotationLayerDAO
+from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -64,6 +66,7 @@ from superset.utils.core import (
 from superset.utils.date_parser import get_past_or_future, normalize_time_delta
 from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
+from superset.viz import viz_types
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -134,7 +137,7 @@ class QueryContextProcessor:
 
         if query_obj and cache_key and not cache.is_loaded:
             try:
-                invalid_columns = [
+                if invalid_columns := [
                     col
                     for col in get_column_names_from_columns(query_obj.columns)
                     + get_column_names_from_metrics(query_obj.metrics or [])
@@ -142,9 +145,7 @@ class QueryContextProcessor:
                         col not in self._qc_datasource.column_names
                         and col != DTTM_ALIAS
                     )
-                ]
-
-                if invalid_columns:
+                ]:
                     raise QueryObjectValidationError(
                         _(
                             "Columns missing in dataset: %(invalid_columns)s",
@@ -167,7 +168,7 @@ class QueryContextProcessor:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
 
-        # the N-dimensional DataFrame has converteds into flat DataFrame
+        # the N-dimensional DataFrame has converted into flat DataFrame
         # by `flatten operator`, "comma" in the column is escaped by `escape_separator`
         # the result DataFrame columns should be unescaped
         label_map = {
@@ -599,7 +600,15 @@ class QueryContextProcessor:
             set_and_log_cache(
                 cache_manager.cache,
                 cache_key,
-                {"data": self._query_context.cache_values},
+                {
+                    "data": {
+                        # setting form_data into query context cache value as well
+                        # so that it can be used to reconstruct form_data field
+                        # for query context object when reading from cache
+                        "form_data": self._query_context.form_data,
+                        **self._query_context.cache_values,
+                    },
+                },
                 self.get_cache_timeout(),
             )
             return_value["cache_key"] = cache_key  # type: ignore
@@ -630,11 +639,6 @@ class QueryContextProcessor:
         return generate_cache_key(cache_dict, key_prefix)
 
     def get_annotation_data(self, query_obj: QueryObject) -> dict[str, Any]:
-        """
-        :param query_context:
-        :param query_obj:
-        :return:
-        """
         annotation_data: dict[str, Any] = self.get_native_annotation_data(query_obj)
         for annotation_layer in [
             layer
@@ -685,22 +689,53 @@ class QueryContextProcessor:
     def get_viz_annotation_data(
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
-        chart = ChartDAO.find_by_id(annotation_layer["value"])
-        if not chart:
+        # pylint: disable=import-outside-toplevel
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
+
+        if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(_("The chart does not exist"))
-        if not chart.datasource:
-            raise QueryObjectValidationError(_("The chart datasource does not exist"))
-        form_data = chart.form_data.copy()
-        form_data.update(annotation_layer.get("overrides", {}))
+
         try:
-            viz_obj = get_viz(
-                datasource_type=chart.datasource.type,
-                datasource_id=chart.datasource.id,
-                form_data=form_data,
-                force=force,
-            )
-            payload = viz_obj.get_payload()
-            return payload["data"]
+            if chart.viz_type in viz_types:
+                if not chart.datasource:
+                    raise QueryObjectValidationError(
+                        _("The chart datasource does not exist"),
+                    )
+
+                form_data = chart.form_data.copy()
+                form_data.update(annotation_layer.get("overrides", {}))
+
+                payload = get_viz(
+                    datasource_type=chart.datasource.type,
+                    datasource_id=chart.datasource.id,
+                    form_data=form_data,
+                    force=force,
+                ).get_payload()
+
+                return payload["data"]
+
+            if not (query_context := chart.get_query_context()):
+                raise QueryObjectValidationError(
+                    _("The chart query context does not exist"),
+                )
+
+            if overrides := annotation_layer.get("overrides"):
+                if time_grain_sqla := overrides.get("time_grain_sqla"):
+                    for query_object in query_context.queries:
+                        query_object.extras["time_grain_sqla"] = time_grain_sqla
+
+                if time_range := overrides.get("time_range"):
+                    from_dttm, to_dttm = get_since_until_from_time_range(time_range)
+
+                    for query_object in query_context.queries:
+                        query_object.from_dttm = from_dttm
+                        query_object.to_dttm = to_dttm
+
+            query_context.force = force
+            command = ChartDataCommand(query_context)
+            command.validate()
+            payload = command.run()
+            return {"records": payload["queries"][0]["data"]}
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 

@@ -22,16 +22,25 @@ from typing import TYPE_CHECKING
 
 from flask import current_app
 
+from superset import feature_flag_manager
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
     ChartStandaloneMode,
     DashboardStandaloneMode,
-    WebDriverProxy,
+    WebDriver,
+    WebDriverPlaywright,
+    WebDriverSelenium,
     WindowSize,
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_SCREENSHOT_WINDOW_SIZE = 800, 600
+DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
+DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
+DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
+DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
 
 try:
     from PIL import Image
@@ -47,17 +56,19 @@ class BaseScreenshot:
     driver_type = current_app.config["WEBDRIVER_TYPE"]
     thumbnail_type: str = ""
     element: str = ""
-    window_size: WindowSize = (800, 600)
-    thumb_size: WindowSize = (400, 300)
+    window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
+    thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
 
     def __init__(self, url: str, digest: str):
         self.digest: str = digest
         self.url = url
         self.screenshot: bytes | None = None
 
-    def driver(self, window_size: WindowSize | None = None) -> WebDriverProxy:
+    def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
-        return WebDriverProxy(self.driver_type, window_size)
+        if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
+            return WebDriverPlaywright(self.driver_type, window_size)
+        return WebDriverSelenium(self.driver_type, window_size)
 
     def cache_key(
         self,
@@ -190,7 +201,7 @@ class BaseScreenshot:
             logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
         logger.debug("Resizing to %s", str(thumb_size))
-        img = img.resize(thumb_size, Image.ANTIALIAS)
+        img = img.resize(thumb_size, Image.Resampling.LANCZOS)
         new_img = BytesIO()
         if output != "png":
             img = img.convert("RGB")
@@ -216,8 +227,8 @@ class ChartScreenshot(BaseScreenshot):
             standalone=ChartStandaloneMode.HIDE_NAV.value,
         )
         super().__init__(url, digest)
-        self.window_size = window_size or (800, 600)
-        self.thumb_size = thumb_size or (800, 600)
+        self.window_size = window_size or DEFAULT_CHART_WINDOW_SIZE
+        self.thumb_size = thumb_size or DEFAULT_CHART_THUMBNAIL_SIZE
 
 
 class DashboardScreenshot(BaseScreenshot):
@@ -239,5 +250,5 @@ class DashboardScreenshot(BaseScreenshot):
         )
 
         super().__init__(url, digest)
-        self.window_size = window_size or (1600, 1200)
-        self.thumb_size = thumb_size or (800, 600)
+        self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
+        self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE

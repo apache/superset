@@ -74,12 +74,12 @@ class AuditMixin:
     def created_by(cls):
         return relationship(
             "User",
-            primaryjoin="%s.created_by_fk == User.id" % cls.__name__,
+            primaryjoin=f"{cls.__name__}.created_by_fk == User.id",
             enable_typechecks=False,
         )
 
 
-class Slice(Base, AuditMixin):
+class Slice(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "slices"
@@ -87,7 +87,7 @@ class Slice(Base, AuditMixin):
     owners = relationship("User", secondary=slice_user)
 
 
-class Dashboard(Base, AuditMixin):
+class Dashboard(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "dashboards"

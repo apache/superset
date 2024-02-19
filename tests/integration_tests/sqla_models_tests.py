@@ -189,11 +189,6 @@ class TestDatabaseModel(SupersetTestCase):
         self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
-        # Cleanup
-        for table in [table1, table2, table3]:
-            db.session.delete(table)
-        db.session.commit()
-
     @patch("superset.jinja_context.g")
     def test_jinja_metrics_and_calc_columns(self, flask_g):
         flask_g.user.username = "abc"
@@ -430,7 +425,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_multiple_sql_statements",
             sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
             database=get_example_database(),
         )
@@ -451,7 +446,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         table = SqlaTable(
-            table_name="test_has_extra_cache_keys_table",
+            table_name="test_dml_statement",
             sql="DELETE FROM foo",
             database=get_example_database(),
         )

@@ -114,6 +114,9 @@ spec:
           {{- if .Values.supersetWebsockets.livenessProbe }}
           livenessProbe: {{- .Values.supersetWebsockets.livenessProbe | toYaml | nindent 12 }}
           {{- end }}
+        {{- if .Values.supersetWebsockets.extraContainers }}
+            {{- toYaml .Values.supersetWebsockets.extraContainers | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

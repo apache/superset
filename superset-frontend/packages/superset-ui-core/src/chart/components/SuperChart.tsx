@@ -111,7 +111,6 @@ class SuperChart extends React.PureComponent<Props, {}> {
       // Parse them in case they are % or 'auto'
       const widthInfo = parseLength(width);
       const heightInfo = parseLength(height);
-
       const boxHeight = heightInfo.isDynamic
         ? `${heightInfo.multiplier * 100}%`
         : heightInfo.value;

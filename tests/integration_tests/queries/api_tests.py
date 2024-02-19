@@ -439,7 +439,6 @@ class TestQueryApi(SupersetTestCase):
         for key, value in data["result"][0].items():
             # We can't assert timestamp
             if key not in (
-                "changedOn",
                 "changed_on",
                 "end_time",
                 "start_running_time",

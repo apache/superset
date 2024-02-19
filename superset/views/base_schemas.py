@@ -20,7 +20,7 @@ from typing import Any, Optional, Union
 from flask import current_app, g
 from flask_appbuilder import Model
 from marshmallow import post_load, pre_load, Schema, ValidationError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import NoResultFound
 
 from superset.utils.core import get_user_id
 
@@ -51,7 +51,7 @@ class BaseSupersetSchema(Schema):
         self.instance: Optional[Model] = None
         super().__init__(**kwargs)
 
-    def load(  # pylint: disable=arguments-differ
+    def load(
         self,
         data: Union[Mapping[str, Any], Iterable[Mapping[str, Any]]],
         many: Optional[bool] = None,

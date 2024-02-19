@@ -21,14 +21,14 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
-  getNumberFormatter,
   getMetricLabel,
   getColumnLabel,
+  getValueFormatter,
 } from '@superset-ui/core';
 import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import range from 'lodash/range';
+import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -105,7 +105,11 @@ export default function transformProps(
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
-  const { verboseMap = {} } = datasource;
+  const {
+    verboseMap = {},
+    currencyFormats = {},
+    columnFormats = {},
+  } = datasource;
   const {
     groupby,
     metric,
@@ -114,6 +118,7 @@ export default function transformProps(
     colorScheme,
     fontSize,
     numberFormat,
+    currencyFormat,
     animation,
     showProgress,
     overlap,
@@ -132,7 +137,13 @@ export default function transformProps(
   const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);

@@ -23,9 +23,13 @@ import {
   ContextMenuFilters,
   FilterState,
   HandlerFunction,
+  LegendState,
   PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
+  ChartPlugin,
+  SqlaFormData,
+  ChartMetadata,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
@@ -127,6 +131,7 @@ export interface BaseTransformedProps<F> {
     filters?: ContextMenuFilters,
   ) => void;
   setDataMask?: SetDataMaskHook;
+  onLegendStateChanged?: (state: LegendState) => void;
   filterState?: FilterState;
   refs: Refs;
   width: number;
@@ -166,6 +171,22 @@ export interface TreePathInfo {
   name: string;
   dataIndex: number;
   value: number | number[];
+}
+
+export class EchartsChartPlugin<
+  T extends SqlaFormData = SqlaFormData,
+  P extends ChartProps = ChartProps,
+> extends ChartPlugin<T, P> {
+  constructor(props: any) {
+    const { metadata, ...restProps } = props;
+    super({
+      ...restProps,
+      metadata: new ChartMetadata({
+        parseMethod: 'json',
+        ...metadata,
+      }),
+    });
+  }
 }
 
 export * from './Timeseries/types';

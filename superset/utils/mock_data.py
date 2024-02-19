@@ -23,7 +23,7 @@ import string
 import sys
 from collections.abc import Iterator
 from datetime import date, datetime, time, timedelta
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast, Optional, TypedDict
 from uuid import uuid4
 
 import sqlalchemy.sql.sqltypes
@@ -31,10 +31,8 @@ import sqlalchemy_utils
 from flask_appbuilder import Model
 from sqlalchemy import Column, inspect, MetaData, Table
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
-from typing_extensions import TypedDict
 
 from superset import db
 
@@ -189,7 +187,7 @@ def add_data(
     with database.get_sqla_engine_with_context() as engine:
         if columns is None:
             if not table_exists:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     f"The table {table_name} does not exist. To create it you need to "
                     "pass a list of column names and types."
                 )
@@ -232,12 +230,10 @@ def generate_column_data(column: ColumnInfo, num_rows: int) -> list[Any]:
     return [gen() for _ in range(num_rows)]
 
 
-def add_sample_rows(
-    session: Session, model: type[Model], count: int
-) -> Iterator[Model]:
+def add_sample_rows(model: type[Model], count: int) -> Iterator[Model]:
     """
     Add entities of a given model.
-    :param Session session: an SQLAlchemy session
+
     :param Model model: a Superset/FAB model
     :param int count: how many entities to generate and insert
     """
@@ -245,7 +241,7 @@ def add_sample_rows(
 
     # select samples to copy relationship values
     relationships = inspector.relationships.items()
-    samples = session.query(model).limit(count).all() if relationships else []
+    samples = db.session.query(model).limit(count).all() if relationships else []
 
     max_primary_key: Optional[int] = None
     for i in range(count):
@@ -256,7 +252,7 @@ def add_sample_rows(
             if column.primary_key:
                 if max_primary_key is None:
                     max_primary_key = (
-                        session.query(func.max(getattr(model, column.name))).scalar()
+                        db.session.query(func.max(getattr(model, column.name))).scalar()
                         or 0
                     )
                 max_primary_key += 1

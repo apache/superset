@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import contextlib
 import json
 import re
 import urllib
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING, TypedDict
 
 import pandas as pd
 from apispec import APISpec
@@ -32,7 +33,6 @@ from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import sqltypes
-from typing_extensions import TypedDict
 
 from superset import sql_parse
 from superset.constants import PASSWORD_MASK, TimeGrain
@@ -43,6 +43,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
+from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 
@@ -51,7 +52,7 @@ try:
     from google.oauth2 import service_account
 
     dependencies_installed = True
-except ModuleNotFoundError:
+except ImportError:
     dependencies_installed = False
 
 try:
@@ -63,7 +64,6 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
-
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -435,7 +435,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
         statements = parsed_query.get_statements()
         costs = []
         for statement in statements:
@@ -556,11 +556,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         except (json.JSONDecodeError, TypeError):
             return encrypted_extra
 
-        try:
+        with contextlib.suppress(KeyError):
             config["credentials_info"]["private_key"] = PASSWORD_MASK
-        except KeyError:
-            pass
-
         return json.dumps(config)
 
     @classmethod
@@ -637,7 +634,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: Optional[list[dict[str, Any]]] = None,
+        cols: Optional[list[ResultSetColumnType]] = None,
     ) -> str:
         """
         Remove array structures from `SELECT *`.
@@ -678,13 +675,15 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             # For arrays of structs, remove the child columns, otherwise the query
             # will fail.
             array_prefixes = {
-                col["name"] for col in cols if isinstance(col["type"], sqltypes.ARRAY)
+                col["column_name"]
+                for col in cols
+                if isinstance(col["type"], sqltypes.ARRAY)
             }
             cols = [
                 col
                 for col in cols
-                if "." not in col["name"]
-                or col["name"].split(".")[0] not in array_prefixes
+                if "." not in col["column_name"]
+                or col["column_name"].split(".")[0] not in array_prefixes
             ]
 
         return super().select_star(
@@ -700,7 +699,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         )
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[Any]:
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[Any]:
         """
         Label columns using their fully qualified name.
 
@@ -725,7 +724,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         the columns using their fully qualified name, so we end up with "author",
         "author__name" and "author__email", respectively.
         """
-        return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]
+        return [
+            column(c["column_name"]).label(c["column_name"].replace(".", "__"))
+            for c in cols
+        ]
 
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:

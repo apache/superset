@@ -25,11 +25,13 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  LegendState,
+  normalizeTimestamp,
   NumberFormats,
   NumberFormatter,
-  TimeFormatter,
   SupersetTheme,
-  normalizeTimestamp,
+  TimeFormatter,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
@@ -39,7 +41,12 @@ import {
   StackControlsValue,
   TIMESERIES_CONSTANTS,
 } from '../constants';
-import { LegendOrientation, LegendType, StackType } from '../types';
+import {
+  EchartsTimeseriesSeriesType,
+  LegendOrientation,
+  LegendType,
+  StackType,
+} from '../types';
 import { defaultLegendPadding } from '../defaults';
 
 function isDefined<T>(value: T | undefined | null): boolean {
@@ -52,6 +59,7 @@ export function extractDataTotalValues(
     stack: StackType;
     percentageThreshold: number;
     xAxisCol: string;
+    legendState?: LegendState;
   },
 ): {
   totalStackedValues: number[];
@@ -59,11 +67,14 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol } = opts;
+  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (curr === xAxisCol) {
+          return prev;
+        }
+        if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
@@ -85,23 +96,28 @@ export function extractShowValueIndexes(
     stack: StackType;
     onlyTotal?: boolean;
     isHorizontal?: boolean;
+    legendState?: LegendState;
   },
 ): number[] {
   const showValueIndexes: number[] = [];
-  if (opts.stack) {
+  const { legendState, stack, isHorizontal, onlyTotal } = opts;
+  if (stack) {
     series.forEach((entry, seriesIndex) => {
       const { data = [] } = entry;
       (data as [any, number][]).forEach((datum, dataIndex) => {
-        if (!opts.onlyTotal && datum[opts.isHorizontal ? 0 : 1] !== null) {
+        if (entry.id && legendState && !legendState[entry.id]) {
+          return;
+        }
+        if (!onlyTotal && datum[isHorizontal ? 0 : 1] !== null) {
           showValueIndexes[dataIndex] = seriesIndex;
         }
-        if (opts.onlyTotal) {
-          if (datum[opts.isHorizontal ? 0 : 1] > 0) {
+        if (onlyTotal) {
+          if (datum[isHorizontal ? 0 : 1] > 0) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
           if (
             !showValueIndexes[dataIndex] &&
-            datum[opts.isHorizontal ? 0 : 1] !== null
+            datum[isHorizontal ? 0 : 1] !== null
           ) {
             showValueIndexes[dataIndex] = seriesIndex;
           }
@@ -213,8 +229,10 @@ export function sortRows(
     }
 
     const value =
-      xAxisSortSeries === SortSeriesType.Name && typeof sortKey === 'string'
-        ? sortKey.toLowerCase()
+      xAxisSortSeries === SortSeriesType.Name
+        ? typeof sortKey === 'string'
+          ? sortKey.toLowerCase()
+          : sortKey
         : aggregate;
 
     return {
@@ -335,7 +353,7 @@ export function formatSeriesName(
     timeFormatter,
     coltype,
   }: {
-    numberFormatter?: NumberFormatter;
+    numberFormatter?: ValueFormatter;
     timeFormatter?: TimeFormatter;
     coltype?: GenericDataType;
   } = {},
@@ -346,7 +364,7 @@ export function formatSeriesName(
   if (typeof name === 'boolean') {
     return name.toString();
   }
-  if (name instanceof Date || coltype === GenericDataType.TEMPORAL) {
+  if (name instanceof Date || coltype === GenericDataType.Temporal) {
     const normalizedName =
       typeof name === 'string' ? normalizeTimestamp(name) : name;
     const d =
@@ -404,6 +422,7 @@ export function getLegendProps(
   show: boolean,
   theme: SupersetTheme,
   zoomable = false,
+  legendState?: LegendState,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -413,6 +432,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    selected: legendState,
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.typography.families.sansSerif,
@@ -446,6 +466,7 @@ export function getChartPadding(
   orientation: LegendOrientation,
   margin?: string | number | null,
   padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -466,6 +487,19 @@ export function getChartPadding(
   }
 
   const { bottom = 0, left = 0, right = 0, top = 0 } = padding || {};
+
+  if (isHorizontal) {
+    return {
+      left:
+        left + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+      right:
+        right + (orientation === LegendOrientation.Right ? legendMargin : 0),
+      top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
+      bottom:
+        bottom + (orientation === LegendOrientation.Left ? legendMargin : 0),
+    };
+  }
+
   return {
     left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
     right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),
@@ -495,23 +529,27 @@ export function sanitizeHtml(text: string): string {
   return format.encodeHTML(text);
 }
 
-// TODO: Better use other method to maintain this state
-export const currentSeries = {
-  name: '',
-  legend: '',
-};
-
-export function getAxisType(dataType?: GenericDataType): AxisType {
-  if (dataType === GenericDataType.TEMPORAL) {
-    return AxisType.time;
+export function getAxisType(
+  stack: StackType,
+  forceCategorical?: boolean,
+  dataType?: GenericDataType,
+): AxisType {
+  if (forceCategorical) {
+    return AxisType.Category;
   }
-  return AxisType.category;
+  if (dataType === GenericDataType.Temporal) {
+    return AxisType.Time;
+  }
+  if (dataType === GenericDataType.Numeric && !stack) {
+    return AxisType.Value;
+  }
+  return AxisType.Category;
 }
 
 export function getOverMaxHiddenFormatter(
   config: {
     max?: number;
-    formatter?: NumberFormatter;
+    formatter?: ValueFormatter;
   } = {},
 ) {
   const { max, formatter } = config;
@@ -532,4 +570,37 @@ export function getOverMaxHiddenFormatter(
 export function calculateLowerLogTick(minPositiveValue: number) {
   const logBase10 = Math.floor(Math.log10(minPositiveValue));
   return Math.pow(10, logBase10);
+}
+
+type BoundsType = {
+  min?: number | 'dataMin';
+  max?: number | 'dataMax';
+  scale?: true;
+};
+
+export function getMinAndMaxFromBounds(
+  axisType: AxisType,
+  truncateAxis: boolean,
+  min?: number,
+  max?: number,
+  seriesType?: EchartsTimeseriesSeriesType,
+): BoundsType | {} {
+  if (axisType === AxisType.Value && truncateAxis) {
+    const ret: BoundsType = {};
+    if (seriesType === EchartsTimeseriesSeriesType.Bar) {
+      ret.scale = true;
+    }
+    if (min !== undefined) {
+      ret.min = min;
+    } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
+      ret.min = 'dataMin';
+    }
+    if (max !== undefined) {
+      ret.max = max;
+    } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
+      ret.max = 'dataMax';
+    }
+    return ret;
+  }
+  return {};
 }

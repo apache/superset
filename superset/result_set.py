@@ -29,6 +29,7 @@ from numpy.typing import NDArray
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
@@ -167,12 +168,11 @@ class SupersetResultSet:
                         try:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
-                                series = pd.Series(
-                                    array[column], dtype="datetime64[ns]"
-                                )
-                                series = pd.to_datetime(series).dt.tz_localize(tz)
+                                series = pd.Series(array[column])
+                                series = pd.to_datetime(series)
                                 pa_data[i] = pa.Array.from_pandas(
-                                    series, type=pa.timestamp("ns", tz=tz)
+                                    series,
+                                    type=pa.timestamp("ns", tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
@@ -223,6 +223,18 @@ class SupersetResultSet:
             return False
         return column_spec.is_dttm
 
+    def type_generic(
+        self, db_type_str: Optional[str]
+    ) -> Optional[utils.GenericDataType]:
+        column_spec = self.db_engine_spec.get_column_spec(db_type_str)
+        if column_spec is None:
+            return None
+
+        if column_spec.is_dttm:
+            return GenericDataType.TEMPORAL
+
+        return column_spec.generic_type
+
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
         if set_type := self._type_dict.get(col_name):
@@ -253,10 +265,11 @@ class SupersetResultSet:
         for col in self.table.schema:
             db_type_str = self.data_type(col.name, col.type)
             column: ResultSetColumnType = {
+                "column_name": col.name,
                 "name": col.name,
                 "type": db_type_str,
-                "is_dttm": self.is_temporal(db_type_str),
+                "type_generic": self.type_generic(db_type_str),
+                "is_dttm": self.is_temporal(db_type_str) or False,
             }
             columns.append(column)
-
         return columns

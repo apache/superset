@@ -61,11 +61,12 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
     )
     @rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
-        """Returns a AdvancedDataTypeResponse object populated with the passed in args
+        """Return an AdvancedDataTypeResponse object populated with the passed in args.
         ---
         get:
-          summary: >-
-            Returns a AdvancedDataTypeResponse object populated with the passed in args.
+          summary: Return an AdvancedDataTypeResponse
+          description: >-
+            Returns an AdvancedDataTypeResponse object populated with the passed in args.
           parameters:
           - in: query
             name: q
@@ -118,11 +119,10 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
     def get_types(self) -> Response:
-        """Returns a list of available advanced data types
+        """Return a list of available advanced data types.
         ---
         get:
-          description: >-
-            Returns a list of available advanced data types.
+          summary: Return a list of available advanced data types
           responses:
             200:
               description: >-
@@ -144,5 +144,4 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-
         return self.response(200, result=list(ADVANCED_DATA_TYPES.keys()))

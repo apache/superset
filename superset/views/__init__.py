@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from . import (
-    access_requests,
     alerts,
     api,
     base,
@@ -23,7 +22,6 @@ from . import (
     css_templates,
     dynamic_plugins,
     health,
-    redirects,
     sql_lab,
     tags,
 )

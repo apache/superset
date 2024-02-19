@@ -20,12 +20,12 @@ import React, { useContext, useEffect, useReducer } from 'react';
 import {
   ChartMetadata,
   defineSharedModules,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   logging,
   makeApi,
 } from '@superset-ui/core';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { omitBy } from 'lodash';
 
 const metadataRegistry = getChartMetadataRegistry();
@@ -172,7 +172,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
       ...getRegistryData(),
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchAll,
-      loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
+      loading: isFeatureEnabled(FeatureFlag.DynamicPlugins),
       // TODO: Write fetchByKeys
     }),
   );
@@ -210,7 +210,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
   }
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
+    if (isFeatureEnabled(FeatureFlag.DynamicPlugins)) {
       fetchAll();
     }
     const registryListener = () => {

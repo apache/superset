@@ -88,6 +88,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
 }
 
 function resetTabbedDashboard(go = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
     const jsonMetadata = r?.json_metadata || '{}';
     const metadata = JSON.parse(jsonMetadata);
@@ -422,17 +423,17 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(252, 199, 0)');
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(143, 211, 228)');
+        .should('have.css', 'fill', 'rgb(224, 67, 85)');
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(2)
-        .should('have.css', 'fill', 'rgb(172, 225, 196)');
+        .should('have.css', 'fill', 'rgb(163, 143, 121)');
     });
 
     it('should show the same colors in Explore', () => {
@@ -463,7 +464,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(51, 61, 71)');
+        .should('have.css', 'fill', 'rgb(172, 32, 119)');
 
       openExplore('Top 10 California Names Timeseries');
 
@@ -474,7 +475,7 @@ describe('Dashboard edit', () => {
       // label Christopher
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
         .eq(1)
-        .should('have.css', 'fill', 'rgb(108, 131, 142)');
+        .should('have.css', 'fill', 'rgb(172, 32, 119)');
     });
 
     it('should change color scheme multiple times', () => {
@@ -515,7 +516,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
 
       // open main tab and nested tab
       openTab(0, 0);
@@ -526,7 +527,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
     });
 
     it('should apply the color scheme across main tabs', () => {
@@ -557,7 +558,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(204, 0, 134)');
+        .should('have.css', 'fill', 'rgb(156, 52, 152)');
 
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
@@ -661,6 +662,8 @@ describe('Dashboard edit', () => {
     it('should not accept an invalid color scheme', () => {
       openAdvancedProperties();
       clearMetadata();
+      // allow console error
+      cy.allowConsoleErrors(['Error: A valid color scheme is required']);
       writeMetadata('{"color_scheme":"wrongcolorscheme"}');
       applyChanges();
       cy.get('.ant-modal-body')

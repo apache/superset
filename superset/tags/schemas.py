@@ -15,28 +15,34 @@
 # specific language governing permissions and limitations
 # under the License.
 from marshmallow import fields, Schema
+from marshmallow.validate import Length, Range
 
 from superset.dashboards.schemas import UserSchema
 
 delete_tags_schema = {"type": "array", "items": {"type": "string"}}
-
 object_type_description = "A title for the tag."
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a tag detail information."}},
+    "get": {"get": {"summary": "Get a tag detail information"}},
     "get_list": {
         "get": {
+            "summary": "Get a list of tags",
             "description": "Get a list of tags, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about tag API " "endpoints.",
-        }
-    },
+    "put": {"put": {"summary": "Update a tag"}},
+    "delete": {"delete": {"summary": "Delete a tag"}},
+    "post": {"post": {"summary": "Create a tag"}},
+    "info": {"get": {"summary": "Get metadata information about tag API endpoints"}},
 }
+
+
+class TagGetResponseSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    type = fields.String()
 
 
 class TaggedObjectEntityResponseSchema(Schema):
@@ -47,13 +53,26 @@ class TaggedObjectEntityResponseSchema(Schema):
     changed_on = fields.DateTime()
     created_by = fields.Nested(UserSchema(exclude=["username"]))
     creator = fields.String()
+    tags = fields.List(fields.Nested(TagGetResponseSchema))
+    owners = fields.List(fields.Nested(UserSchema))
 
 
-class TagGetResponseSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-    type = fields.String()
+class TagObjectSchema(Schema):
+    name = fields.String(validate=Length(min=1))
+    description = fields.String(required=False, allow_none=True)
+    objects_to_tag = fields.List(
+        fields.Tuple((fields.String(), fields.Int(validate=Range(min=1)))),
+        required=False,
+    )
 
 
-class TagPostSchema(Schema):
-    tags = fields.List(fields.String())
+class TagPostBulkSchema(Schema):
+    tags = fields.List(fields.Nested(TagObjectSchema))
+
+
+class TagPostSchema(TagObjectSchema):
+    pass
+
+
+class TagPutSchema(TagObjectSchema):
+    pass

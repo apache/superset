@@ -392,14 +392,16 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             params=get_slice_json(
                 defaults,
                 viz_type="mixed_timeseries",
-                metrics={
-                    "expressionType": "SIMPLE",
-                    "column": {"column_name": "num", "type": "BIGINT(20)"},
-                    "aggregate": "AVG",
-                    "label": "AVG(num)",
-                    "optionName": "metric_vgops097wej_g8uff99zhk7",
-                },
-                metrics_b="sum__num",
+                metrics=[
+                    {
+                        "expressionType": "SIMPLE",
+                        "column": {"column_name": "num", "type": "BIGINT(20)"},
+                        "aggregate": "AVG",
+                        "label": "AVG(num)",
+                        "optionName": "metric_vgops097wej_g8uff99zhk7",
+                    }
+                ],
+                metrics_b=["sum__num"],
                 granularity_sqla="ds",
                 yAxisIndex=0,
                 yAxisIndexB=1,
@@ -421,6 +423,16 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 time_range="1983 : 2023",
                 viz_type="table",
                 metrics=metrics,
+            ),
+            query_context=get_slice_json(
+                default_query_context,
+                queries=[
+                    {
+                        "columns": ["ds"],
+                        "metrics": metrics,
+                        "time_range": "1983 : 2023",
+                    }
+                ],
             ),
         ),
         Slice(
@@ -535,7 +547,6 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
-        dash.owners = []
         db.session.add(dash)
 
     dash.published = True

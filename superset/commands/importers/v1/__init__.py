@@ -30,7 +30,7 @@ from superset.commands.importers.v1.utils import (
     METADATA_FILE_NAME,
     validate_metadata_type,
 )
-from superset.dao.base import BaseDAO
+from superset.daos.base import BaseDAO
 from superset.models.core import Database
 
 
@@ -60,9 +60,7 @@ class ImportModelsCommand(BaseCommand):
         self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
@@ -74,7 +72,7 @@ class ImportModelsCommand(BaseCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite)
             db.session.commit()
         except CommandException as ex:
             db.session.rollback()

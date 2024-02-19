@@ -44,7 +44,7 @@ class ObjectNotFoundError(CommandException):
         super().__init__(
             _(
                 self.message_format.format(
-                    object_type, '"%s" ' % object_id if object_id else ""
+                    object_type, f'"{object_id}" ' if object_id else ""
                 )
             ),
             exception,

@@ -32,10 +32,13 @@ import {
   getColumnLabel,
   withTheme,
 } from '@superset-ui/core';
-
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import PopoverSection from 'src/components/PopoverSection';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
+import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -43,11 +46,7 @@ import {
   DEFAULT_ANNOTATION_TYPE,
   requiresQuery,
   ANNOTATION_SOURCE_TYPES_METADATA,
-} from 'src/modules/AnnotationTypes';
-import PopoverSection from 'src/components/PopoverSection';
-import ControlHeader from 'src/explore/components/ControlHeader';
-import { EmptyStateSmall } from 'src/components/EmptyState';
-import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
+} from './AnnotationTypes';
 
 const AUTOMATIC_COLOR = '';
 

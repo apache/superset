@@ -104,6 +104,7 @@ const StyledItem = styled.div<{
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;
       text-decoration: ${onClick ? 'underline' : 'none'};
+      line-height: 1.4;
     }
   `}
 `;

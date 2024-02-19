@@ -84,7 +84,6 @@ export default {
     js_columns: ['population', 'area'],
     where: '',
     having: '',
-    having_filters: [],
     filters: [{ col: 'contour', op: 'IS NOT NULL', val: '' }],
   },
   is_cached: false,

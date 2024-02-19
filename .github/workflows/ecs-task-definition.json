@@ -25,8 +25,12 @@
                     "value": "8080"
                 },
                 {
-                  "name": "SUPERSET_SECRET_KEY",
-                  "value": "super-secret-for-ephemerals"
+                    "name": "SUPERSET_SECRET_KEY",
+                    "value": "super-secret-for-ephemerals"
+                },
+                {
+                    "name": "TALISMAN_ENABLED",
+                    "value": "False"
                 }
             ],
             "mountPoints": [],

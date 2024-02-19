@@ -37,7 +37,7 @@ from superset.utils.core import get_username
 from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
-    from superset.queries.dao import QueryDAO
+    from superset.daos.query import QueryDAO
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 QueryStatus = utils.QueryStatus
@@ -151,8 +151,9 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
         )
 
     def _get_timeout_error_msg(self) -> str:
-        return "The query exceeded the {timeout} seconds timeout.".format(
-            timeout=self._timeout_duration_in_seconds
+        return (
+            f"The query exceeded the {self._timeout_duration_in_seconds} "
+            "seconds timeout."
         )
 
 

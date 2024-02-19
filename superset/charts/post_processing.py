@@ -34,14 +34,13 @@ from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
-    DTTM_ALIAS,
     extract_dataframe_dtypes,
     get_column_names,
     get_metric_names,
 )
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.models.sql_lab import Query
 
 
@@ -230,8 +229,6 @@ def pivot_table_v2(
     Pivot table v2.
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
-    if form_data.get("granularity_sqla") == "all" and DTTM_ALIAS in df:
-        del df[DTTM_ALIAS]
 
     return pivot_df(
         df,
@@ -292,7 +289,9 @@ def apply_post_process(
 
     for query in result["queries"]:
         if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
-            raise Exception(f"Result format {query['result_format']} not supported")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Result format {query['result_format']} not supported"
+            )
 
         data = query["data"]
 

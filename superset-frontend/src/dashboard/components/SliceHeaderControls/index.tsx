@@ -33,6 +33,7 @@ import moment from 'moment';
 import {
   Behavior,
   css,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   QueryFormData,
@@ -45,7 +46,6 @@ import { Menu } from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -57,6 +57,7 @@ import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
 const MENU_KEYS = {
@@ -65,6 +66,7 @@ const MENU_KEYS = {
   EXPORT_CSV: 'export_csv',
   EXPORT_FULL_CSV: 'export_full_csv',
   EXPORT_XLSX: 'export_xlsx',
+  EXPORT_FULL_XLSX: 'export_full_xlsx',
   FORCE_REFRESH: 'force_refresh',
   FULLSCREEN: 'fullscreen',
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
@@ -146,6 +148,7 @@ export interface SliceHeaderControlsProps {
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
+  exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -168,11 +171,13 @@ const dropdownIconsStyles = css`
 `;
 
 const ViewResultsModalTrigger = ({
+  canExplore,
   exploreUrl,
   triggerNode,
   modalTitle,
   modalBody,
 }: {
+  canExplore?: boolean;
   exploreUrl: string;
   triggerNode: ReactChild;
   modalTitle: ReactChild;
@@ -212,6 +217,14 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="secondary"
                 buttonSize="small"
                 onClick={exploreChart}
+                disabled={!canExplore}
+                tooltip={
+                  !canExplore
+                    ? t(
+                        'You do not have sufficient permissions to edit the chart',
+                      )
+                    : undefined
+                }
               >
                 {t('Edit chart')}
               </Button>
@@ -219,6 +232,9 @@ const ViewResultsModalTrigger = ({
                 buttonStyle="primary"
                 buttonSize="small"
                 onClick={closeModal}
+                css={css`
+                  margin-left: ${theme.gridUnit * 2}px;
+                `}
               >
                 {t('Close')}
               </Button>
@@ -253,11 +269,21 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
     ) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
-      ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
-
+      ?.behaviors?.includes(Behavior.InteractiveChart);
+  const canExplore = props.supersetCanExplore;
+  const canDatasourceSamples = useSelector((state: RootState) =>
+    findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
+  const canDrillToDetail = canExplore && canDatasourceSamples;
+  const canViewQuery = useSelector((state: RootState) =>
+    findPermission('can_view_query', 'Dashboard', state.user?.roles),
+  );
+  const canViewTable = useSelector((state: RootState) =>
+    findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
+  );
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
@@ -294,6 +320,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
+        break;
+      case MENU_KEYS.EXPORT_FULL_XLSX:
+        // eslint-disable-next-line no-unused-expressions
+        props.exportFullXLSX?.(props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_XLSX:
         // eslint-disable-next-line no-unused-expressions
@@ -367,6 +397,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     ? t('Exit fullscreen')
     : t('Enter fullscreen');
 
+  // @z-index-below-dashboard-header (100) - 1 = 99 for !isFullSize and 101 for isFullSize
+  const dropdownOverlayStyle = {
+    zIndex: isFullSize ? 101 : 99,
+    animationDuration: '0s',
+  };
+
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -397,7 +433,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {canExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
           <Link to={props.exploreUrl}>
             <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
@@ -416,7 +452,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {props.supersetCanExplore && (
+      {(canExplore || canViewQuery) && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -431,9 +467,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {(canExplore || canViewTable) && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
+            canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
             triggerNode={
               <span data-test="view-query-menu-item">{t('View as table')}</span>
@@ -452,15 +489,14 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        props.supersetCanExplore && (
-          <DrillDetailMenuItems
-            chartId={slice.slice_id}
-            formData={props.formData}
-          />
-        )}
+      {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
+        <DrillDetailMenuItems
+          chartId={slice.slice_id}
+          formData={props.formData}
+        />
+      )}
 
-      {(slice.description || props.supersetCanExplore) && <Menu.Divider />}
+      {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
         <Menu.SubMenu title={t('Share')}>
@@ -477,7 +513,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.SubMenu>
       )}
 
-      {props.slice.viz_type !== 'filter_box' && props.supersetCanCSV && (
+      {props.supersetCanCSV && (
         <Menu.SubMenu title={t('Download')}>
           <Menu.Item
             key={MENU_KEYS.EXPORT_CSV}
@@ -485,25 +521,32 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           >
             {t('Export to .CSV')}
           </Menu.Item>
-
-          {props.slice.viz_type !== 'filter_box' &&
-            isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
-            props.supersetCanCSV &&
-            isTable && (
-              <Menu.Item
-                key={MENU_KEYS.EXPORT_FULL_CSV}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to full .CSV')}
-              </Menu.Item>
-            )}
-
           <Menu.Item
             key={MENU_KEYS.EXPORT_XLSX}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
             {t('Export to Excel')}
           </Menu.Item>
+
+          {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
+            props.supersetCanCSV &&
+            isTable && (
+              <>
+                <Menu.Item
+                  key={MENU_KEYS.EXPORT_FULL_CSV}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                >
+                  {t('Export to full .CSV')}
+                </Menu.Item>
+                <Menu.Item
+                  key={MENU_KEYS.EXPORT_FULL_XLSX}
+                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+                >
+                  {t('Export to full Excel')}
+                </Menu.Item>
+              </>
+            )}
+
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
@@ -527,6 +570,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
       <NoAnimationDropdown
         overlay={menu}
+        overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
       >

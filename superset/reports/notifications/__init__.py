@@ -30,4 +30,6 @@ def create_notification(
     for plugin in BaseNotification.plugins:
         if plugin.type == recipient.type:
             return plugin(recipient, notification_content)
-    raise Exception("Recipient type not supported")
+    raise Exception(  # pylint: disable=broad-exception-raised
+        "Recipient type not supported"
+    )

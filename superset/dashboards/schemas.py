@@ -18,12 +18,12 @@ import json
 import re
 from typing import Any, Union
 
-from marshmallow import fields, post_load, pre_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 
+from superset import security_manager
 from superset.exceptions import SupersetException
-from superset.tags.models import TagTypes
+from superset.tags.models import TagType
 from superset.utils import core as utils
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -70,20 +70,16 @@ certified_by_description = "Person or group that has certified this dashboard"
 certification_details_description = "Details of the certification"
 
 openapi_spec_methods_override = {
-    "get": {"get": {"description": "Get a dashboard detail information."}},
+    "get": {"get": {"summary": "Get a dashboard detail information"}},
     "get_list": {
         "get": {
-            "description": "Get a list of dashboards, use Rison or JSON query "
+            "summary": "Get a list of dashboards",
+            "description": "Gets a list of dashboards, use Rison or JSON query "
             "parameters for filtering, sorting, pagination and "
             " for selecting specific columns and metadata.",
         }
     },
-    "info": {
-        "get": {
-            "description": "Several metadata information about dashboard API "
-            "endpoints.",
-        }
-    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {"description": "Get a list of all possible owners for a dashboard."}
     },
@@ -115,10 +111,8 @@ class DashboardJSONMetadataSchema(Schema):
     # chart_configuration for now keeps data about cross-filter scoping for charts
     chart_configuration = fields.Dict()
     # global_chart_configuration keeps data about global cross-filter scoping
-    # for charts - can be overriden by chart_configuration for each chart
+    # for charts - can be overridden by chart_configuration for each chart
     global_chart_configuration = fields.Dict()
-    # filter_sets_configuration is for dashboard-native filters
-    filter_sets_configuration = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
@@ -142,7 +136,7 @@ class DashboardJSONMetadataSchema(Schema):
     native_filter_migration = fields.Dict()
 
     @pre_load
-    def remove_show_native_filters(  # pylint: disable=unused-argument, no-self-use
+    def remove_show_native_filters(  # pylint: disable=unused-argument
         self,
         data: dict[str, Any],
         **kwargs: Any,
@@ -174,7 +168,7 @@ class RolesSchema(Schema):
 class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
-    type = EnumField(TagTypes, by_value=True)
+    type = fields.Enum(TagType, by_value=True)
 
 
 class DashboardGetResponseSchema(Schema):
@@ -194,15 +188,23 @@ class DashboardGetResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
     changed_by_name = fields.String()
-    changed_by_url = fields.String()
-    changed_by = fields.Nested(UserSchema(exclude=(["username"])))
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
-    owners = fields.List(fields.Nested(UserSchema(exclude=(["username"]))))
+    owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
+    # pylint: disable=unused-argument
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            del serialized["owners"]
+            del serialized["changed_by_name"]
+            del serialized["changed_by"]
+        return serialized
 
 
 class DatabaseSchema(Schema):
@@ -220,6 +222,7 @@ class DashboardDatasetSchema(Schema):
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
+    currency_formats = fields.Dict()
     database = fields.Nested(DatabaseSchema)
     default_endpoint = fields.String()
     filter_select = fields.Bool()
@@ -249,10 +252,20 @@ class DashboardDatasetSchema(Schema):
     verbose_map = fields.Dict(fields.Str(), fields.Str())
     time_grain_sqla = fields.List(fields.List(fields.Str()))
     granularity_sqla = fields.List(fields.List(fields.Str()))
+    normalize_columns = fields.Bool()
+    always_filter_main_dttm = fields.Bool()
+
+    # pylint: disable=unused-argument
+    @post_dump()
+    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        if security_manager.is_guest_user():
+            del serialized["owners"]
+            del serialized["database"]
+        return serialized
 
 
 class BaseDashboardSchema(Schema):
-    # pylint: disable=no-self-use,unused-argument
+    # pylint: disable=unused-argument
     @post_load
     def post_load(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if data.get("slug"):
@@ -379,6 +392,9 @@ class ImportV1DashboardSchema(Schema):
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    published = fields.Boolean(allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

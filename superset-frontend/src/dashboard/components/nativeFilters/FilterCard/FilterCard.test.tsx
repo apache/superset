@@ -49,7 +49,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
       'NATIVE_FILTER-2': {
@@ -71,7 +71,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
     },
@@ -188,7 +188,7 @@ const baseFilter: Filter = {
     rootPath: [DASHBOARD_ROOT_ID],
     excluded: [],
   },
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: '',
 };
 
@@ -204,13 +204,6 @@ jest.mock('@superset-ui/core', () => ({
     },
   }),
 }));
-
-jest.mock(
-  'src/components/Icons/Icon',
-  () =>
-    ({ fileName }: { fileName: string }) =>
-      <span role="img" aria-label={fileName.replace('_', '-')} />,
-);
 
 // extract text from embedded html tags
 // source: https://polvara.me/posts/five-things-you-didnt-know-about-testing-library

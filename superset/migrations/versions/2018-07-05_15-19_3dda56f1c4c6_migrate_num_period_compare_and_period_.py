@@ -106,7 +106,7 @@ def format_seconds(value):
     else:
         period = "second"
 
-    return "{} {}{}".format(value, period, "s" if value > 1 else "")
+    return f"{value} {period}{'s' if value > 1 else ''}"
 
 
 def compute_time_compare(granularity, periods):
@@ -120,7 +120,7 @@ def compute_time_compare(granularity, periods):
         obj = isodate.parse_duration(granularity) * periods
     except isodate.isoerror.ISO8601Error:
         # if parse_human_timedelta can parse it, return it directly
-        delta = "{} {}{}".format(periods, granularity, "s" if periods > 1 else "")
+        delta = f"{periods} {granularity}{'s' if periods > 1 else ''}"
         obj = parse_human_timedelta(delta)
         if obj:
             return delta

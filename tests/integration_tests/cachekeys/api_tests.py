@@ -27,6 +27,10 @@ from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
 )
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 
 
 @pytest.fixture
@@ -95,6 +99,7 @@ def test_invalidate_cache_bad_request(invalidate):
     assert rv.status_code == 400
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_invalidate_existing_caches(invalidate):
     schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()

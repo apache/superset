@@ -296,7 +296,8 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
+        with db.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
         expected = (
             textwrap.dedent(
                 f"""\
@@ -671,3 +672,8 @@ class TestSqlaTableModel(SupersetTestCase):
 
         # clean up and auto commit
         metadata_db.session.delete(slc)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_table_column_database(self) -> None:
+        tbl = self.get_table(name="birth_names")
+        assert tbl.get_column("ds").database is tbl.database  # type: ignore

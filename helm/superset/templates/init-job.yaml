@@ -21,7 +21,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ template "superset.name" . }}-init-db
+  name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
   {{- if .Values.init.jobAnnotations }}
   annotations: {{- toYaml .Values.init.jobAnnotations | nindent 4 }}
@@ -29,7 +29,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: {{ template "superset.name" . }}-init-db
+      name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
@@ -63,7 +63,7 @@ spec:
               name: {{ tpl .Values.envFromSecret . }}
           {{- range .Values.envFromSecrets }}
           - secretRef:
-              name: {{ tpl . $ }}
+              name: {{ tpl . $ | quote }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         {{- if .Values.init.containerSecurityContext }}
@@ -83,6 +83,9 @@ spec:
           {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources: {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- if .Values.init.extraContainers }}
+          {{- toYaml .Values.init.extraContainers | nindent 6 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

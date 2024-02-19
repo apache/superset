@@ -18,6 +18,7 @@
  */
 import {
   ensureIsArray,
+  isFeatureEnabled,
   FeatureFlag,
   makeApi,
   SupersetClient,
@@ -25,7 +26,6 @@ import {
 } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { isFeatureEnabled } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -230,7 +230,7 @@ const wsConnect = (): void => {
 };
 
 export const init = (appConfig?: AppConfig) => {
-  if (!isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) return;
+  if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
   if (pollingTimeoutId) clearTimeout(pollingTimeoutId);
 
   listenersByJobId = {};

@@ -16,38 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import type { IAceEditor } from 'react-ace/lib/types';
 import { useDispatch } from 'react-redux';
-import { css, styled, usePrevious, t } from '@superset-ui/core';
+import { css, styled, usePrevious } from '@superset-ui/core';
 
-import { areArraysShallowEqual } from 'src/reduxUtils';
-import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
-import {
-  queryEditorSetSelectedText,
-  addTable,
-  addDangerToast,
-} from 'src/SqlLab/actions/sqlLab';
-import {
-  SCHEMA_AUTOCOMPLETE_SCORE,
-  TABLE_AUTOCOMPLETE_SCORE,
-  COLUMN_AUTOCOMPLETE_SCORE,
-  SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-} from 'src/SqlLab/constants';
-import {
-  Editor,
-  AceCompleterKeyword,
-  FullSQLEditor as AceEditor,
-} from 'src/components/AsyncAceEditor';
+import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
+import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
+import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { useSchemas, useTables } from 'src/hooks/apiResources';
-import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
+import type { CursorPosition } from 'src/SqlLab/types';
 import { useAnnotations } from './useAnnotations';
+import { useKeywords } from './useKeywords';
 
 type HotKey = {
-  key: string;
-  descr: string;
+  key: KeyboardShortcut;
+  descr?: string;
   name: string;
-  func: () => void;
+  func: (aceEditor: IAceEditor) => void;
 };
 
 type AceEditorWrapperProps = {
@@ -55,8 +41,7 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
-  database: any;
-  extendedTables?: Array<{ name: string; columns: any[] }>;
+  onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
   hotkeys: HotKey[];
 };
@@ -66,7 +51,9 @@ const StyledAceEditor = styled(AceEditor)`
     && {
       // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};
-      font-feature-settings: 'liga' off, 'calt' off;
+      font-feature-settings:
+        'liga' off,
+        'calt' off;
 
       &.ace_autocomplete {
         // Use !important because Ace Editor applies extra CSS at the last second
@@ -86,62 +73,23 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
-  database,
-  extendedTables = [],
+  onCursorPositionChange,
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
-
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
     'sql',
     'schema',
     'templateParams',
+    'cursorPosition',
   ]);
-  const { data: schemaOptions } = useSchemas({
-    ...(autocomplete && { dbId: queryEditor.dbId }),
-  });
-  const { data: tableData } = useTables({
-    ...(autocomplete && {
-      dbId: queryEditor.dbId,
-      schema: queryEditor.schema,
-    }),
-  });
-
-  const { data: functionNames, isError } = useDatabaseFunctionsQuery(
-    { dbId: queryEditor.dbId },
-    { skip: !autocomplete || !queryEditor.dbId },
-  );
-
-  useEffect(() => {
-    if (isError) {
-      dispatch(
-        addDangerToast(t('An error occurred while fetching function names.')),
-      );
-    }
-  }, [dispatch, isError]);
 
   const currentSql = queryEditor.sql ?? '';
-
-  // Loading schema, table and column names as auto-completable words
-  const { schemas, schemaWords } = useMemo(
-    () => ({
-      schemas: schemaOptions ?? [],
-      schemaWords: (schemaOptions ?? []).map(s => ({
-        name: s.label,
-        value: s.value,
-        score: SCHEMA_AUTOCOMPLETE_SCORE,
-        meta: 'schema',
-      })),
-    }),
-    [schemaOptions],
-  );
-  const tables = tableData?.options ?? [];
-
+  const cursorPosition = queryEditor.cursorPosition ?? { row: 0, column: 0 };
   const [sql, setSql] = useState(currentSql);
-  const [words, setWords] = useState<AceCompleterKeyword[]>([]);
 
   // The editor changeSelection is called multiple times in a row,
   // faster than React reconciliation process, so the selected text
@@ -152,23 +100,9 @@ const AceEditorWrapper = ({
   useEffect(() => {
     // Making sure no text is selected from previous mount
     dispatch(queryEditorSetSelectedText(queryEditor, null));
-    setAutoCompleter();
   }, []);
 
-  const prevTables = usePrevious(tables) ?? [];
-  const prevSchemas = usePrevious(schemas) ?? [];
-  const prevExtendedTables = usePrevious(extendedTables) ?? [];
   const prevSql = usePrevious(currentSql);
-
-  useEffect(() => {
-    if (
-      !areArraysShallowEqual(tables, prevTables) ||
-      !areArraysShallowEqual(schemas, prevSchemas) ||
-      !areArraysShallowEqual(extendedTables, prevExtendedTables)
-    ) {
-      setAutoCompleter();
-    }
-  }, [tables, schemas, extendedTables]);
 
   useEffect(() => {
     if (currentSql !== prevSql) {
@@ -215,78 +149,24 @@ const AceEditorWrapper = ({
 
       currentSelectionCache.current = selectedText;
     });
+    editor.selection.on('changeCursor', () => {
+      const cursor = editor.getCursorPosition();
+      onCursorPositionChange(cursor);
+    });
+
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {
-    setSql(text);
-    onChange(text);
+    if (text !== sql) {
+      setSql(text);
+      onChange(text);
+    }
   };
 
-  function setAutoCompleter() {
-    const columns = {};
-
-    const tableWords = tables.map(t => {
-      const tableName = t.value;
-      const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = extendedTable?.columns || [];
-      cols.forEach(col => {
-        columns[col.name] = null; // using an object as a unique set
-      });
-
-      return {
-        name: t.label,
-        value: tableName,
-        score: TABLE_AUTOCOMPLETE_SCORE,
-        meta: 'table',
-      };
-    });
-
-    const columnWords = Object.keys(columns).map(col => ({
-      name: col,
-      value: col,
-      score: COLUMN_AUTOCOMPLETE_SCORE,
-      meta: 'column',
-    }));
-
-    const functionWords = (functionNames ?? []).map(func => ({
-      name: func,
-      value: func,
-      score: SQL_FUNCTIONS_AUTOCOMPLETE_SCORE,
-      meta: 'function',
-    }));
-
-    const completer = {
-      insertMatch: (editor: Editor, data: any) => {
-        if (data.meta === 'table') {
-          dispatch(
-            addTable(queryEditor, database, data.value, queryEditor.schema),
-          );
-        }
-
-        let { caption } = data;
-        if (data.meta === 'table' && caption.includes(' ')) {
-          caption = `"${caption}"`;
-        }
-
-        // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
-        editor.completer.insertMatch(
-          `${caption}${['function', 'schema'].includes(data.meta) ? '' : ' '}`,
-        );
-      },
-    };
-
-    const words = schemaWords
-      .concat(tableWords)
-      .concat(columnWords)
-      .concat(functionWords)
-      .concat(sqlKeywords)
-      .map(word => ({
-        ...word,
-        completer,
-      }));
-
-    setWords(words);
-  }
   const { data: annotations } = useAnnotations({
     dbId: queryEditor.dbId,
     schema: queryEditor.schema,
@@ -294,9 +174,18 @@ const AceEditorWrapper = ({
     templateParams: queryEditor.templateParams,
   });
 
+  const keywords = useKeywords(
+    {
+      queryEditorId,
+      dbId: queryEditor.dbId,
+      schema: queryEditor.schema,
+    },
+    !autocomplete,
+  );
+
   return (
     <StyledAceEditor
-      keywords={words}
+      keywords={keywords}
       onLoad={onEditorLoad}
       onBlur={onBlurSql}
       height={height}

@@ -59,9 +59,14 @@ const schemaApi = api.injectEndpoints({
   }),
 });
 
-export const { useLazySchemasQuery, useSchemasQuery } = schemaApi;
+export const {
+  useLazySchemasQuery,
+  useSchemasQuery,
+  endpoints: schemaEndpoints,
+  util: schemaApiUtil,
+} = schemaApi;
 
-const EMPTY_SCHEMAS = [] as SchemaOption[];
+export const EMPTY_SCHEMAS = [] as SchemaOption[];
 
 export function useSchemas(options: Params) {
   const isMountedRef = useRef(false);

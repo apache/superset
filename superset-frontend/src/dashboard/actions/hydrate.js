@@ -17,22 +17,21 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
-import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserEditDashboard,
+  canUserSaveAsDashboard,
+} from 'src/dashboard/util/permissionUtils';
 import {
   getCrossFiltersConfiguration,
   isCrossFiltersEnabled,
 } from 'src/dashboard/util/crossFilters';
-import {
-  DASHBOARD_FILTER_SCOPE_GLOBAL,
-  dashboardFilter,
-} from 'src/dashboard/reducers/dashboardFilters';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
@@ -46,14 +45,11 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
-import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import { updateColorSchema } from './dashboardInfo';
 import updateComponentParentsList from '../util/updateComponentParentsList';
@@ -70,20 +66,10 @@ export const hydrateDashboard =
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
-    let preselectFilters = {};
-
     charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
-    try {
-      // allow request parameter overwrite dashboard metadata
-      preselectFilters =
-        getUrlParam(URL_PARAMS.preselectFilters) ||
-        JSON.parse(metadata.default_filters);
-    } catch (e) {
-      //
-    }
 
     if (metadata?.shared_label_colors) {
       updateColorSchema(metadata, metadata?.shared_label_colors);
@@ -114,8 +100,6 @@ export const hydrateDashboard =
     const parent = layout[parentId];
     let newSlicesContainer;
     let newSlicesContainerWidth = 0;
-
-    const filterScopes = metadata?.filter_scopes || {};
 
     const chartQueries = {};
     const dashboardFilters = {};
@@ -185,57 +169,6 @@ export const hydrateDashboard =
         newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
-      }
-
-      // build DashboardFilters for interactive filter features
-      if (slice.form_data.viz_type === 'filter_box') {
-        const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let { columns } = configs;
-        const { labels } = configs;
-        if (preselectFilters[key]) {
-          Object.keys(columns).forEach(col => {
-            if (preselectFilters[key][col]) {
-              columns = {
-                ...columns,
-                [col]: preselectFilters[key][col],
-              };
-            }
-          });
-        }
-
-        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
-          const scopeSettings = {
-            ...filterScopes[key],
-          };
-          const { scope, immune } = {
-            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
-            ...scopeSettings[column],
-          };
-
-          return {
-            ...map,
-            [column]: {
-              scope,
-              immune,
-            },
-          };
-        }, {});
-
-        const componentId = chartIdToLayoutId[key];
-        const directPathToFilter = (layout[componentId].parents || []).slice();
-        directPathToFilter.push(componentId);
-        dashboardFilters[key] = {
-          ...dashboardFilter,
-          chartId: key,
-          componentId,
-          datasourceId: slice.form_data.datasource,
-          filterName: slice.slice_name,
-          directPathToFilter,
-          columns,
-          labels,
-          scopes: scopesByChartId,
-          isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-        };
       }
 
       // sync layout names with current slice names in case a slice was edited
@@ -308,7 +241,7 @@ export const hydrateDashboard =
       filterConfig: metadata?.native_filter_configuration || [],
     });
 
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
       const { chartConfiguration, globalChartConfiguration } =
         getCrossFiltersConfiguration(
           dashboardLayout.present,
@@ -336,7 +269,7 @@ export const hydrateDashboard =
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: canUserSaveAsDashboard(dashboard, user),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',
@@ -359,9 +292,9 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
           filterBarOrientation:
-            (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
+            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
               metadata.filter_bar_orientation) ||
-            FilterBarOrientation.VERTICAL,
+            FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
         dataMask,
@@ -390,7 +323,7 @@ export const hydrateDashboard =
           isRefreshing: false,
           isFiltersRefreshing: false,
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          datasetsStatus: ResourceStatus.LOADING,
+          datasetsStatus: ResourceStatus.Loading,
         },
         dashboardLayout,
       },

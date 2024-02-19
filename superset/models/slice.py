@@ -22,7 +22,6 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -52,15 +51,15 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
     "slice_user",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("ab_user.id")),
-    Column("slice_id", Integer, ForeignKey("slices.id")),
+    Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
+    Column("slice_id", Integer, ForeignKey("slices.id", ondelete="CASCADE")),
 )
 logger = logging.getLogger(__name__)
 
@@ -79,8 +78,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
-    params = Column(Text)
-    query_context = Column(Text)
+    params = Column(utils.MediumText())
+    query_context = Column(utils.MediumText())
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
@@ -96,10 +95,15 @@ class Slice(  # pylint: disable=too-many-public-methods
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
-    owners = relationship(security_manager.user_model, secondary=slice_user)
+    owners = relationship(
+        security_manager.user_model,
+        secondary=slice_user,
+        passive_deletes=True,
+    )
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="objects,tag,tags",
         primaryjoin="and_(Slice.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'chart')",
@@ -107,6 +111,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     table = relationship(
         "SqlaTable",
         foreign_keys=[datasource_id],
+        overlaps="table",
         primaryjoin="and_(Slice.datasource_id == SqlaTable.id, "
         "Slice.datasource_type == 'table')",
         remote_side="SqlaTable.id",
@@ -136,7 +141,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def cls_model(self) -> type[BaseDatasource]:
         # pylint: disable=import-outside-toplevel
-        from superset.datasource.dao import DatasourceDAO
+        from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
@@ -331,21 +336,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def slice_link(self) -> Markup:
         name = escape(self.chart)
         return Markup(f'<a href="{self.url}">{name}</a>')
-
-    @property
-    def created_by_url(self) -> str:
-        if not self.created_by:
-            return ""
-        return f"/superset/profile/{self.created_by.username}"
-
-    @property
-    def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        ):
-            return ""
-        return f"/superset/profile/{self.changed_by.username}"
 
     @property
     def icons(self) -> str:

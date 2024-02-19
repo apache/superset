@@ -40,12 +40,11 @@ jest.mock('re-resizable', () => ({
 jest.mock(
   'src/explore/components/ExploreChartPanel',
   () =>
-    ({ exploreState }: { exploreState: JsonObject }) =>
-      (
-        <div data-test="mock-explore-chart-panel">
-          {JSON.stringify(exploreState)}
-        </div>
-      ),
+    ({ exploreState }: { exploreState: JsonObject }) => (
+      <div data-test="mock-explore-chart-panel">
+        {JSON.stringify(exploreState)}
+      </div>
+    ),
 );
 jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
 
@@ -81,7 +80,7 @@ describe('ChartPage', () => {
 
     beforeEach(() => {
       localStorage.setItem(
-        LocalStorageKeys.dashboard__explore_context,
+        LocalStorageKeys.DashboardExploreContext,
         JSON.stringify({
           [dashboardPageId]: {},
         }),

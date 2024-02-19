@@ -55,7 +55,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, QueryStatus, user_label
+from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Query(
-    Model, ExtraJSONMixin, ExploreMixin
+    ExtraJSONMixin, ExploreMixin, Model
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -88,11 +88,11 @@ class Query(
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
-    sql = Column(Text)
+    sql = Column(MediumText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(Text)
-    executed_sql = Column(Text)
+    select_sql = Column(MediumText())
+    executed_sql = Column(MediumText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -135,7 +135,6 @@ class Query(
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "changedOn": self.changed_on,
             "changed_on": self.changed_on.isoformat(),
             "dbId": self.database_id,
             "db": self.database.database_name if self.database else None,
@@ -184,7 +183,7 @@ class Query(
 
     @property
     def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
+        return list(ParsedQuery(self.sql, engine=self.db_engine_spec.engine).tables)
 
     @property
     def columns(self) -> list["TableColumn"]:
@@ -192,18 +191,17 @@ class Query(
             TableColumn,
         )
 
-        columns = []
-        for col in self.extra.get("columns", []):
-            columns.append(
-                TableColumn(
-                    column_name=col["name"],
-                    type=col["type"],
-                    is_dttm=col["is_dttm"],
-                    groupby=True,
-                    filterable=True,
-                )
+        return [
+            TableColumn(
+                column_name=col["column_name"],
+                database=self.database,
+                is_dttm=col["is_dttm"],
+                filterable=True,
+                groupby=True,
+                type=col["type"],
             )
-        return columns
+            for col in self.extra.get("columns", [])
+        ]
 
     @property
     def db_extra(self) -> Optional[dict[str, Any]]:
@@ -301,14 +299,13 @@ class Query(
     def default_endpoint(self) -> str:
         return ""
 
-    @staticmethod
-    def get_extra_cache_keys(query_obj: dict[str, Any]) -> list[Hashable]:
+    def get_extra_cache_keys(self, query_obj: dict[str, Any]) -> list[Hashable]:
         return []
 
     @property
     def tracking_url(self) -> Optional[str]:
         """
-        Transfrom tracking url at run time because the exact URL may depends
+        Transform tracking url at run time because the exact URL may depend
         on query properties such as execution and finish time.
         """
         transform = current_app.config.get("TRACKING_URL_TRANSFORMER")
@@ -358,7 +355,7 @@ class Query(
         return self.make_sqla_column_compatible(sqla_column, label)
 
 
-class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
@@ -368,7 +365,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     schema = Column(String(128))
     label = Column(String(256))
     description = Column(Text)
-    sql = Column(Text)
+    sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
@@ -385,6 +382,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     tags = relationship(
         "Tag",
         secondary="tagged_object",
+        overlaps="tags",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
         "TaggedObject.object_type == 'query')",
@@ -410,7 +408,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
-            <a href="/superset/sqllab?savedQueryId={self.id}">
+            <a href="/sqllab?savedQueryId={self.id}">
                 <i class="fa fa-link"></i>
             </a>
         """
@@ -425,11 +423,13 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self.database.sqlalchemy_uri
 
     def url(self) -> str:
-        return f"/superset/sqllab?savedQueryId={self.id}"
+        return f"/sqllab?savedQueryId={self.id}"
 
     @property
     def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
+        return list(
+            ParsedQuery(self.sql, engine=self.database.db_engine_spec.engine).tables
+        )
 
     @property
     def last_run_humanized(self) -> str:
@@ -444,7 +444,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self._last_run_delta_humanized
 
 
-class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
+class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "tab_state"
 
     # basic info
@@ -467,7 +467,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     )
 
     # the query in the textarea, and results (if any)
-    sql = Column(Text)
+    sql = Column(MediumText())
     query_limit = Column(Integer)
 
     # latest query that was run
@@ -503,10 +503,11 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,
             "saved_query": self.saved_query.to_dict() if self.saved_query else None,
+            "extra_json": self.extra,
         }
 
 
-class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
+class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "table_schema"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

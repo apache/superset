@@ -55,7 +55,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
   const qe = useSelector<SqlLabRootState, QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) => ({
       ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
+      ...(queryEditor.id === unsavedQueryEditor?.id && unsavedQueryEditor),
     }),
     shallowEqual,
   );

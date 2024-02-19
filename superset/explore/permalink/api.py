@@ -20,17 +20,17 @@ from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
 )
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.datasets.commands.exceptions import (
+from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetNotFoundError,
 )
-from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
+from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
+from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
 from superset.explore.permalink.schemas import ExplorePermalinkStateSchema
 from superset.extensions import event_logger
@@ -59,17 +59,16 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
     )
     @requires_json
     def post(self) -> Response:
-        """Stores a new permanent link.
+        """Create a new permanent link.
         ---
         post:
-          description: >-
-            Stores a new permanent link.
+          summary: Create a new permanent link
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/ExplorePermalinkPostSchema'
+                  $ref: '#/components/schemas/ExplorePermalinkStateSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -119,11 +118,10 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for chart.
+        """Get chart's permanent link state.
         ---
         get:
-          description: >-
-            Retrives chart state associated with a permanent link.
+          summary: Get chart's permanent link state
           parameters:
           - in: path
             schema:

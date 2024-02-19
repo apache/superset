@@ -17,6 +17,7 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import time
@@ -38,10 +39,9 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import cache_manager, is_feature_enabled
+from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -67,11 +67,8 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
 
-    # need try/catch because pyhive may not be installed
-    try:
+    with contextlib.suppress(ImportError):  # pyhive may not be installed
         from pyhive.presto import Cursor
-    except ImportError:
-        pass
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Column '(?P<column_name>.+?)' cannot be resolved"
@@ -120,13 +117,22 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
         raise ValueError
     match = pattern.match(column["type"])
     if not match:
-        raise Exception(f"Unable to parse column type {column['type']}")
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f"Unable to parse column type {column['type']}"
+        )
 
     group = match.groupdict()
     type_ = group["type"].upper()
     children_type = group["children"]
     if type_ == "ARRAY":
-        return [{"name": column["name"], "type": children_type, "is_dttm": False}]
+        return [
+            {
+                "column_name": column["column_name"],
+                "name": column["column_name"],
+                "type": children_type,
+                "is_dttm": False,
+            }
+        ]
 
     if type_ == "ROW":
         nameless_columns = 0
@@ -141,14 +147,15 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
                 type_ = parts[0]
                 nameless_columns += 1
             _column: ResultSetColumnType = {
-                "name": f"{column['name']}.{name.lower()}",
+                "column_name": f"{column['column_name']}.{name.lower()}",
+                "name": f"{column['column_name']}.{name.lower()}",
                 "type": type_,
                 "is_dttm": False,
             }
             columns.append(_column)
         return columns
 
-    raise Exception(f"Unknown type {type_}!")
+    raise Exception(f"Unknown type {type_}!")  # pylint: disable=broad-exception-raised
 
 
 class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
@@ -482,7 +489,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         schema: str | None,
         database: Database,
         query: Select,
-        columns: list[dict[str, Any]] | None = None,
+        columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
             col_names, values = cls.latest_partition(
@@ -496,7 +503,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             return None
 
         column_type_by_name = {
-            column.get("name"): column.get("type") for column in columns or []
+            column.get("column_name"): column.get("type") for column in columns or []
         }
 
         for col_name, value in zip(col_names, values):
@@ -519,12 +526,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     @cache_manager.data_cache.memoize(timeout=60)
-    def latest_partition(
+    def latest_partition(  # pylint: disable=too-many-arguments
         cls,
         table_name: str,
         schema: str | None,
         database: Database,
         show_first: bool = False,
+        indexes: list[dict[str, Any]] | None = None,
     ) -> tuple[list[str], list[str] | None]:
         """Returns col name and the latest (max) partition value for a table
 
@@ -534,12 +542,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         :type database: models.Database
         :param show_first: displays the value for the first partitioning key
           if there are many partitioning keys
+        :param indexes: indexes from the database
         :type show_first: bool
 
         >>> latest_partition('foo_table')
         (['ds'], ('2018-01-01',))
         """
-        indexes = database.get_indexes(table_name, schema)
+        if indexes is None:
+            indexes = database.get_indexes(table_name, schema)
+
         if not indexes:
             raise SupersetTemplateException(
                 f"Error getting partition for {schema}.{table_name}. "
@@ -610,13 +621,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 msg = f"Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
+            # pylint: disable=consider-using-f-string
             msg = (
                 "A filter needs to be specified for {} out of the " "{} fields."
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
         for field in part_fields:
-            if field not in kwargs.keys():
+            if field not in kwargs:
                 field_to_return = field
 
         sql = cls._partition_query(
@@ -813,14 +825,20 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     @classmethod
     def _create_column_info(
         cls, name: str, data_type: types.TypeEngine
-    ) -> dict[str, Any]:
+    ) -> ResultSetColumnType:
         """
         Create column info object
         :param name: column name
         :param data_type: column data type
         :return: column info object
         """
-        return {"name": name, "type": f"{data_type}"}
+        return {
+            "column_name": name,
+            "name": name,
+            "type": f"{data_type}",
+            "is_dttm": None,
+            "type_generic": None,
+        }
 
     @classmethod
     def _get_full_name(cls, names: list[tuple[str, str]]) -> str:
@@ -863,7 +881,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         cls,
         parent_column_name: str,
         parent_data_type: str,
-        result: list[dict[str, Any]],
+        result: list[ResultSetColumnType],
     ) -> None:
         """
         Parse a row or array column
@@ -917,9 +935,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                             )
                         else:  # otherwise this field is a basic data type
                             full_parent_path = cls._get_full_name(stack)
-                            column_name = "{}.{}".format(
-                                full_parent_path, field_info[0]
-                            )
+                            column_name = f"{full_parent_path}.{field_info[0]}"
                             result.append(
                                 cls._create_column_info(column_name, column_type)
                             )
@@ -941,7 +957,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # Unquote the column name if necessary
         if formatted_parent_column_name != parent_column_name:
             for index in range(original_result_len, len(result)):
-                result[index]["name"] = result[index]["name"].replace(
+                result[index]["column_name"] = result[index]["column_name"].replace(
                     formatted_parent_column_name, parent_column_name
                 )
 
@@ -964,19 +980,24 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
-    ) -> list[dict[str, Any]]:
+        cls,
+        inspector: Inspector,
+        table_name: str,
+        schema: str | None,
+        options: dict[str, Any] | None = None,
+    ) -> list[ResultSetColumnType]:
         """
         Get columns from a Presto data source. This includes handling row and
         array data types
         :param inspector: object that performs database schema inspection
         :param table_name: table name
         :param schema: schema name
+        :param options: Extra configuration options, not used by this backend
         :return: a list of results that contain column info
                 (i.e. column name and data type)
         """
         columns = cls._show_columns(inspector, table_name, schema)
-        result: list[dict[str, Any]] = []
+        result: list[ResultSetColumnType] = []
         for column in columns:
             # parse column if it is a row or array
             if is_feature_enabled("PRESTO_EXPAND_DATA") and (
@@ -1003,6 +1024,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             column_info = cls._create_column_info(column.Column, column_type)
             column_info["nullable"] = getattr(column, "Null", True)
             column_info["default"] = None
+            column_info["column_name"] = column.Column
             result.append(column_info)
         return result
 
@@ -1016,7 +1038,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return column_name.startswith('"') and column_name.endswith('"')
 
     @classmethod
-    def _get_fields(cls, cols: list[dict[str, Any]]) -> list[ColumnClause]:
+    def _get_fields(cls, cols: list[ResultSetColumnType]) -> list[ColumnClause]:
         """
         Format column clauses where names are in quotes and labels are specified
         :param cols: columns
@@ -1034,7 +1056,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         dot_regex = re.compile(dot_pattern, re.VERBOSE)
         for col in cols:
             # get individual column names
-            col_names = re.split(dot_regex, col["name"])
+            col_names = re.split(dot_regex, col["column_name"])
             # quote each column name if it is not already quoted
             for index, col_name in enumerate(col_names):
                 if not cls._is_column_name_quoted(col_name):
@@ -1044,7 +1066,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 for col_name in col_names
             )
             # create column clause in the format "name"."name" AS "name.name"
-            column_clause = literal_column(quoted_col_name).label(col["name"])
+            column_clause = literal_column(quoted_col_name).label(col["column_name"])
             column_clauses.append(column_clause)
         return column_clauses
 
@@ -1059,7 +1081,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         show_cols: bool = False,
         indent: bool = True,
         latest_partition: bool = True,
-        cols: list[dict[str, Any]] | None = None,
+        cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """
         Include selecting properties of row objects. We cannot easily break arrays into
@@ -1071,7 +1093,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         if is_feature_enabled("PRESTO_EXPAND_DATA") and show_cols:
             dot_regex = r"\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
             presto_cols = [
-                col for col in presto_cols if not re.search(dot_regex, col["name"])
+                col
+                for col in presto_cols
+                if not re.search(dot_regex, col["column_name"])
             ]
         return super().select_star(
             database,
@@ -1123,7 +1147,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         current_array_level = None
         while to_process:
             column, level = to_process.popleft()
-            if column["name"] not in [column["name"] for column in all_columns]:
+            if column["column_name"] not in [
+                column["column_name"] for column in all_columns
+            ]:
                 all_columns.append(column)
 
             # When unnesting arrays we need to keep track of how many extra rows
@@ -1135,7 +1161,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 unnested_rows: dict[int, int] = defaultdict(int)
                 current_array_level = level
 
-            name = column["name"]
+            name = column["column_name"]
             values: str | list[Any] | None
 
             if column["type"] and column["type"].startswith("ARRAY("):
@@ -1186,10 +1212,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         values = cast(Optional[list[Any]], destringify(values))
                         row[name] = values
                     for value, col in zip(values or [], expanded):
-                        row[col["name"]] = value
+                        row[col["column_name"]] = value
 
         data = [
-            {k["name"]: row.get(k["name"], "") for k in all_columns} for row in data
+            {k["column_name"]: row.get(k["column_name"], "") for k in all_columns}
+            for row in data
         ]
 
         return all_columns, data, expanded_columns
@@ -1202,7 +1229,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         if indexes := database.get_indexes(table_name, schema_name):
             col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True
+                table_name, schema_name, database, show_first=True, indexes=indexes
             )
 
             if not latest_parts:
@@ -1245,28 +1272,26 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
                 cls.execute(cursor, sql)
+                rows = cls.fetch_data(cursor, 1)
+
+                return rows[0][0]
             except DatabaseError:  # not a VIEW
                 return None
-            rows = cls.fetch_data(cursor, 1)
-
-            return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: Cursor) -> str | None:
-        try:
+        with contextlib.suppress(AttributeError):
             if cursor.last_query_id:
                 # pylint: disable=protected-access, line-too-long
                 return f"{cursor._protocol}://{cursor._host}:{cursor._port}/ui/query.html?{cursor.last_query_id}"
-        except AttributeError:
-            pass
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """Updates progress information"""
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
-            session.commit()
+            db.session.commit()
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
@@ -1282,7 +1307,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # Update the object and wait for the kill signal.
             stats = polled.get("stats", {})
 
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
@@ -1299,12 +1324,14 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
                     logger.info(
-                        "Query {} progress: {} / {} "  # pylint: disable=logging-format-interpolation
-                        "splits".format(query_id, completed_splits, total_splits)
+                        "Query %s progress: %s / %s splits",
+                        query_id,
+                        completed_splits,
+                        total_splits,
                     )
                     if progress > query.progress:
                         query.progress = progress
-                    session.commit()
+                    db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()
@@ -1317,6 +1344,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             and isinstance(ex.orig[0], dict)
         ):
             error_dict = ex.orig[0]
+            # pylint: disable=consider-using-f-string
             return "{} at {}: {}".format(
                 error_dict.get("errorName"),
                 error_dict.get("errorLocation"),

@@ -17,6 +17,9 @@
  * under the License.
  */
 import React, { ReactElement, JSXElementConstructor } from 'react';
+import { useTheme } from '@superset-ui/core';
+import ResizableSidebar from 'src/components/ResizableSidebar';
+
 import {
   StyledLayoutWrapper,
   LeftColumn,
@@ -46,14 +49,25 @@ export default function DatasetLayout({
   rightPanel,
   footer,
 }: DatasetLayoutProps) {
+  const theme = useTheme();
+
   return (
     <StyledLayoutWrapper data-test="dataset-layout-wrapper">
       {header && <StyledLayoutHeader>{header}</StyledLayoutHeader>}
       <OuterRow>
         {leftPanel && (
-          <LeftColumn>
-            <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
-          </LeftColumn>
+          <ResizableSidebar
+            id="dataset"
+            initialWidth={theme.gridUnit * 80}
+            minWidth={theme.gridUnit * 80}
+            enable
+          >
+            {adjustedWidth => (
+              <LeftColumn width={adjustedWidth}>
+                <StyledLayoutLeftPanel>{leftPanel}</StyledLayoutLeftPanel>
+              </LeftColumn>
+            )}
+          </ResizableSidebar>
         )}
         <RightColumn>
           <PanelRow>

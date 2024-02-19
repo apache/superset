@@ -30,7 +30,7 @@ from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlMetric
-from superset.datasource.dao import DatasourceDAO
+from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
@@ -121,6 +121,7 @@ class TestQueryContext(SupersetTestCase):
 
         cached = cache_manager.cache.get(cache_key)
         assert cached is not None
+        assert "form_data" in cached["data"]
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]
@@ -144,7 +145,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )
@@ -168,7 +168,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )

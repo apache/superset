@@ -20,6 +20,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 
+from superset import feature_flag_manager
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
@@ -34,6 +35,9 @@ BLOCKLIST = {
 
 
 def check_sqlalchemy_uri(uri: URL) -> None:
+    if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+        BLOCKLIST.add(re.compile(r"superset$"))
+
     for blocklist_regex in BLOCKLIST:
         if not re.match(blocklist_regex, uri.drivername):
             continue

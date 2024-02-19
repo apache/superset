@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import example from './images/BoxPlot.jpg';
 import thumbnail from './images/thumbnail.png';
 import { BoxPlotQueryFormData, EchartsBoxPlotChartProps } from './types';
+import { EchartsChartPlugin } from '../types';
 
-export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
+export default class EchartsBoxPlotChartPlugin extends EchartsChartPlugin<
   BoxPlotQueryFormData,
   EchartsBoxPlotChartProps
 > {
@@ -43,11 +44,11 @@ export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('./EchartsBoxPlot'),
-      metadata: new ChartMetadata({
+      metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Distribution'),
         credits: ['https://echarts.apache.org'],
@@ -58,7 +59,7 @@ export default class EchartsBoxPlotChartPlugin extends ChartPlugin<
         name: t('Box Plot'),
         tags: [t('ECharts'), t('Range'), t('Statistical')],
         thumbnail,
-      }),
+      },
       transformProps,
     });
   }

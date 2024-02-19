@@ -134,7 +134,7 @@ beforeEach(() => {
     .callsFake(() => ({
       // @ts-ignore
       get: () => ({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.InteractiveChart],
       }),
     }));
 });
@@ -146,7 +146,7 @@ afterEach(() => {
 test('Generate correct cross filters configuration without initial configuration', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+    [FeatureFlag.DashboardCrossFilters]: true,
   };
 
   // @ts-ignore
@@ -175,13 +175,12 @@ test('Generate correct cross filters configuration without initial configuration
       chartsInScope: [1, 2],
     },
   });
-  metadataRegistryStub.restore();
 });
 
 test('Generate correct cross filters configuration with initial configuration', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+    [FeatureFlag.DashboardCrossFilters]: true,
   };
 
   expect(
@@ -218,13 +217,12 @@ test('Generate correct cross filters configuration with initial configuration', 
       chartsInScope: [1, 2],
     },
   });
-  metadataRegistryStub.restore();
 });
 
 test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: false,
+    [FeatureFlag.DashboardCrossFilters]: false,
   };
   expect(
     getCrossFiltersConfiguration(
@@ -233,4 +231,86 @@ test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () 
       CHARTS,
     ),
   ).toEqual(undefined);
+});
+
+test('Recalculate charts in global filter scope when charts change', () => {
+  // @ts-ignore
+  global.featureFlags = {
+    [FeatureFlag.DashboardCrossFilters]: true,
+  };
+  expect(
+    getCrossFiltersConfiguration(
+      {
+        ...DASHBOARD_LAYOUT,
+        'CHART-3': {
+          children: [],
+          id: 'CHART-3',
+          meta: {
+            chartId: 3,
+            sliceName: 'Test chart 3',
+            height: 1,
+            width: 1,
+            uuid: '3',
+          },
+          parents: ['ROOT_ID', 'GRID_ID', 'ROW-6XUMf1rV76'],
+          type: 'CHART',
+        },
+      },
+      CHART_CONFIG_METADATA,
+      {
+        ...CHARTS,
+        '3': {
+          id: 3,
+          form_data: {
+            datasource: '3__table',
+            viz_type: 'echarts_timeseries_line',
+          },
+          chartAlert: null,
+          chartStatus: 'rendered' as const,
+          chartUpdateEndTime: 0,
+          chartUpdateStartTime: 0,
+          lastRendered: 0,
+          latestQueryFormData: {},
+          sliceFormData: {
+            datasource: '3__table',
+            viz_type: 'echarts_timeseries_line',
+          },
+          queryController: null,
+          queriesResponse: [{}],
+          triggerQuery: false,
+        },
+      },
+    ),
+  ).toEqual({
+    chartConfiguration: {
+      '1': {
+        id: 1,
+        crossFilters: {
+          scope: { rootPath: ['ROOT_ID'], excluded: [1, 2] },
+          chartsInScope: [3],
+        },
+      },
+      '2': {
+        id: 2,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1, 3],
+        },
+      },
+      '3': {
+        id: 3,
+        crossFilters: {
+          scope: 'global',
+          chartsInScope: [1, 2],
+        },
+      },
+    },
+    globalChartConfiguration: {
+      scope: {
+        excluded: [],
+        rootPath: ['ROOT_ID'],
+      },
+      chartsInScope: [1, 2, 3],
+    },
+  });
 });

@@ -28,7 +28,7 @@ jobs:
         browser: ["chrome"]
         node: [16]
     env:
-      FLASK_ENV: development
+      SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
@@ -40,7 +40,7 @@ jobs:
       APPLITOOLS_BATCH_NAME: Superset Cypress
     services:
       postgres:
-        image: postgres:14-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -52,13 +52,13 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
           ref: master
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.9"
       - name: OS dependencies
@@ -80,7 +80,7 @@ jobs:
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - name: Install npm dependencies

@@ -41,17 +41,18 @@ export type DatabaseObject = {
   backend?: string;
   changed_on?: string;
   changed_on_delta_humanized?: string;
-  configuration_method: CONFIGURATION_METHOD;
+  configuration_method: ConfigurationMethod;
   created_by?: null | DatabaseUser;
   database_name: string;
   driver: string;
   engine?: string;
   extra?: string;
-  id?: number;
+  id: number;
   uuid?: null | string;
   name: string; // synonym to database_name
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
+  sqlalchemy_uri_placeholder?: string;
   parameters?: {
     access_token?: string;
     database_name?: string;
@@ -69,6 +70,7 @@ export type DatabaseObject = {
     warehouse?: string;
     role?: string;
     account?: string;
+    ssh?: boolean;
   };
 
   // Performance
@@ -76,11 +78,14 @@ export type DatabaseObject = {
   allow_run_async?: boolean;
 
   // SQL Lab
+  allows_cost_estimate?: boolean;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
+  allows_virtual_table_explore?: boolean;
   expose_in_sqllab?: boolean;
   force_ctas_schema?: string;
+  extra_json?: ExtraJson;
 
   // Security
   allow_file_upload?: boolean;
@@ -194,9 +199,9 @@ export type DatabaseForm = {
 
 // the values should align with the database
 // model enum in superset/superset/models/core.py
-export enum CONFIGURATION_METHOD {
-  SQLALCHEMY_URI = 'sqlalchemy_form',
-  DYNAMIC_FORM = 'dynamic_form',
+export enum ConfigurationMethod {
+  SqlalchemyUri = 'sqlalchemy_form',
+  DynamicForm = 'dynamic_form',
 }
 
 export enum Engines {
@@ -221,5 +226,8 @@ export interface ExtraJson {
     table_cache_timeout?: number; // in Performance
   }; // No field, holds schema and table timeout
   schemas_allowed_for_file_upload?: string[]; // in Security
+  schema_options?: {
+    expand_rows?: boolean;
+  };
   version?: string;
 }

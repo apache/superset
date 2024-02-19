@@ -18,9 +18,13 @@ from flask_appbuilder.security.sqla.models import User
 from pytest import raises
 from pytest_mock import MockFixture
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
     ChartNotFoundError,
+)
+from superset.commands.dataset.exceptions import (
+    DatasetAccessDeniedError,
+    DatasetNotFoundError,
 )
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
@@ -28,16 +32,12 @@ from superset.commands.exceptions import (
     OwnersNotFoundValidationError,
     QueryNotFoundValidationError,
 )
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
-)
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceType, override_user
 
-dataset_find_by_id = "superset.datasets.dao.DatasetDAO.find_by_id"
-query_find_by_id = "superset.queries.dao.QueryDAO.find_by_id"
-chart_find_by_id = "superset.charts.dao.ChartDAO.find_by_id"
+dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
+query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"
+chart_find_by_id = "superset.daos.chart.ChartDAO.find_by_id"
 is_admin = "superset.security.SupersetSecurityManager.is_admin"
 is_owner = "superset.security.SupersetSecurityManager.is_owner"
 can_access_datasource = (

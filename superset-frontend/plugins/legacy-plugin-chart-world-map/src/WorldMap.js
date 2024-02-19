@@ -21,7 +21,6 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
-  getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
@@ -47,9 +46,8 @@ const propTypes = {
   setDataMask: PropTypes.func,
   onContextMenu: PropTypes.func,
   emitCrossFilters: PropTypes.bool,
+  formatter: PropTypes.object,
 };
-
-const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
@@ -71,6 +69,7 @@ function WorldMap(element, props) {
     inContextMenu,
     filterState,
     emitCrossFilters,
+    formatter,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -87,7 +86,7 @@ function WorldMap(element, props) {
 
   let processedData;
   let colorScale;
-  if (colorBy === ColorBy.country) {
+  if (colorBy === ColorBy.Country) {
     colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
     processedData = filteredData.map(d => ({

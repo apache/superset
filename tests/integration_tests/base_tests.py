@@ -36,13 +36,11 @@ from sqlalchemy.dialects.mysql import dialect
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -189,25 +187,20 @@ class SupersetTestCase(TestCase):
         except ImportError:
             return False
 
-    def get_or_create(self, cls, criteria, session, **kwargs):
-        obj = session.query(cls).filter_by(**criteria).first()
+    def get_or_create(self, cls, criteria, **kwargs):
+        obj = db.session.query(cls).filter_by(**criteria).first()
         if not obj:
             obj = cls(**criteria)
         obj.__dict__.update(**kwargs)
-        session.add(obj)
-        session.commit()
+        db.session.add(obj)
+        db.session.commit()
         return obj
 
     def login(self, username="admin", password="general"):
         return login(self.client, username, password)
 
-    def get_slice(
-        self, slice_name: str, session: Session, expunge_from_session: bool = True
-    ) -> Slice:
-        slc = session.query(Slice).filter_by(slice_name=slice_name).one()
-        if expunge_from_session:
-            session.expunge_all()
-        return slc
+    def get_slice(self, slice_name: str) -> Slice:
+        return db.session.query(Slice).filter_by(slice_name=slice_name).one()
 
     @staticmethod
     def get_table(
@@ -267,18 +260,6 @@ class SupersetTestCase(TestCase):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.get_resp(url, data, follow_redirects, raise_on_error, json_)
         return json.loads(resp)
-
-    def get_access_requests(self, username, ds_type, ds_id):
-        DAR = DatasourceAccessRequest
-        return (
-            db.session.query(DAR)
-            .filter(
-                DAR.created_by == security_manager.find_user(username=username),
-                DAR.datasource_type == ds_type,
-                DAR.datasource_id == ds_id,
-            )
-            .first()
-        )
 
     def logout(self):
         self.client.get("/logout/", follow_redirects=True)
@@ -367,7 +348,6 @@ class SupersetTestCase(TestCase):
         return self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="sqlite:///:memory:",
             id=db_id,
             extra=extra,
@@ -389,7 +369,6 @@ class SupersetTestCase(TestCase):
         database = self.get_or_create(
             cls=models.Database,
             criteria={"database_name": database_name},
-            session=db.session,
             sqlalchemy_uri="db_for_macros_testing://user@host:8080/hive",
             id=db_id,
         )
@@ -411,36 +390,8 @@ class SupersetTestCase(TestCase):
             db.session.delete(database)
             db.session.commit()
 
-    def validate_sql(
-        self,
-        sql,
-        client_id=None,
-        username=None,
-        raise_on_error=False,
-        database_name="examples",
-        template_params=None,
-    ):
-        if username:
-            self.logout()
-            self.login(username=username)
-        dbid = SupersetTestCase.get_database_by_name(database_name).id
-        resp = self.get_json_resp(
-            "/superset/validate_sql_json/",
-            raise_on_error=False,
-            data=dict(
-                database_id=dbid,
-                sql=sql,
-                client_id=client_id,
-                templateParams=template_params,
-            ),
-        )
-        if raise_on_error and "error" in resp:
-            raise Exception("validate_sql failed")
-        return resp
-
     def get_dash_by_slug(self, dash_slug):
-        sesh = db.session()
-        return sesh.query(Dashboard).filter_by(slug=dash_slug).first()
+        return db.session.query(Dashboard).filter_by(slug=dash_slug).first()
 
     def get_assert_metric(self, uri: str, func_name: str) -> Response:
         """
@@ -517,15 +468,56 @@ class SupersetTestCase(TestCase):
     def get_dttm(cls):
         return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
+    def insert_dashboard(
+        self,
+        dashboard_title: str,
+        slug: Optional[str],
+        owners: list[int],
+        roles: list[int] = [],
+        created_by=None,
+        slices: Optional[list[Slice]] = None,
+        position_json: str = "",
+        css: str = "",
+        json_metadata: str = "",
+        published: bool = False,
+        certified_by: Optional[str] = None,
+        certification_details: Optional[str] = None,
+    ) -> Dashboard:
+        obj_owners = list()
+        obj_roles = list()
+        slices = slices or []
+        for owner in owners:
+            user = db.session.query(security_manager.user_model).get(owner)
+            obj_owners.append(user)
+        for role in roles:
+            role_obj = db.session.query(security_manager.role_model).get(role)
+            obj_roles.append(role_obj)
+        dashboard = Dashboard(
+            dashboard_title=dashboard_title,
+            slug=slug,
+            owners=obj_owners,
+            roles=obj_roles,
+            position_json=position_json,
+            css=css,
+            json_metadata=json_metadata,
+            slices=slices,
+            published=published,
+            created_by=created_by,
+            certified_by=certified_by,
+            certification_details=certification_details,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        return dashboard
+
 
 @contextmanager
 def db_insert_temp_object(obj: DeclarativeMeta):
     """Insert a temporary object in database; delete when done."""
-    session = db.session
     try:
-        session.add(obj)
-        session.commit()
+        db.session.add(obj)
+        db.session.commit()
         yield obj
     finally:
-        session.delete(obj)
-        session.commit()
+        db.session.delete(obj)
+        db.session.commit()

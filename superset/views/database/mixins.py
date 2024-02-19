@@ -221,7 +221,7 @@ class DatabaseMixin:
     def pre_update(self, database: Database) -> None:
         self._pre_add_update(database)
 
-    def pre_delete(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def pre_delete(self, database: Database) -> None:
         if database.tables:
             raise SupersetException(
                 Markup(
@@ -231,12 +231,12 @@ class DatabaseMixin:
                 )
             )
 
-    def check_extra(self, database: Database) -> None:  # pylint: disable=no-self-use
+    def check_extra(self, database: Database) -> None:
         # this will check whether json.loads(extra) can succeed
         try:
             extra = database.get_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex
 
@@ -244,7 +244,7 @@ class DatabaseMixin:
         metadata_signature = inspect.signature(MetaData)
         for key in extra.get("metadata_params", {}):
             if key not in metadata_signature.parameters:
-                raise Exception(
+                raise Exception(  # pylint: disable=broad-exception-raised
                     _(
                         "The metadata_params in Extra field "
                         "is not configured correctly. The key "
@@ -253,13 +253,11 @@ class DatabaseMixin:
                     )
                 )
 
-    def check_encrypted_extra(  # pylint: disable=no-self-use
-        self, database: Database
-    ) -> None:
+    def check_encrypted_extra(self, database: Database) -> None:
         # this will check whether json.loads(secure_extra) can succeed
         try:
             database.get_encrypted_extra()
         except Exception as ex:
-            raise Exception(
+            raise Exception(  # pylint: disable=broad-exception-raised
                 _("Extra field cannot be decoded by JSON. %(msg)s", msg=str(ex))
             ) from ex

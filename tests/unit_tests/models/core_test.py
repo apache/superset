@@ -207,3 +207,26 @@ def test_dttm_sql_literal(
     result: str,
 ) -> None:
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
+
+
+def test_table_column_database() -> None:
+    database = Database(database_name="db")
+    assert TableColumn(database=database).database is database
+
+
+def test_get_prequeries(mocker: MockFixture) -> None:
+    """
+    Tests for ``get_prequeries``.
+    """
+    mocker.patch.object(
+        Database,
+        "get_sqla_engine_with_context",
+    )
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
+
+    database = Database(database_name="db")
+    with database.get_raw_connection() as conn:
+        conn.cursor().execute.assert_has_calls(
+            [mocker.call("set a=1"), mocker.call("set b=2")]
+        )

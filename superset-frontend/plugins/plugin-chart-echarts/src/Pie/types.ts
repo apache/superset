@@ -54,6 +54,7 @@ export enum EchartsPieLabelType {
   KeyValue = 'key_value',
   KeyPercent = 'key_percent',
   KeyValuePercent = 'key_value_percent',
+  ValuePercent = 'value_percent',
 }
 
 export interface EchartsPieChartProps

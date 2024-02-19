@@ -23,10 +23,9 @@ import { ChartSpec, waitForChartLoad } from 'cypress/utils';
 export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },
-  { name: 'Region Filter', viz: 'filter_box' },
   { name: "World's Population", viz: 'big_number' },
   { name: 'Growth Rate', viz: 'line' },
-  { name: 'Rural Breakdown', viz: 'sunburst' },
+  { name: 'Rural Breakdown', viz: 'sunburst_v2' },
   { name: "World's Pop Growth", viz: 'area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
   { name: 'Treemap', viz: 'treemap_v2' },
@@ -39,17 +38,17 @@ export const SUPPORTED_TIER1_CHARTS = [
   { name: 'Pie Chart', viz: 'pie' },
   { name: 'Table', viz: 'table' },
   { name: 'Pivot Table', viz: 'pivot_table_v2' },
-  { name: 'Time-Series Line Chart', viz: 'echarts_timeseries_line' },
-  { name: 'Time-Series Area Chart', viz: 'echarts_area' },
-  { name: 'Time-Series Scatter Chart', viz: 'echarts_timeseries_scatter' },
-  { name: 'Time-Series Bar Chart V2', viz: 'echarts_timeseries_bar' },
+  { name: 'Line Chart', viz: 'echarts_timeseries_line' },
+  { name: 'Area Chart', viz: 'echarts_area' },
+  { name: 'Scatter Chart', viz: 'echarts_timeseries_scatter' },
+  { name: 'Bar Chart V2', viz: 'echarts_timeseries_bar' },
 ] as ChartSpec[];
 
 export const SUPPORTED_TIER2_CHARTS = [
   { name: 'Box Plot Chart', viz: 'box_plot' },
-  { name: 'Time-Series Generic Chart', viz: 'echarts_timeseries' },
-  { name: 'Time-Series Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
-  { name: 'Time-Series Step Line Chart', viz: 'echarts_timeseries_step' },
+  { name: 'Generic Chart', viz: 'echarts_timeseries' },
+  { name: 'Smooth Line Chart', viz: 'echarts_timeseries_smooth' },
+  { name: 'Step Line Chart', viz: 'echarts_timeseries_step' },
   { name: 'Funnel Chart', viz: 'funnel' },
   { name: 'Gauge Chart', viz: 'gauge_chart' },
   { name: 'Radar Chart', viz: 'radar' },
@@ -322,7 +321,7 @@ export function applyNativeFilterValueWithIndex(index: number, value: string) {
   cy.get(nativeFilters.filterFromDashboardView.filterValueInput)
     .eq(index)
     .should('exist', { timeout: 10000 })
-    .type(`${value}{enter}`);
+    .type(`${value}{enter}`, { force: true });
   // click the title to dismiss shown options
   cy.get(nativeFilters.filterFromDashboardView.filterName)
     .eq(index)

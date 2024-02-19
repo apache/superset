@@ -74,8 +74,6 @@ class TestRowLevelSecurity(SupersetTestCase):
     BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
 
     def setUp(self):
-        session = db.session
-
         # Create roles
         self.role_ab = security_manager.add_role(self.NAME_AB_ROLE)
         self.role_q = security_manager.add_role(self.NAME_Q_ROLE)
@@ -83,13 +81,13 @@ class TestRowLevelSecurity(SupersetTestCase):
         gamma_user.roles.append(self.role_ab)
         gamma_user.roles.append(self.role_q)
         self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
-        session.commit()
+        db.session.commit()
 
         # Create regular RowLevelSecurityFilter (energy_usage, unicode_test)
         self.rls_entry1 = RowLevelSecurityFilter()
         self.rls_entry1.name = "rls_entry1"
         self.rls_entry1.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
             .all()
         )
@@ -104,7 +102,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry2 = RowLevelSecurityFilter()
         self.rls_entry2.name = "rls_entry2"
         self.rls_entry2.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -118,7 +116,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry3 = RowLevelSecurityFilter()
         self.rls_entry3.name = "rls_entry3"
         self.rls_entry3.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -132,7 +130,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry4 = RowLevelSecurityFilter()
         self.rls_entry4.name = "rls_entry4"
         self.rls_entry4.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -145,15 +143,14 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.commit()
 
     def tearDown(self):
-        session = db.session
-        session.delete(self.rls_entry1)
-        session.delete(self.rls_entry2)
-        session.delete(self.rls_entry3)
-        session.delete(self.rls_entry4)
-        session.delete(security_manager.find_role("NameAB"))
-        session.delete(security_manager.find_role("NameQ"))
-        session.delete(self.get_user("NoRlsRoleUser"))
-        session.commit()
+        db.session.delete(self.rls_entry1)
+        db.session.delete(self.rls_entry2)
+        db.session.delete(self.rls_entry3)
+        db.session.delete(self.rls_entry4)
+        db.session.delete(security_manager.find_role("NameAB"))
+        db.session.delete(security_manager.find_role("NameQ"))
+        db.session.delete(self.get_user("NoRlsRoleUser"))
+        db.session.commit()
 
     @pytest.fixture()
     def create_dataset(self):
@@ -304,6 +301,21 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_rls_cache_key(self):
+        g.user = self.get_user(username="admin")
+        tbl = self.get_table(name="birth_names")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == []
+
+        g.user = self.get_user(username="gamma")
+        clauses = security_manager.get_rls_cache_key(tbl)
+        assert clauses == [
+            "name like 'A%' or name like 'B%'-name",
+            "name like 'Q%'-name",
+            "gender = 'boy'-gender",
+        ]
 
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):
@@ -483,7 +495,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         db.session.commit()
 
 
-class TestRowLevelSecurityBulkDeleteAPI(SupersetTestCase):
+class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
     def test_invalid_id_failure(self):
         self.login("Admin")
 

@@ -251,7 +251,7 @@ class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
     ...
 
 
-class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
+class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """
@@ -537,9 +537,10 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
     @rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
-        """Get related fields data
+        """Get related fields data.
         ---
         get:
+          summary: Get related fields data
           parameters:
           - in: path
             schema:
@@ -615,9 +616,10 @@ class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
     @rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
-        """Get distinct values from field data
+        """Get distinct values from field data.
         ---
         get:
+          summary: Get distinct values from field data
           parameters:
           - in: path
             schema:

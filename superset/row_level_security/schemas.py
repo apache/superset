@@ -20,6 +20,7 @@ from marshmallow import fields, Schema
 from marshmallow.validate import Length, OneOf
 
 from superset.connectors.sqla.models import RowLevelSecurityFilter
+from superset.dashboards.schemas import UserSchema
 from superset.utils.core import RowLevelSecurityFilterType
 
 id_description = "Unique if of rls filter"
@@ -37,6 +38,21 @@ clause_description = "This is the condition that will be added to the WHERE clau
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
+openapi_spec_methods_override = {
+    "get": {"get": {"summary": "Get an RLS"}},
+    "get_list": {
+        "get": {
+            "summary": "Get a list of RLS",
+            "description": "Gets a list of RLS, use Rison or JSON "
+            "query parameters for filtering, sorting,"
+            " pagination and for selecting specific"
+            " columns and metadata.",
+        }
+    },
+    "delete": {"delete": {"summary": "Delete an RLS"}},
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 class RolesSchema(Schema):
     name = fields.String()
@@ -50,52 +66,55 @@ class TablesSchema(Schema):
 
 
 class RLSListSchema(Schema):
-    id = fields.Integer(description=id_description)
-    name = fields.String(description=name_description)
+    id = fields.Integer(metadata={"description": "id_description"})
+    name = fields.String(metadata={"description": "name_description"})
     filter_type = fields.String(
-        description=filter_type_description,
+        metadata={"description": "filter_type_description"},
         validate=OneOf(
             [filter_type.value for filter_type in RowLevelSecurityFilterType]
         ),
     )
     roles = fields.List(fields.Nested(RolesSchema))
     tables = fields.List(fields.Nested(TablesSchema))
-    clause = fields.String(description=clause_description)
+    clause = fields.String(metadata={"description": "clause_description"})
     changed_on_delta_humanized = fields.Function(
         RowLevelSecurityFilter.created_on_delta_humanized
     )
-    group_key = fields.String(description=group_key_description)
-    description = fields.String(description=description_description)
+    group_key = fields.String(metadata={"description": "group_key_description"})
+    description = fields.String(metadata={"description": "description_description"})
+    changed_by = fields.Nested(UserSchema(exclude=["username"]))
 
 
 class RLSShowSchema(Schema):
-    id = fields.Integer(description=id_description)
-    name = fields.String(description=name_description)
+    id = fields.Integer(metadata={"description": "id_description"})
+    name = fields.String(metadata={"description": "name_description"})
     filter_type = fields.String(
-        description=filter_type_description,
+        metadata={"description": "filter_type_description"},
         validate=OneOf(
             [filter_type.value for filter_type in RowLevelSecurityFilterType]
         ),
     )
     roles = fields.List(fields.Nested(RolesSchema))
     tables = fields.List(fields.Nested(TablesSchema))
-    clause = fields.String(description=clause_description)
-    group_key = fields.String(description=group_key_description)
-    description = fields.String(description=description_description)
+    clause = fields.String(metadata={"description": "clause_description"})
+    group_key = fields.String(metadata={"description": "group_key_description"})
+    description = fields.String(metadata={"description": "description_description"})
 
 
 class RLSPostSchema(Schema):
     name = fields.String(
-        description=name_description,
+        metadata={"description": "name_description"},
         required=True,
         allow_none=False,
         validate=Length(1, 255),
     )
     description = fields.String(
-        description=description_description, required=False, allow_none=True
+        metadata={"description": "description_description"},
+        required=False,
+        allow_none=True,
     )
     filter_type = fields.String(
-        description=filter_type_description,
+        metadata={"description": "filter_type_description"},
         required=True,
         allow_none=False,
         validate=OneOf(
@@ -104,34 +123,41 @@ class RLSPostSchema(Schema):
     )
     tables = fields.List(
         fields.Integer(),
-        description=tables_description,
+        metadata={"description": "tables_description"},
         required=True,
         allow_none=False,
         validate=Length(1),
     )
     roles = fields.List(
-        fields.Integer(), description=roles_description, required=True, allow_none=False
+        fields.Integer(),
+        metadata={"description": "roles_description"},
+        required=True,
+        allow_none=False,
     )
     group_key = fields.String(
-        description=group_key_description, required=False, allow_none=True
+        metadata={"description": "group_key_description"},
+        required=False,
+        allow_none=True,
     )
     clause = fields.String(
-        description=clause_description, required=True, allow_none=False
+        metadata={"description": "clause_description"}, required=True, allow_none=False
     )
 
 
 class RLSPutSchema(Schema):
     name = fields.String(
-        description=name_description,
+        metadata={"description": "name_description"},
         required=False,
         allow_none=False,
         validate=Length(1, 255),
     )
     description = fields.String(
-        description=description_description, required=False, allow_none=True
+        metadata={"description": "description_description"},
+        required=False,
+        allow_none=True,
     )
     filter_type = fields.String(
-        description=filter_type_description,
+        metadata={"description": "filter_type_description"},
         required=False,
         allow_none=False,
         validate=OneOf(
@@ -140,19 +166,21 @@ class RLSPutSchema(Schema):
     )
     tables = fields.List(
         fields.Integer(),
-        description=tables_description,
+        metadata={"description": "tables_description"},
         required=False,
         allow_none=False,
     )
     roles = fields.List(
         fields.Integer(),
-        description=roles_description,
+        metadata={"description": "roles_description"},
         required=False,
         allow_none=False,
     )
     group_key = fields.String(
-        description=group_key_description, required=False, allow_none=True
+        metadata={"description": "group_key_description"},
+        required=False,
+        allow_none=True,
     )
     clause = fields.String(
-        description=clause_description, required=False, allow_none=False
+        metadata={"description": "clause_description"}, required=False, allow_none=False
     )

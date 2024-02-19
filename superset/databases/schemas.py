@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=no-self-use, unused-argument
+# pylint: disable=unused-argument
 
 import inspect
 import json
@@ -25,17 +25,16 @@ from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
-from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
-from superset.constants import PASSWORD_MASK
-from superset.databases.commands.exceptions import DatabaseInvalidError
-from superset.databases.ssh_tunnel.commands.exceptions import (
+from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidCredentials,
     SSHTunnelMissingCredentials,
 )
+from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -151,6 +150,18 @@ server_cert_description = markdown(
     True,
 )
 
+openapi_spec_methods_override = {
+    "get_list": {
+        "get": {
+            "summary": "Get a list of databases",
+            "description": "Gets a list of databases, use Rison or JSON query "
+            "parameters for filtering, sorting, pagination and "
+            " for selecting specific columns and metadata.",
+        }
+    },
+    "info": {"get": {"summary": "Get metadata information about this API resource"}},
+}
+
 
 def sqlalchemy_uri_validator(value: str) -> str:
     """
@@ -213,20 +224,20 @@ def extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-        else:
-            metadata_signature = inspect.signature(MetaData)
-            for key in extra_.get("metadata_params", {}):
-                if key not in metadata_signature.parameters:
-                    raise ValidationError(
-                        [
-                            _(
-                                "The metadata_params in Extra field "
-                                "is not configured correctly. The key "
-                                "%(key)s is invalid.",
-                                key=key,
-                            )
-                        ]
-                    )
+
+        metadata_signature = inspect.signature(MetaData)
+        for key in extra_.get("metadata_params", {}):
+            if key not in metadata_signature.parameters:
+                raise ValidationError(
+                    [
+                        _(
+                            "The metadata_params in Extra field "
+                            "is not configured correctly. The key "
+                            "%(key)s is invalid.",
+                            key=key,
+                        )
+                    ]
+                )
     return value
 
 
@@ -254,7 +265,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         values=fields.Raw(),
         metadata={"description": "DB-specific parameters for configuration"},
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         metadata={"description": configuration_method_description},
@@ -387,7 +398,7 @@ class DatabaseValidateParametersSchema(Schema):
         allow_none=True,
         validate=server_cert_validator,
     )
-    configuration_method = EnumField(
+    configuration_method = fields.Enum(
         ConfigurationMethod,
         by_value=True,
         required=True,
@@ -411,7 +422,7 @@ class DatabaseSSHTunnel(Schema):
     private_key_password = fields.String(required=False)
 
 
-class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -468,7 +479,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
-class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -525,7 +536,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     uuid = fields.String(required=False)
 
 
-class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -739,6 +750,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
+    version = fields.String(required=False, allow_none=True)
 
 
 class ImportV1DatabaseSchema(Schema):

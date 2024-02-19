@@ -24,9 +24,9 @@ import { FieldPropTypes } from '.';
 const FIELD_TEXT_MAP = {
   account: {
     helpText: t(
-      'Copy the account name of that database you are trying to connect to.',
+      'Copy the identifier of the account you are trying to connect to.',
     ),
-    placeholder: t('e.g. world_population'),
+    placeholder: t('e.g. xy12345.us-east-2.aws'),
   },
   warehouse: {
     placeholder: t('e.g. compute_wh'),

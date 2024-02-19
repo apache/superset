@@ -39,7 +39,7 @@ type Options = Omit<RenderOptions, 'queries'> & {
   store?: Store;
 };
 
-const createStore = (initialState: object = {}, reducers: object = {}) =>
+export const createStore = (initialState: object = {}, reducers: object = {}) =>
   configureStore({
     preloadedState: initialState,
     reducer: {

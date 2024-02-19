@@ -112,7 +112,13 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           className={classNames.join(' ')}
         >
           <div css={{ display: 'flex', width: '100%' }}>
-            <div css={{ alignItems: 'center', display: 'flex' }}>
+            <div
+              css={{
+                alignItems: 'center',
+                display: 'flex',
+                wordBreak: 'break-all',
+              }}
+            >
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (

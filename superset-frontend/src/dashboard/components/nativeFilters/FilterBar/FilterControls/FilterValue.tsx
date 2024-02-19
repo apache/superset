@@ -27,6 +27,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
+  isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
   JsonObject,
@@ -41,7 +42,6 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import {
   ClientErrorObject,
@@ -52,12 +52,12 @@ import {
   onFiltersRefreshSuccess,
   setDirectPathToChild,
 } from 'src/dashboard/actions/dashboardState';
+import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
-import { checkIsMissingRequiredValue } from '../utils';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -71,7 +71,7 @@ const StyledDiv = styled.div`
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
-const behaviors = [Behavior.NATIVE_FILTER];
+const behaviors = [Behavior.NativeFilter];
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -93,14 +93,18 @@ const FilterValue: React.FC<FilterControlProps> = ({
   showOverflow,
   parentRef,
   setFilterActive,
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   overflow = false,
+  validateStatus,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const shouldRefresh = useShouldFilterRefresh();
   const [state, setState] = useState<ChartDataResponseResult[]>([]);
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -146,6 +150,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       groupby,
       adhoc_filters,
       time_range,
+      dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
     // TODO: We should try to improve our useEffect hooks to depend more on
@@ -170,11 +175,10 @@ const FilterValue: React.FC<FilterControlProps> = ({
       getChartDataRequest({
         formData: newFormData,
         force: false,
-        requestParams: { dashboardId: 0 },
         ownState: filterOwnState,
       })
         .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
 
@@ -281,17 +285,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
     ],
   );
 
-  const isMissingRequiredValue = checkIsMissingRequiredValue(
-    filter,
-    filter.dataMask?.filterState,
-  );
-
   const filterState = useMemo(
     () => ({
       ...filter.dataMask?.filterState,
-      validateStatus: isMissingRequiredValue && 'error',
+      validateStatus,
     }),
-    [filter.dataMask?.filterState, isMissingRequiredValue],
+    [filter.dataMask?.filterState, validateStatus],
   );
 
   const displaySettings = useMemo(
@@ -324,7 +323,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
       ) : (
         <SuperChart
           height={HEIGHT}
-          width="100%"
+          width={RESPONSIVE_WIDTH}
           showOverflow={showOverflow}
           formData={formData}
           displaySettings={displaySettings}

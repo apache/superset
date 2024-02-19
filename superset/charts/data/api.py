@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from typing import Any, TYPE_CHECKING
@@ -27,26 +28,32 @@ from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled, security_manager
+from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
-from superset.charts.commands.exceptions import (
-    ChartDataCacheLoadError,
-    ChartDataQueryFailedError,
-)
-from superset.charts.data.commands.create_async_job_command import (
-    CreateAsyncChartDataJobCommand,
-)
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.commands.chart.data.create_async_job_command import (
+    CreateAsyncChartDataJobCommand,
+)
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import (
+    ChartDataCacheLoadError,
+    ChartDataQueryFailedError,
+)
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
-from superset.dao.exceptions import DatasourceNotFound
+from superset.connectors.sqla.models import BaseDatasource
+from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
-from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
+from superset.utils.core import (
+    create_zip,
+    DatasourceType,
+    get_user_id,
+    json_int_dttm_ser,
+)
+from superset.utils.decorators import logs_context
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -68,10 +75,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def get_data(self, pk: int) -> Response:
         """
-        Takes a chart ID and uses the query context stored when the chart was saved
+        Take a chart ID and uses the query context stored when the chart was saved
         to return payload data response.
         ---
         get:
+          summary: Return payload data response for a chart
           description: >-
             Takes a chart ID and uses the query context stored when the chart was saved
             to return payload data response.
@@ -143,7 +151,7 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
-        except DatasourceNotFound as error:
+        except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -180,10 +188,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def data(self) -> Response:
         """
-        Takes a query context constructed in the client and returns payload
-        data response for the given query.
+        Take a query context constructed in the client and return payload
+        data response for the given query
         ---
         post:
+          summary: Return payload data response for the given query
           description: >-
             Takes a query context constructed in the client and returns payload data
             response for the given query.
@@ -221,11 +230,8 @@ class ChartDataRestApi(ChartRestApi):
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            try:
+            with contextlib.suppress(TypeError, json.JSONDecodeError):
                 json_body = json.loads(request.form["form_data"])
-            except (TypeError, json.JSONDecodeError):
-                pass
-
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
 
@@ -233,7 +239,7 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
-        except DatasourceNotFound as error:
+        except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -267,10 +273,11 @@ class ChartDataRestApi(ChartRestApi):
     )
     def data_from_cache(self, cache_key: str) -> Response:
         """
-        Takes a query context cache key and returns payload
+        Take a query context cache key and return payload
         data response for the given query.
         ---
         get:
+          summary: Return payload data response for the given query
           description: >-
             Takes a query context cache key and returns payload data
             response for the given query.
@@ -321,14 +328,10 @@ class ChartDataRestApi(ChartRestApi):
         Execute command as an async query.
         """
         # First, look for the chart query results in the cache.
-        result = None
-        try:
+        with contextlib.suppress(ChartDataCacheLoadError):
             result = command.run(force_cached=True)
             if result is not None:
                 return self._send_chart_response(result)
-        except ChartDataCacheLoadError:
-            pass
-
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
@@ -420,11 +423,23 @@ class ChartDataRestApi(ChartRestApi):
 
         return self._send_chart_response(result, form_data, datasource)
 
-    # pylint: disable=invalid-name, no-self-use
+    # pylint: disable=invalid-name
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
-    # pylint: disable=no-self-use
+    def _map_form_data_datasource_to_dataset_id(
+        self, form_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "dataset_id": form_data.get("datasource", {}).get("id")
+            if isinstance(form_data.get("datasource"), dict)
+            and form_data.get("datasource", {}).get("type")
+            == DatasourceType.TABLE.value
+            else None,
+            "slice_id": form_data.get("form_data", {}).get("slice_id"),
+        }
+
+    @logs_context(context_func=_map_form_data_datasource_to_dataset_id)
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:

@@ -600,13 +600,13 @@ function ExploreViewContainer(props) {
         <Resizable
           onResizeStop={(evt, direction, ref, d) => {
             setShouldForceUpdate(d?.width);
-            setSidebarWidths(LocalStorageKeys.datasource_width, d);
+            setSidebarWidths(LocalStorageKeys.DatasourceWidth, d);
           }}
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.datasource_width),
+            width: getSidebarWidths(LocalStorageKeys.DatasourceWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.datasource_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.DatasourceWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className={
@@ -658,13 +658,13 @@ function ExploreViewContainer(props) {
         ) : null}
         <Resizable
           onResizeStop={(evt, direction, ref, d) =>
-            setSidebarWidths(LocalStorageKeys.controls_width, d)
+            setSidebarWidths(LocalStorageKeys.ControlsWidth, d)
           }
           defaultSize={{
-            width: getSidebarWidths(LocalStorageKeys.controls_width),
+            width: getSidebarWidths(LocalStorageKeys.ControlsWidth),
             height: '100%',
           }}
-          minWidth={defaultSidebarsWidth[LocalStorageKeys.controls_width]}
+          minWidth={defaultSidebarsWidth[LocalStorageKeys.ControlsWidth]}
           maxWidth="33%"
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"

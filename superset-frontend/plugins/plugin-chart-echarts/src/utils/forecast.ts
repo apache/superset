@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isNumber } from 'lodash';
-import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
+import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
 import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -45,12 +45,15 @@ export const extractForecastSeriesContext = (
 export const extractForecastSeriesContexts = (
   seriesNames: string[],
 ): { [key: string]: ForecastSeriesEnum[] } =>
-  seriesNames.reduce((agg, name) => {
-    const context = extractForecastSeriesContext(name);
-    const currentContexts = agg[context.name] || [];
-    currentContexts.push(context.type);
-    return { ...agg, [context.name]: currentContexts };
-  }, {} as { [key: string]: ForecastSeriesEnum[] });
+  seriesNames.reduce(
+    (agg, name) => {
+      const context = extractForecastSeriesContext(name);
+      const currentContexts = agg[context.name] || [];
+      currentContexts.push(context.type);
+      return { ...agg, [context.name]: currentContexts };
+    },
+    {} as { [key: string]: ForecastSeriesEnum[] },
+  );
 
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
@@ -91,7 +94,7 @@ export const formatForecastTooltipSeries = ({
 }: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
-  formatter: NumberFormatter;
+  formatter: ValueFormatter;
 }): string => {
   let row = `${marker}${sanitizeHtml(seriesName)}: `;
   let isObservation = false;

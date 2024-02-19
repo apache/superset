@@ -17,12 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
   ControlPanelSectionConfig,
   ControlSetRow,
+  ControlSubSectionHeader,
   CustomControlItem,
   getStandardizedControls,
   sections,
@@ -31,7 +32,14 @@ import {
 
 import { DEFAULT_FORM_DATA } from './types';
 import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
-import { legendSection, richTooltipSection } from '../controls';
+import {
+  legendSection,
+  minorTicks,
+  richTooltipSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+} from '../controls';
 
 const {
   area,
@@ -48,7 +56,6 @@ const {
   truncateYAxis,
   yAxisBounds,
   zoomable,
-  xAxisLabelRotation,
   yAxisIndex,
 } = DEFAULT_FORM_DATA;
 
@@ -128,7 +135,7 @@ function createCustomizeSection(
   controlSuffix: string,
 ): ControlSetRow[] {
   return [
-    [<div className="section-header">{label}</div>],
+    [<ControlSubSectionHeader>{label}</ControlSubSectionHeader>],
     [
       {
         name: `seriesType${controlSuffix}`,
@@ -277,14 +284,11 @@ function createAdvancedAnalyticsSection(
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
-    hasGenericChartAxes
-      ? {
-          label: t('Shared query fields'),
-          expanded: true,
-          controlSetRows: [['x_axis'], ['time_grain_sqla']],
-        }
-      : null,
+    {
+      label: t('Shared query fields'),
+      expanded: true,
+      controlSetRows: [['x_axis'], ['time_grain_sqla']],
+    },
     createQuerySection(t('Query A'), ''),
     createAdvancedAnalyticsSection(t('Advanced analytics Query A'), ''),
     createQuerySection(t('Query B'), '_b'),
@@ -310,32 +314,14 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [minorTicks],
         ...legendSection,
-        [<div className="section-header">{t('X Axis')}</div>],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
         ...richTooltipSection,
         // eslint-disable-next-line react/jsx-key
-        [<div className="section-header">{t('Y Axis')}</div>],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'minorSplitLine',
@@ -348,6 +334,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',
@@ -388,6 +376,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'logAxis',
@@ -423,6 +412,15 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.y_axis_format,
               label: t('Secondary y-axis format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'currency_format_secondary',
+            config: {
+              ...sharedControls.currency_format,
+              label: t('Secondary currency format'),
             },
           },
         ],

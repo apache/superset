@@ -45,6 +45,7 @@ describe('PivotTableChart transformProps', () => {
     dateFormat: '',
     legacy_order_by: 'count',
     order_desc: true,
+    currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
   };
   const chartProps = new ChartProps<QueryFormData>({
     formData,
@@ -90,6 +91,8 @@ describe('PivotTableChart transformProps', () => {
       dateFormatters: {},
       emitCrossFilters: false,
       columnFormats: {},
+      currencyFormats: {},
+      currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
     });
   });
 });

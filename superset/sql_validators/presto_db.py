@@ -50,7 +50,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
     ) -> Optional[SQLValidationAnnotation]:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
-        parsed_query = ParsedQuery(statement)
+        parsed_query = ParsedQuery(statement, engine=db_engine_spec.engine)
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
@@ -107,7 +107,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             # we update at some point in the future.
             if not db_error.args or not isinstance(db_error.args[0], dict):
                 raise PrestoSQLValidationError(
-                    "The pyhive presto client returned an unhandled " "database error."
+                    "The pyhive presto client returned an unhandled database error."
                 ) from db_error
             error_args: dict[str, Any] = db_error.args[0]
 
@@ -120,7 +120,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             if "errorLocation" not in error_args:
                 # Pylint is confused about the type of error_args, despite the hints
                 # and checks above.
-                # pylint: disable=invalid-sequence-index
                 message = error_args["message"] + "\n(Error location unknown)"
                 # If we have a message but no error location, return the message and
                 # set the location as the beginning.
@@ -128,7 +127,6 @@ class PrestoDBSQLValidator(BaseSQLValidator):
                     message=message, line_number=1, start_column=1, end_column=1
                 )
 
-            # pylint: disable=invalid-sequence-index
             message = error_args["message"]
             err_loc = error_args["errorLocation"]
             line_number = err_loc.get("lineNumber", None)
@@ -156,7 +154,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        parsed_query = ParsedQuery(sql)
+        parsed_query = ParsedQuery(sql, engine=database.db_engine_spec.engine)
         statements = parsed_query.get_statements()
 
         logger.info("Validating %i statement(s)", len(statements))

@@ -248,7 +248,9 @@ export default class TimeSeriesColumnControl extends React.Component {
         {['time', 'avg'].indexOf(this.state.colType) >= 0 &&
           this.formRow(
             t('Time lag'),
-            t('Number of periods to compare against'),
+            t(
+              'Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.',
+            ),
             'time-lag',
             <Input
               value={this.state.timeLag}

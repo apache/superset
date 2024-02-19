@@ -42,12 +42,13 @@ repos:
     hooks:
       - id: mypy
         args: [--check-untyped-defs]
-        additional_dependencies:
-          [
+        additional_dependencies: [
             types-simplejson,
             types-python-dateutil,
             types-requests,
-            types-redis,
+            # types-redis 4.6.0.5 is failing mypy
+            # because of https://github.com/python/typeshed/pull/10531
+            types-redis==4.6.0.4,
             types-pytz,
             types-croniter,
             types-PyYAML,
@@ -77,7 +78,7 @@ repos:
       - id: black
         language_version: python3
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.4.1 # Use the sha or tag you want to point at
+    rev: v3.1.0 # Use the sha or tag you want to point at
     hooks:
       - id: prettier
         args: ["--ignore-path=./superset-frontend/.prettierignore"]

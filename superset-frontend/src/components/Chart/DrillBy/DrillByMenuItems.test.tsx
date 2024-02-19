@@ -113,7 +113,7 @@ getChartMetadataRegistry().registerValue(
     name: 'fake pie',
     thumbnail: '.png',
     useLegacyApi: false,
-    behaviors: [Behavior.DRILL_BY],
+    behaviors: [Behavior.DrillBy],
   }),
 );
 

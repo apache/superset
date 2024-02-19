@@ -23,7 +23,7 @@ import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
 from superset import db, security_manager
-from superset.dashboards.dao import DashboardDAO
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -33,60 +33,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 
 
 class TestDashboardDAO(SupersetTestCase):
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_set_dash_metadata(self):
-        dash: Dashboard = (
-            db.session.query(Dashboard).filter_by(slug="world_health").first()
-        )
-        data = dash.data
-        positions = data["position_json"]
-        data.update({"positions": positions})
-        original_data = copy.deepcopy(data)
-
-        # add filter scopes
-        filter_slice = next(slc for slc in dash.slices if slc.viz_type == "filter_box")
-        immune_slices = [slc for slc in dash.slices if slc != filter_slice]
-        filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        data.update({"filter_scopes": json.dumps(filter_scopes)})
-        DashboardDAO.set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        self.assertEqual(updated_metadata["filter_scopes"], filter_scopes)
-
-        # remove a slice and change slice ids (as copy slices)
-        removed_slice = immune_slices.pop()
-        removed_components = [
-            key
-            for (key, value) in positions.items()
-            if isinstance(value, dict)
-            and value.get("type") == "CHART"
-            and value["meta"]["chartId"] == removed_slice.id
-        ]
-        for component_id in removed_components:
-            del positions[component_id]
-
-        data.update({"positions": positions})
-        DashboardDAO.set_dash_metadata(dash, data)
-        updated_metadata = json.loads(dash.json_metadata)
-        expected_filter_scopes = {
-            str(filter_slice.id): {
-                "region": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [slc.id for slc in immune_slices],
-                }
-            }
-        }
-        self.assertEqual(updated_metadata["filter_scopes"], expected_filter_scopes)
-
-        # reset dash to original data
-        DashboardDAO.set_dash_metadata(dash, original_data)
-
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
@@ -113,7 +59,6 @@ class TestDashboardDAO(SupersetTestCase):
 
             data.update({"foo": "bar"})
             DashboardDAO.set_dash_metadata(dashboard, data)
-            db.session.merge(dashboard)
             db.session.commit()
             new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
             assert old_changed_on.replace(microsecond=0) < new_changed_on
@@ -125,11 +70,10 @@ class TestDashboardDAO(SupersetTestCase):
             )
 
             DashboardDAO.set_dash_metadata(dashboard, original_data)
-            db.session.merge(dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (
@@ -155,7 +99,7 @@ class TestDashboardDAO(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard_copies_native_filters(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (
@@ -183,7 +127,7 @@ class TestDashboardDAO(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    @patch("superset.dashboards.dao.g")
+    @patch("superset.daos.dashboard.g")
     def test_copy_dashboard_duplicate_slices(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
         original_dash = (

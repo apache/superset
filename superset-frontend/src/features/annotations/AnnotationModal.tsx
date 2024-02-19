@@ -231,8 +231,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   useEffect(() => {
     if (
       isEditMode &&
-      (!currentAnnotation ||
-        !currentAnnotation.id ||
+      (!currentAnnotation?.id ||
         (annotation && annotation.id !== currentAnnotation.id) ||
         show)
     ) {
@@ -288,7 +287,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">
-          {t('Annotation name')}
+          {t('Name')}
           <span className="required">*</span>
         </div>
         <input

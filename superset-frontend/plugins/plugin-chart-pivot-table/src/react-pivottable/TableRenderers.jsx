@@ -24,7 +24,11 @@ import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
 const parseLabel = value => {
-  if (typeof value === 'number' || typeof value === 'string') {
+  if (typeof value === 'string') {
+    if (value === 'metric') return t('metric');
+    return value;
+  }
+  if (typeof value === 'number') {
     return value;
   }
   return String(value);
@@ -92,14 +96,14 @@ export class TableRenderer extends React.Component {
 
     const colSubtotalDisplay = {
       displayOnTop: false,
-      enabled: rowTotals,
+      enabled: tableOptions.colSubTotals,
       hideOnExpand: false,
       ...subtotalOptions.colSubtotalDisplay,
     };
 
     const rowSubtotalDisplay = {
       displayOnTop: false,
-      enabled: colTotals,
+      enabled: tableOptions.rowSubTotals,
       hideOnExpand: false,
       ...subtotalOptions.rowSubtotalDisplay,
     };

@@ -120,9 +120,8 @@ def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
 def quote_f(value: Optional[str]):
     if not value:
         return value
-    return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
-        value
-    )
+    with get_example_database().get_inspector_with_context() as inspector:
+        return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 
 def cta_result(ctas_method: CtasMethod):
@@ -345,7 +344,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     assert QUERY == query.sql
 
     assert query.rows == (1 if backend() == "presto" else 0)
-    assert query.limit == 10000
+    assert query.limit == 50000
     assert query.select_as_cta
     assert query.select_as_cta_used
 

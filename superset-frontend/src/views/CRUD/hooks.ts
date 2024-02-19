@@ -564,10 +564,15 @@ const favoriteApis = {
     method: 'GET',
     endpoint: '/api/v1/dashboard/favorite_status/',
   }),
+  tag: makeApi<Array<string | number>, FavoriteStatusResponse>({
+    requestType: 'rison',
+    method: 'GET',
+    endpoint: '/api/v1/tag/favorite_status/',
+  }),
 };
 
 export function useFavoriteStatus(
-  type: 'chart' | 'dashboard',
+  type: 'chart' | 'dashboard' | 'tag',
   ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
@@ -669,9 +674,7 @@ export const copyQueryLink = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   copyTextToClipboard(() =>
-    Promise.resolve(
-      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
-    ),
+    Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -740,123 +743,132 @@ export function useDatabaseValidation() {
     null,
   );
   const getValidation = useCallback(
-    (database: Partial<DatabaseObject> | null, onCreate = false) =>
-      SupersetClient.post({
-        endpoint: '/api/v1/database/validate_parameters/',
-        body: JSON.stringify(transformDB(database)),
-        headers: { 'Content-Type': 'application/json' },
-      })
-        .then(() => {
-          setValidationErrors(null);
+    (database: Partial<DatabaseObject> | null, onCreate = false) => {
+      if (database?.parameters?.ssh) {
+        // when ssh tunnel is enabled we don't want to render any validation errors
+        setValidationErrors(null);
+        return [];
+      }
+
+      return (
+        SupersetClient.post({
+          endpoint: '/api/v1/database/validate_parameters/',
+          body: JSON.stringify(transformDB(database)),
+          headers: { 'Content-Type': 'application/json' },
         })
-        // eslint-disable-next-line consistent-return
-        .catch(e => {
-          if (typeof e.json === 'function') {
-            return e.json().then(({ errors = [] }: JsonObject) => {
-              const parsedErrors = errors
-                .filter((error: { error_type: string }) => {
-                  const skipValidationError = ![
-                    'CONNECTION_MISSING_PARAMETERS_ERROR',
-                    'CONNECTION_ACCESS_DENIED_ERROR',
-                  ].includes(error.error_type);
-                  return skipValidationError || onCreate;
-                })
-                .reduce(
-                  (
-                    obj: {},
-                    {
-                      error_type,
-                      extra,
-                      message,
-                    }: {
-                      error_type: string;
-                      extra: {
-                        invalid?: string[];
-                        missing?: string[];
-                        name: string;
-                        catalog: {
+          .then(() => {
+            setValidationErrors(null);
+          })
+          // eslint-disable-next-line consistent-return
+          .catch(e => {
+            if (typeof e.json === 'function') {
+              return e.json().then(({ errors = [] }: JsonObject) => {
+                const parsedErrors = errors
+                  .filter((error: { error_type: string }) => {
+                    const skipValidationError = ![
+                      'CONNECTION_MISSING_PARAMETERS_ERROR',
+                      'CONNECTION_ACCESS_DENIED_ERROR',
+                    ].includes(error.error_type);
+                    return skipValidationError || onCreate;
+                  })
+                  .reduce(
+                    (
+                      obj: {},
+                      {
+                        error_type,
+                        extra,
+                        message,
+                      }: {
+                        error_type: string;
+                        extra: {
+                          invalid?: string[];
+                          missing?: string[];
                           name: string;
-                          url: string;
-                          idx: number;
+                          catalog: {
+                            name: string;
+                            url: string;
+                            idx: number;
+                          };
+                          issue_codes?: {
+                            code?: number;
+                            message?: string;
+                          }[];
                         };
-                        issue_codes?: {
-                          code?: number;
-                          message?: string;
-                        }[];
-                      };
-                      message: string;
-                    },
-                  ) => {
-                    if (extra.catalog) {
-                      if (extra.catalog.name) {
+                        message: string;
+                      },
+                    ) => {
+                      if (extra.catalog) {
+                        if (extra.catalog.name) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              name: message,
+                            },
+                          };
+                        }
+                        if (extra.catalog.url) {
+                          return {
+                            ...obj,
+                            error_type,
+                            [extra.catalog.idx]: {
+                              url: message,
+                            },
+                          };
+                        }
+
                         return {
                           ...obj,
                           error_type,
                           [extra.catalog.idx]: {
                             name: message,
-                          },
-                        };
-                      }
-                      if (extra.catalog.url) {
-                        return {
-                          ...obj,
-                          error_type,
-                          [extra.catalog.idx]: {
                             url: message,
                           },
                         };
                       }
+                      // if extra.invalid doesn't exist then the
+                      // error can't be mapped to a parameter
+                      // so leave it alone
+                      if (extra.invalid) {
+                        return {
+                          ...obj,
+                          [extra.invalid[0]]: message,
+                          error_type,
+                        };
+                      }
+                      if (extra.missing) {
+                        return {
+                          ...obj,
+                          error_type,
+                          ...Object.assign(
+                            {},
+                            ...extra.missing.map(field => ({
+                              [field]: 'This is a required field',
+                            })),
+                          ),
+                        };
+                      }
+                      if (extra.issue_codes?.length) {
+                        return {
+                          ...obj,
+                          error_type,
+                          description: message || extra.issue_codes[0]?.message,
+                        };
+                      }
 
-                      return {
-                        ...obj,
-                        error_type,
-                        [extra.catalog.idx]: {
-                          name: message,
-                          url: message,
-                        },
-                      };
-                    }
-                    // if extra.invalid doesn't exist then the
-                    // error can't be mapped to a parameter
-                    // so leave it alone
-                    if (extra.invalid) {
-                      return {
-                        ...obj,
-                        [extra.invalid[0]]: message,
-                        error_type,
-                      };
-                    }
-                    if (extra.missing) {
-                      return {
-                        ...obj,
-                        error_type,
-                        ...Object.assign(
-                          {},
-                          ...extra.missing.map(field => ({
-                            [field]: 'This is a required field',
-                          })),
-                        ),
-                      };
-                    }
-                    if (extra.issue_codes?.length) {
-                      return {
-                        ...obj,
-                        error_type,
-                        description: message || extra.issue_codes[0]?.message,
-                      };
-                    }
-
-                    return obj;
-                  },
-                  {},
-                );
-              setValidationErrors(parsedErrors);
-              return parsedErrors;
-            });
-          }
-          // eslint-disable-next-line no-console
-          console.error(e);
-        }),
+                      return obj;
+                    },
+                    {},
+                  );
+                setValidationErrors(parsedErrors);
+                return parsedErrors;
+              });
+            }
+            // eslint-disable-next-line no-console
+            console.error(e);
+          })
+      );
+    },
     [setValidationErrors],
   );
 

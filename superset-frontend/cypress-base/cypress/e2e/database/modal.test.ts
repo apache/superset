@@ -62,8 +62,8 @@ describe('Add database', () => {
   it('show error alerts on dynamic form for bad host', () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
-    cy.get('input[name="host"]').focus().type('badhost');
-    cy.get('input[name="port"]').focus().type('5432');
+    cy.get('input[name="host"]').focus().type('badhost', { force: true });
+    cy.get('input[name="port"]').focus().type('5432', { force: true });
     cy.get('.ant-form-item-explain-error').contains(
       "The hostname provided can't be resolved",
     );
@@ -72,8 +72,8 @@ describe('Add database', () => {
   it('show error alerts on dynamic form for bad port', () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
-    cy.get('input[name="host"]').focus().type('localhost');
-    cy.get('input[name="port"]').focus().type('123');
+    cy.get('input[name="host"]').focus().type('localhost', { force: true });
+    cy.get('input[name="port"]').focus().type('123', { force: true });
     cy.get('input[name="database"]').focus();
     cy.get('.ant-form-item-explain-error').contains('The port is closed');
   });

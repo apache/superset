@@ -43,6 +43,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 from superset.sql_parse import Table as TableName
+from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
     from superset.datasets.models import Dataset
@@ -52,18 +53,18 @@ table_column_association_table = sa.Table(
     Model.metadata,  # pylint: disable=no-member
     sa.Column(
         "table_id",
-        sa.ForeignKey("sl_tables.id", ondelete="cascade"),
+        sa.ForeignKey("sl_tables.id", ondelete="CASCADE"),
         primary_key=True,
     ),
     sa.Column(
         "column_id",
-        sa.ForeignKey("sl_columns.id", ondelete="cascade"),
+        sa.ForeignKey("sl_columns.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
 
 
-class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
     A table/view in a database.
     """
@@ -131,8 +132,8 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         existing_columns = {column.name: column for column in self.columns}
         quote_identifier = self.database.quote_identifier
 
-        def update_or_create_column(column_meta: dict[str, Any]) -> Column:
-            column_name: str = column_meta["name"]
+        def update_or_create_column(column_meta: ResultSetColumnType) -> Column:
+            column_name: str = column_meta["column_name"]
             if column_name in existing_columns:
                 column = existing_columns[column_name]
             else:
@@ -163,10 +164,12 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             return []
 
         if not database.id:
-            raise Exception("Database must be already saved to metastore")
+            raise Exception(  # pylint: disable=broad-exception-raised
+                "Database must be already saved to metastore"
+            )
 
         default_props = default_props or {}
-        session: Session = inspect(database).session
+        session: Session = inspect(database).session  # pylint: disable=disallowed-name
         # load existing tables
         predicate = or_(
             *[

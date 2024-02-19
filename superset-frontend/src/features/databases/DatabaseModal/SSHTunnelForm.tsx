@@ -59,7 +59,7 @@ const SSHTunnelForm = ({
   >;
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
-  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.password);
+  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
 
   return (
     <Form>
@@ -126,13 +126,13 @@ const SSHTunnelForm = ({
                 }}
               >
                 <Radio
-                  value={AuthType.password}
+                  value={AuthType.Password}
                   data-test="ssh-tunnel-use_password-radio"
                 >
                   {t('Password')}
                 </Radio>
                 <Radio
-                  value={AuthType.privateKey}
+                  value={AuthType.PrivateKey}
                   data-test="ssh-tunnel-use_private_key-radio"
                 >
                   {t('Private Key & Password')}
@@ -142,7 +142,7 @@ const SSHTunnelForm = ({
           </StyledDiv>
         </Col>
       </StyledRow>
-      {usePassword === AuthType.password && (
+      {usePassword === AuthType.Password && (
         <StyledRow gutter={16}>
           <Col xs={24}>
             <StyledDiv>
@@ -172,7 +172,7 @@ const SSHTunnelForm = ({
           </Col>
         </StyledRow>
       )}
-      {usePassword === AuthType.privateKey && (
+      {usePassword === AuthType.PrivateKey && (
         <>
           <StyledRow gutter={16}>
             <Col xs={24}>
