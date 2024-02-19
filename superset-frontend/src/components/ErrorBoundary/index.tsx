@@ -17,28 +17,35 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 
-const propTypes = {
-  children: PropTypes.node.isRequired,
-  onError: PropTypes.func,
-  showMessage: PropTypes.bool,
-};
-const defaultProps = {
-  onError: () => {},
-  showMessage: true,
-};
+export interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  onError?: (error: Error, info: React.ErrorInfo) => void;
+  showMessage?: boolean;
+}
 
-export default class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryState {
+  error: Error | null;
+  info: React.ErrorInfo | null;
+}
+
+export default class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  static defaultProps: Partial<ErrorBoundaryProps> = {
+    showMessage: true,
+  };
+
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { error: null, info: null };
   }
 
-  componentDidCatch(error, info) {
-    if (this.props.onError) this.props.onError(error, info);
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    this.props.onError?.(error, info);
     this.setState({ error, info });
   }
 
@@ -46,18 +53,22 @@ export default class ErrorBoundary extends React.Component {
     const { error, info } = this.state;
     if (error) {
       const firstLine = error.toString();
-      const message = (
+      const messageString = `${t('Unexpected error')}${
+        firstLine ? `: ${firstLine}` : ''
+      }`;
+      const messageElement = (
         <span>
           <strong>{t('Unexpected error')}</strong>
           {firstLine ? `: ${firstLine}` : ''}
         </span>
       );
+
       if (this.props.showMessage) {
         return (
           <ErrorMessageWithStackTrace
-            subtitle={message}
-            copyText={message}
-            stackTrace={info ? info.componentStack : null}
+            subtitle={messageElement}
+            copyText={messageString}
+            stackTrace={info?.componentStack}
           />
         );
       }
@@ -66,5 +77,3 @@ export default class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-ErrorBoundary.propTypes = propTypes;
-ErrorBoundary.defaultProps = defaultProps;
