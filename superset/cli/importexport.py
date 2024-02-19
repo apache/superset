@@ -176,6 +176,8 @@ def import_datasources(path: str) -> None:
     from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
     from superset.commands.importers.v1.utils import get_contents_from_bundle
 
+    g.user = security_manager.find_user(username="admin")
+
     if is_zipfile(path):
         with ZipFile(path) as bundle:
             contents = get_contents_from_bundle(bundle)
