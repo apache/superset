@@ -131,7 +131,6 @@ setup(
         "tabulate>=0.8.9, <0.9",
         "typing-extensions>=4, <5",
         "waitress; sys_platform == 'win32'",
-        "werkzeug>=2.3.3, <3",
         "wtforms>=2.3.3, <4",
         "wtforms-json",
         "xlsxwriter>=3.0.7, <3.1",
