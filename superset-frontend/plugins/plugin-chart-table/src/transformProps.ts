@@ -31,6 +31,7 @@ import {
   smartDateFormatter,
   TimeFormats,
   TimeFormatter,
+  t,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -44,6 +45,7 @@ import {
   TableChartProps,
   TableChartTransformedProps,
 } from './types';
+import { MAX_SERVER_PAGE_LENGTH } from './consts';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
@@ -241,26 +243,29 @@ const transformProps = (
   }
   const data = processDataRecords(baseQuery?.data, columns);
 
-  if (Number(formData.server_page_length) > 10000) {
-    formData.server_page_length = 10000;
+  if (Number(formData.server_page_length) > MAX_SERVER_PAGE_LENGTH) {
+    formData.server_page_length = MAX_SERVER_PAGE_LENGTH;
   }
 
-  if (
-    formData.server_pagination &&
-    !Number.isNaN(formData.server_page_length) &&
-    (formData.server_page_length || 0) <= data.length &&
-    !formData.server_page_length_options?.some(
-      (option: [number, string]) => option[0] === formData.server_page_length,
-    )
-  ) {
+  const serverPageLengthNum = Number(formData.server_page_length);
+
+  const isValidPageLength =
+    !Number.isNaN(serverPageLengthNum) && serverPageLengthNum <= data.length;
+
+  const pageLengthExists = formData.server_page_length_options?.some(
+    (option: [number, string]) => option[0] === serverPageLengthNum,
+  );
+
+  if (formData.server_pagination && isValidPageLength && !pageLengthExists) {
+    const pageLengthLabel =
+      serverPageLengthNum === 0 ? t('All') : String(serverPageLengthNum);
+
     formData.server_page_length_options?.push([
-      Number(formData.server_page_length),
-      formData.server_page_length === 0
-        ? 'All'
-        : String(formData.server_page_length),
+      serverPageLengthNum,
+      pageLengthLabel,
     ]);
     formData.server_page_length_options?.sort(
-      (a: any[], b: any[]) => a[0] - b[0],
+      (a: [number, string], b: [number, string]) => a[0] - b[0],
     );
   }
 
