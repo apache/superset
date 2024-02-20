@@ -59,7 +59,11 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SupersetErrorsException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
