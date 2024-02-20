@@ -25,6 +25,7 @@ from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
+# Just a MARK to kick CI
 
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
