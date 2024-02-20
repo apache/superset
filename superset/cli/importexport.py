@@ -28,6 +28,7 @@ from flask.cli import with_appcontext
 
 from superset import security_manager
 from superset.extensions import db
+from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
@@ -176,22 +177,21 @@ def import_datasources(path: str) -> None:
     from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
     from superset.commands.importers.v1.utils import get_contents_from_bundle
 
-    g.user = security_manager.find_user(username="admin")
-
-    if is_zipfile(path):
-        with ZipFile(path) as bundle:
-            contents = get_contents_from_bundle(bundle)
-    else:
-        with open(path) as file:
-            contents = {path: file.read()}
-    try:
-        ImportDatasetsCommand(contents, overwrite=True).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "There was an error when importing the dataset(s), please check the "
-            "exception traceback in the log"
-        )
-        sys.exit(1)
+    with override_user(user=security_manager.find_user(username="admin")):
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            with open(path) as file:
+                contents = {path: file.read()}
+        try:
+            ImportDatasetsCommand(contents, overwrite=True).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dataset(s), please check the "
+                "exception traceback in the log"
+            )
+            sys.exit(1)
 
 
 @click.command()
