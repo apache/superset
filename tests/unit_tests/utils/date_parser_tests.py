@@ -157,6 +157,31 @@ def test_get_since_until() -> None:
     expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
     assert result == expected
 
+    # Tests for our new time_shift logic
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00", time_shift="1 year"
+    )
+    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00", time_shift="1 month"
+    )
+    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00", time_shift="1 week"
+    )
+    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00", time_shift="inherited"
+    )
+    expected = datetime(1981, 12, 31), datetime(2000, 1, 1)
+    assert result == expected
+
     with pytest.raises(ValueError):
         get_since_until(time_range="tomorrow : yesterday")
 

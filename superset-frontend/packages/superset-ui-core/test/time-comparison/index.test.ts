@@ -19,22 +19,18 @@
 
 import {
   ComparisonTimeRangeType,
-  getComparisonTimeRangeInfo,
-  getComparisonTimeShift,
-  getComparisonTimeRangeComparator,
-  getComparisonFormData,
-  getComparisonTimeRangeText,
+  getComparisonFilters,
+  getComparisonTimeShiftText,
+  getComparisonInfo,
 } from '@superset-ui/core';
 
 describe('index', () => {
   it('exports modules', () => {
     [
       ComparisonTimeRangeType,
-      getComparisonTimeRangeInfo,
-      getComparisonTimeShift,
-      getComparisonTimeRangeComparator,
-      getComparisonFormData,
-      getComparisonTimeRangeText,
+      getComparisonFilters,
+      getComparisonTimeShiftText,
+      getComparisonInfo,
     ].forEach(x => expect(x).toBeDefined());
   });
 });

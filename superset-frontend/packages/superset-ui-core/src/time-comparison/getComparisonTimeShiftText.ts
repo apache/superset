@@ -17,38 +17,31 @@
  * under the License.
  */
 
-import { AdhocFilter } from '../types';
-import { getComparisonTimeRangeInfo } from './getComparisonTimeRangeInfo';
-import { getComparisonTimeShift } from './getComparisonTimeShift';
 import { ComparisonTimeRangeType } from './types';
 
-export const getComparisonTimeRangeComparator = (
-  adhocFilters: AdhocFilter[],
+/**
+ * Get the time shift text for the comparison
+ * @param timeComparison - the time comparison
+ * @returns the time shift text: '1 year', '1 month', '1 week', 'inherited' or undefined
+ */
+export const getComparisonTimeShiftText = (
   timeComparison: string,
-  extraFormData: any,
-  join = ':',
-) => {
-  const { since, until } = getComparisonTimeRangeInfo(
-    adhocFilters,
-    extraFormData,
-  );
-
+): string | undefined => {
   if (timeComparison !== ComparisonTimeRangeType.Custom) {
-    const [prevStartDateMoment, prevEndDateMoment] = getComparisonTimeShift(
-      since,
-      until,
-      timeComparison,
-    );
-
-    return `${prevStartDateMoment?.format(
-      'YYYY-MM-DDTHH:mm:ss',
-    )} ${join} ${prevEndDateMoment?.format('YYYY-MM-DDTHH:mm:ss')}`.replace(
-      /Z/g,
-      '',
-    );
+    if (timeComparison === ComparisonTimeRangeType.InheritedRange) {
+      return 'inherited';
+    }
+    if (timeComparison === ComparisonTimeRangeType.Year) {
+      return '1 year';
+    }
+    if (timeComparison === ComparisonTimeRangeType.Month) {
+      return '1 month';
+    }
+    if (timeComparison === ComparisonTimeRangeType.Week) {
+      return '1 week';
+    }
   }
-
-  return null;
+  return undefined;
 };
 
-export default getComparisonTimeRangeComparator;
+export default getComparisonTimeShiftText;

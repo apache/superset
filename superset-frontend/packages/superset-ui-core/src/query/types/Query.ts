@@ -147,6 +147,8 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+  /** Time Comparison */
+  time_shift?: string;
 }
 
 export interface QueryContext {

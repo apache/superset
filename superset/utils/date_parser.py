@@ -46,7 +46,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
+from superset.constants import INHERITED_TIME_RANGE, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
 ParserElement.enablePackrat()
 
@@ -260,6 +260,14 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
+        if time_shift == INHERITED_TIME_RANGE:
+            # Inherited time shift is used to shift the time range based
+            # on the difference of the dates in the time range in days.
+            time_delta = (
+                _until - _since
+                if _since and _until
+                else parse_past_timedelta(time_shift)
+            )
         _since = _since if _since is None else (_since - time_delta)
         _until = _until if _until is None else (_until - time_delta)
 

@@ -41,6 +41,9 @@ QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 
 LRU_CACHE_MAX_SIZE = 256
 
+# Used when calculating the time shift for time comparison
+INHERITED_TIME_RANGE = "inherited"
+
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """

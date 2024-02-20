@@ -19,8 +19,6 @@
 
 export * from './types';
 
-export { default as getComparisonTimeRangeInfo } from './getComparisonTimeRangeInfo';
-export { default as getComparisonTimeShift } from './getComparisonTimeShift';
-export { default as getComparisonTimeRangeComparator } from './getComparisonTimeRangeComparator';
-export { default as getComparisonFormData } from './getComparisonFormData';
-export { default as getComparisonTimeRangeText } from './getComparisonTimeRangeText';
+export { default as getComparisonInfo } from './getComparisonInfo';
+export { default as getComparisonTimeShiftText } from './getComparisonTimeShiftText';
+export { default as getComparisonFilters } from './getComparisonFilters';

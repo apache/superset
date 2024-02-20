@@ -17,10 +17,7 @@
  * under the License.
  */
 
-import {
-  getComparisonFormData,
-  ComparisonTimeRangeType,
-} from '@superset-ui/core';
+import { getComparisonFilters } from '@superset-ui/core';
 
 const form_data = {
   datasource: '22__table',
@@ -69,50 +66,40 @@ const form_data = {
 };
 
 const mockExtraFormData = {
-  filters: [{ col: 'category', op: 'IN', val: 'Electronics' }],
+  time_range: 'new and cool range from extra form data',
 };
 
-describe('getComparisonFormData', () => {
-  it('updates adhoc_filters for non-custom time comparison', () => {
-    const result = getComparisonFormData(
-      form_data,
-      ComparisonTimeRangeType.Year,
-      {},
-    );
+describe('getComparisonFilters', () => {
+  it('Keeps the original adhoc_filters since no extra data was passed', () => {
+    const result = getComparisonFilters(form_data, {});
 
-    const expectedFormData = {
-      adhoc_filters: [
-        {
-          clause: 'WHERE',
-          comparator: '2003-02-16T00:00:00 : 2023-02-16T00:00:00',
-          datasourceWarning: false,
-          expressionType: 'SIMPLE',
-          filterOptionName: 'filter_8274fo9pogn_ihi8x28o7a',
-          isExtra: false,
-          isNew: false,
-          operator: 'TEMPORAL_RANGE',
-          sqlExpression: null,
-          subject: 'order_date',
-        },
-      ],
-    };
-    expect(result.adhoc_filters).toEqual(expectedFormData.adhoc_filters);
-    expect(result.extra_form_data).toMatchObject({ time_range: undefined });
+    expect(result).toEqual(form_data.adhoc_filters);
   });
 
-  it('handles custom time comparison by replacing original adhoc_filters', () => {
-    const result = getComparisonFormData(
-      form_data,
-      ComparisonTimeRangeType.Custom,
-      mockExtraFormData,
-    );
+  it('Updates the time_range if the filter if extra form data is passed', () => {
+    const result = getComparisonFilters(form_data, mockExtraFormData);
 
-    expect(result.adhoc_filters).toEqual(form_data.adhoc_custom);
-    expect(result.extra_form_data).toMatchObject({ time_range: undefined });
+    const expectedFilters = [
+      {
+        clause: 'WHERE',
+        comparator: 'new and cool range from extra form data',
+        datasourceWarning: false,
+        expressionType: 'SIMPLE',
+        filterOptionName: 'filter_8274fo9pogn_ihi8x28o7a',
+        isExtra: false,
+        isNew: false,
+        operator: 'TEMPORAL_RANGE',
+        sqlExpression: null,
+        subject: 'order_date',
+      } as any,
+    ];
+
+    expect(result.length).toEqual(1);
+    expect(result[0]).toEqual(expectedFilters[0]);
   });
 
   it('handles no time range filters', () => {
-    const result = getComparisonFormData(
+    const result = getComparisonFilters(
       {
         ...form_data,
         adhoc_filters: [
@@ -126,39 +113,32 @@ describe('getComparisonFormData', () => {
           },
         ],
       },
-      ComparisonTimeRangeType.Year,
       {},
     );
 
-    const expectedFormData = {
-      adhoc_filters: [
-        { comparator: 'undefined : undefined' },
-        {
-          expressionType: 'SIMPLE',
-          subject: 'address_line1',
-          operator: 'IN',
-          comparator: ['7734 Strong St.'],
-          clause: 'WHERE',
-          isExtra: false,
-        },
-      ],
-    };
-    expect(result.adhoc_filters).toEqual(expectedFormData.adhoc_filters);
+    const expectedFilters = [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'address_line1',
+        operator: 'IN',
+        comparator: ['7734 Strong St.'],
+        clause: 'WHERE',
+        isExtra: false,
+      },
+    ];
+    expect(result.length).toEqual(1);
+    expect(result[0]).toEqual(expectedFilters[0]);
   });
 
   it('If adhoc_filter is undefrined the code wont break', () => {
-    const result = getComparisonFormData(
+    const result = getComparisonFilters(
       {
         ...form_data,
         adhoc_filters: undefined,
       },
-      ComparisonTimeRangeType.Year,
       {},
     );
 
-    const expectedFormData = {
-      adhoc_filters: [{ comparator: 'undefined : undefined' }],
-    };
-    expect(result.adhoc_filters).toEqual(expectedFormData.adhoc_filters);
+    expect(result).toEqual([]);
   });
 });

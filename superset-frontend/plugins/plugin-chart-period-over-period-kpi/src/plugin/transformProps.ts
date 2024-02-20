@@ -23,9 +23,7 @@ import {
   getValueFormatter,
   NumberFormats,
   getNumberFormatter,
-  getComparisonTimeRangeText,
-  getComparisonTimeRangeComparator,
-  ComparisonTimeRangeType,
+  formatTimeRange,
 } from '@superset-ui/core';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
@@ -87,7 +85,11 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorEnabled,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
-  const { data: dataB = [] } = queriesData[1];
+  const {
+    data: dataB = [],
+    from_dttm: comparisonFromDatetime,
+    to_dttm: comparisonToDatetime,
+  } = queriesData[1];
   const data = dataA;
   const metricName = getMetricLabel(metrics[0]);
   let bigNumber: number | string =
@@ -131,18 +133,10 @@ export default function transformProps(chartProps: ChartProps) {
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
-  const comparatorText =
-    formData.timeComparison !== ComparisonTimeRangeType.Custom
-      ? ` ${getComparisonTimeRangeComparator(
-          formData.adhocFilters,
-          formData.timeComparison,
-          formData.extraFormData,
-          ' - ',
-        )}`
-      : `${getComparisonTimeRangeText(
-          formData.adhocCustom,
-          formData.extraFormData,
-        )}`;
+  const comparatorText = formatTimeRange('%Y-%m-%d', [
+    comparisonFromDatetime,
+    comparisonToDatetime,
+  ]);
 
   return {
     width,

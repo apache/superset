@@ -19,14 +19,19 @@
 
 import { QueryFormData } from '../query';
 import { AdhocFilter } from '../types';
-import getComparisonTimeRangeComparator from './getComparisonTimeRangeComparator';
-import { ComparisonTimeRangeType } from './types';
 
-export const getComparisonFormData = (
+/**
+ * This method is used to get the query filters to be applied to the comparison query after
+ * overriding the time range in case an extra form data is provided.
+ * For example when rendering a chart that uses time comparison in a dashboard with time filters.
+ * @param formData - the form data
+ * @param extraFormData - the extra form data
+ * @returns the query filters to be applied to the comparison query
+ */
+export const getComparisonFilters = (
   formData: QueryFormData,
-  timeComparison: string,
   extraFormData: any,
-): QueryFormData => {
+): AdhocFilter[] => {
   const timeFilterIndex: number =
     formData.adhoc_filters?.findIndex(
       filter => 'operator' in filter && filter.operator === 'TEMPORAL_RANGE',
@@ -37,48 +42,26 @@ export const getComparisonFormData = (
       ? formData.adhoc_filters[timeFilterIndex]
       : null;
 
-  let formDataB: QueryFormData;
-  let queryBComparator = null;
-
-  if (timeComparison !== ComparisonTimeRangeType.Custom) {
-    queryBComparator = getComparisonTimeRangeComparator(
-      formData.adhoc_filters || [],
-      timeComparison,
-      extraFormData,
-    );
-
-    const queryBFilter: any = {
-      ...timeFilter,
-      comparator: queryBComparator,
-    };
-
-    const otherFilters = formData.adhoc_filters?.filter(
-      (_value: any, index: number) => timeFilterIndex !== index,
-    );
-    const queryBFilters = otherFilters
-      ? [queryBFilter, ...otherFilters]
-      : [queryBFilter];
-
-    formDataB = {
-      ...formData,
-      adhoc_filters: queryBFilters,
-      extra_form_data: {
-        ...extraFormData,
-        time_range: undefined,
-      },
-    };
-  } else {
-    formDataB = {
-      ...formData,
-      adhoc_filters: formData.adhoc_custom,
-      extra_form_data: {
-        ...extraFormData,
-        time_range: undefined,
-      },
-    };
+  if (
+    timeFilter &&
+    'comparator' in timeFilter &&
+    typeof timeFilter.comparator === 'string'
+  ) {
+    if (extraFormData?.time_range) {
+      timeFilter.comparator = extraFormData.time_range;
+    }
   }
 
-  return formDataB;
+  const comparisonQueryFilter = timeFilter ? [timeFilter] : [];
+
+  const otherFilters = formData.adhoc_filters?.filter(
+    (_value: any, index: number) => timeFilterIndex !== index,
+  );
+  const comparisonQueryFilters = otherFilters
+    ? [...comparisonQueryFilter, ...otherFilters]
+    : comparisonQueryFilter;
+
+  return comparisonQueryFilters;
 };
 
-export default getComparisonFormData;
+export default getComparisonFilters;

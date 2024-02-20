@@ -18,7 +18,7 @@
  */
 import {
   buildQueryContext,
-  getComparisonFormData,
+  getComparisonInfo,
   QueryFormData,
 } from '@superset-ui/core';
 
@@ -51,18 +51,22 @@ export default function buildQuery(formData: QueryFormData) {
     },
   ]);
 
-  const formDataB = getComparisonFormData(
+  const { formData: comparisonFormData, timeShiftText } = getComparisonInfo(
     formData,
     timeComparison,
     extraFormData,
   );
 
-  const queryContextB = buildQueryContext(formDataB, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      groupby,
-    },
-  ]);
+  const queryContextB = buildQueryContext(
+    comparisonFormData,
+    baseQueryObject => [
+      {
+        ...baseQueryObject,
+        groupby,
+        time_shift: timeShiftText,
+      },
+    ],
+  );
 
   return {
     ...queryContextA,
