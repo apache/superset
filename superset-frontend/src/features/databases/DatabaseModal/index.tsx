@@ -756,6 +756,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
+
+    setLoading(true);
+
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -764,6 +767,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           addDangerToast(error);
         }
       });
+
     if (dbConfigExtraExtensionOnSaveError) {
       setLoading(false);
       return;
@@ -783,17 +787,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
 
-      // only do validation for non ssh tunnel connections
-      if (!dbToUpdate?.parameters?.ssh) {
-        // make sure that button spinner animates
-        setLoading(true);
-        const errors = await getValidation(dbToUpdate, true);
-        if ((validationErrors && !isEmpty(validationErrors)) || errors) {
-          setLoading(false);
-          return;
-        }
-        // end spinner animation
+      const errors = await getValidation(dbToUpdate, true);
+      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         setLoading(false);
+        return;
       }
 
       const parameters_schema = isEditMode
@@ -849,8 +846,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         },
       });
     }
-
-    setLoading(true);
 
     // strictly checking for false as an indication that the toggle got unchecked
     if (isSSHTunneling && useSSHTunneling === false) {
@@ -1542,8 +1537,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         typeof dbErrors === 'object'
           ? Object.values(dbErrors)
           : typeof dbErrors === 'string'
-          ? [dbErrors]
-          : [];
+            ? [dbErrors]
+            : [];
     } else if (
       !isEmpty(validationErrors) &&
       validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
