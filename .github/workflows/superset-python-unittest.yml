@@ -7,10 +7,14 @@ on:
       - 'master'
     paths:
       - "superset/**"
+      - "requirements/**"
+      - "tests/unit_tests/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
     paths:
       - "superset/**"
+      - "requirements/**"
+      - "tests/unit_tests/**"
 
 # cancel previous workflow jobs for PRs
 concurrency:
