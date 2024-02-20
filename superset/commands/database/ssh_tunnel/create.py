@@ -23,11 +23,13 @@ from marshmallow import ValidationError
 from superset.commands.base import BaseCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelInvalidError,
     SSHTunnelRequiredFieldValidationError,
 )
 from superset.daos.database import SSHTunnelDAO
 from superset.daos.exceptions import DAOCreateFailedError
+from superset.databases.utils import make_url_safe
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -35,9 +37,12 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
+    _database: Database
+
     def __init__(self, database: Database, data: dict[str, Any]):
         self._properties = data.copy()
         self._properties["database"] = database
+        self._database = database
 
     def run(self) -> Model:
         try:
@@ -62,6 +67,9 @@ class CreateSSHTunnelCommand(BaseCommand):
         private_key_password: Optional[str] = self._properties.get(
             "private_key_password"
         )
+        url = make_url_safe(self._database.sqlalchemy_uri)
+        if not url.port:
+            raise SSHTunnelDatabasePortError()
         if not server_address:
             exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
         if not server_port:

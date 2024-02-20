@@ -21,6 +21,7 @@ from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
     SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
     SSHTunnelRequiredFieldValidationError,
@@ -29,6 +30,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.daos.database import SSHTunnelDAO
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,8 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
+
+        url = make_url_safe(self._model.database.sqlalchemy_uri)
         private_key: Optional[str] = self._properties.get("private_key")
         private_key_password: Optional[str] = self._properties.get(
             "private_key_password"
@@ -70,3 +74,5 @@ class UpdateSSHTunnelCommand(BaseCommand):
             raise SSHTunnelInvalidError(
                 exceptions=[SSHTunnelRequiredFieldValidationError("private_key")]
             )
+        if not url.port:
+            raise SSHTunnelDatabasePortError()

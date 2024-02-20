@@ -18,6 +18,7 @@ import logging
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -33,6 +34,7 @@ from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
@@ -49,15 +51,19 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDatabaseCommand(BaseCommand):
+    _model: Optional[Database]
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
-        self._model: Optional[Database] = None
+        self._model = DatabaseDAO.find_by_id(self._model_id)
 
     def run(self) -> Model:
-        self.validate()
         if not self._model:
             raise DatabaseNotFoundError()
+
+        self.validate()
+
         old_database_name = self._model.database_name
 
         # unmask ``encrypted_extra``
@@ -72,32 +78,34 @@ class UpdateDatabaseCommand(BaseCommand):
             database = DatabaseDAO.update(self._model, self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
-            existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
+            ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
 
             if "ssh_tunnel" in self._properties:
                 if not is_feature_enabled("SSH_TUNNELING"):
                     db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
 
-                if not self._properties.get("ssh_tunnel") and existing_ssh_tunnel_model:
+                if not self._properties.get("ssh_tunnel") and ssh_tunnel:
                     # We need to remove the existing tunnel
                     try:
-                        DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
+                        DeleteSSHTunnelCommand(ssh_tunnel.id).run()
+                        ssh_tunnel = None
                     except SSHTunnelDeleteFailedError as ex:
                         raise ex
                     except Exception as ex:
                         raise DatabaseUpdateFailedError() from ex
 
                 if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                    if existing_ssh_tunnel_model is None:
+                    if ssh_tunnel is None:
                         # We couldn't found an existing tunnel so we need to create one
                         try:
-                            CreateSSHTunnelCommand(
+                            ssh_tunnel = CreateSSHTunnelCommand(
                                 database, ssh_tunnel_properties
                             ).run()
                         except (
                             SSHTunnelInvalidError,
                             SSHTunnelCreateFailedError,
+                            SSHTunnelDatabasePortError,
                         ) as ex:
                             # So we can show the original message
                             raise ex
@@ -106,12 +114,14 @@ class UpdateDatabaseCommand(BaseCommand):
                     else:
                         # We found an existing tunnel so we need to update it
                         try:
-                            UpdateSSHTunnelCommand(
-                                existing_ssh_tunnel_model.id, ssh_tunnel_properties
+                            ssh_tunnel_id = ssh_tunnel.id
+                            ssh_tunnel = UpdateSSHTunnelCommand(
+                                ssh_tunnel_id, ssh_tunnel_properties
                             ).run()
                         except (
                             SSHTunnelInvalidError,
                             SSHTunnelUpdateFailedError,
+                            SSHTunnelDatabasePortError,
                         ) as ex:
                             # So we can show the original message
                             raise ex
@@ -121,7 +131,6 @@ class UpdateDatabaseCommand(BaseCommand):
             # adding a new database we always want to force refresh schema list
             # TODO Improve this simplistic implementation for catching DB conn fails
             try:
-                ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
                 schemas = database.get_all_schema_names(ssh_tunnel=ssh_tunnel)
             except Exception as ex:
                 db.session.rollback()
@@ -189,10 +198,6 @@ class UpdateDatabaseCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        # Validate/populate model exists
-        self._model = DatabaseDAO.find_by_id(self._model_id)
-        if not self._model:
-            raise DatabaseNotFoundError()
         database_name: Optional[str] = self._properties.get("database_name")
         if database_name:
             # Check database_name uniqueness
