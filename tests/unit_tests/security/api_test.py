@@ -28,4 +28,5 @@ def test_csrf_not_exempt(app_context: None) -> None:
     """
     Test that REST API is not exempt from CSRF.
     """
+    raise Exception(csrf._exempt_blueprints)
     assert csrf._exempt_blueprints == {"MenuApi", "SecurityApi", "OpenApi"}
