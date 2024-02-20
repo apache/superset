@@ -22,7 +22,7 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 4.0.0
 
 - [27119](https://github.com/apache/superset/pull/27119): Updates various database columns to use the `MediumText` type, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
 
