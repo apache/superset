@@ -134,7 +134,10 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryBeat.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
 | supersetCeleryBeat.initContainers | list | a container waiting for postgres | List of init containers |
 | supersetCeleryBeat.podAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat pods |
-| supersetCeleryBeat.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods |
+| supersetCeleryBeat.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":1,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods |
+| supersetCeleryBeat.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
+| supersetCeleryBeat.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetCeleryBeat.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryBeat.podLabels | object | `{}` | Labels to be added to supersetCeleryBeat pods |
 | supersetCeleryBeat.podSecurityContext | object | `{}` |  |
 | supersetCeleryBeat.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above. |
@@ -154,7 +157,10 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetCeleryFlower.livenessProbe.successThreshold | int | `1` |  |
 | supersetCeleryFlower.livenessProbe.timeoutSeconds | int | `1` |  |
 | supersetCeleryFlower.podAnnotations | object | `{}` | Annotations to be added to supersetCeleryFlower pods |
-| supersetCeleryFlower.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods |
+| supersetCeleryFlower.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":1,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods |
+| supersetCeleryFlower.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
+| supersetCeleryFlower.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetCeleryFlower.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetCeleryFlower.podLabels | object | `{}` | Labels to be added to supersetCeleryFlower pods |
 | supersetCeleryFlower.podSecurityContext | object | `{}` |  |
 | supersetCeleryFlower.readinessProbe.failureThreshold | int | `3` |  |
@@ -212,7 +218,10 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.livenessProbe.successThreshold | int | `1` |  |
 | supersetNode.livenessProbe.timeoutSeconds | int | `1` |  |
 | supersetNode.podAnnotations | object | `{}` | Annotations to be added to supersetNode pods |
-| supersetNode.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetNode pods |
+| supersetNode.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":1,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetNode pods |
+| supersetNode.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
+| supersetNode.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetNode.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetNode.podLabels | object | `{}` | Labels to be added to supersetNode pods |
 | supersetNode.podSecurityContext | object | `{}` |  |
 | supersetNode.readinessProbe.failureThreshold | int | `3` |  |
@@ -253,7 +262,10 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.livenessProbe.successThreshold | int | `1` |  |
 | supersetWebsockets.livenessProbe.timeoutSeconds | int | `1` |  |
 | supersetWebsockets.podAnnotations | object | `{}` |  |
-| supersetWebsockets.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods |
+| supersetWebsockets.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":1,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods |
+| supersetWebsockets.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
+| supersetWebsockets.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetWebsockets.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWebsockets.podLabels | object | `{}` |  |
 | supersetWebsockets.podSecurityContext | object | `{}` |  |
 | supersetWebsockets.readinessProbe.failureThreshold | int | `3` |  |
@@ -298,7 +310,10 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWorker.livenessProbe.successThreshold | int | `1` |  |
 | supersetWorker.livenessProbe.timeoutSeconds | int | `60` |  |
 | supersetWorker.podAnnotations | object | `{}` | Annotations to be added to supersetWorker pods |
-| supersetWorker.podDisruptionBudget | object | `{}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods |
+| supersetWorker.podDisruptionBudget | object | `{"enabled":false,"maxUnavailable":1,"minAvailable":1}` | Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods |
+| supersetWorker.podDisruptionBudget.enabled | bool | `false` | Whether the pod disruption budget should be created |
+| supersetWorker.podDisruptionBudget.maxUnavailable | int | `1` | If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
+| supersetWorker.podDisruptionBudget.minAvailable | int | `1` | If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget |
 | supersetWorker.podLabels | object | `{}` | Labels to be added to supersetWorker pods |
 | supersetWorker.podSecurityContext | object | `{}` |  |
 | supersetWorker.readinessProbe | object | `{}` | No startup/readiness probes by default since we don't really care about its startup time (it doesn't serve traffic) |

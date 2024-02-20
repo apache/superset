@@ -17,24 +17,29 @@
 
 */}}
 
-{{- if .Values.supersetWebsockets.podDisruptionBudget -}}
+{{- with .Values.supersetWebsockets.podDisruptionBudget }}
+{{- if .enabled -}}
+{{- if and .minAvailable .maxUnavailable }}
+{{- fail "Only one of minAvailable or maxUnavailable should be set" }}
+{{- end}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "superset.fullname" . }}-ws-pdb
+  name: {{ include "superset.fullname" $ }}-ws-pdb
   labels:
-    app: {{ template "superset.name" . }}-ws
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    app: {{ template "superset.name" $ }}-ws
+    chart: {{ template "superset.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
 spec:
-{{- if .Values.supersetWebsockets.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.supersetWebsockets.podDisruptionBudget.minAvailable }}
+{{- if .minAvailable }}
+  minAvailable: {{ .minAvailable }}
 {{- end }}
-{{- if .Values.supersetWebsockets.podDisruptionBudget.maxUnavailable }}
-  maxUnavailable: {{ .Values.supersetWebsockets.podDisruptionBudget.maxUnavailable }}
+{{- if .maxUnavailable }}
+  maxUnavailable: {{ .maxUnavailable }}
 {{- end }}
   selector:
     matchLabels:
-    {{- include "supersetWebsockets.selectorLabels" . | nindent 6 }}
+    {{- include "supersetWebsockets.selectorLabels" $ | nindent 6 }}
+{{- end }}
 {{- end }}

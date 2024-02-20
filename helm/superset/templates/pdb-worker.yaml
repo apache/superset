@@ -17,24 +17,29 @@
 
 */}}
 
-{{- if .Values.supersetWorker.podDisruptionBudget -}}
+{{- with .Values.supersetWorker.podDisruptionBudget }}
+{{- if .enabled -}}
+{{- if and .minAvailable .maxUnavailable }}
+{{- fail "Only one of minAvailable or maxUnavailable should be set" }}
+{{- end}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "superset.fullname" . }}-worker-pdb
+  name: {{ include "superset.fullname" $ }}-worker-pdb
   labels:
-    app: {{ template "superset.name" . }}-worker
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    app: {{ template "superset.name" $ }}-worker
+    chart: {{ template "superset.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
 spec:
-{{- if .Values.supersetWorker.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.supersetWorker.podDisruptionBudget.minAvailable }}
+{{- if .minAvailable }}
+  minAvailable: {{ .minAvailable }}
 {{- end }}
-{{- if .Values.supersetWorker.podDisruptionBudget.maxUnavailable }}
-  maxUnavailable: {{ .Values.supersetWorker.podDisruptionBudget.maxUnavailable }}
+{{- if .maxUnavailable }}
+  maxUnavailable: {{ .maxUnavailable }}
 {{- end }}
   selector:
     matchLabels:
-    {{- include "supersetWorker.selectorLabels" . | nindent 6 }}
+    {{- include "supersetWorker.selectorLabels" $ | nindent 6 }}
+{{- end }}
 {{- end }}

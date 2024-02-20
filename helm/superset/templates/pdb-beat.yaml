@@ -17,24 +17,29 @@
 
 */}}
 
-{{- if .Values.supersetCeleryBeat.podDisruptionBudget -}}
+{{- with .Values.supersetCeleryBeat.podDisruptionBudget }}
+{{- if .enabled -}}
+{{- if and .minAvailable .maxUnavailable }}
+{{- fail "Only one of minAvailable or maxUnavailable should be set" }}
+{{- end}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "superset.fullname" . }}-celerybeat-pdb
+  name: {{ include "superset.fullname" $ }}-celerybeat-pdb
   labels:
-    app: {{ template "superset.name" . }}-celerybeat
-    chart: {{ template "superset.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    app: {{ template "superset.name" $ }}-celerybeat
+    chart: {{ template "superset.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
 spec:
-{{- if .Values.supersetCeleryBeat.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.supersetCeleryBeat.podDisruptionBudget.minAvailable }}
+{{- if .minAvailable }}
+  minAvailable: {{ .minAvailable }}
 {{- end }}
-{{- if .Values.supersetCeleryBeat.podDisruptionBudget.maxUnavailable }}
-  maxUnavailable: {{ .Values.supersetCeleryBeat.podDisruptionBudget.maxUnavailable }}
+{{- if .maxUnavailable }}
+  maxUnavailable: {{ .maxUnavailable }}
 {{- end }}
   selector:
     matchLabels:
-    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 6 }}
+    {{- include "supersetCeleryBeat.selectorLabels" $ | nindent 6 }}
+{{- end }}
 {{- end }}

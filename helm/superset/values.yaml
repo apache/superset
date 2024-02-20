@@ -249,7 +249,13 @@ supersetNode:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetNode pods
-  podDisruptionBudget: {}
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
 
   # -- Startup command
   # @default -- See `values.yaml`
@@ -360,7 +366,13 @@ supersetWorker:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWorker pods
-  podDisruptionBudget: {}
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Worker startup command
   # @default -- a `celery worker` command
   command:
@@ -434,7 +446,13 @@ supersetCeleryBeat:
   # -- This is only required if you intend to use alerts and reports
   enabled: false
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods
-  podDisruptionBudget: {}
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery beat` command
   command:
@@ -486,7 +504,13 @@ supersetCeleryFlower:
   enabled: false
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods
-  podDisruptionBudget: {}
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   # -- Command
   # @default -- a `celery flower` command
   command:
@@ -570,7 +594,13 @@ supersetWebsockets:
   enabled: false
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetWebsockets pods
-  podDisruptionBudget: {}
+  podDisruptionBudget:
+    # -- Whether the pod disruption budget should be created
+    enabled: false
+    # -- If set, maxUnavailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    minAvailable: 1
+    # -- If set, minAvailable must not be set - see https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget
+    maxUnavailable: 1
   ingress:
     path: /ws
     pathType: Prefix
