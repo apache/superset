@@ -735,7 +735,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         test_client.set_cookie(
-            "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
+            app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
         rv = test_client.post(CHART_DATA_URI, json=self.query_context_payload)
         self.assertEqual(rv.status_code, 401)
