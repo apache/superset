@@ -285,10 +285,10 @@ class IkiDatasetDownload extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-    if (mode === 'preview') {
-      this.updateMarkdownContent();
-      nextState.hasError = false;
-    }
+    // if (mode === 'preview') {
+    //   this.updateMarkdownContent();
+    //   nextState.hasError = false;
+    // }
 
     this.setState(nextState);
 
