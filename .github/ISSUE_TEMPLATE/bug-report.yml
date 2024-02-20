@@ -46,7 +46,7 @@ body:
       options:
         - master / latest-dev
         - "3.1.0"
-        - "3.0.3"
+        - "3.0.4"
     validations:
       required: true
   - type: dropdown
