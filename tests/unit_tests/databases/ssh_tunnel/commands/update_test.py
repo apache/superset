@@ -32,7 +32,9 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(
+        database_name="my_database", sqlalchemy_uri="postgresql://u:p@localhost:5432/db"
+    )
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],

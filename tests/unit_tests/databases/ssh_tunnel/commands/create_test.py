@@ -27,7 +27,11 @@ def test_create_ssh_tunnel_command() -> None:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(
+        id=1,
+        database_name="my_database",
+        sqlalchemy_uri="postgresql://u:p@localhost:5432/db",
+    )
 
     properties = {
         "database_id": database.id,
@@ -48,7 +52,11 @@ def test_create_ssh_tunnel_command_invalid_params() -> None:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(
+        id=1,
+        database_name="my_database",
+        sqlalchemy_uri="postgresql://u:p@localhost:5432/db",
+    )
 
     # If we are trying to create a tunnel with a private_key_password
     # then a private_key is mandatory
