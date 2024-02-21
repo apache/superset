@@ -44,6 +44,16 @@ interface MenuObjectChildProps {
   disable?: boolean;
 }
 
+// loose typing to avoid any circular dependencies
+// refer to SSHTunnelSwitch component for strict typing
+type SwitchProps = {
+  db: object;
+  changeMethods: {
+    onParametersChange: (event: any) => void;
+  };
+  isSSHTunnelEnabled: boolean;
+};
+
 type ConfigDetailsProps = {
   embeddedId: string;
 };
@@ -148,7 +158,7 @@ export type Extensions = Partial<{
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
-  'ssh_tunnel.form.switch': React.ComponentType;
+  'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
   'databaseconnection.extraOption': DatabaseConnectionExtension;
   /* Custom components to show in the database and dataset delete modals */
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
