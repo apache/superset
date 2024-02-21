@@ -70,18 +70,17 @@ const mockExtraFormData = {
 };
 
 describe('getComparisonInfo', () => {
-  it('Keeps the original adhoc_filters since no extra data was passed and return the correct time shift text', () => {
-    const { formData: resultFormData, timeShiftText } = getComparisonInfo(
+  it('Keeps the original adhoc_filters since no extra data was passed', () => {
+    const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Year,
       {},
     );
     expect(resultFormData).toEqual(form_data);
-    expect(timeShiftText).toEqual('1 year');
   });
 
-  it('Updates the time_range of the adhoc_filters when extra form data is passed and returns the correct time shift text', () => {
-    const { formData: resultFormData, timeShiftText } = getComparisonInfo(
+  it('Updates the time_range of the adhoc_filters when extra form data is passed', () => {
+    const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Month,
       mockExtraFormData,
@@ -102,13 +101,12 @@ describe('getComparisonInfo', () => {
       } as any,
     ];
 
-    expect(resultFormData.adhoc_filters.length).toEqual(1);
+    expect(resultFormData.adhoc_filters?.length).toEqual(1);
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
-    expect(timeShiftText).toEqual('1 month');
   });
 
   it('handles no time range filters', () => {
-    const { formData: resultFormData, timeShiftText } = getComparisonInfo(
+    const resultFormData = getComparisonInfo(
       {
         ...form_data,
         adhoc_filters: [
@@ -136,13 +134,12 @@ describe('getComparisonInfo', () => {
         isExtra: false,
       },
     ];
-    expect(resultFormData.adhoc_filters.length).toEqual(1);
-    expect(resultFormData.adhoc_filters[0]).toEqual(expectedFilters[0]);
-    expect(timeShiftText).toEqual('1 week');
+    expect(resultFormData.adhoc_filters?.length).toEqual(1);
+    expect(resultFormData.adhoc_filters?.[0]).toEqual(expectedFilters[0]);
   });
 
   it('If adhoc_filter is undefrined the code wont break', () => {
-    const { formData: resultFormData, timeShiftText } = getComparisonInfo(
+    const resultFormData = getComparisonInfo(
       {
         ...form_data,
         adhoc_filters: undefined,
@@ -151,13 +148,12 @@ describe('getComparisonInfo', () => {
       {},
     );
 
-    expect(resultFormData.adhoc_filters.length).toEqual(0);
+    expect(resultFormData.adhoc_filters?.length).toEqual(0);
     expect(resultFormData.adhoc_filters).toEqual([]);
-    expect(timeShiftText).toEqual('inherited');
   });
 
   it('Handles the custom time filters and return the correct time shift text', () => {
-    const { formData: resultFormData, timeShiftText } = getComparisonInfo(
+    const resultFormData = getComparisonInfo(
       form_data,
       ComparisonTimeRangeType.Custom,
       {},
@@ -172,8 +168,7 @@ describe('getComparisonInfo', () => {
         subject: 'order_date',
       },
     ];
-    expect(resultFormData.adhoc_filters.length).toEqual(1);
+    expect(resultFormData.adhoc_filters?.length).toEqual(1);
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
-    expect(timeShiftText).toBeUndefined();
   });
 });

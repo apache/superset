@@ -19,6 +19,7 @@
 import {
   buildQueryContext,
   getComparisonInfo,
+  ComparisonTimeRangeType,
   QueryFormData,
 } from '@superset-ui/core';
 
@@ -51,7 +52,7 @@ export default function buildQuery(formData: QueryFormData) {
     },
   ]);
 
-  const { formData: comparisonFormData, timeShiftText } = getComparisonInfo(
+  const comparisonFormData = getComparisonInfo(
     formData,
     timeComparison,
     extraFormData,
@@ -63,7 +64,13 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         groupby,
-        time_shift: timeShiftText,
+        extras: {
+          ...baseQueryObject.extras,
+          instant_time_comparison_range:
+            timeComparison !== ComparisonTimeRangeType.Custom
+              ? timeComparison
+              : undefined,
+        },
       },
     ],
   );

@@ -19,7 +19,7 @@
 
 import { QueryFormData } from '../query';
 import { getComparisonFilters } from './getComparisonFilters';
-import { getComparisonTimeShiftText } from './getComparisonTimeShiftText';
+import { ComparisonTimeRangeType } from './types';
 
 /**
  * This is the main function to get the comparison info. It will return the formData
@@ -28,18 +28,17 @@ import { getComparisonTimeShiftText } from './getComparisonTimeShiftText';
  * @param formData
  * @param timeComparison
  * @param extraFormData
- * @returns the processed formData and the time shift text
+ * @returns the processed formData
  */
 
 export const getComparisonInfo = (
   formData: QueryFormData,
   timeComparison: string,
   extraFormData: any,
-): any => {
+): QueryFormData => {
   let comparisonFormData;
-  const timeShiftText = getComparisonTimeShiftText(timeComparison);
 
-  if (timeShiftText) {
+  if (timeComparison !== ComparisonTimeRangeType.Custom) {
     comparisonFormData = {
       ...formData,
       adhoc_filters: getComparisonFilters(formData, extraFormData),
@@ -60,10 +59,7 @@ export const getComparisonInfo = (
     };
   }
 
-  return {
-    formData: comparisonFormData,
-    timeShiftText,
-  };
+  return comparisonFormData;
 };
 
 export default getComparisonInfo;

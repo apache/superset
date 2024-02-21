@@ -46,7 +46,7 @@ from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.constants import INHERITED_TIME_RANGE, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
+from superset.constants import InstantTimeComparison, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
 ParserElement.enablePackrat()
 
@@ -149,6 +149,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
+    instant_time_comparison_range: Optional[str] = None,
 ) -> tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
@@ -260,16 +261,44 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
     if time_shift:
         time_delta = parse_past_timedelta(time_shift)
-        if time_shift == INHERITED_TIME_RANGE:
-            # Inherited time shift is used to shift the time range based
-            # on the difference of the dates in the time range in days.
-            time_delta = (
-                _until - _since
-                if _since and _until
-                else parse_past_timedelta(time_shift)
-            )
         _since = _since if _since is None else (_since - time_delta)
         _until = _until if _until is None else (_until - time_delta)
+
+    if instant_time_comparison_range:
+        """
+        This is only set using the new time comparison controls
+        that is made available in some plugins behind the experimental
+        feature flag.
+        """
+        from superset import feature_flag_manager
+
+        if feature_flag_manager.is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL"):
+            time_unit = ""
+            delta_in_days = None
+            if instant_time_comparison_range == InstantTimeComparison.YEAR:
+                time_unit = "YEAR"
+            elif instant_time_comparison_range == InstantTimeComparison.MONTH:
+                time_unit = "MONTH"
+            elif instant_time_comparison_range == InstantTimeComparison.WEEK:
+                time_unit = "WEEK"
+            elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
+                delta_in_days = (_until - _since).days if _since and _until else None
+                time_unit = "DAY"
+
+            if time_unit:
+                strtfime_since = (
+                    _since.strftime("%Y-%m-%dT%H:%M:%S") if _since else relative_start
+                )
+                strtfime_until = (
+                    _until.strftime("%Y-%m-%dT%H:%M:%S") if _until else relative_end
+                )
+
+                since_and_until = [
+                    f"DATEADD(DATETIME('{strtfime_since}'), -{delta_in_days or 1}, {time_unit})",
+                    f"DATEADD(DATETIME('{strtfime_until}'), -{delta_in_days or 1}, {time_unit})",
+                ]
+
+                _since, _until = map(datetime_eval, since_and_until)
 
     if _since and _until and _since > _until:
         raise ValueError(_("From date cannot be larger than to date"))

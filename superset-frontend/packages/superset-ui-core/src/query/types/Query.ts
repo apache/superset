@@ -69,6 +69,8 @@ export type QueryObjectExtras = Partial<{
   time_grain_sqla?: TimeGranularity;
   /** WHERE condition */
   where?: string;
+  /** Instant Time Comparison */
+  instant_time_comparison_range?: string;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -147,8 +149,6 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
-  /** Time Comparison */
-  time_shift?: string;
 }
 
 export interface QueryContext {

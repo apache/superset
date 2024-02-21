@@ -20,5 +20,4 @@
 export * from './types';
 
 export { default as getComparisonInfo } from './getComparisonInfo';
-export { default as getComparisonTimeShiftText } from './getComparisonTimeShiftText';
 export { default as getComparisonFilters } from './getComparisonFilters';

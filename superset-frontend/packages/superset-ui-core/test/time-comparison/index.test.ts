@@ -20,17 +20,13 @@
 import {
   ComparisonTimeRangeType,
   getComparisonFilters,
-  getComparisonTimeShiftText,
   getComparisonInfo,
 } from '@superset-ui/core';
 
 describe('index', () => {
   it('exports modules', () => {
-    [
-      ComparisonTimeRangeType,
-      getComparisonFilters,
-      getComparisonTimeShiftText,
-      getComparisonInfo,
-    ].forEach(x => expect(x).toBeDefined());
+    [ComparisonTimeRangeType, getComparisonFilters, getComparisonInfo].forEach(
+      x => expect(x).toBeDefined(),
+    );
   });
 });
