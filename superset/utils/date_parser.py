@@ -142,7 +142,7 @@ def parse_past_timedelta(
     )
 
 
-def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
@@ -265,11 +265,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         _until = _until if _until is None else (_until - time_delta)
 
     if instant_time_comparison_range:
-        """
-        This is only set using the new time comparison controls
-        that is made available in some plugins behind the experimental
-        feature flag.
-        """
+        # This is only set using the new time comparison controls
+        # that is made available in some plugins behind the experimental
+        # feature flag.
+        # pylint: disable=import-outside-toplevel
         from superset import feature_flag_manager
 
         if feature_flag_manager.is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL"):
@@ -294,8 +293,14 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 )
 
                 since_and_until = [
-                    f"DATEADD(DATETIME('{strtfime_since}'), -{delta_in_days or 1}, {time_unit})",
-                    f"DATEADD(DATETIME('{strtfime_until}'), -{delta_in_days or 1}, {time_unit})",
+                    (
+                        f"DATEADD(DATETIME('{strtfime_since}'), "
+                        f"-{delta_in_days or 1}, {time_unit})"
+                    ),
+                    (
+                        f"DATEADD(DATETIME('{strtfime_until}'), "
+                        f"-{delta_in_days or 1}, {time_unit})"
+                    ),
                 ]
 
                 _since, _until = map(datetime_eval, since_and_until)
