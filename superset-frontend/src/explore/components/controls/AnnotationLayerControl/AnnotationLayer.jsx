@@ -323,8 +323,8 @@ class AnnotationLayer extends React.PureComponent {
   asyncFetch = async (search, page, pageSize) => {
     const { annotationType, sourceType } = this.state;
 
-    // Bypassing an eslint error unused-variables
-    const consumedSearch = search;
+    // Bypassing eslint no-unused-vars error
+    search.trim();
 
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       const queryParams = rison.encode({
@@ -409,12 +409,11 @@ class AnnotationLayer extends React.PureComponent {
         data: chartsArray,
         totalCount: count,
       };
-    } else {
-      return {
-        data: [],
-        totalCount: 0,
-      };
     }
+    return {
+      data: [],
+      totalCount: 0,
+    };
   };
 
   fetchAppliedChart() {
