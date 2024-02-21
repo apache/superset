@@ -1,8 +1,10 @@
 import logging
+from flask import flash, url_for
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget, BS3PasswordFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.security.registerviews import RegisterUserDBView
 from flask_appbuilder.widgets import FormWidget
+from flask_appbuilder._compat import as_unicode
 from flask_babel import lazy_gettext
 from wtforms import BooleanField, PasswordField, StringField
 from wtforms.validators import DataRequired, Email, EqualTo
@@ -123,3 +125,61 @@ class OrtegeRegisterView(RegisterUserDBView):
         mailchimp_list: Optional[str] = self.appbuilder.app.config["MAILCHIMP_LIST_ID"]      
         if self.mailchimp_client or (mailchimp_api_key and mailchimp_server and mailchimp_list):
             self.add_mailchimp(form, mailchimp_api_key, mailchimp_server, mailchimp_list)
+
+    def add_registration(self, username, first_name, last_name, email, password=""):
+        """
+            Add a registration request for the user.
+
+        :rtype : RegisterUser
+        """
+        register_user = self.appbuilder.sm.add_register_user(
+            username, first_name, last_name, email, password
+        )
+        logging.info(f"Rgister user: {username} {last_name} {email}")
+        if register_user:
+            logging.info(f"Sending the email to {email}")
+            if self.send_email(register_user):
+                flash(as_unicode(self.message), "info")
+                logging.info("Success to send email")
+                return register_user
+            else:
+                flash(as_unicode(self.error_message), "danger")
+                self.appbuilder.sm.del_register_user(register_user)
+                logging.info("Error to send email")
+                return None
+            
+    def send_email(self, register_user):
+        """
+            Method for sending the registration Email to the user
+        """
+        try:
+            from flask_mail import Mail, Message
+        except Exception:
+            logging.error("Install Flask-Mail to use User registration")
+            return False
+        mail = Mail(self.appbuilder.get_app)
+        msg = Message()
+        msg.subject = self.email_subject
+        url = url_for(
+            ".activation",
+            _external=True,
+            activation_hash=register_user.registration_hash,
+        )
+        logging.info(f"Url: {url}")
+        msg.html = self.render_template(
+            self.email_template,
+            url=url,
+            username=register_user.username,
+            first_name=register_user.first_name,
+            last_name=register_user.last_name,
+        )
+        msg.recipients = [register_user.email]
+        logging.info(f"Message: {msg.as_string()}")
+        try:
+            logging.info("Sending message")
+            mail.send(msg)
+            logging.info("Sent message")
+        except Exception as e:
+            logging.error("Send email exception: %s", e)
+            return False
+        return True
