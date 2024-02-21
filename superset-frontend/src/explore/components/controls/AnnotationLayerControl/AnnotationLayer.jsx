@@ -197,7 +197,6 @@ class AnnotationLayer extends React.PureComponent {
       show,
       showLabel,
       // slice
-      // currentSlice,
       titleColumn,
       descriptionColumns,
       timeColumn,
@@ -321,11 +320,11 @@ class AnnotationLayer extends React.PureComponent {
     });
   }
 
-  asyncFetch = async (search = '', page, pageSize) => {
+  asyncFetch = async (search, page, pageSize) => {
     const { annotationType, sourceType } = this.state;
 
-    // Bypassing an eslint error
-    const consumeSearch = search.trim();
+    // Bypassing an eslint error unused-variables
+    const consumedSearch = search;
 
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       const queryParams = rison.encode({
@@ -490,7 +489,6 @@ class AnnotationLayer extends React.PureComponent {
         'descriptionColumns',
         'timeColumn',
         'intervalEndColumn',
-        // 'currentSlice',
       ];
       const newAnnotation = {};
       annotationFields.forEach(field => {
@@ -614,7 +612,6 @@ class AnnotationLayer extends React.PureComponent {
       timeColumn,
       intervalEndColumn,
       descriptionColumns,
-      // currentSlice,
     } = this.state;
 
     if (!value) {
