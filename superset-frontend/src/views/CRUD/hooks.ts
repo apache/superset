@@ -18,7 +18,14 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
+import {
+  makeApi,
+  SupersetClient,
+  t,
+  JsonObject,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 
 import {
   createErrorHandler,
@@ -35,7 +42,8 @@ import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
-import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
+import { DatabaseObject } from 'src/features/databases/types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -691,7 +699,7 @@ export const getDatabaseDocumentationLinks = () =>
   SupersetText.DB_CONNECTION_DOC_LINKS;
 
 export const testDatabaseConnection = (
-  connection: DatabaseObject,
+  connection: Partial<DatabaseObject>,
   handleErrorMsg: (errorMsg: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
@@ -884,4 +892,34 @@ export const reportSelector = (
     return state.reports[resourceType]?.[resourceId];
   }
   return null;
+};
+
+export const useCanSSHTunnel = (db: Partial<DatabaseObject> | null) => {
+  const [isSSHTunneling, setIsSSHTunneling] = useState(false);
+  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
+
+  useEffect(() => {
+    if (db && !availableDbs) {
+      getAvailableDbs();
+    }
+  }, [availableDbs, db, getAvailableDbs]);
+
+  useEffect(() => {
+    if (db && availableDbs) {
+      const disableSSHTunnelingForEngine = availableDbs.databases?.find(
+        (DB: DatabaseObject) =>
+          DB.backend === db?.engine || DB.engine === db?.engine,
+      )?.engine_information?.disable_ssh_tunneling;
+
+      const sshTunnelingEnabled =
+        isFeatureEnabled(FeatureFlag.SshTunneling) &&
+        !disableSSHTunnelingForEngine;
+
+      if (sshTunnelingEnabled !== isSSHTunneling) {
+        setIsSSHTunneling(sshTunnelingEnabled);
+      }
+    }
+  }, [availableDbs, db, db?.engine, isSSHTunneling]);
+
+  return isSSHTunneling;
 };

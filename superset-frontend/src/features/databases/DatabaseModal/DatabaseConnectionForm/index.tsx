@@ -90,6 +90,7 @@ const FORM_FIELD_MAP = {
 
 interface DatabaseConnectionFormProps {
   isEditMode?: boolean;
+  isSSHTunnelEnabled: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
   dbModel: DatabaseForm;
@@ -124,6 +125,7 @@ const DatabaseConnectionForm = ({
   getPlaceholder,
   getValidation,
   isEditMode = false,
+  isSSHTunnelEnabled = false,
   onAddTableCatalog,
   onChange,
   onExtraInputChange,
@@ -134,47 +136,59 @@ const DatabaseConnectionForm = ({
   sslForced,
   validationErrors,
   clearValidationErrors,
-}: DatabaseConnectionFormProps) => (
-  <Form>
-    <div
-      // @ts-ignore
-      css={(theme: SupersetTheme) => [
-        formScrollableStyles,
-        validatedFormStyles(theme),
-      ]}
-    >
-      {parameters &&
-        FormFieldOrder.filter(
-          (key: string) =>
-            Object.keys(parameters.properties).includes(key) ||
-            key === 'database_name',
-        ).map(field =>
-          FORM_FIELD_MAP[field]({
-            required: parameters.required?.includes(field),
-            changeMethods: {
-              onParametersChange,
-              onChange,
-              onQueryChange,
-              onParametersUploadFileChange,
-              onAddTableCatalog,
-              onRemoveTableCatalog,
-              onExtraInputChange,
-            },
-            validationErrors,
-            getValidation,
-            clearValidationErrors,
-            db,
-            key: field,
-            field,
-            isEditMode,
-            sslForced,
-            editNewDb,
-            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-          }),
-        )}
-    </div>
-  </Form>
-);
+}: DatabaseConnectionFormProps) => {
+  const validateExtra = (key: string) => {
+    switch (key) {
+      case 'ssh':
+        return isSSHTunnelEnabled;
+      default:
+        return true;
+    }
+  };
+
+  return (
+    <Form>
+      <div
+        // @ts-ignore
+        css={(theme: SupersetTheme) => [
+          formScrollableStyles,
+          validatedFormStyles(theme),
+        ]}
+      >
+        {parameters &&
+          FormFieldOrder.filter(
+            (key: string) =>
+              (Object.keys(parameters.properties).includes(key) &&
+                validateExtra(key)) ||
+              key === 'database_name',
+          ).map(field =>
+            FORM_FIELD_MAP[field]({
+              required: parameters.required?.includes(field),
+              changeMethods: {
+                onParametersChange,
+                onChange,
+                onQueryChange,
+                onParametersUploadFileChange,
+                onAddTableCatalog,
+                onRemoveTableCatalog,
+                onExtraInputChange,
+              },
+              validationErrors,
+              getValidation,
+              clearValidationErrors,
+              db,
+              key: field,
+              field,
+              isEditMode,
+              sslForced,
+              editNewDb,
+              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
+            }),
+          )}
+      </div>
+    </Form>
+  );
+};
 export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;

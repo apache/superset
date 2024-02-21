@@ -22,20 +22,7 @@ import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { isEmpty } from 'lodash';
 import { infoTooltip, toggleStyle } from './styles';
-import { DatabaseObject, FieldPropTypes } from '../types';
-
-type ChangeMethodsType = FieldPropTypes['changeMethods'];
-
-// changeMethods compatibility with dynamic forms
-type SwitchPropsChangeMethodsType = {
-  onParametersChange: ChangeMethodsType['onParametersChange'];
-};
-
-type SwitchProps = {
-  db: DatabaseObject;
-  changeMethods: SwitchPropsChangeMethodsType;
-  isSSHTunnelEnabled?: boolean;
-};
+import { SwitchProps } from '../types';
 
 const SSHTunnelSwitch = ({
   // true by default for compatibility with dynamic forms
@@ -46,16 +33,17 @@ const SSHTunnelSwitch = ({
   const [isChecked, setChecked] = useState(false);
 
   const handleOnChange = (changed: boolean) => {
-    setChecked(changed);
-
-    changeMethods.onParametersChange({
-      target: {
-        type: 'toggle',
-        name: 'ssh',
-        checked: true,
-        value: changed,
-      },
-    });
+    if (changed !== isChecked) {
+      setChecked(changed);
+      changeMethods.onParametersChange({
+        target: {
+          type: 'toggle',
+          name: 'ssh',
+          checked: true,
+          value: changed,
+        },
+      });
+    }
   };
 
   useEffect(() => {
@@ -66,14 +54,15 @@ const SSHTunnelSwitch = ({
     ) {
       setChecked(db.parameters.ssh);
     }
-  }, [db?.parameters?.ssh]);
+  }, [db?.parameters?.ssh, isChecked, isSSHTunnelEnabled]);
 
   useEffect(() => {
     if (
       isSSHTunnelEnabled &&
-      !db?.parameters?.ssh &&
+      db?.parameters?.ssh === undefined &&
       !isEmpty(db?.ssh_tunnel)
     ) {
+      // reflecting the state of the ssh tunnel on first load
       changeMethods.onParametersChange({
         target: {
           type: 'toggle',
@@ -83,7 +72,7 @@ const SSHTunnelSwitch = ({
         },
       });
     }
-  }, [db?.ssh_tunnel]);
+  }, [changeMethods, db?.parameters?.ssh, db?.ssh_tunnel, isSSHTunnelEnabled]);
 
   return isSSHTunnelEnabled ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>

@@ -290,3 +290,16 @@ export interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
 }
+
+type ChangeMethodsType = FieldPropTypes['changeMethods'];
+
+// changeMethods compatibility with dynamic forms
+type SwitchPropsChangeMethodsType = {
+  onParametersChange: ChangeMethodsType['onParametersChange'];
+};
+
+export type SwitchProps = {
+  db: DatabaseObject;
+  changeMethods: SwitchPropsChangeMethodsType;
+  isSSHTunnelEnabled?: boolean;
+};

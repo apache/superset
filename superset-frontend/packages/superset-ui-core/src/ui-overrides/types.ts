@@ -148,7 +148,7 @@ export type Extensions = Partial<{
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;
-  'ssh_tunnel.form.switch': React.ComponentType<SwitchProps>;
+  'ssh_tunnel.form.switch': React.ComponentType;
   'databaseconnection.extraOption': DatabaseConnectionExtension;
   /* Custom components to show in the database and dataset delete modals */
   'database.delete.related': React.ComponentType<DatabaseDeleteRelatedExtensionProps>;
