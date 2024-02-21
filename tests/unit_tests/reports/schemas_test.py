@@ -43,6 +43,7 @@ def test_report_post_schema_custom_width_validation(mocker: MockFixture) -> None
             "crontab": "* * * * *",
             "timezone": "America/Los_Angeles",
             "custom_width": 100,
+            "email_subject": "Subject",
         }
     )
 
@@ -55,6 +56,7 @@ def test_report_post_schema_custom_width_validation(mocker: MockFixture) -> None
             "active": True,
             "crontab": "* * * * *",
             "timezone": "America/Los_Angeles",
+            "email_subject": "Subject",
         }
     )
 
@@ -68,6 +70,7 @@ def test_report_post_schema_custom_width_validation(mocker: MockFixture) -> None
                 "crontab": "* * * * *",
                 "timezone": "America/Los_Angeles",
                 "custom_width": 1000,
+                "email_subject": "Subject",
             }
         )
     assert excinfo.value.messages == {
