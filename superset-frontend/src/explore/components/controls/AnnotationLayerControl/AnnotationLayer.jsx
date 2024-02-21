@@ -39,7 +39,6 @@ import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-// import { FILTER_OPTIONS_LIMIT } from 'src/explore/constants';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -61,8 +60,7 @@ const propTypes = {
   width: PropTypes.number,
   showMarkers: PropTypes.bool,
   hideLine: PropTypes.bool,
-  value: PropTypes.object,
-  currentSlice: PropTypes.object,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   overrides: PropTypes.object,
   show: PropTypes.bool,
   showLabel: PropTypes.bool,
@@ -163,7 +161,6 @@ class AnnotationLayer extends React.PureComponent {
       showMarkers,
       hideLine,
       value,
-      currentSlice,
       overrides,
       show,
       showLabel,
@@ -200,7 +197,7 @@ class AnnotationLayer extends React.PureComponent {
       show,
       showLabel,
       // slice
-      currentSlice,
+      // currentSlice,
       titleColumn,
       descriptionColumns,
       timeColumn,
@@ -215,7 +212,7 @@ class AnnotationLayer extends React.PureComponent {
       // refData
       isNew: !name,
       optionsFetch: this.asyncFetch.bind(this),
-      valueOptions: [],
+      valueOptions: {},
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.deleteAnnotation = this.deleteAnnotation.bind(this);
@@ -228,11 +225,13 @@ class AnnotationLayer extends React.PureComponent {
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
   }
 
-  // componentDidMount() {
-  // }
+  componentDidMount() {
+    this.fetchAppliedChart();
+  }
 
-  // componentDidUpdate() {
-  // }
+  componentDidUpdate() {
+    this.fetchAppliedChart();
+  }
 
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
@@ -273,7 +272,6 @@ class AnnotationLayer extends React.PureComponent {
       validateNonEmpty(annotationType),
       validateNonEmpty(value),
     ];
-    // debugger;
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
       if (annotationType === ANNOTATION_TYPES.EVENT) {
         errors.push(validateNonEmpty(timeColumn));
@@ -306,6 +304,7 @@ class AnnotationLayer extends React.PureComponent {
       this.setState({
         sourceType,
         value: null,
+        valueOptions: {},
         optionsFetch: this.asyncFetch.bind(this),
       });
     }
@@ -313,13 +312,12 @@ class AnnotationLayer extends React.PureComponent {
 
   handleValue(value) {
     this.setState({
-      value,
+      value: value.value,
       descriptionColumns: [],
       intervalEndColumn: null,
       timeColumn: null,
       titleColumn: null,
       overrides: { time_range: null },
-      currentSlice: this.state.valueOptions.find(x => x.value === value.value),
     });
   }
 
@@ -341,14 +339,9 @@ class AnnotationLayer extends React.PureComponent {
 
       const { result, count } = json;
 
-      const layers = result.map(layer => ({
-        value: layer.id,
-        label: layer.name,
-      }));
-
       const layersObj = {};
       result.forEach(layer => {
-        layers[layer.id] = {
+        layersObj[layer.id] = {
           value: layer.id,
           label: layer.name,
         };
@@ -426,8 +419,9 @@ class AnnotationLayer extends React.PureComponent {
   };
 
   fetchAppliedChart() {
-    const id = this.state.value.value;
-    if (id) {
+    const { value, valueOptions, sourceType } = this.state;
+    const id = value;
+    if (id && !valueOptions[id] && requiresQuery(sourceType)) {
       const queryParams = rison.encode({
         filters: [
           {
@@ -437,28 +431,31 @@ class AnnotationLayer extends React.PureComponent {
           },
         ],
       });
-      return SupersetClient.get({
+      SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${queryParams}`,
       })
-        .then(response => {
-          const { json } = response;
+        .then(({ json }) => {
           const { result } = json;
           console.log('chart:', result[0]);
           const chart = result[0];
-
-          return {
-            value: chart.id,
-            label: chart.slice_name,
-            slice: {
-              ...chart,
-              data: {
-                ...chart.form_data,
-                groupby: chart.form_data.groupby?.map(column =>
-                  getColumnLabel(column),
-                ),
+          this.setState(prevState => ({
+            valueOptions: {
+              ...prevState.valueOptions,
+              [chart.id]: {
+                value: chart.id,
+                label: chart.slice_name,
+                slice: {
+                  ...chart,
+                  data: {
+                    ...chart.form_data,
+                    groupby: chart.form_data.groupby?.map(column =>
+                      getColumnLabel(column),
+                    ),
+                  },
+                },
               },
             },
-          };
+          }));
         })
         .catch(error => {
           console.error('Error fetching chart:', error);
@@ -466,7 +463,6 @@ class AnnotationLayer extends React.PureComponent {
           return null;
         });
     }
-    return null;
   }
 
   deleteAnnotation() {
@@ -494,7 +490,7 @@ class AnnotationLayer extends React.PureComponent {
         'descriptionColumns',
         'timeColumn',
         'intervalEndColumn',
-        'currentSlice',
+        // 'currentSlice',
       ];
       const newAnnotation = {};
       annotationFields.forEach(field => {
@@ -618,21 +614,14 @@ class AnnotationLayer extends React.PureComponent {
       timeColumn,
       intervalEndColumn,
       descriptionColumns,
-      currentSlice,
+      // currentSlice,
     } = this.state;
+
     if (!value) {
       return '';
     }
-    // if (currentSlice.id !== value.value) {
-    //   this.setState({
-    //     currentSlice: valueOptions.find(x => x.value === value.value),
-    //   });
-    // }
-    console.log('currentSlice:', currentSlice);
-    const { slice } = currentSlice || {};
-    console.log('valueOptions:', valueOptions);
-    console.log('value:', value);
-    console.log('slice:', slice);
+
+    const { slice } = valueOptions[value] || {};
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
       const columns = (slice.data.groupby || [])
         .concat(slice.data.all_columns || [])
