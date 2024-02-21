@@ -356,7 +356,9 @@ class AnnotationLayer extends React.PureComponent {
         data: layersArray,
         totalCount: count,
       };
-    } else if (requiresQuery(sourceType)) {
+    }
+
+    if (requiresQuery(sourceType)) {
       const queryParams = rison.encode({
         filters: [
           {
@@ -410,6 +412,7 @@ class AnnotationLayer extends React.PureComponent {
         totalCount: count,
       };
     }
+
     return {
       data: [],
       totalCount: 0,
