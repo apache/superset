@@ -78,7 +78,7 @@ export default function transformProps(chartProps: ChartProps) {
     boldText,
     headerFontSize,
     headerText,
-    metrics,
+    metric,
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
@@ -87,14 +87,14 @@ export default function transformProps(chartProps: ChartProps) {
   const { data: dataA = [] } = queriesData[0];
   const { data: dataB = [] } = queriesData[1];
   const data = dataA;
-  const metricName = getMetricLabel(metrics[0]);
+  const metricName = getMetricLabel(metric);
   let bigNumber: number | string =
     data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
   let prevNumber: number | string =
     data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
 
   const numberFormatter = getValueFormatter(
-    metrics[0],
+    metric,
     currencyFormats,
     columnFormats,
     yAxisFormat,
@@ -147,7 +147,7 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     data,
     // and now your control data, manipulated as needed, and passed through as props!
-    metrics,
+    metric,
     metricName,
     bigNumber,
     prevNumber,
