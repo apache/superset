@@ -90,7 +90,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements, too-many-branches
+    def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
