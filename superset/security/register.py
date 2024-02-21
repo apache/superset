@@ -10,6 +10,7 @@ from wtforms import BooleanField, PasswordField, StringField
 from wtforms.validators import DataRequired, Email, EqualTo
 from mailchimp_marketing import Client as MailChimpClient #3.0.80
 from typing import Optional
+from postmarker.core import PostmarkClient
 
 logger = logging.getLogger(__name__)
 
@@ -135,49 +136,49 @@ class OrtegeRegisterView(RegisterUserDBView):
         register_user = self.appbuilder.sm.add_register_user(
             username, first_name, last_name, email, password
         )
-        logging.info(f"Rgister user: {username} {last_name} {email}")
+
         if register_user:
             logging.info(f"Sending the email to {email}")
             if self.send_email(register_user):
                 flash(as_unicode(self.message), "info")
-                logging.info("Success to send email")
                 return register_user
             else:
                 flash(as_unicode(self.error_message), "danger")
                 self.appbuilder.sm.del_register_user(register_user)
-                logging.info("Error to send email")
                 return None
             
     def send_email(self, register_user):
         """
             Method for sending the registration Email to the user
         """
-        try:
-            from flask_mail import Mail, Message
-        except Exception:
-            logging.error("Install Flask-Mail to use User registration")
+        postmark_token = self.appbuilder.app.config["POSTMARK_TOKEN"]
+        email_sender = self.appbuilder.app.config["MAIL_USERNAME"]
+        if postmark_token is None:
+            logging.error("Postmark token invalid.")
             return False
-        mail = Mail(self.appbuilder.get_app)
-        msg = Message()
-        msg.subject = self.email_subject
+        postmark_client = PostmarkClient(server_token=postmark_token)
+
         url = url_for(
             ".activation",
             _external=True,
             activation_hash=register_user.registration_hash,
         )
-        logging.info(f"Url: {url}")
-        msg.html = self.render_template(
+
+        message_html = self.render_template(
             self.email_template,
             url=url,
             username=register_user.username,
             first_name=register_user.first_name,
             last_name=register_user.last_name,
         )
-        msg.recipients = [register_user.email]
-        logging.info(f"Message: {msg.as_string()}")
         try:
             logging.info("Sending message")
-            mail.send(msg)
+            postmark_client.emails.send(
+                From=email_sender,
+                To=register_user.email,
+                Subject="Ortege studio activation email",
+                HtmlBody=message_html
+            )
             logging.info("Sent message")
         except Exception as e:
             logging.error("Send email exception: %s", e)
