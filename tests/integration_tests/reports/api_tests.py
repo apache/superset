@@ -1041,6 +1041,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "dashboard": dashboard.id,
+            "email_subject": "Subject",
         }
         uri = "api/v1/report/"
         rv = self.post_assert_metric(uri, report_schedule_data, "post")
@@ -1057,6 +1058,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
             "dashboard": dashboard.id,
+            "email_subject": "Subject",
         }
         uri = "api/v1/report/"
         rv = self.post_assert_metric(uri, report_schedule_data, "post")

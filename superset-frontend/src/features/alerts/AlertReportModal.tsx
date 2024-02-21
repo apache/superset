@@ -1250,14 +1250,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const updatedNotificationSettings = notificationSettings.map(setting => {
-    const updatedEmailSubject = setting.email_subject || emailSubject;
-    return {
-      ...setting,
-      email_subject: updatedEmailSubject,
-    };
-  });
-
   return (
     <StyledModal
       className="no-content-padding"
@@ -1694,7 +1686,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
           key="notification"
         >
-          {updatedNotificationSettings.map((notificationSetting, i) => {
+          {notificationSettings.map((notificationSetting, i) => {
             return (
               <StyledNotificationMethodWrapper
                 key={`NotificationMethodWrapper-${i}`}
@@ -1706,6 +1698,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onUpdate={updateNotificationSetting}
                   onRemove={removeNotificationSetting}
                   onInputChange={onInputChange}
+                  email_subject={currentAlert?.email_subject || ''}
                   defaultSubject={emailSubject || ''}
                 />
               </StyledNotificationMethodWrapper>

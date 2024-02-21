@@ -48,9 +48,9 @@ const StyledNotificationMethod = styled.div`
 
 type NotificationSetting = {
   method?: NotificationMethodOption;
+  email_subject?: string;
   recipients: string;
   options: NotificationMethodOption[];
-  email_subject: string;
 };
 
 interface NotificationMethodProps {
@@ -61,6 +61,7 @@ interface NotificationMethodProps {
   onInputChange?: (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
+  email_subject?: string;
   defaultSubject?: string;
 }
 
@@ -74,9 +75,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
   onInputChange,
+  email_subject,
   defaultSubject,
 }) => {
-  const { method, recipients, options, email_subject } = setting || {};
+  const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
@@ -84,6 +86,18 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     email_subject || defaultSubject,
   );
   const theme = useTheme();
+
+  useEffect(() => {
+    if (onUpdate) {
+      const updatedSetting: NotificationSetting = {
+        ...setting,
+        email_subject: defaultSubject,
+        recipients: setting?.recipients ?? '',
+        options: setting?.options ?? [],
+      };
+      onUpdate(index, updatedSetting);
+    }
+  }, []);
 
   useEffect(() => {
     setEmailSubject(email_subject || defaultSubject);
