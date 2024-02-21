@@ -346,12 +346,22 @@ class AnnotationLayer extends React.PureComponent {
         label: layer.name,
       }));
 
+      const layersObj = {};
+      result.forEach(layer => {
+        layers[layer.id] = {
+          value: layer.id,
+          label: layer.name,
+        };
+      });
+
+      const layersArray = Object.values(layersObj);
+
       this.setState(prevState => ({
-        valueOptions: prevState.valueOptions.concat(layers),
+        valueOptions: { ...prevState.valueOptions, ...layersObj },
       }));
 
       return {
-        data: layers,
+        data: layersArray,
         totalCount: count,
       };
     } else if (requiresQuery(sourceType)) {
@@ -375,31 +385,36 @@ class AnnotationLayer extends React.PureComponent {
       const { result, count } = json;
       const registry = getChartMetadataRegistry();
 
-      const charts = result
-        .filter(x => {
-          const metadata = registry.get(x.viz_type);
+      const chartsObj = result
+        .filter(chart => {
+          const metadata = registry.get(chart.viz_type);
           return metadata && metadata.canBeAnnotationType(annotationType);
         })
-        .map(x => ({
-          value: x.id,
-          label: x.slice_name,
-          slice: {
-            ...x,
-            data: {
-              ...x.form_data,
-              groupby: x.form_data.groupby?.map(column =>
-                getColumnLabel(column),
-              ),
+        .reduce((acc, chart) => {
+          acc[chart.id] = {
+            value: chart.id,
+            label: chart.slice_name,
+            slice: {
+              ...chart,
+              data: {
+                ...chart.form_data,
+                groupby: chart.form_data.groupby?.map(column =>
+                  getColumnLabel(column),
+                ),
+              },
             },
-          },
-        }));
+          };
+          return acc;
+        }, {});
+
+      const chartsArray = Object.values(chartsObj);
 
       this.setState(prevState => ({
-        valueOptions: prevState.valueOptions.concat(charts),
+        valueOptions: { ...prevState.valueOptions, ...chartsObj },
       }));
 
       return {
-        data: charts,
+        data: chartsArray,
         totalCount: count,
       };
     } else {
