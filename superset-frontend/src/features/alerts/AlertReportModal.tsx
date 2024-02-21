@@ -1250,6 +1250,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const updatedNotificationSettings = notificationSettings.map(setting => {
+    const updatedEmailSubject = setting.email_subject || emailSubject;
+    return {
+      ...setting,
+      email_subject: updatedEmailSubject,
+    };
+  });
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -1686,20 +1694,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
           key="notification"
         >
-          {notificationSettings.map((notificationSetting, i) => (
-            <StyledNotificationMethodWrapper>
-              <NotificationMethod
-                setting={notificationSetting}
-                index={i}
-                key={`NotificationMethod-${i}`}
-                onUpdate={updateNotificationSetting}
-                onRemove={removeNotificationSetting}
-                onInputChange={onInputChange}
-                email_subject={currentAlert?.email_subject || ''}
-                _default={emailSubject || ''}
-              />
-            </StyledNotificationMethodWrapper>
-          ))}
+          {updatedNotificationSettings.map((notificationSetting, i) => {
+            return (
+              <StyledNotificationMethodWrapper
+                key={`NotificationMethodWrapper-${i}`}
+              >
+                <NotificationMethod
+                  setting={notificationSetting}
+                  index={i}
+                  key={`NotificationMethod-${i}`}
+                  onUpdate={updateNotificationSetting}
+                  onRemove={removeNotificationSetting}
+                  onInputChange={onInputChange}
+                  defaultSubject={emailSubject || ''}
+                />
+              </StyledNotificationMethodWrapper>
+            );
+          })}
           {
             // Prohibit 'add notification method' button if only one present
             allowedNotificationMethods.length > notificationSettings.length && (

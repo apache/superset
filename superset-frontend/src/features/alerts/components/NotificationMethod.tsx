@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -50,6 +50,7 @@ type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
   options: NotificationMethodOption[];
+  email_subject: string;
 };
 
 interface NotificationMethodProps {
@@ -60,8 +61,7 @@ interface NotificationMethodProps {
   onInputChange?: (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
-  email_subject: string;
-  _default: string;
+  defaultSubject?: string;
 }
 
 const TRANSLATIONS = {
@@ -74,15 +74,20 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   onUpdate,
   onRemove,
   onInputChange,
-  email_subject,
-  _default,
+  defaultSubject,
 }) => {
-  const { method, recipients, options } = setting || {};
+  const { method, recipients, options, email_subject } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [emailSubject, setEmailSubject] = useState(email_subject || _default);
+  const [emailSubject, setEmailSubject] = useState(
+    email_subject || defaultSubject,
+  );
   const theme = useTheme();
+
+  useEffect(() => {
+    setEmailSubject(email_subject || defaultSubject);
+  }, [defaultSubject]);
 
   if (!setting) {
     return null;
@@ -190,7 +195,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   value={emailSubject}
                   onChange={onSubjectChange}
                 />
-              </div>{' '}
+              </div>
             </>
           ) : null}
           <div className="control-label">
