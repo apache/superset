@@ -287,7 +287,7 @@ class ChartRenderer extends React.Component {
             typeof __webpack_require__ !== 'undefined' &&
             // eslint-disable-next-line camelcase, no-undef
             typeof __webpack_require__.h === 'function' &&
-            // eslint-disable-next-line no-undef
+            // eslint-disable-next-line no-undef, camelcase
             __webpack_require__.h()
           }`
         : '';

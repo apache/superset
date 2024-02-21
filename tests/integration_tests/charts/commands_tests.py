@@ -413,7 +413,7 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self):
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
         self.assertEqual(
             result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}

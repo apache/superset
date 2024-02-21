@@ -21,6 +21,7 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset import db
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError
 from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
@@ -41,25 +42,22 @@ UPDATED_FORM_DATA = json.dumps({"test": "updated value"})
 @pytest.fixture
 def chart_id(load_world_bank_dashboard_with_slices) -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        chart = session.query(Slice).filter_by(slice_name="World's Population").one()
+        chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
         return chart.id
 
 
 @pytest.fixture
 def admin_id() -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        admin = session.query(User).filter_by(username="admin").one()
+        admin = db.session.query(User).filter_by(username="admin").one()
         return admin.id
 
 
 @pytest.fixture
 def datasource() -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
         dataset = (
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population")
             .first()
         )

@@ -21,21 +21,34 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
+import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
   EchartsTimeseriesSeriesType,
   EchartsTimeseriesFormData,
 } from './types';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  DEFAULT_TITLE_FORM_DATA,
-} from '../constants';
+// import {
+//   DEFAULT_LEGEND_FORM_DATA,
+//   DEFAULT_TITLE_FORM_DATA,
+// } from '../constants';
 import { defaultXAxis } from '../defaults';
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
-  ...DEFAULT_LEGEND_FORM_DATA,
-  ...DEFAULT_TITLE_FORM_DATA,
+  // ...DEFAULT_LEGEND_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
+  // Here are the contents of DEFAULT_LEGEND_FORM_DATA:
+  legendMargin: null,
+  legendOrientation: LegendOrientation.Top,
+  legendType: LegendType.Scroll,
+  showLegend: true,
+  // ...DEFAULT_TITLE_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
+  // here are the contents of DEFAULT_TITLE_FORM_DATA:
+  xAxisTitle: '',
+  xAxisTitleMargin: 0,
+  yAxisTitle: '',
+  yAxisTitleMargin: 0,
+  yAxisTitlePosition: 'Top',
+  // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,
   annotationLayers: sections.annotationLayers,
   area: false,

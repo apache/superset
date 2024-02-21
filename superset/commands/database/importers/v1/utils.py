@@ -18,9 +18,7 @@
 import json
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from superset import app, security_manager
+from superset import app, db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -30,7 +28,6 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 
 
 def import_database(
-    session: Session,
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -39,7 +36,7 @@ def import_database(
         "can_write",
         "Database",
     )
-    existing = session.query(Database).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
             return existing
@@ -67,12 +64,12 @@ def import_database(
     # Before it gets removed in import_from_dict
     ssh_tunnel = config.pop("ssh_tunnel", None)
 
-    database = Database.import_from_dict(session, config, recursive=False)
+    database = Database.import_from_dict(config, recursive=False)
     if database.id is None:
-        session.flush()
+        db.session.flush()
 
     if ssh_tunnel:
         ssh_tunnel["database_id"] = database.id
-        SSHTunnel.import_from_dict(session, ssh_tunnel, recursive=False)
+        SSHTunnel.import_from_dict(ssh_tunnel, recursive=False)
 
     return database

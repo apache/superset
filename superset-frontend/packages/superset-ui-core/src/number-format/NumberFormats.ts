@@ -35,20 +35,20 @@ const FLOAT_SIGNED = FLOAT_SIGNED_2_POINT;
 const INTEGER = ',d';
 const INTEGER_SIGNED = '+,d';
 
+const PERCENT = ',.0%';
 const PERCENT_1_POINT = ',.1%';
 const PERCENT_2_POINT = ',.2%';
 const PERCENT_3_POINT = ',.3%';
-const PERCENT = PERCENT_2_POINT;
 
+const PERCENT_SIGNED = '+,.0%';
 const PERCENT_SIGNED_1_POINT = '+,.1%';
 const PERCENT_SIGNED_2_POINT = '+,.2%';
 const PERCENT_SIGNED_3_POINT = '+,.3%';
-const PERCENT_SIGNED = PERCENT_SIGNED_2_POINT;
 
+const SI = '.0s';
 const SI_1_DIGIT = '.1s';
 const SI_2_DIGIT = '.2s';
 const SI_3_DIGIT = '.3s';
-const SI = SI_3_DIGIT;
 
 const SMART_NUMBER = 'SMART_NUMBER';
 const SMART_NUMBER_SIGNED = 'SMART_NUMBER_SIGNED';

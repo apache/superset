@@ -434,8 +434,6 @@ class TestSqlLab(SupersetTestCase):
         Test query api with can_access_all_queries perm added to
         gamma and make sure all queries show up.
         """
-        session = db.session
-
         # Add all_query_access perm to Gamma user
         all_queries_view = security_manager.find_permission_view_menu(
             "all_query_access", "all_query_access"
@@ -444,7 +442,7 @@ class TestSqlLab(SupersetTestCase):
         security_manager.add_permission_role(
             security_manager.find_role("gamma_sqllab"), all_queries_view
         )
-        session.commit()
+        db.session.commit()
 
         # Test search_queries for Admin user
         self.run_some_queries()
@@ -461,7 +459,7 @@ class TestSqlLab(SupersetTestCase):
             security_manager.find_role("gamma_sqllab"), all_queries_view
         )
 
-        session.commit()
+        db.session.commit()
 
     def test_query_admin_can_access_all_queries(self) -> None:
         """

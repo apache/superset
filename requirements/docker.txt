@@ -10,7 +10,7 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/docker.in
-gevent==22.10.2
+gevent==23.9.1
     # via -r requirements/docker.in
 psycopg2-binary==2.9.6
     # via apache-superset

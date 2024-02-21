@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { createRef, useMemo } from 'react';
-import { css, styled, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/chart-controls';
 import {
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
@@ -57,6 +58,7 @@ export default function PopKPI(props: PopKPIProps) {
     subheaderFontSize,
     comparisonColorEnabled,
     percentDifferenceNumber,
+    comparatorText,
   } = props;
 
   const rootElem = createRef<HTMLDivElement>();
@@ -117,9 +119,21 @@ export default function PopKPI(props: PopKPIProps) {
 
   const SYMBOLS_WITH_VALUES = useMemo(
     () => [
-      ['#', prevNumber],
-      ['△', valueDifference],
-      ['%', percentDifferenceFormattedString],
+      {
+        symbol: '#',
+        value: prevNumber,
+        tooltipText: t('Data for %s', comparatorText),
+      },
+      {
+        symbol: '△',
+        value: valueDifference,
+        tooltipText: t('Value difference between the time periods'),
+      },
+      {
+        symbol: '%',
+        value: percentDifferenceFormattedString,
+        tooltipText: t('Percentage difference between the time periods'),
+      },
     ],
     [prevNumber, valueDifference, percentDifferenceFormattedString],
   );
@@ -147,18 +161,24 @@ export default function PopKPI(props: PopKPIProps) {
         >
           {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
             <ComparisonValue
-              key={`comparison-symbol-${symbol_with_value[0]}`}
+              key={`comparison-symbol-${symbol_with_value.symbol}`}
               subheaderFontSize={subheaderFontSize}
             >
-              <SymbolWrapper
-                backgroundColor={
-                  index > 0 ? backgroundColor : defaultBackgroundColor
-                }
-                textColor={index > 0 ? textColor : defaultTextColor}
+              <Tooltip
+                id="tooltip"
+                placement="top"
+                title={symbol_with_value.tooltipText}
               >
-                {symbol_with_value[0]}
-              </SymbolWrapper>
-              {symbol_with_value[1]}
+                <SymbolWrapper
+                  backgroundColor={
+                    index > 0 ? backgroundColor : defaultBackgroundColor
+                  }
+                  textColor={index > 0 ? textColor : defaultTextColor}
+                >
+                  {symbol_with_value.symbol}
+                </SymbolWrapper>
+                {symbol_with_value.value}
+              </Tooltip>
             </ComparisonValue>
           ))}
         </div>

@@ -25,11 +25,11 @@ def test_create_ssh_tunnel():
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
     result = SSHTunnelDAO.create(
         attributes={
-            "database_id": db.id,
+            "database_id": database.id,
             "server_address": "123.132.123.1",
             "server_port": "3005",
             "username": "foo",

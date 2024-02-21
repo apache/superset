@@ -453,7 +453,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         Chart API: Test create chart
         """
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        dashboards_ids = get_dashboards_ids(["world_health", "births"])
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -1736,7 +1736,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self, slice_name):
         self.login()
-        slc = self.get_slice(slice_name, db.session)
+        slc = self.get_slice(slice_name)
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1815,7 +1815,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(ChartDataCommand, "run") as mock_run:
             mock_run.side_effect = ChartDataQueryFailedError(
@@ -1843,7 +1843,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_query_context(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
             mock_get_query_context.return_value = None
@@ -1866,7 +1866,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
 
         with mock.patch.object(
             Slice,

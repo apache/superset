@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
+from deprecation import deprecated
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -48,7 +49,6 @@ from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
-    SSHTunnelNotFoundError,
 )
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
@@ -1447,6 +1447,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
     @protect()
     @statsd_metrics
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".delete_ssh_tunnel",
@@ -1483,10 +1484,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
         try:
-            DeleteSSHTunnelCommand(pk).run()
-            return self.response(200, message="OK")
-        except SSHTunnelNotFoundError:
+            existing_ssh_tunnel_model = database.ssh_tunnels
+            if existing_ssh_tunnel_model:
+                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
+                return self.response(200, message="OK")
             return self.response_404()
         except SSHTunnelDeleteFailedError as ex:
             logger.error(

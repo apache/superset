@@ -19,9 +19,7 @@ import json
 import logging
 from typing import Any
 
-from sqlalchemy.orm import Session
-
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
 from superset.utils.core import get_user
@@ -146,7 +144,6 @@ def update_id_refs(  # pylint: disable=too-many-locals
 
 
 def import_dashboard(
-    session: Session,
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -155,7 +152,7 @@ def import_dashboard(
         "can_write",
         "Dashboard",
     )
-    existing = session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
     if existing:
         if overwrite and can_write and get_user():
             if not security_manager.can_access_dashboard(existing):
@@ -187,9 +184,9 @@ def import_dashboard(
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, value)
 
-    dashboard = Dashboard.import_from_dict(session, config, recursive=False)
+    dashboard = Dashboard.import_from_dict(config, recursive=False)
     if dashboard.id is None:
-        session.flush()
+        db.session.flush()
 
     if user := get_user():
         dashboard.owners.append(user)

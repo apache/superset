@@ -61,14 +61,6 @@ export const Basic = ({
   );
 };
 
-Basic.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 Basic.args = {
   items: [
     {

@@ -96,13 +96,8 @@ AsyncAceEditor.argTypes = {
   },
 };
 
-AsyncAceEditor.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+AsyncAceEditor.parameters = {
+  actions: {
+    disable: true,
   },
 };
