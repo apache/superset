@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisonTimeRangeType, t, validateTimeComparisonRangeValues } from '@superset-ui/core';
+import {
+  ComparisonTimeRangeType,
+  t,
+  validateTimeComparisonRangeValues,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelState,
