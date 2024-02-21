@@ -65,7 +65,7 @@ interface NotificationMethodProps {
 }
 
 const TRANSLATIONS = {
-  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
+  EMAIL_SUBJECT_NAME: t('Email subject name'),
 };
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -81,6 +81,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [emailSubject, setEmailSubject] = useState(email_subject || _default);
   const theme = useTheme();
 
   if (!setting) {
@@ -121,8 +122,19 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onSubjectChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
+    const { target } = event;
+    setEmailSubject(target.value);
+
     if (onInputChange) {
       onInputChange(event);
+    }
+
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        email_subject: target.value,
+      };
+      onUpdate(index, updatedSetting);
     }
   };
 
@@ -165,16 +177,22 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       </div>
       {method !== undefined ? (
         <StyledInputContainer>
-          <div className="control-label">{TRANSLATIONS.EMAIL_SUBJECT_NAME}</div>
-          <div className="input-container">
-            <input
-              type="text"
-              name="email_subject"
-              value={email_subject}
-              placeholder={`Default: ${_default}`}
-              onChange={onSubjectChange}
-            />
-          </div>
+          {method === 'Email' ? (
+            <>
+              <div className="control-label">
+                {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <input
+                  type="text"
+                  name="email_subject"
+                  value={emailSubject}
+                  onChange={onSubjectChange}
+                />
+              </div>{' '}
+            </>
+          ) : null}
           <div className="control-label">
             {t('%s recipients', method)}
             <span className="required">*</span>

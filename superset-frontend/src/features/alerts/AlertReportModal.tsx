@@ -393,6 +393,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
 type NotificationSetting = {
   method?: NotificationMethodOption;
+  email_subject?: string;
   recipients: string;
   options: NotificationMethodOption[];
 };
@@ -980,7 +981,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     notificationSettings.forEach(setting => {
       if (!!setting.method && setting.recipients?.length) {
-        hasInfo = true;
+        hasInfo =
+          setting.method === 'Email' ? !!setting.email_subject?.length : true;
       }
     });
 
@@ -1100,6 +1102,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([
         {
           recipients: '',
+          email_subject: '',
           options: allowedNotificationMethods,
           method: 'Email',
         },
@@ -1121,6 +1124,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
+          email_subject: resource.email_subject,
         };
       });
 
@@ -1188,7 +1192,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Validation
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
-    validate();
+    validateAll();
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
