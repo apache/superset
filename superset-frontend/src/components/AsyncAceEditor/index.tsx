@@ -24,11 +24,15 @@ import {
   TextMode as OrigTextMode,
 } from 'brace';
 import AceEditor, { IAceEditorProps } from 'react-ace';
+import { config } from 'ace-builds';
 import { acequire } from 'ace-builds/src-noconflict/ace';
 import AsyncEsmComponent, {
   PlaceholderProps,
 } from 'src/components/AsyncEsmComponent';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import cssWorkerUrl from 'ace-builds/src-noconflict/worker-css';
+
+config.setModuleUrl('ace/mode/css_worker', cssWorkerUrl);
 
 export interface AceCompleterKeywordData {
   name: string;

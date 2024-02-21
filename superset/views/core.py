@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,too-many-lines
 from __future__ import annotations
 
 import contextlib
@@ -46,8 +46,8 @@ from superset import (
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
-from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.explore.form_data.create import CreateFormDataCommand
