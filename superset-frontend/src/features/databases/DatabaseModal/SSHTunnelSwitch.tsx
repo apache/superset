@@ -33,28 +33,22 @@ const SSHTunnelSwitch = ({
   const [isChecked, setChecked] = useState(false);
 
   const handleOnChange = (changed: boolean) => {
-    if (changed !== isChecked) {
-      setChecked(changed);
-      changeMethods.onParametersChange({
-        target: {
-          type: 'toggle',
-          name: 'ssh',
-          checked: true,
-          value: changed,
-        },
-      });
-    }
+    setChecked(changed);
+    changeMethods.onParametersChange({
+      target: {
+        type: 'toggle',
+        name: 'ssh',
+        checked: true,
+        value: changed,
+      },
+    });
   };
 
   useEffect(() => {
-    if (
-      isSSHTunnelEnabled &&
-      db?.parameters?.ssh !== undefined &&
-      db.parameters.ssh !== isChecked
-    ) {
+    if (isSSHTunnelEnabled && db?.parameters?.ssh !== undefined) {
       setChecked(db.parameters.ssh);
     }
-  }, [db?.parameters?.ssh, isChecked, isSSHTunnelEnabled]);
+  }, [db?.parameters?.ssh, isSSHTunnelEnabled]);
 
   useEffect(() => {
     if (
