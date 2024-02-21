@@ -23,7 +23,10 @@ import { css, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import {
+  Draggable,
+  Droppable,
+} from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import IconButton from 'src/dashboard/components/IconButton';
@@ -33,6 +36,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -60,13 +64,13 @@ const propTypes = {
 const defaultProps = {};
 
 const ColumnStyles = styled.div`
-  ${({ theme }) => css`
+  ${({ theme, editMode }) => css`
     &.grid-column {
       width: 100%;
       position: relative;
 
       & > :not(.hover-menu):not(:last-child) {
-        margin-bottom: ${theme.gridUnit * 4}px;
+        ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px;`}
       }
     }
 
@@ -85,6 +89,25 @@ const ColumnStyles = styled.div`
     .dashboard--editing .hover-menu:hover + &:after {
       border: 1px dashed ${theme.colors.primary.base};
       z-index: 2;
+    }
+
+    & .empty-droptarget {
+      &.droptarget-edge {
+        position: absolute;
+        z-index: ${EMPTY_CONTAINER_Z_INDEX};
+        &:first-child {
+          inset-block-start: 0;
+        }
+        &:last-child {
+          inset-block-end: 0;
+        }
+      }
+      &:first-child:not(.droptarget-edge) {
+        position: absolute;
+        z-index: ${EMPTY_CONTAINER_Z_INDEX};
+        width: 100%;
+        height: 100%;
+      }
     }
   `}
 `;
@@ -163,7 +186,7 @@ class Column extends React.PureComponent {
     );
 
     return (
-      <DragDroppable
+      <Draggable
         component={columnComponent}
         parentComponent={parentComponent}
         orientation="column"
@@ -172,7 +195,7 @@ class Column extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <ResizableContainer
             id={columnComponent.id}
             adjustableWidth
@@ -215,34 +238,85 @@ class Column extends React.PureComponent {
               )}
               <ColumnStyles
                 className={cx('grid-column', backgroundStyle.className)}
+                editMode={editMode}
               >
+                {editMode && (
+                  <Droppable
+                    component={columnComponent}
+                    parentComponent={parentComponent}
+                    {...(columnItems.length === 0
+                      ? {
+                          component: columnComponent,
+                          parentComponent,
+                          dropToChild: true,
+                        }
+                      : {
+                          component: columnItems,
+                          parentComponent: columnComponent,
+                        })}
+                    depth={depth + 1}
+                    index={0}
+                    orientation="column"
+                    onDrop={handleComponentDrop}
+                    className={cx(
+                      'empty-droptarget',
+                      columnItems.length > 0 && 'droptarget-edge',
+                    )}
+                    editMode
+                  >
+                    {({ dropIndicatorProps }) =>
+                      dropIndicatorProps && <div {...dropIndicatorProps} />
+                    }
+                  </Droppable>
+                )}
                 {columnItems.length === 0 ? (
                   <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
                 ) : (
                   columnItems.map((componentId, itemIndex) => (
-                    <DashboardComponent
-                      key={componentId}
-                      id={componentId}
-                      parentId={columnComponent.id}
-                      depth={depth + 1}
-                      index={itemIndex}
-                      availableColumnCount={columnComponent.meta.width}
-                      columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
-                      isComponentVisible={isComponentVisible}
-                      onChangeTab={onChangeTab}
-                    />
+                    <React.Fragment key={componentId}>
+                      <DashboardComponent
+                        id={componentId}
+                        parentId={columnComponent.id}
+                        depth={depth + 1}
+                        index={itemIndex}
+                        availableColumnCount={columnComponent.meta.width}
+                        columnWidth={columnWidth}
+                        onResizeStart={onResizeStart}
+                        onResize={onResize}
+                        onResizeStop={onResizeStop}
+                        isComponentVisible={isComponentVisible}
+                        onChangeTab={onChangeTab}
+                      />
+                      {editMode && (
+                        <Droppable
+                          component={columnItems}
+                          parentComponent={columnComponent}
+                          depth={depth + 1}
+                          index={itemIndex + 1}
+                          orientation="column"
+                          onDrop={handleComponentDrop}
+                          className={cx(
+                            'empty-droptarget',
+                            itemIndex === columnItems.length - 1 &&
+                              'droptarget-edge',
+                          )}
+                          editMode
+                        >
+                          {({ dropIndicatorProps }) =>
+                            dropIndicatorProps && (
+                              <div {...dropIndicatorProps} />
+                            )
+                          }
+                        </Droppable>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
-
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ColumnStyles>
             </WithPopoverMenu>
           </ResizableContainer>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }
