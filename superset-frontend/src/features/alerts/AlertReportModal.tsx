@@ -1686,24 +1686,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
           key="notification"
         >
-          {notificationSettings.map((notificationSetting, i) => {
-            return (
-              <StyledNotificationMethodWrapper
-                key={`NotificationMethodWrapper-${i}`}
-              >
-                <NotificationMethod
-                  setting={notificationSetting}
-                  index={i}
-                  key={`NotificationMethod-${i}`}
-                  onUpdate={updateNotificationSetting}
-                  onRemove={removeNotificationSetting}
-                  onInputChange={onInputChange}
-                  email_subject={currentAlert?.email_subject || ''}
-                  defaultSubject={emailSubject || ''}
-                />
-              </StyledNotificationMethodWrapper>
-            );
-          })}
+          {notificationSettings.map((notificationSetting, i) => (
+            <StyledNotificationMethodWrapper
+              key={`NotificationMethodWrapper-${i}`}
+            >
+              <NotificationMethod
+                setting={notificationSetting}
+                index={i}
+                key={`NotificationMethod-${i}`}
+                onUpdate={updateNotificationSetting}
+                onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
+              />
+            </StyledNotificationMethodWrapper>
+          ))}
           {
             // Prohibit 'add notification method' button if only one present
             allowedNotificationMethods.length > notificationSettings.length && (
