@@ -85,7 +85,7 @@ class UpdateDatabaseCommand(BaseCommand):
                     db.session.rollback()
                     raise SSHTunnelingNotEnabledError()
 
-                if not self._properties.get("ssh_tunnel") and ssh_tunnel:
+                if self._properties.get("ssh_tunnel") is None and ssh_tunnel:
                     # We need to remove the existing tunnel
                     try:
                         DeleteSSHTunnelCommand(ssh_tunnel.id).run()

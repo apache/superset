@@ -36,7 +36,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
 )
-from superset.daos.database import DatabaseDAO
+from superset.daos.database import DatabaseDAO, SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -47,6 +47,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             # Generate tunnel if present in the properties
             if ssh_tunnel:
+                # unmask password while allowing for updated values
+                if ssh_tunnel_id := ssh_tunnel.pop("id", None):
+                    if existing_ssh_tunnel := SSHTunnelDAO.find_by_id(ssh_tunnel_id):
+                        ssh_tunnel = unmask_password_info(
+                            ssh_tunnel, existing_ssh_tunnel
+                        )
                 ssh_tunnel = SSHTunnel(**ssh_tunnel)
 
             event_logger.log_with_context(
