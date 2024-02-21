@@ -86,7 +86,7 @@ function WorldMap(element, props) {
 
   let processedData;
   let colorScale;
-  if (colorBy === ColorBy.country) {
+  if (colorBy === ColorBy.Country) {
     colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
     processedData = filteredData.map(d => ({

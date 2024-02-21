@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
+from deprecation import deprecated
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -48,7 +49,6 @@ from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
-    SSHTunnelNotFoundError,
 )
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
@@ -111,6 +111,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
+        RouteMethod.RELATED,
         "tables",
         "table_metadata",
         "table_extra_metadata",
@@ -162,6 +163,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "backend",
         "changed_on",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
         "database_name",
@@ -194,7 +197,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
+    search_columns = [
+        "allow_file_upload",
+        "allow_dml",
+        "allow_run_async",
+        "created_by",
+        "changed_by",
+        "database_name",
+        "expose_in_sqllab",
+        "uuid",
+    ]
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
+    allowed_rel_fields = {"changed_by", "created_by"}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
@@ -1433,6 +1447,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
     @protect()
     @statsd_metrics
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".delete_ssh_tunnel",
@@ -1469,10 +1484,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
         try:
-            DeleteSSHTunnelCommand(pk).run()
-            return self.response(200, message="OK")
-        except SSHTunnelNotFoundError:
+            existing_ssh_tunnel_model = database.ssh_tunnels
+            if existing_ssh_tunnel_model:
+                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
+                return self.response(200, message="OK")
             return self.response_404()
         except SSHTunnelDeleteFailedError as ex:
             logger.error(

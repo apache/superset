@@ -112,7 +112,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   const dateFormatters = colnames
     .filter(
       (colname: string, index: number) =>
-        coltypes[index] === GenericDataType.TEMPORAL,
+        coltypes[index] === GenericDataType.Temporal,
     )
     .reduce(
       (

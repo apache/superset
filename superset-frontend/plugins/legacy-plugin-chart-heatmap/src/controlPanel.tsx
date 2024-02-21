@@ -17,18 +17,10 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
-import {
-  columnChoices,
   ControlPanelConfig,
-  ControlPanelState,
   formatSelectOptionsForRange,
-  sections,
   sharedControls,
   getStandardizedControls,
   D3_TIME_FORMAT_DOCS,
@@ -41,28 +33,13 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
-const allColumns = {
-  type: 'SelectControl',
-  default: null,
-  description: t('Columns to display'),
-  mapStateToProps: (state: ControlPanelState) => ({
-    choices: columnChoices(state.datasource),
-  }),
-  validators: [validateNonEmpty],
-};
-
 const dndAllColumns = {
   ...sharedControls.entity,
   description: t('Columns to display'),
 };
 
-const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndAllColumns
-  : allColumns;
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -71,7 +48,7 @@ const config: ControlPanelConfig = {
           {
             name: 'all_columns_x',
             config: {
-              ...columnsConfig,
+              ...dndAllColumns,
               label: t('X Axis'),
             },
           },
@@ -80,7 +57,7 @@ const config: ControlPanelConfig = {
           {
             name: 'all_columns_y',
             config: {
-              ...columnsConfig,
+              ...dndAllColumns,
               label: t('Y Axis'),
             },
           },

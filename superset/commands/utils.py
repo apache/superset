@@ -29,7 +29,6 @@ from superset.commands.exceptions import (
 )
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.extensions import db
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
@@ -80,7 +79,7 @@ def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
     try:
         return DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), datasource_id
+            DatasourceType(datasource_type), datasource_id
         )
     except DatasourceNotFound as ex:
         raise DatasourceNotFoundValidationError() from ex

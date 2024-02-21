@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import getToastsFromPyFlashMessages from 'src/components/MessageToasts/getToastsFromPyFlashMessages';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
 import {
@@ -65,6 +64,7 @@ export default function getInitialState({
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     hideLeftBar: false,
     remoteId: null,
+    cursorPosition: { row: 0, column: 0 },
   };
   let unsavedQueryEditor: UnsavedQueryEditor = {};
 
@@ -76,7 +76,7 @@ export default function getInitialState({
     let queryEditor: QueryEditor;
     if (activeTab && activeTab.id === id) {
       queryEditor = {
-        version: activeTab.extra_json?.version ?? QueryEditorVersion.v1,
+        version: activeTab.extra_json?.version ?? QueryEditorVersion.V1,
         id: id.toString(),
         loaded: true,
         name: activeTab.label,
@@ -244,9 +244,6 @@ export default function getInitialState({
       queryCostEstimates: {},
       unsavedQueryEditor,
     },
-    messageToasts: getToastsFromPyFlashMessages(
-      (common || {})?.flash_messages || [],
-    ),
     localStorageUsageInKilobytes: 0,
     common,
     ...otherBootstrapData,

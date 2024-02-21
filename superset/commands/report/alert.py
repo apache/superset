@@ -96,17 +96,19 @@ class AlertCommand(BaseCommand):
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    f"Alert query returned more than one row. {len(rows)} rows returned"
+                    "Alert query returned more than one row. %(num_rows)s rows returned"
                 )
+                % {"num_rows": len(rows)}
             )
         # check if query returned more than one column
         if len(rows[0]) > 2:
             raise AlertQueryMultipleColumnsError(
                 # len is subtracted by 1 to discard pandas index column
                 _(
-                    f"Alert query returned more than one column. "
-                    f"{(len(rows[0]) - 1)} columns returned"
+                    "Alert query returned more than one column. "
+                    "%(num_columns)s columns returned"
                 )
+                % {"num_columns": len(rows[0]) - 1}
             )
 
     def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
@@ -150,7 +152,7 @@ class AlertCommand(BaseCommand):
                 rendered_sql, ALERT_SQL_LIMIT
             )
 
-            _, username = get_executor(
+            executor, username = get_executor(  # pylint: disable=unused-variable
                 executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
                 model=self._report_schedule,
             )
@@ -169,7 +171,12 @@ class AlertCommand(BaseCommand):
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
-            raise AlertQueryError(message=str(ex)) from ex
+            logger.exception("An error occurred when running alert query")
+            # The exception message here can reveal to much information to malicious
+            # users, so we raise a generic message.
+            raise AlertQueryError(
+                message=_("An error occurred when running alert query")
+            ) from ex
 
     def validate(self) -> None:
         """

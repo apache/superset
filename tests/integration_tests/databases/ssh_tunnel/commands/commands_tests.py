@@ -30,23 +30,6 @@ from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
-class TestCreateSSHTunnelCommand(SupersetTestCase):
-    @mock.patch("superset.utils.core.g")
-    def test_create_invalid_database_id(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
-        command = CreateSSHTunnelCommand(
-            None,
-            {
-                "server_address": "127.0.0.1",
-                "server_port": 5432,
-                "username": "test_user",
-            },
-        )
-        with pytest.raises(SSHTunnelInvalidError) as excinfo:
-            command.run()
-        assert str(excinfo.value) == ("SSH Tunnel parameters are invalid.")
-
-
 class TestUpdateSSHTunnelCommand(SupersetTestCase):
     @mock.patch("superset.utils.core.g")
     def test_update_ssh_tunnel_not_found(self, mock_g):

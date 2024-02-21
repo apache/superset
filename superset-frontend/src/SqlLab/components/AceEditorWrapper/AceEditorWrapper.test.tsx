@@ -29,9 +29,6 @@ import { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('src/components/DeprecatedSelect', () => () => (
-  <div data-test="mock-deprecated-select" />
-));
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
@@ -54,6 +51,7 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete
+      onCursorPositionChange={jest.fn()}
     />,
     {
       useRedux: true,

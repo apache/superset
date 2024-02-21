@@ -90,21 +90,13 @@ if TYPE_CHECKING:
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
-class Url(Model, AuditMixinNullable):
-    """Used for the short url feature"""
-
-    __tablename__ = "url"
-    id = Column(Integer, primary_key=True)
-    url = Column(Text)
-
-
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
 
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
     id = Column(Integer, primary_key=True)
-    value = Column(Text, nullable=False)
+    value = Column(utils.MediumText(), nullable=False)
 
 
 class CssTemplate(Model, AuditMixinNullable):
@@ -113,7 +105,7 @@ class CssTemplate(Model, AuditMixinNullable):
     __tablename__ = "css_templates"
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
-    css = Column(Text, default="")
+    css = Column(utils.MediumText(), default="")
 
 
 class ConfigurationMethod(StrEnum):

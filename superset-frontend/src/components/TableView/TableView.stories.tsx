@@ -100,11 +100,3 @@ InteractiveTableView.argTypes = {
     },
   },
 };
-
-InteractiveTableView.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

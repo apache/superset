@@ -182,8 +182,21 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+        if isinstance(sqla_type, Date):
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if isinstance(sqla_type, DateTime):
+            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
+        return None
+
+
+class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
     supports_dynamic_schema = True
@@ -356,19 +369,6 @@ WHERE datistemplate = false;
         return set(inspector.get_table_names(schema)) | set(
             inspector.get_foreign_table_names(schema)
         )
-
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
-    ) -> str | None:
-        sqla_type = cls.get_sqla_column_type(target_type)
-
-        if isinstance(sqla_type, Date):
-            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if isinstance(sqla_type, DateTime):
-            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
-            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
-        return None
 
     @staticmethod
     def get_extra_params(database: Database) -> dict[str, Any]:

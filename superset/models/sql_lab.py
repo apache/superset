@@ -55,7 +55,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.utils.core import get_column_name, QueryStatus, user_label
+from superset.utils.core import get_column_name, MediumText, QueryStatus, user_label
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 
 
 class Query(
-    Model, ExtraJSONMixin, ExploreMixin
+    ExtraJSONMixin, ExploreMixin, Model
 ):  # pylint: disable=abstract-method,too-many-public-methods
     """ORM model for SQL query
 
@@ -88,11 +88,11 @@ class Query(
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
-    sql = Column(Text)
+    sql = Column(MediumText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
-    select_sql = Column(Text)
-    executed_sql = Column(Text)
+    select_sql = Column(MediumText())
+    executed_sql = Column(MediumText())
     # Could be configured in the superset config.
     limit = Column(Integer)
     limiting_factor = Column(
@@ -183,7 +183,7 @@ class Query(
 
     @property
     def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
+        return list(ParsedQuery(self.sql, engine=self.db_engine_spec.engine).tables)
 
     @property
     def columns(self) -> list["TableColumn"]:
@@ -355,7 +355,7 @@ class Query(
         return self.make_sqla_column_compatible(sqla_column, label)
 
 
-class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
@@ -365,7 +365,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     schema = Column(String(128))
     label = Column(String(256))
     description = Column(Text)
-    sql = Column(Text)
+    sql = Column(MediumText())
     template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
@@ -427,7 +427,9 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def sql_tables(self) -> list[Table]:
-        return list(ParsedQuery(self.sql).tables)
+        return list(
+            ParsedQuery(self.sql, engine=self.database.db_engine_spec.engine).tables
+        )
 
     @property
     def last_run_humanized(self) -> str:
@@ -442,7 +444,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         return self._last_run_delta_humanized
 
 
-class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
+class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "tab_state"
 
     # basic info
@@ -465,7 +467,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
     )
 
     # the query in the textarea, and results (if any)
-    sql = Column(Text)
+    sql = Column(MediumText())
     query_limit = Column(Integer)
 
     # latest query that was run
@@ -505,7 +507,7 @@ class TabState(Model, AuditMixinNullable, ExtraJSONMixin):
         }
 
 
-class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
+class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "table_schema"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

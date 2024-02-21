@@ -73,7 +73,7 @@ export default function SqlLab() {
       >
         <SqlLabGlobalStyles />
         <App />
-        {isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE) && (
+        {isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) && (
           <EditorAutoSync />
         )}
       </div>

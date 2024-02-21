@@ -41,7 +41,7 @@ export type DatabaseObject = {
   backend?: string;
   changed_on?: string;
   changed_on_delta_humanized?: string;
-  configuration_method: CONFIGURATION_METHOD;
+  configuration_method: ConfigurationMethod;
   created_by?: null | DatabaseUser;
   database_name: string;
   driver: string;
@@ -199,9 +199,9 @@ export type DatabaseForm = {
 
 // the values should align with the database
 // model enum in superset/superset/models/core.py
-export enum CONFIGURATION_METHOD {
-  SQLALCHEMY_URI = 'sqlalchemy_form',
-  DYNAMIC_FORM = 'dynamic_form',
+export enum ConfigurationMethod {
+  SqlalchemyUri = 'sqlalchemy_form',
+  DynamicForm = 'dynamic_form',
 }
 
 export enum Engines {
