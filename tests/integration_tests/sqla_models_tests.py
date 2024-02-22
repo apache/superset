@@ -135,9 +135,7 @@ class TestDatabaseModel(SupersetTestCase):
     @patch("superset.jinja_context.get_user_id", return_value=1)
     @patch("superset.jinja_context.get_username", return_value="abc")
     @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
-    def test_extra_cache_keys(
-        self, mock_get_user_email, mock_get_username, mock_get_user_id
-    ):
+    def test_extra_cache_keys(self, mock_user_email, mock_username, mock_user_id):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
@@ -201,7 +199,7 @@ class TestDatabaseModel(SupersetTestCase):
         assert extra_cache_keys == ["abc"]
 
     @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_get_username):
+    def test_jinja_metrics_and_calc_columns(self, mock_username):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,

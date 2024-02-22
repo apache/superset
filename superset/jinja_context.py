@@ -22,7 +22,7 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
-from flask import current_app, g, has_request_context, request
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
