@@ -17,6 +17,5 @@
 # under the License.
 #
 -e file:.
-paramiko>=3.4.0
 urllib3>=1.26.18
 werkzeug>=3.0.1
