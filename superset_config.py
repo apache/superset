@@ -1,15 +1,17 @@
 from flask_appbuilder.security.manager import AUTH_OAUTH
 import os
 from dotenv import load_dotenv
-
 load_dotenv(verbose=True)
+
 SECRET_KEY = os.environ['SECRET_KEY']
-# Enable OAuth authentication
-AUTH_TYPE = AUTH_OAUTH
-LOGOUT_REDIRECT_URL=os.environ['LOGOUT_REDIRECT_URL']
+# LOGOUT_REDIRECT_URL=os.environ['LOGOUT_REDIRECT_URL']
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}
+ENABLE_JAVASCRIPT_CONTROLS = True
+
+#enable user auto registation as public user
 AUTH_USER_REGISTRATION = True
-AUTH_USER_REGISTRATION_ROLE = 'Gamma'
-# OAuth provider configuration for Keycloak
+AUTH_USER_REGISTRATION_ROLE = 'Public'
+AUTH_TYPE = AUTH_OAUTH
 OAUTH_PROVIDERS = [
     {
         'name': 'keycloak',

@@ -1,1 +1,12 @@
 # Developper Journal
+- 27/01/2024
+    - deployed superset to server using docker prod version.
+    - deployed Keyvloak to server using docker.
+- 03/02/2024
+    - added networking support for docker containers.
+    - added .env in docker prod folder.
+    - added superset_config_docker.py to configure superset in prod using docker.
+    - finished integrating Keycloak to superset.
+- 04/02/2024
+    - changed  the AUTH_USER_REGISTRATION_ROLE to admin.
+    - added embedding option to superset.
