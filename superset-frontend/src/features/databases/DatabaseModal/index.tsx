@@ -29,6 +29,7 @@ import React, {
   useState,
   useReducer,
   Reducer,
+  useCallback,
 } from 'react';
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -687,9 +688,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return false;
   };
 
-  const handleClearValidationErrors = () => {
-    setValidationErrors(null);
+  const onChange = (type: any, payload: any) => {
+    setDB({ type, payload } as DBReducerActionType);
   };
+
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+  }, [setValidationErrors]);
 
   const handleParametersChange = ({ target }: { target: HTMLInputElement }) => {
     onChange(ActionType.ParametersChange, {
@@ -742,10 +747,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setImportingErrorMessage(msg);
   });
 
-  const onChange = (type: any, payload: any) => {
-    setDB({ type, payload } as DBReducerActionType);
-  };
-
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
 
@@ -780,7 +781,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+      if (!isEmpty(validationErrors) || errors?.length) {
+        addDangerToast(t('Please verify invalid form fields'));
         setLoading(false);
         return;
       }
@@ -1299,9 +1301,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (isSSHTunnelEnabled && db?.parameters?.ssh !== undefined) {
       setUseSSHTunneling(db.parameters.ssh);
-      handleClearValidationErrors();
     }
-  }, [db?.parameters?.ssh, handleClearValidationErrors, isSSHTunnelEnabled]);
+  }, [db?.parameters?.ssh, isSSHTunnelEnabled]);
 
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
@@ -1566,13 +1567,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderSSHTunnelForm = () => (
     <SSHTunnelForm
       db={db as DatabaseObject}
-      onSSHTunnelParametersChange={({ target }) =>
+      onSSHTunnelParametersChange={({ target }) => {
         onChange(ActionType.ParametersSSHTunnelChange, {
           type: target.type,
           name: target.name,
           value: target.value,
-        })
-      }
+        });
+        handleClearValidationErrors();
+      }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
           type: ActionType.SetSSHTunnelLoginMethod,
@@ -1803,6 +1805,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     onParametersChange: handleParametersChange,
                   }}
                   isSSHTunnelEnabled={isSSHTunnelEnabled}
+                  clearValidationErrors={handleClearValidationErrors}
                 />
                 {useSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>

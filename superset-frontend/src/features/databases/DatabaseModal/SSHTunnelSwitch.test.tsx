@@ -55,6 +55,7 @@ test('Renders SSH Tunnel switch enabled by default and toggles its state', () =>
     <SSHTunnelSwitch
       isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
+      clearValidationErrors={jest.fn}
       db={defaultDb}
     />,
   );
@@ -72,6 +73,7 @@ test('Does not render if SSH Tunnel is disabled', () => {
     <SSHTunnelSwitch
       isSSHTunnelEnabled={false}
       changeMethods={mockChangeMethods}
+      clearValidationErrors={jest.fn}
       db={defaultDb}
     />,
   );
@@ -87,6 +89,7 @@ test('Checks the switch based on db.parameters.ssh', () => {
     <SSHTunnelSwitch
       isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
+      clearValidationErrors={jest.fn}
       db={dbWithSSHTunnelEnabled}
     />,
   );
@@ -102,6 +105,7 @@ test('Calls onParametersChange with true if SSH Tunnel info exists', () => {
     <SSHTunnelSwitch
       isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
+      clearValidationErrors={jest.fn}
       db={dbWithSSHTunnelInfo}
     />,
   );
@@ -116,6 +120,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
     <SSHTunnelSwitch
       isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
+      clearValidationErrors={jest.fn}
       db={defaultDb}
     />,
   );

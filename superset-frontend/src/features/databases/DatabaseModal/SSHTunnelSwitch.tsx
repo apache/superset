@@ -25,10 +25,11 @@ import { infoTooltip, toggleStyle } from './styles';
 import { SwitchProps } from '../types';
 
 const SSHTunnelSwitch = ({
-  // true by default for compatibility with dynamic forms
-  isSSHTunnelEnabled = true,
+  clearValidationErrors,
   changeMethods,
   db,
+  // true by default for compatibility with dynamic forms
+  isSSHTunnelEnabled = true,
 }: SwitchProps) => {
   const [isChecked, setChecked] = useState(false);
 
@@ -42,6 +43,7 @@ const SSHTunnelSwitch = ({
         value: changed,
       },
     });
+    clearValidationErrors();
   };
 
   useEffect(() => {

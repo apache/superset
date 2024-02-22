@@ -302,4 +302,5 @@ export type SwitchProps = {
   db: DatabaseObject;
   changeMethods: SwitchPropsChangeMethodsType;
   isSSHTunnelEnabled?: boolean;
+  clearValidationErrors: () => void;
 };
