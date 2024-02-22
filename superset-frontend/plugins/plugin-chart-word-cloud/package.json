@@ -33,7 +33,7 @@
     "@types/d3-scale": "^2.0.2",
     "d3-cloud": "^1.2.7",
     "d3-scale": "^3.0.1",
-    "encodable": "^0.7.8"
+    "encodable": "^1.0.0"
   },
   "peerDependencies": {
     "@types/react": "*",
