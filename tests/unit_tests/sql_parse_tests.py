@@ -863,9 +863,7 @@ def test_is_valid_ctas() -> None:
 
     A valid CTAS has a ``SELECT`` as its last statement.
     """
-    assert (
-        ParsedQuery("SELECT * FROM table", strip_comments=True).is_valid_ctas() is True
-    )
+    assert ParsedQuery("SELECT * FROM table").is_valid_ctas() is True
 
     assert (
         ParsedQuery(
@@ -874,7 +872,6 @@ def test_is_valid_ctas() -> None:
 SELECT * FROM table
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_ctas()
         is True
     )
@@ -887,7 +884,6 @@ SET @value = 42;
 SELECT @value as foo;
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_ctas()
         is True
     )
@@ -899,7 +895,6 @@ SELECT @value as foo;
 EXPLAIN SELECT * FROM table
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_ctas()
         is False
     )
@@ -910,7 +905,6 @@ EXPLAIN SELECT * FROM table
 SELECT * FROM table;
 INSERT INTO TABLE (foo) VALUES (42);
 """,
-            strip_comments=True,
         ).is_valid_ctas()
         is False
     )
@@ -922,9 +916,7 @@ def test_is_valid_cvas() -> None:
 
     A valid CVAS has a single ``SELECT`` statement.
     """
-    assert (
-        ParsedQuery("SELECT * FROM table", strip_comments=True).is_valid_cvas() is True
-    )
+    assert ParsedQuery("SELECT * FROM table").is_valid_cvas() is True
 
     assert (
         ParsedQuery(
@@ -933,7 +925,6 @@ def test_is_valid_cvas() -> None:
 SELECT * FROM table
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_cvas()
         is True
     )
@@ -946,7 +937,6 @@ SET @value = 42;
 SELECT @value as foo;
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_cvas()
         is False
     )
@@ -958,7 +948,6 @@ SELECT @value as foo;
 EXPLAIN SELECT * FROM table
 -- comment 2
 """,
-            strip_comments=True,
         ).is_valid_cvas()
         is False
     )
@@ -969,7 +958,6 @@ EXPLAIN SELECT * FROM table
 SELECT * FROM table;
 INSERT INTO TABLE (foo) VALUES (42);
 """,
-            strip_comments=True,
         ).is_valid_cvas()
         is False
     )

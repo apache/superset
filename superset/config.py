@@ -1564,7 +1564,7 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 #    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
 #        if (
 #            datasource.sql and
-#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#            len(sql_parse.ParsedQuery(datasource.sql).tables) == 1
 #        ):
 #            return (
 #                "This virtual dataset queries only one table and therefore could be "
@@ -1702,7 +1702,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

@@ -906,7 +906,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
         if mutate:
             sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -1071,6 +1070,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
+        logger.info(f"{__name__} - get_rendered_sql: Stripping comments from SQL")
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
