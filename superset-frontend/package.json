@@ -300,7 +300,7 @@
     "eslint-plugin-file-progress": "^1.2.0",
     "eslint-plugin-import": "^2.24.2",
     "eslint-plugin-jest": "^27.8.0",
-    "eslint-plugin-jest-dom": "^3.6.5",
+    "eslint-plugin-jest-dom": "^5.1.0",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-lodash": "^7.4.0",
     "eslint-plugin-no-only-tests": "^2.4.0",
