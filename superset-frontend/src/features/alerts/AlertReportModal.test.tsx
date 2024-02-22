@@ -142,6 +142,7 @@ const validAlert: AlertObject = {
   ],
   timezone: 'America/Rainy_River',
   type: 'Alert',
+  email_subject: 'Subject',
 };
 
 jest.mock('./buildErrorTooltipMessage', () => ({

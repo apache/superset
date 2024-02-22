@@ -91,7 +91,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     if (onUpdate) {
       const updatedSetting: NotificationSetting = {
         ...setting,
-        email_subject: defaultSubject,
+        email_subject: email_subject || defaultSubject,
         recipients: setting?.recipients ?? '',
         options: setting?.options ?? [],
       };
