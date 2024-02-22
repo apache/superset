@@ -25,6 +25,7 @@ import {
   getNumberFormatter,
   formatTimeRange,
 } from '@superset-ui/core';
+import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -142,7 +143,6 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    // and now your control data, manipulated as needed, and passed through as props!
     metric,
     metricName,
     bigNumber,
@@ -150,8 +150,8 @@ export default function transformProps(chartProps: ChartProps) {
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
-    headerFontSize,
-    subheaderFontSize,
+    headerFontSize: getHeaderFontSize(headerFontSize),
+    subheaderFontSize: getComparisonFontSize(subheaderFontSize),
     headerText,
     compType,
     comparisonColorEnabled,

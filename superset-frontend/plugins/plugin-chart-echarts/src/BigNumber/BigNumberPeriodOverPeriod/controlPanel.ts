@@ -28,6 +28,7 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -102,71 +103,13 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['y_axis_format'],
         ['currency_format'],
+        [headerFontSize],
         [
           {
-            name: 'header_font_size',
+            ...subheaderFontSize,
             config: {
-              type: 'SelectControl',
-              label: t('Big Number Font Size'),
-              renderTrigger: true,
-              clearable: false,
-              default: 60,
-              options: [
-                {
-                  label: t('Tiny'),
-                  value: 16,
-                },
-                {
-                  label: t('Small'),
-                  value: 20,
-                },
-                {
-                  label: t('Normal'),
-                  value: 30,
-                },
-                {
-                  label: t('Large'),
-                  value: 48,
-                },
-                {
-                  label: t('Huge'),
-                  value: 60,
-                },
-              ],
-            },
-          },
-        ],
-        [
-          {
-            name: 'subheader_font_size',
-            config: {
-              type: 'SelectControl',
-              label: t('Subheader Font Size'),
-              renderTrigger: true,
-              clearable: false,
-              default: 40,
-              options: [
-                {
-                  label: t('Tiny'),
-                  value: 16,
-                },
-                {
-                  label: t('Small'),
-                  value: 20,
-                },
-                {
-                  label: t('Normal'),
-                  value: 26,
-                },
-                {
-                  label: t('Large'),
-                  value: 32,
-                },
-                {
-                  label: t('Huge'),
-                  value: 40,
-                },
-              ],
+              ...subheaderFontSize.config,
+              label: t('Comparison font size'),
             },
           },
         ],
