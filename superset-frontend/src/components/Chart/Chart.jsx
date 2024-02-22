@@ -19,6 +19,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {
+  css,
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
@@ -232,16 +233,68 @@ class Chart extends React.PureComponent {
     );
   }
 
+  renderSpinner(chartStatus, databaseName) {
+    const messages = {
+      loading: t('Fetching data from %s', databaseName),
+      success: t('Rendering chart'),
+      rendered: t('Success'),
+    };
+
+    return (
+      <div
+        css={css`
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+        `}
+      >
+        <Loading position="inline-centered" />
+        <span
+          // eslint-disable-next-line theme-colors/no-literal-colors
+          css={css`
+            display: block;
+            margin: 16px auto;
+            width: fit-content;
+            color: #666666;
+          `}
+        >
+          {messages[chartStatus]}
+        </span>
+      </div>
+    );
+  }
+
+  renderChartContainer() {
+    return (
+      <div className="slice_container" data-test="slice-container">
+        {this.props.isInView ||
+        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+        isCurrentUserBot() ? (
+          <ChartRenderer
+            {...this.props}
+            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            data-test={this.props.vizType}
+          />
+        ) : (
+          <Loading />
+        )}
+      </div>
+    );
+  }
+
   render() {
     const {
       height,
       chartAlert,
       chartStatus,
+      datasource,
       errorMessage,
       chartIsStale,
       queriesResponse = [],
       width,
     } = this.props;
+    const databaseName = datasource?.database?.name;
 
     const isLoading = chartStatus === 'loading';
     this.renderContainerStartTime = Logger.getTimestamp();
@@ -297,20 +350,9 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          <div className="slice_container" data-test="slice-container">
-            {this.props.isInView ||
-            !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-            isCurrentUserBot() ? (
-              <ChartRenderer
-                {...this.props}
-                source={this.props.dashboardId ? 'dashboard' : 'explore'}
-                data-test={this.props.vizType}
-              />
-            ) : (
-              <Loading />
-            )}
-          </div>
-          {isLoading && <Loading />}
+          {isLoading
+            ? this.renderSpinner(chartStatus, databaseName)
+            : this.renderChartContainer()}
         </Styles>
       </ErrorBoundary>
     );
