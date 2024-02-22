@@ -210,7 +210,6 @@ class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
-      optionsFetch: this.asyncFetch.bind(this),
       valueOptions: {},
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
@@ -221,16 +220,20 @@ class AnnotationLayer extends React.PureComponent {
       this.handleAnnotationSourceType.bind(this);
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
+    this.asyncFetch = this.asyncFetch.bind(this);
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
+    this.shouldfetchAppliedChart = this.shouldfetchAppliedChart.bind(this);
   }
 
   componentDidMount() {
-    this.fetchAppliedChart();
+    if (this.shouldfetchAppliedChart()) {
+      const { value } = this.state;
+      this.fetchAppliedChart(value);
+    }
   }
 
-  componentDidUpdate() {
-    this.fetchAppliedChart();
-  }
+  // componentDidUpdate() {
+  // }
 
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
@@ -248,6 +251,11 @@ class AnnotationLayer extends React.PureComponent {
       sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
     }
     return sources;
+  }
+
+  shouldfetchAppliedChart() {
+    const { value, valueOptions, sourceType } = this.state;
+    return value && !valueOptions[value] && requiresQuery(sourceType);
   }
 
   isValidFormulaAnnotation(expression, annotationType) {
@@ -292,10 +300,6 @@ class AnnotationLayer extends React.PureComponent {
     });
   }
 
-  /*
-  To ensure re-rendering of the AsyncSelect annotation source component we
-  set optionsFetch here.
-  */
   handleAnnotationSourceType(sourceType) {
     const { sourceType: prevSourceType } = this.state;
 
@@ -304,14 +308,18 @@ class AnnotationLayer extends React.PureComponent {
         sourceType,
         value: null,
         valueOptions: {},
-        optionsFetch: this.asyncFetch.bind(this),
       });
     }
   }
 
   handleValue(value) {
+    /* Ensure value is string from textinput or integer from AsyncSelect value
+    object */
+    const { annotationType } = this.state;
+    const correctValue =
+      annotationType === ANNOTATION_TYPES.FORMULA ? value : value.value;
     this.setState({
-      value: value.value,
+      value: correctValue,
       descriptionColumns: [],
       intervalEndColumn: null,
       timeColumn: null,
@@ -419,51 +427,47 @@ class AnnotationLayer extends React.PureComponent {
     };
   };
 
-  fetchAppliedChart() {
-    const { value, valueOptions, sourceType } = this.state;
-    const id = value;
-    if (id && !valueOptions[id] && requiresQuery(sourceType)) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'id',
-            opr: 'eq',
-            value: id,
-          },
-        ],
-      });
-      SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${queryParams}`,
-      })
-        .then(({ json }) => {
-          const { result } = json;
-          console.log('chart:', result[0]);
-          const chart = result[0];
-          this.setState(prevState => ({
-            valueOptions: {
-              ...prevState.valueOptions,
-              [chart.id]: {
-                value: chart.id,
-                label: chart.slice_name,
-                slice: {
-                  ...chart,
-                  data: {
-                    ...chart.form_data,
-                    groupby: chart.form_data.groupby?.map(column =>
-                      getColumnLabel(column),
-                    ),
-                  },
+  fetchAppliedChart(id) {
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'id',
+          opr: 'eq',
+          value: id,
+        },
+      ],
+    });
+    SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${queryParams}`,
+    })
+      .then(({ json }) => {
+        const { result } = json;
+        console.log('chart:', result[0]);
+        const chart = result[0];
+        this.setState(prevState => ({
+          valueOptions: {
+            ...prevState.valueOptions,
+            [chart.id]: {
+              value: chart.id,
+              label: chart.slice_name,
+              slice: {
+                ...chart,
+                data: {
+                  ...chart.form_data,
+                  groupby: chart.form_data.groupby?.map(column =>
+                    getColumnLabel(column),
+                  ),
                 },
               },
             },
-          }));
-        })
-        .catch(error => {
-          console.error('Error fetching chart:', error);
-          // Handle error if necessary
-          return null;
-        });
-    }
+          },
+        }));
+      })
+      .catch(error => {
+        console.error('Error fetching chart:', error);
+        // Handle error if necessary
+        return null;
+      });
   }
 
   deleteAnnotation() {
@@ -568,11 +572,13 @@ class AnnotationLayer extends React.PureComponent {
       return (
         // <StyledSelectContainer>
         <AsyncSelect
+          // key to force re-render on sourceType change
+          key={sourceType}
           ariaLabel={t('Annotation layer value')}
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
           placeholder=""
-          options={this.state.optionsFetch}
+          options={this.asyncFetch}
           value={value}
           onChange={this.handleValue}
           // optionRender={this.renderOption}
