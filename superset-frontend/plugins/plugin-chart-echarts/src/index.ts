@@ -35,7 +35,7 @@ export { default as EchartsTreemapChartPlugin } from './Treemap';
 export {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
-  PopKPIPlugin,
+  BigNumberPeriodOverPeriodChartPlugin,
 } from './BigNumber';
 export { default as EchartsSunburstChartPlugin } from './Sunburst';
 export { default as EchartsBubbleChartPlugin } from './Bubble';

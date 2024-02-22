@@ -66,7 +66,7 @@ import {
   EchartsSunburstChartPlugin,
   EchartsBubbleChartPlugin,
   EchartsWaterfallChartPlugin,
-  PopKPIPlugin,
+  BigNumberPeriodOverPeriodChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -84,7 +84,11 @@ export default class MainPreset extends Preset {
     const experimentalPlugins = isFeatureEnabled(
       FeatureFlag.ChartPluginsExperimental,
     )
-      ? [new PopKPIPlugin().configure({ key: 'pop_kpi' })]
+      ? [
+          new BigNumberPeriodOverPeriodChartPlugin().configure({
+            key: 'pop_kpi',
+          }),
+        ]
       : [];
 
     super({
