@@ -16,5 +16,5 @@
 
 # Ortege specific packages
 apache-superset[databricks]
-Flask-Mail==0.9.1
 prophet==1.1.3
+postmarker==1.0
