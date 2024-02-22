@@ -19,4 +19,4 @@
 
 export { default as BigNumberChartPlugin } from './BigNumberWithTrendline';
 export { default as BigNumberTotalChartPlugin } from './BigNumberTotal';
-export { PopKPIPlugin } from './BigNumberPeriodOverPeriod';
+export { default as PopKPIPlugin } from './BigNumberPeriodOverPeriod';
