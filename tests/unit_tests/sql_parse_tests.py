@@ -271,6 +271,7 @@ def test_extract_tables_illdefined() -> None:
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
         Table(table="tbname", schema=None, catalog="catalogname")
     }
+    assert extract_tables('SELECT * FROM "tbname') == set()
 
 
 def test_extract_tables_show_tables_from() -> None:
@@ -558,6 +559,10 @@ def test_extract_tables_multistatement() -> None:
         Table("t1"),
         Table("t2"),
     }
+    assert extract_tables(
+        "ADD JAR file:///hive.jar; SELECT * FROM t1;",
+        engine="hive",
+    ) == {Table("t1")}
 
 
 def test_extract_tables_complex() -> None:
@@ -1815,10 +1820,7 @@ def test_extract_table_references(mocker: MockerFixture) -> None:
     # test falling back to sqlparse
     logger = mocker.patch("superset.sql_parse.logger")
     sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
-    assert extract_table_references(
-        sql,
-        "trino",
-    ) == {
+    assert extract_table_references(sql, "trino") == {
         Table(table="table", schema=None, catalog=None),
         Table(table="other_table", schema=None, catalog=None),
     }
