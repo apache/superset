@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chrome"]
-        node: [16]
+        node: [18]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
