@@ -109,22 +109,6 @@ const NotFoundContentWrapper = styled.div`
   }
 `;
 
-/* TODO remove if we don't use it
-const StyledSelectContainer = styled.div`
-  ${({ theme }) => `
-  .type-label {
-    margin-right: ${theme.gridUnit * 2}px;
-  }
-  .Select__multi-value__label > span,
-  .Select__option > span,
-  .Select__single-value > span {
-    display: flex;
-    align-items: center;
-  }
-`}
-`;
-*/
-
 const NotFoundContent = () => (
   <NotFoundContentWrapper>
     <EmptyStateSmall
@@ -218,7 +202,8 @@ class AnnotationLayer extends React.PureComponent {
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
     this.handleAnnotationSourceType =
       this.handleAnnotationSourceType.bind(this);
-    this.handleValue = this.handleValue.bind(this);
+    this.handleSelectValue = this.handleSelectValue.bind(this);
+    this.handleTextValue = this.handleTextValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
     this.asyncFetch = this.asyncFetch.bind(this);
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
@@ -231,9 +216,6 @@ class AnnotationLayer extends React.PureComponent {
       this.fetchAppliedChart(value);
     }
   }
-
-  // componentDidUpdate() {
-  // }
 
   getSupportedSourceTypes(annotationType) {
     // Get vis types that can be source.
@@ -254,6 +236,7 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   shouldfetchAppliedChart() {
+    // If the annotation is not new and the source is a chart
     const { value, valueOptions, sourceType } = this.state;
     return value && !valueOptions[value] && requiresQuery(sourceType);
   }
@@ -312,19 +295,20 @@ class AnnotationLayer extends React.PureComponent {
     }
   }
 
-  handleValue(value) {
-    /* Ensure value is string from textinput or integer from AsyncSelect value
-    object */
-    const { annotationType } = this.state;
-    const correctValue =
-      annotationType === ANNOTATION_TYPES.FORMULA ? value : value.value;
+  handleSelectValue(selectedValueObject) {
     this.setState({
-      value: correctValue,
+      value: selectedValueObject.value,
       descriptionColumns: [],
       intervalEndColumn: null,
       timeColumn: null,
       titleColumn: null,
       overrides: { time_range: null },
+    });
+  }
+
+  handleTextValue(inputValue) {
+    this.setState({
+      value: inputValue,
     });
   }
 
@@ -346,13 +330,13 @@ class AnnotationLayer extends React.PureComponent {
 
       const { result, count } = json;
 
-      const layersObj = {};
-      result.forEach(layer => {
-        layersObj[layer.id] = {
+      const layersObj = result.reduce((acc, layer) => {
+        acc[layer.id] = {
           value: layer.id,
           label: layer.name,
         };
-      });
+        return acc;
+      }, {});
 
       const layersArray = Object.values(layersObj);
 
@@ -439,35 +423,28 @@ class AnnotationLayer extends React.PureComponent {
     });
     SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        const { result } = json;
-        console.log('chart:', result[0]);
-        const chart = result[0];
-        this.setState(prevState => ({
-          valueOptions: {
-            ...prevState.valueOptions,
-            [chart.id]: {
-              value: chart.id,
-              label: chart.slice_name,
-              slice: {
-                ...chart,
-                data: {
-                  ...chart.form_data,
-                  groupby: chart.form_data.groupby?.map(column =>
-                    getColumnLabel(column),
-                  ),
-                },
+    }).then(({ json }) => {
+      const { result } = json;
+      const chart = result[0];
+      this.setState(prevState => ({
+        valueOptions: {
+          ...prevState.valueOptions,
+          [chart.id]: {
+            value: chart.id,
+            label: chart.slice_name,
+            slice: {
+              ...chart,
+              data: {
+                ...chart.form_data,
+                groupby: chart.form_data.groupby?.map(column =>
+                  getColumnLabel(column),
+                ),
               },
             },
           },
-        }));
-      })
-      .catch(error => {
-        console.error('Error fetching chart:', error);
-        // Handle error if necessary
-        return null;
-      });
+        },
+      }));
+    });
   }
 
   deleteAnnotation() {
@@ -517,22 +494,6 @@ class AnnotationLayer extends React.PureComponent {
     this.props.close();
   }
 
-  // TODO is this used?
-  renderOption(option) {
-    return (
-      <span
-        css={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-        title={option.label}
-      >
-        {option.label}
-      </span>
-    );
-  }
-
   renderChartHeader(label, description, value) {
     return (
       <ControlHeader
@@ -545,7 +506,7 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   renderValueConfiguration() {
-    const { annotationType, sourceType, value } = this.state;
+    const { annotationType, sourceType, value, valueOptions } = this.state;
     let label = '';
     let description = '';
     if (requiresQuery(sourceType)) {
@@ -570,21 +531,18 @@ class AnnotationLayer extends React.PureComponent {
     }
     if (requiresQuery(sourceType)) {
       return (
-        // <StyledSelectContainer>
         <AsyncSelect
-          // key to force re-render on sourceType change
+          /* key to force re-render on sourceType change */
           key={sourceType}
           ariaLabel={t('Annotation layer value')}
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
           placeholder=""
           options={this.asyncFetch}
-          value={value}
-          onChange={this.handleValue}
-          // optionRender={this.renderOption}
+          value={valueOptions[value] || null}
+          onChange={this.handleSelectValue}
           notFoundContent={<NotFoundContent />}
         />
-        // </StyledSelectContainer>
       );
     }
     if (annotationType === ANNOTATION_TYPES.FORMULA) {
@@ -597,7 +555,7 @@ class AnnotationLayer extends React.PureComponent {
           label={label}
           placeholder=""
           value={value}
-          onChange={this.handleValue}
+          onChange={this.handleTextValue}
           validationErrors={
             !this.isValidFormulaAnnotation(value, annotationType)
               ? [t('Bad formula.')]
