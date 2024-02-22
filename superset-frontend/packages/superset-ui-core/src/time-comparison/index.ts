@@ -17,11 +17,7 @@
  * under the License.
  */
 
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMaxValue } from './validateMaxValue';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
-export { default as validateTimeComparisonRangeValues } from './validateTimeComparisonRangeValues';
+export * from './types';
+
+export { default as getComparisonInfo } from './getComparisonInfo';
+export { default as getComparisonFilters } from './getComparisonFilters';

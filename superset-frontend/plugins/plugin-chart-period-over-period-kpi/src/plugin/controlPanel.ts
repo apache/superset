@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import {
+  ComparisonTimeRangeType,
+  t,
+  validateTimeComparisonRangeValues,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelState,
@@ -24,19 +28,6 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
-
-const validateTimeComparisonRangeValues = (
-  timeRangeValue?: any,
-  controlValue?: any,
-) => {
-  const isCustomTimeRange = timeRangeValue === 'c';
-  const isCustomControlEmpty = controlValue?.every(
-    (val: any) => ensureIsArray(val).length === 0,
-  );
-  return isCustomTimeRange && isCustomControlEmpty
-    ? [t('Filters for comparison must have a value')]
-    : [];
-};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -79,7 +70,8 @@ const config: ControlPanelConfig = {
               description:
                 'This only applies when selecting the Range for Comparison Type: Custom',
               visibility: ({ controls }) =>
-                controls?.time_comparison?.value === 'c',
+                controls?.time_comparison?.value ===
+                ComparisonTimeRangeType.Custom,
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,

@@ -17,11 +17,16 @@
  * under the License.
  */
 
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMaxValue } from './validateMaxValue';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
-export { default as validateTimeComparisonRangeValues } from './validateTimeComparisonRangeValues';
+import {
+  ComparisonTimeRangeType,
+  getComparisonFilters,
+  getComparisonInfo,
+} from '@superset-ui/core';
+
+describe('index', () => {
+  it('exports modules', () => {
+    [ComparisonTimeRangeType, getComparisonFilters, getComparisonInfo].forEach(
+      x => expect(x).toBeDefined(),
+    );
+  });
+});
