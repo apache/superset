@@ -21,6 +21,7 @@ import Select from 'src/components/Select/Select';
 import { t, styled } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
+import { Input } from 'src/components/Input';
 
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { FormLabel } from 'src/components/Form';
@@ -100,13 +101,15 @@ class RefreshIntervalModal extends React.PureComponent<
       refreshFrequency: value || refreshIntervalOptions[0][0],
     });
 
+    this.setState({
+      custom_block: value === -1,
+    });
+
     if (value === -1) {
       this.setState({
-        custom_block: true,
-      });
-    } else {
-      this.setState({
-        custom_block: false,
+        custom_hour: 0,
+        custom_min: 0,
+        custom_sec: 0,
       });
     }
   }
@@ -119,31 +122,27 @@ class RefreshIntervalModal extends React.PureComponent<
 
   createIntervalOptions(refreshIntervalOptions: [number, string][]) {
     const refresh_options = [];
-    if (refreshIntervalOptions.length === 0) {
+    if (!refreshIntervalOptions.length) {
       refresh_options.push({ value: -1, label: 'Custom interval' });
       return refresh_options;
     }
-    refresh_options.push({
-      value: refreshIntervalOptions[0][0],
-      label: t(refreshIntervalOptions[0][1]),
-    });
+
     refresh_options.push({ value: -1, label: 'Custom interval' });
-    for (let i = 1; i < refreshIntervalOptions.length; i += 1)
-      refresh_options.push({
-        value: refreshIntervalOptions[i][0],
-        label: t(refreshIntervalOptions[i][1]),
-      });
+    refresh_options.push(
+      ...refreshIntervalOptions.map(option => ({
+        value: option[0],
+        label: t(option[1]),
+      })),
+    );
+
     return refresh_options;
   }
 
   min_sec_options(min_or_sec: string) {
-    const options = [];
-    for (let i = 0; i < 60; i += 1)
-      options.push({
-        value: i,
-        label: `${i} ${min_or_sec}`,
-      });
-    return options;
+    return Array.from({ length: 60 }, (_, i) => ({
+      value: i,
+      label: `${i} ${min_or_sec}`,
+    }));
   }
 
   render() {
@@ -184,24 +183,21 @@ class RefreshIntervalModal extends React.PureComponent<
             </div>
             <div
               style={{
-                visibility: custom_block === true ? 'visible' : 'hidden',
+                opacity: custom_block === true ? 1 : 0,
                 display: 'flex',
-                gap: '3%',
                 marginTop: '15px',
               }}
-              id="custom_block_view"
             >
               <div style={{ width: '30%', margin: 'auto' }}>
                 <FormLabel>
                   <b>{t('HOUR')}</b>
                 </FormLabel>{' '}
                 <br />
-                <input
+                <Input
                   type="number"
                   min="0"
                   className="form-control input-sm"
-                  id="custom_refresh_frequency_hour"
-                  placeholder="Type a number"
+                  placeholder={t('Type a number')}
                   onChange={event => {
                     this.setState({
                       custom_hour: Number(event.target.value),
