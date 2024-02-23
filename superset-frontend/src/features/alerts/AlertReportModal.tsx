@@ -50,6 +50,7 @@ import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   NotificationMethodOption,
+  NotificationSetting,
   AlertObject,
   ChartObject,
   DashboardObject,
@@ -393,12 +394,6 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
         : t('Add delivery method')}
     </StyledNotificationAddButton>
   );
-};
-
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
 };
 
 const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
