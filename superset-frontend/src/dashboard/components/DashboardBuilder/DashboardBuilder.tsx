@@ -44,7 +44,7 @@ import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane'
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -81,6 +81,7 @@ import {
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_MAX_WIDTH,
   OPEN_FILTER_BAR_WIDTH,
+  EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
@@ -107,12 +108,27 @@ const StickyPanel = styled.div<{ width: number }>`
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
-  grid-column: 2;
-  grid-row: 1;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  max-width: 100vw;
+  ${({ theme }) => css`
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    max-width: 100vw;
+
+    .empty-droptarget:before {
+      position: absolute;
+      content: '';
+      display: none;
+      width: calc(100% - ${theme.gridUnit * 2}px);
+      height: calc(100% - ${theme.gridUnit * 2}px);
+      left: ${theme.gridUnit}px;
+      top: ${theme.gridUnit}px;
+      border: 1px dashed transparent;
+      border-radius: ${theme.gridUnit}px;
+      opacity: 0.5;
+    }
+  `}
 `;
 
 const StyledContent = styled.div<{
@@ -211,12 +227,8 @@ const DashboardContentWrapper = styled.div`
 
       /* provide hit area in case row contents is edge to edge */
       .dashboard-component-tabs-content {
-        .dragdroppable-row {
+        > .dragdroppable-row {
           padding-top: ${theme.gridUnit * 4}px;
-        }
-
-        & > div:not(:last-child):not(.empty-droptarget) {
-          margin-bottom: ${theme.gridUnit * 4}px;
         }
       }
 
@@ -250,24 +262,20 @@ const DashboardContentWrapper = styled.div`
       }
 
       & > .empty-droptarget {
+        z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
         height: ${theme.gridUnit * 4}px;
-        top: -2px;
-        z-index: 10;
+        top: 0;
       }
 
       & > .empty-droptarget:last-child {
-        height: ${theme.gridUnit * 3}px;
-        bottom: 0;
+        height: ${theme.gridUnit * 4}px;
+        bottom: ${-theme.gridUnit * 4}px;
       }
-    }
-
-    .empty-droptarget:first-child .drop-indicator--bottom {
-      top: ${theme.gridUnit * 6}px;
     }
   `}
 `;
@@ -616,8 +624,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         )}
       <StyledHeader ref={headerRef}>
         {/* @ts-ignore */}
-        <DragDroppable
+        <Droppable
           data-test="top-level-tabs"
+          className={cx(!topLevelTabs && editMode && 'empty-droptarget')}
           component={dashboardRoot}
           parentComponent={null}
           depth={DASHBOARD_ROOT_DEPTH}
@@ -630,7 +639,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           style={draggableStyle}
         >
           {renderDraggableContent}
-        </DragDroppable>
+        </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
         <Global

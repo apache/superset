@@ -23,8 +23,9 @@ import {
   getValueFormatter,
   NumberFormats,
   getNumberFormatter,
+  formatTimeRange,
 } from '@superset-ui/core';
-import { computeQueryBComparator, formatCustomComparator } from '../utils';
+import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -78,23 +79,27 @@ export default function transformProps(chartProps: ChartProps) {
     boldText,
     headerFontSize,
     headerText,
-    metrics,
+    metric,
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
     comparisonColorEnabled,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
-  const { data: dataB = [] } = queriesData[1];
+  const {
+    data: dataB = [],
+    from_dttm: comparisonFromDatetime,
+    to_dttm: comparisonToDatetime,
+  } = queriesData[1];
   const data = dataA;
-  const metricName = getMetricLabel(metrics[0]);
+  const metricName = getMetricLabel(metric);
   let bigNumber: number | string =
     data.length === 0 ? 0 : parseMetricValue(data[0][metricName]);
   let prevNumber: number | string =
     data.length === 0 ? 0 : parseMetricValue(dataB[0][metricName]);
 
   const numberFormatter = getValueFormatter(
-    metrics[0],
+    metric,
     currencyFormats,
     columnFormats,
     yAxisFormat,
@@ -129,33 +134,24 @@ export default function transformProps(chartProps: ChartProps) {
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);
   const percentDifference: string = formatPercentChange(percentDifferenceNum);
-  const comparatorText =
-    formData.timeComparison !== 'c'
-      ? ` ${computeQueryBComparator(
-          formData.adhocFilters,
-          formData.timeComparison,
-          formData.extraFormData,
-          ' - ',
-        )}`
-      : `${formatCustomComparator(
-          formData.adhocCustom,
-          formData.extraFormData,
-        )}`;
+  const comparatorText = formatTimeRange('%Y-%m-%d', [
+    comparisonFromDatetime,
+    comparisonToDatetime,
+  ]);
 
   return {
     width,
     height,
     data,
-    // and now your control data, manipulated as needed, and passed through as props!
-    metrics,
+    metric,
     metricName,
     bigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
-    headerFontSize,
-    subheaderFontSize,
+    headerFontSize: getHeaderFontSize(headerFontSize),
+    subheaderFontSize: getComparisonFontSize(subheaderFontSize),
     headerText,
     compType,
     comparisonColorEnabled,

@@ -108,6 +108,7 @@ setup(
         "packaging",
         "pandas[performance]>=2.0.3, <2.1",
         "parsedatetime",
+        "paramiko>=3.4.0",
         "pgsanity",
         "polyline>=2.0.0, <3.0",
         "pyparsing>=3.0.6, <4",
