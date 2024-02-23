@@ -40,7 +40,7 @@ beforeAll(() => {
   );
 
   fetchMock.get(nativeLayerApiRoute, {
-    result: [{ label: 'Chart A', value: 'a' }],
+    result: [{ name: 'Chart A', id: 'a' }],
   });
 
   fetchMock.get(chartApiRoute, {
@@ -147,7 +147,7 @@ test('triggers removeAnnotationLayer and close when remove button is clicked', a
   expect(close).toHaveBeenCalled();
 });
 
-test('renders chart options', async () => {
+test('fetches Superset annotation layer options', async () => {
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
   });
@@ -156,22 +156,37 @@ test('renders chart options', async () => {
   );
   userEvent.click(screen.getByText('Superset annotation'));
   expect(await screen.findByText('Annotation layer')).toBeInTheDocument();
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  );
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  expect(fetchMock.calls(nativeLayerApiRoute).length).toBe(1);
+});
 
+test('fetches chart options', async () => {
+  await waitForRender({
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+  });
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   userEvent.click(screen.getByText('Table'));
   expect(await screen.findByText('Chart')).toBeInTheDocument();
+  userEvent.click(
+    screen.getByRole('combobox', { name: 'Annotation layer value' }),
+  );
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
 });
 
-test('fetch chart on mount if value present', async () => {
+test('fetches chart on mount if value present', async () => {
   await waitForRender({
     name: 'Test',
     value: 'a',
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     sourceType: 'Table',
   });
-  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
+  expect(fetchMock.calls(chartApiRoute).length).toBe(2);
 });
 
 test('keeps apply disabled when missing required fields', async () => {
@@ -211,7 +226,6 @@ test('keeps apply disabled when missing required fields', async () => {
 });
 
 test('Disable apply button if formula is incorrect', async () => {
-  // TODO: fix flaky test that passes locally but fails on CI
   await waitForRender({ name: 'test' });
 
   userEvent.clear(screen.getByLabelText('Formula'));
