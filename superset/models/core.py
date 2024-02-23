@@ -558,7 +558,7 @@ class Database(
         # before we split sqls using sql parse, however this core code is only reachable
         # with single sql queries. Thus, we remove the engine spec parser here
         # sqls = self.db_engine_spec.parse_sql(sql)
-        
+
         with self.get_sqla_engine_with_context(schema) as engine:
             engine_url = engine.url
 
