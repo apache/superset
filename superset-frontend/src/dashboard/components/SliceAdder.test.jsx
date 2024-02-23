@@ -20,25 +20,26 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import { List } from 'react-virtualized';
-
-import SliceAdder from 'src/dashboard/components/SliceAdder';
+import SliceAdder, {
+  ChartList,
+  DEFAULT_SORT_KEY,
+} from 'src/dashboard/components/SliceAdder';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { styledShallow } from 'spec/helpers/theming';
+
+jest.mock('lodash/debounce', () => fn => {
+  // eslint-disable-next-line no-param-reassign
+  fn.throttle = jest.fn();
+  return fn;
+});
 
 describe('SliceAdder', () => {
-  const mockEvent = {
-    key: 'Enter',
-    target: {
-      value: 'mock event target',
-    },
-    preventDefault: () => {},
-  };
   const props = {
     ...mockSliceEntities,
-    fetchAllSlices: () => {},
+    fetchSlices: jest.fn(),
+    updateSlices: jest.fn(),
     selectedSliceIds: [127, 128],
-    userId: '1',
-    height: 100,
+    userId: 1,
   };
   const errorProps = {
     ...props,
@@ -71,10 +72,10 @@ describe('SliceAdder', () => {
     });
   });
 
-  it('render List', () => {
-    const wrapper = shallow(<SliceAdder {...props} />);
+  it('render chart list', () => {
+    const wrapper = styledShallow(<SliceAdder {...props} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
-    expect(wrapper.find(List)).toExist();
+    expect(wrapper.find(ChartList)).toExist();
   });
 
   it('render error', () => {
@@ -85,16 +86,16 @@ describe('SliceAdder', () => {
 
   it('componentDidMount', () => {
     sinon.spy(SliceAdder.prototype, 'componentDidMount');
-    sinon.spy(props, 'fetchAllSlices');
+    sinon.spy(props, 'fetchSlices');
 
     shallow(<SliceAdder {...props} />, {
       lifecycleExperimental: true,
     });
     expect(SliceAdder.prototype.componentDidMount.calledOnce).toBe(true);
-    expect(props.fetchAllSlices.calledOnce).toBe(true);
+    expect(props.fetchSlices.calledOnce).toBe(true);
 
     SliceAdder.prototype.componentDidMount.restore();
-    props.fetchAllSlices.restore();
+    props.fetchSlices.restore();
   });
 
   describe('UNSAFE_componentWillReceiveProps', () => {
@@ -139,32 +140,30 @@ describe('SliceAdder', () => {
     let wrapper;
     let spy;
     beforeEach(() => {
-      wrapper = shallow(<SliceAdder {...props} />);
+      spy = props.fetchSlices;
+      wrapper = shallow(<SliceAdder {...props} fetchSlices={spy} />);
       wrapper.setState({ filteredSlices: Object.values(props.slices) });
-      spy = sinon.spy(wrapper.instance(), 'getFilteredSortedSlices');
     });
     afterEach(() => {
-      spy.restore();
+      spy.mockReset();
     });
 
     it('searchUpdated', () => {
       const newSearchTerm = 'new search term';
-      wrapper.instance().searchUpdated(newSearchTerm);
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.lastCall.args[0]).toBe(newSearchTerm);
+      wrapper.instance().handleChange(newSearchTerm);
+      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(
+        props.userId,
+        newSearchTerm,
+        DEFAULT_SORT_KEY,
+      );
     });
 
     it('handleSelect', () => {
       const newSortBy = 'viz_type';
       wrapper.instance().handleSelect(newSortBy);
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.lastCall.args[1]).toBe(newSortBy);
-    });
-
-    it('handleKeyPress', () => {
-      wrapper.instance().handleKeyPress(mockEvent);
-      expect(spy.calledOnce).toBe(true);
-      expect(spy.lastCall.args[0]).toBe(mockEvent.target.value);
+      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(props.userId, '', newSortBy);
     });
   });
 });

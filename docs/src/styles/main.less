@@ -1,0 +1,271 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+@import '~antd/lib/style/themes/default.less';
+@import '~antd/dist/antd.less'; // Import Ant Design styles by less entry
+@import 'antd-theme.less';
+
+body {
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-base-color);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--ifm-font-base-color);
+  font-weight: var(--ifm-heading-font-weight);
+}
+
+.under-navbar {
+  margin-top: -67px;
+}
+
+.theme-doc-toc-desktop {
+  position: fixed !important;
+}
+
+.docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+}
+
+html[data-theme='dark'] .docusaurus-highlight-code-line {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.menu {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Hacks to disable Swagger UI's "try it out" interactive mode */
+.try-out,
+.auth-wrapper,
+.information-container {
+  display: none !important;
+}
+
+.swagger-ui table td,
+.swagger-ui table th,
+.swagger-ui table tr {
+  border: none;
+}
+
+.markdown h2:first-child {
+  margin-top: 0.5em;
+}
+
+a > span > svg {
+  display: none;
+}
+
+/* Default button */
+
+.default-button-theme {
+  display: block;
+  background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%);
+  color: #ffffff;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  &::before {
+    border-radius: inherit;
+    background: linear-gradient(180deg, #11b0d8 0%, #116f86 100%);
+    content: '';
+    display: block;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    z-index: -1;
+    transition: all 0.3s;
+  }
+  &:hover {
+    color: #ffffff;
+    &::before {
+      opacity: 1;
+    }
+  }
+}
+
+/* Navbar */
+
+.navbar {
+  font-size: 14px;
+  font-weight: 400;
+  background-color: #fff;
+  transition: all 0.5s;
+
+  .get-started-button {
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    width: 142px;
+    padding: 7px 0;
+    margin-right: 20px;
+  }
+
+  .github-button {
+    background-image: url('/img/github.png');
+    background-size: contain;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+  }
+}
+
+.navbar--dark {
+  background-color: transparent;
+  border-bottom: 1px solid rgba(24, 115, 132, 0.4);
+
+  .github-button {
+    background-image: url('/img/github-dark.png');
+  }
+}
+
+.navbar__logo {
+  height: 50px;
+}
+
+.dropdown > .navbar__link::after {
+  display: none;
+}
+
+.navbar-sidebar__brand {
+  padding-left: 0;
+}
+
+@media only screen and (max-width: 996px) {
+  .navbar {
+    padding-right: 8px;
+    padding-left: 8px;
+
+    .get-started-button,
+    .github-button {
+      display: none;
+    }
+  }
+
+  .navbar__items {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+  }
+
+  .navbar__logo {
+    height: 48px;
+  }
+}
+
+/* Sidebar */
+
+.navbar-sidebar {
+  left: auto;
+  right: 0;
+  transform: translate3d(100%, 0, 0);
+}
+
+/* Search Bar */
+
+.navbar .DocSearch {
+  --docsearch-text-color: #187384;
+  --docsearch-muted-color: #187384;
+  --docsearch-searchbox-background: #fff;
+  border: 1px solid #187384;
+  border-radius: 10px;
+
+  &.DocSearch-Button {
+    width: 225px;
+  }
+
+  .DocSearch-Search-Icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .DocSearch-Button-Key,
+  .DocSearch-Button-Placeholder {
+    display: none;
+  }
+}
+
+.navbar--dark .DocSearch {
+  --docsearch-searchbox-background: #1d3d46;
+}
+
+@media only screen and (max-width: 996px) {
+  .navbar .DocSearch.DocSearch-Button {
+    display: none;
+  }
+}
+
+/* Footer */
+
+.footer {
+  position: relative;
+  padding-top: 90px;
+  font-size: 15px;
+}
+
+.footer__applitools {
+  background-color: #0d3e49;
+  color: #e1e1e1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 0;
+
+  img {
+    height: 34px;
+  }
+}
+
+.footer__divider {
+  margin: 10px auto 25px;
+}
+
+.footer small {
+  font-size: 13px;
+  display: block;
+  margin: 0 auto;
+  max-width: 830px;
+}
+
+@media only screen and (max-width: 996px) {
+  .footer__applitools img {
+    height: 28px;
+  }
+}
+
+/* Edit Button */
+
+.edit-page-link {
+  position: sticky;
+  bottom: 0px;
+  right: 0px;
+  border-radius: 10px;
+  background-color: #ccc;
+}

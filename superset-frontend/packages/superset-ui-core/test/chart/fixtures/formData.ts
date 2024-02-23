@@ -19,13 +19,14 @@
 
 /* eslint sort-keys: 'off' */
 /** The form data defined here is based on default visualizations packaged with Apache Superset */
+import { TimeGranularity } from '@superset-ui/core';
 
 export const bigNumberFormData = {
   datasource: '3__table',
   viz_type: 'big_number',
   slice_id: 54,
   granularity_sqla: 'ds',
-  time_grain_sqla: 'P1D',
+  time_grain_sqla: TimeGranularity.DAY,
   time_range: '100 years ago : now',
   metric: 'sum__num',
   adhoc_filters: [],
@@ -55,13 +56,13 @@ export const wordCloudFormData = {
 
 export const sunburstFormData = {
   datasource: '2__table',
-  viz_type: 'sunburst',
+  viz_type: 'sunburst_v2',
   slice_id: 47,
   url_params: {},
   granularity_sqla: 'year',
   time_grain_sqla: 'P1D',
   time_range: '2011-01-01 : 2011-01-01',
-  groupby: ['region', 'country_name'],
+  columns: ['region', 'country_name'],
   metric: 'sum__SP_POP_TOTL',
   secondary_metric: 'sum__SP_RUR_TOTL',
   adhoc_filters: [],

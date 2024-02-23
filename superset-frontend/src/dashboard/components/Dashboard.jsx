@@ -22,11 +22,11 @@ import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
-import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
+
 import {
-  chartPropShape,
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
@@ -38,7 +38,6 @@ import {
 } from '../../logger/LogUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 
-import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
@@ -53,21 +52,18 @@ const propTypes = {
   }).isRequired,
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
-  charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
-  chartConfiguration: PropTypes.object.isRequired,
+  chartConfiguration: PropTypes.object,
   datasources: PropTypes.object.isRequired,
   ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
-  initMessages: PropTypes.array,
   timeout: PropTypes.number,
   userId: PropTypes.string,
 };
 
 const defaultProps = {
-  initMessages: [],
   timeout: 60,
   userId: '',
 };
@@ -97,8 +93,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const appContainer = document.getElementById('app');
-    const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '{}';
+    const bootstrapData = getBootstrapData();
     const { dashboardState, layout } = this.props;
     const eventData = {
       is_soft_navigation: Logger.timeOriginOffset > 0,
@@ -165,7 +160,7 @@ class Dashboard extends React.PureComponent {
     const { appliedFilters, appliedOwnDataCharts } = this;
     const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
     if (
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
       !chartConfiguration
     ) {
       // For a first loading we need to wait for cross filters charts data loaded to get all active filters
@@ -212,11 +207,6 @@ class Dashboard extends React.PureComponent {
         duration: Logger.getTimestamp() - logStart,
       });
     }
-  }
-
-  // return charts in array
-  getAllCharts() {
-    return Object.values(this.props.charts);
   }
 
   applyFilters() {
@@ -289,11 +279,7 @@ class Dashboard extends React.PureComponent {
     if (this.context.loading) {
       return <Loading />;
     }
-    return (
-      <>
-        <DashboardBuilder />
-      </>
-    );
+    return this.props.children;
   }
 }
 

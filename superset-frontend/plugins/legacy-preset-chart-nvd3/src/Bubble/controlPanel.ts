@@ -21,7 +21,7 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
   D3_FORMAT_OPTIONS,
-  sections,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -39,7 +39,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -128,6 +127,14 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    series: getStandardizedControls().shiftColumn(),
+    entity: getStandardizedControls().shiftColumn(),
+    x: getStandardizedControls().shiftMetric(),
+    y: getStandardizedControls().shiftMetric(),
+    size: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

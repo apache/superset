@@ -17,15 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
+  ControlSubSectionHeader,
+  DEFAULT_SORT_SERIES_DATA,
+  SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './types';
-import { DEFAULT_FORM_DATA } from './Timeseries/types';
+import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
+import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { defaultXAxis } from './defaults';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -60,10 +64,10 @@ const legendTypeControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Type',
+    label: t('Type'),
     choices: [
-      ['scroll', 'Scroll'],
-      ['plain', 'Plain'],
+      ['scroll', t('Scroll')],
+      ['plain', t('Plain')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -78,30 +82,30 @@ const legendOrientationControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Orientation',
+    label: t('Orientation'),
     choices: [
-      ['top', 'Top'],
-      ['bottom', 'Bottom'],
-      ['left', 'Left'],
-      ['right', 'Right'],
+      ['top', t('Top')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
     ],
     default: legendOrientation,
     renderTrigger: true,
-    description: t('Legend type'),
+    description: t('Legend Orientation'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_legend?.value),
   },
 };
 
 export const legendSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Legend')}</h1>],
+  [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
 ];
 
-const showValueControl: ControlSetItem = {
+export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -112,18 +116,19 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
-    type: 'CheckboxControl',
-    label: t('Stack series'),
+    type: 'SelectControl',
+    label: t('Stacked Style'),
     renderTrigger: true,
-    default: false,
+    choices: StackControlOptions,
+    default: null,
     description: t('Stack series on top of each other'),
   },
 };
 
-const onlyTotalControl: ControlSetItem = {
+export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',
@@ -138,19 +143,7 @@ const onlyTotalControl: ControlSetItem = {
   },
 };
 
-export const xAxisControl: ControlSetItem = {
-  name: 'x_axis',
-  config: {
-    ...sharedControls.groupby,
-    label: t('X-axis'),
-    default: null,
-    multi: false,
-    description: t('Dimension to use on x-axis.'),
-    validators: [validateNonEmpty],
-  },
-};
-
-const percentageThresholdControl: ControlSetItem = {
+export const percentageThresholdControl: ControlSetItem = {
   name: 'percentage_threshold',
   config: {
     type: 'TextControl',
@@ -219,8 +212,111 @@ const tooltipSortByMetricControl: ControlSetItem = {
 };
 
 export const richTooltipSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Tooltip')}</h1>],
+  [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
 ];
+
+const sortSeriesType: ControlSetItem = {
+  name: 'sort_series_type',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: t('Sort Series By'),
+    choices: SORT_SERIES_CHOICES,
+    default: DEFAULT_SORT_SERIES_DATA.sort_series_type,
+    renderTrigger: true,
+    description: t(
+      'Based on what should series be ordered on the chart and legend',
+    ),
+  },
+};
+
+const sortSeriesAscending: ControlSetItem = {
+  name: 'sort_series_ascending',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Sort Series Ascending'),
+    default: DEFAULT_SORT_SERIES_DATA.sort_series_ascending,
+    renderTrigger: true,
+    description: t('Sort series in ascending order'),
+  },
+};
+
+export const xAxisLabelRotation = {
+  name: 'xAxisLabelRotation',
+  config: {
+    type: 'SelectControl',
+    freeForm: true,
+    clearable: false,
+    label: t('Rotate x axis label'),
+    choices: [
+      [0, '0°'],
+      [45, '45°'],
+      [90, '90°'],
+    ],
+    default: defaultXAxis.xAxisLabelRotation,
+    renderTrigger: true,
+    description: t('Input field supports custom rotation. e.g. 30 for 30°'),
+  },
+};
+
+export const seriesOrderSection: ControlSetRow[] = [
+  [<ControlSubSectionHeader>{t('Series Order')}</ControlSubSectionHeader>],
+  [sortSeriesType],
+  [sortSeriesAscending],
+];
+
+export const truncateXAxis: ControlSetItem = {
+  name: 'truncateXAxis',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Truncate X Axis'),
+    default: DEFAULT_FORM_DATA.truncateXAxis,
+    renderTrigger: true,
+    description: t(
+      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applicable for numercal X axis.',
+    ),
+  },
+};
+
+export const xAxisBounds: ControlSetItem = {
+  name: 'xAxisBounds',
+  config: {
+    type: 'BoundsControl',
+    label: t('X Axis Bounds'),
+    renderTrigger: true,
+    default: DEFAULT_FORM_DATA.xAxisBounds,
+    description: t(
+      'Bounds for numerical X axis. Not applicable for temporal or categorical axes. ' +
+        'When left empty, the bounds are dynamically defined based on the min/max of the data. ' +
+        "Note that this feature will only expand the axis range. It won't " +
+        "narrow the data's extent.",
+    ),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.truncateXAxis?.value),
+  },
+};
+
+export const minorTicks: ControlSetItem = {
+  name: 'minorTicks',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Minor ticks'),
+    default: false,
+    renderTrigger: true,
+    description: t('Show minor ticks on axes.'),
+  },
+};
+
+export const forceCategorical: ControlSetItem = {
+  name: 'forceCategorical',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Force categorical'),
+    default: false,
+    renderTrigger: true,
+    description: t('Make the x-axis categorical'),
+  },
+};

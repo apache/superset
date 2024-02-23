@@ -109,4 +109,39 @@ describe('logger middleware', () => {
       SupersetClient.post.getCall(0).args[0].postPayload.events,
     ).toHaveLength(3);
   });
+
+  it('should use navigator.sendBeacon if it exists', () => {
+    const clock = sinon.useFakeTimers();
+    const beaconMock = jest.fn();
+    Object.defineProperty(navigator, 'sendBeacon', {
+      writable: true,
+      value: beaconMock,
+    });
+
+    logger(mockStore)(next)(action);
+    expect(beaconMock.mock.calls.length).toBe(0);
+    clock.tick(2000);
+
+    expect(beaconMock.mock.calls.length).toBe(1);
+    const endpoint = beaconMock.mock.calls[0][0];
+    expect(endpoint).toMatch('/superset/log/');
+  });
+
+  it('should pass a guest token to sendBeacon if present', () => {
+    const clock = sinon.useFakeTimers();
+    const beaconMock = jest.fn();
+    Object.defineProperty(navigator, 'sendBeacon', {
+      writable: true,
+      value: beaconMock,
+    });
+    SupersetClient.configure({ guestToken: 'token' });
+
+    logger(mockStore)(next)(action);
+    expect(beaconMock.mock.calls.length).toBe(0);
+    clock.tick(2000);
+    expect(beaconMock.mock.calls.length).toBe(1);
+
+    const formData = beaconMock.mock.calls[0][1];
+    expect(formData.getAll('guest_token')[0]).toMatch('token');
+  });
 });

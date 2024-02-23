@@ -19,8 +19,13 @@
 import React from 'react';
 import { useTheme, css } from '@superset-ui/core';
 import { Tooltip as AntdTooltip } from 'antd';
-import { TooltipProps } from 'antd/lib/tooltip';
+import {
+  TooltipProps,
+  TooltipPlacement as AntdTooltipPlacement,
+} from 'antd/lib/tooltip';
 import { Global } from '@emotion/react';
+
+export type TooltipPlacement = AntdTooltipPlacement;
 
 export const Tooltip = (props: TooltipProps) => {
   const theme = useTheme();
@@ -36,10 +41,20 @@ export const Tooltip = (props: TooltipProps) => {
               display: block;
             }
           }
+          .ant-tooltip-inner > p {
+            margin: 0;
+          }
         `}
       />
       <AntdTooltip
         overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
+        overlayInnerStyle={{
+          display: '-webkit-box',
+          overflow: 'hidden',
+          WebkitLineClamp: 40,
+          WebkitBoxOrient: 'vertical',
+          textOverflow: 'ellipsis',
+        }}
         color={`${theme.colors.grayscale.dark2}e6`}
         {...props}
       />

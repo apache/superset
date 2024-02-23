@@ -21,8 +21,21 @@ import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
+import { isCurrentUserBot } from 'src/utils/isBot';
 import ErrorAlert from './ErrorAlert';
 import { ErrorLevel, ErrorSource } from './types';
+
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) => (
+      <span role="img" aria-label={fileName.replace('_', '-')} />
+    ),
+);
+
+jest.mock('src/utils/isBot', () => ({
+  isCurrentUserBot: jest.fn(),
+}));
 
 const mockedProps = {
   body: 'Error body',
@@ -31,7 +44,16 @@ const mockedProps = {
   subtitle: 'Error subtitle',
   title: 'Error title',
   source: 'dashboard' as ErrorSource,
+  description: 'we are unable to connect db.',
 };
+
+beforeEach(() => {
+  (isCurrentUserBot as jest.Mock).mockReturnValue(false);
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 test('should render', () => {
   const { container } = render(<ErrorAlert {...mockedProps} />);
@@ -63,6 +85,11 @@ test('should render the error title', () => {
   expect(screen.getByText('Error title')).toBeInTheDocument();
 });
 
+test('should render the error description', () => {
+  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
+  expect(screen.getByText('we are unable to connect db.')).toBeInTheDocument();
+});
+
 test('should render the error subtitle', () => {
   render(<ErrorAlert {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
@@ -85,6 +112,17 @@ test('should render the See more button', () => {
   render(<ErrorAlert {...seemoreProps} />);
   expect(screen.getByRole('button')).toBeInTheDocument();
   expect(screen.getByText('See more')).toBeInTheDocument();
+});
+
+test('should render the error subtitle and body defaultly for the screen capture request', () => {
+  const seemoreProps = {
+    ...mockedProps,
+    source: 'explore' as ErrorSource,
+  };
+  (isCurrentUserBot as jest.Mock).mockReturnValue(true);
+  render(<ErrorAlert {...seemoreProps} />);
+  expect(screen.getByText('Error subtitle')).toBeInTheDocument();
+  expect(screen.getByText('Error body')).toBeInTheDocument();
 });
 
 test('should render the modal', () => {

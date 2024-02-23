@@ -29,14 +29,19 @@ import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
-import localStorageUsageInKilobytes from 'src/SqlLab/reducers/localStorageUsage';
-import reports from 'src/reports/reducers/reports';
+import reports from 'src/features/reports/ReportModal/reducer';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const impressionId = (state = '') => state;
 
-const container = document.getElementById('app');
-const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
-const common = { ...bootstrap.common };
+const bootstrapData = getBootstrapData();
+const common = { ...bootstrapData.common };
+const user = { ...bootstrapData.user };
+
+const noopReducer =
+  <STATE = unknown>(initialState: STATE) =>
+  (state: STATE = initialState) =>
+    state;
 
 export default {
   charts,
@@ -53,7 +58,8 @@ export default {
   saveModal,
   explore,
   sqlLab,
-  localStorageUsageInKilobytes,
+  localStorageUsageInKilobytes: noopReducer(0),
   reports,
-  common: () => common,
+  common: noopReducer(common),
+  user: noopReducer(user),
 };

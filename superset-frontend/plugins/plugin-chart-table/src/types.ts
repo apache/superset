@@ -30,10 +30,26 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
+  ContextMenuFilters,
+  CurrencyFormatter,
+  Currency,
 } from '@superset-ui/core';
-import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
+
+export type TableColumnConfig = {
+  d3NumberFormat?: string;
+  d3SmallNumberFormat?: string;
+  d3TimeFormat?: string;
+  columnWidth?: number;
+  horizontalAlign?: 'left' | 'right' | 'center';
+  showCellBars?: boolean;
+  alignPositiveNegative?: boolean;
+  colorPositiveNegative?: boolean;
+  truncateLongCells?: boolean;
+  currencyFormat?: Currency;
+};
 
 export interface DataColumnMeta {
   // `key` is what is called `label` in the input props
@@ -41,11 +57,15 @@ export interface DataColumnMeta {
   // `label` is verbose column name used for rendering
   label: string;
   dataType: GenericDataType;
-  formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   isMetric?: boolean;
   isPercentMetric?: boolean;
   isNumeric?: boolean;
-  config?: ColumnConfig;
+  config?: TableColumnConfig;
 }
 
 export interface TableChartData {
@@ -68,9 +88,9 @@ export type TableChartFormData = QueryFormData & {
   order_desc?: boolean;
   show_cell_bars?: boolean;
   table_timestamp_format?: string;
-  emit_filter?: boolean;
   time_grain_sqla?: TimeGranularity;
-  column_config?: Record<string, ColumnConfig>;
+  column_config?: Record<string, TableColumnConfig>;
+  allow_rearrange_columns?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -106,9 +126,15 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   // These are dashboard filters, don't be confused with in-chart search filter
   // enabled by `includeSearch`
   filters?: DataRecordFilters;
-  emitFilter?: boolean;
+  emitCrossFilters?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  allowRearrangeColumns?: boolean;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
 }
 
 export default {};

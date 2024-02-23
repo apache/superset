@@ -75,7 +75,47 @@ export function getAnalogousColors(colors: string[], results: number) {
 }
 
 export function addAlpha(color: string, opacity: number): string {
-  // coerce values so ti is between 0 and 1.
-  const rounded = Math.round(Math.min(Math.max(opacity || 1, 0), 1) * 255);
-  return color + rounded.toString(16).toUpperCase();
+  // opacity value should be between 0 and 1.
+  if (opacity > 1 || opacity < 0) {
+    throw new Error(`The opacity should between 0 and 1, but got: ${opacity}`);
+  }
+  // the alpha value is between 00 - FF
+  const alpha = `0${Math.round(opacity * 255)
+    .toString(16)
+    .toUpperCase()}`.slice(-2);
+
+  return `${color}${alpha}`;
+}
+
+export function hexToRgb(h: string) {
+  let r = '0';
+  let g = '0';
+  let b = '0';
+
+  // 3 digits
+  if (h.length === 4) {
+    r = `0x${h[1]}${h[1]}`;
+    g = `0x${h[2]}${h[2]}`;
+    b = `0x${h[3]}${h[3]}`;
+
+    // 6 digits
+  } else if (h.length === 7) {
+    r = `0x${h[1]}${h[2]}`;
+    g = `0x${h[3]}${h[4]}`;
+    b = `0x${h[5]}${h[6]}`;
+  }
+
+  return `rgb(${+r}, ${+g}, ${+b})`;
+}
+
+export function rgbToHex(red: number, green: number, blue: number) {
+  let r = red.toString(16);
+  let g = green.toString(16);
+  let b = blue.toString(16);
+
+  if (r.length === 1) r = `0${r}`;
+  if (g.length === 1) g = `0${g}`;
+  if (b.length === 1) b = `0${b}`;
+
+  return `#${r}${g}${b}`;
 }

@@ -28,11 +28,15 @@ from superset.utils.pandas_postprocessing.geography import (
 )
 from superset.utils.pandas_postprocessing.pivot import pivot
 from superset.utils.pandas_postprocessing.prophet import prophet
+from superset.utils.pandas_postprocessing.rename import rename
 from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
 from superset.utils.pandas_postprocessing.select import select
 from superset.utils.pandas_postprocessing.sort import sort
-from superset.utils.pandas_postprocessing.utils import _flatten_column_after_pivot
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    unescape_separator,
+)
 
 __all__ = [
     "aggregate",
@@ -46,10 +50,12 @@ __all__ = [
     "geodetic_parse",
     "pivot",
     "prophet",
+    "rename",
     "resample",
     "rolling",
     "select",
     "sort",
     "flatten",
-    "_flatten_column_after_pivot",
+    "escape_separator",
+    "unescape_separator",
 ]

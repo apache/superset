@@ -33,6 +33,8 @@ export default function transformProps(chartProps: ChartProps) {
   } = chartProps;
   const {
     setDataMask = noOp,
+    setHoveredFilter = noOp,
+    unsetHoveredFilter = noOp,
     setFocusedFilter = noOp,
     unsetFocusedFilter = noOp,
     setFilterActive = noOp,
@@ -48,6 +50,8 @@ export default function transformProps(chartProps: ChartProps) {
     data,
     formData: { ...DEFAULT_FORM_DATA, ...formData },
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,

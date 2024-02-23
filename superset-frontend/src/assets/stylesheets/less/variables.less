@@ -48,6 +48,7 @@
 @almost-black: #263238;
 @gray-dark: #484848;
 @gray-light: #e0e0e0;
+@gray-light5: #666666;
 @gray: #879399;
 @gray-bg: #f7f7f7;
 @gray-heading: #a3a3a3;
@@ -171,11 +172,15 @@
 .set-otf-options(@use-ligatures);
 
 .set-otf-options(true) {
-  @font-feature-settings: 'liga' on, 'calt' on;
+  @font-feature-settings:
+    'liga' on,
+    'calt' on;
 }
 
 .set-otf-options(false) {
-  @font-feature-settings: 'liga' off, 'calt' off;
+  @font-feature-settings:
+    'liga' off,
+    'calt' off;
 }
 
 // ****************************** Families ******************************

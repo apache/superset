@@ -52,7 +52,7 @@ console.log(formatTime('my_format', new Date(2018)));
 ```
 
 It also define constants for common d3 time formats. See
-[TimeFormats.js](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-time-format/src/TimeFormats.js).
+[TimeFormats.js](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/time-format/TimeFormats.ts).
 
 ```js
 import { TimeFormats } from '@superset-ui/core';

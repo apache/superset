@@ -25,7 +25,7 @@ import {
 // eslint-disable-next-line import/extensions
 import birthNamesJson from './birthNames.json';
 
-export const birthNames = birthNamesJson as unknown as TableChartProps;
+export const birthNames = birthNamesJson as TableChartProps;
 
 export const basicFormData: TableChartFormData = {
   datasource: '1__table',
@@ -45,10 +45,10 @@ export const basicFormData: TableChartFormData = {
 export const basicData: Partial<ChartDataResponseResult> = {
   colnames: ['name', 'sum__num', 'MAX(ds)', 'Abc.com'],
   coltypes: [
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
-    GenericDataType.STRING,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+    GenericDataType.String,
   ],
   data: [
     {

@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
 import inspect
 import time
 import unittest
 from collections import namedtuple
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
@@ -28,11 +29,10 @@ import prison
 import pytest
 
 from flask import current_app
-
+from flask_appbuilder.security.sqla.models import Role
+from superset.daos.datasource import DatasourceDAO
 from superset.models.dashboard import Dashboard
-
-from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
-from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset import app, appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -40,14 +40,16 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import (
+    DatasourceType,
     backend,
     get_example_default_schema,
+    override_user,
 )
 from superset.utils.database import get_example_database
 from superset.utils.urls import get_url_host
-from superset.views.access_requests import AccessRequestsModelView
 
 from .base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
@@ -107,9 +109,8 @@ class TestRolePermission(SupersetTestCase):
 
     def setUp(self):
         schema = get_example_default_schema()
-        session = db.session
         security_manager.add_role(SCHEMA_ACCESS_ROLE)
-        session.commit()
+        db.session.commit()
 
         ds = (
             db.session.query(SqlaTable)
@@ -120,8 +121,8 @@ class TestRolePermission(SupersetTestCase):
         ds.schema_perm = ds.get_schema_perm()
 
         ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type="table")
+            db.session.query(Slice)
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -130,12 +131,11 @@ class TestRolePermission(SupersetTestCase):
         create_schema_perm("[examples].[temp_schema]")
         gamma_user = security_manager.find_user(username="gamma")
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        db.session.commit()
 
     def tearDown(self):
-        session = db.session
         ds = (
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population", schema="temp_schema")
             .first()
         )
@@ -143,8 +143,8 @@ class TestRolePermission(SupersetTestCase):
         ds.schema = get_example_default_schema()
         ds.schema_perm = None
         ds_slices = (
-            session.query(Slice)
-            .filter_by(datasource_type="table")
+            db.session.query(Slice)
+            .filter_by(datasource_type=DatasourceType.TABLE)
             .filter_by(datasource_id=ds.id)
             .all()
         )
@@ -152,264 +152,933 @@ class TestRolePermission(SupersetTestCase):
             s.schema_perm = None
 
         delete_schema_perm(schema_perm)
-        session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
-        session.commit()
+        db.session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
+        db.session.commit()
 
-    def test_set_perm_sqla_table(self):
-        session = db.session
+    def test_after_insert_dataset(self):
+        security_manager.on_view_menu_after_insert = Mock()
+        security_manager.on_permission_view_after_insert = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+
         table = SqlaTable(
             schema="tmp_schema",
             table_name="tmp_perm_table",
-            database=get_example_database(),
+            database=tmp_db1,
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
+
+        table = db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+        self.assertEqual(table.perm, f"[tmp_db1].[tmp_perm_table](id:{table.id})")
+
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", table.perm
+        )
+        pvm_schema = security_manager.find_permission_view_menu(
+            "schema_access", table.schema_perm
+        )
+
+        # Assert dataset permission is created and local perms are ok
+        self.assertIsNotNone(pvm_dataset)
+        self.assertEqual(table.perm, f"[tmp_db1].[tmp_perm_table](id:{table.id})")
+        self.assertEqual(table.schema_perm, "[tmp_db1].[tmp_schema]")
+        self.assertIsNotNone(pvm_schema)
+
+        # assert on permission hooks
+        call_args = security_manager.on_permission_view_after_insert.call_args
+        assert call_args.args[2].id == pvm_schema.id
+
+        security_manager.on_permission_view_after_insert.assert_has_calls(
+            [
+                call(ANY, ANY, ANY),
+                call(ANY, ANY, ANY),
+            ]
+        )
+
+        # Cleanup
+        db.session.delete(table)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_insert_dataset_rollback(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table",
+            database=tmp_db1,
+        )
+        db.session.add(table)
+        db.session.flush()
+
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table](id:{table.id})"
+        )
+        self.assertIsNotNone(pvm_dataset)
+        table_id = table.id
+        db.session.rollback()
+
+        table = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_table").one_or_none()
+        )
+        self.assertIsNone(table)
+        pvm_dataset = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table](id:{table_id})"
+        )
+        self.assertIsNone(pvm_dataset)
+
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_insert_dataset_table_none(self):
+        table = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_perm_table",
+            # Setting database_id instead of database will skip permission creation
+            database_id=get_example_database().id,
+        )
+        db.session.add(table)
+        db.session.commit()
 
         stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table").one()
         )
-        self.assertEqual(
-            stored_table.perm, f"[examples].[tmp_perm_table](id:{stored_table.id})"
-        )
+        # Assert permission is created
         self.assertIsNotNone(
             security_manager.find_permission_view_menu(
                 "datasource_access", stored_table.perm
             )
         )
-        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
-        self.assertIsNotNone(
+        # Assert no bogus permission is created
+        self.assertIsNone(
             security_manager.find_permission_view_menu(
-                "schema_access", stored_table.schema_perm
+                "datasource_access", f"[None].[tmp_perm_table](id:{stored_table.id})"
             )
         )
 
-        # table name change
-        stored_table.table_name = "tmp_perm_table_v2"
-        session.commit()
-        stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_after_insert_database(self):
+        security_manager.on_permission_view_after_insert = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+        self.assertEqual(tmp_db1.perm, f"[tmp_db1].(id:{tmp_db1.id})")
+        tmp_db1_pvm = security_manager.find_permission_view_menu(
+            "database_access", tmp_db1.perm
+        )
+        self.assertIsNotNone(tmp_db1_pvm)
+
+        # Assert the hook is called
+        security_manager.on_permission_view_after_insert.assert_has_calls(
+            [
+                call(ANY, ANY, ANY),
+            ]
+        )
+        call_args = security_manager.on_permission_view_after_insert.call_args
+        assert call_args.args[2].id == tmp_db1_pvm.id
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_insert_database_rollback(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.flush()
+
+        pvm_database = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+        )
+        self.assertIsNotNone(pvm_database)
+        db.session.rollback()
+
+        pvm_database = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1](id:{tmp_db1.id})"
+        )
+        self.assertIsNone(pvm_database)
+
+    def test_after_update_database__perm_database_access(self):
+        security_manager.on_view_menu_after_update = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
+        )
+
+        tmp_db1.database_name = "tmp_db2"
+        db.session.commit()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
+        )
+
+        # Assert the hook is called
+        tmp_db1_view_menu = security_manager.find_view_menu(
+            f"[tmp_db2].(id:{tmp_db1.id})"
+        )
+        security_manager.on_view_menu_after_update.assert_has_calls(
+            [
+                call(ANY, ANY, tmp_db1_view_menu),
+            ]
+        )
+
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_update_database_rollback(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
+        )
+
+        tmp_db1.database_name = "tmp_db2"
+        db.session.flush()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
+        )
+
+        db.session.rollback()
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
+        )
+
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_update_database__perm_database_access_exists(self):
+        security_manager.on_permission_view_after_delete = Mock()
+
+        # Add a bogus existing permission before the change
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+        security_manager.add_permission_view_menu(
+            "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+        )
+
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu("database_access", tmp_db1.perm)
+        )
+
+        tmp_db1.database_name = "tmp_db2"
+        db.session.commit()
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db2].(id:{tmp_db1.id})"
+            )
+        )
+
+        security_manager.on_permission_view_after_delete.assert_has_calls(
+            [
+                call(ANY, ANY, ANY),
+            ]
+        )
+
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_update_database__perm_datasource_access(self):
+        security_manager.on_view_menu_after_update = Mock()
+
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        table2 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table2",
+            database=tmp_db1,
+        )
+        db.session.add(table2)
+        db.session.commit()
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+        slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        table2 = db.session.query(SqlaTable).filter_by(table_name="tmp_table2").one()
+
+        # assert initial perms
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table2](id:{table2.id})"
+            )
+        )
+        self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(table2.perm, f"[tmp_db1].[tmp_table2](id:{table2.id})")
+
+        # Refresh and update the database name
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+        tmp_db1.database_name = "tmp_db2"
+        db.session.commit()
+
+        # Assert that the old permissions were updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db1].[tmp_table2](id:{table2.id})"
+            )
+        )
+
+        # Assert that the db permission was updated
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db2].[tmp_table1](id:{table1.id})"
+            )
+        )
+        self.assertIsNotNone(
+            security_manager.find_permission_view_menu(
+                "datasource_access", f"[tmp_db2].[tmp_table2](id:{table2.id})"
+            )
+        )
+        self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(table2.perm, f"[tmp_db2].[tmp_table2](id:{table2.id})")
+
+        # Assert hooks are called
+        tmp_db1_view_menu = security_manager.find_view_menu(
+            f"[tmp_db2].(id:{tmp_db1.id})"
+        )
+        table1_view_menu = security_manager.find_view_menu(
+            f"[tmp_db2].[tmp_table1](id:{table1.id})"
+        )
+        table2_view_menu = security_manager.find_view_menu(
+            f"[tmp_db2].[tmp_table2](id:{table2.id})"
+        )
+        security_manager.on_view_menu_after_update.assert_has_calls(
+            [
+                call(ANY, ANY, tmp_db1_view_menu),
+                call(ANY, ANY, table1_view_menu),
+                call(ANY, ANY, table2_view_menu),
+            ]
+        )
+
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(table2)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_delete_database(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", tmp_db1.perm
+        )
+        self.assertIsNotNone(database_pvm)
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(database_pvm)
+        db.session.add(role1)
+        db.session.commit()
+
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+        # Assert that PVM is removed from Role
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        # Assert that the old permission was updated
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+
+        # Cleanup
+        db.session.delete(role1)
+        db.session.commit()
+
+    def test_after_delete_database_rollback(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+        tmp_db1 = db.session.query(Database).filter_by(database_name="tmp_db1").one()
+
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", tmp_db1.perm
+        )
+        self.assertIsNotNone(database_pvm)
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(database_pvm)
+        db.session.add(role1)
+        db.session.commit()
+
+        db.session.delete(tmp_db1)
+        db.session.flush()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        self.assertIsNone(
+            security_manager.find_permission_view_menu(
+                "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+            )
+        )
+
+        db.session.rollback()
+
+        # Test a rollback reverts everything
+        database_pvm = security_manager.find_permission_view_menu(
+            "database_access", f"[tmp_db1].(id:{tmp_db1.id})"
+        )
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [database_pvm])
+
+        # Cleanup
+        db.session.delete(role1)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_delete_dataset(self):
+        security_manager.on_permission_view_after_delete = Mock()
+
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(table1_pvm)
+        db.session.add(role1)
+        db.session.commit()
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+
+        # Test delete
+        db.session.delete(table1)
+        db.session.commit()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+        table1_view_menu = security_manager.find_view_menu(
+            f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_view_menu)
+
+        # Assert the hook is called
+        security_manager.on_permission_view_after_delete.assert_has_calls(
+            [
+                call(ANY, ANY, ANY),
+            ]
+        )
+
+        # cleanup
+        db.session.delete(role1)
+        db.session.delete(tmp_db)
+        db.session.commit()
+
+    def test_after_delete_dataset_rollback(self):
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        role1 = Role(name="tmp_role1")
+        role1.permissions.append(table1_pvm)
+        db.session.add(role1)
+        db.session.commit()
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+
+        # Test delete, permissions are correctly deleted
+        db.session.delete(table1)
+        db.session.flush()
+
+        role1 = security_manager.find_role("tmp_role1")
+        self.assertEqual(role1.permissions, [])
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test rollback, permissions exist everything is correctly rollback
+        db.session.rollback()
+        role1 = security_manager.find_role("tmp_role1")
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+        self.assertEqual(role1.permissions, [table1_pvm])
+
+        # cleanup
+        db.session.delete(table1)
+        db.session.delete(role1)
+        db.session.delete(tmp_db)
+        db.session.commit()
+
+    def test_after_update_dataset__name_changes(self):
+        security_manager.on_view_menu_after_update = Mock()
+
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        db.session.commit()
+
+        # Test old permission does not exist
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(old_table1_pvm)
+
+        # Test new permission exist
+        new_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(new_table1_pvm)
+
+        # test dataset permission changed
+        changed_table1 = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
         )
         self.assertEqual(
-            stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_table.perm
-            )
-        )
-        # no changes in schema
-        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_table.schema_perm
-            )
+            changed_table1.perm, f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
         )
 
-        # schema name change
-        stored_table.schema = "tmp_schema_v2"
-        session.commit()
-        stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
+        # Test Chart permission changed
+        slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db].[tmp_table1_changed](id:{table1.id})")
+
+        # Assert hook is called
+        view_menu_dataset = security_manager.find_view_menu(
+            f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
+        )
+        security_manager.on_view_menu_after_update.assert_has_calls(
+            [
+                call(ANY, ANY, view_menu_dataset),
+            ]
+        )
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db)
+        db.session.commit()
+
+    def test_after_update_dataset_rollback(self):
+        tmp_db = Database(database_name="tmp_db", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        db.session.flush()
+
+        # Test old permission does not exist
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(old_table1_pvm)
+
+        # Test new permission exist
+        new_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(new_table1_pvm)
+
+        # Test rollback
+        db.session.rollback()
+
+        old_table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(old_table1_pvm)
+
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db)
+        db.session.commit()
+
+    def test_after_update_dataset__db_changes(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        tmp_db2 = Database(database_name="tmp_db2", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.add(tmp_db2)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.database = tmp_db2
+        db.session.commit()
+
+        # Test old permission does not exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test new permission exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db2].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset permission and schema permission changed
+        changed_table1 = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        )
+        self.assertEqual(changed_table1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # Test Chart permission changed
+        slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
+
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db1)
+        db.session.delete(tmp_db2)
+        db.session.commit()
+
+    def test_after_update_dataset__schema_changes(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.schema = "tmp_schema_changed"
+        db.session.commit()
+
+        # Test permission still exists
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset schema permission changed
+        changed_table1 = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        )
+        self.assertEqual(changed_table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+
+        # Test Chart schema permission changed
+        slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db1].[tmp_schema_changed]")
+
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_update_dataset__schema_none(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.schema = None
+        db.session.commit()
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+
+        self.assertEqual(table1.perm, f"[tmp_db1].[tmp_table1](id:{table1.id})")
+        self.assertIsNone(table1.schema_perm)
+
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db1)
+        db.session.commit()
+
+    def test_after_update_dataset__name_db_changes(self):
+        tmp_db1 = Database(database_name="tmp_db1", sqlalchemy_uri="sqlite://")
+        tmp_db2 = Database(database_name="tmp_db2", sqlalchemy_uri="sqlite://")
+        db.session.add(tmp_db1)
+        db.session.add(tmp_db2)
+        db.session.commit()
+
+        table1 = SqlaTable(
+            schema="tmp_schema",
+            table_name="tmp_table1",
+            database=tmp_db1,
+        )
+        db.session.add(table1)
+        db.session.commit()
+
+        slice1 = Slice(
+            datasource_id=table1.id,
+            datasource_type=DatasourceType.TABLE,
+            datasource_name="tmp_table1",
+            slice_name="tmp_slice1",
+        )
+        db.session.add(slice1)
+        db.session.commit()
+
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # refresh
+        table1 = db.session.query(SqlaTable).filter_by(table_name="tmp_table1").one()
+        # Test update
+        table1.table_name = "tmp_table1_changed"
+        table1.database = tmp_db2
+        db.session.commit()
+
+        # Test old permission does not exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db1].[tmp_table1](id:{table1.id})"
+        )
+        self.assertIsNone(table1_pvm)
+
+        # Test new permission exist
+        table1_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
+        )
+        self.assertIsNotNone(table1_pvm)
+
+        # test dataset permission and schema permission changed
+        changed_table1 = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_table1_changed").one()
         )
         self.assertEqual(
-            stored_table.perm, f"[examples].[tmp_perm_table_v2](id:{stored_table.id})"
+            changed_table1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})"
         )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_table.perm
-            )
-        )
-        # no changes in schema
-        self.assertEqual(stored_table.schema_perm, "[examples].[tmp_schema_v2]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_table.schema_perm
-            )
-        )
+        self.assertEqual(changed_table1.schema_perm, f"[tmp_db2].[tmp_schema]")
 
-        # database change
-        new_db = Database(sqlalchemy_uri="sqlite://", database_name="tmp_db")
-        session.add(new_db)
-        stored_table.database = (
-            session.query(Database).filter_by(database_name="tmp_db").one()
-        )
-        session.commit()
-        stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
-        )
-        self.assertEqual(
-            stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_table.perm
-            )
-        )
-        # no changes in schema
-        self.assertEqual(stored_table.schema_perm, "[tmp_db].[tmp_schema_v2]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_table.schema_perm
-            )
-        )
+        # Test Chart permission changed
+        slice1 = db.session.query(Slice).filter_by(slice_name="tmp_slice1").one()
+        self.assertEqual(slice1.perm, f"[tmp_db2].[tmp_table1_changed](id:{table1.id})")
+        self.assertEqual(slice1.schema_perm, f"[tmp_db2].[tmp_schema]")
 
-        # no schema
-        stored_table.schema = None
-        session.commit()
-        stored_table = (
-            session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
-        )
-        self.assertEqual(
-            stored_table.perm, f"[tmp_db].[tmp_perm_table_v2](id:{stored_table.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_table.perm
-            )
-        )
-        self.assertIsNone(stored_table.schema_perm)
-
-        session.delete(new_db)
-        session.delete(stored_table)
-        session.commit()
-
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_set_perm_druid_datasource(self):
-        self.create_druid_test_objects()
-        session = db.session
-        druid_cluster = (
-            session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
-        )
-        datasource = DruidDatasource(
-            datasource_name="tmp_datasource",
-            cluster=druid_cluster,
-            cluster_id=druid_cluster.id,
-        )
-        session.add(datasource)
-        session.commit()
-
-        # store without a schema
-        stored_datasource = (
-            session.query(DruidDatasource)
-            .filter_by(datasource_name="tmp_datasource")
-            .one()
-        )
-        self.assertEqual(
-            stored_datasource.perm,
-            f"[druid_test].[tmp_datasource](id:{stored_datasource.id})",
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_datasource.perm
-            )
-        )
-        self.assertIsNone(stored_datasource.schema_perm)
-
-        # store with a schema
-        stored_datasource.datasource_name = "tmp_schema.tmp_datasource"
-        session.commit()
-        self.assertEqual(
-            stored_datasource.perm,
-            f"[druid_test].[tmp_schema.tmp_datasource](id:{stored_datasource.id})",
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "datasource_access", stored_datasource.perm
-            )
-        )
-        self.assertIsNotNone(stored_datasource.schema_perm, "[druid_test].[tmp_schema]")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "schema_access", stored_datasource.schema_perm
-            )
-        )
-
-        session.delete(stored_datasource)
-        session.commit()
-
-    def test_set_perm_druid_cluster(self):
-        session = db.session
-        cluster = DruidCluster(cluster_name="tmp_druid_cluster")
-        session.add(cluster)
-
-        stored_cluster = (
-            session.query(DruidCluster)
-            .filter_by(cluster_name="tmp_druid_cluster")
-            .one()
-        )
-        self.assertEqual(
-            stored_cluster.perm, f"[tmp_druid_cluster].(id:{stored_cluster.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_cluster.perm
-            )
-        )
-
-        stored_cluster.cluster_name = "tmp_druid_cluster2"
-        session.commit()
-        self.assertEqual(
-            stored_cluster.perm, f"[tmp_druid_cluster2].(id:{stored_cluster.id})"
-        )
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_cluster.perm
-            )
-        )
-
-        session.delete(stored_cluster)
-        session.commit()
-
-    def test_set_perm_database(self):
-        session = db.session
-        database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
-        session.add(database)
-
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database").one()
-        )
-        self.assertEqual(stored_db.perm, f"[tmp_database].(id:{stored_db.id})")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
-        )
-
-        stored_db.database_name = "tmp_database2"
-        session.commit()
-        stored_db = (
-            session.query(Database).filter_by(database_name="tmp_database2").one()
-        )
-        self.assertEqual(stored_db.perm, f"[tmp_database2].(id:{stored_db.id})")
-        self.assertIsNotNone(
-            security_manager.find_permission_view_menu(
-                "database_access", stored_db.perm
-            )
-        )
-
-        session.delete(stored_db)
-        session.commit()
-
-    def test_hybrid_perm_druid_cluster(self):
-        cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
-        db.session.add(cluster)
-
-        id_ = (
-            db.session.query(DruidCluster.id)
-            .filter_by(cluster_name="tmp_druid_cluster3")
-            .scalar()
-        )
-
-        record = (
-            db.session.query(DruidCluster)
-            .filter_by(perm=f"[tmp_druid_cluster3].(id:{id_})")
-            .one()
-        )
-
-        self.assertEqual(record.get_perm(), record.perm)
-        self.assertEqual(record.id, id_)
-        self.assertEqual(record.cluster_name, "tmp_druid_cluster3")
-        db.session.delete(cluster)
+        # cleanup
+        db.session.delete(slice1)
+        db.session.delete(table1)
+        db.session.delete(tmp_db1)
+        db.session.delete(tmp_db2)
         db.session.commit()
 
     def test_hybrid_perm_database(self):
@@ -436,24 +1105,23 @@ class TestRolePermission(SupersetTestCase):
         db.session.commit()
 
     def test_set_perm_slice(self):
-        session = db.session
         database = Database(database_name="tmp_database", sqlalchemy_uri="sqlite://")
         table = SqlaTable(table_name="tmp_perm_table", database=database)
-        session.add(database)
-        session.add(table)
-        session.commit()
+        db.session.add(database)
+        db.session.add(table)
+        db.session.commit()
 
         # no schema permission
         slice = Slice(
             datasource_id=table.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_name="tmp_perm_table",
             slice_name="slice_name",
         )
-        session.add(slice)
-        session.commit()
+        db.session.add(slice)
+        db.session.commit()
 
-        slice = session.query(Slice).filter_by(slice_name="slice_name").one()
+        slice = db.session.query(Slice).filter_by(slice_name="slice_name").one()
         self.assertEqual(slice.perm, table.perm)
         self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
         self.assertEqual(slice.schema_perm, table.schema_perm)
@@ -461,38 +1129,30 @@ class TestRolePermission(SupersetTestCase):
 
         table.schema = "tmp_perm_schema"
         table.table_name = "tmp_perm_table_v2"
-        session.commit()
-        # TODO(bogdan): modify slice permissions on the table update.
-        self.assertNotEqual(slice.perm, table.perm)
-        self.assertEqual(slice.perm, f"[tmp_database].[tmp_perm_table](id:{table.id})")
-        self.assertEqual(
-            table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
+        db.session.commit()
+        table = (
+            db.session.query(SqlaTable).filter_by(table_name="tmp_perm_table_v2").one()
         )
-        # TODO(bogdan): modify slice schema permissions on the table update.
-        self.assertNotEqual(slice.schema_perm, table.schema_perm)
-        self.assertIsNone(slice.schema_perm)
-
-        # updating slice refreshes the permissions
-        slice.slice_name = "slice_name_v2"
-        session.commit()
         self.assertEqual(slice.perm, table.perm)
         self.assertEqual(
             slice.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
         )
+        self.assertEqual(
+            table.perm, f"[tmp_database].[tmp_perm_table_v2](id:{table.id})"
+        )
         self.assertEqual(slice.schema_perm, table.schema_perm)
         self.assertEqual(slice.schema_perm, "[tmp_database].[tmp_perm_schema]")
 
-        session.delete(slice)
-        session.delete(table)
-        session.delete(database)
+        db.session.delete(slice)
+        db.session.delete(table)
+        db.session.delete(database)
 
-        session.commit()
+        db.session.commit()
 
-        # TODO test slice permission
-
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_admin(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    def test_schemas_accessible_by_user_admin(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -500,11 +1160,12 @@ class TestRolePermission(SupersetTestCase):
             )
             self.assertEqual(schemas, ["1", "2", "3"])  # no changes
 
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_schema_access(self, mock_g):
+    def test_schemas_accessible_by_user_schema_access(self, mock_sm_g, mock_g):
         # User has schema access to the schema 1
         create_schema_perm("[examples].[1]")
-        mock_g.user = security_manager.find_user("gamma")
+        mock_g.user = mock_sm_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
             schemas = security_manager.get_schemas_accessible_by_user(
@@ -514,33 +1175,31 @@ class TestRolePermission(SupersetTestCase):
             self.assertEqual(schemas, ["1"])
         delete_schema_perm("[examples].[1]")
 
-    @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_datasource_access(self, mock_g):
+    def test_schemas_accessible_by_user_datasource_access(self):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
-        mock_g.user = security_manager.find_user("gamma")
+        database = get_example_database()
         with self.client.application.test_request_context():
-            database = get_example_database()
-            schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["temp_schema", "2", "3"]
-            )
-            self.assertEqual(schemas, ["temp_schema"])
+            with override_user(security_manager.find_user("gamma")):
+                schemas = security_manager.get_schemas_accessible_by_user(
+                    database, ["temp_schema", "2", "3"]
+                )
+                self.assertEqual(schemas, ["temp_schema"])
 
-    @patch("superset.security.manager.g")
-    def test_schemas_accessible_by_user_datasource_and_schema_access(self, mock_g):
+    def test_schemas_accessible_by_user_datasource_and_schema_access(self):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
         create_schema_perm("[examples].[2]")
-        mock_g.user = security_manager.find_user("gamma")
         with self.client.application.test_request_context():
             database = get_example_database()
-            schemas = security_manager.get_schemas_accessible_by_user(
-                database, ["temp_schema", "2", "3"]
-            )
-            self.assertEqual(schemas, ["temp_schema", "2"])
-        vm = security_manager.find_permission_view_menu(
-            "schema_access", "[examples].[2]"
-        )
-        self.assertIsNotNone(vm)
-        delete_schema_perm("[examples].[2]")
+            with override_user(security_manager.find_user("gamma")):
+                schemas = security_manager.get_schemas_accessible_by_user(
+                    database, ["temp_schema", "2", "3"]
+                )
+                self.assertEqual(schemas, ["temp_schema", "2"])
+                vm = security_manager.find_permission_view_menu(
+                    "schema_access", "[examples].[2]"
+                )
+                self.assertIsNotNone(vm)
+                delete_schema_perm("[examples].[2]")
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_gamma_user_schema_access_to_dashboards(self):
@@ -595,15 +1254,17 @@ class TestRolePermission(SupersetTestCase):
         for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
             assert pvm in public_role_resource_names
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
-        session = db.session
-
-        example_db = session.query(Database).filter_by(database_name="examples").one()
+        example_db = (
+            db.session.query(Database).filter_by(database_name="examples").one()
+        )
         example_db.expose_in_sqllab = True
-        session.commit()
+        db.session.commit()
 
         arguments = {
             "keys": ["none"],
+            "columns": ["expose_in_sqllab"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
             "order_columns": "database_name",
             "order_direction": "asc",
@@ -646,29 +1307,38 @@ class TestRolePermission(SupersetTestCase):
     def assert_can_menu(self, view_menu, permissions_set):
         self.assertIn(("menu_access", view_menu), permissions_set)
 
+    def assert_cannot_menu(self, view_menu, permissions_set):
+        self.assertNotIn(("menu_access", view_menu), permissions_set)
+
+    def assert_cannot_gamma(self, perm_set):
+        self.assert_cannot_write("Annotation", perm_set)
+        self.assert_cannot_write("CssTemplate", perm_set)
+        self.assert_cannot_menu("SQL Lab", perm_set)
+        self.assert_cannot_menu("CSS Templates", perm_set)
+        self.assert_cannot_menu("Annotation Layers", perm_set)
+        self.assert_cannot_menu("Manage", perm_set)
+        self.assert_cannot_menu("Queries", perm_set)
+        self.assert_cannot_menu("Import dashboards", perm_set)
+        self.assert_cannot_menu("Upload a CSV", perm_set)
+        self.assert_cannot_menu("ReportSchedule", perm_set)
+        self.assert_cannot_menu("Alerts & Report", perm_set)
+
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("Dataset", perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", perm_set)
         self.assert_can_all("Chart", perm_set)
-
-        self.assertIn(("can_add_slices", "Superset"), perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_created_slices", "Superset"), perm_set)
         self.assertIn(("can_csv", "Superset"), perm_set)
         self.assertIn(("can_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore", "Superset"), perm_set)
         self.assertIn(("can_share_chart", "Superset"), perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), perm_set)
-        self.assertIn(("can_save_dash", "Superset"), perm_set)
-        self.assertIn(("can_slice", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), perm_set)
         self.assert_can_menu("Databases", perm_set)
         self.assert_can_menu("Datasets", perm_set)
         self.assert_can_menu("Data", perm_set)
@@ -679,9 +1349,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("Annotation", perm_set)
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
-        self.assert_can_read("Query", perm_set)
         self.assert_can_read("Database", perm_set)
-        self.assertIn(("can_import_dashboards", "Superset"), perm_set)
         self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
         self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)
         self.assert_can_menu("Manage", perm_set)
@@ -690,9 +1358,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("all_datasource_access", "all_datasource_access"), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
-        if app.config["ENABLE_ACCESS_REQUEST"]:
-            self.assert_cannot_write("AccessRequestsModelView", perm_set)
-            self.assert_can_all("AccessRequestsModelView", perm_set)
         self.assert_cannot_write("Queries", perm_set)
         self.assert_cannot_write("RoleModelView", perm_set)
         self.assert_cannot_write("UserDBModelView", perm_set)
@@ -702,13 +1367,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("Database", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
-
         self.assertIn(("all_database_access", "all_database_access"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_sync_druid_source", "Superset"), perm_set)
-        self.assertIn(("can_override_role_permissions", "Superset"), perm_set)
-        self.assertIn(("can_approve", "Superset"), perm_set)
-
         self.assert_can_menu("Security", perm_set)
         self.assert_can_menu("List Users", perm_set)
         self.assert_can_menu("List Roles", perm_set)
@@ -735,24 +1394,11 @@ class TestRolePermission(SupersetTestCase):
                 )
             )
 
-        if app.config["ENABLE_ACCESS_REQUEST"]:
-            self.assertTrue(
-                security_manager._is_admin_only(
-                    security_manager.find_permission_view_menu(
-                        "can_list", "AccessRequestsModelView"
-                    )
-                )
-            )
         self.assertTrue(
             security_manager._is_admin_only(
                 security_manager.find_permission_view_menu(
                     "can_edit", "UserDBModelView"
                 )
-            )
-        )
-        self.assertTrue(
-            security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_approve", "Superset")
             )
         )
 
@@ -796,6 +1442,7 @@ class TestRolePermission(SupersetTestCase):
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
+        self.assert_cannot_gamma(get_perm_tuples("Gamma"))
 
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_permissions_basic(self):
@@ -809,6 +1456,8 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_gamma(alpha_perm_tuples)
         self.assert_can_alpha(alpha_perm_tuples)
         self.assert_cannot_alpha(alpha_perm_tuples)
+        self.assertNotIn(("can_this_form_get", "UserInfoEditView"), alpha_perm_tuples)
+        self.assertNotIn(("can_this_form_post", "UserInfoEditView"), alpha_perm_tuples)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_admin_permissions(self):
@@ -821,27 +1470,35 @@ class TestRolePermission(SupersetTestCase):
 
     def test_sql_lab_permissions(self):
         sql_lab_set = get_perm_tuples("sql_lab")
-        self.assertIn(("can_csv", "Superset"), sql_lab_set)
-        self.assertIn(("can_read", "Database"), sql_lab_set)
-        self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
-        self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab_viz", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab_table_viz", "Superset"), sql_lab_set)
-        self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
-
-        self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
-        self.assertIn(("menu_access", "SQL Editor"), sql_lab_set)
-        self.assertIn(("menu_access", "Saved Queries"), sql_lab_set)
-        self.assertIn(("menu_access", "Query Search"), sql_lab_set)
+        self.assertEqual(
+            sql_lab_set,
+            {
+                ("can_activate", "TabStateView"),
+                ("can_csv", "Superset"),
+                ("can_delete_query", "TabStateView"),
+                ("can_delete", "TabStateView"),
+                ("can_execute_sql_query", "SQLLab"),
+                ("can_export", "SavedQuery"),
+                ("can_export_csv", "SQLLab"),
+                ("can_get", "TabStateView"),
+                ("can_get_results", "SQLLab"),
+                ("can_migrate_query", "TabStateView"),
+                ("can_sqllab_history", "Superset"),
+                ("can_put", "TabStateView"),
+                ("can_post", "TabStateView"),
+                ("can_write", "SavedQuery"),
+                ("can_read", "Query"),
+                ("can_read", "Database"),
+                ("can_read", "SQLLab"),
+                ("can_read", "SavedQuery"),
+                ("menu_access", "Query Search"),
+                ("menu_access", "Saved Queries"),
+                ("menu_access", "SQL Editor"),
+                ("menu_access", "SQL Lab"),
+            },
+        )
 
         self.assert_cannot_alpha(sql_lab_set)
-
-    def test_granter_permissions(self):
-        granter_set = get_perm_tuples("granter")
-        self.assertIn(("can_override_role_permissions", "Superset"), granter_set)
-        self.assertIn(("can_approve", "Superset"), granter_set)
-
-        self.assert_cannot_alpha(granter_set)
 
     def test_gamma_permissions(self):
         gamma_perm_set = set()
@@ -860,21 +1517,15 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)
         self.assert_cannot_write("RoleModelView", gamma_perm_set)
 
-        self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_created_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_csv", "Superset"), gamma_perm_set)
         self.assertIn(("can_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_chart", "Superset"), gamma_perm_set)
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_dashboards", "Superset"), gamma_perm_set)
-        self.assertIn(("can_fave_slices", "Superset"), gamma_perm_set)
-        self.assertIn(("can_save_dash", "Superset"), gamma_perm_set)
-        self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
@@ -888,6 +1539,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            ["CurrentUserRestApi", "get_my_roles"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],
@@ -955,9 +1607,12 @@ class TestSecurityManager(SupersetTestCase):
 
         self.assertFalse(security_manager.can_access_table(database, table))
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_datasource(self, mock_can_access_schema, mock_can_access):
+    def test_raise_for_access_datasource(
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
+    ):
         datasource = self.get_datasource_mock()
 
         mock_can_access_schema.return_value = True
@@ -965,12 +1620,14 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
+        mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(datasource=datasource)
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_query(self, mock_can_access):
+    def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
         query = Mock(
             database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
         )
@@ -979,25 +1636,47 @@ class TestSecurityManager(SupersetTestCase):
         security_manager.raise_for_access(query=query)
 
         mock_can_access.return_value = False
+        mock_is_owner.return_value = False
 
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(query=query)
 
+    def test_raise_for_access_sql_fails(self):
+        with override_user(security_manager.find_user("gamma")):
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(
+                    database=get_example_database(),
+                    schema="bar",
+                    sql="SELECT * FROM foo",
+                )
+
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_sql(self, mock_can_access, mock_is_owner):
+        mock_can_access.return_value = True
+        mock_is_owner.return_value = True
+        with override_user(security_manager.find_user("gamma")):
+            security_manager.raise_for_access(
+                database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
+            )
+
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
     def test_raise_for_access_query_context(
-        self, mock_can_access_schema, mock_can_access
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
     ):
-        query_context = Mock(datasource=self.get_datasource_mock())
+        query_context = Mock(datasource=self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(query_context=query_context)
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
-
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(query_context=query_context)
+        mock_is_owner.return_value = False
+        with override_user(security_manager.find_user("gamma")):
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(query_context=query_context)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_table(self, mock_can_access):
@@ -1012,111 +1691,252 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):
             security_manager.raise_for_access(database=database, table=table)
 
+    @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
-    def test_raise_for_access_viz(self, mock_can_access_schema, mock_can_access):
-        test_viz = viz.TableViz(self.get_datasource_mock(), form_data={})
+    def test_raise_for_access_viz(
+        self, mock_can_access_schema, mock_can_access, mock_is_owner
+    ):
+        test_viz = viz.TimeTableViz(self.get_datasource_mock(), form_data={})
 
         mock_can_access_schema.return_value = True
         security_manager.raise_for_access(viz=test_viz)
 
         mock_can_access.return_value = False
         mock_can_access_schema.return_value = False
+        mock_is_owner.return_value = False
+        with override_user(security_manager.find_user("gamma")):
+            with self.assertRaises(SupersetSecurityException):
+                security_manager.raise_for_access(viz=test_viz)
 
-        with self.assertRaises(SupersetSecurityException):
-            security_manager.raise_for_access(viz=test_viz)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    @patch("superset.security.SupersetSecurityManager.can_access_schema")
+    def test_raise_for_access_rbac(
+        self,
+        mock_can_access_schema,
+        mock_can_access,
+        mock_is_owner,
+    ):
+        births = self.get_dash_by_slug("births")
+        girls = self.get_slice("Girls")
+        birth_names = girls.datasource
 
-    @patch("superset.security.manager.g")
-    def test_get_user_roles(self, mock_g):
+        world_health = self.get_dash_by_slug("world_health")
+        treemap = self.get_slice("Treemap")
+
+        births.json_metadata = json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-ABCDEFGH",
+                        "targets": [{"datasetId": birth_names.id}],
+                    },
+                    {
+                        "id": "NATIVE_FILTER-IJKLMNOP",
+                        "targets": [{"datasetId": treemap.id}],
+                    },
+                ]
+            }
+        )
+
+        mock_is_owner.return_value = False
+        mock_can_access.return_value = False
+        mock_can_access_schema.return_value = False
+        with override_user(security_manager.find_user("gamma")):
+            for kwarg in ["query_context", "viz"]:
+                births.roles = []
+
+                # No dashboard roles.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={
+                                    "dashboardId": births.id,
+                                    "slice_id": girls.id,
+                                },
+                            )
+                        }
+                    )
+
+                births.roles = [self.get_role("Gamma")]
+
+                # Undefined dashboard.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={},
+                            )
+                        }
+                    )
+
+                # Undefined dashboard chart.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={"dashboardId": births.id},
+                            )
+                        }
+                    )
+
+                # Ill-defined dashboard chart.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={
+                                    "dashboardId": births.id,
+                                    "slice_id": treemap.id,
+                                },
+                            )
+                        }
+                    )
+
+                # Dashboard chart not associated with said datasource.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={
+                                    "dashboardId": world_health.id,
+                                    "slice_id": treemap.id,
+                                },
+                            )
+                        }
+                    )
+
+                # Dashboard chart associated with said datasource.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "slice_id": girls.id,
+                            },
+                        )
+                    }
+                )
+
+                # Ill-defined native filter.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={
+                                    "dashboardId": births.id,
+                                    "type": "NATIVE_FILTER",
+                                },
+                            )
+                        }
+                    )
+
+                # Native filter not associated with said datasource.
+                with self.assertRaises(SupersetSecurityException):
+                    security_manager.raise_for_access(
+                        **{
+                            kwarg: Mock(
+                                datasource=birth_names,
+                                form_data={
+                                    "dashboardId": births.id,
+                                    "native_filter_id": "NATIVE_FILTER-IJKLMNOP",
+                                    "type": "NATIVE_FILTER",
+                                },
+                            )
+                        }
+                    )
+
+                # Native filter associated with said datasource.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={
+                                "dashboardId": births.id,
+                                "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
+                                "type": "NATIVE_FILTER",
+                            },
+                        )
+                    }
+                )
+
+    def test_get_user_roles(self):
         admin = security_manager.find_user("admin")
-        mock_g.user = admin
-        roles = security_manager.get_user_roles()
-        self.assertEqual(admin.roles, roles)
+        with override_user(admin):
+            roles = security_manager.get_user_roles()
+            self.assertEqual(admin.roles, roles)
 
-    @patch("superset.security.manager.g")
-    def test_get_anonymous_roles(self, mock_g):
-        mock_g.user = security_manager.get_anonymous_user()
-        roles = security_manager.get_user_roles()
-        self.assertEqual([security_manager.get_public_role()], roles)
-
-
-class TestAccessRequestEndpoints(SupersetTestCase):
-    def test_access_request_disabled(self):
-        with patch.object(AccessRequestsModelView, "is_enabled", return_value=False):
-            self.login("admin")
-            uri = "/accessrequestsmodelview/list/"
-            rv = self.client.get(uri)
-            self.assertEqual(rv.status_code, 404)
-
-    def test_access_request_enabled(self):
-        with patch.object(AccessRequestsModelView, "is_enabled", return_value=True):
-            self.login("admin")
-            uri = "/accessrequestsmodelview/list/"
-            rv = self.client.get(uri)
-            self.assertLess(rv.status_code, 400)
+    def test_get_anonymous_roles(self):
+        with override_user(security_manager.get_anonymous_user()):
+            roles = security_manager.get_user_roles()
+            self.assertEqual([security_manager.get_public_role()], roles)
 
 
 class TestDatasources(SupersetTestCase):
-    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.can_access_database")
     @patch("superset.security.SupersetSecurityManager.get_session")
     def test_get_user_datasources_admin(
-        self, mock_get_session, mock_can_access_database, mock_g
+        self, mock_get_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
-        mock_g.user = security_manager.find_user("admin")
         mock_can_access_database.return_value = True
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
                 Datasource("database1", "schema1", "table2"),
                 Datasource("database2", None, "table1"),
             ]
+            with override_user(security_manager.find_user("admin")):
+                datasources = security_manager.get_user_datasources()
+                assert sorted(datasources) == [
+                    Datasource("database1", "schema1", "table1"),
+                    Datasource("database1", "schema1", "table2"),
+                    Datasource("database2", None, "table1"),
+                ]
 
-            datasources = security_manager.get_user_datasources()
-
-        assert sorted(datasources) == [
-            Datasource("database1", "schema1", "table1"),
-            Datasource("database1", "schema1", "table2"),
-            Datasource("database2", None, "table1"),
-        ]
-
-    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.can_access_database")
     @patch("superset.security.SupersetSecurityManager.get_session")
     def test_get_user_datasources_gamma(
-        self, mock_get_session, mock_can_access_database, mock_g
+        self, mock_get_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
-        mock_g.user = security_manager.find_user("gamma")
         mock_can_access_database.return_value = False
         mock_get_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
                 Datasource("database1", "schema1", "table2"),
                 Datasource("database2", None, "table1"),
             ]
+            with override_user(security_manager.find_user("gamma")):
+                datasources = security_manager.get_user_datasources()
+                assert datasources == []
 
-            datasources = security_manager.get_user_datasources()
-
-        assert datasources == []
-
-    @patch("superset.security.manager.g")
     @patch("superset.security.SupersetSecurityManager.can_access_database")
     @patch("superset.security.SupersetSecurityManager.get_session")
     def test_get_user_datasources_gamma_with_schema(
-        self, mock_get_session, mock_can_access_database, mock_g
+        self, mock_get_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
-        mock_g.user = security_manager.find_user("gamma")
         mock_can_access_database.return_value = False
 
         mock_get_session.query.return_value.filter.return_value.all.return_value = [
@@ -1125,24 +1945,24 @@ class TestDatasources(SupersetTestCase):
         ]
 
         with mock.patch.object(
-            ConnectorRegistry, "get_all_datasources"
+            SqlaTable, "get_all_datasources"
         ) as mock_get_all_datasources:
             mock_get_all_datasources.return_value = [
                 Datasource("database1", "schema1", "table1"),
                 Datasource("database1", "schema1", "table2"),
                 Datasource("database2", None, "table1"),
             ]
-
-            datasources = security_manager.get_user_datasources()
-
-        assert sorted(datasources) == [
-            Datasource("database1", "schema1", "table1"),
-            Datasource("database1", "schema1", "table2"),
-        ]
+            with override_user(security_manager.find_user("gamma")):
+                datasources = security_manager.get_user_datasources()
+                assert sorted(datasources) == [
+                    Datasource("database1", "schema1", "table1"),
+                    Datasource("database1", "schema1", "table2"),
+                ]
 
 
 class FakeRequest:
     headers: Any = {}
+    form: Any = {}
 
 
 class TestGuestTokens(SupersetTestCase):
@@ -1184,6 +2004,17 @@ class TestGuestTokens(SupersetTestCase):
         token = self.create_guest_token()
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
+
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
+
+        self.assertIsNotNone(guest_user)
+        self.assertEqual("test_guest", guest_user.username)
+
+    def test_get_guest_user_with_request_form(self):
+        token = self.create_guest_token()
+        fake_request = FakeRequest()
+        fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = None
+        fake_request.form["guest_token"] = token
 
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 

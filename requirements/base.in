@@ -15,8 +15,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
 -e file:.
-pyrsistent>=0.16.1,<0.17
-zipp==3.4.1
-sasl==0.3.1
-wrapt==1.12.1  # required by astroid<2.9 until we bump pylint
+urllib3>=1.26.18
+werkzeug>=3.0.1

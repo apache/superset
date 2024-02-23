@@ -19,9 +19,11 @@
 import 'jest-enzyme';
 import './shim';
 import { configure as configureTestingLibrary } from '@testing-library/react';
+import { matchers } from '@emotion/jest';
 
 configureTestingLibrary({
   testIdAttribute: 'data-test',
 });
 
-document.body.innerHTML = '<div id="app" data-bootstrap="{}"></div>';
+document.body.innerHTML = '<div id="app" data-bootstrap=""></div>';
+expect.extend(matchers);

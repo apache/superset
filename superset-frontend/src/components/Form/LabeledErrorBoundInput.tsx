@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { Input } from 'antd';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { Input, Tooltip } from 'antd';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import Icons from 'src/components/Icons';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -36,10 +37,15 @@ export interface LabeledErrorBoundInputProps {
   tooltipText?: string | null;
   id?: string;
   classname?: string;
+  visibilityToggle?: boolean;
   [x: string]: any;
 }
 
 const StyledInput = styled(Input)`
+  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+`;
+
+const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
@@ -86,6 +92,12 @@ const StyledFormLabel = styled(FormLabel)`
   margin-bottom: 0;
 `;
 
+const iconReset = css`
+  &.anticon > * {
+    line-height: 0;
+  }
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -96,6 +108,7 @@ const LabeledErrorBoundInput = ({
   tooltipText,
   id,
   className,
+  visibilityToggle,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -103,9 +116,7 @@ const LabeledErrorBoundInput = ({
       <StyledFormLabel htmlFor={id} required={required}>
         {label}
       </StyledFormLabel>
-      {hasTooltip && (
-        <InfoTooltip tooltip={`${tooltipText}`} viewBox="0 -1 24 24" />
-      )}
+      {hasTooltip && <InfoTooltip tooltip={`${tooltipText}`} />}
     </StyledAlignment>
     <FormItem
       css={(theme: SupersetTheme) => alertIconStyles(theme, !!errorMessage)}
@@ -114,7 +125,30 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      <StyledInput {...props} {...validationMethods} />
+      {visibilityToggle || props.name === 'password' ? (
+        <StyledInputPassword
+          {...props}
+          {...validationMethods}
+          iconRender={visible =>
+            visible ? (
+              <Tooltip title={t('Hide password.')}>
+                <Icons.EyeInvisibleOutlined iconSize="m" css={iconReset} />
+              </Tooltip>
+            ) : (
+              <Tooltip title={t('Show password.')}>
+                <Icons.EyeOutlined
+                  iconSize="m"
+                  css={iconReset}
+                  data-test="icon-eye"
+                />
+              </Tooltip>
+            )
+          }
+          role="textbox"
+        />
+      ) : (
+        <StyledInput {...props} {...validationMethods} />
+      )}
     </FormItem>
   </StyledFormGroup>
 );

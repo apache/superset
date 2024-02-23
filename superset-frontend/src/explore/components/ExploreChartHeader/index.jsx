@@ -16,31 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useHistory } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
+import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
+  logging,
   SupersetClient,
-  styled,
   t,
+  tn,
 } from '@superset-ui/core';
-import {
-  fetchUISpecificReport,
-  toggleActive,
-  deleteActiveReport,
-} from 'src/reports/actions/reports';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
-import FaveStar from 'src/components/FaveStar';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import ExploreAdditionalActionsMenu from '../ExploreAdditionalActionsMenu';
-import { ChartEditableTitle } from './ChartEditableTitle';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
+import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -51,259 +49,256 @@ const propTypes = {
   slice: PropTypes.object,
   sliceName: PropTypes.string,
   table_name: PropTypes.string,
-  form_data: PropTypes.object,
+  formData: PropTypes.object,
   ownState: PropTypes.object,
   timeout: PropTypes.number,
   chart: chartPropShape,
+  saveDisabled: PropTypes.bool,
 };
 
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    height: 100%;
-
-    span[role='button'] {
-      display: flex;
-      height: 100%;
-    }
-
-    .title-panel {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-      margin-right: ${theme.gridUnit * 12}px;
-    }
-
-    .right-button-panel {
-      display: flex;
-      align-items: center;
-
-      > .btn-group {
-        flex: 0 0 auto;
-        margin-left: ${theme.gridUnit}px;
-      }
-    }
-
-    .action-button {
-      color: ${theme.colors.grayscale.base};
-      margin: 0 ${theme.gridUnit * 1.5}px 0 ${theme.gridUnit}px;
-    }
-  `}
+const saveButtonStyles = theme => css`
+  color: ${theme.colors.primary.dark2};
+  & > span[role='img'] {
+    margin-right: 0;
+  }
 `;
 
-const StyledButtons = styled.span`
-  ${({ theme }) => css`
-    display: flex;
-    align-items: center;
-    padding-left: ${theme.gridUnit * 2}px;
-
-    & .fave-unfave-icon {
-      padding: 0 ${theme.gridUnit}px;
-
-      &:first-child {
-        padding-left: 0;
-      }
-    }
-  `}
+const additionalItemsStyles = theme => css`
+  display: flex;
+  align-items: center;
+  margin-left: ${theme.gridUnit}px;
+  & > span {
+    margin-right: ${theme.gridUnit * 3}px;
+  }
 `;
 
-export class ExploreChartHeader extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isPropertiesModalOpen: false,
-    };
-    this.openPropertiesModal = this.openPropertiesModal.bind(this);
-    this.closePropertiesModal = this.closePropertiesModal.bind(this);
-    this.fetchChartDashboardData = this.fetchChartDashboardData.bind(this);
-  }
+export const ExploreChartHeader = ({
+  dashboardId,
+  slice,
+  actions,
+  formData,
+  ownState,
+  chart,
+  user,
+  canOverwrite,
+  canDownload,
+  isStarred,
+  sliceName,
+  saveDisabled,
+  metadata,
+}) => {
+  const dispatch = useDispatch();
+  const { latestQueryFormData, sliceFormData } = chart;
+  const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
 
-  componentDidMount() {
-    const { dashboardId } = this.props;
-    if (this.canAddReports()) {
-      const { user, chart } = this.props;
-      // this is in the case that there is an anonymous user.
-      this.props.fetchUISpecificReport(
-        user.userId,
-        'chart_id',
-        'charts',
-        chart.id,
-      );
+  const updateCategoricalNamespace = async () => {
+    const { dashboards } = metadata || {};
+    const dashboard =
+      dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
+
+    if (dashboard) {
+      try {
+        // Dashboards from metadata don't contain the json_metadata field
+        // to avoid unnecessary payload. Here we query for the dashboard json_metadata.
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dashboard/${dashboard.id}`,
+        });
+        const result = response?.json?.result;
+
+        // setting the chart to use the dashboard custom label colors if any
+        const metadata = JSON.parse(result.json_metadata);
+        const sharedLabelColors = metadata.shared_label_colors || {};
+        const customLabelColors = metadata.label_colors || {};
+        const mergedLabelColors = {
+          ...sharedLabelColors,
+          ...customLabelColors,
+        };
+
+        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
+
+        Object.keys(mergedLabelColors).forEach(label => {
+          categoricalNamespace.setColor(
+            label,
+            mergedLabelColors[label],
+            metadata.color_scheme,
+          );
+        });
+      } catch (error) {
+        logging.info(t('Unable to retrieve dashboard colors'));
+      }
     }
-    if (dashboardId) {
-      this.fetchChartDashboardData();
-    }
-  }
+  };
 
-  async fetchChartDashboardData() {
-    const { dashboardId, slice } = this.props;
-    await SupersetClient.get({
-      endpoint: `/api/v1/chart/${slice.slice_id}`,
-    })
-      .then(res => {
-        const response = res?.json?.result;
-        if (response && response.dashboards && response.dashboards.length) {
-          const { dashboards } = response;
-          const dashboard =
-            dashboardId &&
-            dashboards.length &&
-            dashboards.find(d => d.id === dashboardId);
+  useEffect(() => {
+    if (dashboardId) updateCategoricalNamespace();
+  }, []);
 
-          if (dashboard && dashboard.json_metadata) {
-            // setting the chart to use the dashboard custom label colors if any
-            const metadata = JSON.parse(dashboard.json_metadata);
-            const sharedLabelColors = metadata.shared_label_colors || {};
-            const customLabelColors = metadata.label_colors || {};
-            const mergedLabelColors = {
-              ...sharedLabelColors,
-              ...customLabelColors,
-            };
+  const openPropertiesModal = () => {
+    setIsPropertiesModalOpen(true);
+  };
 
-            const categoricalNamespace =
-              CategoricalColorNamespace.getNamespace();
+  const closePropertiesModal = () => {
+    setIsPropertiesModalOpen(false);
+  };
 
-            Object.keys(mergedLabelColors).forEach(label => {
-              categoricalNamespace.setColor(
-                label,
-                mergedLabelColors[label],
-                metadata.color_scheme,
-              );
-            });
-          }
-        }
-      })
-      .catch(() => {});
-  }
+  const showModal = useCallback(() => {
+    dispatch(setSaveChartModalVisibility(true));
+  }, [dispatch]);
 
-  postChartFormData() {
-    this.props.actions.postChartFormData(
-      this.props.form_data,
-      true,
-      this.props.timeout,
-      this.props.chart.id,
-      this.props.ownState,
-    );
-  }
+  const updateSlice = useCallback(
+    slice => {
+      dispatch(sliceUpdated(slice));
+    },
+    [dispatch],
+  );
 
-  openPropertiesModal() {
-    this.setState({
-      isPropertiesModalOpen: true,
-    });
-  }
+  const history = useHistory();
+  const { redirectSQLLab } = actions;
 
-  closePropertiesModal() {
-    this.setState({
-      isPropertiesModalOpen: false,
-    });
-  }
+  const redirectToSQLLab = useCallback(
+    (formData, openNewWindow = false) => {
+      redirectSQLLab(formData, !openNewWindow && history);
+    },
+    [redirectSQLLab, history],
+  );
 
-  canAddReports() {
-    if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
-      return false;
-    }
-    const { user } = this.props;
-    if (!user?.userId) {
-      // this is in the case that there is an anonymous user.
-      return false;
-    }
-    const roles = Object.keys(user.roles || []);
-    const permissions = roles.map(key =>
-      user.roles[key].filter(
-        perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
-      ),
-    );
-    return permissions[0].length > 0;
-  }
-
-  render() {
-    const {
-      actions,
-      chart,
-      user,
-      formData,
-      slice,
-      canOverwrite,
+  const [menu, isDropdownVisible, setIsDropdownVisible] =
+    useExploreAdditionalActionsMenu(
+      latestQueryFormData,
       canDownload,
-      isStarred,
-      sliceUpdated,
-      sliceName,
-    } = this.props;
-    const { latestQueryFormData, sliceFormData } = chart;
-    const oldSliceName = slice?.slice_name;
-    return (
-      <StyledHeader id="slice-header">
-        <div className="title-panel">
-          <ChartEditableTitle
-            title={sliceName}
-            canEdit={
-              !slice ||
-              canOverwrite ||
-              (slice?.owners || []).includes(user?.userId)
-            }
-            onSave={actions.updateChartTitle}
-            placeholder={t('Add the name of the chart')}
-          />
-          {slice && (
-            <StyledButtons>
-              {slice.certified_by && (
-                <CertifiedBadge
-                  certifiedBy={slice.certified_by}
-                  details={slice.certification_details}
-                />
-              )}
-              {user.userId && (
-                <FaveStar
-                  itemId={slice.slice_id}
-                  fetchFaveStar={actions.fetchFaveStar}
-                  saveFaveStar={actions.saveFaveStar}
-                  isStarred={isStarred}
-                  showTooltip
-                />
-              )}
-              {this.state.isPropertiesModalOpen && (
-                <PropertiesModal
-                  show={this.state.isPropertiesModalOpen}
-                  onHide={this.closePropertiesModal}
-                  onSave={sliceUpdated}
-                  slice={slice}
-                />
-              )}
-              {sliceFormData && (
-                <AlteredSliceTag
-                  className="altered"
-                  origFormData={{ ...sliceFormData, chartTitle: oldSliceName }}
-                  currentFormData={{ ...formData, chartTitle: sliceName }}
-                />
-              )}
-            </StyledButtons>
-          )}
-        </div>
-        <div className="right-button-panel">
-          <ExploreAdditionalActionsMenu
-            onOpenInEditor={actions.redirectSQLLab}
-            onOpenPropertiesModal={this.openPropertiesModal}
-            slice={slice}
-            canDownloadCSV={canDownload}
-            latestQueryFormData={latestQueryFormData}
-            canAddReports={this.canAddReports()}
-          />
-        </div>
-      </StyledHeader>
+      slice,
+      redirectToSQLLab,
+      openPropertiesModal,
+      ownState,
+      metadata?.dashboards,
     );
-  }
-}
+
+  const metadataBar = useMemo(() => {
+    if (!metadata) {
+      return null;
+    }
+    const items = [];
+    items.push({
+      type: MetadataType.Dashboards,
+      title:
+        metadata.dashboards.length > 0
+          ? tn(
+              'Added to 1 dashboard',
+              'Added to %s dashboards',
+              metadata.dashboards.length,
+              metadata.dashboards.length,
+            )
+          : t('Not added to any dashboard'),
+      description:
+        metadata.dashboards.length > 0
+          ? t(
+              'You can preview the list of dashboards in the chart settings dropdown.',
+            )
+          : undefined,
+    });
+    items.push({
+      type: MetadataType.LastModified,
+      value: metadata.changed_on_humanized,
+      modifiedBy: metadata.changed_by || t('Not available'),
+    });
+    items.push({
+      type: MetadataType.Owner,
+      createdBy: metadata.created_by || t('Not available'),
+      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
+      createdOn: metadata.created_on_humanized,
+    });
+    if (slice?.description) {
+      items.push({
+        type: MetadataType.Description,
+        value: slice?.description,
+      });
+    }
+    return <MetadataBar items={items} tooltipPlacement="bottom" />;
+  }, [metadata, slice?.description]);
+
+  const oldSliceName = slice?.slice_name;
+  return (
+    <>
+      <PageHeaderWithActions
+        editableTitleProps={{
+          title: sliceName,
+          canEdit:
+            !slice ||
+            canOverwrite ||
+            (slice?.owners || []).includes(user?.userId),
+          onSave: actions.updateChartTitle,
+          placeholder: t('Add the name of the chart'),
+          label: t('Chart title'),
+        }}
+        showTitlePanelItems={!!slice}
+        certificatiedBadgeProps={{
+          certifiedBy: slice?.certified_by,
+          details: slice?.certification_details,
+        }}
+        showFaveStar={!!user?.userId}
+        faveStarProps={{
+          itemId: slice?.slice_id,
+          fetchFaveStar: actions.fetchFaveStar,
+          saveFaveStar: actions.saveFaveStar,
+          isStarred,
+          showTooltip: true,
+        }}
+        titlePanelAdditionalItems={
+          <div css={additionalItemsStyles}>
+            {sliceFormData ? (
+              <AlteredSliceTag
+                className="altered"
+                origFormData={{
+                  ...sliceFormData,
+                  chartTitle: oldSliceName,
+                }}
+                currentFormData={{ ...formData, chartTitle: sliceName }}
+              />
+            ) : null}
+            {metadataBar}
+          </div>
+        }
+        rightPanelAdditionalItems={
+          <Tooltip
+            title={
+              saveDisabled
+                ? t('Add required control values to save chart')
+                : null
+            }
+          >
+            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+            <div>
+              <Button
+                buttonStyle="secondary"
+                onClick={showModal}
+                disabled={saveDisabled}
+                data-test="query-save-button"
+                css={saveButtonStyles}
+              >
+                <Icons.SaveOutlined iconSize="l" />
+                {t('Save')}
+              </Button>
+            </div>
+          </Tooltip>
+        }
+        additionalActionsMenu={menu}
+        menuDropdownProps={{
+          visible: isDropdownVisible,
+          onVisibleChange: setIsDropdownVisible,
+        }}
+      />
+      {isPropertiesModalOpen && (
+        <PropertiesModal
+          show={isPropertiesModalOpen}
+          onHide={closePropertiesModal}
+          onSave={updateSlice}
+          slice={slice}
+        />
+      )}
+    </>
+  );
+};
 
 ExploreChartHeader.propTypes = propTypes;
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    { sliceUpdated, fetchUISpecificReport, toggleActive, deleteActiveReport },
-    dispatch,
-  );
-}
-
-export default connect(null, mapDispatchToProps)(ExploreChartHeader);
+export default ExploreChartHeader;

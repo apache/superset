@@ -204,7 +204,7 @@ describe('makeApi()', () => {
     expect(result).toBe('ok?');
   });
 
-  it('should return raw resposnse when responseType=raw', async () => {
+  it('should return raw response when responseType=raw', async () => {
     expect.assertions(2);
     const api = makeApi<JsonValue, number, 'raw'>({
       method: 'DELETE',

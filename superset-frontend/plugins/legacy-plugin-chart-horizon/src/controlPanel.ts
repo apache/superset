@@ -20,12 +20,10 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
-  sections,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -82,9 +80,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               label: t('Value Domain'),
               choices: [
-                ['series', 'series'],
-                ['overall', 'overall'],
-                ['change', 'change'],
+                ['series', t('series')],
+                ['overall', t('overall')],
+                ['change', t('change')],
               ],
               default: 'series',
               description: t(

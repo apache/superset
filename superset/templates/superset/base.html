@@ -21,7 +21,15 @@
 
 {% block head_css %}
   {{ super() }}
-  <link rel="icon" type="image/png" href="{{ assets_prefix }}/static/assets/images/favicon.png">
+  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% for favicon in favicons %}
+    <link
+      rel="{{favicon.rel if favicon.rel else "icon"}}"
+      type="{{favicon.type if favicon.type else "image/png"}}"
+      {% if favicon.sizes %}sizes={{favicon.sizes}}{% endif %}
+      href="{{ "" if favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}"
+    >
+  {% endfor %}
   {{ css_bundle("theme") }}
 {% endblock %}
 

@@ -20,7 +20,7 @@ from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
-from flask_appbuilder.api import BaseApi, expose, protect
+from flask_appbuilder.api import expose, protect
 
 from superset.commands.export.assets import ExportAssetsCommand
 from superset.commands.importers.exceptions import (
@@ -30,30 +30,32 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
-from superset.views.base_api import requires_form_data
+from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
-class ImportExportRestApi(BaseApi):
+class ImportExportRestApi(BaseSupersetApi):
     """
     API for exporting all assets or importing them.
     """
 
     resource_name = "assets"
     openapi_spec_tag = "Import/export"
+    allow_browser_login = True
 
-    @expose("/export/", methods=["GET"])
+    @expose("/export/", methods=("GET",))
     @protect()
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
     )
     def export(self) -> Response:
-        """
-        Export all assets.
+        """Export all assets.
         ---
         get:
+          summary: Export all assets
           description: >-
-            Returns a ZIP file with all the Superset assets (databases, datasets, charts,
+            Gets a ZIP file with all the Superset assets (databases, datasets, charts,
             dashboards, saved queries) as YAML files.
           responses:
             200:
@@ -63,8 +65,6 @@ class ImportExportRestApi(BaseApi):
                   schema:
                     type: string
                     format: binary
-            400:
-              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             404:
@@ -80,28 +80,30 @@ class ImportExportRestApi(BaseApi):
         with ZipFile(buf, "w") as bundle:
             for file_name, file_content in ExportAssetsCommand().run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
         buf.seek(0)
 
         response = send_file(
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            attachment_filename=filename,
+            download_name=filename,
         )
         return response
 
-    @expose("/import/", methods=["POST"])
+    @expose("/import/", methods=("POST",))
     @protect()
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
     )
     @requires_form_data
     def import_(self) -> Response:
-        """Import multiple assets
+        """Import multiple assets.
         ---
         post:
+          summary: Import multiple assets
           requestBody:
             required: true
             content:
@@ -121,9 +123,33 @@ class ImportExportRestApi(BaseApi):
                         in the following format:
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
+                    ssh_tunnel_passwords:
+                      description: >-
+                        JSON map of passwords for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the password should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_password"}`.
+                      type: string
+                    ssh_tunnel_private_keys:
+                      description: >-
+                        JSON map of private_keys for each ssh_tunnel associated to a
+                        featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key"}`.
+                      type: string
+                    ssh_tunnel_private_key_passwords:
+                      description: >-
+                        JSON map of private_key_passwords for each ssh_tunnel associated
+                        to a featured database in the ZIP file. If the ZIP includes a
+                        ssh_tunnel config in the path `databases/MyDatabase.yaml`,
+                        the private_key should be provided in the following format:
+                        `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
+                      type: string
           responses:
             200:
-              description: Dashboard import result
+              description: Assets import result
               content:
                 application/json:
                   schema:
@@ -157,7 +183,28 @@ class ImportExportRestApi(BaseApi):
             if "passwords" in request.form
             else None
         )
+        ssh_tunnel_passwords = (
+            json.loads(request.form["ssh_tunnel_passwords"])
+            if "ssh_tunnel_passwords" in request.form
+            else None
+        )
+        ssh_tunnel_private_keys = (
+            json.loads(request.form["ssh_tunnel_private_keys"])
+            if "ssh_tunnel_private_keys" in request.form
+            else None
+        )
+        ssh_tunnel_priv_key_passwords = (
+            json.loads(request.form["ssh_tunnel_private_key_passwords"])
+            if "ssh_tunnel_private_key_passwords" in request.form
+            else None
+        )
 
-        command = ImportAssetsCommand(contents, passwords=passwords)
+        command = ImportAssetsCommand(
+            contents,
+            passwords=passwords,
+            ssh_tunnel_passwords=ssh_tunnel_passwords,
+            ssh_tunnel_private_keys=ssh_tunnel_private_keys,
+            ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+        )
         command.run()
         return self.response(200, message="OK")

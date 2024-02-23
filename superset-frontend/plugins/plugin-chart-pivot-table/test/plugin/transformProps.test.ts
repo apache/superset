@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps, QueryFormData } from '@superset-ui/core';
+import { ChartProps, QueryFormData, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/plugin/transformProps';
 import { MetricsLayoutEnum } from '../../src/types';
 
@@ -38,7 +38,6 @@ describe('PivotTableChart transformProps', () => {
     colTotals: true,
     rowTotals: true,
     valueFormat: 'SMART_NUMBER',
-    emitFilter: false,
     metricsLayout: MetricsLayoutEnum.COLUMNS,
     viz_type: '',
     datasource: '',
@@ -46,6 +45,7 @@ describe('PivotTableChart transformProps', () => {
     dateFormat: '',
     legacy_order_by: 'count',
     order_desc: true,
+    currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
   };
   const chartProps = new ChartProps<QueryFormData>({
     formData,
@@ -61,6 +61,7 @@ describe('PivotTableChart transformProps', () => {
     hooks: { setDataMask },
     filterState: { selectedFilters: {} },
     datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
   });
 
   it('should transform chart props for viz', () => {
@@ -82,14 +83,16 @@ describe('PivotTableChart transformProps', () => {
       rowTotals: true,
       valueFormat: 'SMART_NUMBER',
       data: [{ name: 'Hulk', sum__num: 1, __timestamp: 599616000000 }],
-      emitFilter: false,
       setDataMask,
       selectedFilters: {},
       verboseMap: {},
       metricsLayout: MetricsLayoutEnum.COLUMNS,
       metricColorFormatters: [],
       dateFormatters: {},
+      emitCrossFilters: false,
       columnFormats: {},
+      currencyFormats: {},
+      currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
     });
   });
 });

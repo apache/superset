@@ -47,8 +47,10 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
+  onDoubleClick: () => void;
   selectedViz: string | null;
   className?: string;
+  denyList: string[];
 }
 
 type VizEntry = {
@@ -56,11 +58,11 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+enum Sections {
+  AllCharts = 'ALL_CHARTS',
+  Category = 'CATEGORY',
+  Tags = 'TAGS',
+  RecommendedTags = 'RECOMMENDED_TAGS',
 }
 
 const DEFAULT_ORDER = [
@@ -75,7 +77,6 @@ const DEFAULT_ORDER = [
   'echarts_timeseries_scatter',
   'pie',
   'mixed_timeseries',
-  'filter_box',
   'dist_bar',
   'area',
   'bar',
@@ -88,12 +89,9 @@ const DEFAULT_ORDER = [
   'deck_arc',
   'heatmap',
   'deck_grid',
-  'dual_line',
   'deck_screengrid',
-  'line_multi',
-  'treemap',
+  'treemap_v2',
   'box_plot',
-  'sunburst',
   'sankey',
   'word_cloud',
   'mapbox',
@@ -101,6 +99,7 @@ const DEFAULT_ORDER = [
   'cal_heatmap',
   'rose',
   'bubble',
+  'bubble_v2',
   'deck_geojson',
   'horizon',
   'deck_multi',
@@ -224,7 +223,7 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colors.primary.dark1};
+      background-color: ${theme.colors.primary.base};
       color: ${theme.colors.primary.light5};
 
       svg {
@@ -380,12 +379,14 @@ interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 const Thumbnail: React.FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
+  onDoubleClick,
 }) => {
   const theme = useTheme();
   const { key, value: type } = entry;
@@ -400,6 +401,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       tabIndex={0}
       className={isSelected ? 'selected' : ''}
       onClick={() => setSelectedViz(key)}
+      onDoubleClick={onDoubleClick}
       data-test="viztype-selector-container"
     >
       <img
@@ -429,6 +431,7 @@ interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
@@ -487,7 +490,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -501,6 +504,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
+      .filter(({ key }) => !props.denyList.includes(key))
       .filter(
         ({ value }) =>
           nativeFilterGate(value.behaviors || []) && !value.deprecated,
@@ -569,8 +573,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const [activeSection, setActiveSection] = useState<string>(() =>
     selectedVizMetadata?.category
-      ? SECTIONS.CATEGORY
-      : SECTIONS.RECOMMENDED_TAGS,
+      ? Sections.Category
+      : Sections.RecommendedTags,
   );
 
   // get a fuse instance for fuzzy search
@@ -579,7 +583,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       new Fuse(chartMetadata, {
         ignoreLocation: true,
         threshold: 0.3,
-        keys: ['value.name', 'value.tags', 'value.description'],
+        keys: [
+          {
+            name: 'value.name',
+            weight: 4,
+          },
+          {
+            name: 'value.tags',
+            weight: 2,
+          },
+          'value.description',
+        ],
       }),
     [chartMetadata],
   );
@@ -652,17 +666,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [SECTIONS.RECOMMENDED_TAGS]: {
+      [Sections.RecommendedTags]: {
         title: t('Recommended tags'),
         icon: <Icons.Tags />,
         selectors: RECOMMENDED_TAGS,
       },
-      [SECTIONS.CATEGORY]: {
+      [Sections.Category]: {
         title: t('Category'),
         icon: <Icons.Category />,
         selectors: categories,
       },
-      [SECTIONS.TAGS]: {
+      [Sections.Tags]: {
         title: t('Tags'),
         icon: <Icons.Tags />,
         selectors: tags,
@@ -675,21 +689,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (isActivelySearching) {
       return searchResults;
     }
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
-    ) {
+    if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
     if (
-      activeSection === SECTIONS.CATEGORY &&
+      activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
     if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
+      (activeSection === Sections.Tags ||
+        activeSection === Sections.RecommendedTags) &&
       chartsByTags[activeSelector]
     ) {
       return chartsByTags[activeSelector];
@@ -711,13 +722,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
-          sectionId={SECTIONS.ALL_CHARTS}
+          sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
           icon={<Icons.Ballot />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            SECTIONS.ALL_CHARTS === activeSection
+            Sections.AllCharts === activeSection
           }
           onClick={clickSelector}
         />
@@ -783,6 +794,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
+          onDoubleClick={onDoubleClick}
         />
       </RightPane>
 
@@ -832,11 +844,20 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                 grid-area: examples-header;
               `}
             >
-              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+              {t('Examples')}
             </SectionTitle>
             <Examples>
-              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+              {(selectedVizMetadata?.exampleGallery?.length
+                ? selectedVizMetadata.exampleGallery
+                : [
+                    {
+                      url: selectedVizMetadata?.thumbnail,
+                      caption: selectedVizMetadata?.name,
+                    },
+                  ]
+              ).map(example => (
                 <img
+                  key={example.url}
                   src={example.url}
                   alt={example.caption}
                   title={example.caption}

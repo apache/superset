@@ -16,44 +16,64 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  GenericDataType,
+  testQueryResponse,
+} from '@superset-ui/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
-  it('should convert columns to choices', () => {
+  it('should convert columns to choices when source is a Dataset', () => {
     expect(
       columnChoices({
         id: 1,
         metrics: [],
         type: DatasourceType.Table,
         main_dttm_col: 'test',
-        time_grain_sqla: 'P1D',
+        time_grain_sqla: [],
         columns: [
           {
             column_name: 'fiz',
+            type: 'INT',
+            type_generic: GenericDataType.Numeric,
           },
           {
             column_name: 'about',
             verbose_name: 'right',
+            type: 'VARCHAR',
+            type_generic: GenericDataType.String,
           },
           {
             column_name: 'foo',
-            verbose_name: 'bar',
+            verbose_name: undefined,
+            type: 'TIMESTAMP',
+            type_generic: GenericDataType.Temporal,
           },
         ],
         verbose_map: {},
-        column_format: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        column_formats: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        currency_formats: {},
         datasource_name: 'my_datasource',
         description: 'this is my datasource',
       }),
     ).toEqual([
-      ['foo', 'bar'],
       ['fiz', 'fiz'],
+      ['foo', 'foo'],
       ['about', 'right'],
     ]);
   });
 
   it('should return empty array when no columns', () => {
     expect(columnChoices(undefined)).toEqual([]);
+  });
+
+  it('should convert columns to choices when source is a Query', () => {
+    expect(columnChoices(testQueryResponse)).toEqual([
+      ['Column 1', 'Column 1'],
+      ['Column 2', 'Column 2'],
+      ['Column 3', 'Column 3'],
+    ]);
+    expect.anything();
   });
 });

@@ -58,6 +58,7 @@ export const UNDO_LIMIT = 50;
 
 // save dash options
 export const SAVE_TYPE_OVERWRITE = 'overwrite';
+export const SAVE_TYPE_OVERWRITE_CONFIRMED = 'overwriteConfirmed';
 export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
 
 // default dashboard layout data size limit
@@ -72,8 +73,8 @@ export const IN_COMPONENT_ELEMENT_TYPES = ['LABEL'];
 export const ALL_FILTERS_ROOT = 'ALL_FILTERS_ROOT';
 
 export enum DashboardStandaloneMode {
-  NONE = 0,
-  HIDE_NAV = 1,
-  HIDE_NAV_AND_TITLE = 2,
-  REPORT = 3,
+  None = 0,
+  HideNav = 1,
+  HideNavAndTitle = 2,
+  Report = 3,
 }

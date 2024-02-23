@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, {
+  createRef,
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+} from 'react';
 import { withTheme } from '@superset-ui/core';
 
 import {
@@ -28,6 +33,7 @@ import {
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
+import { FilterHandler } from './Base';
 
 interface UIFiltersProps {
   filters: Filters;
@@ -35,28 +41,63 @@ interface UIFiltersProps {
   updateFilterValue: (id: number, value: FilterValue['value']) => void;
 }
 
-function UIFilters({
-  filters,
-  internalFilters = [],
-  updateFilterValue,
-}: UIFiltersProps) {
+function UIFilters(
+  { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
+  ref: React.RefObject<{ clearFilters: () => void }>,
+) {
+  const filterRefs = useMemo(
+    () =>
+      Array.from({ length: filters.length }, () => createRef<FilterHandler>()),
+    [filters.length],
+  );
+
+  useImperativeHandle(ref, () => ({
+    clearFilters: () => {
+      filterRefs.forEach((filter: any) => {
+        filter.current?.clearFilter?.();
+      });
+    },
+  }));
+
   return (
     <>
       {filters.map(
-        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
-          const initialValue =
-            internalFilters[index] && internalFilters[index].value;
+        (
+          {
+            Header,
+            fetchSelects,
+            key,
+            id,
+            input,
+            paginate,
+            selects,
+            onFilterUpdate,
+          },
+          index,
+        ) => {
+          const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             return (
               <SelectFilter
+                ref={filterRefs[index]}
                 Header={Header}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
-                onSelect={(option: SelectOption | undefined) =>
-                  updateFilterValue(index, option)
-                }
+                onSelect={(
+                  option: SelectOption | undefined,
+                  isClear?: boolean,
+                ) => {
+                  if (onFilterUpdate) {
+                    // Filter change triggers both onChange AND onClear, only want to track onChange
+                    if (!isClear) {
+                      onFilterUpdate(option);
+                    }
+                  }
+
+                  updateFilterValue(index, option);
+                }}
                 paginate={paginate}
                 selects={selects}
               />
@@ -65,20 +106,28 @@ function UIFilters({
           if (input === 'search' && typeof Header === 'string') {
             return (
               <SearchFilter
+                ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
-                onSubmit={(value: string) => updateFilterValue(index, value)}
+                onSubmit={(value: string) => {
+                  if (onFilterUpdate) {
+                    onFilterUpdate(value);
+                  }
+
+                  updateFilterValue(index, value);
+                }}
               />
             );
           }
           if (input === 'datetime_range') {
             return (
               <DateRangeFilter
+                ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
               />
@@ -91,4 +140,4 @@ function UIFilters({
   );
 }
 
-export default withTheme(UIFilters);
+export default withTheme(forwardRef(UIFilters));

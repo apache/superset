@@ -20,6 +20,7 @@ import React, { RefObject } from 'react';
 import { AntdDropdown } from 'src/components';
 import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.gridUnit * 0.75}px;
@@ -66,14 +67,35 @@ const MenuDotsWrapper = styled.div`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-export interface DropdownProps {
+export enum IconOrientation {
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
+}
+export interface DropdownProps extends DropDownProps {
   overlay: React.ReactElement;
+  iconOrientation?: IconOrientation;
 }
 
-export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
+const RenderIcon = (
+  iconOrientation: IconOrientation = IconOrientation.Vertical,
+) => {
+  const component =
+    iconOrientation === IconOrientation.Horizontal ? (
+      <Icons.MoreHoriz iconSize="xl" />
+    ) : (
+      <MenuDots />
+    );
+  return component;
+};
+
+export const Dropdown = ({
+  overlay,
+  iconOrientation = IconOrientation.Vertical,
+  ...rest
+}: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
-      <MenuDots />
+      {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
@@ -82,12 +104,6 @@ interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-// @z-index-below-dashboard-header (100) - 1 = 99
 export const NoAnimationDropdown = (
   props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => (
-  <AntdDropdown
-    overlayStyle={{ zIndex: 99, animationDuration: '0s' }}
-    {...props}
-  />
-);
+) => <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;

@@ -26,7 +26,7 @@ if [ -z "${SUPERSET_SVN_DEV_PATH}" ]; then
   SUPERSET_SVN_DEV_PATH="$HOME/svn/superset_dev"
 fi
 
-if [ ${1} == "local" ]; then
+if [[ -n ${1} ]] && [[ ${1} == "local" ]]; then
   SUPERSET_RELEASE_RC=apache-superset-"${SUPERSET_VERSION_RC}"
   SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
   SUPERSET_TARBALL_PATH="${SUPERSET_SVN_DEV_PATH}"/${SUPERSET_VERSION_RC}/${SUPERSET_RELEASE_RC_TARBALL}

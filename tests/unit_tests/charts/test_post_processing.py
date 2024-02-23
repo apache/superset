@@ -15,9 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pandas as pd
 
-from superset.charts.post_processing import pivot_df, table
+import pandas as pd
+import pytest
+from flask_babel import lazy_gettext as _
+from numpy import True_
+from sqlalchemy.orm.session import Session
+
+from superset.charts.post_processing import apply_post_process, pivot_df, table
+from superset.common.chart_data import ChartDataResultFormat
+from superset.utils.core import GenericDataType
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
@@ -50,14 +57,14 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],
@@ -72,10 +79,10 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |
 |:-----------------|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |
     """.strip()
     )
 
@@ -95,8 +102,8 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|               |   ('Total (Sum)',) |
+        == f"""
+|               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
 | ('SUM(num)',) |        8.06797e+07 |
     """.strip()
@@ -117,10 +124,10 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |   ('Total (Sum)',) |
 |:-----------------|----------------:|-------------------:|
-| ('Total (Sum)',) |     8.06797e+07 |        8.06797e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |        8.06797e+07 |
     """.strip()
     )
 
@@ -155,14 +162,14 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)',) |   ('MAX(num)',) |
 |:-----------------|----------------:|----------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],
@@ -200,8 +207,8 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|               |   ('Total (Sum)',) |
+        == f"""
+|               |   ('{_("Total")} (Sum)',) |
 |:--------------|-------------------:|
 | ('SUM(num)',) |        8.06797e+07 |
 | ('MAX(num)',) |    37296           |
@@ -224,10 +231,10 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+        == f"""
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
-| ('Total (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
+| ('{_("Total")} (Sum)',) |     8.06797e+07 |           37296 |         8.0717e+07 |
     """.strip()
     )
 
@@ -290,10 +297,10 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
+        == f"""
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
-| ('Total (Sum)',) |                 47123 |                 118065 |                  1280 |                   2588 |
+| ('{_("Total")} (Sum)',) |                 47123 |                 118065 |                  1280 |                   2588 |
     """.strip()
     )
 
@@ -335,12 +342,12 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+        == f"""
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('{_("Total")} (Sum)',) |
 |:-----------------|----------------:|----------------:|-------------------:|
 | ('boy',)         |           47123 |            1280 |              48403 |
 | ('girl',)        |          118065 |            2588 |             120653 |
-| ('Total (Sum)',) |          165188 |            3868 |             169056 |
+| ('{_("Total")} (Sum)',) |          165188 |            3868 |             169056 |
     """.strip()
     )
 
@@ -359,8 +366,8 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                          |   ('Total (Sum)',) |
+        == f"""
+|                          |   ('{_("Total")} (Sum)',) |
 |:-------------------------|-------------------:|
 | ('SUM(num)', 'boy')      |              47123 |
 | ('SUM(num)', 'girl')     |             118065 |
@@ -368,7 +375,7 @@ def test_pivot_df_single_row_two_metrics():
 | ('MAX(num)', 'boy')      |               1280 |
 | ('MAX(num)', 'girl')     |               2588 |
 | ('MAX(num)', 'Subtotal') |               3868 |
-| ('Total (Sum)', '')      |             169056 |
+| ('{_("Total")} (Sum)', '')      |             169056 |
     """.strip()
     )
 
@@ -387,8 +394,8 @@ def test_pivot_df_single_row_two_metrics():
     )
     assert (
         pivoted.to_markdown()
-        == """
-|                      |   ('Total (Sum)',) |
+        == f"""
+|                      |   ('{_("Total")} (Sum)',) |
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |              47123 |
 | ('boy', 'MAX(num)')  |               1280 |
@@ -396,7 +403,7 @@ def test_pivot_df_single_row_two_metrics():
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
 | ('girl', 'Subtotal') |             120653 |
-| ('Total (Sum)', '')  |             169056 |
+| ('{_("Total")} (Sum)', '')  |             169056 |
     """.strip()
     )
 
@@ -1363,3 +1370,663 @@ def test_table():
 |  0 | 80,679,663 |
     """.strip()
     )
+
+
+def test_apply_post_process_no_form_invalid_viz_type():
+    """
+    Test with invalid viz type. It should just return the result
+    """
+    result = {"foo": "bar"}
+    form_data = {"viz_type": "baz"}
+    assert apply_post_process(result, form_data) == result
+
+
+def test_apply_post_process_without_result_format():
+    """
+    A query without result_format should raise an exception
+    """
+    result = {"queries": [{"result_format": "foo"}]}
+    form_data = {"viz_type": "pivot_table_v2"}
+
+    with pytest.raises(Exception) as ex:
+        apply_post_process(result, form_data)
+
+    assert ex.match("Result format foo not supported") == True
+
+
+def test_apply_post_process_json_format():
+    """
+    It should be able to process json results
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": {
+                    "result": [
+                        {
+                            "data": [{"COUNT(is_software_dev)": 4725}],
+                            "colnames": ["COUNT(is_software_dev)"],
+                            "coltypes": [0],
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": {
+                    "result": {
+                        "Total (Sum)": {
+                            "data": [{"COUNT(is_software_dev)": 4725}],
+                            "colnames": ["COUNT(is_software_dev)"],
+                            "coltypes": [0],
+                        }
+                    }
+                },
+                "colnames": [("result",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.STRING],
+                "rowcount": 1,
+            }
+        ]
+    }
+
+
+def test_apply_post_process_csv_format():
+    """
+    It should be able to process csv results
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": """
+COUNT(is_software_dev)
+4725
+""",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
+                "colnames": [("COUNT(is_software_dev)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            }
+        ]
+    }
+
+
+def test_apply_post_process_csv_format_empty_string():
+    """
+    It should be able to process csv results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": ""}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": ""}]
+    }
+
+
+@pytest.mark.parametrize("data", [None, "", "\n"])
+def test_apply_post_process_csv_format_no_data(data):
+    """
+    It should be able to process csv results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
+    }
+
+
+def test_apply_post_process_csv_format_no_data_multiple_queries():
+    """
+    It should be able to process csv results multiple queries if one query has no data
+    """
+
+    result = {
+        "queries": [
+            {"result_format": ChartDataResultFormat.CSV, "data": ""},
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": """
+COUNT(is_software_dev)
+4725
+""",
+            },
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [
+            {"result_format": ChartDataResultFormat.CSV, "data": ""},
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
+                "colnames": [("COUNT(is_software_dev)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            },
+        ]
+    }
+
+
+def test_apply_post_process_json_format_empty_string():
+    """
+    It should be able to process json results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.JSON, "data": ""}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.JSON, "data": ""}]
+    }
+
+
+def test_apply_post_process_json_format_data_is_none():
+    """
+    It should be able to process json results with no data
+    """
+
+    result = {"queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]}
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {
+                    "column_name": "is_software_dev",
+                    "description": None,
+                    "expression": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 1463,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "DOUBLE PRECISION",
+                    "verbose_name": None,
+                },
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "isNew": False,
+                "label": "COUNT(is_software_dev)",
+                "optionName": "metric_9i1kctig9yr_sizo6ihd2o",
+                "sqlExpression": None,
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Currently A Developer",
+                "expressionType": "SIMPLE",
+                "filterOptionName": "filter_fvi0jg9aii_2lekqrhy7qk",
+                "isExtra": False,
+                "isNew": False,
+                "operator": "==",
+                "sqlExpression": None,
+                "subject": "developer_type",
+            }
+        ],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data) == {
+        "queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]
+    }
+
+
+def test_apply_post_process_verbose_map(session: Session):
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[
+            SqlMetric(
+                metric_name="count",
+                verbose_name="COUNT(*)",
+                metric_type="count",
+                expression="COUNT(*)",
+            )
+        ],
+        database=database,
+    )
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [{"count": 4725}],
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": ["COUNT(*)"],
+        "metricsLayout": "COLUMNS",
+        "row_limit": 10000,
+        "order_desc": True,
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "json",
+        "result_type": "results",
+    }
+
+    assert apply_post_process(result, form_data, datasource=sqla_table) == {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "colnames": [("COUNT(*)",)],
+                "indexnames": [("Total (Sum)",)],
+                "coltypes": [GenericDataType.NUMERIC],
+                "rowcount": 1,
+            }
+        ]
+    }

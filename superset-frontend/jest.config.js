@@ -17,16 +17,19 @@
  * under the License.
  */
 
+// timezone for unit tests
+process.env.TZ = 'America/New_York';
+
 module.exports = {
   testRegex:
-    '\\/superset-frontend\\/(spec|src|plugins|packages)\\/.*(_spec|\\.test)\\.[jt]sx?$',
+    '\\/superset-frontend\\/(spec|src|plugins|packages|tools)\\/.*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
     '\\.svg$': '<rootDir>/spec/__mocks__/svgrMock.tsx',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
-    // mapping plugins of superset-ui to souce code
+    // mapping plugins of superset-ui to source code
     '@superset-ui/(.*)$': '<rootDir>/node_modules/@superset-ui/$1/src',
   },
   testEnvironment: 'jsdom',
@@ -47,9 +50,12 @@ module.exports = {
     'tmp/',
     'dist/',
   ],
-  coverageReporters: ['lcov', 'json-summary', 'html'],
+  coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
+  transformIgnorePatterns: [
+    'node_modules/(?!d3-(interpolate|color)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp)',
+  ],
   globals: {
     __DEV__: true,
     caches: true,

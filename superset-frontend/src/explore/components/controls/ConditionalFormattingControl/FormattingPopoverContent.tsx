@@ -17,17 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import {
+  Comparator,
+  MultipleValueComparators,
+} from '@superset-ui/chart-controls';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
-import {
-  COMPARATOR,
-  ConditionalFormattingConfig,
-  MULTIPLE_VALUE_COMPARATORS,
-} from './types';
+import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -38,24 +38,27 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const colorSchemeOptions = [
-  { value: 'rgb(0,255,0)', label: t('green') },
-  { value: 'rgb(255,255,0)', label: t('yellow') },
-  { value: 'rgb(255,0,0)', label: t('red') },
+const colorSchemeOptions = (theme: SupersetTheme) => [
+  { value: theme.colors.success.light1, label: t('success') },
+  { value: theme.colors.alert.light1, label: t('alert') },
+  { value: theme.colors.error.light1, label: t('error') },
+  { value: theme.colors.success.dark1, label: t('success dark') },
+  { value: theme.colors.alert.dark1, label: t('alert dark') },
+  { value: theme.colors.error.dark1, label: t('error dark') },
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: 'None' },
-  { value: COMPARATOR.GREATER_THAN, label: '>' },
-  { value: COMPARATOR.LESS_THAN, label: '<' },
-  { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
-  { value: COMPARATOR.LESS_OR_EQUAL, label: '≤' },
-  { value: COMPARATOR.EQUAL, label: '=' },
-  { value: COMPARATOR.NOT_EQUAL, label: '≠' },
-  { value: COMPARATOR.BETWEEN, label: '< x <' },
-  { value: COMPARATOR.BETWEEN_OR_EQUAL, label: '≤ x ≤' },
-  { value: COMPARATOR.BETWEEN_OR_LEFT_EQUAL, label: '≤ x <' },
-  { value: COMPARATOR.BETWEEN_OR_RIGHT_EQUAL, label: '< x ≤' },
+  { value: Comparator.None, label: t('None') },
+  { value: Comparator.GreaterThan, label: '>' },
+  { value: Comparator.LessThan, label: '<' },
+  { value: Comparator.GreaterOrEqual, label: '≥' },
+  { value: Comparator.LessOrEqual, label: '≤' },
+  { value: Comparator.Equal, label: '=' },
+  { value: Comparator.NotEqual, label: '≠' },
+  { value: Comparator.Between, label: '< x <' },
+  { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
+  { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
+  { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
 ];
 
 const targetValueValidator =
@@ -85,11 +88,11 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
-const isOperatorMultiValue = (operator?: COMPARATOR) =>
-  operator && MULTIPLE_VALUE_COMPARATORS.includes(operator);
+const isOperatorMultiValue = (operator?: Comparator) =>
+  operator && MultipleValueComparators.includes(operator);
 
-const isOperatorNone = (operator?: COMPARATOR) =>
-  !operator || operator === COMPARATOR.NONE;
+const isOperatorNone = (operator?: Comparator) =>
+  !operator || operator === Comparator.None;
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
@@ -187,44 +190,48 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
-}) => (
-  <Form
-    onFinish={onChange}
-    initialValues={config}
-    requiredMark="optional"
-    layout="vertical"
-  >
-    <Row gutter={12}>
-      <Col span={12}>
-        <FormItem
-          name="column"
-          label={t('Column')}
-          rules={rulesRequired}
-          initialValue={columns[0]?.value}
-        >
-          <Select ariaLabel={t('Select column')} options={columns} />
-        </FormItem>
-      </Col>
-      <Col span={12}>
-        <FormItem
-          name="colorScheme"
-          label={t('Color scheme')}
-          rules={rulesRequired}
-          initialValue={colorSchemeOptions[0].value}
-        >
-          <Select ariaLabel={t('Color scheme')} options={colorSchemeOptions} />
-        </FormItem>
-      </Col>
-    </Row>
-    <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-      {renderOperatorFields}
-    </FormItem>
-    <FormItem>
-      <JustifyEnd>
-        <Button htmlType="submit" buttonStyle="primary">
-          {t('Apply')}
-        </Button>
-      </JustifyEnd>
-    </FormItem>
-  </Form>
-);
+}) => {
+  const theme = useTheme();
+  const colorScheme = colorSchemeOptions(theme);
+  return (
+    <Form
+      onFinish={onChange}
+      initialValues={config}
+      requiredMark="optional"
+      layout="vertical"
+    >
+      <Row gutter={12}>
+        <Col span={12}>
+          <FormItem
+            name="column"
+            label={t('Column')}
+            rules={rulesRequired}
+            initialValue={columns[0]?.value}
+          >
+            <Select ariaLabel={t('Select column')} options={columns} />
+          </FormItem>
+        </Col>
+        <Col span={12}>
+          <FormItem
+            name="colorScheme"
+            label={t('Color scheme')}
+            rules={rulesRequired}
+            initialValue={colorScheme[0].value}
+          >
+            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+        {renderOperatorFields}
+      </FormItem>
+      <FormItem>
+        <JustifyEnd>
+          <Button htmlType="submit" buttonStyle="primary">
+            {t('Apply')}
+          </Button>
+        </JustifyEnd>
+      </FormItem>
+    </Form>
+  );
+};

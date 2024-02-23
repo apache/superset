@@ -42,10 +42,6 @@ input.form-control {
   background-color: @lightest;
 }
 
-.chart-header a.danger {
-  color: @danger;
-}
-
 .disabledButton {
   pointer-events: none;
 }
@@ -163,16 +159,6 @@ img.viz-thumb-option {
 
 .select2-drop.bigdrop .select2-results {
   max-height: 700px;
-}
-
-.chart-header .header-text {
-  font-size: @font-size-xl;
-  line-height: 22px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid @gray;
-  margin-top: 10px;
-  margin-left: 10px;
-  margin-right: 10px;
 }
 
 #is_cached {
@@ -327,6 +313,10 @@ table.table-no-hover tr:hover {
   margin-bottom: 10px;
 }
 
+.m-l-2 {
+  margin-left: 2px;
+}
+
 .m-l-4 {
   margin-left: 4px;
 }
@@ -353,22 +343,6 @@ table.table-no-hover tr:hover {
 
 .p-r-2 {
   padding-right: 2;
-}
-
-/** not found record **/
-.panel b {
-  display: inline-block;
-  width: 98%;
-  padding: 2rem;
-  margin: 0 1% 20px 1%;
-  background: @gray-bg;
-}
-
-/** table on both sides of the gap **/
-@media screen and (max-width: 767px) {
-  .panel .table-responsive {
-    width: 98%;
-  }
 }
 
 .list-container {
@@ -518,12 +492,6 @@ tr.reactable-column-header th.reactable-header-sortable {
   padding-right: 17px;
 }
 
-.metric-edit-popover-label-input {
-  border-radius: @border-radius-large;
-  height: 30px;
-  padding-left: 10px;
-}
-
 .align-right {
   text-align: right;
 }
@@ -539,12 +507,11 @@ td.filtered {
   width: 100% !important;
 }
 
-// Remove this when the jinja menu/navbar is replaced with react.
-// This style already exists in that view
+/*
+Hides the logo while loading the page.
+Emotion styles will take care of the correct styling
+*/
 .navbar-brand {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   display: none;
 }
 

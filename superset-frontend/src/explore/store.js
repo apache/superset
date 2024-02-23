@@ -22,7 +22,7 @@ import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
 
 function handleDeprecatedControls(formData) {
-  // Reacffectation / handling of deprecated controls
+  // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
   // y_axis_zero was a boolean forcing 0 to be part of the Y Axis
@@ -42,10 +42,9 @@ export function getControlsState(state, inputFormData) {
   // Getting a list of active control names for the current viz
   const formData = { ...inputFormData };
   const vizType =
-    formData.viz_type || state.common.conf.DEFAULT_VIZ_TYPE || 'table';
+    formData.viz_type || state.common?.conf.DEFAULT_VIZ_TYPE || 'table';
 
   handleDeprecatedControls(formData);
-
   const controlsState = getAllControlsState(
     vizType,
     state.datasource.type,
@@ -64,9 +63,12 @@ export function getControlsState(state, inputFormData) {
 export function applyDefaultFormData(inputFormData) {
   const datasourceType = inputFormData.datasource.split('__')[1];
   const vizType = inputFormData.viz_type;
-  const controlsState = getAllControlsState(vizType, datasourceType, null, {
-    ...inputFormData,
-  });
+  const controlsState = getAllControlsState(
+    vizType,
+    datasourceType,
+    null,
+    inputFormData,
+  );
   const controlFormData = getFormDataFromControls(controlsState);
 
   const formData = {};

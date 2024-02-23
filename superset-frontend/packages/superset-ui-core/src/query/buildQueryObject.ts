@@ -20,22 +20,24 @@
 /* eslint-disable camelcase */
 import {
   AdhocFilter,
-  QueryFieldAliases,
-  QueryFormColumn,
-  QueryFormData,
   QueryObject,
   QueryObjectFilterClause,
-  isPhysicalColumn,
-  isAdhocColumn,
+  isQueryFormMetric,
 } from './types';
+import {
+  QueryFieldAliases,
+  QueryFormMetric,
+  QueryFormData,
+} from './types/QueryFormData';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
 import { overrideExtraFormData } from './processExtraFormData';
+import { isDefined } from '../utils';
 
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from
- * either sql alchemy or druid). The segments specific to each viz type is constructed in the
+ * SQLAlchemy). The segments specific to each viz type is constructed in the
  * buildQuery method for each viz type (see `wordcloud/buildQuery.ts` for an example).
  * Note the type of the formData argument passed in here is the type of the formData for a
  * specific viz, which is a subtype of the generic formData shared among all viz types.
@@ -92,16 +94,16 @@ export default function buildQueryObject<T extends QueryFormData>(
     ...extras,
     ...filterFormData,
   });
-  const normalizeSeriesLimitMetric = (column: QueryFormColumn | undefined) => {
-    if (isAdhocColumn(column) || isPhysicalColumn(column)) {
-      return column;
+  const normalizeSeriesLimitMetric = (metric: QueryFormMetric | undefined) => {
+    if (isQueryFormMetric(metric)) {
+      return metric;
     }
     return undefined;
   };
 
   let queryObject: QueryObject = {
     // fallback `null` to `undefined` so they won't be sent to the backend
-    // (JSON.strinify will ignore `undefined`.)
+    // (JSON.stringify will ignore `undefined`.)
     time_range: time_range || undefined,
     since: since || undefined,
     until: until || undefined,
@@ -121,10 +123,11 @@ export default function buildQueryObject<T extends QueryFormData>(
         ? undefined
         : numericRowOffset,
     series_columns,
-    series_limit,
-    series_limit_metric: normalizeSeriesLimitMetric(series_limit_metric),
-    timeseries_limit: limit ? Number(limit) : 0,
-    timeseries_limit_metric: timeseries_limit_metric || undefined,
+    series_limit: series_limit ?? (isDefined(limit) ? Number(limit) : 0),
+    series_limit_metric:
+      normalizeSeriesLimitMetric(series_limit_metric) ??
+      timeseries_limit_metric ??
+      undefined,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params: url_params || undefined,
     custom_params,

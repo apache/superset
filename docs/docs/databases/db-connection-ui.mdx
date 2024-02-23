@@ -28,7 +28,7 @@ We added a new configuration option where the admin can define their preferred d
 # displayed prominently in the "Add Database" dialog. You should
 # use the "engine_name" attribute of the corresponding DB engine spec
 # in `superset/db_engine_specs/`.
-PREFERRED_DATABASES: List[str] = [
+PREFERRED_DATABASES: list[str] = [
     "PostgreSQL",
     "Presto",
     "MySQL",

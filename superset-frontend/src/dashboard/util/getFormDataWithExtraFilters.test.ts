@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter } from '@superset-ui/core';
 import getFormDataWithExtraFilters, {
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { LayoutItem } from 'src/dashboard/types';
-import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 
 describe('getFormDataWithExtraFilters', () => {
@@ -39,7 +35,7 @@ describe('getFormDataWithExtraFilters', () => {
     queryController: null,
     queriesResponse: null,
     triggerQuery: false,
-    formData: {
+    form_data: {
       viz_type: 'filter_select',
       filters: [
         {
@@ -49,31 +45,18 @@ describe('getFormDataWithExtraFilters', () => {
         },
       ],
       datasource: '123',
+      url_params: {},
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {
     chartConfiguration: {},
-    charts: {
-      [chartId as number]: mockChart,
-    },
     chart: mockChart,
     filters: {
       region: ['Spain'],
       color: ['pink', 'purple'],
     },
     sliceId: chartId,
-    nativeFilters: {
-      filterSets: {},
-      filters: {
-        [filterId]: {
-          id: filterId,
-          scope: {
-            rootPath: [DASHBOARD_ROOT_ID],
-            excluded: [],
-          },
-        } as unknown as Filter,
-      },
-    },
+    nativeFilters: {},
     dataMask: {
       [filterId]: {
         id: filterId,
@@ -82,9 +65,10 @@ describe('getFormDataWithExtraFilters', () => {
         ownState: {},
       },
     },
-    layout: dashboardLayout.present as unknown as {
-      [key: string]: LayoutItem;
+    extraControls: {
+      stack: 'Stacked',
     },
+    allSliceIds: [chartId],
   };
 
   it('should include filters from the passed filters', () => {
@@ -100,5 +84,10 @@ describe('getFormDataWithExtraFilters', () => {
       op: 'IN',
       val: ['pink', 'purple'],
     });
+  });
+
+  it('should compose extra control', () => {
+    const result = getFormDataWithExtraFilters(mockArgs);
+    expect(result.stack).toEqual('Stacked');
   });
 });

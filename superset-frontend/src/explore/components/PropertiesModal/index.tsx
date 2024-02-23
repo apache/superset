@@ -20,13 +20,27 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
-import { t, SupersetClient, styled } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  styled,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { loadTags } from 'src/components/Tags/utils';
+import {
+  addTag,
+  deleteTaggedObjects,
+  fetchTags,
+  OBJECT_TYPES,
+} from 'src/features/tags/tags';
+import TagType from 'src/types/TagType';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -63,13 +77,24 @@ function PropertiesModal({
     null,
   );
 
+  const [tags, setTags] = useState<TagType[]>([]);
+
+  const tagsAsSelectValues = useMemo(() => {
+    const selectTags = tags.map(tag => ({
+      value: tag.name,
+      label: tag.name,
+      key: tag.name,
+    }));
+    return selectTags;
+  }, [tags.length]);
+
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
     if (message === 'Forbidden') {
       errorText = t('You do not have permission to edit this chart');
     }
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -83,7 +108,7 @@ function PropertiesModal({
         });
         const chart = response.json.result;
         setSelectedOwners(
-          chart.owners.map((owner: any) => ({
+          chart?.owners?.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
           })),
@@ -107,17 +132,52 @@ function PropertiesModal({
         return SupersetClient.get({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+          data: response.json.result
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
+            .map((item: { value: number; text: string }) => ({
               value: item.value,
               label: item.text,
-            }),
-          ),
+            })),
           totalCount: response.json.count,
         }));
       },
     [],
   );
+
+  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
+    // update the tags for this object
+    // add tags that are in new tags, but not in old tags
+    // eslint-disable-next-line array-callback-return
+    newTags.map((tag: TagType) => {
+      if (!oldTags.some(t => t.name === tag.name)) {
+        addTag(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        );
+      }
+    });
+    // delete tags that are in old tags, but not in new tags
+    // eslint-disable-next-line array-callback-return
+    oldTags.map((tag: TagType) => {
+      if (!newTags.some(t => t.name === tag.name)) {
+        deleteTaggedObjects(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+          },
+          tag,
+          () => {},
+          () => {},
+        );
+      }
+    });
+  };
 
   const onSubmit = async (values: {
     certified_by?: string;
@@ -148,6 +208,25 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      // update tags
+      try {
+        fetchTags(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+            includeTypes: false,
+          },
+          (currentTags: TagType[]) => updateTags(currentTags, tags),
+          error => {
+            showError(error);
+          },
+        );
+      } catch (error) {
+        showError(error);
+      }
+    }
+
     try {
       const res = await SupersetClient.put({
         endpoint: `/api/v1/chart/${slice.slice_id}`,
@@ -158,7 +237,9 @@ function PropertiesModal({
       const updatedChart = {
         ...payload,
         ...res.json.result,
+        tags,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
@@ -182,11 +263,42 @@ function PropertiesModal({
     setName(slice.slice_name || '');
   }, [slice.slice_name]);
 
+  useEffect(() => {
+    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
+    try {
+      fetchTags(
+        {
+          objectType: OBJECT_TYPES.CHART,
+          objectId: slice.slice_id,
+          includeTypes: false,
+        },
+        (tags: TagType[]) => setTags(tags),
+        error => {
+          showError(error);
+        },
+      );
+    } catch (error) {
+      showError(error);
+    }
+  }, [slice.slice_id]);
+
+  const handleChangeTags = (values: { label: string; value: number }[]) => {
+    // triggered whenever a new tag is selected or a tag was deselected
+    // on new tag selected, add the tag
+
+    const uniqueTags = [...new Set(values.map(v => v.label))];
+    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  };
+
+  const handleClearTags = () => {
+    setTags([]);
+  };
+
   return (
     <Modal
       show={show}
       onHide={onHide}
-      title="Edit Chart Properties"
+      title={t('Edit Chart Properties')}
       footer={
         <>
           <Button
@@ -292,13 +404,13 @@ function PropertiesModal({
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
-                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
+                  "Duration (in seconds) of the caching timeout for this chart. Set to -1 to bypass the cache. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </StyledHelpBlock>
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={ownersLabel}>
-              <Select
+              <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
                 name="owners"
@@ -314,6 +426,25 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            )}
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
+              <FormItem>
+                <AsyncSelect
+                  ariaLabel="Tags"
+                  mode="multiple"
+                  value={tagsAsSelectValues}
+                  options={loadTags}
+                  onChange={handleChangeTags}
+                  onClear={handleClearTags}
+                  allowClear
+                />
+                <StyledHelpBlock className="help-block">
+                  {t('A list of tags that have been applied to this chart.')}
+                </StyledHelpBlock>
+              </FormItem>
+            )}
           </Col>
         </Row>
       </AntdForm>

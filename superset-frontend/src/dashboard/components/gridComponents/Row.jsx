@@ -19,8 +19,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { debounce } from 'lodash';
+import {
+  css,
+  FAST_DEBOUNCE,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+} from '@superset-ui/core';
 
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import {
+  Draggable,
+  Droppable,
+} from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -32,6 +44,8 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -49,6 +63,7 @@ const propTypes = {
   onResizeStart: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   onResizeStop: PropTypes.func.isRequired,
+  maxChildrenHeight: PropTypes.number.isRequired,
 
   // dnd
   handleComponentDrop: PropTypes.func.isRequired,
@@ -56,11 +71,70 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
+const GridRow = styled.div`
+  ${({ theme, editMode }) => css`
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    width: 100%;
+    height: fit-content;
+
+    & > :not(:last-child):not(.hover-menu) {
+      ${!editMode && `margin-right: ${theme.gridUnit * 4}px;`}
+    }
+
+    & .empty-droptarget {
+      position: relative;
+      align-self: center;
+      &.empty-droptarget--vertical {
+        min-width: ${theme.gridUnit * 4}px;
+        &:not(:last-child) {
+          width: ${theme.gridUnit * 4}px;
+        }
+        &:first-child:not(.droptarget-side) {
+          z-index: ${EMPTY_CONTAINER_Z_INDEX};
+          position: absolute;
+          width: 100%;
+          height: 100%;
+        }
+      }
+      &.droptarget-side {
+        z-index: ${EMPTY_CONTAINER_Z_INDEX};
+        position: absolute;
+        width: ${theme.gridUnit * 4}px;
+        &:first-child {
+          inset-inline-start: 0;
+        }
+        &:last-child {
+          inset-inline-end: 0;
+        }
+      }
+    }
+
+    &.grid-row--empty {
+      min-height: ${theme.gridUnit * 25}px;
+    }
+  `}
+`;
+
+const emptyRowContentStyles = theme => css`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.colors.text.label};
+`;
+
 class Row extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       isFocused: false,
+      isInView: false,
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
@@ -69,6 +143,72 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
+    this.setVerticalEmptyContainerHeight = debounce(
+      this.setVerticalEmptyContainerHeight.bind(this),
+      FAST_DEBOUNCE,
+    );
+
+    this.containerRef = React.createRef();
+    this.observerEnabler = null;
+    this.observerDisabler = null;
+  }
+
+  // if chart not rendered - render it if it's less than 1 view height away from current viewport
+  // if chart rendered - remove it if it's more than 4 view heights away from current viewport
+  componentDidMount() {
+    if (
+      isFeatureEnabled(FeatureFlag.DashboardVirtualization) &&
+      !isCurrentUserBot()
+    ) {
+      this.observerEnabler = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !this.state.isInView) {
+            this.setState({ isInView: true });
+          }
+        },
+        {
+          rootMargin: '100% 0px',
+        },
+      );
+      this.observerDisabler = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting && this.state.isInView) {
+            this.setState({ isInView: false });
+          }
+        },
+        {
+          rootMargin: '400% 0px',
+        },
+      );
+      const element = this.containerRef.current;
+      if (element) {
+        this.observerEnabler.observe(element);
+        this.observerDisabler.observe(element);
+        this.setVerticalEmptyContainerHeight();
+      }
+    }
+  }
+
+  componentDidUpdate() {
+    this.setVerticalEmptyContainerHeight();
+  }
+
+  setVerticalEmptyContainerHeight() {
+    const { containerHeight } = this.state;
+    const { editMode } = this.props;
+    const updatedHeight = this.containerRef.current?.clientHeight;
+    if (
+      editMode &&
+      this.containerRef.current &&
+      updatedHeight !== containerHeight
+    ) {
+      this.setState({ containerHeight: updatedHeight });
+    }
+  }
+
+  componentWillUnmount() {
+    this.observerEnabler?.disconnect();
+    this.observerDisabler?.disconnect();
   }
 
   handleChangeFocus(nextFocus) {
@@ -112,6 +252,7 @@ class Row extends React.PureComponent {
       onChangeTab,
       isComponentVisible,
     } = this.props;
+    const { containerHeight } = this.state;
 
     const rowItems = rowComponent.children || [];
 
@@ -119,9 +260,10 @@ class Row extends React.PureComponent {
       opt =>
         opt.value === (rowComponent.meta.background || BACKGROUND_TRANSPARENT),
     );
+    const remainColumnCount = availableColumnCount - occupiedColumnCount;
 
     return (
-      <DragDroppable
+      <Draggable
         component={rowComponent}
         parentComponent={parentComponent}
         orientation="row"
@@ -130,7 +272,7 @@ class Row extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <WithPopoverMenu
             isFocused={this.state.isFocused}
             onChangeFocus={this.handleChangeFocus}
@@ -154,38 +296,102 @@ class Row extends React.PureComponent {
                 />
               </HoverMenu>
             )}
-            <div
+            <GridRow
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
                 backgroundStyle.className,
               )}
               data-test={`grid-row-${backgroundStyle.className}`}
+              ref={this.containerRef}
+              editMode={editMode}
             >
-              {rowItems.map((componentId, itemIndex) => (
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id}
+              {editMode && (
+                <Droppable
+                  {...(rowItems.length === 0
+                    ? {
+                        component: rowComponent,
+                        parentComponent,
+                        dropToChild: true,
+                      }
+                    : {
+                        component: rowItems,
+                        parentComponent: rowComponent,
+                      })}
                   depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={
-                    availableColumnCount - occupiedColumnCount
+                  index={0}
+                  orientation="row"
+                  onDrop={handleComponentDrop}
+                  className={cx(
+                    'empty-droptarget',
+                    'empty-droptarget--vertical',
+                    rowItems.length > 0 && 'droptarget-side',
+                  )}
+                  editMode
+                  style={{
+                    height: rowItems.length > 0 ? containerHeight : '100%',
+                    ...(rowItems.length > 0 && { width: 16 }),
+                  }}
+                >
+                  {({ dropIndicatorProps }) =>
+                    dropIndicatorProps && <div {...dropIndicatorProps} />
                   }
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                />
-              ))}
-
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
+                </Droppable>
+              )}
+              {rowItems.length === 0 && (
+                <div css={emptyRowContentStyles}>{t('Empty row')}</div>
+              )}
+              {rowItems.length > 0 &&
+                rowItems.map((componentId, itemIndex) => (
+                  <React.Fragment key={componentId}>
+                    <DashboardComponent
+                      key={componentId}
+                      id={componentId}
+                      parentId={rowComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex}
+                      availableColumnCount={remainColumnCount}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                      isComponentVisible={isComponentVisible}
+                      onChangeTab={onChangeTab}
+                      isInView={this.state.isInView}
+                    />
+                    {editMode && (
+                      <Droppable
+                        component={rowItems}
+                        parentComponent={rowComponent}
+                        depth={depth + 1}
+                        index={itemIndex + 1}
+                        orientation="row"
+                        onDrop={handleComponentDrop}
+                        className={cx(
+                          'empty-droptarget',
+                          'empty-droptarget--vertical',
+                          remainColumnCount === 0 &&
+                            itemIndex === rowItems.length - 1 &&
+                            'droptarget-side',
+                        )}
+                        editMode
+                        style={{
+                          height: containerHeight,
+                          ...(remainColumnCount === 0 &&
+                            itemIndex === rowItems.length - 1 && { width: 16 }),
+                        }}
+                      >
+                        {({ dropIndicatorProps }) =>
+                          dropIndicatorProps && <div {...dropIndicatorProps} />
+                        }
+                      </Droppable>
+                    )}
+                  </React.Fragment>
+                ))}
+            </GridRow>
           </WithPopoverMenu>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { shallow } from 'enzyme';
+import sinon from 'sinon';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
@@ -27,7 +29,7 @@ import HeaderActionsDropdown from '.';
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
-  customCss: '#save-dash-split-button{margin-left: 100px;}',
+  customCss: '.ant-menu {margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -36,7 +38,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   dashboardTitle: 'Title',
@@ -57,74 +64,96 @@ const createProps = () => ({
   userCanEdit: false,
   userCanSave: false,
   userCanShare: false,
+  userCanCurate: false,
   lastModifiedTime: 0,
+  isDropdownVisible: true,
+  dataMask: {},
+  logEvent: jest.fn(),
 });
+
 const editModeOnProps = {
   ...createProps(),
   editMode: true,
 };
 
+const editModeOnWithFilterScopesProps = {
+  ...editModeOnProps,
+  dashboardInfo: {
+    ...editModeOnProps.dashboardInfo,
+    metadata: {
+      filter_scopes: {
+        '1': { scopes: ['ROOT_ID'], immune: [] },
+      },
+    },
+  },
+};
+
+const guestUserProps = {
+  ...createProps(),
+  dashboardInfo: {
+    ...createProps().dashboardInfo,
+    userId: undefined,
+  },
+};
+
 function setup(props: HeaderDropdownProps) {
-  return (
+  return render(
     <div className="dashboard-header">
       <HeaderActionsDropdown {...props} />
-    </div>
+    </div>,
+    { useRedux: true },
   );
 }
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
-async function openDropdown() {
-  const btn = screen.getByRole('img', { name: 'more-horiz' });
-  userEvent.click(btn);
-  expect(await screen.findByRole('menu')).toBeInTheDocument();
-}
-
 test('should render', () => {
   const mockedProps = createProps();
-  const { container } = render(setup(mockedProps));
+  const { container } = setup(mockedProps);
   expect(container).toBeInTheDocument();
 });
 
-test('should render the dropdown button', () => {
+test('should render the Download dropdown button when not in edit mode', () => {
   const mockedProps = createProps();
-  render(setup(mockedProps));
-  expect(screen.getByRole('button')).toBeInTheDocument();
-});
-
-test('should render the dropdown icon', () => {
-  const mockedProps = createProps();
-  render(setup(mockedProps));
-  expect(screen.getByRole('img', { name: 'more-horiz' })).toBeInTheDocument();
-});
-
-test('should open the dropdown', async () => {
-  const mockedProps = createProps();
-  render(setup(mockedProps));
-  await openDropdown();
-  expect(await screen.findByRole('menu')).toBeInTheDocument();
+  setup(mockedProps);
+  expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
 });
 
 test('should render the menu items', async () => {
   const mockedProps = createProps();
-  render(setup(mockedProps));
-  await openDropdown();
+  setup(mockedProps);
   expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
-  expect(screen.getByText('Download as image')).toBeInTheDocument();
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
 });
 
 test('should render the menu items in edit mode', async () => {
-  render(setup(editModeOnProps));
-  await openDropdown();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(5);
-  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  setup(editModeOnProps);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
-  expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
-  expect(screen.getByText('Edit dashboard properties')).toBeInTheDocument();
+  expect(screen.getByText('Edit properties')).toBeInTheDocument();
   expect(screen.getByText('Edit CSS')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+});
+
+test('should render the menu items in Embedded mode', async () => {
+  setup(guestUserProps);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(3);
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Set auto-refresh interval')).toBeInTheDocument();
+});
+
+test('should not render filter mapping in edit mode if explicit filter scopes undefined', async () => {
+  setup(editModeOnProps);
+  expect(screen.queryByText('Set filter mapping')).not.toBeInTheDocument();
+});
+
+test('should render filter mapping in edit mode if explicit filter scopes defined', async () => {
+  setup(editModeOnWithFilterScopesProps);
+  expect(screen.getByText('Set filter mapping')).toBeInTheDocument();
 });
 
 test('should show the share actions', async () => {
@@ -133,27 +162,24 @@ test('should show the share actions', async () => {
     ...mockedProps,
     userCanShare: true,
   };
-  render(setup(canShareProps));
-  await openDropdown();
-  expect(screen.getByText('Copy permalink to clipboard')).toBeInTheDocument();
-  expect(screen.getByText('Share permalink by email')).toBeInTheDocument();
+  setup(canShareProps);
+
+  expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('should render the "Save Modal" when user can save', async () => {
+test('should render the "Save as" menu item when user can save', async () => {
   const mockedProps = createProps();
   const canSaveProps = {
     ...mockedProps,
     userCanSave: true,
   };
-  render(setup(canSaveProps));
-  await openDropdown();
+  setup(canSaveProps);
   expect(screen.getByText('Save as')).toBeInTheDocument();
 });
 
-test('should NOT render the "Save Modal" menu item when user cannot save', async () => {
+test('should NOT render the "Save as" menu item when user cannot save', async () => {
   const mockedProps = createProps();
-  render(setup(mockedProps));
-  await openDropdown();
+  setup(mockedProps);
   expect(screen.queryByText('Save as')).not.toBeInTheDocument();
 });
 
@@ -163,42 +189,66 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
     ...mockedProps,
     isLoading: true,
   };
-  render(setup(loadingProps));
-  await openDropdown();
+  setup(loadingProps);
   expect(screen.getByText('Refresh dashboard')).toHaveClass(
-    'ant-dropdown-menu-item-disabled',
+    'ant-menu-item-disabled',
   );
 });
 
 test('should NOT render the "Refresh dashboard" menu item as disabled', async () => {
   const mockedProps = createProps();
-  render(setup(mockedProps));
-  await openDropdown();
+  setup(mockedProps);
   expect(screen.getByText('Refresh dashboard')).not.toHaveClass(
-    'ant-dropdown-menu-item-disabled',
+    'ant-menu-item-disabled',
   );
 });
 
 test('should render with custom css', () => {
   const mockedProps = createProps();
   const { customCss } = mockedProps;
-  render(setup(mockedProps));
+  setup(mockedProps);
   injectCustomCss(customCss);
-  expect(screen.getByRole('button')).toHaveStyle('margin-left: 100px');
+  expect(screen.getByTestId('header-actions-menu')).toHaveStyle(
+    'margin-left: 100px',
+  );
 });
 
 test('should refresh the charts', async () => {
   const mockedProps = createProps();
-  render(setup(mockedProps));
-  await openDropdown();
+  setup(mockedProps);
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.forceRefreshAllCharts).toHaveBeenCalledTimes(1);
   expect(mockedProps.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
 test('should show the properties modal', async () => {
-  render(setup(editModeOnProps));
-  await openDropdown();
-  userEvent.click(screen.getByText('Edit dashboard properties'));
+  setup(editModeOnProps);
+  userEvent.click(screen.getByText('Edit properties'));
   expect(editModeOnProps.showPropertiesModal).toHaveBeenCalledTimes(1);
+});
+
+describe('UNSAFE_componentWillReceiveProps', () => {
+  let wrapper: any;
+  const mockedProps = createProps();
+  const props = { ...mockedProps, customCss: '' };
+
+  beforeEach(() => {
+    wrapper = shallow(<HeaderActionsDropdown {...props} />);
+    wrapper.setState({ css: props.customCss });
+    sinon.spy(wrapper.instance(), 'setState');
+  });
+
+  afterEach(() => {
+    wrapper.instance().setState.restore();
+  });
+
+  it('css should update state and inject custom css', () => {
+    wrapper.instance().UNSAFE_componentWillReceiveProps({
+      ...props,
+      customCss: mockedProps.customCss,
+    });
+    expect(wrapper.instance().setState.calledOnce).toBe(true);
+    const stateKeys = Object.keys(wrapper.instance().setState.lastCall.args[0]);
+    expect(stateKeys).toContain('css');
+  });
 });

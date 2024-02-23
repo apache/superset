@@ -18,15 +18,16 @@ import calendar
 import logging
 import re
 from datetime import datetime, timedelta
+from functools import lru_cache
 from time import struct_time
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
 import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask_babel import lazy_gettext as _
-from holidays import CountryHoliday
+from holidays import country_holidays
 from pyparsing import (
     CaselessKeyword,
     Forward,
@@ -40,13 +41,12 @@ from pyparsing import (
     Suppress,
 )
 
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     TimeDeltaAmbiguousError,
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.utils.core import NO_TIME_RANGE
-from superset.utils.memoized import memoized
+from superset.constants import InstantTimeComparison, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
 ParserElement.enablePackrat()
 
@@ -75,7 +75,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
     return dttm
 
 
-def normalize_time_delta(human_readable: str) -> Dict[str, int]:
+def normalize_time_delta(human_readable: str) -> dict[str, int]:
     x_unit = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+(ago|later)*$"  # pylint: disable=line-too-long,useless-suppression
     matched = re.match(x_unit, human_readable, re.IGNORECASE)
     if not matched:
@@ -142,18 +142,19 @@ def parse_past_timedelta(
     )
 
 
-def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
+def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
     time_range: Optional[str] = None,
     since: Optional[str] = None,
     until: Optional[str] = None,
     time_shift: Optional[str] = None,
     relative_start: Optional[str] = None,
     relative_end: Optional[str] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
+    instant_time_comparison_range: Optional[str] = None,
+) -> tuple[Optional[datetime], Optional[datetime]]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
-    This functiom supports both reading the keys separately (from `since` and
+    This function supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
 
         - ISO 8601
@@ -178,7 +179,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE:
+    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
@@ -227,7 +228,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         ]
 
         since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
-        since_and_until: List[Optional[str]] = []
+        since_and_until: list[Optional[str]] = []
         for part in since_and_until_partition:
             if not part:
                 # if since or until is "", set as None
@@ -262,6 +263,47 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         time_delta = parse_past_timedelta(time_shift)
         _since = _since if _since is None else (_since - time_delta)
         _until = _until if _until is None else (_until - time_delta)
+
+    if instant_time_comparison_range:
+        # This is only set using the new time comparison controls
+        # that is made available in some plugins behind the experimental
+        # feature flag.
+        # pylint: disable=import-outside-toplevel
+        from superset import feature_flag_manager
+
+        if feature_flag_manager.is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL"):
+            time_unit = ""
+            delta_in_days = None
+            if instant_time_comparison_range == InstantTimeComparison.YEAR:
+                time_unit = "YEAR"
+            elif instant_time_comparison_range == InstantTimeComparison.MONTH:
+                time_unit = "MONTH"
+            elif instant_time_comparison_range == InstantTimeComparison.WEEK:
+                time_unit = "WEEK"
+            elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
+                delta_in_days = (_until - _since).days if _since and _until else None
+                time_unit = "DAY"
+
+            if time_unit:
+                strtfime_since = (
+                    _since.strftime("%Y-%m-%dT%H:%M:%S") if _since else relative_start
+                )
+                strtfime_until = (
+                    _until.strftime("%Y-%m-%dT%H:%M:%S") if _until else relative_end
+                )
+
+                since_and_until = [
+                    (
+                        f"DATEADD(DATETIME('{strtfime_since}'), "
+                        f"-{delta_in_days or 1}, {time_unit})"
+                    ),
+                    (
+                        f"DATEADD(DATETIME('{strtfime_until}'), "
+                        f"-{delta_in_days or 1}, {time_unit})"
+                    ),
+                ]
+
+                _since, _until = map(datetime_eval, since_and_until)
 
     if _since and _until and _since > _until:
         raise ValueError(_("From date cannot be larger than to date"))
@@ -385,16 +427,16 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
         country = country.eval() if country else "US"
 
-        holiday_lookup = CountryHoliday(country, years=[holiday_year], observed=False)
-        searched_result = holiday_lookup.get_named(holiday)
-        if len(searched_result) == 1:
+        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
+        searched_result = holiday_lookup.get_named(holiday, lookup="istartswith")
+        if len(searched_result) > 0:
             return dttm_from_timetuple(searched_result[0].timetuple())
         raise ValueError(
             _("Unable to find such a holiday: [%(holiday)s]", holiday=holiday)
         )
 
 
-@memoized
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,

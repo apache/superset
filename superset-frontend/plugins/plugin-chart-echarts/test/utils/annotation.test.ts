@@ -17,12 +17,14 @@
  * under the License.
  */
 import {
-  AnnotationLayer,
   AnnotationData,
+  AnnotationLayer,
   AnnotationOpacity,
   AnnotationSourceType,
   AnnotationStyle,
   AnnotationType,
+  AxisType,
+  DataRecord,
   FormulaAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
@@ -128,7 +130,6 @@ describe('extractAnnotationLabels', () => {
     ];
     const results: AnnotationData = {
       'My Interval': {
-        columns: ['col'],
         records: [{ col: 1 }],
       },
       'My Line': [
@@ -160,7 +161,7 @@ describe('evalFormula', () => {
       { __timestamp: 10 },
     ];
 
-    expect(evalFormula(layer, data)).toEqual([
+    expect(evalFormula(layer, data, '__timestamp', AxisType.Time)).toEqual([
       [0, 1],
       [10, 11],
     ]);
@@ -172,9 +173,32 @@ describe('evalFormula', () => {
       { __timestamp: 10 },
     ];
 
-    expect(evalFormula({ ...layer, value: 'y  = x* 2   -1' }, data)).toEqual([
+    expect(
+      evalFormula(
+        { ...layer, value: 'y  = x* 2   -1' },
+        data,
+        '__timestamp',
+        AxisType.Time,
+      ),
+    ).toEqual([
       [0, -1],
       [10, 19],
+    ]);
+  });
+
+  it('Should evaluate a formula if axis type is category', () => {
+    const data: DataRecord[] = [{ gender: 'boy' }, { gender: 'girl' }];
+
+    expect(
+      evalFormula(
+        { ...layer, value: 'y = 1000' },
+        data,
+        'gender',
+        AxisType.Category,
+      ),
+    ).toEqual([
+      ['boy', 1000],
+      ['girl', 1000],
     ]);
   });
 });

@@ -35,7 +35,6 @@ import {
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
-import { PartialStylesConfig } from 'src/components/Select';
 import {
   FetchDataConfig,
   Filter,
@@ -344,7 +343,7 @@ export function useListViewState({
 
   const applyFilterValue = (index: number, value: any) => {
     setInternalFilters(currentInternalFilters => {
-      // skip redunundant updates
+      // skip redundant updates
       if (currentInternalFilters[index].value === value) {
         return currentInternalFilters;
       }
@@ -378,23 +377,6 @@ export function useListViewState({
     toggleAllRowsSelected,
     applyFilterValue,
     setViewMode,
+    query,
   };
 }
-
-export const filterSelectStyles: PartialStylesConfig = {
-  container: (provider, { getValue }) => ({
-    ...provider,
-    // dynamic width based on label string length
-    minWidth: `${Math.min(
-      12,
-      Math.max(5, 3 + getValue()[0].label.length / 2),
-    )}em`,
-  }),
-  control: provider => ({
-    ...provider,
-    borderWidth: 0,
-    boxShadow: 'none',
-    cursor: 'pointer',
-    backgroundColor: 'transparent',
-  }),
-};

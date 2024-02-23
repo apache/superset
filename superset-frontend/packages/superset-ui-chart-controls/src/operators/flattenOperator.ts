@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +19,10 @@
 import { PostProcessingFlatten } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export const flattenOperator: PostProcessingFactory<PostProcessingFlatten> = (
   formData,
   queryObject,
-) => ({ operation: 'flatten' });
+) => ({
+  operation: 'flatten',
+});

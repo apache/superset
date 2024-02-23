@@ -17,9 +17,9 @@
  * under the License.
  */
 export enum OverwritePolicy {
-  ALLOW = 'ALLOW',
-  PROHIBIT = 'PROHIBIT',
-  WARN = 'WARN',
+  Allow = 'ALLOW',
+  Prohibit = 'PROHIBIT',
+  Warn = 'WARN',
 }
 
 interface ItemWithValue<T> {
@@ -59,6 +59,10 @@ export interface RegistryConfig {
 /**
  * Registry class
  *
+ * !!!!!!!!
+ * IF YOU ARE ADDING A NEW REGISTRY TO SUPERSET, CONSIDER USING TypedRegistry
+ * !!!!!!!!
+ *
  * Can use generic to specify type of item in the registry
  * @type V Type of value
  * @type W Type of value returned from loader function when using registerLoader().
@@ -85,7 +89,7 @@ export default class Registry<
   listeners: Set<Listener>;
 
   constructor(config: RegistryConfig = {}) {
-    const { name = '', overwritePolicy = OverwritePolicy.ALLOW } = config;
+    const { name = '', overwritePolicy = OverwritePolicy.Allow } = config;
     this.name = name;
     this.overwritePolicy = overwritePolicy;
     this.items = {};
@@ -115,12 +119,12 @@ export default class Registry<
       this.has(key) &&
       (('value' in item && item.value !== value) || 'loader' in item);
     if (willOverwrite) {
-      if (this.overwritePolicy === OverwritePolicy.WARN) {
+      if (this.overwritePolicy === OverwritePolicy.Warn) {
         // eslint-disable-next-line no-console
         console.warn(
           `Item with key "${key}" already exists. You are assigning a new value.`,
         );
-      } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
+      } else if (this.overwritePolicy === OverwritePolicy.Prohibit) {
         throw new Error(
           `Item with key "${key}" already exists. Cannot overwrite.`,
         );
@@ -141,12 +145,12 @@ export default class Registry<
       this.has(key) &&
       (('loader' in item && item.loader !== loader) || 'value' in item);
     if (willOverwrite) {
-      if (this.overwritePolicy === OverwritePolicy.WARN) {
+      if (this.overwritePolicy === OverwritePolicy.Warn) {
         // eslint-disable-next-line no-console
         console.warn(
           `Item with key "${key}" already exists. You are assigning a new value.`,
         );
-      } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
+      } else if (this.overwritePolicy === OverwritePolicy.Prohibit) {
         throw new Error(
           `Item with key "${key}" already exists. Cannot overwrite.`,
         );
@@ -165,7 +169,7 @@ export default class Registry<
     const item = this.items[key];
     if (item !== undefined) {
       if ('loader' in item) {
-        return item.loader && item.loader();
+        return item.loader?.();
       }
 
       return item.value;

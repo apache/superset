@@ -60,7 +60,7 @@ describe('LabeledErrorBoundInput', () => {
     expect(textboxInput).toBeVisible();
     expect(errorText).toBeVisible();
   });
-  it('renders a LabledErrorBoundInput with a InfoTooltip', async () => {
+  it('renders a LabeledErrorBoundInput with a InfoTooltip', async () => {
     defaultProps.hasTooltip = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
@@ -74,5 +74,19 @@ describe('LabeledErrorBoundInput', () => {
     expect(label).toBeVisible();
     expect(textboxInput).toBeVisible();
     expect(await screen.findByText('This is a tooltip')).toBeInTheDocument();
+  });
+
+  it('becomes a password input if visibilityToggle prop is passed in', async () => {
+    defaultProps.visibilityToggle = true;
+    render(<LabeledErrorBoundInput {...defaultProps} />);
+
+    expect(await screen.findByTestId('icon-eye')).toBeVisible();
+  });
+
+  it('becomes a password input if props.name === password (backwards compatibility)', async () => {
+    defaultProps.name = 'password';
+    render(<LabeledErrorBoundInput {...defaultProps} />);
+
+    expect(await screen.findByTestId('icon-eye')).toBeVisible();
   });
 });

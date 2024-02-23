@@ -94,27 +94,36 @@ export default async function callApi({
     cache !== 'no-store' &&
     cache !== 'reload' &&
     CACHE_AVAILABLE &&
-    (window.location && window.location.protocol) === 'https:'
+    window.location?.protocol === 'https:'
   ) {
-    const supersetCache = await caches.open(CACHE_KEY);
-    const cachedResponse = await supersetCache.match(url);
-    if (cachedResponse) {
-      // if we have a cached response, send its ETag in the
-      // `If-None-Match` header in a conditional request
-      const etag = cachedResponse.headers.get('Etag') as string;
-      request.headers = { ...request.headers, 'If-None-Match': etag };
+    let supersetCache: Cache | null = null;
+    try {
+      supersetCache = await caches.open(CACHE_KEY);
+      const cachedResponse = await supersetCache.match(url);
+      if (cachedResponse) {
+        // if we have a cached response, send its ETag in the
+        // `If-None-Match` header in a conditional request
+        const etag = cachedResponse.headers.get('Etag') as string;
+        request.headers = { ...request.headers, 'If-None-Match': etag };
+      }
+    } catch {
+      // If superset is in an iframe and third-party cookies are disabled, caches.open throws
     }
 
     const response = await fetchWithRetry(url, request);
 
-    if (response.status === HTTP_STATUS_NOT_MODIFIED) {
+    if (supersetCache && response.status === HTTP_STATUS_NOT_MODIFIED) {
       const cachedFullResponse = await supersetCache.match(url);
       if (cachedFullResponse) {
         return cachedFullResponse.clone();
       }
       throw new Error('Received 304 but no content is cached!');
     }
-    if (response.status === HTTP_STATUS_OK && response.headers.get('Etag')) {
+    if (
+      supersetCache &&
+      response.status === HTTP_STATUS_OK &&
+      response.headers.get('Etag')
+    ) {
       supersetCache.delete(url);
       supersetCache.put(url, response.clone());
     }
@@ -137,10 +146,23 @@ export default async function callApi({
         Object.keys(payload).forEach(key => {
           const value = (payload as JsonObject)[key] as JsonValue;
           if (typeof value !== 'undefined') {
-            formData.append(
-              key,
-              stringify ? JSON.stringify(value) : String(value),
-            );
+            let valueString;
+            try {
+              // We have seen instances where casting to String() throws error
+              // This check allows all valid attributes to be appended to the formData
+              // while logging error to console for any attribute that fails the cast to String
+              valueString = stringify ? JSON.stringify(value) : String(value);
+            } catch (e) {
+              // eslint-disable-next-line no-console
+              console.error(
+                `Unable to convert attribute '${key}' to a String(). '${key}' was not added to the formData in request.body for call to ${url}`,
+                value,
+                e,
+              );
+            }
+            if (valueString !== undefined) {
+              formData.append(key, valueString);
+            }
           }
         });
         request.body = formData;

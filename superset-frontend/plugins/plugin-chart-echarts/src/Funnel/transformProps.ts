@@ -18,13 +18,13 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   DataRecord,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
+  getValueFormatter,
   NumberFormats,
-  NumberFormatter,
-  getColumnLabel,
+  ValueFormatter,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { EChartsCoreOption, FunnelSeriesOption } from 'echarts';
@@ -34,16 +34,19 @@ import {
   EchartsFunnelFormData,
   EchartsFunnelLabelTypeType,
   FunnelChartTransformedProps,
+  PercentCalcType,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../types';
 import {
   extractGroupbyLabel,
   getChartPadding,
+  getColtypesMapping,
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
-import { OpacityEnum } from '../constants';
+import { defaultGrid } from '../defaults';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -51,17 +54,33 @@ export function formatFunnelLabel({
   params,
   labelType,
   numberFormatter,
+  percentCalculationType = PercentCalcType.FirstStep,
   sanitizeName = false,
 }: {
-  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
+  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent' | 'data'>;
   labelType: EchartsFunnelLabelTypeType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
+  percentCalculationType?: PercentCalcType;
   sanitizeName?: boolean;
 }): string {
-  const { name: rawName = '', value, percent } = params;
+  const { name: rawName = '', value, percent: totalPercent, data } = params;
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
-  const formattedPercent = percentFormatter((percent as number) / 100);
+  const { firstStepPercent, prevStepPercent } = data as {
+    firstStepPercent: number;
+    prevStepPercent: number;
+  };
+  let percent;
+
+  if (percentCalculationType === PercentCalcType.Total) {
+    percent = (totalPercent ?? 0) / 100;
+  } else if (percentCalculationType === PercentCalcType.PreviousStep) {
+    percent = prevStepPercent ?? 0;
+  } else {
+    percent = firstStepPercent ?? 0;
+  }
+  const formattedPercent = percentFormatter(percent);
+
   switch (labelType) {
     case EchartsFunnelLabelTypeType.Key:
       return name;
@@ -75,6 +94,8 @@ export function formatFunnelLabel({
       return `${name}: ${formattedValue} (${formattedPercent})`;
     case EchartsFunnelLabelTypeType.KeyPercent:
       return `${name}: ${formattedPercent}`;
+    case EchartsFunnelLabelTypeType.ValuePercent:
+      return `${formattedValue} (${formattedPercent})`;
     default:
       return name;
   }
@@ -83,10 +104,19 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
-
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
     groupby,
@@ -95,55 +125,72 @@ export default function transformProps(
     gap,
     labelLine,
     labelType,
+    tooltipLabelType,
     legendMargin,
     legendOrientation,
     legendType,
     metric = '',
     numberFormat,
+    currencyFormat,
     showLabels,
+    inContextMenu,
+    showTooltipLabels,
     showLegend,
-    emitFilter,
     sliceId,
+    percentCalculationType,
   }: EchartsFunnelFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_FUNNEL_FORM_DATA,
     ...formData,
   };
+  const { currencyFormats = {}, columnFormats = {} } = datasource;
+  const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const keys = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
   );
-  const labelMap = data.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const label = extractGroupbyLabel({
-        datum,
-        groupby: groupbyLabels,
-        coltypeMapping: {},
-      });
-      return {
-        ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
-      };
-    },
-    {},
-  );
+  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping: {},
+    });
+    return {
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
+    };
+  }, {});
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
 
-  const transformedData: FunnelSeriesOption[] = data.map(datum => {
+  const transformedData: {
+    value: number;
+    name: string;
+    itemStyle: { color: string; opacity: OpacityEnum };
+  }[] = data.map((datum, index) => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
       coltypeMapping: {},
     });
+    const value = datum[metricLabel] as number;
     const isFiltered =
       filterState.selectedValues && !filterState.selectedValues.includes(name);
+    const firstStepPercent = value / (data[0][metricLabel] as number);
+    const prevStepPercent =
+      index === 0 ? 1 : value / (data[index - 1][metricLabel] as number);
     return {
-      value: datum[metricLabel],
+      value,
       name,
       itemStyle: {
         color: colorFn(name, sliceId),
@@ -151,6 +198,8 @@ export default function transformProps(
           ? OpacityEnum.SemiTransparent
           : OpacityEnum.NonTransparent,
       },
+      firstStepPercent,
+      prevStepPercent,
     };
   });
 
@@ -168,12 +217,17 @@ export default function transformProps(
   );
 
   const formatter = (params: CallbackDataParams) =>
-    formatFunnelLabel({ params, numberFormatter, labelType });
+    formatFunnelLabel({
+      params,
+      numberFormatter,
+      labelType,
+      percentCalculationType,
+    });
 
   const defaultLabel = {
     formatter,
     show: showLabels,
-    color: '#000000',
+    color: theme.colors.grayscale.dark2,
   };
 
   const series: FunnelSeriesOption[] = [
@@ -209,17 +263,19 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
+      show: !inContextMenu && showTooltipLabels,
       trigger: 'item',
       formatter: (params: any) =>
         formatFunnelLabel({
           params,
           numberFormatter,
-          labelType: EchartsFunnelLabelTypeType.KeyValuePercent,
+          labelType: tooltipLabelType,
+          percentCalculationType,
         }),
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: keys,
     },
     series,
@@ -231,9 +287,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
+    refs,
+    coltypeMapping,
   };
 }

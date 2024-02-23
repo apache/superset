@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnMeta } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@superset-ui/core';
 
-export const columns: ColumnMeta[] = [
+export const columns = [
   {
     column_name: 'bootcamp_attend',
     description: null,
@@ -30,7 +29,7 @@ export const columns: ColumnMeta[] = [
     is_dttm: false,
     python_date_format: null,
     type: 'DOUBLE',
-    type_generic: GenericDataType.NUMERIC,
+    type_generic: GenericDataType.Numeric,
     verbose_name: null,
   },
   {
@@ -44,7 +43,7 @@ export const columns: ColumnMeta[] = [
     is_dttm: false,
     python_date_format: null,
     type: 'VARCHAR',
-    type_generic: GenericDataType.STRING,
+    type_generic: GenericDataType.String,
     verbose_name: null,
   },
   {
@@ -57,7 +56,7 @@ export const columns: ColumnMeta[] = [
     is_dttm: false,
     python_date_format: null,
     type: 'INT',
-    type_generic: GenericDataType.NUMERIC,
+    type_generic: GenericDataType.Numeric,
     verbose_name: null,
   },
 ];

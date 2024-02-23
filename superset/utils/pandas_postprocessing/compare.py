@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List, Optional
+from typing import Optional
 
 import pandas as pd
 from flask_babel import gettext as _
@@ -22,15 +22,15 @@ from pandas import DataFrame
 
 from superset.constants import PandasPostprocessingCompare
 from superset.exceptions import InvalidPostProcessingError
-from superset.utils.core import TIME_COMPARISION
+from superset.utils.core import TIME_COMPARISON
 from superset.utils.pandas_postprocessing.utils import validate_column_args
 
 
 @validate_column_args("source_columns", "compare_columns")
 def compare(  # pylint: disable=too-many-arguments
     df: DataFrame,
-    source_columns: List[str],
-    compare_columns: List[str],
+    source_columns: list[str],
+    compare_columns: list[str],
     compare_type: PandasPostprocessingCompare,
     drop_original_columns: Optional[bool] = False,
     precision: Optional[int] = 4,
@@ -65,17 +65,16 @@ def compare(  # pylint: disable=too-many-arguments
         c_df = df.loc[:, [c_col]]
         c_df.rename(columns={c_col: "__intermediate"}, inplace=True)
         if compare_type == PandasPostprocessingCompare.DIFF:
-            diff_df = c_df - s_df
+            diff_df = s_df - c_df
         elif compare_type == PandasPostprocessingCompare.PCT:
-            # https://en.wikipedia.org/wiki/Relative_change_and_difference#Percentage_change
-            diff_df = ((c_df - s_df) / s_df).astype(float).round(precision)
+            diff_df = ((s_df - c_df) / c_df).astype(float).round(precision)
         else:
             # compare_type == "ratio"
-            diff_df = (c_df / s_df).astype(float).round(precision)
+            diff_df = (s_df / c_df).astype(float).round(precision)
 
         diff_df.rename(
             columns={
-                "__intermediate": TIME_COMPARISION.join([compare_type, s_col, c_col])
+                "__intermediate": TIME_COMPARISON.join([compare_type, s_col, c_col])
             },
             inplace=True,
         )

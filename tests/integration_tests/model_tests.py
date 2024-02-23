@@ -16,12 +16,15 @@
 # under the License.
 # isort:skip_file
 import json
+from superset.utils.core import DatasourceType
 import textwrap
 import unittest
 from unittest import mock
 
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
+from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -37,7 +40,6 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.models.sql_types.base import literal_dttm_type_factory
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -55,30 +57,36 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive/default", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/default", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("prod", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("prod", db)
 
-        db = make_url(model.get_sqla_engine(schema="foo").url).database
-        self.assertEqual("prod", db)
+        with model.get_sqla_engine_with_context(schema="foo") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("prod", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
@@ -89,11 +97,14 @@ class TestDatabaseModel(SupersetTestCase):
     def test_database_schema_hive(self):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("default", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("core_db", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("default", db)
+
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("core_db", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -102,32 +113,37 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "mysql://root@localhost/superset"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("superset", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("superset", db)
 
-        db = make_url(model.get_sqla_engine(schema="staging").url).database
-        self.assertEqual("staging", db)
+        with model.get_sqla_engine_with_context(schema="staging") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("staging", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
     )
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
-        example_user = "giuseppe"
+        example_user = security_manager.find_user(username="gamma")
         model = Database(database_name="test_database", sqlalchemy_uri=uri)
 
-        model.impersonate_user = True
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertEqual(example_user, user_name)
+        with override_user(example_user):
+            model.impersonate_user = True
+            with model.get_sqla_engine_with_context() as engine:
+                username = make_url(engine.url).username
+                self.assertEqual(example_user.username, username)
 
-        model.impersonate_user = False
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertNotEqual(example_user, user_name)
+            model.impersonate_user = False
+            with model.get_sqla_engine_with_context() as engine:
+                username = make_url(engine.url).username
+                self.assertNotEqual(example_user.username, username)
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_presto(self, mocked_create_engine):
         uri = "presto://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
         extra = """
                 {
                     "metadata_params": {},
@@ -143,64 +159,94 @@ class TestDatabaseModel(SupersetTestCase):
                 }
                 """
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri=uri, extra=extra
+            )
+            model.impersonate_user = True
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
+            assert str(call_args[0][0]) == "presto://gamma@localhost"
+
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+                "principal_username": "gamma",
+            }
+
+            model.impersonate_user = False
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
+
+            assert str(call_args[0][0]) == "presto://localhost"
+
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+            }
+
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+    )
+    @mock.patch("superset.models.core.create_engine")
+    def test_adjust_engine_params_mysql(self, mocked_create_engine):
+        model = Database(
+            database_name="test_database1",
+            sqlalchemy_uri="mysql://user:password@localhost",
+        )
+        model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "presto://logged_in_user@localhost"
+        assert str(call_args[0][0]) == "mysql://user:password@localhost"
+        assert call_args[1]["connect_args"]["local_infile"] == 0
 
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-            "principal_username": "logged_in_user",
-        }
-
-        model.impersonate_user = False
-        model.get_sqla_engine(user_name=principal_user)
+        model = Database(
+            database_name="test_database2",
+            sqlalchemy_uri="mysql+mysqlconnector://user:password@localhost",
+        )
+        model._get_sqla_engine()
         call_args = mocked_create_engine.call_args
 
-        assert str(call_args[0][0]) == "presto://localhost"
-
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-        }
+        assert str(call_args[0][0]) == "mysql+mysqlconnector://user:password@localhost"
+        assert call_args[1]["connect_args"]["allow_local_infile"] == 0
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
-        uri = "trino://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri="trino://localhost"
+            )
+            model.impersonate_user = True
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "trino://localhost"
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
-        assert str(call_args[0][0]) == "trino://localhost"
+            model = Database(
+                database_name="test_database",
+                sqlalchemy_uri="trino://original_user:original_user_password@localhost",
+            )
 
-        assert call_args[1]["connect_args"] == {
-            "user": "logged_in_user",
-        }
+            model.impersonate_user = True
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        uri = "trino://original_user:original_user_password@localhost"
-        model = Database(database_name="test_database", sqlalchemy_uri=uri)
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
-
-        assert str(call_args[0][0]) == "trino://original_user@localhost"
-
-        assert call_args[1]["connect_args"] == {"user": "logged_in_user"}
+            assert (
+                str(call_args[0][0])
+                == "trino://original_user:original_user_password@localhost"
+            )
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
         extra = """
                 {
                     "metadata_params": {},
@@ -216,39 +262,42 @@ class TestDatabaseModel(SupersetTestCase):
                 }
                 """
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri=uri, extra=extra
+            )
+            model.impersonate_user = True
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "hive://localhost"
 
-        assert str(call_args[0][0]) == "hive://localhost"
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+                "configuration": {"hive.server2.proxy.user": "gamma"},
+            }
 
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-            "configuration": {"hive.server2.proxy.user": "logged_in_user"},
-        }
+            model.impersonate_user = False
+            model._get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = False
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "hive://localhost"
 
-        assert str(call_args[0][0]) == "hive://localhost"
-
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-        }
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+            }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        quote = db.inspector.engine.dialect.identifier_preparer.quote_identifier
+        with db.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
         expected = (
             textwrap.dedent(
                 f"""\
@@ -346,19 +395,6 @@ class TestDatabaseModel(SupersetTestCase):
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEqual(df.iat[0, 0], ";")
 
-    @mock.patch("superset.models.core.Database.get_sqla_engine")
-    def test_username_param(self, mocked_get_sqla_engine):
-        main_db = get_example_database()
-        main_db.impersonate_user = True
-        test_username = "test_username_param"
-
-        if main_db.backend == "mysql":
-            main_db.get_df("USE superset; SELECT 1", username=test_username)
-            mocked_get_sqla_engine.assert_called_with(
-                schema=None,
-                user_name="test_username_param",
-            )
-
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(
@@ -370,36 +406,28 @@ class TestDatabaseModel(SupersetTestCase):
         )
         mocked_create_engine.side_effect = Exception()
         with self.assertRaises(SupersetException):
-            model.get_sqla_engine()
+            model._get_sqla_engine()
 
 
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
-        col_type = (
-            "VARCHAR"
-            if get_example_database().backend == "presto"
-            else "TemporalWrapperType"
-        )
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
-        self.assertEqual(str(sqla_literal.compile()), "ds")
-        assert type(sqla_literal.type).__name__ == col_type
+        assert str(sqla_literal.compile()) == "ds"
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(ds)")
+            assert compiled == "DATE(ds)"
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
+            assert compiled == "DATE(DATE_ADD(ds, 1))"
         ds_col.expression = prev_ds_expr
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -410,20 +438,20 @@ class TestSqlaTableModel(SupersetTestCase):
         ds_col.expression = None
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression(None)
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "from_unixtime(ds)")
 
         ds_col.python_date_format = "epoch_s"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(from_unixtime(ds))")
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = "{}".format(sqla_literal.compile())
+        compiled = f"{sqla_literal.compile()}"
         if tbl.database.backend == "mysql":
             self.assertEqual(compiled, "DATE(from_unixtime(DATE_ADD(ds, 1)))")
         ds_col.expression = prev_ds_expr
@@ -474,15 +502,15 @@ class TestSqlaTableModel(SupersetTestCase):
             # TODO(bkyryliuk): make it work for presto.
             return
 
-        def cannonicalize_df(df):
+        def canonicalize_df(df):
             ret = df.sort_values(by=list(df.columns.values), inplace=False)
             ret.reset_index(inplace=True, drop=True)
             return ret
 
         df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
-        name_list1 = cannonicalize_df(df1).name.values.tolist()
+        name_list1 = canonicalize_df(df1).name.values.tolist()
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
-        name_list2 = cannonicalize_df(df1).name.values.tolist()
+        name_list2 = canonicalize_df(df1).name.values.tolist()
         self.assertFalse(df2.empty)
 
         assert name_list2 == name_list1
@@ -603,7 +631,9 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["metrics"]) == 1
         assert len(data_for_slices["columns"]) == 2
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
-        assert data_for_slices["columns"][0]["column_name"] == "name"
+        column_names = [col["column_name"] for col in data_for_slices["columns"]]
+        assert "name" in column_names
+        assert "state" in column_names
         assert set(data_for_slices["verbose_map"].keys()) == {
             "__timestamp",
             "sum__num",
@@ -619,7 +649,7 @@ class TestSqlaTableModel(SupersetTestCase):
         dashboard = self.get_dash_by_slug("births")
         slc = Slice(
             slice_name="slice with adhoc column",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             viz_type="table",
             params=json.dumps(
                 {
@@ -643,11 +673,7 @@ class TestSqlaTableModel(SupersetTestCase):
         # clean up and auto commit
         metadata_db.session.delete(slc)
 
-
-def test_literal_dttm_type_factory():
-    orig_type = DateTime()
-    new_type = literal_dttm_type_factory(
-        orig_type, PostgresEngineSpec, "TIMESTAMP", db_extra={}
-    )
-    assert type(new_type).__name__ == "TemporalWrapperType"
-    assert str(new_type) == str(orig_type)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_table_column_database(self) -> None:
+        tbl = self.get_table(name="birth_names")
+        assert tbl.get_column("ds").database is tbl.database  # type: ignore

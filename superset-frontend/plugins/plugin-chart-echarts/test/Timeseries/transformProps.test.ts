@@ -25,6 +25,7 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  supersetTheme,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../../src/types';
@@ -52,9 +53,10 @@ describe('EchartsTimeseries transformProps', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
@@ -80,6 +82,44 @@ describe('EchartsTimeseries transformProps', () => {
               name: 'New York',
             }),
           ]),
+        }),
+      }),
+    );
+  });
+
+  it('should transform chart props for horizontal viz', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        orientation: 'horizontal',
+      },
+    });
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+      expect.objectContaining({
+        width: 800,
+        height: 600,
+        echartOptions: expect.objectContaining({
+          legend: expect.objectContaining({
+            data: ['San Francisco', 'New York'],
+          }),
+          series: expect.arrayContaining([
+            expect.objectContaining({
+              data: [
+                [1, 599616000000],
+                [3, 599916000000],
+              ],
+              name: 'San Francisco',
+            }),
+            expect.objectContaining({
+              data: [
+                [2, 599616000000],
+                [4, 599916000000],
+              ],
+              name: 'New York',
+            }),
+          ]),
+          yAxis: expect.objectContaining({ inverse: true }),
         }),
       }),
     );
@@ -172,60 +212,62 @@ describe('EchartsTimeseries transformProps', () => {
       titleColumn: '',
       value: 3,
     };
+    const annotationData = {
+      'My Event': {
+        columns: [
+          'start_dttm',
+          'end_dttm',
+          'short_descr',
+          'long_descr',
+          'json_metadata',
+        ],
+        records: [
+          {
+            start_dttm: 0,
+            end_dttm: 1000,
+            short_descr: '',
+            long_descr: '',
+            json_metadata: null,
+          },
+        ],
+      },
+      'My Interval': {
+        columns: ['start', 'end', 'title'],
+        records: [
+          {
+            start: 2000,
+            end: 3000,
+            title: 'My Title',
+          },
+        ],
+      },
+      'My Timeseries': [
+        {
+          key: 'My Line',
+          values: [
+            {
+              x: 10000,
+              y: 11000,
+            },
+            {
+              x: 20000,
+              y: 21000,
+            },
+          ],
+        },
+      ],
+    };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
         ...formData,
         annotationLayers: [event, interval, timeseries],
       },
+      annotationData,
       queriesData: [
         {
           ...queriesData[0],
-          annotation_data: {
-            'My Event': {
-              columns: [
-                'start_dttm',
-                'end_dttm',
-                'short_descr',
-                'long_descr',
-                'json_metadata',
-              ],
-              records: [
-                {
-                  start_dttm: 0,
-                  end_dttm: 1000,
-                  short_descr: '',
-                  long_descr: '',
-                  json_metadata: null,
-                },
-              ],
-            },
-            'My Interval': {
-              columns: ['start', 'end', 'title'],
-              records: [
-                {
-                  start: 2000,
-                  end: 3000,
-                  title: 'My Title',
-                },
-              ],
-            },
-            'My Timeseries': [
-              {
-                key: 'My Line',
-                values: [
-                  {
-                    x: 10000,
-                    y: 11000,
-                  },
-                  {
-                    x: 20000,
-                    y: 21000,
-                  },
-                ],
-              },
-            ],
-          },
+          annotation_data: annotationData,
         },
       ],
     });
@@ -252,6 +294,112 @@ describe('EchartsTimeseries transformProps', () => {
         }),
       }),
     );
+  });
+
+  it('Should add a baseline series for stream graph', () => {
+    const streamQueriesData = [
+      {
+        data: [
+          {
+            'San Francisco': 120,
+            'New York': 220,
+            Boston: 150,
+            Miami: 270,
+            Denver: 800,
+            __timestamp: 599616000000,
+          },
+          {
+            'San Francisco': 150,
+            'New York': 190,
+            Boston: 240,
+            Miami: 350,
+            Denver: 700,
+            __timestamp: 599616000001,
+          },
+          {
+            'San Francisco': 130,
+            'New York': 300,
+            Boston: 250,
+            Miami: 410,
+            Denver: 650,
+            __timestamp: 599616000002,
+          },
+          {
+            'San Francisco': 90,
+            'New York': 340,
+            Boston: 300,
+            Miami: 480,
+            Denver: 590,
+            __timestamp: 599616000003,
+          },
+          {
+            'San Francisco': 260,
+            'New York': 200,
+            Boston: 420,
+            Miami: 490,
+            Denver: 760,
+            __timestamp: 599616000004,
+          },
+          {
+            'San Francisco': 250,
+            'New York': 250,
+            Boston: 380,
+            Miami: 360,
+            Denver: 400,
+            __timestamp: 599616000005,
+          },
+          {
+            'San Francisco': 160,
+            'New York': 210,
+            Boston: 330,
+            Miami: 440,
+            Denver: 580,
+            __timestamp: 599616000006,
+          },
+        ],
+      },
+    ];
+    const streamFormData = { ...formData, stack: 'Stream' };
+    const props = {
+      ...chartPropsConfig,
+      formData: streamFormData,
+      queriesData: streamQueriesData,
+    };
+
+    const chartProps = new ChartProps(props);
+    expect(
+      (
+        transformProps(chartProps as EchartsTimeseriesChartProps).echartOptions
+          .series as any[]
+      )[0],
+    ).toEqual({
+      areaStyle: {
+        opacity: 0,
+      },
+      lineStyle: {
+        opacity: 0,
+      },
+      name: 'baseline',
+      showSymbol: false,
+      silent: true,
+      smooth: false,
+      stack: 'obs',
+      stackStrategy: 'all',
+      step: undefined,
+      tooltip: {
+        show: false,
+      },
+      type: 'line',
+      data: [
+        [599616000000, -415.7692307692308],
+        [599616000001, -403.6219915054271],
+        [599616000002, -476.32314093071443],
+        [599616000003, -514.2120298196033],
+        [599616000004, -485.7378514158475],
+        [599616000005, -419.6402904402378],
+        [599616000006, -442.9833136960517],
+      ],
+    });
   });
 });
 
@@ -315,6 +463,7 @@ describe('Does transformProps transform series correctly', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
   const totalStackedValues = queriesData[0].data.reduce(
@@ -452,6 +601,37 @@ describe('Does transformProps transform series correctly', () => {
         const expectedLabel = String(value[1]);
         expect(series.label.formatter(params)).toBe(expectedLabel);
       });
+    });
+  });
+
+  it('should remove time shift labels from label_map', () => {
+    const updatedChartPropsConfig = {
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        timeCompare: ['1 year ago'],
+      },
+      queriesData: [
+        {
+          ...queriesData[0],
+          label_map: {
+            '1 year ago, foo1, bar1': ['1 year ago', 'foo1', 'bar1'],
+            '1 year ago, foo2, bar2': ['1 year ago', 'foo2', 'bar2'],
+            'foo1, bar1': ['foo1', 'bar1'],
+            'foo2, bar2': ['foo2', 'bar2'],
+          },
+        },
+      ],
+    };
+    const chartProps = new ChartProps(updatedChartPropsConfig);
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    expect(transformedProps.labelMap).toEqual({
+      '1 year ago, foo1, bar1': ['foo1', 'bar1'],
+      '1 year ago, foo2, bar2': ['foo2', 'bar2'],
+      'foo1, bar1': ['foo1', 'bar1'],
+      'foo2, bar2': ['foo2', 'bar2'],
     });
   });
 });

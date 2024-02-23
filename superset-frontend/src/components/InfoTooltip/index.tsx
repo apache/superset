@@ -48,7 +48,7 @@ export interface InfoTooltipProps {
 const StyledTooltip = styled(Tooltip)`
   cursor: pointer;
   path:first-of-type {
-    fill: #999999;
+    fill: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 
@@ -73,7 +73,7 @@ export default function InfoTooltip({
   trigger = 'hover',
   overlayStyle = defaultOverlayStyle,
   bgColor = defaultColor,
-  viewBox = '0 -2 24 24',
+  viewBox = '0 -1 24 24',
 }: InfoTooltipProps) {
   return (
     <StyledTooltip

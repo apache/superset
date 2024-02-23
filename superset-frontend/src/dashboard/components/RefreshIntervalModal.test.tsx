@@ -17,58 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
-import ModalTrigger from 'src/components/ModalTrigger';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
-import Alert from 'src/components/Alert';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-
-describe('RefreshIntervalModal - Enzyme', () => {
-  const getMountWrapper = (props: any) =>
-    mount(<RefreshIntervalModal {...props} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    });
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-    refreshFrequency: 10,
-    onChange: jest.fn(),
-    editMode: true,
-  };
-  it('should show warning message', () => {
-    const props = {
-      ...mockedProps,
-      refreshLimit: 3600,
-      refreshWarning: 'Show warning',
-    };
-
-    const wrapper = getMountWrapper(props);
-    wrapper.find('span[role="button"]').simulate('click');
-
-    // @ts-ignore (for handleFrequencyChange)
-    wrapper.instance().handleFrequencyChange(30);
-    wrapper.update();
-    expect(wrapper.find(ModalTrigger).find(Alert)).toExist();
-
-    // @ts-ignore (for handleFrequencyChange)
-    wrapper.instance().handleFrequencyChange(3601);
-    wrapper.update();
-    expect(wrapper.find(ModalTrigger).find(Alert)).not.toExist();
-    wrapper.unmount();
-  });
-});
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
-  customCss: '#save-dash-split-button{margin-left: 100px;}',
+  customCss:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -77,7 +37,20 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+          [30, '30 seconds'],
+          [60, '1 minute'],
+          [300, '5 minutes'],
+          [1800, '30 minutes'],
+          [3600, '1 hour'],
+          [21600, '6 hours'],
+          [43200, '12 hours'],
+          [86400, '24 hours'],
+        ],
+      },
     },
   },
   dashboardTitle: 'Title',
@@ -100,6 +73,7 @@ const createProps = () => ({
   userCanSave: false,
   userCanShare: false,
   lastModifiedTime: 0,
+  isDropdownVisible: true,
 });
 
 const editModeOnProps = {
@@ -116,9 +90,6 @@ const setup = (overrides?: any) => (
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 const openRefreshIntervalModal = async () => {
-  const headerActionsButton = screen.getByRole('img', { name: 'more-horiz' });
-  userEvent.click(headerActionsButton);
-
   const autoRefreshOption = screen.getByText('Set auto-refresh interval');
   userEvent.click(autoRefreshOption);
 };
@@ -134,106 +105,102 @@ const defaultRefreshIntervalModalProps = {
   onChange: jest.fn(),
   editMode: true,
   addSuccessToast: jest.fn(),
+  refreshIntervalOptions: [],
 };
 
-describe('RefreshIntervalModal - RTL', () => {
-  it('is valid', () => {
-    expect(
-      React.isValidElement(
-        <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
-      ),
-    ).toBe(true);
+test('is valid', () => {
+  expect(
+    React.isValidElement(
+      <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
+    ),
+  ).toBe(true);
+});
+
+test('renders refresh interval modal', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
+
+  // Assert that modal exists by checking for the modal title
+  expect(screen.getByText('Refresh interval')).toBeVisible();
+});
+
+test('renders refresh interval options', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
+  await displayOptions();
+
+  // Assert that both "Don't refresh" instances exist
+  // - There will be two at this point, the default option and the dropdown option
+  const dontRefreshInstances = screen.getAllByText(/don't refresh/i);
+  expect(dontRefreshInstances).toHaveLength(2);
+  dontRefreshInstances.forEach(option => {
+    expect(option).toBeInTheDocument();
   });
 
-  it('renders refresh interval modal', async () => {
-    render(setup(editModeOnProps));
-    await openRefreshIntervalModal();
-
-    // Assert that modal exists by checking for the modal title
-    expect(screen.getByText('Refresh interval')).toBeVisible();
+  // Assert that all the other options exist
+  const options = [
+    screen.getByText(/10 seconds/i),
+    screen.getByText(/30 seconds/i),
+    screen.getByText(/1 minute/i),
+    screen.getByText(/5 minutes/i),
+    screen.getByText(/30 minutes/i),
+    screen.getByText(/1 hour/i),
+    screen.getByText(/6 hours/i),
+    screen.getByText(/12 hours/i),
+    screen.getByText(/24 hours/i),
+  ];
+  options.forEach(option => {
+    expect(option).toBeInTheDocument();
   });
+});
 
-  it('renders refresh interval options', async () => {
-    render(setup(editModeOnProps));
-    await openRefreshIntervalModal();
-    await displayOptions();
+test('should change selected value', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
 
-    // Assert that both "Don't refresh" instances exist
-    // - There will be two at this point, the default option and the dropdown option
-    const dontRefreshInstances = screen.getAllByText(/don't refresh/i);
-    expect(dontRefreshInstances).toHaveLength(2);
-    dontRefreshInstances.forEach(option => {
-      expect(option).toBeInTheDocument();
-    });
+  // Initial selected value should be "Don't refresh"
+  const selectedValue = screen.getByText(/don't refresh/i);
+  expect(selectedValue.title).toMatch(/don't refresh/i);
 
-    // Assert that all the other options exist
-    const options = [
-      screen.getByText(/10 seconds/i),
-      screen.getByText(/30 seconds/i),
-      screen.getByText(/1 minute/i),
-      screen.getByText(/5 minutes/i),
-      screen.getByText(/30 minutes/i),
-      screen.getByText(/1 hour/i),
-      screen.getByText(/6 hours/i),
-      screen.getByText(/12 hours/i),
-      screen.getByText(/24 hours/i),
-    ];
-    options.forEach(option => {
-      expect(option).toBeInTheDocument();
-    });
-  });
+  // Display options and select "10 seconds"
+  await displayOptions();
+  userEvent.click(screen.getByText(/10 seconds/i));
 
-  it('should change selected value', async () => {
-    render(setup(editModeOnProps));
-    await openRefreshIntervalModal();
+  // Selected value should now be "10 seconds"
+  expect(selectedValue.title).toMatch(/10 seconds/i);
+  expect(selectedValue.title).not.toMatch(/don't refresh/i);
+});
 
-    // Initial selected value should be "Don't refresh"
-    const selectedValue = screen.getByText(/don't refresh/i);
-    expect(selectedValue.title).toMatch(/don't refresh/i);
+test('should save a newly-selected value', async () => {
+  render(setup(editModeOnProps));
+  await openRefreshIntervalModal();
+  await displayOptions();
 
-    // Display options and select "10 seconds"
-    await displayOptions();
-    userEvent.click(screen.getByText(/10 seconds/i));
+  // Select a new interval and click save
+  userEvent.click(screen.getByText(/10 seconds/i));
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    // Selected value should now be "10 seconds"
-    expect(selectedValue.title).toMatch(/10 seconds/i);
-    expect(selectedValue.title).not.toMatch(/don't refresh/i);
-  });
+  expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalled();
+  expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalledWith(
+    10,
+    editModeOnProps.editMode,
+  );
+  expect(editModeOnProps.addSuccessToast).toHaveBeenCalled();
+});
 
-  it('should save a newly-selected value', async () => {
-    render(setup(editModeOnProps));
-    await openRefreshIntervalModal();
-    await displayOptions();
+test('should show warning message', async () => {
+  const warningProps = {
+    ...editModeOnProps,
+    refreshLimit: 3600,
+    refreshWarning: 'Show warning',
+  };
 
-    screen.logTestingPlaygroundURL();
-    // Select a new interval and click save
-    userEvent.click(screen.getByText(/10 seconds/i));
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
+  const { getByRole, queryByRole } = render(setup(warningProps));
+  await openRefreshIntervalModal();
+  await displayOptions();
 
-    expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalled();
-    expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalledWith(
-      10,
-      editModeOnProps.editMode,
-    );
-    expect(editModeOnProps.addSuccessToast).toHaveBeenCalled();
-  });
-
-  it('should show warning message', async () => {
-    // TODO (lyndsiWilliams): This test is incomplete
-    const warningProps = {
-      ...editModeOnProps,
-      refreshLimit: 3600,
-      refreshWarning: 'Show warning',
-    };
-
-    render(setup(warningProps));
-    await openRefreshIntervalModal();
-    await displayOptions();
-
-    userEvent.click(screen.getByText(/30 seconds/i));
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    // screen.debug(screen.getByRole('alert'));
-    expect.anything();
-  });
+  userEvent.click(screen.getByText(/30 seconds/i));
+  expect(getByRole('alert')).toBeInTheDocument();
+  userEvent.click(screen.getByText(/6 hours/i));
+  expect(queryByRole('alert')).not.toBeInTheDocument();
 });

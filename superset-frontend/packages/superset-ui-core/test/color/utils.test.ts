@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { getContrastingColor, addAlpha } from '@superset-ui/core';
+import {
+  getContrastingColor,
+  addAlpha,
+  hexToRgb,
+  rgbToHex,
+} from '@superset-ui/core';
 
 describe('color utils', () => {
   describe('getContrastingColor', () => {
@@ -66,6 +71,39 @@ describe('color utils', () => {
     });
     it('adds 50% opacity to white', () => {
       expect(addAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF80');
+    });
+    it('should apply transparent alpha', () => {
+      expect(addAlpha('#000000', 0)).toBe('#00000000');
+    });
+    it('should apply fully opaque', () => {
+      expect(addAlpha('#000000', 1)).toBe('#000000FF');
+    });
+    it('opacity should be between 0 and 1', () => {
+      expect(() => {
+        addAlpha('#000000', 2);
+      }).toThrow();
+      expect(() => {
+        addAlpha('#000000', -1);
+      }).toThrow();
+    });
+  });
+  describe('hexToRgb', () => {
+    it('convert 3 digits hex', () => {
+      expect(hexToRgb('#fff')).toBe('rgb(255, 255, 255)');
+    });
+    it('convert 6 digits hex', () => {
+      expect(hexToRgb('#ffffff')).toBe('rgb(255, 255, 255)');
+    });
+    it('convert invalid hex', () => {
+      expect(hexToRgb('#ffffffffffffff')).toBe('rgb(0, 0, 0)');
+    });
+  });
+  describe('rgbToHex', () => {
+    it('convert rgb to hex - white', () => {
+      expect(rgbToHex(255, 255, 255)).toBe('#ffffff');
+    });
+    it('convert rgb to hex - black', () => {
+      expect(rgbToHex(0, 0, 0)).toBe('#000000');
     });
   });
 });

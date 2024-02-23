@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { formatSelectOptions } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/explore/exploreUtils';
 
 export default {
   controlPanelSections: [
@@ -69,9 +69,6 @@ export default {
     },
   },
   sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [],
-    },
     sqlaTimeSeries: {
       controlSetRows: [],
     },

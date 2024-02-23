@@ -37,6 +37,11 @@ export default function ResizeObserver(callback: ObserveCallback) {
         allCallbacks.push(callback);
       }
     },
+    unobserve() {
+      if (callback) {
+        allCallbacks.splice(allCallbacks.indexOf(callback), 1);
+      }
+    },
   };
 }
 

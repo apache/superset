@@ -1,0 +1,50 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+:root {
+  --ifm-color-primary: #20a7c9;
+  --ifm-color-primary-dark: #1985a0;
+  --ifm-color-primary-darker: #t;
+  --ifm-color-primary-darkest: #ffffff;
+  --ifm-color-primary-light: #79cade;
+  --ifm-color-primary-lighter: #a5dbe9;
+  --ifm-color-primary-lightest: #d2edf4;
+  --ifm-font-base-color: #484848;
+  --ifm-font-base-color-inverse: #ffffff;
+  --ifm-code-font-size: 95%;
+  --ifm-menu-link-padding-vertical: 12px;
+  --doc-sidebar-width: 350px !important;
+  --ifm-navbar-height: none;
+  --ifm-font-family-base: Roboto;
+  --ifm-footer-background-color: #173036;
+  --ifm-footer-color: #87939a;
+  --ifm-off-section-background: #fbfbfb;
+  --ifm-border-color: #ededed;
+  --ifm-primary-text: #484848;
+  --ifm-secondary-text: #5f5f5f;
+}

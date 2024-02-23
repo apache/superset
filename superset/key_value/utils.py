@@ -18,14 +18,15 @@ from __future__ import annotations
 
 from hashlib import md5
 from secrets import token_urlsafe
-from typing import Union
-from uuid import UUID
+from typing import Any
+from uuid import UUID, uuid3
 
 import hashids
 from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import KeyValueFilter, KeyValueResource
+from superset.utils.core import json_dumps_w_dates
 
 HASHIDS_MIN_LENGTH = 11
 
@@ -34,7 +35,7 @@ def random_key() -> str:
     return token_urlsafe(48)
 
 
-def get_filter(resource: KeyValueResource, key: Union[int, UUID]) -> KeyValueFilter:
+def get_filter(resource: KeyValueResource, key: int | UUID) -> KeyValueFilter:
     try:
         filter_: KeyValueFilter = {"resource": resource.value}
         if isinstance(key, UUID):
@@ -63,3 +64,9 @@ def get_uuid_namespace(seed: str) -> UUID:
     md5_obj = md5()
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())
+
+
+def get_deterministic_uuid(namespace: str, payload: Any) -> UUID:
+    """Get a deterministic UUID (uuid3) from a salt and a JSON-serializable payload."""
+    payload_str = json_dumps_w_dates(payload, sort_keys=True)
+    return uuid3(get_uuid_namespace(namespace), payload_str)

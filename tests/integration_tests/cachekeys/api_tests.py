@@ -16,9 +16,9 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
-from typing import Dict, Any
+from typing import Any
 
-from tests.integration_tests.test_app import app  # noqa
+import pytest
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
@@ -26,23 +26,29 @@ from superset.utils.core import get_example_default_schema
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
-    test_client,
-    logged_in_admin,
-)  # noqa
+)
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 
 
-def invalidate(params: Dict[str, Any]):
-    return post_assert_metric(
-        test_client, "api/v1/cachekey/invalidate", params, "invalidate"
-    )
+@pytest.fixture
+def invalidate(test_client, login_as_admin):
+    def _invalidate(params: dict[str, Any]):
+        return post_assert_metric(
+            test_client, "api/v1/cachekey/invalidate", params, "invalidate"
+        )
+
+    return _invalidate
 
 
-def test_invalidate_cache(logged_in_admin):
+def test_invalidate_cache(invalidate):
     rv = invalidate({"datasource_uids": ["3__table"]})
     assert rv.status_code == 201
 
 
-def test_invalidate_existing_cache(logged_in_admin):
+def test_invalidate_existing_cache(invalidate):
     db.session.add(CacheKey(cache_key="cache_key", datasource_uid="3__table"))
     db.session.commit()
     cache_manager.cache.set("cache_key", "value")
@@ -56,7 +62,7 @@ def test_invalidate_existing_cache(logged_in_admin):
     )
 
 
-def test_invalidate_cache_empty_input(logged_in_admin):
+def test_invalidate_cache_empty_input(invalidate):
     rv = invalidate({"datasource_uids": []})
     assert rv.status_code == 201
 
@@ -67,7 +73,7 @@ def test_invalidate_cache_empty_input(logged_in_admin):
     assert rv.status_code == 201
 
 
-def test_invalidate_cache_bad_request(logged_in_admin):
+def test_invalidate_cache_bad_request(invalidate):
     rv = invalidate(
         {
             "datasource_uids": [],
@@ -93,7 +99,8 @@ def test_invalidate_cache_bad_request(logged_in_admin):
     assert rv.status_code == 400
 
 
-def test_invalidate_existing_caches(logged_in_admin):
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_invalidate_existing_caches(invalidate):
     schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()
 

@@ -16,7 +16,6 @@
 # under the License.
 import random
 import string
-from typing import List
 
 import sqlalchemy.sql.sqltypes
 
@@ -30,13 +29,13 @@ COLUMN_TYPES = [
     sqlalchemy.sql.sqltypes.FLOAT(),
     sqlalchemy.sql.sqltypes.DATE(),
     sqlalchemy.sql.sqltypes.TIME(),
-    sqlalchemy.sql.sqltypes.DATETIME(),
+    sqlalchemy.sql.sqltypes.TIMESTAMP(),
 ]
 
 
 def load_big_data() -> None:
     print("Creating table `wide_table` with 100 columns")
-    columns: List[ColumnInfo] = []
+    columns: list[ColumnInfo] = []
     for i in range(100):
         column: ColumnInfo = {
             "name": f"col{i}",
@@ -72,5 +71,5 @@ def load_big_data() -> None:
         add_data(columns=columns, num_rows=10, table_name=f"small_table_{i}")
 
     print("Creating table with long name")
-    name = "".join(random.choices(string.ascii_letters + string.digits, k=64))
+    name = "".join(random.choices(string.ascii_letters + string.digits, k=60))
     add_data(columns=columns, num_rows=10, table_name=name)

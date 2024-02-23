@@ -22,35 +22,30 @@ import json
 import logging
 import textwrap
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Iterator,
-    Optional,
-    Type,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, cast, Literal, TYPE_CHECKING
 
-from flask import current_app, g, request
+from flask import g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
-from typing_extensions import Literal
+
+from superset.extensions import stats_logger_manager
+from superset.utils.core import get_user_id, LoggerLevel
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
+logger = logging.getLogger(__name__)
 
-def collect_request_payload() -> Dict[str, Any]:
+
+def collect_request_payload() -> dict[str, Any]:
     """Collect log payload identifiable from request context"""
     if not request:
         return {}
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "path": request.path,
         **request.form.to_dict(),
         # url search params can overwrite POST body
@@ -73,14 +68,32 @@ def collect_request_payload() -> Dict[str, Any]:
     return payload
 
 
+def get_logger_from_status(
+    status: int,
+) -> tuple[Callable[..., None], str]:
+    """
+    Return logger method by status of exception.
+    Maps logger level to status code level
+    """
+    log_map = {
+        "2": LoggerLevel.INFO,
+        "3": LoggerLevel.INFO,
+        "4": LoggerLevel.WARNING,
+        "5": LoggerLevel.EXCEPTION,
+    }
+    log_level = log_map[str(status)[0]]
+
+    return (getattr(logger, log_level), log_level)
+
+
 class AbstractEventLogger(ABC):
     def __call__(
         self,
         action: str,
-        object_ref: Optional[str] = None,
+        object_ref: str | None = None,
         log_to_statsd: bool = True,
-        duration: Optional[timedelta] = None,
-        **payload_override: Dict[str, Any],
+        duration: timedelta | None = None,
+        **payload_override: dict[str, Any],
     ) -> object:
         # pylint: disable=W0201
         self.action = action
@@ -106,12 +119,12 @@ class AbstractEventLogger(ABC):
     @abstractmethod
     def log(  # pylint: disable=too-many-arguments
         self,
-        user_id: Optional[int],
+        user_id: int | None,
         action: str,
-        dashboard_id: Optional[int],
-        duration_ms: Optional[int],
-        slice_id: Optional[int],
-        referrer: Optional[str],
+        dashboard_id: int | None,
+        duration_ms: int | None,
+        slice_id: int | None,
+        referrer: str | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -120,12 +133,13 @@ class AbstractEventLogger(ABC):
     def log_with_context(  # pylint: disable=too-many-locals
         self,
         action: str,
-        duration: Optional[timedelta] = None,
-        object_ref: Optional[str] = None,
+        duration: timedelta | None = None,
+        object_ref: str | None = None,
         log_to_statsd: bool = True,
-        **payload_override: Optional[Dict[str, Any]],
+        **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset import db
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -133,18 +147,14 @@ class AbstractEventLogger(ABC):
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
         # Initial try and grab user_id via flask.g.user
-        try:
-            user_id = g.user.get_id()
-        except Exception:  # pylint: disable=broad-except
-            user_id = None
+        user_id = get_user_id()
 
         # Whenever a user is not bounded to a session we
         # need to add them back before logging to capture user_id
         if user_id is None:
             try:
-                session = current_app.appbuilder.get_session
-                session.add(g.user)
-                user_id = g.user.get_id()
+                db.session.add(g.user)
+                user_id = get_user_id()
             except Exception as ex:  # pylint: disable=broad-except
                 logging.warning(ex)
                 user_id = None
@@ -155,7 +165,7 @@ class AbstractEventLogger(ABC):
         if payload_override:
             payload.update(payload_override)
 
-        dashboard_id: Optional[int] = None
+        dashboard_id: int | None = None
         try:
             dashboard_id = int(payload.get("dashboard_id"))  # type: ignore
         except (TypeError, ValueError):
@@ -174,7 +184,7 @@ class AbstractEventLogger(ABC):
             slice_id = 0
 
         if log_to_statsd:
-            self.stats_logger.incr(action)
+            stats_logger_manager.instance.incr(action)
 
         try:
             # bulk insert
@@ -197,7 +207,7 @@ class AbstractEventLogger(ABC):
     def log_context(
         self,
         action: str,
-        object_ref: Optional[str] = None,
+        object_ref: str | None = None,
         log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
@@ -221,9 +231,9 @@ class AbstractEventLogger(ABC):
     def _wrapper(
         self,
         f: Callable[..., Any],
-        action: Optional[Union[str, Callable[..., str]]] = None,
-        object_ref: Optional[Union[str, Callable[..., str], Literal[False]]] = None,
-        allow_extra_payload: Optional[bool] = False,
+        action: str | Callable[..., str] | None = None,
+        object_ref: str | Callable[..., str] | Literal[False] | None = None,
+        allow_extra_payload: bool | None = False,
         **wrapper_kwargs: Any,
     ) -> Callable[..., Any]:
         @functools.wraps(f)
@@ -263,10 +273,6 @@ class AbstractEventLogger(ABC):
         """Decorator that instrument `update_log_payload` to kwargs"""
         return self._wrapper(f, allow_extra_payload=True)
 
-    @property
-    def stats_logger(self) -> BaseStatsLogger:
-        return current_app.config["STATS_LOGGER"]
-
 
 def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
     """
@@ -297,7 +303,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
             )
         )
 
-        event_logger_type = cast(Type[Any], cfg_value)
+        event_logger_type = cast(type[Any], cfg_value)
         result = event_logger_type()
 
     # Verify that we have a valid logger impl
@@ -316,22 +322,23 @@ class DBEventLogger(AbstractEventLogger):
 
     def log(  # pylint: disable=too-many-arguments,too-many-locals
         self,
-        user_id: Optional[int],
+        user_id: int | None,
         action: str,
-        dashboard_id: Optional[int],
-        duration_ms: Optional[int],
-        slice_id: Optional[int],
-        referrer: Optional[str],
+        dashboard_id: int | None,
+        duration_ms: int | None,
+        slice_id: int | None,
+        referrer: str | None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset import db
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
         logs = []
         for record in records:
-            json_string: Optional[str]
+            json_string: str | None
             try:
                 json_string = json.dumps(record)
             except Exception:  # pylint: disable=broad-except
@@ -347,9 +354,8 @@ class DBEventLogger(AbstractEventLogger):
             )
             logs.append(log)
         try:
-            sesh = current_app.appbuilder.get_session
-            sesh.bulk_save_objects(logs)
-            sesh.commit()
+            db.session.bulk_save_objects(logs)
+            db.session.commit()
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)

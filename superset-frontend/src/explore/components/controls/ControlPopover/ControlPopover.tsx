@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
@@ -24,12 +24,12 @@ import Popover, {
 } from 'src/components/Popover';
 
 const sectionContainerId = 'controlSections';
-const getSectionContainerElement = () =>
-  document.getElementById(sectionContainerId)?.parentElement;
+export const getSectionContainerElement = () =>
+  document.getElementById(sectionContainerId)?.lastElementChild as HTMLElement;
 
 const getElementYVisibilityRatioOnContainer = (node: HTMLElement) => {
   const containerHeight = window?.innerHeight;
-  const nodePositionInViewport = node.getBoundingClientRect()?.top;
+  const nodePositionInViewport = node?.getBoundingClientRect()?.top;
   if (!containerHeight || !nodePositionInViewport) {
     return 0;
   }
@@ -44,17 +44,22 @@ export type PopoverProps = BasePopoverProps & {
 const ControlPopover: React.FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementYVisibilityRatioOnContainer,
+  visible: visibleProp,
+  destroyTooltipOnHide = false,
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
+
+  const [visible, setVisible] = useState(
+    visibleProp === undefined ? props.defaultVisible : visibleProp,
+  );
   const [placement, setPlacement] = React.useState<TooltipPlacement>('right');
 
   const calculatePlacement = useCallback(() => {
     const visibilityRatio = getVisibilityRatio(triggerElementRef.current!);
-
-    if (visibilityRatio < 0.35) {
+    if (visibilityRatio < 0.35 && placement !== 'rightTop') {
       setPlacement('rightTop');
-    } else if (visibilityRatio > 0.65) {
+    } else if (visibilityRatio > 0.65 && placement !== 'rightBottom') {
       setPlacement('rightBottom');
     } else {
       setPlacement('right');
@@ -63,13 +68,13 @@ const ControlPopover: React.FC<PopoverProps> = ({
 
   const changeContainerScrollStatus = useCallback(
     visible => {
-      if (triggerElementRef.current && visible) {
-        calculatePlacement();
-      }
-
       const element = getSectionContainerElement();
       if (element) {
-        element.style.overflowY = visible ? 'hidden' : 'auto';
+        element.style.setProperty(
+          'overflow-y',
+          visible ? 'hidden' : 'auto',
+          'important',
+        );
       }
     },
     [calculatePlacement],
@@ -78,9 +83,6 @@ const ControlPopover: React.FC<PopoverProps> = ({
   const handleGetPopupContainer = useCallback(
     (triggerNode: HTMLElement) => {
       triggerElementRef.current = triggerNode;
-      setTimeout(() => {
-        calculatePlacement();
-      }, 0);
 
       return getPopupContainer?.(triggerNode) || document.body;
     },
@@ -88,29 +90,64 @@ const ControlPopover: React.FC<PopoverProps> = ({
   );
 
   const handleOnVisibleChange = useCallback(
-    (visible: boolean) => {
-      if (props.visible === undefined) {
+    (visible: boolean | undefined) => {
+      if (visible === undefined) {
         changeContainerScrollStatus(visible);
       }
 
-      props.onVisibleChange?.(visible);
+      setVisible(!!visible);
+      props.onVisibleChange?.(!!visible);
     },
     [props, changeContainerScrollStatus],
   );
 
+  const handleDocumentKeyDownListener = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setVisible(false);
+        props.onVisibleChange?.(false);
+      }
+    },
+    [props],
+  );
+
   useEffect(() => {
-    if (props.visible !== undefined) {
-      changeContainerScrollStatus(props.visible);
+    if (visibleProp !== undefined) {
+      setVisible(!!visibleProp);
     }
-  }, [props.visible, changeContainerScrollStatus]);
+  }, [visibleProp]);
+
+  useEffect(() => {
+    if (visible !== undefined) {
+      changeContainerScrollStatus(visible);
+    }
+  }, [visible, changeContainerScrollStatus]);
+
+  useEffect(() => {
+    if (visible) {
+      document.addEventListener('keydown', handleDocumentKeyDownListener);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDownListener);
+    };
+  }, [handleDocumentKeyDownListener, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      calculatePlacement();
+    }
+  }, [visible, calculatePlacement]);
 
   return (
     <Popover
       {...props}
+      visible={visible}
       arrowPointAtCenter
       placement={placement}
       onVisibleChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
+      destroyTooltipOnHide={destroyTooltipOnHide}
     />
   );
 };

@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -68,6 +70,16 @@ const config: ControlPanelConfig = {
       validators: [validateNonEmpty],
       description: t('Choose a target'),
     },
+  },
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls()
+      .popAllColumns()
+      .filter(col => !ensureIsArray(formData.columns).includes(col));
+    return {
+      ...formData,
+      groupby,
+      metric: getStandardizedControls().shiftMetric(),
+    };
   },
 };
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { useDrop } from 'react-dnd';
 import { t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -35,19 +35,20 @@ import { DndItemType } from '../../DndItemType';
 export type DndSelectLabelProps = {
   name: string;
   accept: DndItemType | DndItemType[];
-  ghostButtonText?: string;
+  ghostButtonText: string;
   onDrop: (item: DatasourcePanelDndItem) => void;
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   canDropValue?: (value: DndItemValue) => boolean;
   onDropValue?: (value: DndItemValue) => void;
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
-  onClickGhostButton?: () => void;
+  onClickGhostButton: () => void;
 };
 
 export default function DndSelectLabel({
   displayGhostButton = true,
   accept,
+  valuesRenderer,
   ...props
 }: DndSelectLabelProps) {
   const theme = useTheme();
@@ -70,6 +71,8 @@ export default function DndSelectLabel({
     }),
   });
 
+  const values = useMemo(() => valuesRenderer(), [valuesRenderer]);
+
   function renderGhostButton() {
     return (
       <AddControlLabel
@@ -77,7 +80,7 @@ export default function DndSelectLabel({
         onClick={props.onClickGhostButton}
       >
         <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
-        {t(props.ghostButtonText || 'Drop columns here')}
+        {t(props.ghostButtonText)}
       </AddControlLabel>
     );
   }
@@ -87,8 +90,12 @@ export default function DndSelectLabel({
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
-      <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
-        {props.valuesRenderer()}
+      <DndLabelsContainer
+        data-test="dnd-labels-container"
+        canDrop={canDrop}
+        isOver={isOver}
+      >
+        {values}
         {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>

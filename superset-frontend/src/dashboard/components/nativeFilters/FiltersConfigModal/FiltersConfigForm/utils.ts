@@ -19,28 +19,20 @@
 import { flatMapDeep } from 'lodash';
 import { FormInstance } from 'src/components';
 import React from 'react';
-import { CustomControlItem, DatasourceMeta } from '@superset-ui/chart-controls';
+import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
 import { Column, ensureIsArray, GenericDataType } from '@superset-ui/core';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
+import { FILTER_SUPPORTED_TYPES } from './constants';
 
 const FILTERS_FIELD_NAME = 'filters';
 
-export const FILTER_SUPPORTED_TYPES = {
-  filter_time: [GenericDataType.TEMPORAL],
-  filter_timegrain: [GenericDataType.TEMPORAL],
-  filter_timecolumn: [GenericDataType.TEMPORAL],
-  filter_select: [
-    GenericDataType.BOOLEAN,
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
-  ],
-  filter_range: [GenericDataType.NUMERIC],
-};
-
-export const useForceUpdate = () => {
+export const useForceUpdate = (isActive = true) => {
   const [, updateState] = React.useState({});
-  return React.useCallback(() => updateState({}), []);
+  return React.useCallback(() => {
+    if (isActive) {
+      updateState({});
+    }
+  }, [isActive]);
 };
 
 export const setNativeFilterFieldValues = (
@@ -74,26 +66,14 @@ export const getControlItems = (
     [],
   ) as CustomControlItem[]) ?? [];
 
-type DatasetSelectValue = {
-  value: number;
-  label: string;
-};
-
-export const datasetToSelectOption = (
-  item: DatasourceMeta & { table_name: string },
-): DatasetSelectValue => ({
-  value: item.id,
-  label: item.table_name,
-});
-
-// TODO: add column_types field to DatasourceMeta
+// TODO: add column_types field to Dataset
 // We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
 export const hasTemporalColumns = (
-  dataset: DatasourceMeta & { column_types: GenericDataType[] },
+  dataset: Dataset & { column_types: GenericDataType[] },
 ) => {
   const columnTypes = ensureIsArray(dataset?.column_types);
   return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.Temporal)
   );
 };
 
@@ -111,7 +91,7 @@ export const mostUsedDataset = (
   let maxCount = 0;
 
   Object.values(charts).forEach(chart => {
-    const { formData } = chart;
+    const { form_data: formData } = chart;
     if (formData) {
       const { datasource } = formData;
       const count = (map.get(datasource) || 0) + 1;

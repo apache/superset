@@ -17,12 +17,62 @@
  * under the License.
  */
 import React from 'react';
-import { QueryState } from 'src/SqlLab/types';
+import { css, QueryState, styled } from '@superset-ui/core';
+import Icons, { IconType } from 'src/components/Icons';
+
+const IconContainer = styled.span`
+  position: absolute;
+  top: -6px;
+  left: 1px;
+`;
+
+const Circle = styled.div`
+  ${({ theme }) => css`
+    border-radius: 50%;
+    width: ${theme.gridUnit * 3}px;
+    height: ${theme.gridUnit * 3}px;
+
+    display: inline-block;
+    background-color: ${theme.colors.grayscale.light2};
+    text-align: center;
+    vertical-align: middle;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.bold};
+    color: ${theme.colors.grayscale.light5};
+    position: relative;
+
+    &.running {
+      background-color: ${theme.colors.info.base};
+    }
+
+    &.success {
+      background-color: ${theme.colors.success.base};
+    }
+
+    &.failed {
+      background-color: ${theme.colors.error.base};
+    }
+  `}
+`;
 
 interface TabStatusIconProps {
   tabState: QueryState;
 }
 
+const STATE_ICONS: Record<string, React.FC<IconType>> = {
+  success: Icons.Check,
+  failed: Icons.CancelX,
+};
+
 export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
-  return <div className={`circle ${tabState}`} />;
+  const StatusIcon = STATE_ICONS[tabState];
+  return (
+    <Circle className={`circle ${tabState}`}>
+      {StatusIcon && (
+        <IconContainer>
+          <StatusIcon iconSize="xs" />
+        </IconContainer>
+      )}
+    </Circle>
+  );
 }

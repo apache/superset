@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatter,
+  supersetTheme,
+} from '@superset-ui/core';
 import transformProps, {
   formatFunnelLabel,
 } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
   EchartsFunnelLabelTypeType,
+  PercentCalcType,
 } from '../../src/Funnel/types';
 
-describe('Funnel tranformProps', () => {
+describe('Funnel transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
@@ -45,9 +50,10 @@ describe('Funnel tranformProps', () => {
         ],
       },
     ],
+    theme: supersetTheme,
   });
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -76,12 +82,18 @@ describe('Funnel tranformProps', () => {
 describe('formatFunnelLabel', () => {
   it('should generate a valid funnel chart label', () => {
     const numberFormatter = getNumberFormatter();
-    const params = { name: 'My Label', value: 1234, percent: 12.34 };
+    const params = {
+      name: 'My Label',
+      value: 1234,
+      percent: 12.34,
+      data: { firstStepPercent: 0.5, prevStepPercent: 0.85 },
+    };
     expect(
       formatFunnelLabel({
         params,
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.Key,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('My Label');
     expect(
@@ -89,6 +101,7 @@ describe('formatFunnelLabel', () => {
         params,
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.Value,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('1.23k');
     expect(
@@ -96,13 +109,31 @@ describe('formatFunnelLabel', () => {
         params,
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.Percent,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('12.34%');
     expect(
       formatFunnelLabel({
         params,
         numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Percent,
+        percentCalculationType: PercentCalcType.FirstStep,
+      }),
+    ).toEqual('50.00%');
+    expect(
+      formatFunnelLabel({
+        params,
+        numberFormatter,
+        labelType: EchartsFunnelLabelTypeType.Percent,
+        percentCalculationType: PercentCalcType.PreviousStep,
+      }),
+    ).toEqual('85.00%');
+    expect(
+      formatFunnelLabel({
+        params,
+        numberFormatter,
         labelType: EchartsFunnelLabelTypeType.KeyValue,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('My Label: 1.23k');
     expect(
@@ -110,6 +141,7 @@ describe('formatFunnelLabel', () => {
         params,
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.KeyPercent,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('My Label: 12.34%');
     expect(
@@ -117,6 +149,7 @@ describe('formatFunnelLabel', () => {
         params,
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.KeyValuePercent,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('My Label: 1.23k (12.34%)');
     expect(
@@ -124,6 +157,7 @@ describe('formatFunnelLabel', () => {
         params: { ...params, name: '<NULL>' },
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.Key,
+        percentCalculationType: PercentCalcType.Total,
       }),
     ).toEqual('<NULL>');
     expect(
@@ -131,6 +165,7 @@ describe('formatFunnelLabel', () => {
         params: { ...params, name: '<NULL>' },
         numberFormatter,
         labelType: EchartsFunnelLabelTypeType.Key,
+        percentCalculationType: PercentCalcType.Total,
         sanitizeName: true,
       }),
     ).toEqual('&lt;NULL&gt;');

@@ -16,28 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { t, styled, useTheme } from '@superset-ui/core';
 
-import { Menu } from 'src/components/Menu';
-import Button, { ButtonProps } from 'src/components/Button';
+import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import {
-  DropdownButton,
-  DropdownButtonProps,
-} from 'src/components/DropdownButton';
+import { DropdownButton } from 'src/components/DropdownButton';
+import { detectOS } from 'src/utils/common';
+import { QueryButtonProps } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-interface Props {
+export interface RunQueryActionButtonProps {
+  queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
   runQuery: (c?: boolean) => void;
-  selectedText?: string;
   stopQuery: () => void;
-  sql: string;
-  overlayCreateAsMenu: typeof Menu | null;
+  overlayCreateAsMenu: React.ReactElement | null;
 }
-
-type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 const buildText = (
   shouldShowStopButton: boolean,
@@ -79,21 +75,26 @@ const StyledButton = styled.span`
     }
     span[name='caret-down'] {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
     }
   }
 `;
 
 const RunQueryActionButton = ({
   allowAsync = false,
+  queryEditorId,
   queryState,
-  selectedText,
-  sql = '',
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}: Props) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
+  const userOS = detectOS();
+
+  const { selectedText, sql } = useQueryEditor(queryEditorId, [
+    'selectedText',
+    'sql',
+  ]);
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
@@ -102,11 +103,23 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
-  const isDisabled = !sql.trim();
+  const sqlContent = selectedText || sql || '';
+  const isDisabled = !sqlContent
+    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+    .trim();
+
+  const stopButtonTooltipText = useMemo(
+    () =>
+      userOS === 'MacOS'
+        ? t('Stop running (Ctrl + x)')
+        : t('Stop running (Ctrl + e)'),
+    [userOS],
+  );
 
   return (
     <StyledButton>
       <ButtonComponent
+        data-test="run-query-action"
         onClick={() =>
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
@@ -114,7 +127,7 @@ const RunQueryActionButton = ({
         tooltip={
           (!isDisabled &&
             (shouldShowStopBtn
-              ? t('Stop running (Ctrl + x)')
+              ? stopButtonTooltipText
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
@@ -133,7 +146,9 @@ const RunQueryActionButton = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: 'primary' })}
+          : {
+              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+            })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>

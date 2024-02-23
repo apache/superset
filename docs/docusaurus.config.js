@@ -20,8 +20,8 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require('prism-react-renderer/themes/github');
-const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+const lightCodeTheme = require("prism-react-renderer").themes.github;
+const darkCodeTheme = require("prism-react-renderer").themes.vsDark;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -32,11 +32,19 @@ const config = {
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
-  favicon: 'img/favicon.ico',
+  favicon: '/img/favicon.ico',
   organizationName: 'apache', // Usually your GitHub org/user name.
   projectName: 'superset', // Usually your repo name.
   themes: ['@saucelabs/theme-github-codeblock'],
   plugins: [
+    [
+      'docusaurus-plugin-less',
+      {
+        lessOptions: {
+          javascriptEnabled: true,
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -60,7 +68,7 @@ const config = {
             from: '/usertutorial.html',
           },
           {
-            to: '/docs/security',
+            to: '/docs/security/',
             from: '/security.html',
           },
           {
@@ -131,7 +139,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs',
+          editUrl: 'https://github.com/apache/superset/edit/master/docs',
         },
         blog: {
           showReadingTime: true,
@@ -140,9 +148,13 @@ const config = {
             'https://github.com/facebook/docusaurus/edit/main/website/blog/',
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve('./src/styles/custom.css'),
         },
         googleAnalytics: {
+          trackingID: 'G-133LHD3B3N',
+          anonymizeIP: true,
+        },
+        gtag: {
           trackingID: 'G-133LHD3B3N',
           anonymizeIP: true,
         },
@@ -165,81 +177,98 @@ const config = {
       navbar: {
         logo: {
           alt: 'Superset Logo',
-          src: 'img/superset-logo-horiz.svg',
-          srcDark: 'img/superset-logo-horiz-dark.svg',
+          src: '/img/superset-logo-horiz.svg',
+          srcDark: '/img/superset-logo-horiz-dark.svg',
         },
         items: [
           {
-            type: 'doc',
-            docId: 'intro',
-            position: 'left',
             label: 'Documentation',
-          },
-          { to: '/community', label: 'Community', position: 'left' },
-          {
-            href: 'https://github.com/apache/superset',
-            label: 'GitHub',
-            position: 'right',
-          },
-        ],
-      },
-      footer: {
-        style: 'dark',
-        links: [
-          {
-            title: 'Docs',
             items: [
               {
-                label: 'Tutorial',
+                label: 'Getting Started',
                 to: '/docs/intro',
+              },
+              {
+                label: 'FAQ',
+                to: '/docs/frequently-asked-questions',
               },
             ],
           },
           {
-            title: 'Community',
+            label: 'Community',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+                label: 'Resources',
+                href: '/community',
+              },
+              {
+                label: 'GitHub',
+                href: 'https://github.com/apache/superset',
               },
               {
                 label: 'Slack',
-                href: 'https://join.slack.com/t/apache-superset/shared_invite/zt-16jvzmoi8-sI7jKWp~xc2zYRe~NqiY9Q',
+                href: 'http://bit.ly/join-superset-slack',
               },
               {
                 label: 'Mailing List',
                 href: 'https://lists.apache.org/list.html?dev@superset.apache.org',
               },
-            ],
-          },
-          {
-            title: 'More',
-            items: [
               {
-                label: 'GitHub',
-                href: 'https://github.com/apache/superset',
+                label: 'Stack Overflow',
+                href: 'https://stackoverflow.com/questions/tagged/apache-superset',
               },
             ],
           },
+          {
+            href: '/docs/intro',
+            position: 'right',
+            className: 'default-button-theme get-started-button',
+            label: 'Get Started',
+          },
+          {
+            href: 'https://github.com/apache/superset',
+            position: 'right',
+            className: 'github-button',
+          },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()},
-        The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
-        Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>. <br/>
-        <small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
-        <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small><br />
-        <small>
-        <a href="https://www.apache.org/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
-        <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
-        <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
-        <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
-        <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
-        </small>`,
+      },
+      footer: {
+        links: [],
+        copyright: `
+          <div class="footer__applitools">
+            We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
+          </div>
+          <p>Copyright © ${new Date().getFullYear()},
+          The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
+          Licensed under the Apache <a href="https://apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer">License</a>.</p>
+          <p><small>Apache Superset, Apache, Superset, the Superset logo, and the Apache feather logo are either registered trademarks or trademarks of The Apache Software Foundation. All other products or name brands are trademarks of their respective holders, including The Apache Software Foundation.
+          <a href="https://www.apache.org/" target="_blank">Apache Software Foundation</a> resources</small></p>
+          <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
+          <p>
+            <small>
+              <a href="/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
+              <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
+              <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
+              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+            </small>
+          </p>
+          <!-- telemetry/analytics pixel: -->
+          <img referrerPolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=39ae6855-95fc-4566-86e5-360d542b0a68" />
+          `,
       },
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
     }),
+  scripts: [
+    '/script/matomo.js',
+    {
+      src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+      async: true,
+    },
+  ],
 };
 
 module.exports = config;

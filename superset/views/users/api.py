@@ -15,29 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask import g, Response
-from flask_appbuilder.api import BaseApi, expose, safe
+from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
 
-from .schemas import UserResponseSchema
+from superset.views.base_api import BaseSupersetApi
+from superset.views.users.schemas import UserResponseSchema
+from superset.views.utils import bootstrap_user_data
 
 user_response_schema = UserResponseSchema()
 
 
-class CurrentUserRestApi(BaseApi):
-    """An api to get information about the current user"""
+class CurrentUserRestApi(BaseSupersetApi):
+    """An API to get information about the current user"""
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
     openapi_spec_component_schemas = (UserResponseSchema,)
 
-    @expose("/", methods=["GET"])
+    @expose("/", methods=("GET",))
     @safe
     def get_me(self) -> Response:
-        """Get the user object corresponding to the agent making the request
+        """Get the user object corresponding to the agent making the request.
         ---
         get:
+          summary: Get the user object
           description: >-
-            Returns the user object corresponding to the agent making the request,
+            Gets the user object corresponding to the agent making the request,
             or returns a 401 error if the user is unauthenticated.
           responses:
             200:
@@ -59,3 +62,34 @@ class CurrentUserRestApi(BaseApi):
             return self.response_401()
 
         return self.response(200, result=user_response_schema.dump(g.user))
+
+    @expose("/roles/", methods=("GET",))
+    @safe
+    def get_my_roles(self) -> Response:
+        """Get the user roles corresponding to the agent making the request.
+        ---
+        get:
+          summary: Get the user roles
+          description: >-
+            Gets the user roles corresponding to the agent making the request,
+            or returns a 401 error if the user is unauthenticated.
+          responses:
+            200:
+              description: The current user
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/UserResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        try:
+            if g.user is None or g.user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        user = bootstrap_user_data(g.user, include_perms=True)
+        return self.response(200, result=user)

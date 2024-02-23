@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -47,14 +47,14 @@ class SupersetException(Exception):
     def error_type(self) -> Optional[SupersetErrorType]:
         return self._error_type
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = {}
         if hasattr(self, "message"):
             rv["message"] = self.message
         if self.error_type:
             rv["error_type"] = self.error_type
         if self.exception is not None and hasattr(self.exception, "to_dict"):
-            rv = {**rv, **self.exception.to_dict()}  # type: ignore
+            rv = {**rv, **self.exception.to_dict()}
         return rv
 
 
@@ -67,7 +67,7 @@ class SupersetErrorException(SupersetException):
         if status is not None:
             self.status = status
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.error.to_dict()
 
 
@@ -94,7 +94,7 @@ class SupersetErrorFromParamsException(SupersetErrorException):
         error_type: SupersetErrorType,
         message: str,
         level: ErrorLevel,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetError(
@@ -107,12 +107,20 @@ class SupersetErrorsException(SupersetException):
     """Exceptions with multiple SupersetErrorType associated with them"""
 
     def __init__(
-        self, errors: List[SupersetError], status: Optional[int] = None
+        self, errors: list[SupersetError], status: Optional[int] = None
     ) -> None:
         super().__init__(str(errors))
         self.errors = errors
         if status is not None:
             self.status = status
+
+
+class SupersetSyntaxErrorException(SupersetErrorsException):
+    status = 422
+    error_type = SupersetErrorType.SYNTAX_ERROR
+
+    def __init__(self, errors: list[SupersetError]) -> None:
+        super().__init__(errors)
 
 
 class SupersetTimeoutException(SupersetErrorFromParamsException):
@@ -126,7 +134,7 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         self,
         message: str,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
@@ -144,7 +152,7 @@ class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
         message: str,
         error: SupersetErrorType,
         level: ErrorLevel = ErrorLevel.ERROR,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
             error,
@@ -158,7 +166,7 @@ class SupersetSecurityException(SupersetErrorException):
     status = 403
 
     def __init__(
-        self, error: SupersetError, payload: Optional[Dict[str, Any]] = None
+        self, error: SupersetError, payload: Optional[dict[str, Any]] = None
     ) -> None:
         super().__init__(error)
         self.payload = payload
@@ -192,7 +200,15 @@ class DatabaseNotFound(SupersetException):
     status = 400
 
 
+class MissingUserContextException(SupersetException):
+    status = 422
+
+
 class QueryObjectValidationError(SupersetException):
+    status = 400
+
+
+class AdvancedDataTypeResponseError(SupersetException):
     status = 400
 
 
@@ -210,6 +226,12 @@ class QueryClauseValidationException(SupersetException):
 
 class DashboardImportException(SupersetException):
     pass
+
+
+class DatasetInvalidPermissionEvaluationException(SupersetException):
+    """
+    When a dataset can't compute its permission name
+    """
 
 
 class SerializationError(SupersetException):
@@ -248,3 +270,28 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 class SupersetCancelQueryException(SupersetException):
     status = 422
+
+
+class QueryNotFoundException(SupersetException):
+    status = 404
+
+
+class ColumnNotFoundException(SupersetException):
+    status = 404
+
+
+class SupersetMarshmallowValidationError(SupersetErrorException):
+    """
+    Exception to be raised for Marshmallow validation errors.
+    """
+
+    status = 422
+
+    def __init__(self, exc: ValidationError, payload: dict[str, Any]):
+        error = SupersetError(
+            message=_("The schema of the submitted payload is invalid."),
+            error_type=SupersetErrorType.MARSHMALLOW_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"messages": exc.messages, "payload": payload},
+        )
+        super().__init__(error)

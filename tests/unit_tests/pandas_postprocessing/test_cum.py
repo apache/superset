@@ -24,6 +24,7 @@ from tests.unit_tests.fixtures.dataframes import (
     multiple_metrics_df,
     single_metric_df,
     timeseries_df,
+    timeseries_with_gap_df,
 )
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
 
@@ -77,14 +78,25 @@ def test_cum():
         )
 
 
+def test_cum_with_gap():
+    # create new column (cumsum)
+    post_df = pp.cum(
+        df=timeseries_with_gap_df,
+        columns={"y": "y2"},
+        operator="sum",
+    )
+    assert post_df.columns.tolist() == ["label", "y", "y2"]
+    assert series_to_list(post_df["label"]) == ["x", "y", "z", "q"]
+    assert series_to_list(post_df["y"]) == [1.0, 2.0, None, 4.0]
+    assert series_to_list(post_df["y2"]) == [1.0, 3.0, 3.0, 7.0]
+
+
 def test_cum_after_pivot_with_single_metric():
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
         columns=["country"],
         aggregates={"sum_metric": {"operator": "sum"}},
-        flatten_columns=False,
-        reset_index=False,
     )
     """
                sum_metric
@@ -127,8 +139,6 @@ def test_cum_after_pivot_with_multiple_metrics():
             "sum_metric": {"operator": "sum"},
             "count_metric": {"operator": "sum"},
         },
-        flatten_columns=False,
-        reset_index=False,
     )
     """
                    count_metric    sum_metric

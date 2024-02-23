@@ -33,28 +33,35 @@ import pkgutil
 from collections import defaultdict
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Dict, List, Set, Type
+from typing import Any, Optional
 
-import sqlalchemy.databases
 import sqlalchemy.dialects
-from pkg_resources import iter_entry_points
+from importlib_metadata import entry_points
 from sqlalchemy.engine.default import DefaultDialect
+from sqlalchemy.exc import NoSuchModuleError
 
+from superset import app, feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
 
 
-def is_engine_spec(attr: Any) -> bool:
+def is_engine_spec(obj: Any) -> bool:
+    """
+    Return true if a given object is a DB engine spec.
+    """
     return (
-        inspect.isclass(attr)
-        and issubclass(attr, BaseEngineSpec)
-        and attr != BaseEngineSpec
+        inspect.isclass(obj)
+        and issubclass(obj, BaseEngineSpec)
+        and obj != BaseEngineSpec
     )
 
 
-def load_engine_specs() -> List[Type[BaseEngineSpec]]:
-    engine_specs: List[Type[BaseEngineSpec]] = []
+def load_engine_specs() -> list[type[BaseEngineSpec]]:
+    """
+    Load all engine specs, native and 3rd party.
+    """
+    engine_specs: list[type[BaseEngineSpec]] = []
 
     # load standard engines
     db_engine_spec_dir = str(Path(__file__).parent)
@@ -65,33 +72,43 @@ def load_engine_specs() -> List[Type[BaseEngineSpec]]:
             for attr in module.__dict__
             if is_engine_spec(getattr(module, attr))
         )
-
     # load additional engines from external modules
-    for ep in iter_entry_points("superset.db_engine_specs"):
+    for ep in entry_points(group="superset.db_engine_specs"):
         try:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Unable to load Superset DB engine spec: %s", engine_spec)
+            logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
             continue
         engine_specs.append(engine_spec)
 
     return engine_specs
 
 
-def get_engine_specs() -> Dict[str, Type[BaseEngineSpec]]:
+def get_engine_spec(backend: str, driver: Optional[str] = None) -> type[BaseEngineSpec]:
+    """
+    Return the DB engine spec associated with a given SQLAlchemy URL.
+
+    Note that if a driver is not specified the function returns the first DB engine spec
+    that supports the backend. Also, if a driver is specified but no DB engine explicitly
+    supporting that driver exists then a backend-only match is done, in order to allow new
+    drivers to work with Superset even if they are not listed in the DB engine spec
+    drivers.
+    """
     engine_specs = load_engine_specs()
 
-    # build map from name/alias -> spec
-    engine_specs_map: Dict[str, Type[BaseEngineSpec]] = {}
+    if driver is not None:
+        for engine_spec in engine_specs:
+            if engine_spec.supports_backend(backend, driver):
+                return engine_spec
+
+    # check ignoring the driver, in order to support new drivers; this will return a
+    # random DB engine spec that supports the engine
     for engine_spec in engine_specs:
-        names = [engine_spec.engine]
-        if engine_spec.engine_aliases:
-            names.extend(engine_spec.engine_aliases)
+        if engine_spec.supports_backend(backend):
+            return engine_spec
 
-        for name in names:
-            engine_specs_map[name] = engine_spec
-
-    return engine_specs_map
+    # default to the generic DB engine spec
+    return BaseEngineSpec
 
 
 # there's a mismatch between the dialect name reported by the driver in these
@@ -102,37 +119,37 @@ backend_replacements = {
 }
 
 
-def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
+# pylint: disable=too-many-branches
+def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:
     """
     Return available engine specs and installed drivers for them.
     """
-    drivers: Dict[str, Set[str]] = defaultdict(set)
+    drivers: dict[str, set[str]] = defaultdict(set)
 
     # native SQLAlchemy dialects
-    for attr in sqlalchemy.databases.__all__:
-        dialect = getattr(sqlalchemy.dialects, attr)
-        for attribute in dialect.__dict__.values():
+    for attr in sqlalchemy.dialects.__all__:
+        try:
+            dialect = sqlalchemy.dialects.registry.load(attr)
             if (
-                hasattr(attribute, "dialect")
-                and inspect.isclass(attribute.dialect)
-                and issubclass(attribute.dialect, DefaultDialect)
+                issubclass(dialect, DefaultDialect)
+                and hasattr(dialect, "driver")
                 # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
                 # `dbapi` method, hence needs to be ignored to avoid logging a warning
-                and attribute.dialect.driver != "adodbapi"
+                and dialect.driver != "adodbapi"
             ):
                 try:
-                    attribute.dialect.dbapi()
+                    dialect.dbapi()
                 except ModuleNotFoundError:
                     continue
                 except Exception as ex:  # pylint: disable=broad-except
-                    logger.warning(
-                        "Unable to load dialect %s: %s", attribute.dialect, ex
-                    )
+                    logger.warning("Unable to load dialect %s: %s", dialect, ex)
                     continue
-                drivers[attr].add(attribute.dialect.driver)
+                drivers[attr].add(dialect.driver)
+        except NoSuchModuleError:
+            continue
 
     # installed 3rd-party dialects
-    for ep in iter_entry_points("sqlalchemy.dialects"):
+    for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
@@ -148,9 +165,21 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
                 driver = driver.decode()
             drivers[backend].add(driver)
 
+    dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
+    if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
+        dbs_denylist["superset"] = {""}
+    dbs_denylist_engines = dbs_denylist.keys()
     available_engines = {}
+
     for engine_spec in load_engine_specs():
         driver = drivers[engine_spec.engine]
+        if (
+            engine_spec.engine in dbs_denylist_engines
+            and hasattr(engine_spec, "default_driver")
+            and engine_spec.default_driver in dbs_denylist[engine_spec.engine]
+        ):
+            # do not add denied db engine specs to available list
+            continue
 
         # lookup driver by engine aliases.
         if not driver and engine_spec.engine_aliases:

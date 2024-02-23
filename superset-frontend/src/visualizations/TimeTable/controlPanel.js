@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { sections } from '@superset-ui/chart-controls';
+import { getStandardizedControls, sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
@@ -65,4 +65,9 @@ export default {
       multiple: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };

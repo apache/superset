@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
+import shortid from 'shortid';
 import { BroadcastChannel } from 'broadcast-channel';
 
 interface TabIdChannelMessage {
@@ -32,18 +33,45 @@ const channel = new BroadcastChannel<TabIdChannelMessage>('tab_id_channel');
 export function useTabId() {
   const [tabId, setTabId] = useState<string>();
 
+  function isStorageAvailable() {
+    try {
+      return window.localStorage && window.sessionStorage;
+    } catch (error) {
+      return false;
+    }
+  }
   useEffect(() => {
+    if (!isStorageAvailable()) {
+      if (!tabId) {
+        setTabId(shortid.generate());
+      }
+      return;
+    }
+
     const updateTabId = () => {
-      const lastTabId = window.localStorage.getItem('last_tab_id');
+      let lastTabId;
+      try {
+        lastTabId = window.localStorage.getItem('last_tab_id');
+      } catch (error) {
+        // continue regardless of error
+      }
       const newTabId = String(
         lastTabId ? Number.parseInt(lastTabId, 10) + 1 : 1,
       );
-      window.sessionStorage.setItem('tab_id', newTabId);
-      window.localStorage.setItem('last_tab_id', newTabId);
+      try {
+        window.sessionStorage.setItem('tab_id', newTabId);
+        window.localStorage.setItem('last_tab_id', newTabId);
+      } catch (error) {
+        // continue regardless of error
+      }
       setTabId(newTabId);
     };
-
-    const storedTabId = window.sessionStorage.getItem('tab_id');
+    let storedTabId;
+    try {
+      storedTabId = window.sessionStorage.getItem('tab_id');
+    } catch (error) {
+      // continue regardless of error
+    }
     if (storedTabId) {
       channel.postMessage({
         type: 'REQUESTING_TAB_ID',

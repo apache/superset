@@ -1,7 +1,7 @@
 ---
 title: SQL Templating
 hide_title: true
-sidebar_position: 10
+sidebar_position: 11
 version: 1
 ---
 
@@ -10,7 +10,7 @@ version: 1
 ### Jinja Templates
 
 SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
-To enable templating, the `ENABLE_TEMPLATE_PROCESSING` feature flag needs to be enabled in
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](/docs/installation/configuring-superset#feature-flags) needs to be enabled in
 `superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
 in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
 made available in the Jinja context:
@@ -30,8 +30,30 @@ made available in the Jinja context:
 For example, to add a time range to a virtual dataset, you can write the following:
 
 ```sql
-SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
+SELECT *
+FROM tbl
+WHERE dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
+
+You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
+to make your query robust to clearing the timerange filter:
+
+```sql
+SELECT *
+FROM tbl
+WHERE (
+    {% if from_dttm is not none %}
+        dttm_col > '{{ from_dttm }}' AND
+    {% endif %}
+    {% if to_dttm is not none %}
+        dttm_col < '{{ to_dttm }}' AND
+    {% endif %}
+    true
+)
+```
+
+Note how the Jinja parameters are called within double brackets in the query, and without in the
+logic blocks.
 
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
@@ -43,6 +65,41 @@ JINJA_CONTEXT_ADDONS = {
     'my_crazy_macro': lambda x: x*2,
 }
 ```
+
+Default values for jinja templates can be specified via `Parameters` menu in the SQL Lab user interface.
+In the UI you can assign a set of parameters as JSON
+
+```json
+{
+  "my_table": "foo"
+}
+```
+The parameters become available in your SQL (example: `SELECT * FROM {{ my_table }}` ) by using Jinja templating syntax.
+SQL Lab template parameters are stored with the dataset as `TEMPLATE PARAMETERS`.
+
+There is a special ``_filters`` parameter which can be used to test filters used in the jinja template.
+
+```json
+{
+  "_filters": [
+    {
+      "col": "action_type",
+      "op": "IN",
+      "val": ["sell", "buy"]
+    }
+  ]
+}
+```
+
+```sql
+SELECT action, count(*) as times
+FROM logs
+WHERE action in {{ filter_values('action_type'))|where_in }}
+GROUP BY action
+```
+
+Note ``_filters`` is not stored with the dataset. It's only used within the SQL Lab UI.
+
 
 Besides default Jinja templating, SQL lab also supports self-defined template processor by setting
 the `CUSTOM_TEMPLATE_PROCESSORS` in your superset configuration. The values in this dictionary
@@ -119,7 +176,7 @@ In this section, we'll walkthrough the pre-defined Jinja macros in Superset.
 
 The `{{ current_username() }}` macro returns the username of the currently logged in user.
 
-If you have caching enabled in your Superset configuration, then by default the the `username` value will be used
+If you have caching enabled in your Superset configuration, then by default the `username` value will be used
 by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
 cache hit in the future and Superset can retrieve cached data.
 
@@ -134,7 +191,7 @@ cache key by adding the following parameter to your Jinja code:
 
 The `{{ current_user_id() }}` macro returns the user_id of the currently logged in user.
 
-If you have caching enabled in your Superset configuration, then by default the the `user_id` value will be used
+If you have caching enabled in your Superset configuration, then by default the `user_id` value will be used
 by Superset when calculating the cache key. A cache key is a unique identifier that determines if there's a
 cache hit in the future and Superset can retrieve cached data.
 
@@ -154,7 +211,7 @@ Here's a concrete example:
 
 - You write the following query in SQL Lab:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = '{{ url_param('countrycode') }}'
@@ -165,7 +222,7 @@ Here's a concrete example:
   and your coworker in the USA the following SQL Lab URL `www.example.com/superset/sqllab?countrycode=US`
 - For your coworker in Spain, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'ES'
@@ -173,7 +230,7 @@ Here's a concrete example:
 
 - For your coworker in the USA, the SQL Lab query will be rendered as:
 
-  ```
+  ```sql
   SELECT count(*)
   FROM ORDERS
   WHERE country_code = 'US'
@@ -182,7 +239,7 @@ Here's a concrete example:
 **Explicitly Including Values in Cache Key**
 
 The `{{ cache_key_wrapper() }}` function explicitly instructs Superset to add a value to the
-accumulated list of values used in the the calculation of the cache key.
+accumulated list of values used in the calculation of the cache key.
 
 This function is only needed when you want to wrap your own custom function return values
 in the cache key. You can gain more context
@@ -202,7 +259,7 @@ This is useful if:
 
 Here's a concrete example:
 
-```
+```sql
 SELECT action, count(*) as times
 FROM logs
 WHERE
@@ -272,4 +329,28 @@ Here's a concrete example:
     FROM
     superiors
     order by lineage, level
+```
+
+**Datasets**
+
+It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
+
+To use the macro, first you need to find the ID of the dataset. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
+
+Once you have the ID you can query it as if it were a table:
+
+```
+SELECT * FROM {{ dataset(42) }} LIMIT 10
+```
+
+If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
+```
+
+Since metrics are aggregations, the resulting SQL expression will be grouped by all non-metric columns. You can specify a subset of columns to group by instead:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
 ```

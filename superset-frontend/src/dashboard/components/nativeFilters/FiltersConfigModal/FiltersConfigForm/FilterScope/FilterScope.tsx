@@ -17,11 +17,15 @@
  * under the License.
  */
 
-import React, { FC, useCallback, useState } from 'react';
-import { NativeFilterScope, styled, t } from '@superset-ui/core';
+import React, { FC, useCallback, useRef, useState } from 'react';
+import {
+  NativeFilterScope,
+  styled,
+  t,
+  useComponentDidUpdate,
+} from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate/useComponentDidUpdate';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';
@@ -63,21 +67,24 @@ const FilterScope: FC<FilterScopeProps> = ({
   const [initialFilterScope] = useState(
     filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
   );
+  const lastSpecificScope = useRef(initialFilterScope);
   const [initialScopingType] = useState(
     isScopingAll(initialFilterScope, chartId)
-      ? ScopingType.all
-      : ScopingType.specific,
+      ? ScopingType.All
+      : ScopingType.Specific,
   );
-  const [hasScopeBeenModified, setHasScopeBeenModified] = useState(
-    !!filterScope,
-  );
+  const [hasScopeBeenModified, setHasScopeBeenModified] =
+    useState(!!filterScope);
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
+      if (formScopingType === ScopingType.Specific) {
+        lastSpecificScope.current = formValues.scope;
+      }
       updateFormValues(formValues);
       setHasScopeBeenModified(true);
     },
-    [updateFormValues],
+    [formScopingType, updateFormValues],
   );
 
   const updateScopes = useCallback(() => {
@@ -89,8 +96,8 @@ const FilterScope: FC<FilterScopeProps> = ({
     updateFormValues({
       scope: newScope,
       scoping: isScopingAll(newScope, chartId)
-        ? ScopingType.all
-        : ScopingType.specific,
+        ? ScopingType.All
+        : ScopingType.Specific,
     });
   }, [
     chartId,
@@ -109,28 +116,27 @@ const FilterScope: FC<FilterScopeProps> = ({
       >
         <Radio.Group
           onChange={({ target: { value } }) => {
-            if (value === ScopingType.all) {
-              const scope = getDefaultScopeValue(chartId);
-              updateFormValues({
-                scope,
-              });
-            }
+            const scope =
+              value === ScopingType.All
+                ? getDefaultScopeValue(chartId)
+                : lastSpecificScope.current;
+            updateFormValues({ scope });
             setHasScopeBeenModified(true);
             forceUpdate();
           }}
         >
-          <Radio value={ScopingType.all}>{t('Apply to all panels')}</Radio>
-          <Radio value={ScopingType.specific}>
+          <Radio value={ScopingType.All}>{t('Apply to all panels')}</Radio>
+          <Radio value={ScopingType.Specific}>
             {t('Apply to specific panels')}
           </Radio>
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {(formScopingType ?? initialScopingType) === ScopingType.specific
+        {(formScopingType ?? initialScopingType) === ScopingType.Specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {(formScopingType ?? initialScopingType) === ScopingType.specific && (
+      {(formScopingType ?? initialScopingType) === ScopingType.Specific && (
         <ScopingTree
           updateFormValues={onUpdateFormValues}
           initialScope={initialFilterScope}

@@ -17,19 +17,18 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty, validateInteger } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   sharedControls,
   ControlPanelConfig,
+  ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
-  sections,
-  emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -39,14 +38,12 @@ const config: ControlPanelConfig = {
             name: 'groupby',
             config: {
               ...sharedControls.groupby,
-              label: t('Group by'),
               description: t('Columns to group by'),
             },
           },
         ],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         [
           {
             name: 'row_limit',
@@ -75,15 +72,14 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        [<h1 className="section-header">{t('General')}</h1>],
+        [<ControlSubSectionHeader>{t('General')}</ControlSubSectionHeader>],
         [
           {
             name: 'min_val',
             config: {
               type: 'TextControl',
               isInt: true,
-              default: String(DEFAULT_FORM_DATA.minVal),
-              validators: [validateNonEmpty, validateInteger],
+              default: DEFAULT_FORM_DATA.minVal,
               renderTrigger: true,
               label: t('Min'),
               description: t('Minimum value on the gauge axis'),
@@ -95,7 +91,6 @@ const config: ControlPanelConfig = {
               type: 'TextControl',
               isInt: true,
               default: DEFAULT_FORM_DATA.maxVal,
-              validators: [validateNonEmpty, validateInteger],
               renderTrigger: true,
               label: t('Max'),
               description: t('Maximum value on the gauge axis'),
@@ -157,6 +152,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        ['currency_format'],
         [
           {
             name: 'value_formatter',
@@ -197,7 +193,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Axis')}</h1>],
+        [<ControlSubSectionHeader>{t('Axis')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_axis_tick',
@@ -236,7 +232,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Progress')}</h1>],
+        [<ControlSubSectionHeader>{t('Progress')}</ControlSubSectionHeader>],
         [
           {
             name: 'show_progress',
@@ -277,7 +273,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Intervals')}</h1>],
+        [<ControlSubSectionHeader>{t('Intervals')}</ControlSubSectionHeader>],
         [
           {
             name: 'intervals',
@@ -309,6 +305,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

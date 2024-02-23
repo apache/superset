@@ -19,6 +19,8 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +29,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Plots the individual metrics for each row in the data vertically and links them together as a line. This chart is useful for comparing multiple metrics across all of the samples or rows in the data.',
   ),
+  exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('Parallel Coordinates'),
   tags: [t('Coordinates'), t('Directional'), t('Legacy'), t('Relational')],
   thumbnail,

@@ -17,18 +17,23 @@
  * under the License.
  */
 import React from 'react';
-import { t, useTheme, styled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  t,
+  useTheme,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { QueryEditor } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-interface ShareSqlLabQueryPropTypes {
-  queryEditor: QueryEditor;
+interface ShareSqlLabQueryProps {
+  queryEditorId: string;
   addDangerToast: (msg: string) => void;
 }
 
@@ -42,15 +47,25 @@ const StyledIcon = styled(Icons.Link)`
   }
 `;
 
-function ShareSqlLabQuery({
-  queryEditor,
+const ShareSqlLabQuery = ({
+  queryEditorId,
   addDangerToast,
-}: ShareSqlLabQueryPropTypes) {
+}: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
+  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
+    useQueryEditor(queryEditorId, [
+      'dbId',
+      'name',
+      'schema',
+      'autorun',
+      'sql',
+      'remoteId',
+      'templateParams',
+    ]);
+
   const getCopyUrlForKvStore = (callback: Function) => {
-    const { dbId, title, schema, autorun, sql } = queryEditor;
-    const sharedQuery = { dbId, title, schema, autorun, sql };
+    const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
 
     return storeQuery(sharedQuery)
       .then(shortUrl => {
@@ -66,10 +81,10 @@ function ShareSqlLabQuery({
   const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
 
-    if (queryEditor.remoteId) {
+    if (remoteId) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
-      }?savedQueryId=${queryEditor.remoteId}`;
+      }?savedQueryId=${remoteId}`;
       callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
@@ -77,7 +92,7 @@ function ShareSqlLabQuery({
     }
   };
   const getCopyUrl = (callback: Function) => {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+    if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
       return getCopyUrlForKvStore(callback);
     }
     return getCopyUrlForSavedQuery(callback);
@@ -101,8 +116,7 @@ function ShareSqlLabQuery({
   };
 
   const canShare =
-    !!queryEditor.remoteId ||
-    isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+    !!remoteId || isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore);
 
   return (
     <>
@@ -117,6 +131,6 @@ function ShareSqlLabQuery({
       )}
     </>
   );
-}
+};
 
 export default withToasts(ShareSqlLabQuery);

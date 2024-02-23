@@ -16,24 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
-import buildQuery from '../../buildQuery';
-import controlPanel from './controlPanel';
-import transformProps from '../../transformProps';
-import thumbnail from './images/thumbnail.png';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../types';
+import { EchartsChartPlugin } from '../../../types';
+import buildQuery from '../../buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from '../../transformProps';
+import thumbnail from './images/thumbnail.png';
 import example1 from './images/Bar1.png';
 import example2 from './images/Bar2.png';
 import example3 from './images/Bar3.png';
@@ -47,7 +40,7 @@ const barTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -56,15 +49,17 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Bar Charts are used to show metrics as a series of bars.')
-          : t(
-              'Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.',
-            ),
+        description: t(
+          'Bar Charts are used to show metrics as a series of bars.',
+        ),
         exampleGallery: [
           { url: example1 },
           { url: example2 },
@@ -76,9 +71,7 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Bar Chart v2')
-          : t('Time-series Bar Chart v2'),
+        name: t('Bar Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),
@@ -92,7 +85,7 @@ export default class EchartsTimeseriesBarChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: barTransformProps,
     });
   }

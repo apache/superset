@@ -16,44 +16,36 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask import request, Response
+from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dashboards.commands.exceptions import (
+from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
     DashboardNotFoundError,
 )
-from superset.dashboards.permalink.commands.create import (
-    CreateDashboardPermalinkCommand,
-)
-from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.dashboards.permalink.exceptions import DashboardPermalinkInvalidStateError
-from superset.dashboards.permalink.schemas import DashboardPermalinkPostSchema
+from superset.dashboards.permalink.schemas import DashboardPermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardPermalinkRestApi(BaseApi):
-    add_model_schema = DashboardPermalinkPostSchema()
+class DashboardPermalinkRestApi(BaseSupersetApi):
+    add_model_schema = DashboardPermalinkStateSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {
-        RouteMethod.POST,
-        RouteMethod.PUT,
-        RouteMethod.GET,
-        RouteMethod.DELETE,
-    }
     allow_browser_login = True
     class_permission_name = "DashboardPermalinkRestApi"
     resource_name = "dashboard"
     openapi_spec_tag = "Dashboard Permanent Link"
-    openapi_spec_component_schemas = (DashboardPermalinkPostSchema,)
+    openapi_spec_component_schemas = (DashboardPermalinkStateSchema,)
 
-    @expose("/<pk>/permalink", methods=["POST"])
+    @expose("/<pk>/permalink", methods=("POST",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -62,11 +54,10 @@ class DashboardPermalinkRestApi(BaseApi):
     )
     @requires_json
     def post(self, pk: str) -> Response:
-        """Stores a new permanent link.
+        """Create a new dashboard's permanent link.
         ---
         post:
-          description: >-
-            Stores a new permanent link.
+          summary: Create a new dashboard's permanent link
           parameters:
           - in: path
             schema:
@@ -77,7 +68,7 @@ class DashboardPermalinkRestApi(BaseApi):
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/DashboardPermalinkPostSchema'
+                  $ref: '#/components/schemas/DashboardPermalinkStateSchema'
           responses:
             201:
               description: The permanent link was stored successfully.
@@ -104,7 +95,6 @@ class DashboardPermalinkRestApi(BaseApi):
         try:
             state = self.add_model_schema.load(request.json)
             key = CreateDashboardPermalinkCommand(
-                actor=g.user,
                 dashboard_id=pk,
                 state=state,
             ).run()
@@ -121,7 +111,7 @@ class DashboardPermalinkRestApi(BaseApi):
         except DashboardNotFoundError as ex:
             return self.response(404, message=str(ex))
 
-    @expose("/permalink/<string:key>", methods=["GET"])
+    @expose("/permalink/<string:key>", methods=("GET",))
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -129,11 +119,10 @@ class DashboardPermalinkRestApi(BaseApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Retrives permanent link state for dashboard.
+        """Get dashboard's permanent link state.
         ---
         get:
-          description: >-
-            Retrives dashboard state associated with a permanent link.
+          summary: Get dashboard's permanent link state
           parameters:
           - in: path
             schema:
@@ -162,7 +151,7 @@ class DashboardPermalinkRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            value = GetDashboardPermalinkCommand(actor=g.user, key=key).run()
+            value = GetDashboardPermalinkCommand(key=key).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

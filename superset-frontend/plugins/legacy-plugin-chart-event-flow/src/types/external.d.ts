@@ -18,4 +18,5 @@
  */
 
 declare module '*.png';
+declare module '*.jpg';
 declare module '@data-ui/event-flow';

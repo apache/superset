@@ -35,3 +35,14 @@ datasource. If you’re using an older version of Presto, you can configure it i
     "version": "0.123"
 }
 ```
+
+SSL Secure extra add json config to extra connection information.
+
+```
+   {
+     "connect_args":
+    {"protocol": "https",
+     "requests_kwargs":{"verify":false}
+  }
+}
+```

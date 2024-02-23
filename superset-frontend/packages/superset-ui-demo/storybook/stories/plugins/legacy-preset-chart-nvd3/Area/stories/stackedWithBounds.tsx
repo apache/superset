@@ -31,7 +31,7 @@ export const stackedWithYAxisBounds = () => (
     queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
-      colorCcheme: 'd3Category10',
+      colorScheme: 'd3Category10',
       contribution: false,
       groupby: ['region'],
       lineInterpolation: 'linear',
@@ -53,9 +53,7 @@ export const stackedWithYAxisBounds = () => (
   />
 );
 
-stackedWithYAxisBounds.story = {
-  name: 'Stacked with yAxisBounds',
-};
+stackedWithYAxisBounds.storyName = 'Stacked with yAxisBounds';
 
 export const stackedWithYAxisBoundsMinOnly = () => (
   <SuperChart
@@ -66,7 +64,7 @@ export const stackedWithYAxisBoundsMinOnly = () => (
     queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
-      colorCcheme: 'd3Category10',
+      colorScheme: 'd3Category10',
       contribution: false,
       groupby: ['region'],
       lineInterpolation: 'linear',
@@ -88,6 +86,4 @@ export const stackedWithYAxisBoundsMinOnly = () => (
   />
 );
 
-stackedWithYAxisBoundsMinOnly.story = {
-  name: 'Stacked with yAxisBounds min only',
-};
+stackedWithYAxisBoundsMinOnly.storyName = 'Stacked with yAxisBounds min only';

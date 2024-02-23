@@ -40,38 +40,25 @@ export const LoadingGallery = () => (
         }}
       >
         <h4>{position}</h4>
-        <Loading position={position} image="/src/assets/images/loading.gif" />
+        <Loading position={position} />
       </div>
     ))}
   </>
 );
 
-LoadingGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+LoadingGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
 export const InteractiveLoading = (args: Props) => <Loading {...args} />;
 
-InteractiveLoading.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 InteractiveLoading.args = {
-  image: '/src/assets/images/loading.gif',
+  image: '',
   className: '',
 };
 

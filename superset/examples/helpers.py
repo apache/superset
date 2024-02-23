@@ -17,39 +17,43 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-import zlib
-from io import BytesIO
-from typing import Any, Dict, List, Set
-from urllib import request
+from typing import Any
 
 from superset import app, db
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 
 BASE_URL = "https://github.com/apache-superset/examples-data/blob/master/"
 
-misc_dash_slices: Set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
+misc_dash_slices: set[str] = set()  # slices assembled in a 'Misc Chart' dashboard
 
 
 def get_table_connector_registry() -> Any:
-    return ConnectorRegistry.sources["table"]
+    return SqlaTable
 
 
 def get_examples_folder() -> str:
     return os.path.join(app.config["BASE_DIR"], "examples")
 
 
-def update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice]) -> None:
-    charts = [
+def update_slice_ids(pos: dict[Any, Any]) -> list[Slice]:
+    """Update slice ids in position_json and return the slices found."""
+    slice_components = [
         component
-        for component in layout_dict.values()
-        if isinstance(component, dict) and component["type"] == "CHART"
+        for component in pos.values()
+        if isinstance(component, dict) and component.get("type") == "CHART"
     ]
-    sorted_charts = sorted(charts, key=lambda k: k["meta"]["chartId"])
-    for i, chart_component in enumerate(sorted_charts):
-        if i < len(slices):
-            chart_component["meta"]["chartId"] = int(slices[i].id)
-            chart_component["meta"]["uuid"] = str(slices[i].uuid)
+    slices = {}
+    for name in {component["meta"]["sliceName"] for component in slice_components}:
+        slc = db.session.query(Slice).filter_by(slice_name=name).first()
+        if slc:
+            slices[name] = slc
+    for component in slice_components:
+        slc = slices.get(component["meta"]["sliceName"])
+        if slc:
+            component["meta"]["chartId"] = slc.id
+            component["meta"]["uuid"] = str(slc.uuid)
+    return list(slices.values())
 
 
 def merge_slice(slc: Slice) -> None:
@@ -60,20 +64,11 @@ def merge_slice(slc: Slice) -> None:
     db.session.commit()
 
 
-def get_slice_json(defaults: Dict[Any, Any], **kwargs: Any) -> str:
+def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:
     defaults_copy = defaults.copy()
     defaults_copy.update(kwargs)
     return json.dumps(defaults_copy, indent=4, sort_keys=True)
 
 
-def get_example_data(
-    filepath: str, is_gzip: bool = True, make_bytes: bool = False
-) -> BytesIO:
-    content = request.urlopen(  # pylint: disable=consider-using-with
-        f"{BASE_URL}{filepath}?raw=true"
-    ).read()
-    if is_gzip:
-        content = zlib.decompress(content, zlib.MAX_WBITS | 16)
-    if make_bytes:
-        content = BytesIO(content)
-    return content
+def get_example_url(filepath: str) -> str:
+    return f"{BASE_URL}{filepath}?raw=true"

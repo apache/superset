@@ -129,7 +129,7 @@ describe('FilterScope', () => {
       expect(screen.getByRole('tree')).toBeInTheDocument();
       expect(
         document.querySelectorAll('.ant-tree-checkbox-checked').length,
-      ).toBe(1);
+      ).toBe(4);
     });
   });
 });

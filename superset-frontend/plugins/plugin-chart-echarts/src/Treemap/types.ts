@@ -19,15 +19,18 @@
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
-  SetDataMaskHook,
 } from '@superset-ui/core';
-import { EChartsCoreOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { LabelPositionEnum } from '../types';
+import {
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LabelPositionEnum,
+  TreePathInfo,
+} from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
   colorScheme?: string;
@@ -40,7 +43,6 @@ export type EchartsTreemapFormData = QueryFormData & {
   numberFormat: string;
   dateFormat: string;
   dashboardId?: number;
-  emitFilter: boolean;
 };
 
 export enum EchartsTreemapLabelType {
@@ -63,26 +65,12 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   showLabels: true,
   showUpperLabels: true,
   dateFormat: 'smart_date',
-  emitFilter: false,
 };
-
-export interface TreePathInfo {
-  name: string;
-  dataIndex: number;
-  value: number | number[];
-}
 export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
   treePathInfo?: TreePathInfo[];
 }
 
-export interface TreemapTransformedProps {
-  formData: EchartsTreemapFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type TreemapTransformedProps =
+  BaseTransformedProps<EchartsTreemapFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

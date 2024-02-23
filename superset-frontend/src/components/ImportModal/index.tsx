@@ -25,11 +25,12 @@ import Modal from 'src/components/Modal';
 import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
+import ErrorAlert from './ErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const StyledInputContainer = styled.div`
@@ -109,6 +110,14 @@ export interface ImportModelsModalProps {
   onHide: () => void;
   passwordFields?: string[];
   setPasswordFields?: (passwordFields: string[]) => void;
+  sshTunnelPasswordFields?: string[];
+  setSSHTunnelPasswordFields?: (sshTunnelPasswordFields: string[]) => void;
+  sshTunnelPrivateKeyFields?: string[];
+  setSSHTunnelPrivateKeyFields?: (sshTunnelPrivateKeyFields: string[]) => void;
+  sshTunnelPrivateKeyPasswordFields?: string[];
+  setSSHTunnelPrivateKeyPasswordFields?: (
+    sshTunnelPrivateKeyPasswordFields: string[],
+  ) => void;
 }
 
 const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
@@ -116,12 +125,17 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceLabel,
   passwordsNeededMessage,
   confirmOverwriteMessage,
-  addDangerToast,
   onModelImport,
   show,
   onHide,
   passwordFields = [],
   setPasswordFields = () => {},
+  sshTunnelPasswordFields = [],
+  setSSHTunnelPasswordFields = () => {},
+  sshTunnelPrivateKeyFields = [],
+  setSSHTunnelPrivateKeyFields = () => {},
+  sshTunnelPrivateKeyPasswordFields = [],
+  setSSHTunnelPrivateKeyPasswordFields = () => {},
 }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
@@ -130,6 +144,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
+  const [sshTunnelPasswords, setSSHTunnelPasswords] = useState<
+    Record<string, string>
+  >({});
+  const [sshTunnelPrivateKeys, setSSHTunnelPrivateKeys] = useState<
+    Record<string, string>
+  >({});
+  const [sshTunnelPrivateKeyPasswords, setSSHTunnelPrivateKeyPasswords] =
+    useState<Record<string, string>>({});
 
   const clearModal = () => {
     setFileList([]);
@@ -138,15 +161,27 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
     setImportingModel(false);
+    setErrorMessage('');
+    setSSHTunnelPasswordFields([]);
+    setSSHTunnelPrivateKeyFields([]);
+    setSSHTunnelPrivateKeyPasswordFields([]);
+    setSSHTunnelPasswords({});
+    setSSHTunnelPrivateKeys({});
+    setSSHTunnelPrivateKeyPasswords({});
   };
 
   const handleErrorMsg = (msg: string) => {
-    clearModal();
-    addDangerToast(msg);
+    setErrorMessage(msg);
   };
 
   const {
-    state: { alreadyExists, passwordsNeeded },
+    state: {
+      alreadyExists,
+      passwordsNeeded,
+      sshPasswordNeeded,
+      sshPrivateKeyNeeded,
+      sshPrivateKeyPasswordNeeded,
+    },
     importResource,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
@@ -164,6 +199,27 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     }
   }, [alreadyExists, setNeedsOverwriteConfirm]);
 
+  useEffect(() => {
+    setSSHTunnelPasswordFields(sshPasswordNeeded);
+    if (sshPasswordNeeded.length > 0) {
+      setImportingModel(false);
+    }
+  }, [sshPasswordNeeded, setSSHTunnelPasswordFields]);
+
+  useEffect(() => {
+    setSSHTunnelPrivateKeyFields(sshPrivateKeyNeeded);
+    if (sshPrivateKeyNeeded.length > 0) {
+      setImportingModel(false);
+    }
+  }, [sshPrivateKeyNeeded, setSSHTunnelPrivateKeyFields]);
+
+  useEffect(() => {
+    setSSHTunnelPrivateKeyPasswordFields(sshPrivateKeyPasswordNeeded);
+    if (sshPrivateKeyPasswordNeeded.length > 0) {
+      setImportingModel(false);
+    }
+  }, [sshPrivateKeyPasswordNeeded, setSSHTunnelPrivateKeyPasswordFields]);
+
   // Functions
   const hide = () => {
     setIsHidden(true);
@@ -180,6 +236,9 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     importResource(
       fileList[0].originFileObj,
       passwords,
+      sshTunnelPasswords,
+      sshTunnelPrivateKeys,
+      sshTunnelPrivateKeyPasswords,
       confirmedOverwrite,
     ).then(result => {
       if (result) {
@@ -209,30 +268,117 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const renderPasswordFields = () => {
-    if (passwordFields.length === 0) {
+    if (
+      passwordFields.length === 0 &&
+      sshTunnelPasswordFields.length === 0 &&
+      sshTunnelPrivateKeyFields.length === 0 &&
+      sshTunnelPrivateKeyPasswordFields.length === 0
+    ) {
       return null;
     }
 
+    const files = [
+      ...new Set([
+        ...passwordFields,
+        ...sshTunnelPasswordFields,
+        ...sshTunnelPrivateKeyFields,
+        ...sshTunnelPrivateKeyPasswordFields,
+      ]),
+    ];
+
     return (
       <>
-        <h5>Database passwords</h5>
+        <h5>{t('Database passwords')}</h5>
         <HelperMessage>{passwordsNeededMessage}</HelperMessage>
-        {passwordFields.map(fileName => (
-          <StyledInputContainer key={`password-for-${fileName}`}>
-            <div className="control-label">
-              {fileName}
-              <span className="required">*</span>
-            </div>
-            <input
-              name={`password-${fileName}`}
-              autoComplete={`password-${fileName}`}
-              type="password"
-              value={passwords[fileName]}
-              onChange={event =>
-                setPasswords({ ...passwords, [fileName]: event.target.value })
-              }
-            />
-          </StyledInputContainer>
+        {files.map(fileName => (
+          <>
+            {passwordFields?.indexOf(fileName) >= 0 && (
+              <StyledInputContainer key={`password-for-${fileName}`}>
+                <div className="control-label">
+                  {t('%s PASSWORD', fileName.slice(10))}
+                  <span className="required">*</span>
+                </div>
+                <input
+                  name={`password-${fileName}`}
+                  autoComplete={`password-${fileName}`}
+                  type="password"
+                  value={passwords[fileName]}
+                  onChange={event =>
+                    setPasswords({
+                      ...passwords,
+                      [fileName]: event.target.value,
+                    })
+                  }
+                />
+              </StyledInputContainer>
+            )}
+            {sshTunnelPasswordFields?.indexOf(fileName) >= 0 && (
+              <StyledInputContainer key={`ssh_tunnel_password-for-${fileName}`}>
+                <div className="control-label">
+                  {t('%s SSH TUNNEL PASSWORD', fileName.slice(10))}
+                  <span className="required">*</span>
+                </div>
+                <input
+                  name={`ssh_tunnel_password-${fileName}`}
+                  autoComplete={`ssh_tunnel_password-${fileName}`}
+                  type="password"
+                  value={sshTunnelPasswords[fileName]}
+                  onChange={event =>
+                    setSSHTunnelPasswords({
+                      ...sshTunnelPasswords,
+                      [fileName]: event.target.value,
+                    })
+                  }
+                  data-test="ssh_tunnel_password"
+                />
+              </StyledInputContainer>
+            )}
+            {sshTunnelPrivateKeyFields?.indexOf(fileName) >= 0 && (
+              <StyledInputContainer
+                key={`ssh_tunnel_private_key-for-${fileName}`}
+              >
+                <div className="control-label">
+                  {t('%s SSH TUNNEL PRIVATE KEY', fileName.slice(10))}
+                  <span className="required">*</span>
+                </div>
+                <textarea
+                  name={`ssh_tunnel_private_key-${fileName}`}
+                  autoComplete={`ssh_tunnel_private_key-${fileName}`}
+                  value={sshTunnelPrivateKeys[fileName]}
+                  onChange={event =>
+                    setSSHTunnelPrivateKeys({
+                      ...sshTunnelPrivateKeys,
+                      [fileName]: event.target.value,
+                    })
+                  }
+                  data-test="ssh_tunnel_private_key"
+                />
+              </StyledInputContainer>
+            )}
+            {sshTunnelPrivateKeyPasswordFields?.indexOf(fileName) >= 0 && (
+              <StyledInputContainer
+                key={`ssh_tunnel_private_key_password-for-${fileName}`}
+              >
+                <div className="control-label">
+                  {t('%s SSH TUNNEL PRIVATE KEY PASSWORD', fileName.slice(10))}
+                  <span className="required">*</span>
+                </div>
+                <input
+                  name={`ssh_tunnel_private_key_password-${fileName}`}
+                  autoComplete={`ssh_tunnel_private_key_password-${fileName}`}
+                  type="password"
+                  value={sshTunnelPrivateKeyPasswords[fileName]}
+                  onChange={event =>
+                    setSSHTunnelPrivateKeyPasswords({
+                      ...sshTunnelPrivateKeyPasswords,
+                      [fileName]: event.target.value,
+                    })
+                  }
+                  data-test="ssh_tunnel_private_key_password"
+                />
+              </StyledInputContainer>
+            )}
+          </>
         ))}
       </>
     );
@@ -294,10 +440,22 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           onRemove={removeFile}
           // upload is handled by hook
           customRequest={() => {}}
+          disabled={importingModel}
         >
-          <Button loading={importingModel}>Select file</Button>
+          <Button loading={importingModel}>{t('Select file')}</Button>
         </Upload>
       </StyledInputContainer>
+      {errorMessage && (
+        <ErrorAlert
+          errorMessage={errorMessage}
+          showDbInstallInstructions={
+            passwordFields.length > 0 ||
+            sshTunnelPasswordFields.length > 0 ||
+            sshTunnelPrivateKeyFields.length > 0 ||
+            sshTunnelPrivateKeyPasswordFields.length > 0
+          }
+        />
+      )}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>

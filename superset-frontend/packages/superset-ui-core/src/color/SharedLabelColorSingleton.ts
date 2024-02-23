@@ -18,99 +18,81 @@
  */
 
 import { CategoricalColorNamespace } from '.';
-import makeSingleton from '../utils/makeSingleton';
-import { getAnalogousColors } from './utils';
+import { makeSingleton } from '../utils';
 
+export enum SharedLabelColorSource {
+  Dashboard,
+  Explore,
+}
 export class SharedLabelColor {
-  sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
+  sliceLabelMap: Map<number, string[]>;
+
+  colorMap: Map<string, string>;
+
+  source: SharedLabelColorSource;
 
   constructor() {
-    // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
-    this.sliceLabelColorMap = {};
+    // { sliceId1: [label1, label2, ...], sliceId2: [label1, label2, ...] }
+    this.sliceLabelMap = new Map();
+    this.colorMap = new Map();
+    this.source = SharedLabelColorSource.Dashboard;
   }
 
-  getColorMap(
-    colorNamespace?: string,
-    colorScheme?: string,
-    updateColorScheme?: boolean,
-  ) {
-    if (colorScheme) {
-      const categoricalNamespace =
-        CategoricalColorNamespace.getNamespace(colorNamespace);
-      const colors = categoricalNamespace.getScale(colorScheme).range();
-      const sharedLabels = this.getSharedLabels();
-      let generatedColors: string[] = [];
-      let sharedLabelMap;
+  updateColorMap(colorNamespace?: string, colorScheme?: string) {
+    const categoricalNamespace =
+      CategoricalColorNamespace.getNamespace(colorNamespace);
+    const newColorMap = new Map();
+    this.colorMap.clear();
+    this.sliceLabelMap.forEach(labels => {
+      const colorScale = categoricalNamespace.getScale(colorScheme);
+      labels.forEach(label => {
+        const newColor = colorScale(label);
+        newColorMap.set(label, newColor);
+      });
+    });
+    this.colorMap = newColorMap;
+  }
 
-      if (sharedLabels.length) {
-        const multiple = Math.ceil(sharedLabels.length / colors.length);
-        generatedColors = getAnalogousColors(colors, multiple);
-        sharedLabelMap = sharedLabels.reduce(
-          (res, label, index) => ({
-            ...res,
-            [label.toString()]: generatedColors[index],
-          }),
-          {},
-        );
-      }
-
-      const labelMap = Object.keys(this.sliceLabelColorMap).reduce(
-        (res, sliceId) => {
-          const colorScale = categoricalNamespace.getScale(colorScheme);
-          return {
-            ...res,
-            ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
-              (res, label) => ({
-                ...res,
-                [label]: updateColorScheme
-                  ? colorScale(label)
-                  : this.sliceLabelColorMap[sliceId][label],
-              }),
-              {},
-            ),
-          };
-        },
-        {},
-      );
-
-      return {
-        ...labelMap,
-        ...sharedLabelMap,
-      };
-    }
-    return undefined;
+  getColorMap() {
+    return this.colorMap;
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
-    if (!sliceId) return;
-    this.sliceLabelColorMap[sliceId] = {
-      ...this.sliceLabelColorMap[sliceId],
-      [label]: color,
-    };
+    if (
+      this.source !== SharedLabelColorSource.Dashboard ||
+      sliceId === undefined
+    )
+      return;
+    const labels = this.sliceLabelMap.get(sliceId) || [];
+    if (!labels.includes(label)) {
+      labels.push(label);
+      this.sliceLabelMap.set(sliceId, labels);
+    }
+    this.colorMap.set(label, color);
   }
 
   removeSlice(sliceId: number) {
-    delete this.sliceLabelColorMap[sliceId];
+    if (this.source !== SharedLabelColorSource.Dashboard) return;
+    this.sliceLabelMap.delete(sliceId);
+    const newColorMap = new Map();
+    this.sliceLabelMap.forEach(labels => {
+      labels.forEach(label => {
+        newColorMap.set(label, this.colorMap.get(label));
+      });
+    });
+    this.colorMap = newColorMap;
+  }
+
+  reset() {
+    const copyColorMap = new Map(this.colorMap);
+    copyColorMap.forEach((_, label) => {
+      this.colorMap.set(label, '');
+    });
   }
 
   clear() {
-    this.sliceLabelColorMap = {};
-  }
-
-  getSharedLabels() {
-    const tempLabels = new Set<string>();
-    const result = new Set<string>();
-    Object.keys(this.sliceLabelColorMap).forEach(sliceId => {
-      const colorMap = this.sliceLabelColorMap[sliceId];
-      Object.keys(colorMap).forEach(label => {
-        if (tempLabels.has(label) && !result.has(label)) {
-          result.add(label);
-        } else {
-          tempLabels.add(label);
-        }
-      });
-    });
-    return [...result];
+    this.sliceLabelMap.clear();
+    this.colorMap.clear();
   }
 }
 

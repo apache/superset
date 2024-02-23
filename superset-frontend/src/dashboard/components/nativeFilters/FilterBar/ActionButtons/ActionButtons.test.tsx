@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
+import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ActionButtons } from './index';
+import ActionButtons from './index';
 
 const createProps = () => ({
   onApply: jest.fn(),
@@ -76,4 +77,29 @@ test('should apply', () => {
   expect(mockedProps.onApply).not.toHaveBeenCalled();
   userEvent.click(applyBtn);
   expect(mockedProps.onApply).toHaveBeenCalled();
+});
+
+describe('custom width', () => {
+  it('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
+    const mockedProps = createProps();
+    render(<ActionButtons {...mockedProps} />, { useRedux: true });
+    const container = screen.getByTestId('filterbar-action-buttons');
+    expect(container).toHaveStyleRule(
+      'width',
+      `${OPEN_FILTER_BAR_WIDTH - 1}px`,
+    );
+  });
+
+  it('sets custom width', () => {
+    const mockedProps = createProps();
+    const expectedWidth = 423;
+    const { getByTestId } = render(
+      <ActionButtons {...mockedProps} width={expectedWidth} />,
+      {
+        useRedux: true,
+      },
+    );
+    const container = getByTestId('filterbar-action-buttons');
+    expect(container).toHaveStyleRule('width', `${expectedWidth - 1}px`);
+  });
 });

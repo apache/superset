@@ -26,10 +26,12 @@ export const useDashboard = (idOrSlug: string | number) =>
     useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}`),
     dashboard => ({
       ...dashboard,
+      // TODO: load these at the API level
       metadata:
         (dashboard.json_metadata && JSON.parse(dashboard.json_metadata)) || {},
       position_data:
         dashboard.position_json && JSON.parse(dashboard.position_json),
+      owners: dashboard.owners || [],
     }),
   );
 

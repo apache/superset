@@ -28,10 +28,12 @@ import {
 import {
   SupersetThemeProps,
   withTheme,
-  seedRandom,
+  seed,
   CategoricalColorScale,
 } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 
+const seedRandom = seed('superset-ui');
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
@@ -105,7 +107,7 @@ class WordCloud extends React.PureComponent<
       text: 'Text',
     },
     defaultEncoding: {
-      color: { value: 'black' },
+      color: { value: this.props.theme.colors.grayscale.dark2 },
       fontFamily: { value: this.props.theme.typography.families.sansSerif },
       fontSize: { value: 20 },
       fontWeight: { value: 'bold' },
@@ -113,7 +115,12 @@ class WordCloud extends React.PureComponent<
     },
   });
 
-  createEncoder = this.wordCloudEncoderFactory.createSelector();
+  createEncoder = (encoding?: Partial<WordCloudEncoding>) => {
+    const selector = this.wordCloudEncoderFactory.createSelector();
+
+    // @ts-ignore
+    return selector(encoding as any);
+  };
 
   constructor(props: FullWordCloudProps) {
     super(props);
@@ -133,8 +140,8 @@ class WordCloud extends React.PureComponent<
     const { data, encoding, width, height, rotation } = this.props;
 
     if (
-      prevProps.data !== data ||
-      prevProps.encoding !== encoding ||
+      !isEqual(prevProps.data, data) ||
+      !isEqual(prevProps.encoding, encoding) ||
       prevProps.width !== width ||
       prevProps.height !== height ||
       prevProps.rotation !== rotation
@@ -156,7 +163,8 @@ class WordCloud extends React.PureComponent<
   update() {
     const { data, encoding } = this.props;
 
-    const encoder = this.createEncoder(encoding);
+    const encoder: Encoder<WordCloudEncodingConfig> =
+      this.createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(
@@ -219,6 +227,7 @@ class WordCloud extends React.PureComponent<
     const { width, height, encoding, sliceId } = this.props;
     const { words } = this.state;
 
+    // @ts-ignore
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
 

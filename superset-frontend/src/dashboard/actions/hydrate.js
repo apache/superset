@@ -17,20 +17,21 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { Behavior, getChartMetadataRegistry } from '@superset-ui/core';
-
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import findPermission, {
-  canUserEditDashboard,
-} from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 import {
-  DASHBOARD_FILTER_SCOPE_GLOBAL,
-  dashboardFilter,
-} from 'src/dashboard/reducers/dashboardFilters';
+  canUserEditDashboard,
+  canUserSaveAsDashboard,
+} from 'src/dashboard/util/permissionUtils';
+import {
+  getCrossFiltersConfiguration,
+  isCrossFiltersEnabled,
+} from 'src/dashboard/util/crossFilters';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
@@ -44,50 +45,31 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import findFirstParentContainerId from 'src/dashboard/util/findFirstParentContainer';
 import getEmptyLayout from 'src/dashboard/util/getEmptyLayout';
-import getFilterConfigsFromFormdata from 'src/dashboard/util/getFilterConfigsFromFormdata';
 import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
-import { TIME_RANGE } from 'src/visualizations/FilterBox/FilterBox';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
-import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
+import updateComponentParentsList from '../util/updateComponentParentsList';
+import { FilterBarOrientation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  (
-    dashboardData,
-    chartData,
-    filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
-    dataMaskApplied,
-  ) =>
+  ({ history, dashboard, charts, dataMask, activeTabs }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
-
-    const { metadata } = dashboardData;
+    const { metadata, position_data: positionData } = dashboard;
     const regularUrlParams = extractUrlParams('regular');
     const reservedUrlParams = extractUrlParams('reserved');
     const editMode = reservedUrlParams.edit === 'true';
 
-    let preselectFilters = {};
-
-    chartData.forEach(chart => {
+    charts.forEach(chart => {
       // eslint-disable-next-line no-param-reassign
       chart.slice_id = chart.form_data.slice_id;
     });
-    try {
-      // allow request parameter overwrite dashboard metadata
-      preselectFilters =
-        getUrlParam(URL_PARAMS.preselectFilters) ||
-        JSON.parse(metadata.default_filters);
-    } catch (e) {
-      //
-    }
 
     if (metadata?.shared_label_colors) {
       updateColorSchema(metadata, metadata?.shared_label_colors);
@@ -99,12 +81,10 @@ export const hydrateDashboard =
       updateColorSchema(metadata, metadata?.label_colors);
     }
 
-    // dashboard layout
-    const { position_data } = dashboardData;
     // new dash: position_json could be {} or null
     const layout =
-      position_data && Object.keys(position_data).length > 0
-        ? position_data
+      positionData && Object.keys(positionData).length > 0
+        ? positionData
         : getEmptyLayout();
 
     // create a lookup to sync layout names with slice names
@@ -121,15 +101,15 @@ export const hydrateDashboard =
     let newSlicesContainer;
     let newSlicesContainerWidth = 0;
 
-    const filterScopes = metadata?.filter_scopes || {};
-
     const chartQueries = {};
     const dashboardFilters = {};
     const slices = {};
     const sliceIds = new Set();
-    chartData.forEach(slice => {
+    const slicesFromExploreCount = new Map();
+
+    charts.forEach(slice => {
       const key = slice.slice_id;
-      const form_data = {
+      const formData = {
         ...slice.form_data,
         url_params: {
           ...slice.form_data.url_params,
@@ -139,8 +119,7 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
-        form_data,
-        formData: applyDefaultFormData(form_data),
+        form_data: applyDefaultFormData(formData),
       };
 
       slices[key] = {
@@ -182,68 +161,14 @@ export const hydrateDashboard =
           (newSlicesContainer.parents || []).slice(),
         );
 
+        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
+        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
+        slicesFromExploreCount.set(slice.slice_id, count);
+
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
-      }
-
-      // build DashboardFilters for interactive filter features
-      if (slice.form_data.viz_type === 'filter_box') {
-        const configs = getFilterConfigsFromFormdata(slice.form_data);
-        let { columns } = configs;
-        const { labels } = configs;
-        if (preselectFilters[key]) {
-          Object.keys(columns).forEach(col => {
-            if (preselectFilters[key][col]) {
-              columns = {
-                ...columns,
-                [col]: preselectFilters[key][col],
-              };
-            }
-          });
-        }
-
-        const scopesByChartId = Object.keys(columns).reduce((map, column) => {
-          const scopeSettings = {
-            ...filterScopes[key],
-          };
-          const { scope, immune } = {
-            ...DASHBOARD_FILTER_SCOPE_GLOBAL,
-            ...scopeSettings[column],
-          };
-
-          return {
-            ...map,
-            [column]: {
-              scope,
-              immune,
-            },
-          };
-        }, {});
-
-        const componentId = chartIdToLayoutId[key];
-        const directPathToFilter = (layout[componentId].parents || []).slice();
-        directPathToFilter.push(componentId);
-        if (
-          [
-            FILTER_BOX_MIGRATION_STATES.NOOP,
-            FILTER_BOX_MIGRATION_STATES.SNOOZED,
-          ].includes(filterboxMigrationState)
-        ) {
-          dashboardFilters[key] = {
-            ...dashboardFilter,
-            chartId: key,
-            componentId,
-            datasourceId: slice.form_data.datasource,
-            filterName: slice.slice_name,
-            directPathToFilter,
-            columns,
-            labels,
-            scopes: scopesByChartId,
-            isDateFilter: Object.keys(columns).includes(TIME_RANGE),
-          };
-        }
       }
 
       // sync layout names with current slice names in case a slice was edited
@@ -254,6 +179,19 @@ export const hydrateDashboard =
         layout[layoutId].meta.sliceName = slice.slice_name;
       }
     });
+
+    // make sure that parents tree is built
+    if (
+      Object.values(layout).some(
+        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
+      )
+    ) {
+      updateComponentParentsList({
+        currentComponent: layout[DASHBOARD_ROOT_ID],
+        layout,
+      });
+    }
+
     buildActiveFilters({
       dashboardFilters,
       components: layout,
@@ -264,7 +202,7 @@ export const hydrateDashboard =
       id: DASHBOARD_HEADER_ID,
       type: DASHBOARD_HEADER_TYPE,
       meta: {
-        text: dashboardData.dashboard_title,
+        text: dashboard.dashboard_title,
       },
     };
 
@@ -274,71 +212,51 @@ export const hydrateDashboard =
       future: [],
     };
 
+    // Searches for a focused_chart parameter in the URL to automatically focus a chart
+    const focusedChartId = getUrlParam(URL_PARAMS.dashboardFocusedChart);
+    let focusedChartLayoutId;
+    if (focusedChartId) {
+      // Converts focused_chart to dashboard layout id
+      const found = Object.values(dashboardLayout.present).find(
+        element => element.meta?.chartId === focusedChartId,
+      );
+      focusedChartLayoutId = found?.id;
+      // Removes the focused_chart parameter from the URL
+      const params = new URLSearchParams(window.location.search);
+      params.delete(URL_PARAMS.dashboardFocusedChart.name);
+      history.replace({
+        search: params.toString(),
+      });
+    }
+
     // find direct link component and path from root
-    const directLinkComponentId = getLocationHash();
-    let directPathToChild = [];
+    const directLinkComponentId = focusedChartLayoutId || getLocationHash();
+    let directPathToChild = dashboardState.directPathToChild || [];
     if (layout[directLinkComponentId]) {
       directPathToChild = (layout[directLinkComponentId].parents || []).slice();
       directPathToChild.push(directLinkComponentId);
     }
 
-    // should convert filter_box to filter component?
-    let filterConfig = metadata?.native_filter_configuration || [];
-    if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
-      filterConfig = getNativeFilterConfig(
-        chartData,
-        filterScopes,
-        preselectFilters,
-      );
-      metadata.native_filter_configuration = filterConfig;
-      metadata.show_native_filters = true;
-    }
     const nativeFilters = getInitialNativeFilterState({
-      filterConfig,
+      filterConfig: metadata?.native_filter_configuration || [],
     });
-    metadata.show_native_filters =
-      dashboardData?.metadata?.show_native_filters ??
-      (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-        [
-          FILTER_BOX_MIGRATION_STATES.CONVERTED,
-          FILTER_BOX_MIGRATION_STATES.REVIEWING,
-          FILTER_BOX_MIGRATION_STATES.NOOP,
-        ].includes(filterboxMigrationState));
 
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
-      // If user just added cross filter to dashboard it's not saving it scope on server,
-      // so we tweak it until user will update scope and will save it in server
-      Object.values(dashboardLayout.present).forEach(layoutItem => {
-        const chartId = layoutItem.meta?.chartId;
-        const behaviors =
-          (
-            getChartMetadataRegistry().get(
-              chartQueries[chartId]?.formData?.viz_type,
-            ) ?? {}
-          )?.behaviors ?? [];
-
-        if (!metadata.chart_configuration) {
-          metadata.chart_configuration = {};
-        }
-        if (
-          behaviors.includes(Behavior.INTERACTIVE_CHART) &&
-          !metadata.chart_configuration[chartId]
-        ) {
-          metadata.chart_configuration[chartId] = {
-            id: chartId,
-            crossFilters: {
-              scope: {
-                rootPath: [DASHBOARD_ROOT_ID],
-                excluded: [chartId], // By default it doesn't affects itself
-              },
-            },
-          };
-        }
-      });
+    if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
+      const { chartConfiguration, globalChartConfiguration } =
+        getCrossFiltersConfiguration(
+          dashboardLayout.present,
+          metadata,
+          chartQueries,
+        );
+      metadata.chart_configuration = chartConfiguration;
+      metadata.global_chart_configuration = globalChartConfiguration;
     }
 
     const { roles } = user;
-    const canEdit = canUserEditDashboard(dashboardData, user);
+    const canEdit = canUserEditDashboard(dashboard, user);
+    const crossFiltersEnabled = isCrossFiltersEnabled(
+      metadata.cross_filters_enabled,
+    );
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -347,11 +265,11 @@ export const hydrateDashboard =
         charts: chartQueries,
         // read-only data
         dashboardInfo: {
-          ...dashboardData,
+          ...dashboard,
           metadata,
           userId: user.userId ? String(user.userId) : null, // legacy, please use state.user instead
           dash_edit_perm: canEdit,
-          dash_save_perm: findPermission('can_save_dash', 'Superset', roles),
+          dash_save_perm: canUserSaveAsDashboard(dashboard, user),
           dash_share_perm: findPermission(
             'can_share_dashboard',
             'Superset',
@@ -368,14 +286,18 @@ export const hydrateDashboard =
             roles,
           ),
           superset_can_csv: findPermission('can_csv', 'Superset', roles),
-          slice_can_edit: findPermission('can_slice', 'Superset', roles),
           common: {
             // legacy, please use state.common instead
             flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
+          filterBarOrientation:
+            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
+              metadata.filter_bar_orientation) ||
+            FilterBarOrientation.Vertical,
+          crossFiltersEnabled,
         },
-        dataMask: dataMaskApplied,
+        dataMask,
         dashboardFilters,
         nativeFilters,
         dashboardState: {
@@ -389,19 +311,19 @@ export const hydrateDashboard =
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,
-          css: dashboardData.css || '',
+          css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
           editMode: canEdit && editMode,
-          isPublished: dashboardData.published,
+          isPublished: dashboard.published,
           hasUnsavedChanges: false,
+          dashboardIsSaving: false,
           maxUndoHistoryExceeded: false,
-          lastModifiedTime: dashboardData.changed_on,
+          lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,
           isFiltersRefreshing: false,
-          activeTabs: dashboardState?.activeTabs || [],
-          filterboxMigrationState,
-          datasetsStatus: ResourceStatus.LOADING,
+          activeTabs: activeTabs || dashboardState?.activeTabs || [],
+          datasetsStatus: ResourceStatus.Loading,
         },
         dashboardLayout,
       },

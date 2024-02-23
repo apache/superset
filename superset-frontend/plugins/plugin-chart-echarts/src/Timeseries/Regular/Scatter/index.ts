@@ -16,25 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  AnnotationType,
-  Behavior,
-  ChartMetadata,
-  ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
-import buildQuery from '../../buildQuery';
-import controlPanel from './controlPanel';
-import transformProps from '../../transformProps';
-import thumbnail from './images/thumbnail.png';
+import { AnnotationType, Behavior, t } from '@superset-ui/core';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../types';
+import buildQuery from '../../buildQuery';
+import controlPanel from './controlPanel';
+import transformProps from '../../transformProps';
+import thumbnail from './images/thumbnail.png';
 import example1 from './images/Scatter1.png';
+import { EchartsChartPlugin } from '../../../types';
 
 const scatterTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
   transformProps({
@@ -45,7 +38,7 @@ const scatterTransformProps = (chartProps: EchartsTimeseriesChartProps) =>
     },
   });
 
-export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
+export default class EchartsTimeseriesScatterChartPlugin extends EchartsChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
@@ -54,17 +47,17 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
       buildQuery,
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
-      metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+      metadata: {
+        behaviors: [
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
+        ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t(
-              'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
-            )
-          : t(
-              'Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
-            ),
+        description: t(
+          'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
+        ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -72,9 +65,7 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Scatter Plot')
-          : t('Time-series Scatter Plot'),
+        name: t('Scatter Plot'),
         tags: [
           t('ECharts'),
           t('Predictive'),
@@ -86,7 +77,7 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
           t('Popular'),
         ],
         thumbnail,
-      }),
+      },
       transformProps: scatterTransformProps,
     });
   }

@@ -30,11 +30,3 @@ InteractiveSliceTag.args = {
   origFormData: defaultProps.origFormData,
   currentFormData: defaultProps.currentFormData,
 };
-
-InteractiveSliceTag.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

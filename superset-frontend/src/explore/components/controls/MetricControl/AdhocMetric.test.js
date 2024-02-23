@@ -34,11 +34,11 @@ describe('AdhocMetric', () => {
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
+      datasourceWarning: false,
       label: 'SUM(value)',
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,
       sqlExpression: null,
-      isNew: false,
     });
   });
 
@@ -46,7 +46,6 @@ describe('AdhocMetric', () => {
     const adhocMetric1 = new AdhocMetric({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
-      isNew: true,
     });
     const adhocMetric2 = adhocMetric1.duplicateWith({
       aggregate: AGGREGATES.AVG,
@@ -57,10 +56,6 @@ describe('AdhocMetric', () => {
 
     expect(adhocMetric1.aggregate).toBe(AGGREGATES.SUM);
     expect(adhocMetric2.aggregate).toBe(AGGREGATES.AVG);
-
-    // duplicated clone should not be new
-    expect(adhocMetric1.isNew).toBe(true);
-    expect(adhocMetric2.isNew).toStrictEqual(false);
   });
 
   it('can verify equality', () => {
@@ -215,5 +210,41 @@ describe('AdhocMetric', () => {
     });
     expect(adhocMetric3.aggregate).toBe(AGGREGATES.AVG);
     expect(adhocMetric3.column.column_name).toBe('value');
+  });
+
+  it('should transform count_distinct SQL and do not change label if does not set metric label', () => {
+    const withBrackets = new AdhocMetric({
+      column: { type: 'TEXT', column_name: '(column-with-barckets)' },
+      aggregate: AGGREGATES.COUNT_DISTINCT,
+      hasCustomLabel: false,
+    });
+    expect(withBrackets.translateToSql({ transformCountDistinct: true })).toBe(
+      'COUNT(DISTINCT (column-with-barckets))',
+    );
+    expect(withBrackets.getDefaultLabel()).toBe(
+      'COUNT_DISTINCT((column-with-barckets))',
+    );
+
+    const withoutBrackets = new AdhocMetric({
+      column: { type: 'TEXT', column_name: 'column-without-barckets' },
+      aggregate: AGGREGATES.COUNT_DISTINCT,
+      hasCustomLabel: false,
+    });
+    expect(
+      withoutBrackets.translateToSql({ transformCountDistinct: true }),
+    ).toBe('COUNT(DISTINCT column-without-barckets)');
+    expect(withoutBrackets.getDefaultLabel()).toBe(
+      'COUNT_DISTINCT(column-without-barckets)',
+    );
+
+    const emptyColumnName = new AdhocMetric({
+      column: { type: 'TEXT', column_name: '' },
+      aggregate: AGGREGATES.COUNT_DISTINCT,
+      hasCustomLabel: false,
+    });
+    expect(
+      emptyColumnName.translateToSql({ transformCountDistinct: true }),
+    ).toBe('COUNT_DISTINCT');
+    expect(emptyColumnName.getDefaultLabel()).toBe('COUNT_DISTINCT');
   });
 });

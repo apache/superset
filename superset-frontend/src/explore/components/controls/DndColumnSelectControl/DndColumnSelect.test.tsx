@@ -27,18 +27,40 @@ const defaultProps: DndColumnSelectProps = {
   type: 'DndColumnSelect',
   name: 'Filter',
   onChange: jest.fn(),
-  options: { string: { column_name: 'Column A' } },
+  options: [{ column_name: 'Column A' }],
   actions: { setControlValue: jest.fn() },
 };
 
-test('renders with default props', () => {
-  render(<DndColumnSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop columns here')).toBeInTheDocument();
+test('renders with default props', async () => {
+  render(<DndColumnSelect {...defaultProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
+  expect(
+    await screen.findByText('Drop columns here or click'),
+  ).toBeInTheDocument();
 });
 
-test('renders with value', () => {
-  render(<DndColumnSelect {...defaultProps} value="string" />, {
+test('renders with value', async () => {
+  render(<DndColumnSelect {...defaultProps} value="Column A" />, {
     useDnd: true,
+    useRedux: true,
   });
-  expect(screen.getByText('Column A')).toBeInTheDocument();
+  expect(await screen.findByText('Column A')).toBeInTheDocument();
+});
+
+test('renders adhoc column', async () => {
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      value={{
+        sqlExpression: 'Count *',
+        label: 'adhoc column',
+        expressionType: 'SQL',
+      }}
+    />,
+    { useDnd: true, useRedux: true },
+  );
+  expect(await screen.findByText('adhoc column')).toBeVisible();
+  expect(screen.getByLabelText('calculator')).toBeVisible();
 });

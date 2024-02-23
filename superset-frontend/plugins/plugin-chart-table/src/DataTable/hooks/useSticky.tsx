@@ -56,8 +56,8 @@ export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
 
 export enum ReducerActions {
-  init = 'init', // this is from global reducer
-  setStickyState = 'setStickyState',
+  Init = 'init', // this is from global reducer
+  SetStickyState = 'setStickyState',
 }
 
 export type ReducerAction<
@@ -183,7 +183,9 @@ function StickyWrap({
       .clientHeight;
     const ths = bodyThead.childNodes[0]
       .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
-    const widths = Array.from(ths).map(th => th.clientWidth);
+    const widths = Array.from(ths).map(
+      th => th.getBoundingClientRect()?.width || th.clientWidth,
+    );
     const [hasVerticalScroll, hasHorizontalScroll] = needScrollBar({
       width: maxWidth,
       height: maxHeight - theadHeight - tfootHeight,
@@ -224,6 +226,7 @@ function StickyWrap({
           height: maxHeight,
           overflow: 'auto',
           visibility: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(table, {}, theadWithRef, tbody, tfootWithRef)}
@@ -235,7 +238,7 @@ function StickyWrap({
   const colWidths = columnWidths?.slice(0, columnCount);
 
   if (colWidths && bodyHeight) {
-    const bodyColgroup = (
+    const colgroup = (
       <colgroup>
         {colWidths.map((w, i) => (
           // eslint-disable-next-line react/no-array-index-key
@@ -244,35 +247,19 @@ function StickyWrap({
       </colgroup>
     );
 
-    // header columns do not have vertical scroll bars,
-    // so we add scroll bar size to the last column
-    const headerColgroup =
-      sticky.hasVerticalScroll && scrollBarSize ? (
-        <colgroup>
-          {colWidths.map((x, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <col
-              key={i}
-              width={x + (i === colWidths.length - 1 ? scrollBarSize : 0)}
-            />
-          ))}
-        </colgroup>
-      ) : (
-        bodyColgroup
-      );
-
     headerTable = (
       <div
         key="header"
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
-          headerColgroup,
+          colgroup,
           thead,
         )}
         {headerTable}
@@ -285,12 +272,13 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
-          headerColgroup,
+          colgroup,
           tfoot,
         )}
         {footerTable}
@@ -312,13 +300,14 @@ function StickyWrap({
         style={{
           height: bodyHeight,
           overflow: 'auto',
+          scrollbarGutter: 'stable',
         }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
-          bodyColgroup,
+          colgroup,
           tbody,
         )}
       </div>
@@ -348,13 +337,14 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
     data,
     page,
     rows,
+    allColumns,
     getTableSize = () => undefined,
   } = instance;
 
   const setStickyState = useCallback(
     (size?: Partial<StickyState>) => {
       dispatch({
-        type: ReducerActions.setStickyState,
+        type: ReducerActions.SetStickyState,
         size,
       });
     },
@@ -364,11 +354,11 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   );
 
   const useStickyWrap = (renderer: TableRenderer) => {
-    const { width, height } =
+    const { width, height }: { width?: number; height?: number } =
       useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const table = useMemo(renderer, [page, rows]);
+    const table = useMemo(renderer, [page, rows, allColumns]);
 
     useLayoutEffect(() => {
       if (!width || !height) {
@@ -407,7 +397,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
       ReducerActions,
       { size: StickyState }
     >;
-    if (action.type === ReducerActions.init) {
+    if (action.type === ReducerActions.Init) {
       return {
         ...newState,
         sticky: {
@@ -415,7 +405,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
         },
       };
     }
-    if (action.type === ReducerActions.setStickyState) {
+    if (action.type === ReducerActions.SetStickyState) {
       const { size } = action;
       if (!size) {
         return { ...newState };

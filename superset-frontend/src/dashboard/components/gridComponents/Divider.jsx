@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from '../dnd/DragDroppable';
+import { Draggable } from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
 import DeleteComponentButton from '../DeleteComponentButton';
 import { componentShape } from '../../util/propShapes';
@@ -35,6 +36,31 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
 };
+
+const DividerLine = styled.div`
+  ${({ theme }) => css`
+    width: 100%;
+    padding: ${theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+    background-color: transparent;
+
+    &:after {
+      content: '';
+      height: 1px;
+      width: 100%;
+      background-color: ${theme.colors.grayscale.light2};
+      display: block;
+    }
+
+    div[draggable='true'] & {
+      cursor: move;
+    }
+
+    .dashboard-component-tabs & {
+      padding-left: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
 
 class Divider extends React.PureComponent {
   constructor(props) {
@@ -58,7 +84,7 @@ class Divider extends React.PureComponent {
     } = this.props;
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -67,20 +93,17 @@ class Divider extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode && (
               <HoverMenu position="left">
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
               </HoverMenu>
             )}
-
-            <div className="dashboard-component dashboard-component-divider" />
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            <DividerLine className="dashboard-component dashboard-component-divider" />
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

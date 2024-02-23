@@ -20,8 +20,8 @@ import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ColumnMeta,
   ControlPanelConfig,
-  sections,
   sharedControls,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -40,7 +40,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -106,7 +105,6 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =
@@ -133,6 +131,21 @@ const config: ControlPanelConfig = {
       },
       rerender: ['groupby'],
     },
+  },
+  formDataOverrides: formData => {
+    const columns = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupby).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !columns.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      columns,
+    };
   },
 };
 

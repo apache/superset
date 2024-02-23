@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for alerting in Superset"""
-import json
 import logging
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -63,7 +62,6 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             db.session.query(Role).filter(Role.name == "Dummy Role").one_or_none()
         )
         new_role.permissions = []
-        db.session.merge(new_role)
         for old_pvm, new_pvms in pvm_map.items():
             security_manager.del_permission_view_menu(old_pvm.permission, old_pvm.view)
             for new_pvm in new_pvms:
@@ -76,7 +74,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
 
 
 @pytest.mark.parametrize(
-    "descriptiom, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions",
+    "description, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions",
     [
         (
             "Many to one readonly",
@@ -178,7 +176,7 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
             (),
         ),
         (
-            "Many to one with with old permission that gets deleted",
+            "Many to one with old permission that gets deleted",
             {
                 "NewDummy": (
                     "can_read",
@@ -239,19 +237,18 @@ def create_old_role(pvm_map: PvmMigrationMapType, external_pvms):
     ],
 )
 def test_migrate_role(
-    descriptiom, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions
+    description, new_pvms, pvm_map, external_pvms, deleted_views, deleted_permissions
 ):
     """
     Permission migration: generic tests
     """
-    logger.info(descriptiom)
+    logger.info(description)
     with create_old_role(pvm_map, external_pvms) as old_role:
         role_name = old_role.name
-        session = db.session
 
         # Run migrations
-        add_pvms(session, new_pvms)
-        migrate_roles(session, pvm_map)
+        add_pvms(db.session, new_pvms)
+        migrate_roles(db.session, pvm_map)
 
         role = db.session.query(Role).filter(Role.name == role_name).one_or_none()
         for old_pvm, new_pvms in pvm_map.items():

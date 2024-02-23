@@ -19,11 +19,11 @@
 
 import React, { useState, ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import { DecoratorFunction } from '@storybook/addons';
+import { DecoratorFunction } from '@storybook/types';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
-  background: #f5f5f5;
+  background: ${({ theme }) => theme.colors.grayscale.light4};
   padding: 16px;
   min-height: 100%;
 
@@ -70,7 +70,7 @@ export const withResizableChartDemo: DecoratorFunction<ReactNode> = (
       initialSize={initialSize as Size | undefined}
       panelPadding={panelPadding}
     >
-      {innerSize => storyFn({ ...context, ...innerSize })}
+      {innerSize => storyFn({ ...context, ...context.args, ...innerSize })}
     </ResizableChartDemo>
   );
 };

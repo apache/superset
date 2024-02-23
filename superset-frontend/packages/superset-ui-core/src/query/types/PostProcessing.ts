@@ -18,7 +18,7 @@
  */
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
-import { RollingType, ComparisionType } from './AdvancedAnalytics';
+import { RollingType, ComparisonType } from './AdvancedAnalytics';
 
 export type NumpyFunction =
   | 'average'
@@ -57,7 +57,7 @@ export interface Aggregates {
   [colname: string]: {
     operator: NumpyFunction;
     /**
-     * the name of the column to generate aggrates from.
+     * the name of the column to generate aggregates from.
      */
     column?: string;
     options?: JsonObject;
@@ -111,12 +111,10 @@ interface _PostProcessingPivot {
     columns: string[];
     combine_value_with_metric?: boolean;
     drop_missing_columns?: boolean;
-    flatten_columns?: boolean;
     index: string[];
     marginal_distribution_name?: string;
     marginal_distributions?: boolean;
     metric_fill_value?: any;
-    reset_index?: boolean;
   };
 }
 export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
@@ -124,7 +122,7 @@ export type PostProcessingPivot = _PostProcessingPivot | DefaultPostProcessing;
 interface _PostProcessingProphet {
   operation: 'prophet';
   options: {
-    time_grain: TimeGranularity;
+    time_grain: TimeGranularity | undefined;
     periods: number;
     confidence_interval: number;
     yearly_seasonality?: boolean | number;
@@ -173,7 +171,7 @@ export interface _PostProcessingCompare {
   options: {
     source_columns: string[];
     compare_columns: string[];
-    compare_type: Omit<ComparisionType, ComparisionType.Values>;
+    compare_type: Omit<ComparisonType, ComparisonType.Values>;
     drop_original_columns: boolean;
   };
 }
@@ -184,7 +182,9 @@ export type PostProcessingCompare =
 interface _PostProcessingSort {
   operation: 'sort';
   options: {
-    columns: Record<string, boolean>;
+    is_sort_index?: boolean;
+    by?: string[] | string;
+    ascending?: boolean[] | boolean;
   };
 }
 export type PostProcessingSort = _PostProcessingSort | DefaultPostProcessing;
@@ -201,10 +201,23 @@ export type PostProcessingResample =
   | _PostProcessingResample
   | DefaultPostProcessing;
 
+interface _PostProcessingRename {
+  operation: 'rename';
+  options: {
+    columns: Record<string, string | null>;
+    inplace?: boolean;
+    level?: number | string;
+  };
+}
+export type PostProcessingRename =
+  | _PostProcessingRename
+  | DefaultPostProcessing;
+
 interface _PostProcessingFlatten {
   operation: 'flatten';
   options?: {
     reset_index?: boolean;
+    drop_levels?: number[] | string[];
   };
 }
 export type PostProcessingFlatten =
@@ -227,6 +240,7 @@ export type PostProcessingRule =
   | PostProcessingCompare
   | PostProcessingSort
   | PostProcessingResample
+  | PostProcessingRename
   | PostProcessingFlatten;
 
 export function isPostProcessingAggregation(

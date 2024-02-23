@@ -16,7 +16,8 @@
 # under the License.
 from __future__ import annotations
 
-from typing import List, TYPE_CHECKING
+import datetime
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -28,9 +29,13 @@ if TYPE_CHECKING:
 def left_join_df(
     left_df: pd.DataFrame,
     right_df: pd.DataFrame,
-    join_keys: List[str],
+    join_keys: list[str],
+    lsuffix: str = "",
+    rsuffix: str = "",
 ) -> pd.DataFrame:
-    df = left_df.set_index(join_keys).join(right_df.set_index(join_keys))
+    df = left_df.set_index(join_keys).join(
+        right_df.set_index(join_keys), lsuffix=lsuffix, rsuffix=rsuffix
+    )
     df.reset_index(inplace=True)
     return df
 
@@ -42,3 +47,15 @@ def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
             # soft-convert a metric column to numeric
             # will stay as strings if conversion fails
             df[col] = df[col].infer_objects()
+
+
+def is_datetime_series(series: Any) -> bool:
+    if series is None or not isinstance(series, pd.Series):
+        return False
+
+    if series.isnull().all():
+        return False
+
+    return pd.api.types.is_datetime64_any_dtype(series) or (
+        series.apply(lambda x: isinstance(x, datetime.date) or x is None).all()
+    )

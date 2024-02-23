@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+} from '@superset-ui/chart-controls';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import timeGrainSqlaAnimationOverrides from '../../utilities/controls';
 import {
@@ -34,7 +37,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -48,10 +50,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
-      controlSetRows: [
-        [mapboxStyle, viewport],
-        [autozoom, null],
-      ],
+      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
     },
     {
       label: t('Grid'),
@@ -76,6 +75,10 @@ const config: ControlPanelConfig = {
     },
     time_grain_sqla: timeGrainSqlaAnimationOverrides,
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    size: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

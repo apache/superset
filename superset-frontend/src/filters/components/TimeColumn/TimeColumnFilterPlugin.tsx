@@ -38,6 +38,8 @@ export default function PluginFilterTimeColumn(
     height,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -75,7 +77,7 @@ export default function PluginFilterTimeColumn(
   }, [JSON.stringify(filterState.value)]);
 
   const timeColumns = (data || []).filter(
-    row => row.dtype === GenericDataType.TEMPORAL,
+    row => row.dtype === GenericDataType.Temporal,
   );
 
   const placeholderText =
@@ -114,8 +116,10 @@ export default function PluginFilterTimeColumn(
           placeholder={placeholderText}
           // @ts-ignore
           onChange={handleChange}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
+          onBlur={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
           onDropdownVisibleChange={setFilterActive}

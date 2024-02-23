@@ -21,7 +21,15 @@ import { Metric } from './Metric';
 
 export enum DatasourceType {
   Table = 'table',
-  Druid = 'druid',
+  Query = 'query',
+  Dataset = 'dataset',
+  SlTable = 'sl_table',
+  SavedQuery = 'saved_query',
+}
+
+export interface Currency {
+  symbol: string;
+  symbolPosition: string;
 }
 
 /**
@@ -38,9 +46,19 @@ export interface Datasource {
   columnFormats?: {
     [key: string]: string;
   };
+  currencyFormats?: {
+    [key: string]: Currency;
+  };
   verboseMap?: {
     [key: string]: string;
   };
 }
+
+export const DEFAULT_METRICS: Metric[] = [
+  {
+    metric_name: 'COUNT(*)',
+    expression: 'COUNT(*)',
+  },
+];
 
 export default {};

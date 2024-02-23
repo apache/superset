@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import React, { ReactNode, SyntheticEvent } from 'react';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import { Empty } from 'src/components';
 import Button from 'src/components/Button';
 
@@ -29,14 +29,15 @@ export enum EmptyStateSize {
 }
 
 export interface EmptyStateSmallProps {
-  title: ReactNode;
+  title?: ReactNode;
   description?: ReactNode;
-  image: ReactNode;
+  image?: ReactNode;
 }
 
 export interface EmptyStateProps extends EmptyStateSmallProps {
   buttonText?: ReactNode;
   buttonAction?: React.MouseEventHandler<HTMLElement>;
+  className?: string;
 }
 
 export interface ImageContainerProps {
@@ -106,6 +107,7 @@ const BigDescription = styled(Description)`
 const SmallDescription = styled(Description)`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit}px;
+    line-height: 1.2;
   `}
 `;
 
@@ -140,26 +142,34 @@ const ImageContainer = ({ image, size }: ImageContainerProps) => (
   />
 );
 
+const handleMouseDown = (e: SyntheticEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+};
+
 export const EmptyStateBig = ({
   title,
   image,
   description,
   buttonAction,
   buttonText,
+  className,
 }: EmptyStateProps) => (
-  <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Big} />
+  <EmptyStateContainer className={className}>
+    {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 150}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 150}px;
+      `}
     >
       <BigTitle>{title}</BigTitle>
       {description && <BigDescription>{description}</BigDescription>}
       {buttonAction && buttonText && (
-        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+        <ActionButton
+          buttonStyle="primary"
+          onClick={buttonAction}
+          onMouseDown={handleMouseDown}
+        >
           {buttonText}
         </ActionButton>
       )}
@@ -175,18 +185,20 @@ export const EmptyStateMedium = ({
   buttonText,
 }: EmptyStateProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Medium} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 100}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 100}px;
+      `}
     >
       <Title>{title}</Title>
       {description && <Description>{description}</Description>}
       {buttonText && buttonAction && (
-        <ActionButton buttonStyle="primary" onClick={buttonAction}>
+        <ActionButton
+          buttonStyle="primary"
+          onClick={buttonAction}
+          onMouseDown={handleMouseDown}
+        >
           {buttonText}
         </ActionButton>
       )}
@@ -200,16 +212,38 @@ export const EmptyStateSmall = ({
   description,
 }: EmptyStateSmallProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Small} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
     <TextContainer
-      css={(theme: SupersetTheme) =>
-        css`
-          max-width: ${theme.gridUnit * 75}px;
-        `
-      }
+      css={(theme: SupersetTheme) => css`
+        max-width: ${theme.gridUnit * 75}px;
+      `}
     >
       <Title>{title}</Title>
       {description && <SmallDescription>{description}</SmallDescription>}
     </TextContainer>
   </EmptyStateContainer>
+);
+
+const TRANSLATIONS = {
+  NO_DATABASES_MATCH_TITLE: t('No databases match your search'),
+  NO_DATABASES_AVAILABLE_TITLE: t('There are no databases available'),
+  MANAGE_YOUR_DATABASES_TEXT: t('Manage your databases'),
+  HERE_TEXT: t('here'),
+};
+
+export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
+  <EmptyStateSmall
+    image="empty.svg"
+    title={
+      emptyResultsWithSearch
+        ? TRANSLATIONS.NO_DATABASES_MATCH_TITLE
+        : TRANSLATIONS.NO_DATABASES_AVAILABLE_TITLE
+    }
+    description={
+      <p>
+        {TRANSLATIONS.MANAGE_YOUR_DATABASES_TEXT}{' '}
+        <a href="/databaseview/list">{TRANSLATIONS.HERE_TEXT}</a>
+      </p>
+    }
+  />
 );

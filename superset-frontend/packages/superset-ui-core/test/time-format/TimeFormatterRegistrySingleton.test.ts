@@ -31,7 +31,7 @@ import TimeFormatterRegistry from '../../src/time-format/TimeFormatterRegistry';
 
 describe('TimeFormatterRegistrySingleton', () => {
   describe('getTimeFormatterRegistry()', () => {
-    it('returns a TimeFormatterRegisry', () => {
+    it('returns a TimeFormatterRegistry', () => {
       expect(getTimeFormatterRegistry()).toBeInstanceOf(TimeFormatterRegistry);
     });
   });

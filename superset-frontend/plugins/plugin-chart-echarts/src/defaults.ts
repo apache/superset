@@ -1,5 +1,3 @@
-import { LegendOrientation } from './types';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,16 +16,19 @@ import { LegendOrientation } from './types';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { LegendOrientation } from './types';
+
 export const defaultGrid = {
   containLabel: true,
 };
 
-export const defaultTooltip = {
-  confine: true,
-};
-
 export const defaultYAxis = {
   scale: true,
+  yAxisLabelRotation: 0,
+};
+
+export const defaultXAxis = {
+  xAxisLabelRotation: 0,
 };
 
 export const defaultLegendPadding = {

@@ -14,34 +14,52 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=import-outside-toplevel
+
 import json
 from datetime import datetime
+from typing import Optional
 from unittest import mock
 
 import pytest
-from flask.ctx import AppContext
+from pytest_mock import MockerFixture
+from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
-    "actual,expected",
+    "target_type,expected_result",
     [
-        ("DATE", "TO_DATE('2019-01-02')"),
-        ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
-        ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("Date", "TO_DATE('2019-01-02')"),
+        ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+        ("TimeStamp", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_NTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_LTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_TZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPLTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPNTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        (
+            "TIMESTAMP WITH LOCAL TIME ZONE",
+            "TO_TIMESTAMP('2019-01-02T03:04:05.678900')",
+        ),
+        ("TIMESTAMP WITHOUT TIME ZONE", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
-    app_context: AppContext, actual: str, expected: str, dttm: datetime
+    target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec as spec
 
-    assert SnowflakeEngineSpec.convert_dttm(actual, dttm) == expected
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
-def test_database_connection_test_mutator(app_context: AppContext) -> None:
+def test_database_connection_test_mutator() -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.core import Database
 
@@ -54,7 +72,7 @@ def test_database_connection_test_mutator(app_context: AppContext) -> None:
     } == engine_params
 
 
-def test_extract_errors(app_context: AppContext) -> None:
+def test_extract_errors() -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     msg = "Object dumbBrick does not exist or not authorized."
@@ -76,11 +94,11 @@ def test_extract_errors(app_context: AppContext) -> None:
         )
     ]
 
-    msg = "syntax error line 1 at position 10 unexpected 'limmmited'."
+    msg = "syntax error line 1 at position 10 unexpected 'limited'."
     result = SnowflakeEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
-            message='Please check your query for syntax errors at or near "limmmited". Then, try running your query again.',
+            message='Please check your query for syntax errors at or near "limited". Then, try running your query again.',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -125,3 +143,61 @@ def test_cancel_query_failed(engine_mock: mock.Mock) -> None:
     query = Query()
     cursor_mock = engine_mock.raiseError.side_effect = Exception()
     assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "123") is False
+
+
+def test_get_extra_params(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_extra_params`` method.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = mocker.MagicMock()
+
+    database.extra = {}
+    assert SnowflakeEngineSpec.get_extra_params(database) == {
+        "engine_params": {"connect_args": {"application": "Apache Superset"}}
+    }
+
+    database.extra = json.dumps(
+        {
+            "engine_params": {
+                "connect_args": {"application": "Custom user agent", "foo": "bar"}
+            }
+        }
+    )
+    assert SnowflakeEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {"application": "Custom user agent", "foo": "bar"}
+        }
+    }
+
+
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/database_name/default"),
+            {},
+        )
+        == "default"
+    )
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/database_name"),
+            {},
+        )
+        is None
+    )
+
+    assert (
+        SnowflakeEngineSpec.get_schema_from_engine_params(
+            make_url("snowflake://user:pass@account/"),
+            {},
+        )
+        is None
+    )

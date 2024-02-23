@@ -18,19 +18,12 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
-import { formatSelectOptions } from 'src/modules/utils';
-
-export const druidTimeSeries: ControlPanelSectionConfig = {
-  label: t('Time'),
-  expanded: true,
-  description: t('Time related form attributes'),
-  controlSetRows: [['time_range']],
-};
+import {
+  ControlPanelSectionConfig,
+  ControlSubSectionHeader,
+} from '@superset-ui/chart-controls';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
-  label: t('Chart type'),
-  expanded: true,
   controlSetRows: [
     ['datasource'],
     ['viz_type'],
@@ -90,7 +83,7 @@ export const annotations: ControlPanelSectionConfig = {
           type: 'AnnotationLayerControl',
           label: '',
           default: [],
-          description: 'Annotation layers',
+          description: t('Annotation layers'),
           renderTrigger: true,
           tabOverride: 'data',
         },
@@ -132,7 +125,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Rolling window')}</h1>],
+      [
+        <ControlSubSectionHeader>
+          {t('Rolling window')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'rolling_type',
@@ -140,13 +137,13 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             type: 'SelectControl',
             label: t('Rolling function'),
             default: 'None',
-            choices: formatSelectOptions([
-              'None',
-              'mean',
-              'sum',
-              'std',
-              'cumsum',
-            ]),
+            choices: [
+              ['None', t('None')],
+              ['mean', t('mean')],
+              ['sum', t('sum')],
+              ['std', t('std')],
+              ['cumsum', t('cumsum')],
+            ],
             description: t(
               'Defines a rolling window function to apply, works along ' +
                 'with the [Periods] text box',
@@ -181,7 +178,11 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Time comparison')}</h1>],
+      [
+        <ControlSubSectionHeader>
+          {t('Time comparison')}
+        </ControlSubSectionHeader>,
+      ],
       [
         {
           name: 'time_compare',
@@ -190,22 +191,22 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             multi: true,
             freeForm: true,
             label: t('Time shift'),
-            choices: formatSelectOptions([
-              '1 day',
-              '1 week',
-              '28 days',
-              '30 days',
-              '52 weeks',
-              '1 year',
-              '104 weeks',
-              '2 years',
-              '156 weeks',
-              '3 years',
-            ]),
+            choices: [
+              ['1 day', t('1 day')],
+              ['1 week', t('1 week')],
+              ['28 days', t('28 days')],
+              ['30 days', t('30 days')],
+              ['52 weeks', t('52 weeks')],
+              ['1 year', t('1 year')],
+              ['104 weeks', t('104 weeks')],
+              ['2 years', t('2 years')],
+              ['156 weeks', t('156 weeks')],
+              ['3 years', t('3 years')],
+            ],
             description: t(
               'Overlay one or more timeseries from a ' +
                 'relative time period. Expects relative time deltas ' +
-                'in natural language (example:  24 hours, 7 days, ' +
+                'in natural language (example: 24 hours, 7 days, ' +
                 '52 weeks, 365 days). Free text is supported.',
             ),
           },
@@ -217,10 +218,10 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             label: t('Calculation type'),
             default: 'values',
             choices: [
-              ['values', 'Actual values'],
-              ['absolute', 'Difference'],
-              ['percentage', 'Percentage change'],
-              ['ratio', 'Ratio'],
+              ['values', t('Actual values')],
+              ['absolute', t('Difference')],
+              ['percentage', t('Percentage change')],
+              ['ratio', t('Ratio')],
             ],
             description: t(
               'How to display time shifts: as individual lines; as the ' +
@@ -230,9 +231,7 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Python functions')}</h1>],
-      // eslint-disable-next-line jsx-a11y/heading-has-content
-      [<h2 className="section-header">pandas.resample</h2>],
+      [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
       [
         {
           name: 'resample_rule',
@@ -241,7 +240,14 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             freeForm: true,
             label: t('Rule'),
             default: null,
-            choices: formatSelectOptions(['1T', '1H', '1D', '7D', '1M', '1AS']),
+            choices: [
+              ['1T', t('1T')],
+              ['1H', t('1H')],
+              ['1D', t('1D')],
+              ['7D', t('7D')],
+              ['1M', t('1M')],
+              ['1AS', t('1AS')],
+            ],
             description: t('Pandas resample rule'),
           },
         },
@@ -252,14 +258,14 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
             freeForm: true,
             label: t('Method'),
             default: null,
-            choices: formatSelectOptions([
-              'asfreq',
-              'bfill',
-              'ffill',
-              'median',
-              'mean',
-              'sum',
-            ]),
+            choices: [
+              ['asfreq', t('asfreq')],
+              ['bfill', t('bfill')],
+              ['ffill', t('ffill')],
+              ['median', t('median')],
+              ['mean', t('mean')],
+              ['sum', t('sum')],
+            ],
             description: t('Pandas resample method'),
           },
         },

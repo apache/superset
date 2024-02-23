@@ -16,31 +16,25 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 ## Change Log
 
-### 1.4.2 (Sat Mar 19 00:08:06 2022 +0200)
-**Features**
-- [#19248](https://github.com/apache/superset/pull/19248) feat: add support for comments in adhoc clauses (@villebro)
-- [#18214](https://github.com/apache/superset/pull/18214) feat(docker-compose): add TAG option (@villebro)
-
-**Fixes**
-- [#17641](https://github.com/apache/superset/pull/17641) fix(sqla): make text clause escaping optional (@villebro)
-- [#18566](https://github.com/apache/superset/pull/18566) fix(plugin-chart-echarts): area chart opacity bug (@villebro)
-
-### 1.4.1
-**Database Migrations**
-
-**Features**
-
-**Fixes**
-- [#17980](https://github.com/apache/superset/pull/17980) fix: css template API response, less data (@dpgaspar)
-- [#17984](https://github.com/apache/superset/pull/17984) fix: Change default SECRET_KEY, improve docs and banner warning on de… (@dpgaspar)
-- [#17981](https://github.com/apache/superset/pull/17981) fix: API logger output (@dpgaspar)
-- [#18006](https://github.com/apache/superset/pull/18006) fix: SQL Lab sorting of non-numbers (@etr2460)
-- [#17573](https://github.com/apache/superset/pull/17573) fix(sqllab): Floating numbers not sorting correctly in result column (@lyndsiWilliams)
-- [#17961](https://github.com/apache/superset/pull/17961) fix: update slug name (@pkdotson)
-- [#17992](https://github.com/apache/superset/pull/17992) fix:  dashboard reload crash (@pkdotson)
-- [#18048](https://github.com/apache/superset/pull/18048) fix(dashboard): scope status of native filter not update (@stephenLYZ)
-- [#16869](https://github.com/apache/superset/pull/16869) fix: handle TIME column serialization (@frafra)
-
-**Others**
+- [1.4.1](./CHANGELOG/1.4.1.md)
+- [1.4.2](./CHANGELOG/1.4.2.md)
+- [1.5.0](./CHANGELOG/1.5.0.md)
+- [1.5.1](./CHANGELOG/1.5.1.md)
+- [1.5.2](./CHANGELOG/1.5.2.md)
+- [1.5.3](./CHANGELOG/1.5.3.md)
+- [2.0.0](./CHANGELOG/2.0.0.md)
+- [2.0.1](./CHANGELOG/2.0.1.md)
+- [2.1.0](./CHANGELOG/2.1.0.md)
+- [2.1.1](./CHANGELOG/2.1.1.md)
+- [2.1.2](./CHANGELOG/2.1.2.md)
+- [2.1.3](./CHANGELOG/2.1.3.md)
+- [3.0.0](./CHANGELOG/3.0.0.md)
+- [3.0.1](./CHANGELOG/3.0.1.md)
+- [3.0.2](./CHANGELOG/3.0.2.md)
+- [3.0.3](./CHANGELOG/3.0.3.md)
+- [3.0.4](./CHANGELOG/3.0.4.md)
+- [3.1.0](./CHANGELOG/3.1.0.md)
+- [3.1.1](./CHANGELOG/3.1.1.md)

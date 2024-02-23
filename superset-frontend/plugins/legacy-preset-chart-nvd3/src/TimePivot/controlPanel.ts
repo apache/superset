@@ -20,6 +20,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import {
@@ -55,12 +56,12 @@ const config: ControlPanelConfig = {
               freeForm: true,
               clearable: false,
               choices: [
-                ['AS', 'Year (freq=AS)'],
-                ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
-                ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
-                ['W-MON', '1 week starting Monday (freq=W-MON)'],
-                ['D', 'Day (freq=D)'],
-                ['4W-MON', '4 weeks (freq=4W-MON)'],
+                ['AS', t('Year (freq=AS)')],
+                ['52W-MON', t('52 weeks starting Monday (freq=52W-MON)')],
+                ['W-SUN', t('1 week starting Sunday (freq=W-SUN)')],
+                ['W-MON', t('1 week starting Monday (freq=W-MON)')],
+                ['D', t('Day (freq=D)')],
+                ['4W-MON', t('4 weeks (freq=4W-MON)')],
               ],
               description: t(
                 `The periodicity over which to pivot time. Users can provide
@@ -123,6 +124,10 @@ const config: ControlPanelConfig = {
       clearable: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric,
+  }),
 };
 
 export default config;

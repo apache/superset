@@ -18,14 +18,20 @@
  */
 import sinon from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
+import { waitFor } from '@testing-library/react';
 
 import {
-  removeSliceFromDashboard,
+  SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
+  SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
-import { REMOVE_FILTER } from 'src/dashboard/actions/dashboardFilters';
+import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
-import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
+import {
+  DASHBOARD_GRID_ID,
+  SAVE_TYPE_OVERWRITE,
+  SAVE_TYPE_OVERWRITE_CONFIRMED,
+} from 'src/dashboard/util/constants';
 import {
   filterId,
   sliceEntitiesForDashboard as sliceEntities,
@@ -55,13 +61,32 @@ describe('dashboardState actions', () => {
   const newDashboardData = mockDashboardData;
 
   let postStub;
+  let getStub;
+  let putStub;
+  const updatedCss = '.updated_css_value {\n  color: black;\n}';
+
   beforeEach(() => {
     postStub = sinon
       .stub(SupersetClient, 'post')
       .resolves('the value you want to return');
+    getStub = sinon.stub(SupersetClient, 'get').resolves({
+      json: {
+        result: {
+          ...mockDashboardData,
+          css: updatedCss,
+        },
+      },
+    });
+    putStub = sinon.stub(SupersetClient, 'put').resolves({
+      json: {
+        result: mockDashboardData,
+      },
+    });
   });
   afterEach(() => {
     postStub.restore();
+    getStub.restore();
+    putStub.restore();
   });
 
   function setup(stateOverrides) {
@@ -78,10 +103,11 @@ describe('dashboardState actions', () => {
       });
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
-      expect(dispatch.callCount).toBe(1);
+      expect(dispatch.callCount).toBe(2);
       expect(dispatch.getCall(0).args[0].type).toBe(
         UPDATE_COMPONENTS_PARENTS_LIST,
       );
+      expect(dispatch.getCall(1).args[0].type).toBe(SAVE_DASHBOARD_STARTED);
     });
 
     it('should post dashboard data with updated redux state', () => {
@@ -106,20 +132,63 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.callCount).toBe(1);
-      const { postPayload } = postStub.getCall(0).args[0];
-      expect(postPayload.data.positions[DASHBOARD_GRID_ID].parents).toBe(
-        mockParentsList,
-      );
+      const { jsonPayload } = postStub.getCall(0).args[0];
+      const parsedJsonMetadata = JSON.parse(jsonPayload.json_metadata);
+      expect(
+        parsedJsonMetadata.positions[DASHBOARD_GRID_ID].parents,
+      ).toStrictEqual(mockParentsList);
     });
-  });
 
-  it('should dispatch removeFilter if a removed slice is a filter_box', () => {
-    const { getState, dispatch } = setup(mockState);
-    const thunk = removeSliceFromDashboard(filterId);
-    thunk(dispatch, getState);
+    describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
+      let isFeatureEnabledMock;
+      beforeEach(() => {
+        isFeatureEnabledMock = jest
+          .spyOn(uiCore, 'isFeatureEnabled')
+          .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
+      });
 
-    const removeFilter = dispatch.getCall(0).args[0];
-    removeFilter(dispatch, getState);
-    expect(dispatch.getCall(4).args[0].type).toBe(REMOVE_FILTER);
+      afterEach(() => {
+        isFeatureEnabledMock.mockRestore();
+      });
+
+      it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
+        const id = 192;
+        const { getState, dispatch } = setup();
+        const thunk = saveDashboardRequest(
+          newDashboardData,
+          id,
+          SAVE_TYPE_OVERWRITE,
+        );
+        thunk(dispatch, getState);
+        expect(getStub.callCount).toBe(1);
+        expect(postStub.callCount).toBe(0);
+        await waitFor(() =>
+          expect(dispatch.getCall(2).args[0].type).toBe(SET_OVERRIDE_CONFIRM),
+        );
+        expect(
+          dispatch.getCall(2).args[0].overwriteConfirmMetadata.dashboardId,
+        ).toBe(id);
+      });
+
+      it('should post dashboard data with after confirm the overwrite values', async () => {
+        const id = 192;
+        const { getState, dispatch } = setup();
+        const confirmedDashboardData = {
+          ...newDashboardData,
+          css: updatedCss,
+        };
+        const thunk = saveDashboardRequest(
+          confirmedDashboardData,
+          id,
+          SAVE_TYPE_OVERWRITE_CONFIRMED,
+        );
+        thunk(dispatch, getState);
+        expect(getStub.callCount).toBe(0);
+        expect(postStub.callCount).toBe(0);
+        await waitFor(() => expect(putStub.callCount).toBe(1));
+        const { body } = putStub.getCall(0).args[0];
+        expect(body).toBe(JSON.stringify(confirmedDashboardData));
+      });
+    });
   });
 });

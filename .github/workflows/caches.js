@@ -25,6 +25,8 @@ const assetsConfig = {
   path: [`${workspaceDirectory}/superset/static/assets`],
   hashFiles: [
     `${workspaceDirectory}/superset-frontend/src/**/*`,
+    `${workspaceDirectory}/superset-frontend/packages/**/*`,
+    `${workspaceDirectory}/superset-frontend/plugins/**/*`,
     `${workspaceDirectory}/superset-frontend/*.js`,
     `${workspaceDirectory}/superset-frontend/*.json`,
   ],

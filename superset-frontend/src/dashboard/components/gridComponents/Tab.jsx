@@ -18,17 +18,20 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
 import { EmptyStateMedium } from 'src/components/EmptyState';
+import EditableTitle from 'src/components/EditableTitle';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
-import DashboardComponent from '../../containers/DashboardComponent';
-import DragDroppable from '../dnd/DragDroppable';
-import EditableTitle from '../../../components/EditableTitle';
-import AnchorLink from '../../../components/AnchorLink';
-import { componentShape } from '../../util/propShapes';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import AnchorLink from 'src/dashboard/components/AnchorLink';
+import DragDroppable, {
+  Droppable,
+} from 'src/dashboard/components/dnd/DragDroppable';
+import { componentShape } from 'src/dashboard/util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -43,9 +46,9 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
+  onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
-  filters: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -65,6 +68,7 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   onDropOnTab() {},
+  onHoverTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -81,21 +85,15 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
-const renderDraggableContentBottom = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--bottom" />
-  );
-
-const renderDraggableContentTop = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--top" />
-  );
+const renderDraggableContent = dropProps =>
+  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
 class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
+    this.handleOnHover = this.handleOnHover.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
   }
@@ -124,6 +122,10 @@ class Tab extends React.PureComponent {
     this.props.onDropOnTab(dropResult);
   }
 
+  handleOnHover() {
+    this.props.onHoverTab();
+  }
+
   handleTopDropTargetDrop(dropResult) {
     if (dropResult) {
       this.props.handleComponentDrop({
@@ -140,7 +142,6 @@ class Tab extends React.PureComponent {
   renderTabContent() {
     const {
       component: tabComponent,
-      parentComponent: tabParentComponent,
       depth,
       availableColumnCount,
       columnWidth,
@@ -151,6 +152,7 @@ class Tab extends React.PureComponent {
       isComponentVisible,
       canEdit,
       setEditMode,
+      dashboardId,
     } = this.props;
 
     const shouldDisplayEmptyState = tabComponent.children.length === 0;
@@ -158,18 +160,25 @@ class Tab extends React.PureComponent {
       <div className="dashboard-component-tabs-content">
         {/* Make top of tab droppable */}
         {editMode && (
-          <DragDroppable
+          <Droppable
             component={tabComponent}
-            parentComponent={tabParentComponent}
             orientation="column"
             index={0}
             depth={depth}
-            onDrop={this.handleTopDropTargetDrop}
+            onDrop={
+              tabComponent.children.length === 0
+                ? this.handleTopDropTargetDrop
+                : this.handleDrop
+            }
             editMode
-            className="empty-droptarget"
+            className={classNames({
+              'empty-droptarget': true,
+              'empty-droptarget--full': tabComponent.children.length === 0,
+            })}
+            dropToChild={tabComponent.children.length === 0}
           >
-            {renderDraggableContentTop}
-          </DragDroppable>
+            {renderDraggableContent}
+          </Droppable>
         )}
         {shouldDisplayEmptyState && (
           <EmptyStateMedium
@@ -184,7 +193,7 @@ class Tab extends React.PureComponent {
                 <span>
                   {t('You can')}{' '}
                   <a
-                    href="/chart/add"
+                    href={`/chart/add?dashboard_id=${dashboardId}`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
@@ -209,37 +218,38 @@ class Tab extends React.PureComponent {
           />
         )}
         {tabComponent.children.map((componentId, componentIndex) => (
-          <DashboardComponent
-            key={componentId}
-            id={componentId}
-            parentId={tabComponent.id}
-            depth={depth} // see isValidChild.js for why tabs don't increment child depth
-            index={componentIndex}
-            onDrop={this.handleDrop}
-            availableColumnCount={availableColumnCount}
-            columnWidth={columnWidth}
-            onResizeStart={onResizeStart}
-            onResize={onResize}
-            onResizeStop={onResizeStop}
-            isComponentVisible={isComponentVisible}
-            onChangeTab={this.handleChangeTab}
-          />
+          <React.Fragment key={componentId}>
+            <DashboardComponent
+              id={componentId}
+              parentId={tabComponent.id}
+              depth={depth} // see isValidChild.js for why tabs don't increment child depth
+              index={componentIndex}
+              onDrop={this.handleDrop}
+              onHover={this.handleOnHover}
+              availableColumnCount={availableColumnCount}
+              columnWidth={columnWidth}
+              onResizeStart={onResizeStart}
+              onResize={onResize}
+              onResizeStop={onResizeStop}
+              isComponentVisible={isComponentVisible}
+              onChangeTab={this.handleChangeTab}
+            />
+            {/* Make bottom of tab droppable */}
+            {editMode && (
+              <Droppable
+                component={tabComponent}
+                orientation="column"
+                index={componentIndex + 1}
+                depth={depth}
+                onDrop={this.handleDrop}
+                editMode
+                className="empty-droptarget"
+              >
+                {renderDraggableContent}
+              </Droppable>
+            )}
+          </React.Fragment>
         ))}
-        {/* Make bottom of tab droppable */}
-        {editMode && (
-          <DragDroppable
-            component={tabComponent}
-            parentComponent={tabParentComponent}
-            orientation="column"
-            index={tabComponent.children.length}
-            depth={depth}
-            onDrop={this.handleDrop}
-            editMode
-            className="empty-droptarget"
-          >
-            {renderDraggableContentBottom}
-          </DragDroppable>
-        )}
       </div>
     );
   }
@@ -251,7 +261,6 @@ class Tab extends React.PureComponent {
       index,
       depth,
       editMode,
-      filters,
       isFocused,
       isHighlighted,
     } = this.props;
@@ -264,6 +273,7 @@ class Tab extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={this.handleDrop}
+        onHover={this.handleOnHover}
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
@@ -283,10 +293,8 @@ class Tab extends React.PureComponent {
             />
             {!editMode && (
               <AnchorLink
-                anchorLinkId={component.id}
+                id={component.id}
                 dashboardId={this.props.dashboardId}
-                filters={filters}
-                showShortLinkButton
                 placement={index >= 5 ? 'left' : 'right'}
               />
             )}

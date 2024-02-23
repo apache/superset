@@ -77,6 +77,7 @@ InteractiveTableView.args = {
   showRowCount: true,
   withPagination: true,
   columnsForWrapText: ['Summary'],
+  scrollTopOnPagination: false,
 };
 
 InteractiveTableView.argTypes = {
@@ -96,14 +97,6 @@ InteractiveTableView.argTypes = {
     control: {
       type: 'number',
       min: 0,
-    },
-  },
-};
-
-InteractiveTableView.story = {
-  parameters: {
-    knobs: {
-      disable: true,
     },
   },
 };

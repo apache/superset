@@ -17,19 +17,35 @@
  * under the License.
  */
 
-import React, { useMemo, CSSProperties } from 'react';
-import { filterXSS } from 'xss';
+import { styled, safeHtmlSpan } from '@superset-ui/core';
+import React, { ReactNode } from 'react';
 
 export type TooltipProps = {
   tooltip:
     | {
         x: number;
         y: number;
-        content: string;
+        content: ReactNode;
       }
     | null
     | undefined;
 };
+
+const StyledDiv = styled.div<{ top: number; left: number }>`
+  ${({ theme, top, left }) => `
+    position: absolute;
+    top: ${top}px;
+    left: ${left}px;
+    padding: ${theme.gridUnit * 2}px;
+    margin: ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.dark2};
+    color: ${theme.colors.grayscale.light5};
+    maxWidth: 300px;
+    fontSize: ${theme.typography.sizes.s}px;
+    zIndex: 9;
+    pointerEvents: none;
+  `}
+`;
 
 export default function Tooltip(props: TooltipProps) {
   const { tooltip } = props;
@@ -38,42 +54,12 @@ export default function Tooltip(props: TooltipProps) {
   }
 
   const { x, y, content } = tooltip;
+  const safeContent =
+    typeof content === 'string' ? safeHtmlSpan(content) : content;
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const style: CSSProperties = useMemo(
-    () => ({
-      position: 'absolute',
-      top: `${y}px`,
-      left: `${x}px`,
-      padding: '8px',
-      margin: '8px',
-      background: 'rgba(0, 0, 0, 0.8)',
-      color: '#fff',
-      maxWidth: '300px',
-      fontSize: '12px',
-      zIndex: 9,
-      pointerEvents: 'none',
-    }),
-    [x, y],
+  return (
+    <StyledDiv top={y} left={x}>
+      {safeContent}
+    </StyledDiv>
   );
-
-  if (typeof content === 'string') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const contentHtml = useMemo(
-      () => ({
-        __html: filterXSS(content, { stripIgnoreTag: true }),
-      }),
-      [content],
-    );
-    return (
-      <div style={style}>
-        <div
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={contentHtml}
-        />
-      </div>
-    );
-  }
-
-  return <div style={style}>{content}</div>;
 }

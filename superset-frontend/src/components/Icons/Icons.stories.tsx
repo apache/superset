@@ -78,21 +78,8 @@ InteractiveIcons.argTypes = {
     defaultValue: null,
     control: { type: 'select', options: palette },
   },
-  // @TODO twoToneColor is being ignored
-  twoToneColor: {
-    defaultValue: null,
-    control: { type: 'select', options: palette },
-  },
   theme: {
     table: {
-      disable: true,
-    },
-  },
-};
-
-InteractiveIcons.story = {
-  parameters: {
-    knobs: {
       disable: true,
     },
   },

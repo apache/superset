@@ -21,13 +21,12 @@ import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
-  sections,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { countryOptions } from './countries';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -88,6 +87,11 @@ const config: ControlPanelConfig = {
       renderTrigger: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

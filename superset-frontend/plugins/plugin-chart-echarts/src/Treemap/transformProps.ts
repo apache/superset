@@ -18,16 +18,14 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecord,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
   NumberFormats,
-  NumberFormatter,
+  ValueFormatter,
+  getValueFormatter,
 } from '@superset-ui/core';
-import { groupBy, isNumber, transform } from 'lodash';
 import { TreemapSeriesNodeItemOption } from 'echarts/types/src/chart/treemap/TreemapSeries';
 import { EChartsCoreOption, TreemapSeriesOption } from 'echarts';
 import {
@@ -39,7 +37,6 @@ import {
   TreemapTransformedProps,
 } from './types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
-import { defaultTooltip } from '../defaults';
 import {
   COLOR_SATURATION,
   BORDER_WIDTH,
@@ -49,6 +46,9 @@ import {
   BORDER_COLOR,
 } from './constants';
 import { OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
+import { treeBuilder, TreeNode } from '../utils/treeBuilder';
 
 export function formatLabel({
   params,
@@ -57,7 +57,7 @@ export function formatLabel({
 }: {
   params: TreemapSeriesCallbackDataParams;
   labelType: EchartsTreemapLabelType;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { name = '', value } = params;
   const formattedValue = numberFormatter(value as number);
@@ -79,7 +79,7 @@ export function formatTooltip({
   numberFormatter,
 }: {
   params: TreemapSeriesCallbackDataParams;
-  numberFormatter: NumberFormatter;
+  numberFormatter: ValueFormatter;
 }): string {
   const { value, treePathInfo = [] } = params;
   const formattedValue = numberFormatter(value as number);
@@ -109,10 +109,21 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreemapChartProps,
 ): TreemapTransformedProps {
-  const { formData, height, queriesData, width, hooks, filterState } =
-    chartProps;
+  const {
+    formData,
+    height,
+    queriesData,
+    width,
+    hooks,
+    filterState,
+    theme,
+    inContextMenu,
+    emitCrossFilters,
+    datasource,
+  } = chartProps;
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {} } = hooks;
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -122,19 +133,26 @@ export default function transformProps(
     labelType,
     labelPosition,
     numberFormat,
+    currencyFormat,
     dateFormat,
     showLabels,
     showUpperLabels,
     dashboardId,
-    emitFilter,
     sliceId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
   };
-
+  const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const numberFormatter = getNumberFormatter(numberFormat);
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    numberFormat,
+    currencyFormat,
+  );
+
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
     formatLabel({
       params,
@@ -142,111 +160,72 @@ export default function transformProps(
       labelType,
     });
 
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
-
-  const transformer = (
-    data: DataRecord[],
-    groupbyLabels: string[],
-    metric: string,
-    depth: number,
-    path: string[],
-  ): TreemapSeriesNodeItemOption[] => {
-    const [currGroupby, ...restGroupby] = groupbyLabels;
-    const currGrouping = groupBy(data, currGroupby);
-    if (!restGroupby.length) {
-      return transform(
-        currGrouping,
-        (result, value, key) => {
-          (value ?? []).forEach(datum => {
-            const name = formatSeriesName(key, {
-              numberFormatter,
-              timeFormatter: getTimeFormatter(dateFormat),
-              ...(coltypeMapping[currGroupby] && {
-                coltype: coltypeMapping[currGroupby],
-              }),
-            });
-            const item: TreemapSeriesNodeItemOption = {
-              name,
-              value: isNumber(datum[metric]) ? (datum[metric] as number) : 0,
-            };
-            const joinedName = path.concat(name).join(',');
-            // map(joined_name: [columnLabel_1, columnLabel_2, ...])
-            columnsLabelMap.set(joinedName, path.concat(name));
-            if (
-              filterState.selectedValues &&
-              !filterState.selectedValues.includes(joinedName)
-            ) {
-              item.itemStyle = {
-                colorAlpha: OpacityEnum.SemiTransparent,
-              };
-              item.label = {
-                color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
-              };
-            }
-            result.push(item);
-          });
-        },
-        [] as TreemapSeriesNodeItemOption[],
-      );
-    }
-    const sortedData = transform(
-      currGrouping,
-      (result, value, key) => {
-        const name = formatSeriesName(key, {
-          numberFormatter,
-          timeFormatter: getTimeFormatter(dateFormat),
-          ...(coltypeMapping[currGroupby] && {
-            coltype: coltypeMapping[currGroupby],
-          }),
-        });
-        const children = transformer(
-          value,
-          restGroupby,
-          metric,
-          depth + 1,
-          path.concat(name),
-        );
-        result.push({
-          name,
-          children,
-          value: children.reduce(
-            (prev, cur) => prev + (cur.value as number),
-            0,
-          ),
-        });
-        result.sort((a, b) => (b.value as number) - (a.value as number));
-      },
-      [] as TreemapSeriesNodeItemOption[],
-    );
-    // sort according to the area and then take the color value in order
-    return sortedData.map(child => ({
-      ...child,
-      colorSaturation: COLOR_SATURATION,
-      itemStyle: {
-        borderColor: BORDER_COLOR,
-        color: colorFn(`${child.name}`, sliceId),
-        borderWidth: BORDER_WIDTH,
-        gapWidth: GAP_WIDTH,
-      },
-    }));
-  };
-
+  const columnsLabelMap = new Map<string, string[]>();
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
-  const initialDepth = 1;
+  const treeData = treeBuilder(data, groupbyLabels, metricLabel);
+  const traverse = (treeNodes: TreeNode[], path: string[]) =>
+    treeNodes.map(treeNode => {
+      const { name: nodeName, value, groupBy } = treeNode;
+      const name = formatSeriesName(nodeName, {
+        timeFormatter: getTimeFormatter(dateFormat),
+        ...(coltypeMapping[groupBy] && {
+          coltype: coltypeMapping[groupBy],
+        }),
+      });
+      const newPath = path.concat(name);
+      let item: TreemapSeriesNodeItemOption = {
+        name,
+        value,
+      };
+      if (treeNode.children?.length) {
+        item = {
+          ...item,
+          children: traverse(treeNode.children, newPath),
+          colorSaturation: COLOR_SATURATION,
+          itemStyle: {
+            borderColor: BORDER_COLOR,
+            color: colorFn(name, sliceId),
+            borderWidth: BORDER_WIDTH,
+            gapWidth: GAP_WIDTH,
+          },
+        };
+      } else {
+        const joinedName = newPath.join(',');
+        // map(joined_name: [columnLabel_1, columnLabel_2, ...])
+        columnsLabelMap.set(joinedName, newPath);
+        if (
+          filterState.selectedValues &&
+          !filterState.selectedValues.includes(joinedName)
+        ) {
+          item = {
+            ...item,
+            itemStyle: {
+              colorAlpha: OpacityEnum.SemiTransparent,
+            },
+            label: {
+              color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
+            },
+          };
+        }
+      }
+      return item;
+    });
+
   const transformedData: TreemapSeriesNodeItemOption[] = [
     {
       name: metricLabel,
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
+        color: colorFn(`${metricLabel}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
       upperLabel: {
         show: false,
       },
-      children: transformer(data, groupbyLabels, metricLabel, initialDepth, []),
+      children: traverse(treeData, []),
     },
   ];
 
@@ -260,7 +239,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: '#1FA8C9',
+        color: theme.colors.primary.base,
       },
     },
   ];
@@ -286,7 +265,7 @@ export default function transformProps(
         show: showLabels,
         position: labelPosition,
         formatter,
-        color: '#000',
+        color: theme.colors.grayscale.dark2,
         fontSize: LABEL_FONTSIZE,
       },
       upperLabel: {
@@ -301,7 +280,8 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatTooltip({
@@ -318,9 +298,12 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
+    refs,
+    coltypeMapping,
   };
 }

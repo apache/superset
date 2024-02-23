@@ -45,7 +45,7 @@ pybabel extract \
   --sort-output \
   --copyright-holder=Superset \
   --project=Superset \
-  -k _ -k __ -k t -k tn -k tct .
+  -k _ -k __ -k t -k tn:1,2 -k tct .
 cat $LICENSE_TMP superset/translations/messages.pot > messages.pot.tmp \
   && mv messages.pot.tmp superset/translations/messages.pot
 
@@ -53,5 +53,18 @@ pybabel update \
   -i superset/translations/messages.pot \
   -d superset/translations \
   --ignore-obsolete
+
+# Chop off last blankline from po/pot files, see https://github.com/python-babel/babel/issues/799
+for file in $( find superset/translations/** );
+do
+  extension=${file##*.}
+  filename="${file%.*}"
+  if [ $extension == "po" ] || [ $extension == "pot" ]
+  then
+    mv $file $file.tmp
+    sed "$ d" $file.tmp > $file
+    rm $file.tmp
+  fi
+done
 
 cd $CURRENT_DIR

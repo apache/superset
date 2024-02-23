@@ -16,29 +16,66 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
+  D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   sections,
-  emitFilterControl,
   ControlPanelConfig,
+  getStandardizedControls,
+  ControlState,
+  ControlPanelState,
+  getTemporalColumns,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['columns'],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.columns?.options).map(option => [
+                    option.column_name,
+                    option.is_dttm,
+                  ]),
+                );
+
+                return ensureIsArray(controls?.columns.value)
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
+        ],
+        ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
-        emitFilterControl,
-        ['groupby'],
-        ['columns'], // TODO: this should be migrated to `series_columns`
         ['series_limit'],
         ['series_limit_metric'],
         [
@@ -53,12 +90,12 @@ const config: ControlPanelConfig = {
               description: t(
                 'Determines how whiskers and outliers are calculated.',
               ),
-              choices: formatSelectOptions([
-                'Tukey',
-                'Min/max (no outliers)',
-                '2/98 percentiles',
-                '9/91 percentiles',
-              ]),
+              choices: [
+                ['Tukey', t('Tukey')],
+                ['Min/max (no outliers)', t('Min/max (no outliers)')],
+                ['2/98 percentiles', t('2/98 percentiles')],
+                ['9/91 percentiles', t('9/91 percentiles')],
+              ],
             },
           },
         ],
@@ -76,13 +113,13 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('X Tick Layout'),
-              choices: formatSelectOptions([
-                'auto',
-                'flat',
-                '45°',
-                '90°',
-                'staggered',
-              ]),
+              choices: [
+                ['auto', t('auto')],
+                ['flat', t('flat')],
+                ['45°', '45°'],
+                ['90°', '90°'],
+                ['staggered', t('staggered')],
+              ],
               default: 'auto',
               clearable: false,
               renderTrigger: true,
@@ -100,9 +137,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: 'SMART_NUMBER',
               choices: D3_FORMAT_OPTIONS,
-              description: `${t(
-                'D3 format syntax: https://github.com/d3/d3-format',
-              )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
             },
           },
         ],
@@ -125,16 +160,43 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
+      label: t('Dimensions'),
       description: t('Categories to group by on the x-axis.'),
     },
     columns: {
       label: t('Distribute across'),
       multi: true,
-      description: t(
-        'Columns to calculate distribution across. Defaults to temporal column if left empty.',
-      ),
+      description: t('Columns to calculate distribution across.'),
+      initialValue: (
+        control: ControlState,
+        state: ControlPanelState | null,
+      ) => {
+        if (
+          state &&
+          (!control?.value ||
+            (Array.isArray(control?.value) && control.value.length === 0))
+        ) {
+          return [getTemporalColumns(state.datasource).defaultTemporalColumn];
+        }
+        return control.value;
+      },
+      validators: [validateNonEmpty],
     },
+  },
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.columns).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby,
+    };
   },
 };
 export default config;

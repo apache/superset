@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  t,
+} from '@superset-ui/core';
 import {
   ControlConfig,
   ControlPanelState,
   CustomControlItem,
-  DatasourceMeta,
 } from '@superset-ui/chart-controls';
 import {
   getControlConfig,
@@ -44,11 +47,20 @@ const getKnownControlState = (...args: Parameters<typeof getControlState>) =>
 describe('controlUtils', () => {
   const state: ControlPanelState = {
     datasource: {
+      id: 1,
+      type: DatasourceType.Table,
       columns: [{ column_name: 'a' }],
       metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
-    } as unknown as DatasourceMeta,
+      column_formats: {},
+      currency_formats: {},
+      verbose_map: {},
+      main_dttm_col: '',
+      datasource_name: '1__table',
+      description: null,
+    },
     controls: {},
     form_data: { datasource: '1__table', viz_type: 'table' },
+    common: {},
   };
 
   beforeAll(() => {

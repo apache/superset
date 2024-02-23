@@ -17,9 +17,15 @@
  * under the License.
  */
 import React, { useCallback, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
+
+const StyledInput = styled(Input)`
+  border-radius: ${({ theme }) => theme.borderRadius};
+  height: 26px;
+  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+`;
 
 export const DndColumnSelectPopoverTitle = ({
   title,
@@ -63,8 +69,7 @@ export const DndColumnSelectPopoverTitle = ({
   }
 
   return isEditMode ? (
-    <Input
-      className="metric-edit-popover-label-input"
+    <StyledInput
       type="text"
       placeholder={title}
       value={hasCustomLabel ? title : ''}

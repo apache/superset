@@ -16,24 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
+import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  DataRecordValue,
-  QueryFormColumn,
-  QueryFormData,
-  SetDataMaskHook,
-} from '@superset-ui/core';
-import {
-  DEFAULT_LEGEND_FORM_DATA,
-  EchartsLegendFormData,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsPieFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     currentOwnValue?: string[] | null;
     donut: boolean;
@@ -49,7 +45,6 @@ export type EchartsPieFormData = QueryFormData &
     numberFormat: string;
     dateFormat: string;
     showLabelsThreshold: number;
-    emitFilter: boolean;
   };
 
 export enum EchartsPieLabelType {
@@ -59,11 +54,12 @@ export enum EchartsPieLabelType {
   KeyValue = 'key_value',
   KeyPercent = 'key_percent',
   KeyValuePercent = 'key_value_percent',
+  ValuePercent = 'value_percent',
 }
 
-export interface EchartsPieChartProps extends ChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps
+  extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -81,18 +77,10 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   showLabels: true,
   labelsOutside: true,
   showLabelsThreshold: 5,
-  emitFilter: false,
   dateFormat: 'smart_date',
 };
 
-export interface PieChartTransformedProps {
-  formData: EchartsPieFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type PieChartTransformedProps =
+  BaseTransformedProps<EchartsPieFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

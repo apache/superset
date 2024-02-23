@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  getStandardizedControls,
+} from '@superset-ui/chart-controls';
 import { t } from '@superset-ui/core';
-import { formatSelectOptions } from '../../utilities/utils';
 import {
   autozoom,
   extruded,
@@ -35,7 +37,6 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -50,8 +51,8 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       controlSetRows: [
-        [mapboxStyle, viewport],
-        ['color_picker'],
+        [mapboxStyle],
+        ['color_scheme', viewport],
         [autozoom],
         [gridSize],
         [extruded],
@@ -67,20 +68,20 @@ const config: ControlPanelConfig = {
               default: 'sum',
               clearable: false,
               renderTrigger: true,
-              choices: formatSelectOptions([
-                'sum',
-                'min',
-                'max',
-                'mean',
-                'median',
-                'count',
-                'variance',
-                'deviation',
-                'p1',
-                'p5',
-                'p95',
-                'p99',
-              ]),
+              choices: [
+                ['sum', t('sum')],
+                ['min', t('min')],
+                ['max', t('max')],
+                ['mean', t('mean')],
+                ['median', t('median')],
+                ['count', t('count')],
+                ['variance', t('variance')],
+                ['deviation', t('deviation')],
+                ['p1', t('p1')],
+                ['p5', t('p5')],
+                ['p95', t('p95')],
+                ['p99', t('p99')],
+              ],
             },
           },
         ],
@@ -96,6 +97,10 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    size: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

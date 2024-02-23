@@ -22,8 +22,12 @@ import {
   ControlType,
   ControlComponentProps as BaseControlComponentProps,
 } from '@superset-ui/chart-controls';
-import { styled, JsonValue, QueryFormData } from '@superset-ui/core';
-import { usePrevious } from 'src/hooks/usePrevious';
+import {
+  styled,
+  JsonValue,
+  QueryFormData,
+  usePrevious,
+} from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import controlMap from './controls';
@@ -46,6 +50,7 @@ export type ControlProps = {
   renderTrigger?: boolean;
   default?: JsonValue;
   isVisible?: boolean;
+  resetOnHide?: boolean;
 };
 
 /**
@@ -55,7 +60,7 @@ export type ControlComponentProps<ValueType extends JsonValue = JsonValue> =
   Omit<ControlProps, 'value'> & BaseControlComponentProps<ValueType>;
 
 const StyledControl = styled.div`
-  padding-bottom: ${({ theme }) => theme.gridUnit}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 export default function Control(props: ControlProps) {
@@ -65,6 +70,7 @@ export default function Control(props: ControlProps) {
     type,
     hidden,
     isVisible,
+    resetOnHide = true,
   } = props;
 
   const [hovered, setHovered] = useState(false);
@@ -79,7 +85,8 @@ export default function Control(props: ControlProps) {
       wasVisible === true &&
       isVisible === false &&
       props.default !== undefined &&
-      !isEqual(props.value, props.default)
+      !isEqual(props.value, props.default) &&
+      resetOnHide
     ) {
       // reset control value if setting to invisible
       setControlValue?.(name, props.default);

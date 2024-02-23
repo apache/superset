@@ -17,11 +17,16 @@
  * under the License.
  */
 
-import React from 'react';
-import { mount, shallow } from 'enzyme';
+import React, { ReactElement, ReactNode } from 'react';
+import { mount } from 'enzyme';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
-
-import { ChartProps, promiseTimeout } from '@superset-ui/core';
+import {
+  ChartProps,
+  promiseTimeout,
+  supersetTheme,
+  SupersetTheme,
+  ThemeProvider,
+} from '@superset-ui/core';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
   ChartKeys,
@@ -29,6 +34,22 @@ import {
   LazyChartPlugin,
   SlowChartPlugin,
 } from './MockChartPlugins';
+
+const Wrapper = ({
+  theme,
+  children,
+}: {
+  theme: SupersetTheme;
+  children: ReactNode;
+}) => <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+
+const styledMount = (component: ReactElement) =>
+  mount(component, {
+    wrappingComponent: Wrapper,
+    wrappingComponentProps: {
+      theme: supersetTheme,
+    },
+  });
 
 describe('SuperChartCore', () => {
   const chartProps = new ChartProps();
@@ -63,7 +84,7 @@ describe('SuperChartCore', () => {
 
   describe('registered charts', () => {
     it('renders registered chart', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           chartProps={chartProps}
@@ -75,7 +96,9 @@ describe('SuperChartCore', () => {
       });
     });
     it('renders registered chart with lazy loading', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.LAZY} />);
+      const wrapper = styledMount(
+        <SuperChartCore chartType={ChartKeys.LAZY} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);
@@ -84,14 +107,14 @@ describe('SuperChartCore', () => {
     it('does not render if chartType is not set', () => {
       // Suppress warning
       // @ts-ignore chartType is required
-      const wrapper = shallow(<SuperChartCore />);
+      const wrapper = styledMount(<SuperChartCore />);
 
       return promiseTimeout(() => {
         expect(wrapper.render().children()).toHaveLength(0);
       }, 5);
     });
     it('adds id to container if specified', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore chartType={ChartKeys.DILIGENT} id="the-chart" />,
       );
 
@@ -100,7 +123,7 @@ describe('SuperChartCore', () => {
       });
     });
     it('adds class to container if specified', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore chartType={ChartKeys.DILIGENT} className="the-chart" />,
       );
 
@@ -109,7 +132,7 @@ describe('SuperChartCore', () => {
       }, 0);
     });
     it('uses overrideTransformProps when specified', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           overrideTransformProps={() => ({ message: 'hulk' })}
@@ -123,8 +146,9 @@ describe('SuperChartCore', () => {
     it('uses preTransformProps when specified', () => {
       const chartPropsWithPayload = new ChartProps({
         queriesData: [{ message: 'hulk' }],
+        theme: supersetTheme,
       });
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           preTransformProps={() => chartPropsWithPayload}
@@ -137,7 +161,7 @@ describe('SuperChartCore', () => {
       });
     });
     it('uses postTransformProps when specified', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
           postTransformProps={() => ({ message: 'hulk' })}
@@ -149,7 +173,7 @@ describe('SuperChartCore', () => {
       });
     });
     it('renders if chartProps is not specified', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore chartType={ChartKeys.DILIGENT} />,
       );
 
@@ -158,7 +182,9 @@ describe('SuperChartCore', () => {
       });
     });
     it('does not render anything while waiting for Chart code to load', () => {
-      const wrapper = shallow(<SuperChartCore chartType={ChartKeys.SLOW} />);
+      const wrapper = styledMount(
+        <SuperChartCore chartType={ChartKeys.SLOW} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().children()).toHaveLength(0);
@@ -166,14 +192,16 @@ describe('SuperChartCore', () => {
     });
     it('eventually renders after Chart is loaded', () => {
       // Suppress warning
-      const wrapper = mount(<SuperChartCore chartType={ChartKeys.SLOW} />);
+      const wrapper = styledMount(
+        <SuperChartCore chartType={ChartKeys.SLOW} />,
+      );
 
       return promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);
       }, 1500);
     });
     it('does not render if chartProps is null', () => {
-      const wrapper = shallow(
+      const wrapper = styledMount(
         <SuperChartCore chartType={ChartKeys.DILIGENT} chartProps={null} />,
       );
 
@@ -185,7 +213,7 @@ describe('SuperChartCore', () => {
 
   describe('unregistered charts', () => {
     it('renders error message', () => {
-      const wrapper = mount(
+      const wrapper = styledMount(
         <SuperChartCore chartType="4d-pie-chart" chartProps={chartProps} />,
       );
 

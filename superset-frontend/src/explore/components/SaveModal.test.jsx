@@ -20,331 +20,299 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
-import { Provider } from 'react-redux';
 
-import { shallow } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Radio } from 'src/components/Radio';
-import Button from 'src/components/Button';
-import sinon from 'sinon';
+import {
+  fireEvent,
+  render,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
-import * as exploreUtils from 'src/explore/exploreUtils';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
+import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 
-describe('SaveModal', () => {
-  const middlewares = [thunk];
-  const mockStore = configureStore(middlewares);
-  const initialState = {
-    chart: {},
-    saveModal: {
-      dashboards: [],
-    },
-    explore: {
-      datasource: {},
-      slice: {
-        slice_id: 1,
-        slice_name: 'title',
-        owners: [1],
-      },
-      alert: null,
-      user: {
-        userId: 1,
-      },
-    },
-  };
-  const store = mockStore(initialState);
+jest.mock('src/components', () => ({
+  ...jest.requireActual('src/components'),
+  AsyncSelect: ({ onChange }) => (
+    <input
+      data-test="mock-async-select"
+      onChange={({ target: { value } }) => onChange({ label: value, value })}
+    />
+  ),
+}));
 
-  const defaultProps = {
-    onHide: () => ({}),
-    actions: bindActionCreators(saveModalActions, arg => {
-      if (typeof arg === 'function') {
-        return arg(jest.fn);
-      }
-      return arg;
-    }),
-    form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
-  };
-  const mockEvent = {
-    target: {
-      value: 'mock event target',
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
+const initialState = {
+  chart: {},
+  saveModal: {
+    dashboards: [],
+    isVisible: true,
+  },
+  explore: {
+    datasource: {},
+    slice: {
+      slice_id: 1,
+      slice_name: 'title',
+      owners: [1],
     },
-    value: 10,
-  };
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+};
 
-  const mockDashboardData = {
-    pks: ['id'],
+const initialStore = mockStore(initialState);
+
+const defaultProps = {
+  addDangerToast: jest.fn(),
+  onHide: () => ({}),
+  actions: bindActionCreators(saveModalActions, arg => {
+    if (typeof arg === 'function') {
+      return arg(jest.fn);
+    }
+    return arg;
+  }),
+  form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
+};
+
+const mockEvent = {
+  target: {
+    value: 'mock event target',
+  },
+  value: 10,
+};
+
+const mockDashboardData = {
+  pks: ['id'],
+  result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+};
+
+const queryStore = mockStore({
+  chart: {},
+  saveModal: {
+    dashboards: [],
+    isVisible: true,
+  },
+  explore: {
+    datasource: { name: 'test', type: 'query' },
+    slice: null,
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+});
+
+const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+const fetchChartEndpoint = `glob:*/api/v1/chart/${1}*`;
+const fetchDashboardEndpoint = `glob:*/api/v1/dashboard/*`;
+
+beforeAll(() => {
+  fetchMock.get(fetchDashboardsEndpoint, mockDashboardData);
+  fetchMock.get(fetchChartEndpoint, { id: 1, dashboards: [1] });
+  fetchMock.get(fetchDashboardEndpoint, {
     result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  });
+});
+
+afterAll(() => fetchMock.restore());
+
+const setup = (props = defaultProps, store = initialStore) =>
+  render(<SaveModal {...props} />, {
+    useRouter: true,
+    store,
+  });
+
+test('renders a Modal with the right set of components', () => {
+  const { getByRole, getByTestId } = setup();
+  expect(getByRole('dialog', { name: 'Save chart' })).toBeInTheDocument();
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeInTheDocument();
+  expect(getByRole('radio', { name: 'Save as...' })).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getAllByRole('button'),
+  ).toHaveLength(3);
+});
+
+test('renders the right footer buttons', () => {
+  const { getByTestId } = setup();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Cancel',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Save & go to dashboard',
+    }),
+  ).toBeInTheDocument();
+  expect(
+    within(getByTestId('save-modal-footer')).getByRole('button', {
+      name: 'Save',
+    }),
+  ).toBeInTheDocument();
+});
+
+test('does not render a message when overriding', () => {
+  const { getByRole, queryByRole } = setup();
+
+  fireEvent.click(getByRole('radio', { name: 'Save (Overwrite)' }));
+  expect(
+    queryByRole('alert', { name: 'A new chart will be created.' }),
+  ).not.toBeInTheDocument();
+});
+
+test('renders a message when saving as', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  expect(getByRole('alert')).toHaveTextContent('A new chart will be created.');
+});
+
+test('renders a message when a new dashboard is selected', async () => {
+  const { getByRole, getByTestId } = setup();
+
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: 'Test new dashboard' } });
+
+  expect(getByRole('alert')).toHaveTextContent(
+    'A new dashboard will be created.',
+  );
+});
+
+test('renders a message when saving as with new dashboard', () => {
+  const { getByRole, getByTestId } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: 'Test new dashboard' } });
+
+  expect(getByRole('alert')).toHaveTextContent(
+    'A new chart and dashboard will be created.',
+  );
+});
+
+test('disables overwrite option for new slice', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: null,
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+});
+
+test('disables overwrite option for non-owner', () => {
+  const { getByRole } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      user: { userId: 2 },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+});
+
+test('updates slice name and selected dashboard', async () => {
+  const dashboardId = mockEvent.value;
+  const saveDataset = jest.fn().mockResolvedValue();
+  const createDashboard = jest.fn().mockResolvedValue({ id: dashboardId });
+  const saveSliceFailed = jest.fn();
+  const setFormData = jest.fn();
+  const createSlice = jest.fn().mockResolvedValue({ id: 1 });
+
+  const { getByRole, getByTestId } = setup(
+    {
+      actions: {
+        saveDataset,
+        createDashboard,
+        saveSliceFailed,
+        setFormData,
+        createSlice,
+      },
+    },
+    queryStore,
+  );
+
+  fireEvent.change(getByTestId('new-chart-name'), mockEvent);
+  fireEvent.change(getByTestId('new-dataset-name'), mockEvent);
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: dashboardId } });
+
+  expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+
+  fireEvent.click(getByRole('button', { name: 'Save' }));
+  expect(saveDataset).toHaveBeenCalledWith(
+    expect.objectContaining({
+      datasourceName: mockEvent.target.value,
+    }),
+  );
+  await waitFor(() =>
+    expect(fetchMock.calls(fetchDashboardEndpoint)).toHaveLength(1),
+  );
+  expect(fetchMock.calls(fetchDashboardEndpoint)[0][0]).toEqual(
+    expect.stringContaining(`dashboard/${dashboardId}`),
+  );
+  expect(createSlice).toHaveBeenCalledWith(
+    mockEvent.target.value,
+    expect.anything(),
+    expect.anything(),
+  );
+});
+
+test('set dataset name when chart source is query', () => {
+  const { getByTestId } = setup({}, queryStore);
+  expect(getByTestId('new-dataset-name')).toHaveValue('test');
+});
+
+test('make sure slice_id in the URLSearchParams before the redirect', () => {
+  const myProps = {
+    ...defaultProps,
+    slice: { slice_id: 1, slice_name: 'title', owners: [1] },
+    actions: {
+      setFormData: jest.fn(),
+      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: jest.fn(),
+    },
+    user: { userId: 1 },
+    history: {
+      replace: jest.fn(),
+    },
+    dispatch: jest.fn(),
   };
 
-  const saveEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
-
-  beforeAll(() => fetchMock.get(saveEndpoint, mockDashboardData));
-
-  afterAll(() => fetchMock.restore());
-
-  const getWrapper = () =>
-    shallow(<SaveModal {...defaultProps} store={store} />)
-      .dive()
-      .dive();
-
-  it('renders a Modal with the right set of components', () => {
-    const wrapper = getWrapper();
-    expect(wrapper.find(StyledModal)).toExist();
-    expect(wrapper.find(Radio)).toHaveLength(2);
-
-    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-
-    expect(footerWrapper.find(Button)).toHaveLength(3);
-  });
-
-  it('renders the right footer buttons when an existing dashboard', () => {
-    const wrapper = getWrapper();
-    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-    const saveAndGoDash = footerWrapper
-      .find('#btn_modal_save_goto_dash')
-      .getElement();
-    const save = footerWrapper.find('#btn_modal_save').getElement();
-    expect(save.props.children).toBe('Save');
-    expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
-  });
-
-  it('renders the right footer buttons when a new dashboard', () => {
-    const wrapper = getWrapper();
-    wrapper.setState({
-      saveToDashboardId: null,
-      newDashboardName: 'Test new dashboard',
-    });
-    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-    const saveAndGoDash = footerWrapper
-      .find('#btn_modal_save_goto_dash')
-      .getElement();
-    const save = footerWrapper.find('#btn_modal_save').getElement();
-    expect(save.props.children).toBe('Save to new dashboard');
-    expect(saveAndGoDash.props.children).toBe('Save & go to new dashboard');
-  });
-
-  it('overwrite radio button is disabled for new slice', () => {
-    const wrapper = getWrapper();
-    wrapper.setProps({ slice: null });
-    expect(wrapper.find('#overwrite-radio').prop('disabled')).toBe(true);
-  });
-
-  it('disable overwrite option for non-owner', () => {
-    const wrapperForNonOwner = getWrapper();
-    wrapperForNonOwner.setProps({ userId: 2 });
-    const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
-    expect(overwriteRadio).toHaveLength(1);
-    expect(overwriteRadio.prop('disabled')).toBe(true);
-  });
-
-  it('saves a new slice', () => {
-    const wrapperForNewSlice = getWrapper();
-    wrapperForNewSlice.setProps({ can_overwrite: false });
-    wrapperForNewSlice.instance().changeAction('saveas');
-    const saveasRadio = wrapperForNewSlice.find('#saveas-radio');
-    saveasRadio.simulate('click');
-    expect(wrapperForNewSlice.state().action).toBe('saveas');
-  });
-
-  it('overwrite a slice', () => {
-    const wrapperForOverwrite = getWrapper();
-    const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
-    overwriteRadio.simulate('click');
-    expect(wrapperForOverwrite.state().action).toBe('overwrite');
-  });
-
-  it('componentDidMount', () => {
-    sinon.spy(defaultProps.actions, 'fetchDashboards');
-    mount(
-      <Provider store={store}>
-        <SaveModal {...defaultProps} />
-      </Provider>,
-    );
-    expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
-
-    defaultProps.actions.fetchDashboards.restore();
-  });
-
-  it('onChange', () => {
-    const wrapper = getWrapper();
-    const dashboardId = mockEvent.value;
-
-    wrapper.instance().onSliceNameChange(mockEvent);
-    expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
-
-    wrapper.instance().onDashboardSelectChange(dashboardId);
-    expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
-  });
-
-  describe('saveOrOverwrite', () => {
-    beforeEach(() => {
-      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
-
-      sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
-        Promise.resolve({
-          dashboard_url: 'http://localhost/mock_dashboard/',
-          slice: { slice_url: '/mock_slice/' },
-        }),
-      );
-    });
-
-    afterEach(() => {
-      exploreUtils.getExploreUrl.restore();
-      defaultProps.actions.saveSlice.restore();
-    });
-
-    it('should save slice without url_params in form_data', () => {
-      const wrapper = getWrapper();
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[0]).toEqual({ datasource: '107__table' });
-    });
-
-    it('existing dashboard', () => {
-      const wrapper = getWrapper();
-      const saveToDashboardId = 100;
-
-      wrapper.setState({ saveToDashboardId });
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[1].save_to_dashboard_id).toBe(saveToDashboardId);
-    });
-
-    it('new dashboard', () => {
-      const wrapper = getWrapper();
-      const newDashboardName = 'new dashboard name';
-
-      wrapper.setState({ newDashboardName });
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[1].new_dashboard_name).toBe(newDashboardName);
-    });
-
-    describe('should always reload or redirect', () => {
-      const originalLocation = window.location;
-      delete window.location;
-      window.location = { assign: jest.fn() };
-      const stub = sinon.stub(window.location, 'assign');
-
-      afterAll(() => {
-        delete window.location;
-        window.location = originalLocation;
-      });
-
-      let wrapper;
-
-      beforeEach(() => {
-        stub.resetHistory();
-        wrapper = getWrapper();
-      });
-
-      it('Save & go to dashboard', () =>
-        new Promise(done => {
-          wrapper.instance().saveOrOverwrite(true);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              'http://localhost/mock_dashboard/?foo=bar',
-            );
-            done();
-          });
-        }));
-
-      it('saveas new slice', () =>
-        new Promise(done => {
-          wrapper.setState({
-            action: 'saveas',
-            newSliceName: 'new slice name',
-          });
-          wrapper.instance().saveOrOverwrite(false);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/?foo=bar',
-            );
-            done();
-          });
-        }));
-
-      it('overwrite original slice', () =>
-        new Promise(done => {
-          wrapper.setState({ action: 'overwrite' });
-          wrapper.instance().saveOrOverwrite(false);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/?foo=bar',
-            );
-            done();
-          });
-        }));
-    });
-  });
-
-  describe('fetchDashboards', () => {
-    let dispatch;
-    let actionThunk;
-    const userID = 1;
-
-    beforeEach(() => {
-      fetchMock.resetHistory();
-      dispatch = sinon.spy();
-    });
-
-    const makeRequest = () => {
-      actionThunk = saveModalActions.fetchDashboards(userID);
-      return actionThunk(dispatch);
-    };
-
-    it('makes the fetch request', () =>
-      makeRequest().then(() => {
-        expect(fetchMock.calls(saveEndpoint)).toHaveLength(1);
-
-        return Promise.resolve();
-      }));
-
-    it('calls correct actions on success', () =>
-      makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(1);
-        expect(dispatch.getCall(0).args[0].type).toBe(
-          saveModalActions.FETCH_DASHBOARDS_SUCCEEDED,
-        );
-
-        return Promise.resolve();
-      }));
-
-    it('calls correct actions on error', () => {
-      fetchMock.get(
-        saveEndpoint,
-        { throws: 'error' },
-        { overwriteRoutes: true },
-      );
-
-      return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(1);
-        expect(dispatch.getCall(0).args[0].type).toBe(
-          saveModalActions.FETCH_DASHBOARDS_FAILED,
-        );
-
-        fetchMock.get(saveEndpoint, mockDashboardData, {
-          overwriteRoutes: true,
-        });
-
-        return Promise.resolve();
-      });
-    });
-  });
-
-  it('removeAlert', () => {
-    sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
-    const wrapper = getWrapper();
-    wrapper.setProps({ alert: 'old alert' });
-
-    wrapper.instance().removeAlert();
-    expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
-    expect(wrapper.state().alert).toBeNull();
-    defaultProps.actions.removeSaveModalAlert.restore();
-  });
+  const saveModal = new PureSaveModal(myProps);
+  const result = saveModal.handleRedirect(
+    'https://example.com/?name=John&age=30',
+    { id: 1 },
+  );
+  expect(result.get('slice_id')).toEqual('1');
 });

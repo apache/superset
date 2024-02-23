@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import React, {
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -33,31 +34,45 @@ import {
   QueryFormData,
   DatasourceType,
   css,
+  SupersetTheme,
+  useTheme,
+  isDefined,
+  JsonValue,
+  NO_TIME_RANGE,
+  usePrevious,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
   ControlState,
   CustomControlItem,
-  DatasourceMeta,
+  Dataset,
   ExpandedControlItem,
-  InfoTooltipWithTrigger,
+  isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
+import { rgba } from 'emotion-rgba';
+import { kebabCase } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
+import Modal from 'src/components/Modal';
 
-import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ExplorePageState } from 'src/explore/reducers/getInitialState';
-import { ChartState } from 'src/explore/types';
-
+import { ChartState, ExplorePageState } from 'src/explore/types';
+import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
-import { ControlPanelAlert } from './ControlPanelAlert';
+import { ExploreAlert } from './ExploreAlert';
+import { RunQueryButton } from './RunQueryButton';
+import { Operators } from '../constants';
+import { Clauses } from './controls/FilterControl/types';
+
+const { confirm } = Modal;
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -67,6 +82,11 @@ export type ControlPanelsContainerProps = {
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
+  errorMessage: ReactNode;
+  onQuery: () => void;
+  onStop: () => void;
+  canStopQuery: boolean;
+  chartIsStale: boolean;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -76,13 +96,44 @@ export type ExpandedControlPanelSectionConfig = Omit<
   controlSetRows: ExpandedControlItem[][];
 };
 
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
+
+const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
+  display: flex;
+  position: sticky;
+  bottom: 0;
+  flex-direction: column;
+  align-items: center;
+  padding: ${theme.gridUnit * 4}px;
+  z-index: 999;
+  background: linear-gradient(
+    ${rgba(theme.colors.grayscale.light5, 0)},
+    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+  );
+
+  & > button {
+    min-width: 156px;
+  }
+`;
+
 const Styles = styled.div`
+  position: relative;
   height: 100%;
   width: 100%;
-  overflow: auto;
-  overflow-x: visible;
+
+  // Resizable add overflow-y: auto as a style to this div
+  // To override it, we need to use !important
+  overflow: visible !important;
   #controlSections {
-    min-height: 100%;
+    height: 100%;
     overflow: visible;
   }
   .nav-tabs {
@@ -105,34 +156,53 @@ const Styles = styled.div`
 `;
 
 const ControlPanelsTabs = styled(Tabs)`
-  .ant-tabs-nav-list {
-    width: ${({ fullWidth }) => (fullWidth ? '100%' : '50%')};
-  }
-  .ant-tabs-content-holder {
-    overflow: visible;
-  }
-  .ant-tabs-tabpane {
+  ${({ theme, fullWidth }) => css`
     height: 100%;
-  }
+    overflow: visible;
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+    .ant-tabs-nav-list {
+      width: ${fullWidth ? '100%' : '50%'};
+    }
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+    .ant-tabs-content-holder {
+      padding-top: ${theme.gridUnit * 4}px;
+    }
+
+    .ant-collapse-ghost > .ant-collapse-item {
+      &:not(:last-child) {
+        border-bottom: 1px solid ${theme.colors.grayscale.light3};
+      }
+
+      & > .ant-collapse-header {
+        font-size: ${theme.typography.sizes.s}px;
+      }
+
+      & > .ant-collapse-content > .ant-collapse-content-box {
+        padding-bottom: 0;
+        font-size: ${theme.typography.sizes.s}px;
+      }
+    }
+  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
-  !!section.label &&
-  (sections.legacyRegularTime.label === section.label ||
-    sections.legacyTimeseriesTime.label === section.label);
+  !!section.label && sections.legacyTimeseriesTime.label === section.label;
 
-const hasTimeColumn = (datasource: DatasourceMeta): boolean =>
-  datasource?.columns?.some(c => c.is_dttm) ||
-  datasource.type === DatasourceType.Druid;
-
+const hasTimeColumn = (datasource: Dataset): boolean =>
+  datasource?.columns?.some(c => c.is_dttm);
 const sectionsToExpand = (
   sections: ControlPanelSectionConfig[],
-  datasource: DatasourceMeta,
+  datasource: Dataset,
 ): string[] =>
   // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
     (acc, section) =>
-      section.expanded && (!isTimeSection(section) || hasTimeColumn(datasource))
+      (section.expanded || !section.label) &&
+      (!isTimeSection(section) || hasTimeColumn(datasource))
         ? [...acc, String(section.label)]
         : acc,
     [] as string[],
@@ -140,7 +210,7 @@ const sectionsToExpand = (
 
 function getState(
   vizType: string,
-  datasource: DatasourceMeta,
+  datasource: Dataset,
   datasourceType: DatasourceType,
 ) {
   const querySections: ControlPanelSectionConfig[] = [];
@@ -164,7 +234,7 @@ function getState(
       )
     ) {
       querySections.push(section);
-    } else {
+    } else if (section.controlSetRows.length > 0) {
       customizeSections.push(section);
     }
   });
@@ -184,19 +254,135 @@ function getState(
   };
 }
 
+function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
+  const value = useRef(initialValue());
+  const prevResetOnChangeValue = useRef(resetOnChangeValue);
+  if (prevResetOnChangeValue.current !== resetOnChangeValue) {
+    value.current = initialValue();
+    prevResetOnChangeValue.current = resetOnChangeValue;
+  }
+
+  return value;
+}
+
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+  const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
+  const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const controlsTransferred = useSelector<
+    ExplorePageState,
+    string[] | undefined
+  >(state => state.explore.controlsTransferred);
+
+  const defaultTimeFilter = useSelector<ExplorePageState>(
+    state => state.common?.conf?.DEFAULT_TIME_FILTER,
+  );
+
+  const { form_data, actions } = props;
+  const { setControlValue } = actions;
+  const { x_axis, adhoc_filters } = form_data;
+
+  const previousXAxis = usePrevious(x_axis);
+
+  useEffect(() => {
+    if (
+      x_axis &&
+      x_axis !== previousXAxis &&
+      isTemporalColumn(x_axis, props.exploreState.datasource)
+    ) {
+      const noFilter = !adhoc_filters?.find(
+        filter =>
+          filter.expressionType === 'SIMPLE' &&
+          filter.operator === Operators.TemporalRange &&
+          filter.subject === x_axis,
+      );
+      if (noFilter) {
+        confirm({
+          title: t('The X-axis is not on the filters list'),
+          content:
+            t(`The X-axis is not on the filters list which will prevent it from being used in
+            time range filters in dashboards. Would you like to add it to the filters list?`),
+          onOk: () => {
+            setControlValue('adhoc_filters', [
+              ...(adhoc_filters || []),
+              {
+                clause: Clauses.Where,
+                subject: x_axis,
+                operator: Operators.TemporalRange,
+                comparator: defaultTimeFilter || NO_TIME_RANGE,
+                expressionType: 'SIMPLE',
+              },
+            ]);
+          },
+        });
+      }
+    }
+  }, [
+    x_axis,
+    adhoc_filters,
+    setControlValue,
+    defaultTimeFilter,
+    previousXAxis,
+    props.exploreState.datasource,
+  ]);
+
+  useEffect(() => {
+    let shouldUpdateControls = false;
+    const removeDatasourceWarningFromControl = (
+      value: JsonValue | undefined,
+    ) => {
+      if (
+        typeof value === 'object' &&
+        isDefined(value) &&
+        'datasourceWarning' in value &&
+        value.datasourceWarning === true
+      ) {
+        shouldUpdateControls = true;
+        return { ...value, datasourceWarning: false };
+      }
+      return value;
+    };
+    if (
+      props.chart.chartStatus === 'success' &&
+      prevChartStatus !== 'success'
+    ) {
+      controlsTransferred?.forEach(controlName => {
+        shouldUpdateControls = false;
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
+        const alteredControls = Array.isArray(props.controls[controlName].value)
+          ? ensureIsArray(props.controls[controlName].value)?.map(
+              removeDatasourceWarningFromControl,
+            )
+          : removeDatasourceWarningFromControl(
+              props.controls[controlName].value,
+            );
+        if (shouldUpdateControls) {
+          props.actions.setControlValue(controlName, alteredControls);
+        }
+      });
+    }
+  }, [
+    controlsTransferred,
+    prevChartStatus,
+    props.actions,
+    props.chart.chartStatus,
+    props.controls,
+  ]);
+
   useEffect(() => {
     if (
       prevDatasource &&
+      prevDatasource.type !== DatasourceType.Query &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
@@ -217,15 +403,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   } = useMemo(
     () =>
       getState(
-        props.form_data.viz_type,
+        form_data.viz_type,
         props.exploreState.datasource,
         props.datasource_type,
       ),
-    [
-      props.exploreState.datasource,
-      props.form_data.viz_type,
-      props.datasource_type,
-    ],
+    [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
   );
 
   const resetTransferredControls = useCallback(() => {
@@ -279,7 +461,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           undefined),
       name,
     };
-    const { validationErrors, ...restProps } = controlData as ControlState & {
+    const {
+      validationErrors,
+      label: baseLabel,
+      description: baseDescription,
+      ...restProps
+    } = controlData as ControlState & {
       validationErrors?: any[];
     };
 
@@ -287,10 +474,41 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? visibility.call(config, props, controlData)
       : undefined;
 
+    const label =
+      typeof baseLabel === 'function'
+        ? baseLabel(exploreState, controls[name], chart)
+        : baseLabel;
+
+    const description =
+      typeof baseDescription === 'function'
+        ? baseDescription(exploreState, controls[name], chart)
+        : baseDescription;
+
+    if (name === 'adhoc_filters') {
+      restProps.canDelete = (
+        valueToBeDeleted: Record<string, any>,
+        values: Record<string, any>[],
+      ) => {
+        const isTemporalRange = (filter: Record<string, any>) =>
+          filter.operator === Operators.TemporalRange;
+        if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
+          const count = values.filter(isTemporalRange).length;
+          if (count === 1) {
+            return t(
+              `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+            );
+          }
+        }
+        return true;
+      };
+    }
+
     return (
       <Control
         key={`control-${name}`}
         name={name}
+        label={label}
+        description={description}
         validationErrors={validationErrors}
         actions={props.actions}
         isVisible={isVisible}
@@ -298,6 +516,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       />
     );
   };
+
+  const sectionHasHadNoErrors = useResetOnChangeRef(
+    () => ({}),
+    form_data.viz_type,
+  );
 
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
@@ -316,8 +539,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           typeof item === 'string'
             ? item
             : item && 'name' in item
-            ? item.name
-            : null;
+              ? item.name
+              : null;
         return (
           controlName &&
           controlName in controls &&
@@ -326,19 +549,42 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         );
       }),
     );
+
+    if (!hasErrors) {
+      sectionHasHadNoErrors.current[sectionId] = true;
+    }
+
+    const errorColor = sectionHasHadNoErrors.current[sectionId]
+      ? colors.error.base
+      : colors.alert.base;
+
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
-        <span>{label}</span>{' '}
+        <span
+          css={(theme: SupersetTheme) => css`
+            font-size: ${theme.typography.sizes.m}px;
+            line-height: 1.3;
+          `}
+        >
+          {label}
+        </span>{' '}
         {description && (
-          // label is only used in tooltip id (should probably call this prop `id`)
-          <InfoTooltipWithTrigger label={sectionId} tooltip={description} />
+          <Tooltip id={sectionId} title={description}>
+            <Icons.InfoCircleOutlined css={iconStyles} />
+          </Tooltip>
         )}
         {hasErrors && (
-          <InfoTooltipWithTrigger
-            label="validation-errors"
-            bsStyle="danger"
-            tooltip="This section contains validation errors"
-          />
+          <Tooltip
+            id={`${kebabCase('validation-errors')}-tooltip`}
+            title={t('This section contains validation errors')}
+          >
+            <Icons.InfoCircleOutlined
+              css={css`
+                ${iconStyles};
+                color: ${errorColor};
+              `}
+            />
+          </Tooltip>
         )}
       </span>
     );
@@ -350,7 +596,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           box-shadow: none;
 
           &:last-child {
-            padding-bottom: ${theme.gridUnit * 10}px;
+            padding-bottom: ${theme.gridUnit * 16}px;
+            border-bottom: 0;
           }
 
           .panel-body {
@@ -361,6 +608,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           span.label {
             display: inline-block;
           }
+          ${!section.label &&
+          `
+            .ant-collapse-header {
+              display: none;
+            }
+          `}
         `}
         header={<PanelHeader />}
         key={sectionId}
@@ -407,7 +660,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const DatasourceAlert = useCallback(
     () =>
       hasControlsTransferred ? (
-        <ControlPanelAlert
+        <ExploreAlert
           title={t('Keep control settings?')}
           bodyText={t(
             "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset have been retained.",
@@ -419,7 +672,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           type="info"
         />
       ) : (
-        <ControlPanelAlert
+        <ExploreAlert
           title={t('No form settings were maintained')}
           bodyText={t(
             'We were unable to carry over any controls when switching to this new dataset.',
@@ -432,11 +685,55 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
+  const dataTabHasHadNoErrors = useResetOnChangeRef(
+    () => false,
+    form_data.viz_type,
+  );
+
+  const dataTabTitle = useMemo(() => {
+    if (!props.errorMessage) {
+      dataTabHasHadNoErrors.current = true;
+    }
+
+    const errorColor = dataTabHasHadNoErrors.current
+      ? colors.error.base
+      : colors.alert.base;
+
+    return (
+      <>
+        <span>{t('Data')}</span>
+        {props.errorMessage && (
+          <span
+            css={(theme: SupersetTheme) => css`
+              margin-left: ${theme.gridUnit * 2}px;
+            `}
+          >
+            {' '}
+            <Tooltip
+              id="query-error-tooltip"
+              placement="right"
+              title={props.errorMessage}
+            >
+              <Icons.ExclamationCircleOutlined
+                css={css`
+                  ${iconStyles};
+                  color: ${errorColor};
+                `}
+              />
+            </Tooltip>
+          </span>
+        )}
+      </>
+    );
+  }, [
+    colors.error.base,
+    colors.alert.base,
+    dataTabHasHadNoErrors,
+    props.errorMessage,
+  ]);
+
   const controlPanelRegistry = getChartControlPanelRegistry();
-  if (
-    !controlPanelRegistry.has(props.form_data.viz_type) &&
-    pluginContext.loading
-  ) {
+  if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
 
@@ -448,14 +745,13 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         id="controlSections"
         data-test="control-tabs"
         fullWidth={showCustomizeTab}
+        allowOverflow={false}
       >
-        <Tabs.TabPane key="query" tab={t('Data')}>
+        <Tabs.TabPane key="query" tab={dataTabTitle}>
           <Collapse
-            bordered
             defaultActiveKey={expandedQuerySections}
             expandIconPosition="right"
             ghost
-            key={`query-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
           >
             {showDatasourceAlert && <DatasourceAlert />}
             {querySections.map(renderControlPanelSection)}
@@ -464,17 +760,26 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {showCustomizeTab && (
           <Tabs.TabPane key="display" tab={t('Customize')}>
             <Collapse
-              bordered
               defaultActiveKey={expandedCustomizeSections}
               expandIconPosition="right"
               ghost
-              key={`customize-sections-${props.form_data.datasource}-${props.form_data.viz_type}`}
             >
               {customizeSections.map(renderControlPanelSection)}
             </Collapse>
           </Tabs.TabPane>
         )}
       </ControlPanelsTabs>
+      <div css={actionButtonsContainerStyles}>
+        <RunQueryButton
+          onQuery={props.onQuery}
+          onStop={props.onStop}
+          errorMessage={props.errorMessage}
+          loading={props.chart.chartStatus === 'loading'}
+          isNewChart={!props.chart.queriesResponse}
+          canStopQuery={props.canStopQuery}
+          chartIsStale={props.chartIsStale}
+        />
+      </div>
     </Styles>
   );
 };

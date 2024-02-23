@@ -36,11 +36,11 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('last day') },
-  { value: 'Last week', label: t('last week') },
-  { value: 'Last month', label: t('last month') },
-  { value: 'Last quarter', label: t('last quarter') },
-  { value: 'Last year', label: t('last year') },
+  { value: 'Last day', label: t('Last day') },
+  { value: 'Last week', label: t('Last week') },
+  { value: 'Last month', label: t('Last month') },
+  { value: 'Last quarter', label: t('Last quarter') },
+  { value: 'Last year', label: t('Last year') },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
   COMMON_RANGE_OPTIONS.map(({ value }) => value),
@@ -114,3 +114,29 @@ export const SEVEN_DAYS_AGO = moment()
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
 export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
+
+export const LOCALE_MAPPING = {
+  en: 'en_US',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  it: 'it_IT',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+  de: 'de_DE',
+  pt: 'pt_PT',
+  pt_BR: 'pt_BR',
+  ru: 'ru_RU',
+  ko: 'ko_KR',
+  sk: 'sk_SK',
+  sl: 'sl_SI',
+  nl: 'nl_NL',
+};
+
+export enum DateFilterTestKey {
+  CommonFrame = 'common-frame',
+  ModalOverlay = 'modal-overlay',
+  PopoverOverlay = 'time-range-trigger',
+  NoFilter = 'no-filter',
+  CancelButton = 'cancel-button',
+  ApplyButton = 'date-filter-control__apply-button',
+}

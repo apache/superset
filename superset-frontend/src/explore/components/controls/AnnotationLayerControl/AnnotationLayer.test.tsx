@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import setupColors from 'src/setup/setupColors';
-import { ANNOTATION_TYPES_METADATA } from 'src/modules/AnnotationTypes';
+import { ANNOTATION_TYPES_METADATA } from './AnnotationTypes';
 import AnnotationLayer from './AnnotationLayer';
 
 const defaultProps = {
@@ -36,13 +36,15 @@ beforeAll(() => {
     value => value.value,
   );
 
-  fetchMock.get('glob:*/annotationlayermodelview/api/read?*', {
+  fetchMock.get('glob:*/api/v1/annotation_layer/*', {
     result: [{ label: 'Chart A', value: 'a' }],
   });
 
-  fetchMock.get('glob:*/superset/user_slices*', [
-    { id: 'a', title: 'Chart A', viz_type: 'table', data: {} },
-  ]);
+  fetchMock.get('glob:*/api/v1/chart/*', {
+    result: [
+      { id: 'a', slice_name: 'Chart A', viz_type: 'table', form_data: {} },
+    ],
+  });
 
   setupColors();
 
@@ -78,7 +80,7 @@ test('renders extra checkboxes when type is time series', async () => {
   userEvent.click(screen.getAllByText('Formula')[0]);
   userEvent.click(screen.getByText('Time series'));
   expect(
-    screen.getByRole('button', { name: 'Show Markers' }),
+    await screen.findByRole('button', { name: 'Show Markers' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Hide Line' })).toBeInTheDocument();
 });
@@ -86,7 +88,7 @@ test('renders extra checkboxes when type is time series', async () => {
 test('enables apply and ok buttons', async () => {
   const { container } = render(<AnnotationLayer {...defaultProps} />);
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(container).toBeInTheDocument();
   });
 
@@ -99,7 +101,7 @@ test('enables apply and ok buttons', async () => {
   userEvent.type(nameInput, 'Name');
   userEvent.type(formulaInput, '2x');
 
-  waitFor(() => {
+  await waitFor(() => {
     expect(screen.getByRole('button', { name: 'Apply' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'OK' })).toBeEnabled();
   });
@@ -150,13 +152,13 @@ test('renders chart options', async () => {
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   userEvent.click(screen.getByText('Superset annotation'));
-  expect(screen.getByText('Annotation layer')).toBeInTheDocument();
+  expect(await screen.findByText('Annotation layer')).toBeInTheDocument();
 
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation source type' }),
   );
   userEvent.click(screen.getByText('Table'));
-  expect(screen.getByText('Chart')).toBeInTheDocument();
+  expect(await screen.findByText('Chart')).toBeInTheDocument();
 });
 
 test('keeps apply disabled when missing required fields', async () => {
@@ -167,25 +169,26 @@ test('keeps apply disabled when missing required fields', async () => {
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
-  userEvent.click(await screen.findByText('Chart A'));
-  expect(
-    screen.getByText('Annotation Slice Configuration'),
-  ).toBeInTheDocument();
+  expect(await screen.findByText('Chart A')).toBeInTheDocument();
+  userEvent.click(screen.getByText('Chart A'));
 
   userEvent.click(screen.getByRole('button', { name: 'Automatic Color' }));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer title column' }),
   );
+  expect(await screen.findByText(/none/i)).toBeInTheDocument();
   userEvent.click(screen.getByText('None'));
   userEvent.click(screen.getByText('Style'));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer stroke' }),
   );
+  expect(await screen.findByText('Dashed')).toBeInTheDocument();
   userEvent.click(screen.getByText('Dashed'));
   userEvent.click(screen.getByText('Opacity'));
   userEvent.click(
     screen.getByRole('combobox', { name: 'Annotation layer opacity' }),
   );
+  expect(await screen.findByText(/0.5/i)).toBeInTheDocument();
   userEvent.click(screen.getByText('0.5'));
 
   const checkboxes = screen.getAllByRole('checkbox');

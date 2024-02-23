@@ -21,6 +21,7 @@ import { styled, useTheme, t } from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 import Icons from 'src/components/Icons';
 import { ErrorLevel, ErrorSource } from './types';
@@ -87,6 +88,7 @@ interface ErrorAlertProps {
   source?: ErrorSource;
   subtitle: ReactNode;
   title: ReactNode;
+  description?: string;
 }
 
 export default function ErrorAlert({
@@ -96,13 +98,15 @@ export default function ErrorAlert({
   source = 'dashboard',
   subtitle,
   title,
+  description,
 }: ErrorAlertProps) {
   const theme = useTheme();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isBodyExpanded, setIsBodyExpanded] = useState(false);
+  const [isBodyExpanded, setIsBodyExpanded] = useState(isCurrentUserBot());
 
-  const isExpandable = ['explore', 'sqllab'].includes(source);
+  const isExpandable =
+    isCurrentUserBot() || ['explore', 'sqllab'].includes(source);
   const iconColor = theme.colors[level].base;
 
   return (
@@ -116,7 +120,7 @@ export default function ErrorAlert({
           )}
           <strong>{title}</strong>
         </LeftSideContent>
-        {!isExpandable && (
+        {!isExpandable && !description && (
           <span
             role="button"
             tabIndex={0}
@@ -127,6 +131,21 @@ export default function ErrorAlert({
           </span>
         )}
       </div>
+      {description && (
+        <div className="error-body">
+          <p>{description}</p>
+          {!isExpandable && (
+            <span
+              role="button"
+              tabIndex={0}
+              className="link"
+              onClick={() => setIsModalOpen(true)}
+            >
+              {t('See more')}
+            </span>
+          )}
+        </div>
+      )}
       {isExpandable ? (
         <div className="error-body">
           <p>{subtitle}</p>
@@ -164,6 +183,7 @@ export default function ErrorAlert({
           level={level}
           show={isModalOpen}
           onHide={() => setIsModalOpen(false)}
+          destroyOnClose
           title={
             <div className="header">
               {level === 'error' ? (
@@ -196,7 +216,10 @@ export default function ErrorAlert({
         >
           <>
             <p>{subtitle}</p>
-            <br />
+            {/* This break was in the original design of the modal but
+            the spacing looks really off if there is only
+            subtitle or a body */}
+            {subtitle && body && <br />}
             {body}
           </>
         </ErrorModal>

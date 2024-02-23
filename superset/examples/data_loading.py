@@ -25,11 +25,11 @@ from .energy import load_energy
 from .flights import load_flights
 from .long_lat import load_long_lat_data
 from .misc_dashboard import load_misc_dashboard
-from .multi_line import load_multi_line
 from .multiformat_time_series import load_multiformat_time_series
 from .paris import load_paris_iris_geojson
 from .random_time_series import load_random_time_series_data
 from .sf_population_polygons import load_sf_population_polygons
+from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
 from .world_bank import load_world_bank_health_n_pop

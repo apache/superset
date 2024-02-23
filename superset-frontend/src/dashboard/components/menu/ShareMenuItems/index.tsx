@@ -18,15 +18,11 @@
  */
 import React from 'react';
 import copyTextToClipboard from 'src/utils/copy';
-import { t, logging, QueryFormData } from '@superset-ui/core';
+import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import {
-  getChartPermalink,
-  getDashboardPermalink,
-  getUrlParam,
-} from 'src/utils/urlUtils';
-import { RESERVED_DASHBOARD_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { getDashboardPermalink } from 'src/utils/urlUtils';
+import { RootState } from 'src/dashboard/types';
+import { useSelector } from 'react-redux';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -36,8 +32,8 @@ interface ShareMenuItemProps {
   emailBody: string;
   addDangerToast: Function;
   addSuccessToast: Function;
-  dashboardId?: string;
-  formData?: Pick<QueryFormData, 'slice_id' | 'datasource'>;
+  dashboardId: string | number;
+  dashboardComponentId?: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -49,29 +45,26 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addDangerToast,
     addSuccessToast,
     dashboardId,
-    formData,
+    dashboardComponentId,
     ...rest
   } = props;
+  const { dataMask, activeTabs } = useSelector((state: RootState) => ({
+    dataMask: state.dataMask,
+    activeTabs: state.dashboardState.activeTabs,
+  }));
 
   async function generateUrl() {
-    // chart
-    if (formData) {
-      // we need to remove reserved dashboard url params
-      return getChartPermalink(formData, RESERVED_DASHBOARD_URL_PARAMS);
-    }
-    // dashboard
-    const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
-    let filterState = {};
-    if (nativeFiltersKey && dashboardId) {
-      filterState = await getFilterValue(dashboardId, nativeFiltersKey);
-    }
-    return getDashboardPermalink(String(dashboardId), filterState);
+    return getDashboardPermalink({
+      dashboardId,
+      dataMask,
+      activeTabs,
+      anchor: dashboardComponentId,
+    });
   }
 
   async function onCopyLink() {
     try {
-      const url = await generateUrl();
-      await copyTextToClipboard(url);
+      await copyTextToClipboard(generateUrl);
       addSuccessToast(t('Copied to clipboard!'));
     } catch (error) {
       logging.error(error);
@@ -93,7 +86,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <>
+    <Menu selectable={false}>
       <Menu.Item key="copy-url" {...rest}>
         <div onClick={onCopyLink} role="button" tabIndex={0}>
           {copyMenuItemTitle}
@@ -104,7 +97,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
           {emailMenuItemTitle}
         </div>
       </Menu.Item>
-    </>
+    </Menu>
   );
 };
 

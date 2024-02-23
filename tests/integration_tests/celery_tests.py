@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
-import json
 import random
 import string
 import time
@@ -33,9 +32,6 @@ import pytest
 import flask
 from flask import current_app
 
-from tests.integration_tests.base_tests import login
-from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
-from tests.integration_tests.test_app import app
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.result_set import SupersetResultSet
@@ -46,6 +42,8 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+from tests.integration_tests.test_app import app
 
 CELERY_SLEEP_TIME = 6
 QUERY = "SELECT name FROM birth_names LIMIT 1"
@@ -63,9 +61,6 @@ TMP_TABLES = [
 ]
 
 
-test_client = app.test_client()
-
-
 def get_query_by_id(id: int):
     db.session.commit()
     query = db.session.query(Query).filter_by(id=id).first()
@@ -74,10 +69,10 @@ def get_query_by_id(id: int):
 
 @pytest.fixture(autouse=True, scope="module")
 def setup_sqllab():
-
+    yield
+    # clean up after all tests are done
+    # use a new app context
     with app.app_context():
-        yield
-
         db.session.query(Query).delete()
         db.session.commit()
         for tbl in TMP_TABLES:
@@ -92,12 +87,16 @@ def setup_sqllab():
 
 
 def run_sql(
-    sql, cta=False, ctas_method=CtasMethod.TABLE, tmp_table="tmp", async_=False
+    test_client,
+    sql,
+    cta=False,
+    ctas_method=CtasMethod.TABLE,
+    tmp_table="tmp",
+    async_=False,
 ):
-    login(test_client, username="admin")
     db_id = get_example_database().id
-    resp = test_client.post(
-        "/superset/sql_json/",
+    return test_client.post(
+        "/api/v1/sqllab/execute/",
         json=dict(
             database_id=db_id,
             sql=sql,
@@ -107,23 +106,22 @@ def run_sql(
             client_id="".join(random.choice(string.ascii_lowercase) for i in range(5)),
             ctas_method=ctas_method,
         ),
-    )
-    test_client.get("/logout/", follow_redirects=True)
-    return json.loads(resp.data)
+    ).json
 
 
 def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
     """Drop table if it exists, works on any DB"""
-    sql = f"DROP {table_type} IF EXISTS  {table_name}"
-    get_example_database().get_sqla_engine().execute(sql)
+    sql = f"DROP {table_type} IF EXISTS {table_name}"
+    database = get_example_database()
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(sql)
 
 
 def quote_f(value: Optional[str]):
     if not value:
         return value
-    return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
-        value
-    )
+    with get_example_database().get_inspector_with_context() as inspector:
+        return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 
 def cta_result(ctas_method: CtasMethod):
@@ -135,21 +133,22 @@ def cta_result(ctas_method: CtasMethod):
 
 
 # TODO(bkyryliuk): quote table and schema names for all databases
-def get_select_star(table: str, schema: Optional[str] = None):
+def get_select_star(table: str, limit: int, schema: Optional[str] = None):
     if backend() in {"presto", "hive"}:
         schema = quote_f(schema)
         table = quote_f(table)
     if schema:
-        return f"SELECT *\nFROM {schema}.{table}"
-    return f"SELECT *\nFROM {table}"
+        return f"SELECT *\nFROM {schema}.{table}\nLIMIT {limit}"
+    return f"SELECT *\nFROM {table}\nLIMIT {limit}"
 
 
+@pytest.mark.usefixtures("login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
+def test_run_sync_query_dont_exist(test_client, ctas_method):
     examples_db = get_example_database()
     engine_name = examples_db.db_engine_spec.engine_name
     sql_dont_exist = "SELECT name FROM table_dont_exist"
-    result = run_sql(sql_dont_exist, cta=True, ctas_method=ctas_method)
+    result = run_sql(test_client, sql_dont_exist, cta=True, ctas_method=ctas_method)
     if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
     elif backend() == "presto":
@@ -188,27 +187,29 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
         }
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_sync_query_cta(setup_sqllab, ctas_method):
+def test_run_sync_query_cta(test_client, ctas_method):
     tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
-    result = run_sql(QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method)
+    result = run_sql(
+        test_client, QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method
+    )
     assert QueryStatus.SUCCESS == result["query"]["state"], result
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
     # Check the data in the tmp table.
     select_query = get_query_by_id(result["query"]["serverId"])
-    results = run_sql(select_query.select_sql)
+    results = run_sql(test_client, select_query.select_sql)
     assert QueryStatus.SUCCESS == results["status"], results
     assert len(results["data"]) > 0
 
     delete_tmp_view_or_table(tmp_table_name, ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_run_sync_query_cta_no_data(setup_sqllab):
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
+def test_run_sync_query_cta_no_data(test_client):
     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
-    result = run_sql(sql_empty_result)
+    result = run_sql(test_client, sql_empty_result)
     assert QueryStatus.SUCCESS == result["query"]["state"]
     assert ([], []) == (result["data"], result["columns"])
 
@@ -216,18 +217,20 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
     assert QueryStatus.SUCCESS == query.status
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
+def test_run_sync_query_cta_config(test_client, ctas_method):
     if backend() == "sqlite":
         # sqlite doesn't support schemas
         return
     tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.lower()}"
-    result = run_sql(QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name)
+    result = run_sql(
+        test_client, QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name
+    )
     assert QueryStatus.SUCCESS == result["query"]["state"], result
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
@@ -236,26 +239,28 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
         == query.executed_sql
     )
-
-    assert query.select_sql == get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME)
-    results = run_sql(query.select_sql)
+    assert query.select_sql == get_select_star(
+        tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
+    )
+    results = run_sql(test_client, query.select_sql)
     assert QueryStatus.SUCCESS == results["status"], result
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
-def test_run_async_query_cta_config(setup_sqllab, ctas_method):
+def test_run_async_query_cta_config(test_client, ctas_method):
     if backend() in {"sqlite", "mysql"}:
         # sqlite doesn't support schemas, mysql is flaky
         return
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.lower()}"
     result = run_sql(
+        test_client,
         QUERY,
         cta=True,
         ctas_method=ctas_method,
@@ -266,7 +271,10 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     query = wait_for_success(result)
 
     assert QueryStatus.SUCCESS == query.status
-    assert get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME) == query.select_sql
+    assert (
+        get_select_star(tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME)
+        == query.select_sql
+    )
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
         == query.executed_sql
@@ -275,22 +283,27 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query(setup_sqllab, ctas_method):
+def test_run_async_cta_query(test_client, ctas_method):
     if backend() == "mysql":
         # failing
         return
 
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
     result = run_sql(
-        QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=table_name
+        test_client,
+        QUERY,
+        cta=True,
+        ctas_method=ctas_method,
+        async_=True,
+        tmp_table=table_name,
     )
 
     query = wait_for_success(result)
 
     assert QueryStatus.SUCCESS == query.status
-    assert get_select_star(table_name) in query.select_sql
+    assert get_select_star(table_name, query.limit) in query.select_sql
 
     assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
@@ -301,26 +314,37 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
     delete_tmp_view_or_table(table_name, ctas_method)
 
 
-@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
+def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     if backend() == "mysql":
         # failing
         return
 
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
     result = run_sql(
-        QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table
+        test_client,
+        QUERY,
+        cta=True,
+        ctas_method=ctas_method,
+        async_=True,
+        tmp_table=tmp_table,
     )
     query = wait_for_success(result)
-
     assert QueryStatus.SUCCESS == query.status
 
-    assert get_select_star(tmp_table) == query.select_sql
+    sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
+    assert query.select_sql == (
+        sqllite_select_sql
+        if backend() == "sqlite"
+        else get_select_star(tmp_table, query.limit)
+    )
+
     assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
+
     assert query.rows == (1 if backend() == "presto" else 0)
-    assert query.limit is None
+    assert query.limit == 50000
     assert query.select_as_cta
     assert query.select_as_cta_used
 

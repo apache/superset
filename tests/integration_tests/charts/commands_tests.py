@@ -22,17 +22,25 @@ import yaml
 from flask import g
 
 from superset import db, security_manager
-from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.commands.export import ExportChartsCommand
-from superset.charts.commands.importers.v1 import ImportChartsCommand
-from superset.charts.commands.update import UpdateChartCommand
+from superset.commands.chart.create import CreateChartCommand
+from superset.commands.chart.exceptions import (
+    ChartNotFoundError,
+    WarmUpCacheChartNotFoundError,
+)
+from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.chart.update import UpdateChartCommand
+from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
     load_energy_table_with_slice,
@@ -67,11 +75,14 @@ class TestExportChartsCommand(SupersetTestCase):
         assert expected == list(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
 
         assert metadata == {
             "slice_name": "Energy Sankey",
+            "description": None,
+            "certified_by": None,
+            "certification_details": None,
             "viz_type": "sankey",
             "params": {
                 "collapsed_fieldsets": "",
@@ -85,49 +96,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "dataset_uuid": str(example_chart.table.uuid),
             "uuid": str(example_chart.uuid),
             "version": "1.0.0",
-        }
-
-    @patch("superset.security.manager.g")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_with_query_context(self, mock_g):
-        """Test that charts that have a query_context are exported correctly"""
-
-        mock_g.user = security_manager.find_user("alpha")
-        example_chart = db.session.query(Slice).filter_by(slice_name="Heatmap").one()
-        command = ExportChartsCommand([example_chart.id])
-
-        contents = dict(command.run())
-
-        expected = [
-            "metadata.yaml",
-            f"charts/Heatmap_{example_chart.id}.yaml",
-            "datasets/examples/energy_usage.yaml",
-            "databases/examples.yaml",
-        ]
-        assert expected == list(contents.keys())
-
-        metadata = yaml.safe_load(contents[f"charts/Heatmap_{example_chart.id}.yaml"])
-
-        assert metadata == {
-            "slice_name": "Heatmap",
-            "viz_type": "heatmap",
-            "params": {
-                "all_columns_x": "source",
-                "all_columns_y": "target",
-                "canvas_image_rendering": "pixelated",
-                "collapsed_fieldsets": "",
-                "linear_color_scheme": "blue_white_yellow",
-                "metric": "sum__value",
-                "normalize_across": "heatmap",
-                "slice_name": "Heatmap",
-                "viz_type": "heatmap",
-                "xscale_interval": "1",
-                "yscale_interval": "1",
-            },
-            "cache_timeout": None,
-            "dataset_uuid": str(example_chart.table.uuid),
-            "uuid": str(example_chart.uuid),
-            "version": "1.0.0",
+            "query_context": None,
         }
 
     @patch("superset.security.manager.g")
@@ -164,12 +133,16 @@ class TestExportChartsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "slice_name",
+            "description",
+            "certified_by",
+            "certification_details",
             "viz_type",
             "params",
+            "query_context",
             "cache_timeout",
             "uuid",
             "version",
@@ -198,10 +171,11 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    @patch("superset.charts.commands.importers.v1.utils.g")
-    def test_import_v1_chart(self, mock_g):
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart(self, sm_g, utils_g):
         """Test that we can import a chart"""
-        mock_g.user = security_manager.find_user("admin")
+        admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -216,6 +190,7 @@ class TestImportChartsCommand(SupersetTestCase):
         )
         dataset = chart.datasource
         assert json.loads(chart.params) == {
+            "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
             "datasource": dataset.uid,
             "js_columns": ["color"],
@@ -262,18 +237,17 @@ class TestImportChartsCommand(SupersetTestCase):
         assert database.database_name == "imported_database"
         assert chart.table.database == database
 
-        assert chart.owners == [mock_g.user]
+        assert chart.owners == [admin]
 
-        chart.owners = []
-        dataset.owners = []
-        database.owners = []
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()
 
-    def test_import_v1_chart_multiple(self):
+    @patch("superset.security.manager.g")
+    def test_import_v1_chart_multiple(self, sm_g):
         """Test that a chart can be imported multiple times"""
+        sm_g.user = security_manager.find_user("admin")
         contents = {
             "metadata.yaml": yaml.safe_dump(chart_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
@@ -350,64 +324,66 @@ class TestImportChartsCommand(SupersetTestCase):
 
 
 class TestChartsCreateCommand(SupersetTestCase):
-    @patch("superset.views.base.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.commands.chart.create.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_create_v1_response(self, mock_sm_g, mock_g):
+    def test_create_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
         """Test that the create chart command creates a chart"""
-        actor = security_manager.find_user(username="admin")
-        mock_g.user = mock_sm_g.user = actor
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
         chart_data = {
             "slice_name": "new chart",
             "description": "new description",
-            "owners": [actor.id],
+            "owners": [user.id],
             "viz_type": "new_viz_type",
             "params": json.dumps({"viz_type": "new_viz_type"}),
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
         }
-        command = CreateChartCommand(actor, chart_data)
+        command = CreateChartCommand(chart_data)
         chart = command.run()
         chart = db.session.query(Slice).get(chart.id)
         assert chart.viz_type == "new_viz_type"
         json_params = json.loads(chart.params)
         assert json_params == {"viz_type": "new_viz_type"}
         assert chart.slice_name == "new chart"
-        assert chart.owners == [actor]
+        assert chart.owners == [user]
         db.session.delete(chart)
         db.session.commit()
 
 
 class TestChartsUpdateCommand(SupersetTestCase):
-    @patch("superset.views.base.g")
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_g):
+    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
         """Test that a chart command updates properties"""
         pk = db.session.query(Slice).all()[0].id
-        actor = security_manager.find_user(username="admin")
-        mock_g.user = mock_sm_g.user = actor
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
         model_id = pk
         json_obj = {
             "description": "test for update",
             "cache_timeout": None,
-            "owners": [actor.id],
+            "owners": [user.id],
         }
-        command = UpdateChartCommand(actor, model_id, json_obj)
+        command = UpdateChartCommand(model_id, json_obj)
         last_saved_before = db.session.query(Slice).get(pk).last_saved_at
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.last_saved_at != last_saved_before
-        assert chart.last_saved_by == actor
+        assert chart.last_saved_by == user
 
-    @patch("superset.views.base.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
         Test that a user can generate the chart query context
-        payloadwithout affecting owners
+        payload without affecting owners
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
@@ -415,16 +391,36 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart.owners = [admin]
         db.session.commit()
 
-        actor = security_manager.find_user(username="alpha")
-        mock_g.user = mock_sm_g.user = actor
+        user = security_manager.find_user(username="alpha")
+        mock_g.user = mock_sm_g.user = user
         query_context = json.dumps({"foo": "bar"})
         json_obj = {
             "query_context_generation": True,
             "query_context": query_context,
         }
-        command = UpdateChartCommand(actor, pk, json_obj)
+        command = UpdateChartCommand(pk, json_obj)
         command.run()
         chart = db.session.query(Slice).get(pk)
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+
+class TestChartWarmUpCacheCommand(SupersetTestCase):
+    def test_warm_up_cache_command_chart_not_found(self):
+        with self.assertRaises(WarmUpCacheChartNotFoundError):
+            ChartWarmUpCacheCommand(99999, None, None).run()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_warm_up_cache(self):
+        slc = self.get_slice("Top 10 Girl Name Share")
+        result = ChartWarmUpCacheCommand(slc.id, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )
+
+        # can just pass in chart as well
+        result = ChartWarmUpCacheCommand(slc, None, None).run()
+        self.assertEqual(
+            result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}
+        )

@@ -35,9 +35,8 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   setDirectPathToChild,
-  setActiveTabs,
+  setActiveTab,
   setFullSizeChartId,
-  postAddSliceFromDashboard,
 } from 'src/dashboard/actions/dashboardState';
 
 const propTypes = {
@@ -110,9 +109,8 @@ function mapDispatchToProps(dispatch) {
       handleComponentDrop,
       setDirectPathToChild,
       setFullSizeChartId,
-      setActiveTabs,
+      setActiveTab,
       logEvent,
-      postAddSliceFromDashboard,
     },
     dispatch,
   );

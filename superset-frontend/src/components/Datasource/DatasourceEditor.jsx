@@ -24,8 +24,18 @@ import Card from 'src/components/Card';
 import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import {
+  css,
+  isFeatureEnabled,
+  getCurrencySymbol,
+  ensureIsArray,
+  FeatureFlag,
+  styled,
+  SupersetClient,
+  t,
+  withTheme,
+} from '@superset-ui/core';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -42,8 +52,8 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -123,14 +133,21 @@ const StyledColumnsTabWrapper = styled.div`
   }
 `;
 
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -169,29 +186,55 @@ function ColumnCollectionTable({
   allowAddItem,
   allowEditDataType,
   itemGenerator,
+  columnLabelTooltips,
 }) {
   return (
     <CollectionTable
-      collection={columns}
-      tableColumns={[
-        'column_name',
-        'type',
-        'is_dttm',
-        'main_dttm_col',
-        'filterable',
-        'groupby',
-      ]}
-      sortColumns={[
-        'column_name',
-        'type',
-        'is_dttm',
-        'main_dttm_col',
-        'filterable',
-        'groupby',
-      ]}
+      tableColumns={
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+          ? [
+              'column_name',
+              'advanced_data_type',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+      }
+      sortColumns={
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+          ? [
+              'column_name',
+              'advanced_data_type',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+      }
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
+      collection={columns}
+      columnLabelTooltips={columnLabelTooltips}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -204,6 +247,7 @@ function ColumnCollectionTable({
                   <TextAreaControl
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -243,6 +287,20 @@ function ColumnCollectionTable({
                 }
               />
             )}
+            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
+              <Field
+                fieldKey="advanced_data_type"
+                label={t('Advanced data type')}
+                control={
+                  <TextControl
+                    controlId="advanced_data_type"
+                    placeholder={t('Advanced Data type')}
+                  />
+                }
+              />
+            ) : (
+              <></>
+            )}
             <Field
               fieldKey="python_date_format"
               label={t('Datetime format')}
@@ -271,7 +329,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="python_date_format"
-                  placeholder="%Y/%m/%d"
+                  placeholder="%Y-%m-%d"
                 />
               }
             />
@@ -300,62 +358,131 @@ function ColumnCollectionTable({
           </Fieldset>
         </FormContainer>
       }
-      columnLabels={{
-        column_name: t('Column'),
-        type: t('Data type'),
-        groupby: t('Is dimension'),
-        is_dttm: t('Is temporal'),
-        main_dttm_col: t('Default datetime'),
-        filterable: t('Is filterable'),
-      }}
+      columnLabels={
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+          ? {
+              column_name: t('Column'),
+              advanced_data_type: t('Advanced data type'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
+              filterable: t('Is filterable'),
+            }
+          : {
+              column_name: t('Column'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
+              filterable: t('Is filterable'),
+            }
+      }
       onChange={onColumnsChange}
-      itemRenderers={{
-        column_name: (v, onItemChange, _, record) =>
-          editableColumnName ? (
-            <StyledLabelWrapper>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
-                />
-              )}
-              <TextControl value={v} onChange={onItemChange} />
-            </StyledLabelWrapper>
-          ) : (
-            <StyledLabelWrapper>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
-                />
-              )}
-              {v}
-            </StyledLabelWrapper>
-          ),
-        main_dttm_col: (value, _onItemChange, _label, record) => {
-          const checked = datasource.main_dttm_col === record.column_name;
-          const disabled = !columns.find(
-            column => column.column_name === record.column_name,
-          ).is_dttm;
-          return (
-            <Radio
-              data-test={`radio-default-dttm-${record.column_name}`}
-              checked={checked}
-              disabled={disabled}
-              onChange={() =>
-                onDatasourceChange({
-                  ...datasource,
-                  main_dttm_col: record.column_name,
-                })
-              }
-            />
-          );
-        },
-        type: d => (d ? <Label>{d}</Label> : null),
-        is_dttm: checkboxGenerator,
-        filterable: checkboxGenerator,
-        groupby: checkboxGenerator,
-      }}
+      itemRenderers={
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+          ? {
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <EditableTitle
+                      canEdit
+                      title={v}
+                      onSaveTitle={onItemChange}
+                    />
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
+              type: d => (d ? <Label>{d}</Label> : null),
+              advanced_data_type: d => (
+                <Label onChange={onColumnsChange}>{d}</Label>
+              ),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+          : {
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <TextControl value={v} onChange={onItemChange} />
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
+              type: d => (d ? <Label>{d}</Label> : null),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+      }
     />
   );
 }
@@ -376,7 +503,7 @@ ColumnCollectionTable.defaultProps = {
   allowAddItem: false,
   allowEditDataType: false,
   itemGenerator: () => ({
-    column_name: '<new column>',
+    column_name: t('<new column>'),
     filterable: true,
     groupby: true,
   }),
@@ -411,10 +538,12 @@ const propTypes = {
   onChange: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  setIsEditing: PropTypes.func,
 };
 
 const defaultProps = {
   onChange: () => {},
+  setIsEditing: () => {},
 };
 
 function OwnersSelector({ datasource, onChange }) {
@@ -423,16 +552,18 @@ function OwnersSelector({ datasource, onChange }) {
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
+      data: response.json.result
+        .filter(item => item.extra.active)
+        .map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
       totalCount: response.json.count,
     }));
   }, []);
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
@@ -473,9 +604,6 @@ class DatasourceEditor extends React.PureComponent {
         }),
       },
       errors: [],
-      isDruid:
-        props.datasource.type === 'druid' ||
-        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
@@ -501,9 +629,12 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.allowEditSource = !isFeatureEnabled(
-      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
-    );
+    this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
+      value: currencyCode,
+      label: `${getCurrencySymbol({
+        symbol: currencyCode,
+      })} (${currencyCode})`,
+    }));
   }
 
   onChange() {
@@ -522,6 +653,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onChangeEditMode() {
+    this.props.setIsEditing(!this.state.isEditMode);
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
@@ -563,8 +695,9 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   updateColumns(cols) {
+    // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
     const { databaseColumns } = this.state;
-    const databaseColumnNames = cols.map(col => col.name);
+    const databaseColumnNames = cols.map(col => col.column_name);
     const currentCols = databaseColumns.reduce(
       (agg, col) => ({
         ...agg,
@@ -581,18 +714,18 @@ class DatasourceEditor extends React.PureComponent {
         .filter(col => !databaseColumnNames.includes(col)),
     };
     cols.forEach(col => {
-      const currentCol = currentCols[col.name];
+      const currentCol = currentCols[col.column_name];
       if (!currentCol) {
         // new column
         finalColumns.push({
           id: shortid.generate(),
-          column_name: col.name,
+          column_name: col.column_name,
           type: col.type,
           groupby: true,
           filterable: true,
           is_dttm: col.is_dttm,
         });
-        results.added.push(col.name);
+        results.added.push(col.column_name);
       } else if (
         currentCol.type !== col.type ||
         (!currentCol.is_dttm && col.is_dttm)
@@ -603,7 +736,7 @@ class DatasourceEditor extends React.PureComponent {
           type: col.type,
           is_dttm: currentCol.is_dttm || col.is_dttm,
         });
-        results.modified.push(col.name);
+        results.modified.push(col.column_name);
       } else {
         // unchanged
         finalColumns.push(currentCol);
@@ -627,6 +760,8 @@ class DatasourceEditor extends React.PureComponent {
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
       table_name: datasource.table_name,
+      normalize_columns: datasource.normalize_columns,
+      always_filter_main_dttm: datasource.always_filter_main_dttm,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -634,7 +769,7 @@ class DatasourceEditor extends React.PureComponent {
         params[key] = null;
       }
     });
-    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode(
+    const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
       params,
     )}`;
     this.setState({ metadataLoading: true });
@@ -711,6 +846,20 @@ class DatasourceEditor extends React.PureComponent {
       ),
     );
 
+    // validate currency code
+    try {
+      this.state.datasource.metrics?.forEach(
+        metric =>
+          metric.currency?.symbol &&
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: metric.currency.symbol,
+          }),
+      );
+    } catch {
+      errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
+
     this.setState({ errors }, callback);
   }
 
@@ -734,7 +883,11 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="description"
           label={t('Description')}
           control={
-            <TextAreaControl language="markdown" offerEditInModal={false} />
+            <TextAreaControl
+              language="markdown"
+              offerEditInModal={false}
+              resize="vertical"
+            />
           }
         />
         <Field
@@ -768,6 +921,7 @@ class DatasourceEditor extends React.PureComponent {
                 language="sql"
                 controlId="fetch_values_predicate"
                 minLines={5}
+                resize="vertical"
               />
             }
           />
@@ -787,6 +941,7 @@ class DatasourceEditor extends React.PureComponent {
                 controlId="extra"
                 language="json"
                 offerEditInModal={false}
+                resize="vertical"
               />
             }
           />
@@ -813,7 +968,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="cache_timeout"
           label={t('Cache timeout')}
           description={t(
-            'The duration of time in seconds before the cache is invalidated',
+            'The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache.',
           )}
           control={<TextControl controlId="cache_timeout" />}
         />
@@ -835,6 +990,24 @@ class DatasourceEditor extends React.PureComponent {
             control={<TextControl controlId="template_params" />}
           />
         )}
+        <Field
+          inline
+          fieldKey="normalize_columns"
+          label={t('Normalize column names')}
+          description={t(
+            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          )}
+          control={<CheckboxControl controlId="normalize_columns" />}
+        />
+        <Field
+          inline
+          fieldKey="always_filter_main_dttm"
+          label={t('Always filter main datetime column')}
+          description={t(
+            `When the secondary temporal columns are filtered, apply the same filter to the main datetime column.`,
+          )}
+          control={<CheckboxControl controlId="always_filter_main_dttm" />}
+        />
       </Fieldset>
     );
   }
@@ -851,8 +1024,8 @@ class DatasourceEditor extends React.PureComponent {
           tableColumns={['name', 'config']}
           onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
           itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
+            name: t('<new spatial>'),
+            type: t('<no type>'),
             config: null,
           })}
           collection={spatials}
@@ -874,23 +1047,21 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     return (
       <div>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
+        <EditLockContainer>
+          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+            {this.state.isEditMode ? (
+              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+            ) : (
+              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
             )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
+          </span>
+          {!this.state.isEditMode && (
+            <div>{t('Click the lock to make changes.')}</div>
+          )}
+          {this.state.isEditMode && (
+            <div>{t('Click the lock to prevent further changes.')}</div>
+          )}
+        </EditLockContainer>
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
@@ -938,7 +1109,7 @@ class DatasourceEditor extends React.PureComponent {
                     <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
                       <Field
                         fieldKey="table_name"
-                        label={t('Dataset name')}
+                        label={t('Name')}
                         control={
                           <TextControl
                             controlId="table_name"
@@ -965,26 +1136,13 @@ class DatasourceEditor extends React.PureComponent {
                         language="sql"
                         offerEditInModal={false}
                         minLines={20}
-                        maxLines={20}
+                        maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
+                        resize="both"
                       />
                     }
                   />
                 </>
-              )}
-              {this.state.isDruid && (
-                <Field
-                  fieldKey="json"
-                  label={t('JSON')}
-                  description={
-                    <div>
-                      {t('The JSON metric or post aggregation definition.')}
-                    </div>
-                  }
-                  control={
-                    <TextAreaControl language="json" offerEditInModal={false} />
-                  }
-                />
               )}
             </div>
           )}
@@ -1008,7 +1166,7 @@ class DatasourceEditor extends React.PureComponent {
                         handleError={this.props.addDangerToast}
                         schema={datasource.schema}
                         sqlLabMode={false}
-                        tableName={datasource.table_name}
+                        tableValue={datasource.table_name}
                         onSchemaChange={
                           this.state.isEditMode
                             ? schema =>
@@ -1024,7 +1182,7 @@ class DatasourceEditor extends React.PureComponent {
                                 )
                             : undefined
                         }
-                        onTableChange={
+                        onTableSelectChange={
                           this.state.isEditMode
                             ? table =>
                                 this.onDatasourcePropChange('table_name', table)
@@ -1076,9 +1234,16 @@ class DatasourceEditor extends React.PureComponent {
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
         columnLabels={{
-          metric_name: t('Metric'),
+          metric_name: t('Metric Key'),
           verbose_name: t('Label'),
           expression: t('SQL expression'),
+        }}
+        columnLabelTooltips={{
+          metric_name: t(
+            'This field is used as a unique identifier to attach ' +
+              'the metric to charts. It is also used as the alias in the ' +
+              'SQL query.',
+          ),
         }}
         expandFieldset={
           <FormContainer>
@@ -1098,6 +1263,20 @@ class DatasourceEditor extends React.PureComponent {
                 label={t('D3 format')}
                 control={
                   <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                }
+              />
+              <Field
+                fieldKey="currency"
+                label={t('Metric currency')}
+                control={
+                  <CurrencyControl
+                    currencySelectOverrideProps={{
+                      placeholder: t('Select or type currency symbol'),
+                    }}
+                    symbolSelectAdditionalStyles={css`
+                      max-width: 30%;
+                    `}
+                  />
                 }
               />
               <Field
@@ -1133,6 +1312,7 @@ class DatasourceEditor extends React.PureComponent {
                     controlId="warning_markdown"
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -1143,10 +1323,15 @@ class DatasourceEditor extends React.PureComponent {
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
-          metric_name: '<new metric>',
+          metric_name: t('<new metric>'),
           verbose_name: '',
           expression: '',
         })}
+        itemCellProps={{
+          expression: () => ({
+            width: '240px',
+          }),
+        }}
         itemRenderers={{
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
@@ -1176,6 +1361,8 @@ class DatasourceEditor extends React.PureComponent {
               language="sql"
               offerEditInModal={false}
               minLines={5}
+              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+              resize="both"
             />
           ),
           description: (v, onChange, label) => (
@@ -1204,7 +1391,7 @@ class DatasourceEditor extends React.PureComponent {
     const { theme } = this.props;
 
     return (
-      <DatasourceContainer>
+      <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}
@@ -1251,7 +1438,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
-                <span className="m-t-10 m-r-10">
+                <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
                     buttonStyle="tertiary"
@@ -1262,7 +1449,7 @@ class DatasourceEditor extends React.PureComponent {
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>
-                </span>
+                </StyledButtonWrapper>
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"
@@ -1291,6 +1478,13 @@ class DatasourceEditor extends React.PureComponent {
                 onColumnsChange={calculatedColumns =>
                   this.setColumns({ calculatedColumns })
                 }
+                columnLabelTooltips={{
+                  column_name: t(
+                    'This field is used as a unique identifier to attach ' +
+                      'the calculated dimension to charts. It is also used ' +
+                      'as the alias in the SQL query.',
+                  ),
+                }}
                 onDatasourceChange={this.onDatasourceChange}
                 datasource={datasource}
                 editableColumnName
@@ -1298,10 +1492,10 @@ class DatasourceEditor extends React.PureComponent {
                 allowAddItem
                 allowEditDataType
                 itemGenerator={() => ({
-                  column_name: '<new column>',
+                  column_name: t('<new column>'),
                   filterable: true,
                   groupby: true,
-                  expression: '<enter SQL expression here>',
+                  expression: t('<enter SQL expression here>'),
                   __expanded: true,
                 })}
               />

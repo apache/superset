@@ -55,7 +55,7 @@ console.log(formatNumber('my_format', 1000));
 ```
 
 It also define constants for common d3 formats. See the full list of formats in
-[NumberFormats.js](https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-number-format/src/NumberFormats.js).
+[NumberFormats.js](https://github.com/apache/superset/blob/master/superset-frontend/packages/superset-ui-core/src/number-format/NumberFormats.ts).
 
 ```js
 import { NumberFormats } from '@superset-ui-number-format';
@@ -68,7 +68,7 @@ There is also a formatter based on [pretty-ms](https://www.npmjs.com/package/pre
 used to format time durations:
 
 ```js
-import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from from '@superset-ui-number-format';
+import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from '@superset-ui-number-format';
 
 getNumberFormatterRegistry().registerValue('my_duration_format', createDurationFormatter({ colonNotation: true });
 console.log(formatNumber('my_duration_format', 95500))

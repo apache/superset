@@ -37,7 +37,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  copyNode: <span>Copy</span>,
+  copyNode: <span>{t('Copy')}</span>,
   onCopyEnd: () => {},
   shouldShowText: true,
   wrapped: true,
@@ -57,10 +57,10 @@ class CopyToClipboard extends React.Component {
   onClick() {
     if (this.props.getText) {
       this.props.getText(d => {
-        this.copyToClipboard(d);
+        this.copyToClipboard(Promise.resolve(d));
       });
     } else {
-      this.copyToClipboard(this.props.text);
+      this.copyToClipboard(Promise.resolve(this.props.text));
     }
   }
 
@@ -72,7 +72,7 @@ class CopyToClipboard extends React.Component {
   }
 
   copyToClipboard(textToCopy) {
-    copyTextToClipboard(textToCopy)
+    copyTextToClipboard(() => textToCopy)
       .then(() => {
         this.props.addSuccessToast(t('Copied to clipboard!'));
       })
@@ -94,10 +94,11 @@ class CopyToClipboard extends React.Component {
         {!this.props.hideTooltip ? (
           <Tooltip
             id="copy-to-clipboard-tooltip"
-            placement="top"
+            placement="topRight"
             style={{ cursor }}
             title={this.props.tooltipText}
             trigger={['hover']}
+            arrowPointAtCenter
           >
             {this.getDecoratedCopyNode()}
           </Tooltip>

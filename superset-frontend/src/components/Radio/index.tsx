@@ -57,4 +57,5 @@ const StyledGroup = styled(AntdRadio.Group)`
 
 export const Radio = Object.assign(StyledRadio, {
   Group: StyledGroup,
+  Button: AntdRadio.Button,
 });

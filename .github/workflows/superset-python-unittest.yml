@@ -3,23 +3,35 @@ name: Python-Unit
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - 'master'
+    paths:
+      - "superset/**"
+      - "requirements/**"
+      - "tests/unit_tests/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset/**"
+      - "requirements/**"
+      - "tests/unit_tests/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   unit-tests:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.9", "3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -32,12 +44,12 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           cache-dependency-path: 'requirements/testing.txt'
-# TODO: separated requiermentes.txt file just for unit tests
+# TODO: separated requirements.txt file just for unit tests
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -50,6 +62,8 @@ jobs:
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
+        env:
+          SUPERSET_TESTENV: true
         run: |
           pytest --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear
       - name: Upload code coverage

@@ -31,28 +31,30 @@ to query and visualize data from it. If you're using Superset locally via
 skip this step because a Postgres database, named **examples**, is included and
 pre-configured in Superset for you.
 
-Under the **Data** menu, select the _Databases_ option:
+Under the **+** menu in the top right, select Data, and then the _Connect Database_ option:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_01_sources_database.png" )} />{" "} <br/><br/>
+<img src={useBaseUrl("/img/tutorial/tutorial_01_add_database_connection.png")} width="600" />{" "} <br/><br/>
 
-Next, click the green **+ Database** button in the top right corner:
+Then select your database type in the resulting modal:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_02_add_database.png" )} />{" "} <br/><br/>
+<img src={useBaseUrl("/img/tutorial/tutorial_02_select_database.png" )} width="600" />{" "} <br/><br/>
 
-You can configure a number of advanced options in this window, but for this walkthrough you only
-need to specify two things (the database name and SQLAlchemy URI):
+Once you've selected a database, you can configure a number of advanced options in this window,
+or for the purposes of this walkthrough, you can click the link below all these fields:
 
-<img src={useBaseUrl("/img/tutorial/tutorial_03_database_name.png" )} />
+<img src={useBaseUrl("/img/tutorial/tutorial_03a_database_connection_string_link.png" )} width="600" />{" "} <br/><br/>
 
-As noted in the text below
-the URI, you should refer to the SQLAlchemy documentation on
+Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
+
+
+<img src={useBaseUrl("/img/tutorial/tutorial_03b_connection_string_details.png" )} width="600" />{" "} <br/><br/>
+
+As noted in the text below the form, you should refer to the SQLAlchemy documentation on
 [creating new connection URIs](https://docs.sqlalchemy.org/en/12/core/engines.html#database-urls)
 for your target database.
 
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
-by clicking the **Add** button in the bottom right corner of the modal window:
-
-<img src={useBaseUrl("/img/tutorial/tutorial_04_add_button.png" )} />
+by clicking the **Connect** button in the bottom right corner of the modal window:
 
 Congratulations, you've just added a new data source in Superset!
 
@@ -94,7 +96,7 @@ The Superset semantic layer can store 2 types of computed data:
 1. Virtual metrics: you can write SQL queries that aggregate values
 from multiple column (e.g. `SUM(recovered) / SUM(confirmed)`) and make them
 available as columns for (e.g. `recovery_rate`) visualization in Explore.
-Agggregate functions are allowed and encouraged for metrics.
+Aggregate functions are allowed and encouraged for metrics.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_sql_metric.png" )} />
 
@@ -136,7 +138,7 @@ to get visual feedback.
 <img src={useBaseUrl("/img/tutorial/tutorial_explore_run.jpg" )} />
 
 In the following screenshot, we craft a grouped Time-series Bar Chart to visualize
-our quarterly sales data by product line just be clicking options in drop-down menus.
+our quarterly sales data by product line just by clicking options in drop-down menus.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_explore_settings.jpg" )} />
 
@@ -157,16 +159,16 @@ Behind the scenes, Superset will create a slice and store all the information ne
 to create your chart in its thin data layer
  (the query, chart type, options selected, name, etc).
 
- <img src={useBaseUrl("/img/tutorial/tutorial_first_dashboard.png" )} />
+ <img src={useBaseUrl("/img/tutorial/tutorial_first_dashboard.png" )} style={{width: "100%", maxWidth: "500px"}} />
 
- To resize the chart, start by clicking the pencil button in the top right corner.
+ To resize the chart, start by clicking the Edit Dashboard button in the top right corner.
 
- <img src={useBaseUrl("/img/tutorial/tutorial_pencil_edit.png" )} />
+ <img src={useBaseUrl("/img/tutorial/tutorial_edit_button.png" )} width="300" />
 
 Then, click and drag the bottom right corner of the chart until the chart layout snaps
 into a position you like onto the underlying grid.
 
- <img src={useBaseUrl("/img/tutorial/tutorial_chart_resize.png" )} />
+ <img src={useBaseUrl("/img/tutorial/tutorial_chart_resize.png" )} style={{width: "100%", maxWidth: "500px"}} />
 
  Click **Save** to persist the changes.
 
@@ -182,11 +184,10 @@ Access to dashboards is managed via owners (users that have edit permissions to 
 
 Non-owner users access can be managed two different ways:
 
-1. Dataset permissions - if you add to the relevant role permissions to datasets it automatically grants implict access to all dashboards that uses those permitted datasets
-2. Dashboard roles - if you enable **DASHBOARD_RBAC** feature flag  then you be able to manage which roles can access the dashboard
-- Having dashboard access implicitly grants read access to the associated datasets, therefore
-all charts will load their data even if feature flag is turned on and no roles assigned
-to roles the access will fallback to **Dataset permissions**
+1. Dataset permissions - if you add to the relevant role permissions to datasets it automatically grants implicit access to all dashboards that uses those permitted datasets
+2. Dashboard roles - if you enable **DASHBOARD_RBAC** [feature flag](/docs/installation/configuring-superset#feature-flags) then you be able to manage which roles can access the dashboard
+   - Granting a role access to a dashboard will bypass dataset level checks. Having dashboard access implicitly grants read access to all the featured charts in the dashboard, and thereby also all the associated datasets.
+   - If no roles are specified for a dashboard, regular **Dataset permissions** will apply.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_dashboard_access.png" )} />
 

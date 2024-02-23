@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from datetime import datetime
 from unittest import mock
-from typing import List
 
 import pytest
 import pandas as pd
@@ -150,19 +148,6 @@ def test_hive_error_msg():
     )
 
 
-def test_hive_get_view_names_return_empty_list():  # pylint: disable=invalid-name
-    assert HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY) == []
-
-
-def test_convert_dttm():
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    assert HiveEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"
-    assert (
-        HiveEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "CAST('2019-01-02 03:04:05.678900' AS TIMESTAMP)"
-    )
-
-
 def test_df_to_csv() -> None:
     with pytest.raises(SupersetException):
         HiveEngineSpec.df_to_sql(
@@ -208,7 +193,9 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+        mock_execute
+    )
     table_name = "foobar"
 
     with app.app_context():
@@ -233,7 +220,9 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+        mock_execute
+    )
     table_name = "foobar"
     schema = "schema"
 
@@ -348,14 +337,14 @@ def test_fetch_data_success(fetch_data_mock):
 @mock.patch("superset.db_engine_specs.hive.HiveEngineSpec._latest_partition_from_df")
 def test_where_latest_partition(mock_method):
     mock_method.return_value = ("01-01-19", 1)
-    db = mock.Mock()
-    db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
-    db.get_extra = mock.Mock(return_value={})
-    db.get_df = mock.Mock()
+    database = mock.Mock()
+    database.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
+    database.get_extra = mock.Mock(return_value={})
+    database.get_df = mock.Mock()
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select(), columns
+            "test_table", "test_schema", database, select(), columns
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
@@ -364,11 +353,11 @@ def test_where_latest_partition(mock_method):
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")
 def test_where_latest_partition_super_method_exception(mock_method):
     mock_method.side_effect = Exception()
-    db = mock.Mock()
+    database = mock.Mock()
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select(), columns
+            "test_table", "test_schema", database, select(), columns
         )
     assert result is None
     mock_method.assert_called()
@@ -386,7 +375,7 @@ def test_where_latest_partition_no_columns_no_values(mock_method):
 
 
 def test__latest_partition_from_df():
-    def is_correct_result(data: List, result: List) -> bool:
+    def is_correct_result(data: list, result: list) -> bool:
         df = pd.DataFrame({"partition": data})
         return HiveEngineSpec._latest_partition_from_df(df) == result
 
@@ -403,3 +392,41 @@ def test__latest_partition_from_df():
         ["ds=01-01-19/hour=1", "ds=01-03-19/hour=1", "ds=01-02-19/hour=2"],
         ["01-03-19", "1"],
     )
+
+
+def test_get_view_names_with_schema():
+    database = mock.MagicMock()
+    mock_execute = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().execute = mock_execute
+    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        return_value=[["a", "b,", "c"], ["d", "e"]]
+    )
+
+    schema = "schema"
+    result = HiveEngineSpec.get_view_names(database, mock.Mock(), schema)
+    mock_execute.assert_called_once_with(f"SHOW VIEWS IN `{schema}`")
+    assert result == {"a", "d"}
+
+
+def test_get_view_names_without_schema():
+    database = mock.MagicMock()
+    mock_execute = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().execute = mock_execute
+    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        return_value=[["a", "b,", "c"], ["d", "e"]]
+    )
+    result = HiveEngineSpec.get_view_names(database, mock.Mock(), None)
+    mock_execute.assert_called_once_with("SHOW VIEWS")
+    assert result == {"a", "d"}
+
+
+@mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
+@mock.patch("superset.db_engine_specs.hive.HiveEngineSpec.get_view_names")
+def test_get_table_names(
+    mock_get_view_names,
+    mock_get_table_names,
+):
+    mock_get_view_names.return_value = {"view1", "view2"}
+    mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
+    tables = HiveEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
+    assert tables == {"table1", "table2"}

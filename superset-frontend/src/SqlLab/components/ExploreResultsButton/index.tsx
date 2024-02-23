@@ -21,7 +21,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Button, { OnClickHandler } from 'src/components/Button';
 
-interface ExploreResultsButtonProps {
+export interface ExploreResultsButtonProps {
   database?: {
     allows_subquery?: boolean;
   };
@@ -39,13 +39,14 @@ const ExploreResultsButton = ({
       onClick={onClick}
       disabled={!allowsSubquery}
       tooltip={t('Explore the result set in the data exploration view')}
+      data-test="explore-results-button"
     >
       <InfoTooltipWithTrigger
         icon="line-chart"
         placement="top"
-        label="explore"
+        label={t('explore')}
       />{' '}
-      {t('Explore')}
+      {t('Create Chart')}
     </Button>
   );
 };

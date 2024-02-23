@@ -19,17 +19,10 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import QueryHistory from 'src/SqlLab/components/QueryHistory';
+import { initialState } from 'src/SqlLab/fixtures';
 
-const NOOP = () => {};
 const mockedProps = {
-  queries: [],
-  actions: {
-    queryEditorSetSql: NOOP,
-    cloneQueryToNewTab: NOOP,
-    fetchQueryResults: NOOP,
-    clearQueryResults: NOOP,
-    removeQuery: NOOP,
-  },
+  queryEditorId: 123,
   displayLimit: 1000,
   latestQueryId: 'yhMUZCGb',
 };
@@ -40,7 +33,7 @@ const setup = (overrides = {}) => (
 
 describe('QueryHistory', () => {
   it('Renders an empty state for query history', () => {
-    render(setup());
+    render(setup(), { useRedux: true, initialState });
 
     const emptyStateText = screen.getByText(
       /run a query to display query history/i,

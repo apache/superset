@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import cx from 'classnames';
+import { addAlpha, css, styled } from '@superset-ui/core';
 
 type ShouldFocusContainer = HTMLDivElement & {
   contains: (event_target: EventTarget & HTMLElement) => Boolean;
@@ -40,6 +41,67 @@ interface WithPopoverMenuProps {
 interface WithPopoverMenuState {
   isFocused: Boolean;
 }
+
+const WithPopoverMenuStyles = styled.div`
+  ${({ theme }) => css`
+    position: relative;
+    outline: none;
+
+    &.with-popover-menu--focused:after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 2px solid ${theme.colors.primary.base};
+      pointer-events: none;
+    }
+
+    .dashboard-component-tabs li &.with-popover-menu--focused:after {
+      top: ${theme.gridUnit * -3}px;
+      left: ${theme.gridUnit * -2}px;
+      width: calc(100% + ${theme.gridUnit * 4}px);
+      height: calc(100% + ${theme.gridUnit * 7}px);
+    }
+  `}
+`;
+
+const PopoverMenuStyles = styled.div`
+  ${({ theme }) => css`
+    position: absolute;
+    flex-wrap: nowrap;
+    left: 1px;
+    top: -42px;
+    height: ${theme.gridUnit * 10}px;
+    padding: 0 ${theme.gridUnit * 4}px;
+    background: ${theme.colors.grayscale.light5};
+    box-shadow: 0 1px 2px 1px
+      ${addAlpha(
+        theme.colors.grayscale.dark2,
+        parseFloat(theme.opacity.mediumLight) / 100,
+      )};
+    font-size: ${theme.typography.sizes.m}px;
+    cursor: default;
+    z-index: 3000;
+
+    &,
+    .menu-item {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    /* vertical spacer after each menu item */
+    .menu-item:not(:last-child):after {
+      content: '';
+      width: 1px;
+      height: 100%;
+      background: ${theme.colors.grayscale.light2};
+      margin: 0 ${theme.gridUnit * 4}px;
+    }
+  `}
+`;
 
 export default class WithPopoverMenu extends React.PureComponent<
   WithPopoverMenuProps,
@@ -126,7 +188,7 @@ export default class WithPopoverMenu extends React.PureComponent<
     const { isFocused } = this.state;
 
     return (
-      <div
+      <WithPopoverMenuStyles
         ref={this.setRef}
         onClick={this.handleClick}
         role="none"
@@ -138,15 +200,15 @@ export default class WithPopoverMenu extends React.PureComponent<
       >
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
-          <div className="popover-menu">
+          <PopoverMenuStyles>
             {menuItems.map((node: React.ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}
               </div>
             ))}
-          </div>
+          </PopoverMenuStyles>
         )}
-      </div>
+      </WithPopoverMenuStyles>
     );
   }
 }

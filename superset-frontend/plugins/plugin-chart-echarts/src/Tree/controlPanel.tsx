@@ -17,13 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  sections,
+  ControlSubSectionHeader,
+  getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 
 const requiredEntity = {
   ...sharedControls.entity,
@@ -37,7 +38,6 @@ const optionalEntity = {
 
 const controlPanel: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -91,9 +91,7 @@ const controlPanel: ControlPanelConfig = {
             name: 'metric',
             config: {
               ...optionalEntity,
-              type: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-                ? 'DndMetricSelect'
-                : 'MetricsControl',
+              type: 'DndMetricSelect',
               label: t('Metric'),
               description: t('Metric for node values'),
             },
@@ -107,7 +105,7 @@ const controlPanel: ControlPanelConfig = {
       label: t('Chart options'),
       expanded: true,
       controlSetRows: [
-        [<h1 className="section-header">{t('Layout')}</h1>],
+        [<ControlSubSectionHeader>{t('Layout')}</ControlSubSectionHeader>],
         [
           {
             name: 'layout',
@@ -160,7 +158,7 @@ const controlPanel: ControlPanelConfig = {
                 ['right', t('right')],
                 ['bottom', t('bottom')],
               ],
-              description: t('Position of intermidiate node label on tree'),
+              description: t('Position of intermediate node label on tree'),
             },
           },
         ],
@@ -285,6 +283,10 @@ const controlPanel: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default controlPanel;
