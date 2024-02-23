@@ -17,11 +17,12 @@
  * under the License.
  */
 import React, { useEffect } from 'react';
-import { css, styled } from '@superset-ui/core';
+import { FAST_DEBOUNCE, css, styled } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
+import { debounce } from 'lodash';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
@@ -32,10 +33,20 @@ const StyledDiv = styled.div`
     flex: 1;
     /* Special cases */
 
-    &.dragdroppable--dragging
-      .dashboard-component-tabs-content
-      > .empty-droptarget.empty-droptarget--full {
-      height: 100%;
+    &.dragdroppable--dragging {
+      &
+        .dashboard-component-tabs-content
+        > .empty-droptarget.empty-droptarget--full {
+        height: 100%;
+      }
+      & .empty-droptarget:before {
+        display: block;
+        border-color: ${theme.colors.primary.light1};
+        background-color: ${theme.colors.primary.light3};
+      }
+      & .grid-row:after {
+        border-style: hidden;
+      }
     }
 
     /* A row within a column has inset hover menu */
@@ -106,12 +117,22 @@ const DashboardWrapper: React.FC<Props> = ({ children }) => {
 
   useEffect(() => {
     const monitor = dragDropManager.getMonitor();
+    const debouncedSetIsDragged = debounce(setIsDragged, FAST_DEBOUNCE);
     const unsub = monitor.subscribeToStateChange(() => {
-      setIsDragged(monitor.isDragging());
+      const isDragging = monitor.isDragging();
+      if (isDragging) {
+        // set a debounced function to prevent HTML5 drag source
+        // from interfering with the drop zone highlighting
+        debouncedSetIsDragged(true);
+      } else {
+        debouncedSetIsDragged.cancel();
+        setIsDragged(false);
+      }
     });
 
     return () => {
       unsub();
+      debouncedSetIsDragged.cancel();
     };
   }, [dragDropManager]);
 

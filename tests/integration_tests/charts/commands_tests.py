@@ -75,7 +75,7 @@ class TestExportChartsCommand(SupersetTestCase):
         assert expected == list(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
 
         assert metadata == {
@@ -133,7 +133,7 @@ class TestExportChartsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "slice_name",

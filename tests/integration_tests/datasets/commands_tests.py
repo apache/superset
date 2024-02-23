@@ -82,7 +82,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -216,7 +216,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
