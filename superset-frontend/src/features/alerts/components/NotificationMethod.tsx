@@ -124,7 +124,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               value={method}
             />
-            {method !== undefined && index !== 0 && !!onRemove ? (
+            {index !== 0 && !!onRemove ? (
               <span
                 role="button"
                 tabIndex={0}

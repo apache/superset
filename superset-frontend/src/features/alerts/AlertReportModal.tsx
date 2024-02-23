@@ -492,15 +492,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     NotificationSetting[]
   >([]);
   const onNotificationAdd = () => {
-    const settings: NotificationSetting[] = notificationSettings.slice();
-    settings.push({
-      recipients: '',
-      options: allowedNotificationMethods,
-    });
+    setNotificationSettings([
+      ...notificationSettings,
+      {
+        recipients: '',
+        // options shown in the newly added notification method
+        options: allowedNotificationMethods.filter(
+          // are filtered such that
+          option =>
+            // options are not included
+            !notificationSettings.reduce(
+              // when it exists in previous notificationSettings
+              (accum, setting) => accum || option === setting.method,
+              false,
+            ),
+        ),
+      },
+    ]);
 
-    setNotificationSettings(settings);
     setNotificationAddState(
-      settings.length === allowedNotificationMethods.length
+      notificationSettings.length === allowedNotificationMethods.length
         ? 'hidden'
         : 'disabled',
     );
@@ -542,13 +553,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     index: number,
     setting: NotificationSetting,
   ) => {
-    const settings = notificationSettings.slice();
+    // if you've changed notification method
+    if (notificationSettings[index].method !== setting.method) {
+      notificationSettings[index] = setting;
 
-    settings[index] = setting;
-    setNotificationSettings(settings);
+      setNotificationSettings(
+        notificationSettings.filter((_, idx) => idx <= index),
+      );
+      if (notificationSettings.length - 1 > index) {
+        setNotificationAddState('active');
+      }
 
-    if (setting.method !== undefined && notificationAddState !== 'hidden') {
-      setNotificationAddState('active');
+      if (setting.method !== undefined && notificationAddState !== 'hidden') {
+        setNotificationAddState('active');
+      }
     }
   };
 
