@@ -96,8 +96,5 @@ export default function createQueryStory({
       </div>
     );
   };
-  story.parameters = {
-    chromatic: { disable: true },
-  };
   return story;
 }
