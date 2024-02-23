@@ -147,4 +147,3 @@ export enum Sections {
   Schedule = 'scheduleSection',
   Notification = 'notificationSection',
 }
-
