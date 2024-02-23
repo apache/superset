@@ -43,6 +43,12 @@ export type DatabaseObject = {
 
 export type NotificationMethodOption = 'Email' | 'Slack';
 
+export type NotificationSetting = {
+  method?: NotificationMethodOption;
+  recipients: string;
+  options: NotificationMethodOption[];
+};
+
 export type Recipient = {
   recipient_config_json: {
     target: string;
@@ -141,3 +147,4 @@ export enum Sections {
   Schedule = 'scheduleSection',
   Notification = 'notificationSection',
 }
+
