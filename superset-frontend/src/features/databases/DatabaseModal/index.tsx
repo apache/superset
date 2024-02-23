@@ -782,7 +782,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
       const errors = await getValidation(dbToUpdate, true);
       if (!isEmpty(validationErrors) || errors?.length) {
-        addDangerToast(t('Please verify invalid form fields'));
+        addDangerToast(
+          t('Connection failed, please check your connection settings.'),
+        );
         setLoading(false);
         return;
       }
