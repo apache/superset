@@ -693,6 +693,25 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         placement="bottomRight"
         visible={dropdownIsOpen}
         onVisibleChange={status => toggleDropdown({ close: !status })}
+        onBlur={e => {
+          // close unless the dropdown menu is clicked
+          const relatedTarget = e.relatedTarget as HTMLElement;
+          if (
+            dropdownIsOpen &&
+            menuRef?.current?.props.id !== relatedTarget?.id
+          ) {
+            toggleDropdown({ close: true });
+          }
+        }}
+        onKeyDown={e =>
+          handleDropdownNavigation(
+            e,
+            dropdownIsOpen,
+            menu,
+            toggleDropdown,
+            setSelectedKeys,
+          )
+        }
       >
         <span
           css={() => css`
@@ -703,25 +722,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           role="button"
           aria-label="More Options"
           tabIndex={0}
-          onBlur={e => {
-            // close unless the dropdown menu is clicked
-            const relatedTarget = e.relatedTarget as HTMLElement;
-            if (
-              dropdownIsOpen &&
-              menuRef?.current?.props.id !== relatedTarget?.id
-            ) {
-              toggleDropdown({ close: true });
-            }
-          }}
-          onKeyDown={e =>
-            handleDropdownNavigation(
-              e,
-              dropdownIsOpen,
-              menu,
-              toggleDropdown,
-              setSelectedKeys,
-            )
-          }
         >
           <VerticalDotsTrigger />
         </span>

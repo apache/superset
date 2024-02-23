@@ -104,6 +104,22 @@ interface ExtendedDropDownProps extends DropDownProps {
   ref?: RefObject<HTMLDivElement>;
 }
 
-export const NoAnimationDropdown = (
-  props: ExtendedDropDownProps & { children?: React.ReactNode },
-) => <AntdDropdown overlayStyle={props.overlayStyle} {...props} />;
+export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
+  children: React.ReactNode;
+  onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+}
+
+export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
+  const { children, onBlur, onKeyDown, ...rest } = props;
+  const childrenWithProps = React.cloneElement(children as React.ReactElement, {
+    onBlur,
+    onKeyDown,
+  });
+
+  return (
+    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+      {childrenWithProps}
+    </AntdDropdown>
+  );
+};
