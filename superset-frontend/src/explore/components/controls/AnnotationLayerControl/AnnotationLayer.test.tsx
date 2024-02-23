@@ -31,16 +31,19 @@ const defaultProps = {
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
 };
 
+const nativeLayerApiRoute = 'glob:*/api/v1/annotation_layer/*';
+const chartApiRoute = 'glob:*/api/v1/chart/*';
+
 beforeAll(() => {
   const supportedAnnotationTypes = Object.values(ANNOTATION_TYPES_METADATA).map(
     value => value.value,
   );
 
-  fetchMock.get('glob:*/api/v1/annotation_layer/*', {
+  fetchMock.get(nativeLayerApiRoute, {
     result: [{ label: 'Chart A', value: 'a' }],
   });
 
-  fetchMock.get('glob:*/api/v1/chart/*', {
+  fetchMock.get(chartApiRoute, {
     result: [
       { id: 'a', slice_name: 'Chart A', viz_type: 'table', form_data: {} },
     ],
@@ -161,6 +164,16 @@ test('renders chart options', async () => {
   expect(await screen.findByText('Chart')).toBeInTheDocument();
 });
 
+test('fetch chart on mount if value present', async () => {
+  await waitForRender({
+    name: 'Test',
+    value: 'a',
+    annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
+    sourceType: 'Table',
+  });
+  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
+});
+
 test('keeps apply disabled when missing required fields', async () => {
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
@@ -197,7 +210,7 @@ test('keeps apply disabled when missing required fields', async () => {
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 
-test.skip('Disable apply button if formula is incorrect', async () => {
+test('Disable apply button if formula is incorrect', async () => {
   // TODO: fix flaky test that passes locally but fails on CI
   await waitForRender({ name: 'test' });
 
