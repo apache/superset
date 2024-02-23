@@ -51,6 +51,7 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete
+      onCursorPositionChange={jest.fn()}
     />,
     {
       useRedux: true,

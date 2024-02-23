@@ -64,7 +64,7 @@ export const translateToSql = (
       operator &&
       // 'LATEST PARTITION' supported callback only
       operator ===
-        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LATEST_PARTITION].operation
+        OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.LatestPartition].operation
         ? OPERATORS_TO_SQL[operator](adhocFilter)
         : OPERATORS_TO_SQL[operator];
     return getSimpleSQLExpression(subject, op, comparator);

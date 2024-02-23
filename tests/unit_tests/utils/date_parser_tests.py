@@ -35,6 +35,7 @@ from superset.utils.date_parser import (
     parse_human_timedelta,
     parse_past_timedelta,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def mock_parse_human_datetime(s: str) -> Optional[datetime]:
@@ -157,8 +158,79 @@ def test_get_since_until() -> None:
     expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
     assert result == expected
 
+    # Tests for our new instant_time_comparison logic and Feature Flag off
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="y",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="m",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="w",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="r",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
     with pytest.raises(ValueError):
         get_since_until(time_range="tomorrow : yesterday")
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
+def test_get_since_until_instant_time_comparison_enabled() -> None:
+    result: tuple[Optional[datetime], Optional[datetime]]
+    expected: tuple[Optional[datetime], Optional[datetime]]
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="y",
+    )
+    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="m",
+    )
+    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="w",
+    )
+    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="r",
+    )
+    expected = datetime(1981, 12, 31), datetime(2000, 1, 1)
+    assert result == expected
+
+    result = get_since_until(
+        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
+        instant_time_comparison_range="unknown",
+    )
+    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)

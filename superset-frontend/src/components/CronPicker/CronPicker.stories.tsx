@@ -79,11 +79,3 @@ InteractiveCronPicker.argTypes = {
     },
   },
 };
-
-InteractiveCronPicker.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

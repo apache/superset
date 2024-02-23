@@ -5,41 +5,21 @@ on:
     branches:
       - 'master'
   pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+    branches:
+      - 'master'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-  config:
-    runs-on: "ubuntu-latest"
-    outputs:
-      has-secrets: ${{ steps.check.outputs.has-secrets }}
-    steps:
-      - name: "Check for secrets"
-        id: check
-        shell: bash
-        run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
-            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
-            echo "has secrets!"
-          else
-            echo "has-secrets=0" >> "$GITHUB_OUTPUT"
-            echo "no secrets!"
-          fi
   docker-build:
-    needs: config
-    if: needs.config.outputs.has-secrets
     name: docker-build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: ["dev", "lean", "lean310", "websocket", "dockerize"]
-        platform: ["linux/amd64", "linux/arm64"]
-        exclude:
-          # disabling because slow! no python wheels for arm/py39 and
-          # QEMU is slow!
-          - target: "dev"
-            platform: "linux/arm64"
-          - target: "lean"
-            platform: "linux/arm64"
+        build_preset: |
+          ${{ fromJson(github.event_name == 'pull_request' ? '["ci"]' : '["dev", "lean", "py310", "websocket", "dockerize"]') }}
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -59,44 +39,10 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          ./scripts/docker_build_push.sh "" ${{ matrix.target }} ${{ matrix.platform }}
-
-  ephemeral-docker-build:
-    needs: config
-    if: needs.config.outputs.has-secrets
-    name: docker-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build ephemeral env image
-        if: github.event_name == 'pull_request'
-        run: |
-          mkdir -p ./build
-          echo ${{ github.sha }} > ./build/SHA
-          echo ${{ github.event.pull_request.number }} > ./build/PR-NUM
-          docker buildx build --target ci \
-            --load \
-            --cache-from=type=registry,ref=apache/superset:lean \
-            -t ${{ github.sha }} \
-            -t "pr-${{ github.event.pull_request.number }}" \
-            --platform linux/amd64 \
-            --label "build_actor=${GITHUB_ACTOR}" \
-            .
-          docker save ${{ github.sha }} | gzip > ./build/${{ github.sha }}.tar.gz
-
-      - name: Upload build artifacts
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build
-          path: build/
+          pip install click
+          ./scripts/build_docker.py \
+            ${{ matrix.build_preset }} \
+            ${{ github.event_name }} \
+            --build_context_ref "$RELEASE" $FORCE_LATEST \
+            --platform "linux/arm64" \
+            --platform "linux/amd64"

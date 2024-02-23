@@ -330,8 +330,8 @@ export type ControlConfig<
 > = T extends InternalControlType
   ? SharedControlConfig<T, O>
   : T extends object
-  ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  : CustomControlConfig<any>;
+    ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : CustomControlConfig<any>;
 
 /** ===========================================================
  * Chart plugin control panel config
@@ -420,29 +420,29 @@ export type SectionOverrides = {
 
 // Ref:
 //  - superset-frontend/src/explore/components/ConditionalFormattingControl.tsx
-export enum COMPARATOR {
-  NONE = 'None',
-  GREATER_THAN = '>',
-  LESS_THAN = '<',
-  GREATER_OR_EQUAL = '≥',
-  LESS_OR_EQUAL = '≤',
-  EQUAL = '=',
-  NOT_EQUAL = '≠',
-  BETWEEN = '< x <',
-  BETWEEN_OR_EQUAL = '≤ x ≤',
-  BETWEEN_OR_LEFT_EQUAL = '≤ x <',
-  BETWEEN_OR_RIGHT_EQUAL = '< x ≤',
+export enum Comparator {
+  None = 'None',
+  GreaterThan = '>',
+  LessThan = '<',
+  GreaterOrEqual = '≥',
+  LessOrEqual = '≤',
+  Equal = '=',
+  NotEqual = '≠',
+  Between = '< x <',
+  BetweenOrEqual = '≤ x ≤',
+  BetweenOrLeftEqual = '≤ x <',
+  BetweenOrRightEqual = '< x ≤',
 }
 
-export const MULTIPLE_VALUE_COMPARATORS = [
-  COMPARATOR.BETWEEN,
-  COMPARATOR.BETWEEN_OR_EQUAL,
-  COMPARATOR.BETWEEN_OR_LEFT_EQUAL,
-  COMPARATOR.BETWEEN_OR_RIGHT_EQUAL,
+export const MultipleValueComparators = [
+  Comparator.Between,
+  Comparator.BetweenOrEqual,
+  Comparator.BetweenOrLeftEqual,
+  Comparator.BetweenOrRightEqual,
 ];
 
 export type ConditionalFormattingConfig = {
-  operator?: COMPARATOR;
+  operator?: Comparator;
   targetValue?: number;
   targetValueLeft?: number;
   targetValueRight?: number;
@@ -517,6 +517,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   debounceDelay?: number;
 } & (T extends 'Select'
   ? {
+      allowNewOptions?: boolean;
       options: any;
       value?: string;
       defaultValue?: string;
@@ -525,36 +526,36 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       validators?: ControlFormValueValidator<string>[];
     }
   : T extends 'RadioButtonControl'
-  ? {
-      options: [string, ReactNode][];
-      value?: string;
-      defaultValue?: string;
-    }
-  : T extends 'Checkbox'
-  ? {
-      value?: boolean;
-      defaultValue?: boolean;
-    }
-  : T extends 'InputNumber' | 'Slider'
-  ? {
-      min?: number;
-      max?: number;
-      step?: number;
-      value?: number;
-      defaultValue?: number;
-      validators?: ControlFormValueValidator<number>[];
-    }
-  : T extends 'Input'
-  ? {
-      controlType: 'Input';
-      value?: string;
-      defaultValue?: string;
-      validators?: ControlFormValueValidator<string>[];
-    }
-  : T extends 'CurrencyControl'
-  ? {
-      controlType: 'CurrencyControl';
-      value?: Currency;
-      defaultValue?: Currency;
-    }
-  : {});
+    ? {
+        options: [string, ReactNode][];
+        value?: string;
+        defaultValue?: string;
+      }
+    : T extends 'Checkbox'
+      ? {
+          value?: boolean;
+          defaultValue?: boolean;
+        }
+      : T extends 'InputNumber' | 'Slider'
+        ? {
+            min?: number;
+            max?: number;
+            step?: number;
+            value?: number;
+            defaultValue?: number;
+            validators?: ControlFormValueValidator<number>[];
+          }
+        : T extends 'Input'
+          ? {
+              controlType: 'Input';
+              value?: string;
+              defaultValue?: string;
+              validators?: ControlFormValueValidator<string>[];
+            }
+          : T extends 'CurrencyControl'
+            ? {
+                controlType: 'CurrencyControl';
+                value?: Currency;
+                defaultValue?: Currency;
+              }
+            : {});

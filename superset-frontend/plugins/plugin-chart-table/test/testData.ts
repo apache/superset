@@ -107,10 +107,10 @@ const basic: TableChartProps = {
       ...basicQueryResult,
       colnames: ['__timestamp', 'name', 'sum__num', 'abc.com'],
       coltypes: [
-        GenericDataType.TEMPORAL,
-        GenericDataType.STRING,
-        GenericDataType.NUMERIC,
-        GenericDataType.STRING,
+        GenericDataType.Temporal,
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.String,
       ],
       data: [
         {
@@ -176,9 +176,9 @@ const advanced: TableChartProps = {
       ...basicQueryResult,
       colnames: ['name', 'sum__num', '%pct_nice'],
       coltypes: [
-        GenericDataType.STRING,
-        GenericDataType.NUMERIC,
-        GenericDataType.NUMERIC,
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
       ],
       data: [...(basic.queriesData[0].data || [])],
     },
@@ -189,14 +189,14 @@ const raw = {
   ...advanced,
   rawFormData: {
     ...advanced.rawFormData,
-    query_mode: QueryMode.raw,
+    query_mode: QueryMode.Raw,
     columns: ['num'],
   },
   queriesData: [
     {
       ...basicQueryResult,
       colnames: ['num'],
-      coltypes: [GenericDataType.NUMERIC],
+      coltypes: [GenericDataType.Numeric],
       data: [
         {
           num: 1234,

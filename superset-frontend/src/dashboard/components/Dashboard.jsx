@@ -59,13 +59,11 @@ const propTypes = {
   ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
-  initMessages: PropTypes.array,
   timeout: PropTypes.number,
   userId: PropTypes.string,
 };
 
 const defaultProps = {
-  initMessages: [],
   timeout: 60,
   userId: '',
 };
@@ -162,7 +160,7 @@ class Dashboard extends React.PureComponent {
     const { appliedFilters, appliedOwnDataCharts } = this;
     const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
     if (
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
       !chartConfiguration
     ) {
       // For a first loading we need to wait for cross filters charts data loaded to get all active filters

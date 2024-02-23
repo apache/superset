@@ -18,8 +18,8 @@
  */
 
 export enum FilterType {
-  REGULAR = 'Regular',
-  BASE = 'Base',
+  Regular = 'Regular',
+  Base = 'Base',
 }
 
 export type RLSObject = {

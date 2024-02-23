@@ -26,8 +26,8 @@ import { FieldPropTypes } from '.';
 import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
-  jsonUpload,
-  copyPaste,
+  JsonUpload,
+  CopyPaste,
 }
 
 // These are the columns that are going to be added to encrypted extra, they differ in name based
@@ -47,7 +47,7 @@ export const EncryptedField = ({
   editNewDb,
 }: FieldPropTypes) => {
   const [uploadOption, setUploadOption] = useState<number>(
-    CredentialInfoOptions.jsonUpload.valueOf(),
+    CredentialInfoOptions.JsonUpload.valueOf(),
   );
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
@@ -97,17 +97,17 @@ export const EncryptedField = ({
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
           >
-            <AntdSelect.Option value={CredentialInfoOptions.jsonUpload}>
+            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
               {t('Upload JSON file')}
             </AntdSelect.Option>
 
-            <AntdSelect.Option value={CredentialInfoOptions.copyPaste}>
+            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
               {t('Copy and Paste JSON credentials')}
             </AntdSelect.Option>
           </AntdSelect>
         </>
       )}
-      {uploadOption === CredentialInfoOptions.copyPaste ||
+      {uploadOption === CredentialInfoOptions.CopyPaste ||
       isEditMode ||
       editNewDb ? (
         <div className="input-container">

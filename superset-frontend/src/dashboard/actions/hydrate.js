@@ -241,7 +241,7 @@ export const hydrateDashboard =
       filterConfig: metadata?.native_filter_configuration || [],
     });
 
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
       const { chartConfiguration, globalChartConfiguration } =
         getCrossFiltersConfiguration(
           dashboardLayout.present,
@@ -292,9 +292,9 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
           filterBarOrientation:
-            (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
+            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
               metadata.filter_bar_orientation) ||
-            FilterBarOrientation.VERTICAL,
+            FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
         dataMask,
@@ -323,7 +323,7 @@ export const hydrateDashboard =
           isRefreshing: false,
           isFiltersRefreshing: false,
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          datasetsStatus: ResourceStatus.LOADING,
+          datasetsStatus: ResourceStatus.Loading,
         },
         dashboardLayout,
       },

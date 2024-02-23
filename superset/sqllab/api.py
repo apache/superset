@@ -343,7 +343,9 @@ class SqlLabRestApi(BaseSupersetApi):
         # return the result without special encoding
         return json_success(
             json.dumps(
-                result, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
+                result,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
             ),
             200,
         )

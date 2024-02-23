@@ -173,7 +173,7 @@ export default function EchartsTimeseries({
           ...(eventParams.name ? [eventParams.name] : []),
           ...(labelMap[seriesName] ?? []),
         ];
-        if (data && xAxis.type === AxisType.time) {
+        if (data && xAxis.type === AxisType.Time) {
           drillToDetailFilters.push({
             col:
               // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
@@ -187,7 +187,7 @@ export default function EchartsTimeseries({
           });
         }
         [
-          ...(xAxis.type === AxisType.category && data ? [xAxis.label] : []),
+          ...(xAxis.type === AxisType.Category && data ? [xAxis.label] : []),
           ...formData.groupby,
         ].forEach((dimension, i) =>
           drillToDetailFilters.push({

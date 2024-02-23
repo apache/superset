@@ -26,6 +26,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from tests.unit_tests.conftest import with_feature_flags
@@ -38,7 +39,7 @@ if TYPE_CHECKING:
 def database1(session: Session) -> Iterator["Database"]:
     from superset.models.core import Database
 
-    engine = session.connection().engine
+    engine = db.session.connection().engine
     Database.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(
@@ -46,13 +47,13 @@ def database1(session: Session) -> Iterator["Database"]:
         sqlalchemy_uri="sqlite:///database1.db",
         allow_dml=True,
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     yield database
 
-    session.delete(database)
-    session.commit()
+    db.session.delete(database)
+    db.session.commit()
     os.unlink("database1.db")
 
 
@@ -62,12 +63,12 @@ def table1(session: Session, database1: "Database") -> Iterator[None]:
         conn = engine.connect()
         conn.execute("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
         conn.execute("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)")
-        session.commit()
+        db.session.commit()
 
         yield
 
         conn.execute("DROP TABLE table1")
-        session.commit()
+        db.session.commit()
 
 
 @pytest.fixture
@@ -79,13 +80,13 @@ def database2(session: Session) -> Iterator["Database"]:
         sqlalchemy_uri="sqlite:///database2.db",
         allow_dml=False,
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     yield database
 
-    session.delete(database)
-    session.commit()
+    db.session.delete(database)
+    db.session.commit()
     os.unlink("database2.db")
 
 
@@ -95,12 +96,12 @@ def table2(session: Session, database2: "Database") -> Iterator[None]:
         conn = engine.connect()
         conn.execute("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
         conn.execute("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')")
-        session.commit()
+        db.session.commit()
 
         yield
 
         conn.execute("DROP TABLE table2")
-        session.commit()
+        db.session.commit()
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)

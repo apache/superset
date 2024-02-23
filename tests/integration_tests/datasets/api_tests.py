@@ -1748,7 +1748,6 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
 
         cli_export = export_to_dict(
-            session=db.session,
             recursive=True,
             back_references=False,
             include_defaults=False,

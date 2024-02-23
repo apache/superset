@@ -64,7 +64,7 @@ const processDataRecords = memoizeOne(function processDataRecords(
     return data || [];
   }
   const timeColumns = columns.filter(
-    column => column.dataType === GenericDataType.TEMPORAL,
+    column => column.dataType === GenericDataType.Temporal,
   );
 
   if (timeColumns.length > 0) {
@@ -124,8 +124,8 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
           ? `%${verboseMap[key.replace('%', '')]}`
           : verboseMap?.[key] || key;
-      const isTime = dataType === GenericDataType.TEMPORAL;
-      const isNumber = dataType === GenericDataType.NUMERIC;
+      const isTime = dataType === GenericDataType.Temporal;
+      const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];
       const savedCurrency = currencyFormats?.[key];
       const numberFormat = config.d3NumberFormat || savedFormat;
@@ -174,7 +174,7 @@ const processColumns = memoizeOne(function processColumns(
         key,
         label,
         dataType,
-        isNumeric: dataType === GenericDataType.NUMERIC,
+        isNumeric: dataType === GenericDataType.Numeric,
         isMetric,
         isPercentMetric,
         formatter,
@@ -186,8 +186,7 @@ const processColumns = memoizeOne(function processColumns(
     typeof percentMetrics,
     typeof columns,
   ];
-},
-isEqualColumns);
+}, isEqualColumns);
 
 /**
  * Automatically set page size based on number of cells.
@@ -287,7 +286,7 @@ const transformProps = (
   const timeGrain = extractTimegrain(formData);
 
   const totals =
-    showTotals && queryMode === QueryMode.aggregate
+    showTotals && queryMode === QueryMode.Aggregate
       ? totalQuery?.data[0]
       : undefined;
   const columnColorFormatters =
@@ -296,7 +295,7 @@ const transformProps = (
   return {
     height,
     width,
-    isRawRecords: queryMode === QueryMode.raw,
+    isRawRecords: queryMode === QueryMode.Raw,
     data,
     totals,
     columns,
