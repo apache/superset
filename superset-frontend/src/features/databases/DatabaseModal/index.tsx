@@ -53,7 +53,6 @@ import {
   getDatabaseImages,
   getConnectionAlert,
   useImportResource,
-  useCanSSHTunnel,
 } from 'src/views/CRUD/hooks';
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
@@ -620,7 +619,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
-  const isSSHTunnelEnabled = useCanSSHTunnel(db);
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -844,7 +842,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     // strictly checking for false as an indication that the toggle got unchecked
-    if (isSSHTunnelEnabled && useSSHTunneling === false) {
+    if (useSSHTunneling === false) {
       // remove ssh tunnel
       dbToUpdate.ssh_tunnel = null;
     }
@@ -1301,10 +1299,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
-    if (isSSHTunnelEnabled && db?.parameters?.ssh !== undefined) {
+    if (db?.parameters?.ssh !== undefined) {
       setUseSSHTunneling(db.parameters.ssh);
     }
-  }, [db?.parameters?.ssh, isSSHTunnelEnabled]);
+  }, [db?.parameters?.ssh]);
 
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
@@ -1615,7 +1613,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <>
       <DatabaseConnectionForm
         isEditMode={isEditMode}
-        isSSHTunnelEnabled={isSSHTunnelEnabled}
         db={db as DatabaseObject}
         sslForced={false}
         dbModel={dbModel}
@@ -1802,11 +1799,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testInProgress={testInProgress}
               >
                 <SSHTunnelSwitchComponent
+                  dbModel={dbModel}
                   db={db as DatabaseObject}
                   changeMethods={{
                     onParametersChange: handleParametersChange,
                   }}
-                  isSSHTunnelEnabled={isSSHTunnelEnabled}
                   clearValidationErrors={handleClearValidationErrors}
                 />
                 {useSSHTunneling && renderSSHTunnelForm()}

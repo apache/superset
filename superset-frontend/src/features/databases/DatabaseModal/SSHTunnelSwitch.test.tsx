@@ -20,7 +20,12 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
-import { DatabaseObject } from '../types';
+import { DatabaseForm, DatabaseObject } from '../types';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn().mockReturnValue(true),
+}));
 
 jest.mock('src/components', () => ({
   AntdSwitch: ({
@@ -45,18 +50,26 @@ const mockChangeMethods = {
   onParametersChange: jest.fn(),
 };
 
+const mockDbModel = {
+  engine: 'mysql',
+  engine_information: {
+    disable_ssh_tunneling: false,
+  },
+} as DatabaseForm;
+
 const defaultDb = {
   parameters: { ssh: false },
   ssh_tunnel: {},
+  engine: 'mysql',
 } as DatabaseObject;
 
 test('Renders SSH Tunnel switch enabled by default and toggles its state', () => {
   render(
     <SSHTunnelSwitch
-      isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
       clearValidationErrors={jest.fn}
       db={defaultDb}
+      dbModel={mockDbModel}
     />,
   );
   const switchButton = screen.getByRole('switch');
@@ -71,10 +84,16 @@ test('Renders SSH Tunnel switch enabled by default and toggles its state', () =>
 test('Does not render if SSH Tunnel is disabled', () => {
   render(
     <SSHTunnelSwitch
-      isSSHTunnelEnabled={false}
       changeMethods={mockChangeMethods}
       clearValidationErrors={jest.fn}
       db={defaultDb}
+      dbModel={{
+        ...mockDbModel,
+        engine_information: {
+          disable_ssh_tunneling: true,
+          supports_file_upload: false,
+        },
+      }}
     />,
   );
   expect(screen.queryByRole('switch')).not.toBeInTheDocument();
@@ -87,10 +106,10 @@ test('Checks the switch based on db.parameters.ssh', () => {
   } as DatabaseObject;
   render(
     <SSHTunnelSwitch
-      isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
       clearValidationErrors={jest.fn}
       db={dbWithSSHTunnelEnabled}
+      dbModel={mockDbModel}
     />,
   );
   expect(screen.getByRole('switch')).toHaveTextContent('ON');
@@ -103,10 +122,10 @@ test('Calls onParametersChange with true if SSH Tunnel info exists', () => {
   } as DatabaseObject;
   render(
     <SSHTunnelSwitch
-      isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
       clearValidationErrors={jest.fn}
       db={dbWithSSHTunnelInfo}
+      dbModel={mockDbModel}
     />,
   );
   expect(mockChangeMethods.onParametersChange).toHaveBeenCalledWith({
@@ -118,10 +137,10 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
   const tooltipText = 'SSH Tunnel configuration parameters';
   render(
     <SSHTunnelSwitch
-      isSSHTunnelEnabled
       changeMethods={mockChangeMethods}
       clearValidationErrors={jest.fn}
       db={defaultDb}
+      dbModel={mockDbModel}
     />,
   );
 

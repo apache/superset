@@ -199,6 +199,10 @@ export type DatabaseForm = {
   };
   preferred: boolean;
   sqlalchemy_uri_placeholder: string;
+  engine_information: {
+    supports_file_upload: boolean;
+    disable_ssh_tunneling: boolean;
+  };
 };
 
 // the values should align with the database
@@ -284,6 +288,7 @@ export interface FieldPropTypes {
   getValidation: () => void;
   clearValidationErrors: () => void;
   db?: DatabaseObject;
+  dbModel?: DatabaseForm;
   field: string;
   isEditMode?: boolean;
   sslForced?: boolean;
@@ -299,8 +304,8 @@ type SwitchPropsChangeMethodsType = {
 };
 
 export type SwitchProps = {
+  dbModel: DatabaseForm;
   db: DatabaseObject;
   changeMethods: SwitchPropsChangeMethodsType;
-  isSSHTunnelEnabled?: boolean;
   clearValidationErrors: () => void;
 };

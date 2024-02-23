@@ -51,7 +51,6 @@ type SwitchProps = {
   changeMethods: {
     onParametersChange: (event: any) => void;
   };
-  isSSHTunnelEnabled: boolean;
   clearValidationErrors: () => void;
 };
 

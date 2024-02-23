@@ -90,7 +90,6 @@ const FORM_FIELD_MAP = {
 
 interface DatabaseConnectionFormProps {
   isEditMode?: boolean;
-  isSSHTunnelEnabled: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
   dbModel: DatabaseForm;
@@ -119,13 +118,12 @@ interface DatabaseConnectionFormProps {
 }
 
 const DatabaseConnectionForm = ({
-  dbModel: { parameters },
+  dbModel,
   db,
   editNewDb,
   getPlaceholder,
   getValidation,
   isEditMode = false,
-  isSSHTunnelEnabled = false,
   onAddTableCatalog,
   onChange,
   onExtraInputChange,
@@ -137,14 +135,7 @@ const DatabaseConnectionForm = ({
   validationErrors,
   clearValidationErrors,
 }: DatabaseConnectionFormProps) => {
-  const validateExtra = (key: string) => {
-    switch (key) {
-      case 'ssh':
-        return isSSHTunnelEnabled;
-      default:
-        return true;
-    }
-  };
+  const parameters = dbModel?.parameters;
 
   return (
     <Form>
@@ -158,8 +149,7 @@ const DatabaseConnectionForm = ({
         {parameters &&
           FormFieldOrder.filter(
             (key: string) =>
-              (Object.keys(parameters.properties).includes(key) &&
-                validateExtra(key)) ||
+              Object.keys(parameters.properties).includes(key) ||
               key === 'database_name',
           ).map(field =>
             FORM_FIELD_MAP[field]({

@@ -18,14 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback } from 'react';
-import {
-  makeApi,
-  SupersetClient,
-  t,
-  JsonObject,
-  FeatureFlag,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { makeApi, SupersetClient, t, JsonObject } from '@superset-ui/core';
 
 import {
   createErrorHandler,
@@ -892,34 +885,4 @@ export const reportSelector = (
     return state.reports[resourceType]?.[resourceId];
   }
   return null;
-};
-
-export const useCanSSHTunnel = (db: Partial<DatabaseObject> | null) => {
-  const [isSSHTunneling, setIsSSHTunneling] = useState(false);
-  const [availableDbs, getAvailableDbs] = useAvailableDatabases();
-
-  useEffect(() => {
-    if (db && !availableDbs) {
-      getAvailableDbs();
-    }
-  }, [availableDbs, db, getAvailableDbs]);
-
-  useEffect(() => {
-    if (db && availableDbs) {
-      const disableSSHTunnelingForEngine = availableDbs.databases?.find(
-        (DB: DatabaseObject) =>
-          DB.backend === db?.engine || DB.engine === db?.engine,
-      )?.engine_information?.disable_ssh_tunneling;
-
-      const sshTunnelingEnabled =
-        isFeatureEnabled(FeatureFlag.SshTunneling) &&
-        !disableSSHTunnelingForEngine;
-
-      if (sshTunnelingEnabled !== isSSHTunneling) {
-        setIsSSHTunneling(sshTunnelingEnabled);
-      }
-    }
-  }, [availableDbs, db, db?.engine, isSSHTunneling]);
-
-  return isSSHTunneling;
 };

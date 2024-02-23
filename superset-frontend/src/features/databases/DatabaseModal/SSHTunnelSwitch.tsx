@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { isEmpty } from 'lodash';
@@ -28,10 +33,14 @@ const SSHTunnelSwitch = ({
   clearValidationErrors,
   changeMethods,
   db,
-  // true by default for compatibility with dynamic forms
-  isSSHTunnelEnabled = true,
+  dbModel,
 }: SwitchProps) => {
   const [isChecked, setChecked] = useState(false);
+  const sshTunnelEnabled = isFeatureEnabled(FeatureFlag.SshTunneling);
+  const disableSSHTunnelingForEngine =
+    dbModel?.engine_information?.disable_ssh_tunneling || false;
+  const isSSHTunnelEnabled =
+    sshTunnelEnabled && disableSSHTunnelingForEngine === false;
 
   const handleOnChange = (changed: boolean) => {
     setChecked(changed);
