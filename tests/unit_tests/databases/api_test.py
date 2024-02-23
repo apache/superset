@@ -28,6 +28,48 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
+
+
+def test_filter_by_uuid(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that we can filter databases by UUID.
+
+    Note: this functionality is not used by the Superset UI, but is needed by 3rd
+    party tools that use the Superset API. If this tests breaks, please make sure
+    that the functionality is properly deprecated between major versions with
+    enough warning so that tools can be adapted.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel.session = session
+
+    # create table for databases
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_db",
+            sqlalchemy_uri="sqlite://",
+            uuid=UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"),
+        )
+    )
+    db.session.commit()
+
+    response = client.get(
+        "/api/v1/database/?q=(filters:!((col:uuid,opr:eq,value:"
+        "%277c1b7880-a59d-47cd-8bf1-f1eb8d2863cb%27)))"
+    )
+    assert response.status_code == 200
+
+    payload = response.json
+    assert len(payload["result"]) == 1
+    assert payload["result"][0]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
+
 
 def test_post_with_uuid(
     session: Session,
@@ -56,7 +98,7 @@ def test_post_with_uuid(
     payload = response.json
     assert payload["result"]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
 
-    database = session.query(Database).one()
+    database = db.session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 
 
@@ -99,8 +141,8 @@ def test_password_mask(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     # mock the lookup so that we don't need to include the driver
     mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -155,8 +197,8 @@ def test_database_connection(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     # mock the lookup so that we don't need to include the driver
     mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
@@ -291,8 +333,8 @@ def test_update_with_password_mask(
             }
         ),
     )
-    session.add(database)
-    session.commit()
+    db.session.add(database)
+    db.session.commit()
 
     client.put(
         "/api/v1/database/1",
@@ -307,7 +349,7 @@ def test_update_with_password_mask(
             ),
         },
     )
-    database = session.query(Database).one()
+    database = db.session.query(Database).one()
     assert (
         database.encrypted_extra
         == '{"service_account_info": {"project_id": "yellow-unicorn-314419", "private_key": "SECRET"}}'
@@ -389,14 +431,14 @@ def test_delete_ssh_tunnel(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -406,8 +448,8 @@ def test_delete_ssh_tunnel(
             database=database,
         )
 
-        session.add(tunnel)
-        session.commit()
+        db.session.add(tunnel)
+        db.session.commit()
 
         # Get our recently created SSHTunnel
         response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
@@ -416,7 +458,9 @@ def test_delete_ssh_tunnel(
         assert 1 == response_tunnel.database_id
 
         # Delete the recently created SSHTunnel
-        response_delete_tunnel = client.delete("/api/v1/database/1/ssh_tunnel/")
+        response_delete_tunnel = client.delete(
+            f"/api/v1/database/{database.id}/ssh_tunnel/"
+        )
         assert response_delete_tunnel.json["message"] == "OK"
 
         response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
@@ -465,14 +509,14 @@ def test_delete_ssh_tunnel_not_found(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=True,
         )
 
@@ -482,8 +526,8 @@ def test_delete_ssh_tunnel_not_found(
             database=database,
         )
 
-        session.add(tunnel)
-        session.commit()
+        db.session.add(tunnel)
+        db.session.commit()
 
         # Delete the recently created SSHTunnel
         response_delete_tunnel = client.delete("/api/v1/database/2/ssh_tunnel/")
@@ -536,8 +580,8 @@ def test_apply_dynamic_database_filter(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # Create our Second Database
         database = Database(
@@ -552,14 +596,14 @@ def test_apply_dynamic_database_filter(
                 }
             ),
         )
-        session.add(database)
-        session.commit()
+        db.session.add(database)
+        db.session.commit()
 
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
         mocker.patch(
-            "superset.databases.ssh_tunnel.commands.delete.is_feature_enabled",
+            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
             return_value=False,
         )
 

@@ -24,7 +24,7 @@ import re
 from typing import Any, Optional
 from unittest.mock import Mock, patch
 
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -59,7 +59,6 @@ from superset.utils.core import (
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
-    JSONEncodedDict,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -583,15 +582,6 @@ class TestUtils(SupersetTestCase):
             "-16 days, 4:03:00",
         )
 
-    def test_json_encoded_obj(self):
-        obj = {"a": 5, "b": ["a", "g", 5]}
-        val = '{"a": 5, "b": ["a", "g", 5]}'
-        jsonObj = JSONEncodedDict()
-        resp = jsonObj.process_bind_param(obj, "dialect")
-        self.assertIn('"a": 5', resp)
-        self.assertIn('"b": ["a", "g", 5]', resp)
-        self.assertEqual(jsonObj.process_result_value(val, "dialect"), obj)
-
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
         self.assertIsNone(validate_json(valid))
@@ -754,50 +744,6 @@ class TestUtils(SupersetTestCase):
         self.assertListEqual(as_list([123]), [123])
         self.assertListEqual(as_list("foo"), ["foo"])
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_build_extra_filters(self):
-        world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
-        layout = json.loads(world_health.position_json)
-        filter_ = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
-        world = db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        box_plot = db.session.query(Slice).filter_by(slice_name="Box plot").one()
-        treemap = db.session.query(Slice).filter_by(slice_name="Treemap").one()
-
-        filter_scopes = {
-            str(filter_.id): {
-                "region": {"scope": ["ROOT_ID"], "immune": [treemap.id]},
-                "country_name": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [treemap.id, box_plot.id],
-                },
-            }
-        }
-
-        default_filters = {
-            str(filter_.id): {
-                "region": ["North America"],
-                "country_name": ["United States"],
-            }
-        }
-
-        # immune to all filters
-        assert (
-            build_extra_filters(layout, filter_scopes, default_filters, treemap.id)
-            == []
-        )
-
-        # in scope
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, world.id
-        ) == [
-            {"col": "region", "op": "==", "val": "North America"},
-            {"col": "country_name", "op": "in", "val": ["United States"]},
-        ]
-
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, box_plot.id
-        ) == [{"col": "region", "op": "==", "val": "North America"}]
-
     def test_merge_extra_filters_with_no_extras(self):
         form_data = {
             "time_range": "Last 10 days",
@@ -813,7 +759,7 @@ class TestUtils(SupersetTestCase):
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
         """
-        Make sure native filter is applied if filter box time range is unset.
+        Make sure native filter is applied if filter time range is unset.
         """
         form_data = {
             "time_range": "Last 10 days",
@@ -828,28 +774,6 @@ class TestUtils(SupersetTestCase):
             {
                 "time_range": "Last year",
                 "applied_time_extras": {},
-                "adhoc_filters": [],
-            },
-        )
-
-    def test_merge_extra_filters_with_conflicting_time_ranges(self):
-        """
-        Make sure filter box takes precedence if both native filter and filter box
-        time ranges are set.
-        """
-        form_data = {
-            "time_range": "Last 10 days",
-            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {
-                "time_range": "Last year",
-            },
-        }
-        merge_extra_filters(form_data)
-        self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last week",
-                "applied_time_extras": {"__time_range": "Last week"},
                 "adhoc_filters": [],
             },
         )
@@ -974,7 +898,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -1032,7 +956,7 @@ class TestUtils(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Girls")
         cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (

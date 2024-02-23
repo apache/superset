@@ -94,7 +94,7 @@ function TagCard({
       <ListViewCard
         title={tag.name}
         cover={
-          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
           ) : null
         }

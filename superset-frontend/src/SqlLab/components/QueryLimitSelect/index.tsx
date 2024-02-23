@@ -74,7 +74,7 @@ function renderQueryLimit(
       {[...new Set(limitDropdown)].map(limit => (
         <Menu.Item key={`${limit}`} onClick={() => setQueryLimit(limit)}>
           {/* // eslint-disable-line no-use-before-define */}
-          <a role="button">{convertToNumWithSpaces(limit)}</a>{' '}
+          {convertToNumWithSpaces(limit)}{' '}
         </Menu.Item>
       ))}
     </Menu>

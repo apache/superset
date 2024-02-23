@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useMemo, useEffect } from 'react';
+import React, { ReactNode, useState, useMemo, useEffect, useRef } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
@@ -133,6 +133,8 @@ export default function DatabaseSelector({
   const [currentSchema, setCurrentSchema] = useState<SchemaOption | undefined>(
     schema ? { label: schema, value: schema, title: schema } : undefined,
   );
+  const schemaRef = useRef(schema);
+  schemaRef.current = schema;
   const { addSuccessToast } = useToasts();
 
   const loadDatabases = useMemo(
@@ -165,7 +167,7 @@ export default function DatabaseSelector({
         });
         const endpoint = `/api/v1/database/?q=${queryParams}`;
         return SupersetClient.get({ endpoint }).then(({ json }) => {
-          const { result } = json;
+          const { result, count } = json;
           if (getDbList) {
             getDbList(result);
           }
@@ -187,7 +189,7 @@ export default function DatabaseSelector({
 
           return {
             data: options,
-            totalCount: options.length,
+            totalCount: count ?? options.length,
           };
         });
       },
@@ -215,7 +217,7 @@ export default function DatabaseSelector({
 
   function changeSchema(schema: SchemaOption | undefined) {
     setCurrentSchema(schema);
-    if (onSchemaChange) {
+    if (onSchemaChange && schema?.value !== schemaRef.current) {
       onSchemaChange(schema?.value);
     }
   }
@@ -229,7 +231,9 @@ export default function DatabaseSelector({
     onSuccess: (schemas, isFetched) => {
       if (schemas.length === 1) {
         changeSchema(schemas[0]);
-      } else if (!schemas.find(schemaOption => schema === schemaOption.value)) {
+      } else if (
+        !schemas.find(schemaOption => schemaRef.current === schemaOption.value)
+      ) {
         changeSchema(undefined);
       }
 

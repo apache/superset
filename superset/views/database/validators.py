@@ -21,7 +21,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 
 from superset import security_manager
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
 from superset.models.core import Database
 

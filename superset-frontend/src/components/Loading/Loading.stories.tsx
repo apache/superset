@@ -46,29 +46,16 @@ export const LoadingGallery = () => (
   </>
 );
 
-LoadingGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+LoadingGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
 export const InteractiveLoading = (args: Props) => <Loading {...args} />;
-
-InteractiveLoading.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
 
 InteractiveLoading.args = {
   image: '',

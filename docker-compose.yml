@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-master-dev}
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
@@ -124,6 +124,8 @@ services:
     command: ["/app/docker/docker-frontend.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
+    environment:
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
     volumes: *superset-volumes
 
   superset-worker:

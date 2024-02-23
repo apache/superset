@@ -31,7 +31,7 @@ const mockedProps = {
     status: IndicatorStatus.CrossFilterApplied,
     path: ['test-path'],
   },
-  orientation: FilterBarOrientation.HORIZONTAL,
+  orientation: FilterBarOrientation.Horizontal,
   last: false,
 };
 

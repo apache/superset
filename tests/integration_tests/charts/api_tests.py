@@ -28,8 +28,8 @@ from parameterized import parameterized
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
-from superset.charts.commands.exceptions import ChartDataQueryFailedError
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
@@ -73,7 +73,7 @@ CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
+class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "chart"
 
     @pytest.fixture(autouse=True)
@@ -453,7 +453,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test create chart
         """
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        dashboards_ids = get_dashboards_ids(["world_health", "births"])
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -981,7 +981,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 34)
+        self.assertEqual(data["count"], 33)
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
     def test_get_charts_dashboards(self):
@@ -1447,7 +1447,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         """
         Chart API: Test get charts filter
         """
-        # Assuming we have 34 sample charts
+        # Assuming we have 33 sample charts
         self.login(username="admin")
         arguments = {"page_size": 10, "page": 0}
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
@@ -1461,7 +1461,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 4)
+        self.assertEqual(len(data["result"]), 3)
 
     def test_get_charts_no_data_access(self):
         """
@@ -1736,7 +1736,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self, slice_name):
         self.login()
-        slc = self.get_slice(slice_name, db.session)
+        slc = self.get_slice(slice_name)
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1815,7 +1815,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(ChartDataCommand, "run") as mock_run:
             mock_run.side_effect = ChartDataQueryFailedError(
@@ -1843,7 +1843,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_query_context(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
             mock_get_query_context.return_value = None
@@ -1866,7 +1866,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
 
         with mock.patch.object(
             Slice,

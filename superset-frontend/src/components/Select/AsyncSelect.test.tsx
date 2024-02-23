@@ -218,8 +218,8 @@ test('sort the options by label if no sort comparator is provided', async () => 
 
 test('sort the options using a custom sort comparator', async () => {
   const sortComparator = (
-    option1: typeof OPTIONS[0],
-    option2: typeof OPTIONS[0],
+    option1: (typeof OPTIONS)[0],
+    option2: (typeof OPTIONS)[0],
   ) => option1.gender.localeCompare(option2.gender);
   render(<AsyncSelect {...defaultProps} sortComparator={sortComparator} />);
   await open();
@@ -865,6 +865,20 @@ test('fires onChange when clearing the selection in multiple mode', async () => 
     />,
   );
   clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when pasting a selection', async () => {
+  const onChange = jest.fn();
+  render(<AsyncSelect {...defaultProps} onChange={onChange} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 

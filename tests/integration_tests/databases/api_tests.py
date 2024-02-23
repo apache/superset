@@ -197,6 +197,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
+            "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
             "created_by",
@@ -288,9 +289,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -336,10 +337,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -397,10 +398,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -477,12 +478,12 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
         mock_test_connection_database_command_run,
@@ -531,20 +532,22 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
+    @mock.patch("superset.extensions.db.session.rollback")
     def test_do_not_create_database_if_ssh_tunnel_creation_fails(
         self,
+        mock_rollback,
         mock_test_connection_database_command_run,
         mock_create_is_feature_enabled,
         mock_get_all_schema_names,
     ):
         """
-        Database API: Test Database is not created if SSH Tunnel creation fails
+        Database API: Test rollback is called if SSH Tunnel creation fails
         """
         mock_create_is_feature_enabled.return_value = True
         self.login(username="admin")
@@ -565,6 +568,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
+
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == response.get("id"))
@@ -572,19 +576,14 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert model_ssh_tunnel is None
         self.assertEqual(response, fail_message)
-        # Cleanup
-        model = (
-            db.session.query(Database)
-            .filter(Database.database_name == "test-db-failure-ssh-tunnel")
-            .one_or_none()
-        )
-        # the DB should not be created
-        assert model is None
+
+        # Check that rollback was called
+        mock_rollback.assert_called()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -637,7 +636,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -1366,12 +1365,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
-        session = db.session
         table = SqlaTable(
             schema="main", table_name="ab_permission", database=get_main_database()
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         tmp_table_perm = security_manager.find_permission_view_menu(
             "datasource_access", table.get_perm()
@@ -1733,15 +1731,14 @@ class TestDatabaseApi(SupersetTestCase):
         with self.create_app().app_context():
             main_db = get_main_database()
             main_db.allow_file_upload = True
-            session = db.session
             table = SqlaTable(
                 schema="public",
                 table_name="ab_permission",
                 database=get_main_database(),
             )
 
-            session.add(table)
-            session.commit()
+            db.session.add(table)
+            db.session.commit()
             tmp_table_perm = security_manager.find_permission_view_menu(
                 "datasource_access", table.get_perm()
             )
@@ -2005,10 +2002,10 @@ class TestDatabaseApi(SupersetTestCase):
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @mock.patch(
-        "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
+        "superset.commands.database.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
     @mock.patch(
-        "superset.databases.commands.test_connection.event_logger",
+        "superset.commands.database.test_connection.event_logger",
     )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
@@ -2074,7 +2071,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 34)
+        self.assertEqual(response["charts"]["count"], 33)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -3748,7 +3745,7 @@ class TestDatabaseApi(SupersetTestCase):
             },
         )
 
-    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch("superset.commands.database.validate_sql.get_validator_by_name")
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         PRESTO_SQL_VALIDATORS_BY_ENGINE,

@@ -73,7 +73,7 @@ export const hasTemporalColumns = (
 ) => {
   const columnTypes = ensureIsArray(dataset?.column_types);
   return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.Temporal)
   );
 };
 

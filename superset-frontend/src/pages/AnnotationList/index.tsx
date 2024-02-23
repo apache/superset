@@ -154,7 +154,7 @@ function AnnotationList({
     () => [
       {
         accessor: 'short_descr',
-        Header: t('Label'),
+        Header: t('Name'),
       },
       {
         accessor: 'long_descr',

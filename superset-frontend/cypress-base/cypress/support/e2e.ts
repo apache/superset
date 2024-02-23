@@ -18,7 +18,9 @@
  */
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
-import failOnConsoleError, { Config } from 'cypress-fail-on-console-error';
+import failOnConsoleError from 'cypress-fail-on-console-error';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 require('cy-verify-downloads').addCustomCommand();
 

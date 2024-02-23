@@ -229,6 +229,32 @@ test('Should database select display options', async () => {
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
+test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.get(
+    databaseApiRoute,
+    {
+      ...fakeDatabaseApiResult,
+      count: fakeDatabaseApiResult.result.length + 1,
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
+  );
+  expect(select).toBeInTheDocument();
+  userEvent.type(select, 'keywordtest');
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
+  );
+  expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain('keywordtest');
+});
+
 test('should show empty state if there are no options', async () => {
   fetchMock.reset();
   fetchMock.get(databaseApiRoute, { result: [] });
@@ -290,7 +316,13 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const { rerender } = render(<DatabaseSelector {...props} db={null} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
+  rerender(<DatabaseSelector {...props} />);
+  expect(props.onSchemaChange).toBeCalledTimes(0);
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
@@ -301,4 +333,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
+  expect(props.onSchemaChange).toBeCalledTimes(1);
 });

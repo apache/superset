@@ -28,10 +28,10 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   type ReturnType = T extends 'raw' | null
     ? Response
     : T extends 'json' | 'json-bigint' | undefined
-    ? JsonResponse
-    : T extends 'text'
-    ? TextResponse
-    : never;
+      ? JsonResponse
+      : T extends 'text'
+        ? TextResponse
+        : never;
   const response = await apiPromise;
   // reject failed HTTP requests with the raw response
   if (!response.ok) {

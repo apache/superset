@@ -41,7 +41,7 @@ const SSHTunnelSwitch = ({
           setUseSSHTunneling(changed);
           if (!changed) {
             setDB({
-              type: ActionType.removeSSHTunnelConfig,
+              type: ActionType.RemoveSSHTunnelConfig,
             });
           }
         }}

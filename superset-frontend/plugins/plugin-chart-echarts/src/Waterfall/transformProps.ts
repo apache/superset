@@ -185,10 +185,11 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
     currencyFormat,
+    granularitySqla = '',
     groupby,
-    increaseColor,
-    decreaseColor,
-    totalColor,
+    increaseColor = { r: 90, g: 193, b: 137 },
+    decreaseColor = { r: 224, g: 67, b: 85 },
+    totalColor = { r: 102, g: 102, b: 102 },
     metric = '',
     xAxis,
     xTicksLayout,
@@ -213,7 +214,10 @@ export default function transformProps(
   const breakdownName = isAdhocColumn(breakdownColumn)
     ? breakdownColumn.label!
     : breakdownColumn;
-  const xAxisName = isAdhocColumn(xAxis) ? xAxis.label! : xAxis;
+  const xAxisColumn = xAxis || granularitySqla;
+  const xAxisName = isAdhocColumn(xAxisColumn)
+    ? xAxisColumn.label!
+    : xAxisColumn;
   const metricLabel = getMetricLabel(metric);
 
   const transformedData = transformer({
@@ -335,7 +339,7 @@ export default function transformProps(
     if (value === TOTAL_MARK) {
       return TOTAL_MARK;
     }
-    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.TEMPORAL) {
+    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.Temporal) {
       if (typeof value === 'string') {
         return getTimeFormatter(xAxisTimeFormat)(Number.parseInt(value, 10));
       }

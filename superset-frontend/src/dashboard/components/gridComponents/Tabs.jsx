@@ -23,7 +23,7 @@ import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { AntdModal } from 'src/components';
-import DragDroppable from '../dnd/DragDroppable';
+import { Draggable } from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -32,7 +32,7 @@ import findTabIndexByComponentId from '../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../util/getLeafComponentIdFromPath';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
+import { NEW_TAB_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 import { TABS_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
@@ -51,7 +51,7 @@ const propTypes = {
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
-  setActiveTabs: PropTypes.func,
+  setActiveTab: PropTypes.func,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -75,7 +75,7 @@ const defaultProps = {
   columnWidth: 0,
   activeTabs: [],
   directPathToChild: [],
-  setActiveTabs() {},
+  setActiveTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -125,12 +125,12 @@ export class Tabs extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.props.setActiveTabs(this.state.activeKey);
+    this.props.setActiveTab(this.state.activeKey);
   }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeKey !== this.state.activeKey) {
-      this.props.setActiveTabs(this.state.activeKey, prevState.activeKey);
+      this.props.setActiveTab(this.state.activeKey, prevState.activeKey);
     }
   }
 
@@ -339,7 +339,7 @@ export class Tabs extends React.PureComponent {
       tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
-      <DragDroppable
+      <Draggable
         component={tabsComponent}
         parentComponent={parentComponent}
         orientation="row"
@@ -348,10 +348,7 @@ export class Tabs extends React.PureComponent {
         onDrop={this.handleDrop}
         editMode={editMode}
       >
-        {({
-          dropIndicatorProps: tabsDropIndicatorProps,
-          dragSourceRef: tabsDragSourceRef,
-        }) => (
+        {({ dragSourceRef: tabsDragSourceRef }) => (
           <StyledTabsContainer
             className="dashboard-component dashboard-component-tabs"
             data-test="dashboard-component-tabs"
@@ -415,15 +412,9 @@ export class Tabs extends React.PureComponent {
                 </LineEditableTabs.TabPane>
               ))}
             </LineEditableTabs>
-
-            {/* don't indicate that a drop on root is allowed when tabs already exist */}
-            {tabsDropIndicatorProps &&
-              parentComponent.id !== DASHBOARD_ROOT_ID && (
-                <div {...tabsDropIndicatorProps} />
-              )}
           </StyledTabsContainer>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }

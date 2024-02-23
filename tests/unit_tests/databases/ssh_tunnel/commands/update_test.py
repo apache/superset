@@ -20,7 +20,7 @@ from collections.abc import Iterator
 import pytest
 from sqlalchemy.orm.session import Session
 
-from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelInvalidError
 
 
 @pytest.fixture
@@ -32,16 +32,18 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
-        database=db,
+        database=database,
     )
-    ssh_tunnel = SSHTunnel(database_id=db.id, database=db, server_address="Test")
+    ssh_tunnel = SSHTunnel(
+        database_id=database.id, database=database, server_address="Test"
+    )
 
-    session.add(db)
+    session.add(database)
     session.add(sqla_table)
     session.add(ssh_tunnel)
     session.flush()
@@ -50,8 +52,8 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_update_shh_tunnel_command(session_with_data: Session) -> None:
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
     from superset.daos.database import DatabaseDAO
-    from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)
@@ -72,8 +74,8 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
 
 
 def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
     from superset.daos.database import DatabaseDAO
-    from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)

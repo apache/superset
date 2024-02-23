@@ -28,7 +28,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
@@ -40,7 +40,6 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
-import MetricsControl from '../MetricControl/MetricsControl';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -313,12 +312,12 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+      if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (
-        itemValue.type_generic === GenericDataType.STRING ||
-        itemValue.type_generic === GenericDataType.BOOLEAN ||
-        itemValue.type_generic === GenericDataType.TEMPORAL
+        itemValue.type_generic === GenericDataType.String ||
+        itemValue.type_generic === GenericDataType.Boolean ||
+        itemValue.type_generic === GenericDataType.Temporal
       ) {
         config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }
@@ -364,9 +363,4 @@ const DndMetricSelect = (props: any) => {
   );
 };
 
-const DndMetricSelectWithFallback = withDndFallback(
-  DndMetricSelect,
-  MetricsControl,
-);
-
-export { DndMetricSelectWithFallback as DndMetricSelect };
+export { DndMetricSelect };

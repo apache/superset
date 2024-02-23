@@ -31,6 +31,7 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
+import { GenericDataType } from './QueryResponse';
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;
@@ -68,6 +69,8 @@ export type QueryObjectExtras = Partial<{
   time_grain_sqla?: TimeGranularity;
   /** WHERE condition */
   where?: string;
+  /** Instant Time Comparison */
+  instant_time_comparison_range?: string;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -250,37 +253,38 @@ export type QueryColumn = {
   name?: string;
   column_name: string;
   type: string | null;
+  type_generic: GenericDataType;
   is_dttm: boolean;
 };
 
 // Possible states of a query object for processing on the server
 export enum QueryState {
-  STARTED = 'started',
-  STOPPED = 'stopped',
-  FAILED = 'failed',
-  PENDING = 'pending',
-  RUNNING = 'running',
-  SCHEDULED = 'scheduled',
-  SUCCESS = 'success',
-  FETCHING = 'fetching',
-  TIMED_OUT = 'timed_out',
+  Started = 'started',
+  Stopped = 'stopped',
+  Failed = 'failed',
+  Pending = 'pending',
+  Running = 'running',
+  Scheduled = 'scheduled',
+  Success = 'success',
+  Fetching = 'fetching',
+  TimedOut = 'timed_out',
 }
 
 // Inidcates a Query's state is still processing
 export const runningQueryStateList: QueryState[] = [
-  QueryState.RUNNING,
-  QueryState.STARTED,
-  QueryState.PENDING,
-  QueryState.FETCHING,
-  QueryState.SCHEDULED,
+  QueryState.Running,
+  QueryState.Started,
+  QueryState.Pending,
+  QueryState.Fetching,
+  QueryState.Scheduled,
 ];
 
 // Indicates a Query's state has completed processing regardless of success / failure
 export const concludedQueryStateList: QueryState[] = [
-  QueryState.STOPPED,
-  QueryState.FAILED,
-  QueryState.SUCCESS,
-  QueryState.TIMED_OUT,
+  QueryState.Stopped,
+  QueryState.Failed,
+  QueryState.Success,
+  QueryState.TimedOut,
 ];
 
 export type Query = {
@@ -326,6 +330,7 @@ export type Query = {
   actions: Record<string, any>;
   type: DatasourceType;
   columns: QueryColumn[];
+  runAsync?: boolean;
 };
 
 export type QueryResults = {
@@ -357,7 +362,7 @@ export const testQuery: Query = {
   isDataPreview: false,
   progress: 0,
   resultsKey: null,
-  state: QueryState.SUCCESS,
+  state: QueryState.Success,
   tempSchema: null,
   trackingUrl: null,
   templateParams: null,
@@ -383,16 +388,19 @@ export const testQuery: Query = {
       column_name: 'Column 1',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.String,
     },
     {
       column_name: 'Column 3',
       type: 'STRING',
       is_dttm: false,
+      type_generic: GenericDataType.String,
     },
     {
       column_name: 'Column 2',
       type: 'TIMESTAMP',
       is_dttm: true,
+      type_generic: GenericDataType.Temporal,
     },
   ],
 };
@@ -404,16 +412,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.Temporal,
         is_dttm: true,
       },
     ],
@@ -425,16 +436,19 @@ export const testQueryResults = {
       {
         column_name: 'Column 1',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 3',
         type: 'STRING',
+        type_generic: GenericDataType.String,
         is_dttm: false,
       },
       {
         column_name: 'Column 2',
         type: 'TIMESTAMP',
+        type_generic: GenericDataType.Temporal,
         is_dttm: true,
       },
     ],

@@ -48,14 +48,14 @@ if (defaultView != null) {
 }
 
 const g = global as any;
-g.window = g.window || {};
-g.window.location = { href: 'about:blank' };
-g.window.performance = { now: () => new Date().getTime() };
-g.window.Worker = Worker;
-g.window.IntersectionObserver = IntersectionObserver;
-g.window.ResizeObserver = ResizeObserver;
-g.window.featureFlags = {};
-g.URL.createObjectURL = () => '';
+g.window ??= Object.create(window);
+g.window.location ??= { href: 'about:blank' };
+g.window.performance ??= { now: () => new Date().getTime() };
+g.window.Worker ??= Worker;
+g.window.IntersectionObserver ??= IntersectionObserver;
+g.window.ResizeObserver ??= ResizeObserver;
+g.window.featureFlags ??= {};
+g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
