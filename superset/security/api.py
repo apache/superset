@@ -24,10 +24,16 @@ from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 
+from superset import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.extensions import event_logger
+from superset.key_value.models import KeyValueEntry
+from superset.models.core import Database, FavStar, Log
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
@@ -158,3 +164,64 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/users/related/<int:pk>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
+        log_to_statsd=False,
+    )
+    def delete(self, pk: int) -> Response:
+        """Delete an User and all related records.
+        ---
+        delete:
+          summary: Delete an user and all related records
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: User deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            user = db.session.query(security_manager.user_model).get(pk)
+            if not user:
+                raise Exception("User not found")
+            db.session.query(FavStar).filter_by(user_id=pk).delete()
+            db.session.query(Log).filter_by(user_id=pk).delete()
+            db.session.query(KeyValueEntry).filter(KeyValueEntry.created_by_fk==pk).delete()
+            db.session.query(Slice).filter(Slice.created_by_fk==pk).delete()
+            db.session.query(Dashboard).filter(Dashboard.created_by_fk==pk).delete()
+            db.session.query(SqlaTable).filter(SqlaTable.created_by_fk==pk).delete()
+            db.session.query(Database).filter(Database.created_by_fk==pk).delete()
+            db.session.delete(user)
+            db.session.commit()
+            return self.response(200, message="OK")
+        except Exception as ex:
+            logger.error(
+                "Error deleting user: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
