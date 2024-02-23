@@ -184,13 +184,16 @@ Error: %(text)s
             client = WebClient(token=token, proxy=app.config["SLACK_PROXY"])
             # files_upload returns SlackResponse as we run it in sync mode.
             if files:
-                for file in files:
+                for idx, file in enumerate(files, 1):
+                    file_base = (title or "uploaded_file").split()[-1].replace(".", "_")
+                    file_suffix = "" if len(files) == 1 else f"_{idx}"
                     client.files_upload(
                         channels=channel,
                         file=file,
                         initial_comment=body,
                         title=title,
                         filetype=file_type,
+                        filename=f"{file_base}{file_suffix}.{file_type}",
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)
