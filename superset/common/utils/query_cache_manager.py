@@ -145,7 +145,7 @@ class QueryCacheManager:
         Initialize QueryCacheManager by query-cache key
         """
         query_cache = cls()
-        if not key or not _cache[region] or not force_query:
+        if not key or not _cache[region] or force_query:
             return query_cache
 
         if cache_value := _cache[region].get(key):
