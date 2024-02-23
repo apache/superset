@@ -310,7 +310,7 @@ const ViewResultsModalTrigger = ({
               <Button
                 buttonStyle="primary"
                 buttonSize="small"
-                onClick={() => setShowModal(false)}
+                onClick={closeModal}
                 css={css`
                   margin-left: ${theme.gridUnit * 2}px;
                 `}
@@ -692,6 +692,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         trigger={['click']}
         placement="bottomRight"
         visible={dropdownIsOpen}
+        onVisibleChange={status => toggleDropdown({ close: !status })}
       >
         <span
           css={() => css`
@@ -702,9 +703,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           role="button"
           aria-label="More Options"
           tabIndex={0}
-          onClick={() => {
-            toggleDropdown();
-          }}
           onBlur={e => {
             // close unless the dropdown menu is clicked
             const relatedTarget = e.relatedTarget as HTMLElement;

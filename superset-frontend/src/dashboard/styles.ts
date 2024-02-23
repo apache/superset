@@ -116,7 +116,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
   a,
   .ant-tabs-tabpane,
   .ant-tabs-tab-btn,
-  .superset-button.action-button,
+  .superset-button,
   .superset-button.ant-dropdown-trigger,
   .header-controls span {
     &:focus-visible {

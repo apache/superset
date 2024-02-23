@@ -53,6 +53,11 @@ const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`
   .link {
     color: ${({ level, theme }) => theme.colors[level].dark2};
     text-decoration: underline;
+    &:focus-visible {
+      border: 1px solid ${({ theme }) => theme.colors.primary.base};
+      padding: ${({ theme }) => theme.gridUnit / 2}px;
+      margin: -${({ theme }) => theme.gridUnit / 2 + 1}px;
+      border-radius: ${({ theme }) => theme.borderRadius}px;
   }
 `;
 
@@ -123,9 +128,14 @@ export default function ErrorAlert({
         {!isExpandable && !description && (
           <span
             role="button"
-            tabIndex={-1}
+            tabIndex={0}
             className="link"
             onClick={() => setIsModalOpen(true)}
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                setIsModalOpen(true);
+              }
+            }}
           >
             {t('See more')}
           </span>
@@ -137,9 +147,14 @@ export default function ErrorAlert({
           {!isExpandable && (
             <span
               role="button"
-              tabIndex={-1}
+              tabIndex={0}
               className="link"
               onClick={() => setIsModalOpen(true)}
+              onKeyDown={event => {
+                if (event.key === 'Enter') {
+                  setIsModalOpen(true);
+                }
+              }}
             >
               {t('See more')}
             </span>
@@ -154,9 +169,14 @@ export default function ErrorAlert({
               {!isBodyExpanded && (
                 <span
                   role="button"
-                  tabIndex={-1}
+                  tabIndex={0}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      setIsBodyExpanded(true);
+                    }
+                  }}
                 >
                   {t('See more')}
                 </span>
@@ -167,9 +187,14 @@ export default function ErrorAlert({
                   {body}
                   <span
                     role="button"
-                    tabIndex={-1}
+                    tabIndex={0}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        setIsBodyExpanded(false);
+                      }
+                    }}
                   >
                     {t('See less')}
                   </span>
@@ -208,6 +233,12 @@ export default function ErrorAlert({
                 cta
                 buttonStyle="primary"
                 onClick={() => setIsModalOpen(false)}
+                tabIndex={0}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
+                    setIsModalOpen(false);
+                  }
+                }}
               >
                 {t('Close')}
               </Button>
