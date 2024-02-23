@@ -35,14 +35,6 @@ export const InteractiveTooltip = (args: IProps) => (
   </div>
 );
 
-InteractiveTooltip.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 InteractiveTooltip.args = {
   title: 'This is too long and should truncate.',
   width: 200,

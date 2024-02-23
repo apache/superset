@@ -19,6 +19,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
+import Mousetrap from 'mousetrap';
 import { css, styled, t } from '@superset-ui/core';
 import { throttle } from 'lodash';
 import {
@@ -165,6 +166,8 @@ class App extends React.PureComponent<AppProps, AppState> {
 
     // And now we need to reset the overscroll behavior back to the default.
     document.body.style.overscrollBehaviorX = 'auto';
+
+    Mousetrap.reset();
   }
 
   onHashChanged() {

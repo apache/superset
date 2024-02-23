@@ -58,13 +58,8 @@ InteractiveButtonGroup.argTypes = {
   },
 };
 
-InteractiveButtonGroup.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+InteractiveButtonGroup.parameters = {
+  actions: {
+    disable: true,
   },
 };

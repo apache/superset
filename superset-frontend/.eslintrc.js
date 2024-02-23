@@ -43,6 +43,7 @@ module.exports = {
     'prettier/react',
     'plugin:react-hooks/recommended',
     'plugin:react-prefer-function-component/recommended',
+    'plugin:storybook/recommended',
   ],
   parser: '@babel/eslint-parser',
   parserOptions: {
@@ -69,13 +70,13 @@ module.exports = {
     },
   },
   plugins: [
-    'prettier',
     'react',
     'file-progress',
     'lodash',
     'theme-colors',
     'translation-vars',
     'react-prefer-function-component',
+    'prettier',
   ],
   overrides: [
     {
@@ -88,7 +89,7 @@ module.exports = {
         'prettier/@typescript-eslint',
         'prettier/react',
       ],
-      plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
+      plugins: ['@typescript-eslint/eslint-plugin', 'react', 'prettier'],
       rules: {
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
@@ -161,6 +162,28 @@ module.exports = {
         'react/static-property-placement': 0, // re-enable up for discussion
         'prettier/prettier': 'error',
         'file-progress/activate': 1,
+        // delete me later: temporary rules to help with migration
+        'jsx-no-useless-fragment': 0,
+        'react/function-component-definition': [
+          0,
+          {
+            namedComponents: 'arrow-function',
+          },
+        ],
+        'default-param-last': 0,
+        'react/no-unstable-nested-components': 0,
+        'react/jsx-no-useless-fragment': 0,
+        'react/no-unknown-property': 0,
+        'no-restricted-exports': 0,
+        'react/default-props-match-prop-types': 0,
+        'no-unsafe-optional-chaining': 0,
+        'react/state-in-constructor': 0,
+        'import/no-import-module-exports': 0,
+        'no-promise-executor-return': 0,
+        'prefer-regex-literals': 0,
+        'react/no-unused-class-component-methods': 0,
+        'import/no-relative-packages': 0,
+        'prefer-exponentiation-operator': 0,
       },
       settings: {
         'import/resolver': {
@@ -203,6 +226,22 @@ module.exports = {
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
+        // temporary rules to help with migration - please re-enable!
+        'testing-library/await-async-queries': 0,
+        'testing-library/await-async-utils': 0,
+        'testing-library/no-await-sync-events': 0,
+        'testing-library/no-render-in-lifecycle': 0,
+        'testing-library/no-unnecessary-act': 0,
+        'testing-library/no-wait-for-multiple-assertions': 0,
+        'testing-library/prefer-screen-queries': 0,
+        'testing-library/await-async-events': 0,
+        'testing-library/no-node-access': 0,
+        'testing-library/no-wait-for-side-effects': 0,
+        'testing-library/prefer-presence-queries': 0,
+        'testing-library/render-result-naming-convention': 0,
+        'testing-library/no-container': 0,
+        'testing-library/prefer-find-by': 0,
+        'testing-library/no-manual-cleanup': 0,
       },
     },
     {
@@ -222,6 +261,8 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
+        'jest/no-alias-methods': 0,
+        'react/no-void-elements': 0,
       },
     },
   ],
@@ -310,6 +351,24 @@ module.exports = {
     'react/static-property-placement': 0, // disabled temporarily
     'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
+    // disabling some things that come with the eslint 7->8 upgrade. Will address these in a separate PR
+    'jest/no-alias-methods': 0,
+    'react/no-unknown-property': 0,
+    'react/no-void-elements': 0,
+    'react/function-component-definition': [
+      0,
+      {
+        namedComponents: 'arrow-function',
+      },
+    ],
+    'react/no-unstable-nested-components': 0,
+    'react/jsx-no-useless-fragment': 0,
+    'default-param-last': 0,
+    'no-import-assign': 0,
+    'import/no-relative-packages': 0,
+    'default-case-last': 0,
+    'no-promise-executor-return': 0,
+    'react/no-unused-class-component-methods': 0,
   },
   ignorePatterns,
 };

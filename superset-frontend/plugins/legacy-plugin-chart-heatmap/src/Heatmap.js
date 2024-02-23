@@ -250,7 +250,7 @@ function Heatmap(element, props) {
     hideYLabel();
   }
 
-  const fp = getNumberFormatter(NumberFormats.PERCENT);
+  const fp = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
   const xScale = ordScale('x', null, sortXAxis);
   const yScale = ordScale('y', null, sortYAxis);

@@ -115,7 +115,12 @@ class WordCloud extends React.PureComponent<
     },
   });
 
-  createEncoder = this.wordCloudEncoderFactory.createSelector();
+  createEncoder = (encoding?: Partial<WordCloudEncoding>) => {
+    const selector = this.wordCloudEncoderFactory.createSelector();
+
+    // @ts-ignore
+    return selector(encoding as any);
+  };
 
   constructor(props: FullWordCloudProps) {
     super(props);
@@ -158,8 +163,8 @@ class WordCloud extends React.PureComponent<
   update() {
     const { data, encoding } = this.props;
 
-    // @ts-ignore
-    const encoder = this.createEncoder(encoding);
+    const encoder: Encoder<WordCloudEncodingConfig> =
+      this.createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(

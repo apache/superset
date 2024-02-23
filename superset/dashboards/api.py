@@ -756,7 +756,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except DashboardNotFoundError:
                 return self.response_404()
         buf.seek(0)

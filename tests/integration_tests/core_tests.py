@@ -199,7 +199,6 @@ class TestCore(SupersetTestCase):
             url.format(tbl_id, copy_name, "saveas"),
             data={"form_data": json.dumps(form_data)},
         )
-        db.session.expunge_all()
         new_slice_id = resp.json["form_data"]["slice_id"]
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
 
@@ -221,7 +220,6 @@ class TestCore(SupersetTestCase):
             url.format(tbl_id, new_slice_name, "overwrite"),
             data={"form_data": json.dumps(form_data)},
         )
-        db.session.expunge_all()
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
         self.assertEqual(slc.slice_name, new_slice_name)
         self.assertEqual(slc.viz.form_data, form_data)
@@ -240,10 +238,7 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice(
-            slice_name="Top 10 Girl Name Share",
-            expunge_from_session=False,
-        )
+        slc = self.get_slice(slice_name="Top 10 Girl Name Share")
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
@@ -1189,25 +1184,6 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
-
-    def test_redirect_new_sqllab(self):
-        self.login(username="admin")
-        resp = self.client.get(
-            "/superset/sqllab?savedQueryId=1&testParams=2",
-            follow_redirects=True,
-        )
-        assert resp.request.path == "/sqllab/"
-        assert (
-            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
-        )
-
-        resp = self.client.post("/superset/sqllab/")
-        assert resp.status_code == 302
-
-    def test_redirect_new_sqllab_history(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/sqllab/history/")
-        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

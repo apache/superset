@@ -204,6 +204,7 @@ def get_docker_command(
         {cache_to_arg} \\
         {build_arg} \\
         {platform_arg} \\
+        {target_argument} \\
         --label sha={sha} \\
         --label target={build_target} \\
         --label build_trigger={build_context} \\

@@ -377,9 +377,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       >
         {renderWell()}
         <div>
-          {cols?.map(col => (
-            <ColumnElement column={col} key={col.name} />
-          ))}
+          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
         </div>
       </div>
     );
