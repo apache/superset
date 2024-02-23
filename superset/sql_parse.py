@@ -600,7 +600,6 @@ class ParsedQuery:
 
 
 def sanitize_clause(clause: str) -> str:
-    logger.info(f"{__name__}: sanitize")
     # clause = sqlparse.format(clause, strip_comments=True)
     statements = sqlparse.parse(clause)
     if len(statements) != 1:
