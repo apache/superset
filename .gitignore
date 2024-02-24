@@ -107,6 +107,5 @@ release.json
 # Translation binaries
 messages.mo
 
-docker/requirements-local.txt
 
 cache/
