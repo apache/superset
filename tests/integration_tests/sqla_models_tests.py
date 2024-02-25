@@ -132,15 +132,14 @@ class TestDatabaseModel(SupersetTestCase):
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
             self.assertTrue(col.is_temporal)
 
-    @patch("superset.jinja_context.get_user_id", return_value=1)
-    @patch("superset.jinja_context.get_username", return_value="abc")
-    @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
-    def test_extra_cache_keys(self, mock_user_email, mock_username, mock_user_id):
+    @patch("superset.jinja_context.g")
+    def test_extra_cache_keys(self, flask_g):
+        flask_g.user.username = "abc"
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["id", "username", "email"],
+            "groupby": ["user"],
             "metrics": [],
             "is_timeseries": False,
             "filter": [],
@@ -149,27 +148,19 @@ class TestDatabaseModel(SupersetTestCase):
         # Table with Jinja callable.
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
-            sql="""
-            SELECT  '{{ current_user_id() }}' as id,
-            SELECT  '{{ current_username() }}' as username,
-            SELECT  '{{ current_user_email() }}' as email,
-            """,
+            sql="SELECT '{{ current_username() }}' as user",
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
         self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
-        assert extra_cache_keys == [1, "abc", "abc@test.com"]
+        assert extra_cache_keys == ["abc"]
 
         # Table with Jinja callable disabled.
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
-            sql="""
-            SELECT  '{{ current_user_id(False) }}' as id,
-            SELECT  '{{ current_username(False) }}' as username,
-            SELECT  '{{ current_user_email(False) }}' as email,
-            """,
+            sql="SELECT '{{ current_username(False) }}' as user",
             database=get_example_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
@@ -198,8 +189,9 @@ class TestDatabaseModel(SupersetTestCase):
         self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
-    @patch("superset.jinja_context.get_username", return_value="abc")
-    def test_jinja_metrics_and_calc_columns(self, mock_username):
+    @patch("superset.jinja_context.g")
+    def test_jinja_metrics_and_calc_columns(self, flask_g):
+        flask_g.user.username = "abc"
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
