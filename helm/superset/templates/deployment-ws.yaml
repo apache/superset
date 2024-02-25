@@ -35,7 +35,8 @@ spec:
   replicas: {{ .Values.supersetWebsockets.replicaCount }}
   selector:
     matchLabels:
-    {{- include "supersetWebsockets.selectorLabels" . | nindent 6 }}
+      app: "{{ template "superset.name" . }}-ws"
+      release: {{ .Release.Name }}
   {{- if .Values.supersetWebsockets.strategy }}
   strategy: {{- toYaml .Values.supersetWebsockets.strategy | nindent 4 }}
   {{- end }}

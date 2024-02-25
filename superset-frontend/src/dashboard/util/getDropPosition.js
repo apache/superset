@@ -23,7 +23,6 @@ export const DROP_TOP = 'DROP_TOP';
 export const DROP_RIGHT = 'DROP_RIGHT';
 export const DROP_BOTTOM = 'DROP_BOTTOM';
 export const DROP_LEFT = 'DROP_LEFT';
-export const DROP_FORBIDDEN = 'DROP_FORBIDDEN';
 
 // this defines how close the mouse must be to the edge of a component to display
 // a sibling type drop indicator
@@ -73,7 +72,7 @@ export default function getDropPosition(monitor, Component) {
   });
 
   if (!validChild && !validSibling) {
-    return DROP_FORBIDDEN;
+    return null;
   }
 
   const hasChildren = (component.children || []).length > 0;

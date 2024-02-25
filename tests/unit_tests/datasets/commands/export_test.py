@@ -88,22 +88,9 @@ def test_export(session: Session) -> None:
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
 
-    export = [
-        (file[0], file[1]())
-        for file in list(
-            ExportDatasetsCommand._export(
-                sqla_table
-            )  # pylint: disable=protected-access
-        )
-    ]
-
-    payload = sqla_table.export_to_dict(
-        recursive=True,
-        include_parent_ref=False,
-        include_defaults=True,
-        export_uuids=True,
+    export = list(
+        ExportDatasetsCommand._export(sqla_table)  # pylint: disable=protected-access
     )
-
     assert export == [
         (
             "datasets/my_database/my_table.yaml",
@@ -127,7 +114,7 @@ extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: {payload['uuid']}
+uuid: null
 metrics:
 - metric_name: cnt
   verbose_name: null
@@ -142,12 +129,12 @@ metrics:
 columns:
 - column_name: profit
   verbose_name: null
-  is_dttm: false
-  is_active: true
+  is_dttm: null
+  is_active: null
   type: INTEGER
   advanced_data_type: null
-  groupby: true
-  filterable: true
+  groupby: null
+  filterable: null
   expression: revenue-expenses
   description: null
   python_date_format: null
@@ -156,47 +143,47 @@ columns:
 - column_name: ds
   verbose_name: null
   is_dttm: 1
-  is_active: true
+  is_active: null
   type: TIMESTAMP
   advanced_data_type: null
-  groupby: true
-  filterable: true
+  groupby: null
+  filterable: null
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: user_id
   verbose_name: null
-  is_dttm: false
-  is_active: true
+  is_dttm: null
+  is_active: null
   type: INTEGER
   advanced_data_type: null
-  groupby: true
-  filterable: true
+  groupby: null
+  filterable: null
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: expenses
   verbose_name: null
-  is_dttm: false
-  is_active: true
+  is_dttm: null
+  is_active: null
   type: INTEGER
   advanced_data_type: null
-  groupby: true
-  filterable: true
+  groupby: null
+  filterable: null
   expression: null
   description: null
   python_date_format: null
   extra: null
 - column_name: revenue
   verbose_name: null
-  is_dttm: false
-  is_active: true
+  is_dttm: null
+  is_active: null
   type: INTEGER
   advanced_data_type: null
-  groupby: true
-  filterable: true
+  groupby: null
+  filterable: null
   expression: null
   description: null
   python_date_format: null

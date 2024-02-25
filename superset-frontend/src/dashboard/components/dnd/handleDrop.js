@@ -18,7 +18,10 @@
  */
 import getDropPosition, {
   clearDropCache,
-  DROP_FORBIDDEN,
+  DROP_TOP,
+  DROP_RIGHT,
+  DROP_BOTTOM,
+  DROP_LEFT,
 } from '../../util/getDropPosition';
 
 export default function handleDrop(props, monitor, Component) {
@@ -28,7 +31,7 @@ export default function handleDrop(props, monitor, Component) {
   Component.setState(() => ({ dropIndicator: null }));
   const dropPosition = getDropPosition(monitor, Component);
 
-  if (!dropPosition || dropPosition === DROP_FORBIDDEN) {
+  if (!dropPosition) {
     return undefined;
   }
 
@@ -37,10 +40,18 @@ export default function handleDrop(props, monitor, Component) {
     component,
     index: componentIndex,
     onDrop,
-    dropToChild,
+    orientation,
   } = Component.props;
 
   const draggingItem = monitor.getItem();
+
+  const dropAsChildOrSibling =
+    (orientation === 'row' &&
+      (dropPosition === DROP_TOP || dropPosition === DROP_BOTTOM)) ||
+    (orientation === 'column' &&
+      (dropPosition === DROP_LEFT || dropPosition === DROP_RIGHT))
+      ? 'sibling'
+      : 'child';
 
   const dropResult = {
     source: {
@@ -56,17 +67,11 @@ export default function handleDrop(props, monitor, Component) {
   };
 
   // simplest case, append as child
-  if (dropToChild) {
+  if (dropAsChildOrSibling === 'child') {
     dropResult.destination = {
       id: component.id,
       type: component.type,
       index: component.children.length,
-    };
-  } else if (!parentComponent) {
-    dropResult.destination = {
-      id: component.id,
-      type: component.type,
-      index: componentIndex,
     };
   } else {
     // if the item is in the same list with a smaller index, you must account for the
@@ -76,9 +81,10 @@ export default function handleDrop(props, monitor, Component) {
     const sameParentLowerIndex =
       sameParent && draggingItem.index < componentIndex;
 
-    const nextIndex = sameParentLowerIndex
-      ? componentIndex - 1
-      : componentIndex;
+    let nextIndex = sameParentLowerIndex ? componentIndex - 1 : componentIndex;
+    if (dropPosition === DROP_BOTTOM || dropPosition === DROP_RIGHT) {
+      nextIndex += 1;
+    }
 
     dropResult.destination = {
       id: parentComponent.id,

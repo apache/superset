@@ -60,6 +60,7 @@ class ExecutionContextConvertor:
                 ),
                 default=utils.pessimistic_json_iso_dttm_ser,
                 ignore_nan=True,
+                encoding=None,
             )
 
         return json.dumps(

@@ -20,7 +20,6 @@ import React from 'react';
 import { css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { mix } from 'polished';
-import 'react-js-cron/dist/styles.css';
 
 export const GlobalStyles = () => (
   <Global

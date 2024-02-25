@@ -36,7 +36,8 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 6 }}
+      app: {{ template "superset.name" . }}-celerybeat
+      release: {{ .Release.Name }}
   template:
     metadata:
       annotations:

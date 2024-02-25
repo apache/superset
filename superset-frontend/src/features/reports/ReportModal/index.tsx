@@ -45,7 +45,10 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
-import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
+import {
+  TRANSLATIONS,
+  StyledInputContainer,
+} from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
@@ -267,14 +270,14 @@ function ReportModal({
   const renderCustomWidthSection = (
     <StyledInputContainer>
       <div className="control-label" css={CustomWidthHeaderStyle}>
-        {t('Screenshot width')}
+        {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
       </div>
       <div className="input-container">
         <Input
           type="number"
           name="custom_width"
           value={currentReport?.custom_width || ''}
-          placeholder={t('Input custom width in pixels')}
+          placeholder={TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             setCurrentReport({
               custom_width: parseInt(event.target.value, 10) || null,

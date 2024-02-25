@@ -66,7 +66,6 @@ import {
   EchartsSunburstChartPlugin,
   EchartsBubbleChartPlugin,
   EchartsWaterfallChartPlugin,
-  BigNumberPeriodOverPeriodChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -77,6 +76,7 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import { PopKPIPlugin } from '@superset-ui/plugin-chart-period-over-period-kpi';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
@@ -84,11 +84,7 @@ export default class MainPreset extends Preset {
     const experimentalPlugins = isFeatureEnabled(
       FeatureFlag.ChartPluginsExperimental,
     )
-      ? [
-          new BigNumberPeriodOverPeriodChartPlugin().configure({
-            key: 'pop_kpi',
-          }),
-        ]
+      ? [new PopKPIPlugin().configure({ key: 'pop_kpi' })]
       : [];
 
     super({

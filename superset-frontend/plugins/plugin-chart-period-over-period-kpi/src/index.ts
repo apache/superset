@@ -16,37 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ChangeEvent } from 'react';
-
-interface NumberInputProps {
-  timeUnit: string;
-  min: number;
-  name: string;
-  value: string | number;
-  placeholder: string;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
-}
-
-export default function NumberInput({
-  timeUnit,
-  min,
-  name,
-  value,
-  placeholder,
-  onChange,
-}: NumberInputProps) {
-  const [isFocused, setIsFocused] = useState<boolean>(false);
-
-  return (
-    <input
-      type="text"
-      min={min}
-      name={name}
-      value={value ? `${value}${!isFocused ? ` ${timeUnit}` : ''}` : ''}
-      placeholder={placeholder}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      onChange={onChange}
-    />
-  );
-}
+// eslint-disable-next-line import/prefer-default-export
+export { default as PopKPIPlugin } from './plugin';
+/**
+ * Note: this file exports the default export from PopKPI.tsx.
+ * If you want to export multiple visualization modules, you will need to
+ * either add additional plugin folders (similar in structure to ./plugin)
+ * OR export multiple instances of `ChartPlugin` extensions in ./plugin/index.ts
+ * which in turn load exports from CustomViz.tsx
+ */

@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ComparisonTimeRangeType,
-  t,
-  validateTimeComparisonRangeValues,
-} from '@superset-ui/core';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelState,
   ControlState,
-  getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+
+const validateTimeComparisonRangeValues = (
+  timeRangeValue?: any,
+  controlValue?: any,
+) => {
+  const isCustomTimeRange = timeRangeValue === 'c';
+  const isCustomControlEmpty = controlValue?.every(
+    (val: any) => ensureIsArray(val).length === 0,
+  );
+  return isCustomTimeRange && isCustomControlEmpty
+    ? [t('Filters for comparison must have a value')]
+    : [];
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -36,7 +43,17 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
+        [
+          {
+            name: 'metrics',
+            config: {
+              ...sharedControls.metrics,
+              // it's possible to add validators to controls if
+              // certain selections/types need to be enforced
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
         ['adhoc_filters'],
         [
           {
@@ -71,8 +88,7 @@ const config: ControlPanelConfig = {
               description:
                 'This only applies when selecting the Range for Comparison Type: Custom',
               visibility: ({ controls }) =>
-                controls?.time_comparison?.value ===
-                ComparisonTimeRangeType.Custom,
+                controls?.time_comparison?.value === 'c',
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
@@ -103,13 +119,71 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['y_axis_format'],
         ['currency_format'],
-        [headerFontSize],
         [
           {
-            ...subheaderFontSize,
+            name: 'header_font_size',
             config: {
-              ...subheaderFontSize.config,
-              label: t('Comparison font size'),
+              type: 'SelectControl',
+              label: t('Big Number Font Size'),
+              renderTrigger: true,
+              clearable: false,
+              default: 60,
+              options: [
+                {
+                  label: t('Tiny'),
+                  value: 16,
+                },
+                {
+                  label: t('Small'),
+                  value: 20,
+                },
+                {
+                  label: t('Normal'),
+                  value: 30,
+                },
+                {
+                  label: t('Large'),
+                  value: 48,
+                },
+                {
+                  label: t('Huge'),
+                  value: 60,
+                },
+              ],
+            },
+          },
+        ],
+        [
+          {
+            name: 'subheader_font_size',
+            config: {
+              type: 'SelectControl',
+              label: t('Subheader Font Size'),
+              renderTrigger: true,
+              clearable: false,
+              default: 40,
+              options: [
+                {
+                  label: t('Tiny'),
+                  value: 16,
+                },
+                {
+                  label: t('Small'),
+                  value: 20,
+                },
+                {
+                  label: t('Normal'),
+                  value: 26,
+                },
+                {
+                  label: t('Large'),
+                  value: 32,
+                },
+                {
+                  label: t('Huge'),
+                  value: 40,
+                },
+              ],
             },
           },
         ],
@@ -133,10 +207,6 @@ const config: ControlPanelConfig = {
       label: t('Number format'),
     },
   },
-  formDataOverrides: formData => ({
-    ...formData,
-    metric: getStandardizedControls().shiftMetric(),
-  }),
 };
 
 export default config;

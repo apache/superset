@@ -53,7 +53,6 @@ Join our growing community!
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
 - [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
-- [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]

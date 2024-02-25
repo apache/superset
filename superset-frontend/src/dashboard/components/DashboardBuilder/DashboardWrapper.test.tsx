@@ -17,18 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 
 import DashboardWrapper from './DashboardWrapper';
-
-beforeAll(() => {
-  jest.useFakeTimers();
-});
-
-afterAll(() => {
-  jest.useRealTimers();
-});
 
 test('should render children', () => {
   const { getByTestId } = render(
@@ -40,7 +32,7 @@ test('should render children', () => {
   expect(getByTestId('mock-children')).toBeInTheDocument();
 });
 
-test('should update the style on dragging state', async () => {
+test('should update the style on dragging state', () => {
   const defaultProps = {
     label: <span>Test label</span>,
     tooltipTitle: 'This is a tooltip title',
@@ -77,13 +69,7 @@ test('should update the style on dragging state', async () => {
     container.getElementsByClassName('dragdroppable--dragging'),
   ).toHaveLength(0);
   fireEvent.dragStart(getByText('Label 1'));
-  await waitFor(() => jest.runAllTimers());
   expect(
     container.getElementsByClassName('dragdroppable--dragging'),
   ).toHaveLength(1);
-  fireEvent.dragEnd(getByText('Label 1'));
-  // immediately discards dragging state after dragEnd
-  expect(
-    container.getElementsByClassName('dragdroppable--dragging'),
-  ).toHaveLength(0);
 });

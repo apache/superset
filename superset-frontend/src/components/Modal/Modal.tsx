@@ -41,7 +41,6 @@ export interface ModalProps {
   className?: string;
   children: ReactNode;
   disablePrimaryButton?: boolean;
-  primaryTooltipMessage?: ReactNode;
   primaryButtonLoading?: boolean;
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
@@ -233,7 +232,6 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
-  primaryTooltipMessage,
   primaryButtonLoading = false,
   onHide,
   onHandledPrimaryAction,
@@ -276,7 +274,6 @@ const CustomModal = ({
           key="submit"
           buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
-          tooltip={primaryTooltipMessage}
           loading={primaryButtonLoading}
           onClick={onHandledPrimaryAction}
           cta

@@ -40,7 +40,7 @@ export default {
   ],
 };
 
-export const ConfigureCORS = ({
+export const configureCORS = ({
   host,
   selectEndpoint,
   customEndpoint,
@@ -84,14 +84,18 @@ export const ConfigureCORS = ({
     </div>
   );
 };
-ConfigureCORS.args = {
+
+configureCORS.parameters = {
+  chromatic: { disable: true },
+};
+configureCORS.args = {
   host: 'localhost:8088',
   selectEndpoint: '/api/v1/chart/data',
   customEndpoint: '',
   methodOption: 'POST', // TODO disable when custonEndpoint and selectEndpoint are empty
   postPayloadContents: JSON.stringify({ form_data: bigNumberFormData }),
 };
-ConfigureCORS.argTypes = {
+configureCORS.argTypes = {
   host: {
     control: 'text',
     description: 'Set Superset App host for CORS request',
@@ -118,4 +122,4 @@ ConfigureCORS.argTypes = {
     description: 'Set POST payload contents',
   },
 };
-ConfigureCORS.storyName = 'Verify CORS';
+configureCORS.storyName = 'Verify CORS';

@@ -19,7 +19,6 @@
 import json
 import logging
 from collections.abc import Iterator
-from typing import Callable
 
 import yaml
 
@@ -42,15 +41,15 @@ class ExportDatasetsCommand(ExportModelsCommand):
     not_found = DatasetNotFoundError
 
     @staticmethod
-    def _file_name(model: SqlaTable) -> str:
+    def _export(
+        model: SqlaTable, export_related: bool = True
+    ) -> Iterator[tuple[str, str]]:
         db_file_name = get_filename(
             model.database.database_name, model.database.id, skip_id=True
         )
         ds_file_name = get_filename(model.table_name, model.id, skip_id=True)
-        return f"datasets/{db_file_name}/{ds_file_name}.yaml"
+        file_path = f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
-    @staticmethod
-    def _file_content(model: SqlaTable) -> str:
         payload = model.export_to_dict(
             recursive=True,
             include_parent_ref=False,
@@ -79,21 +78,10 @@ class ExportDatasetsCommand(ExportModelsCommand):
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        return file_content
-
-    @staticmethod
-    def _export(
-        model: SqlaTable, export_related: bool = True
-    ) -> Iterator[tuple[str, Callable[[], str]]]:
-        yield ExportDatasetsCommand._file_name(
-            model
-        ), lambda: ExportDatasetsCommand._file_content(model)
+        yield file_path, file_content
 
         # include database as well
         if export_related:
-            db_file_name = get_filename(
-                model.database.database_name, model.database.id, skip_id=True
-            )
             file_path = f"databases/{db_file_name}.yaml"
 
             payload = model.database.export_to_dict(
@@ -121,4 +109,5 @@ class ExportDatasetsCommand(ExportModelsCommand):
 
             payload["version"] = EXPORT_VERSION
 
-            yield file_path, lambda: yaml.safe_dump(payload, sort_keys=False)
+            file_content = yaml.safe_dump(payload, sort_keys=False)
+            yield file_path, file_content

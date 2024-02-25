@@ -21,7 +21,7 @@ import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-import { Draggable } from '../dnd/DragDroppable';
+import DragDroppable from '../dnd/DragDroppable';
 import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
@@ -106,7 +106,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
   );
 
   return (
-    <Draggable
+    <DragDroppable
       // @ts-ignore
       component={component}
       // @ts-ignore
@@ -117,7 +117,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
       onDrop={handleComponentDrop}
       editMode={editMode}
     >
-      {({ dragSourceRef }) => (
+      {({ dropIndicatorProps, dragSourceRef }) => (
         <WithPopoverMenu
           menuItems={[
             <BackgroundStyleDropdown
@@ -168,9 +168,10 @@ const DynamicComponent: FC<FilterSummaryType> = ({
               </div>
             </ResizableContainer>
           </div>
+          {dropIndicatorProps && <div {...dropIndicatorProps} />}
         </WithPopoverMenu>
       )}
-    </Draggable>
+    </DragDroppable>
   );
 };
 export default DynamicComponent;

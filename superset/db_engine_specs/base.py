@@ -1438,7 +1438,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         qry = select(fields).select_from(text(full_table_name))
 
-        if limit and cls.allow_limit_clause:
+        if limit:
             qry = qry.limit(limit)
         if latest_partition:
             partition_query = cls.where_latest_partition(

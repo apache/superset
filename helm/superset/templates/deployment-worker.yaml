@@ -39,7 +39,8 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-    {{- include "supersetWorker.selectorLabels" . | nindent 6 }}
+      app: {{ template "superset.name" . }}-worker
+      release: {{ .Release.Name }}
   {{- if .Values.supersetWorker.strategy }}
   strategy: {{- toYaml .Values.supersetWorker.strategy | nindent 4 }}
   {{- end }}

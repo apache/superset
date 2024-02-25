@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Children, ReactElement, ReactNode } from 'react';
+import React, { Children, ReactElement } from 'react';
+import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
 import { AntdButton } from 'src/components';
@@ -42,7 +43,7 @@ export type ButtonSize = 'default' | 'small' | 'xsmall';
 
 export type ButtonProps = Omit<AntdButtonProps, 'css'> &
   Pick<TooltipProps, 'placement'> & {
-    tooltip?: ReactNode;
+    tooltip?: string;
     className?: string;
     buttonSize?: ButtonSize;
     buttonStyle?: ButtonStyle;
@@ -213,7 +214,11 @@ export default function Button(props: ButtonProps) {
 
   if (tooltip) {
     return (
-      <Tooltip placement={placement} title={tooltip}>
+      <Tooltip
+        placement={placement}
+        id={`${kebabCase(tooltip)}-tooltip`}
+        title={tooltip}
+      >
         {/* wrap the button in a span so that the tooltip shows up
         when the button is disabled. */}
         {disabled ? (

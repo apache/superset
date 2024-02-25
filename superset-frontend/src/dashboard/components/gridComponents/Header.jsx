@@ -23,7 +23,7 @@ import { css, styled } from '@superset-ui/core';
 
 import PopoverDropdown from 'src/components/PopoverDropdown';
 import EditableTitle from 'src/components/EditableTitle';
-import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
@@ -178,7 +178,7 @@ class Header extends React.PureComponent {
     );
 
     return (
-      <Draggable
+      <DragDroppable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -188,7 +188,7 @@ class Header extends React.PureComponent {
         disableDragDrop={isFocused}
         editMode={editMode}
       >
-        {({ dragSourceRef }) => (
+        {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode &&
               depth <= 2 && ( // drag handle looks bad when nested
@@ -239,9 +239,11 @@ class Header extends React.PureComponent {
                 )}
               </HeaderStyles>
             </WithPopoverMenu>
+
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </Draggable>
+      </DragDroppable>
     );
   }
 }

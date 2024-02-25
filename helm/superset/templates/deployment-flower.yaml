@@ -35,7 +35,8 @@ spec:
   replicas: {{ .Values.supersetCeleryFlower.replicaCount }}
   selector:
     matchLabels:
-    {{- include "supersetCeleryFlower.selectorLabels" . | nindent 6 }}
+      app: {{ template "superset.name" . }}-flower
+      release: {{ .Release.Name }}
   template:
     metadata:
       annotations:
