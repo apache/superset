@@ -176,7 +176,7 @@ def import_dashboards(path: str, username: Optional[str]) -> None:
     "-u",
     required=False,
     default="admin",
-    help="Specify the user name to assign dashboards to",
+    help="Specify the user name to assign datasources to",
 )
 def import_datasources(path: str, username: Optional[str] = "admin") -> None:
     """Import datasources from ZIP file"""
