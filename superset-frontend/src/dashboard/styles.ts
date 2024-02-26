@@ -125,8 +125,14 @@ export const focusStyle = (theme: SupersetTheme) => css`
       outline: none;
       text-decoration: none;
     }
-    &:not(.superset-button, .ant-menu-item
-        a, .fave-unfave-icon, .ant-tabs-tabpane, .header-controls span) {
+    &:not(
+        .superset-button,
+        .ant-menu-item,
+        a,
+        .fave-unfave-icon,
+        .ant-tabs-tabpane,
+        .header-controls span
+      ) {
       &:focus-visible {
         padding: ${theme.gridUnit / 2}px;
       }
