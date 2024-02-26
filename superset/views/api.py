@@ -119,7 +119,9 @@ class Api(BaseSupersetView):
     @rison(ger_relative_time_range_schema)
     @expose("/v1/relative_time_range/", methods=("GET",))
     def relative_time_range(self, **kwargs: Any) -> FlaskResponse:
-        """Get actually time range from human-readable string or datetime expression."""
+        """Get actual time range shifted by InstantTimeComparison value from
+        human-readable string or datetime expression.
+        Accepted values for shift - constants.py::InstantTimeComparison"""
         base_time_range, shift = kwargs["rison"].values()
         try:
             since, until = get_since_until(
