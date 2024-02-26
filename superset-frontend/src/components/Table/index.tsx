@@ -22,7 +22,7 @@ import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
 } from 'antd/lib/table';
-import ConfigProvider from 'antd/lib/config-provider';
+import { ConfigProvider as ConfigProvider5 } from 'antd-next';
 import { PaginationProps } from 'antd/lib/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
@@ -405,7 +405,7 @@ export function Table<RecordType extends object>(
   };
 
   return (
-    <ConfigProvider renderEmpty={renderEmpty}>
+    <ConfigProvider5 renderEmpty={renderEmpty} prefixCls="ant5">
       <div ref={wrapperRef}>
         {!virtualize && (
           <StyledTable
@@ -429,7 +429,7 @@ export function Table<RecordType extends object>(
           />
         )}
       </div>
-    </ConfigProvider>
+    </ConfigProvider5>
   );
 }
 
