@@ -873,7 +873,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(name, parsedValue);
   };
 
-  const onCustomWidthChange = (value: number | null) => {
+  const onCustomWidthChange = (value: number | null | undefined) => {
     updateAlertState('custom_width', value);
   };
 
@@ -1549,7 +1549,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <InputNumber
                   type="number"
                   name="custom_width"
-                  value={currentAlert?.custom_width}
+                  value={currentAlert?.custom_width ?? null}
                   min={600}
                   max={2400}
                   placeholder={t('Input custom width in pixels')}
