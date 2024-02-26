@@ -31,6 +31,7 @@ from sqlalchemy.sql import func
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import InstantTimeComparison
 from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -1471,6 +1472,20 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(len(data["result"]), 3)
+
+    def test_get_relative_time_range(self):
+        """
+        Chart API: Test get shifted time range from human readable string
+        """
+        self.login(username="admin")
+        humanize_time_range = "100 years ago : now"
+        shift = InstantTimeComparison.YEAR
+
+        uri = f'api/v1/relative_time_range/?q={prison.dumps({ "base_time_range": humanize_time_range, "shift": shift })}'
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(len(data["result"]), 4)
 
     def test_query_form_data(self):
         """

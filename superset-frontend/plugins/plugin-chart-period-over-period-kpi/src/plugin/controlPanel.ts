@@ -100,6 +100,12 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'comparison_range_label',
+            config: { type: 'ComparisonRangeLabel' },
+          },
+        ],
+        [
+          {
             name: 'row_limit',
             config: sharedControls.row_limit,
           },
