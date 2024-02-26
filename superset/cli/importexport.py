@@ -174,7 +174,8 @@ def import_dashboards(path: str, username: Optional[str]) -> None:
 @click.option(
     "--username",
     "-u",
-    required=True,
+    required=False,
+    default="admin",
     help="Specify the user name to assign dashboards to",
 )
 def import_datasources(path: str, username: Optional[str] = "admin") -> None:
