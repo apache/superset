@@ -171,13 +171,19 @@ def import_dashboards(path: str, username: Optional[str]) -> None:
     "-p",
     help="Path to a single ZIP file",
 )
-def import_datasources(path: str) -> None:
+@click.option(
+    "--username",
+    "-u",
+    required=True,
+    help="Specify the user name to assign dashboards to",
+)
+def import_datasources(path: str, username: Optional[str] = "admin") -> None:
     """Import datasources from ZIP file"""
     # pylint: disable=import-outside-toplevel
     from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
     from superset.commands.importers.v1.utils import get_contents_from_bundle
 
-    with override_user(user=security_manager.find_user(username="admin")):
+    with override_user(user=security_manager.find_user(username=username)):
         if is_zipfile(path):
             with ZipFile(path) as bundle:
                 contents = get_contents_from_bundle(bundle)
