@@ -17,7 +17,11 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  ComparisonTimeRangeType,
+} from '@superset-ui/core';
 
 export const SEPARATOR = ' : ';
 
@@ -42,9 +46,17 @@ export const formatTimeRange = (
 export const fetchTimeRange = async (
   timeRange: string,
   columnPlaceholder = 'col',
+  shift?: ComparisonTimeRangeType,
 ) => {
-  const query = rison.encode_uri(timeRange);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
+  let query;
+  let endpoint;
+  if (shift) {
+    query = rison.encode_uri({ base_time_range: timeRange, shift });
+    endpoint = `/api/v1/relative_time_range/?q=${query}`;
+  } else {
+    query = rison.encode_uri(timeRange);
+    endpoint = `/api/v1/time_range/?q=${query}`;
+  }
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(

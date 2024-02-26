@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { NO_TIME_RANGE, JsonObject } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import {

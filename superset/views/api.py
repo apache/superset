@@ -40,6 +40,11 @@ from superset.views.base import api, BaseSupersetView, handle_api_exception
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
 
+
+get_relative_time_range_schema = {
+    "type": "object",
+    "properties": {"base_time_range": {"type": "string"}, "shift": {"type": "string"}},
+}
 get_time_range_schema = {
     "type": ["string", "array"],
     "items": {
@@ -119,6 +124,29 @@ class Api(BaseSupersetView):
                     }
                 )
             return self.json_response({"result": rv})
+        except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
+            error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
+            return self.json_response(error_msg, 400)
+
+    @api
+    @handle_api_exception
+    @has_access_api
+    @rison(ger_relative_time_range_schema)
+    @expose("/v1/relative_time_range/", methods=("GET",))
+    def relative_time_range(self, **kwargs: Any) -> FlaskResponse:
+        """Get actually time range from human-readable string or datetime expression."""
+        base_time_range, shift = kwargs["rison"].values()
+        try:
+            since, until = get_since_until(
+                time_range=base_time_range, instant_time_comparison_range=shift
+            )
+            result = {
+                "since": since.isoformat() if since else "",
+                "until": until.isoformat() if until else "",
+                "baseTimeRange": base_time_range,
+                "shift": shift,
+            }
+            return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
