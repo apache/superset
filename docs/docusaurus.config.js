@@ -261,6 +261,7 @@ const config = {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
+      metadata: [{name: 'Content-Security-Policy', content: "default-src 'self'; frame-src 'https://calendar.google.com/' 'https://preset.io/' 'https://sidebar.bugherd.com/';"}],
     }),
   scripts: [
     '/script/matomo.js',
