@@ -17,7 +17,12 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient, NO_TIME_RANGE, JsonObject } from '@superset-ui/core';
+import {
+  SupersetClient,
+  NO_TIME_RANGE,
+  JsonObject,
+  ComparisonTimeRangeType,
+} from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { useSelector } from 'react-redux';
 import {
@@ -66,9 +71,17 @@ export const guessFrame = (timeRange: string): FrameType => {
 export const fetchTimeRange = async (
   timeRange: string,
   columnPlaceholder = 'col',
+  shift?: ComparisonTimeRangeType,
 ) => {
-  const query = rison.encode_uri(timeRange);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
+  let query;
+  let endpoint;
+  if (shift) {
+    query = rison.encode_uri({ base_time_range: timeRange, shift });
+    endpoint = `/api/v1/relative_time_range/?q=${query}`;
+  } else {
+    query = rison.encode_uri(timeRange);
+    endpoint = `/api/v1/time_range/?q=${query}`;
+  }
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(
