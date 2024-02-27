@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2024-02-16 13:50-0500\n"
+"POT-Creation-Date: 2024-02-27 20:22+0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -208,22 +208,22 @@ msgstr ""
 msgid "File size must be less than or equal to %(max_size)s bytes"
 msgstr ""
 
-#: superset/jinja_context.py:344
+#: superset/jinja_context.py:361
 #, python-format
 msgid "Unsafe return type for function %(func)s: %(value_type)s"
 msgstr ""
 
-#: superset/jinja_context.py:355
+#: superset/jinja_context.py:372
 #, python-format
 msgid "Unsupported return value for method %(name)s"
 msgstr ""
 
-#: superset/jinja_context.py:371
+#: superset/jinja_context.py:388
 #, python-format
 msgid "Unsafe template value for key %(key)s: %(value_type)s"
 msgstr ""
 
-#: superset/jinja_context.py:382
+#: superset/jinja_context.py:399
 #, python-format
 msgid "Unsupported template value for key %(key)s"
 msgstr ""
@@ -277,7 +277,7 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
-#: superset/utils/date_parser.py:267 superset/viz.py:387
+#: superset/utils/date_parser.py:309 superset/viz.py:387
 msgid "From date cannot be larger than to date"
 msgstr ""
 
@@ -446,7 +446,7 @@ msgstr ""
 msgid "Deck.gl - Multiple Layers"
 msgstr ""
 
-#: superset/viz.py:1880 superset/viz.py:1921
+#: superset/viz.py:1880 superset/viz.py:1920
 msgid "Bad spatial key"
 msgstr ""
 
@@ -455,74 +455,74 @@ msgstr ""
 msgid "Invalid spatial point encountered: %(latlong)s"
 msgstr ""
 
-#: superset/viz.py:1943
+#: superset/viz.py:1942
 msgid ""
 "Encountered invalid NULL spatial entry,"
 "                                        please consider filtering those "
 "out"
 msgstr ""
 
-#: superset/viz.py:2041
+#: superset/viz.py:2040
 msgid "Deck.gl - Scatter plot"
 msgstr ""
 
-#: superset/viz.py:2095
+#: superset/viz.py:2094
 msgid "Deck.gl - Screen Grid"
 msgstr ""
 
-#: superset/viz.py:2125
+#: superset/viz.py:2124
 msgid "Deck.gl - 3D Grid"
 msgstr ""
 
-#: superset/viz.py:2160
+#: superset/viz.py:2159
 msgid "Deck.gl - Paths"
 msgstr ""
 
-#: superset/viz.py:2212
+#: superset/viz.py:2211
 msgid "Deck.gl - Polygon"
 msgstr ""
 
-#: superset/viz.py:2248
+#: superset/viz.py:2247
 msgid "Deck.gl - 3D HEX"
 msgstr ""
 
-#: superset/viz.py:2271
+#: superset/viz.py:2270
 msgid "Deck.gl - Heatmap"
 msgstr ""
 
-#: superset/viz.py:2292
+#: superset/viz.py:2291
 msgid "Deck.gl - Contour"
 msgstr ""
 
-#: superset/viz.py:2313
+#: superset/viz.py:2312
 msgid "Deck.gl - GeoJSON"
 msgstr ""
 
-#: superset/viz.py:2334
+#: superset/viz.py:2333
 msgid "Deck.gl - Arc"
 msgstr ""
 
-#: superset/viz.py:2369
+#: superset/viz.py:2368
 msgid "Event flow"
 msgstr ""
 
-#: superset/viz.py:2403
+#: superset/viz.py:2402
 msgid "Time Series - Paired t-test"
 msgstr ""
 
-#: superset/viz.py:2475
+#: superset/viz.py:2474
 msgid "Time Series - Nightingale Rose Chart"
 msgstr ""
 
-#: superset/viz.py:2511
+#: superset/viz.py:2510
 msgid "Partition Diagram"
 msgstr ""
 
-#: superset/viz.py:2676
+#: superset/viz.py:2675
 msgid "Please choose at least one groupby"
 msgstr ""
 
-#: superset/advanced_data_type/api.py:101
+#: superset/advanced_data_type/api.py:103
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
 msgstr ""
@@ -597,19 +597,19 @@ msgid ""
 " than lower percentile."
 msgstr ""
 
-#: superset/charts/schemas.py:1093
+#: superset/charts/schemas.py:1101
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
-#: superset/charts/schemas.py:1266
+#: superset/charts/schemas.py:1274
 msgid "`row_limit` must be greater than or equal to 0"
 msgstr ""
 
-#: superset/charts/schemas.py:1273
+#: superset/charts/schemas.py:1281
 msgid "`row_offset` must be greater than or equal to 0"
 msgstr ""
 
-#: superset/charts/schemas.py:1295
+#: superset/charts/schemas.py:1303
 msgid "orderby column must be populated"
 msgstr ""
 
@@ -708,9 +708,9 @@ msgstr ""
 msgid "Annotations could not be deleted."
 msgstr ""
 
-#: superset/commands/chart/delete.py:63
-#: superset/commands/dashboard/delete.py:63
-#: superset/commands/database/delete.py:62
+#: superset/commands/chart/delete.py:65
+#: superset/commands/dashboard/delete.py:65
+#: superset/commands/database/delete.py:64
 #, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
 msgstr ""
@@ -950,14 +950,14 @@ msgstr ""
 
 #: superset/commands/database/validate_sql.py:100
 #, python-format
-msgid "no SQL validator is configured for %(engine)s"
+msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr ""
 
-#: superset/commands/database/validate_sql.py:111
+#: superset/commands/database/validate_sql.py:113
 #, python-format
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
-"%(engine)s engine)"
+"%(engine_spec)s engine)"
 msgstr ""
 
 #: superset/commands/database/ssh_tunnel/exceptions.py:29
@@ -1134,16 +1134,14 @@ msgstr ""
 msgid "Saved query parameters are invalid."
 msgstr ""
 
-#: superset/commands/report/alert.py:98
+#: superset/commands/report/alert.py:100
 #, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
 msgstr ""
 
-#: superset/commands/report/alert.py:107
+#: superset/commands/report/alert.py:110
 #, python-format
-msgid ""
-"Alert query returned more than one column. %(num_columns)s columns "
-"returned"
+msgid "Alert query returned more than one column. %(num_cols)s columns returned"
 msgstr ""
 
 #: superset/commands/report/alert.py:178
@@ -1597,9 +1595,9 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:103
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:134
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:37
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:46
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:44
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:47
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:54
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:44
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:159
@@ -1612,8 +1610,8 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/DividerConfigForm.tsx:51
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1169
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:367
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:399
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:323
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1308
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:320
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:475
 #: superset-frontend/src/features/tags/TagModal.tsx:297
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:154
@@ -1836,7 +1834,8 @@ msgid "Changed By"
 msgstr ""
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:278
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:402
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1352
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1357
 #: superset-frontend/src/features/datasets/DatasetSelectLabel/index.tsx:110
 #: superset-frontend/src/pages/DatabaseList/index.tsx:299
 #: superset-frontend/src/pages/DatasetList/index.tsx:371
@@ -1906,7 +1905,8 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:524
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:528
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:254
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:398
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1286
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1291
 #: superset-frontend/src/features/allEntities/AllEntitiesTable.tsx:138
 #: superset-frontend/src/pages/AlertReportList/index.tsx:314
 #: superset-frontend/src/pages/ChartList/index.tsx:436
@@ -2123,7 +2123,7 @@ msgstr "Kullanıcı adı"
 #: superset/db_engine_specs/clickhouse.py:201
 #: superset/db_engine_specs/databend.py:194
 msgid "Password"
-msgstr ""
+msgstr "Şifre"
 
 #: superset/db_engine_specs/base.py:1983
 #: superset/db_engine_specs/clickhouse.py:203
@@ -2764,7 +2764,7 @@ msgstr ""
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
-#: superset/utils/date_parser.py:393
+#: superset/utils/date_parser.py:435
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr ""
@@ -2902,7 +2902,7 @@ msgstr ""
 msgid "Invalid numpy function: %(operator)s"
 msgstr ""
 
-#: superset/views/api.py:109
+#: superset/views/api.py:108
 #, python-format
 msgid "Unexpected time range: %(error)s"
 msgstr ""
@@ -3147,7 +3147,8 @@ msgstr ""
 
 #: superset-frontend/src/components/Chart/DrillBy/useDisplayModeToggle.tsx:53
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:448
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:421
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:157
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1474
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:69
 #: superset-frontend/src/features/home/ChartTable.tsx:191
 #: superset-frontend/src/features/home/RightMenu.tsx:220
@@ -3251,7 +3252,8 @@ msgid ""
 "dashboards"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:420
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:153
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1496
 #: superset-frontend/src/features/home/DashboardTable.tsx:194
 #: superset-frontend/src/features/home/RightMenu.tsx:229
 #: superset-frontend/src/pages/ChartList/index.tsx:657
@@ -4123,7 +4125,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:51
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:138
 #: superset-frontend/src/explore/controlPanels/sections.tsx:141
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:129
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:134
 msgid "None"
 msgstr ""
 
@@ -4535,6 +4537,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:362
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:31
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:44
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:36
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:32
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:43
@@ -4549,7 +4552,6 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:38
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:34
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controlPanel.tsx:51
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:43
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:41
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:149
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:28
@@ -5193,6 +5195,10 @@ msgstr ""
 msgid "cannot be empty"
 msgstr "boş bırakılamaz"
 
+#: superset-frontend/packages/superset-ui-core/src/validator/validateTimeComparisonRangeValues.ts:33
+msgid "Filters for comparison must have a value"
+msgstr ""
+
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:44
 msgid "Domain"
 msgstr ""
@@ -5249,6 +5255,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:41
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/TimePivot/controlPanel.ts:82
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:101
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:57
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:130
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:106
@@ -5267,7 +5274,6 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:64
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:60
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:46
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:117
 #: superset-frontend/src/explore/fixtures.tsx:34
 #: superset-frontend/src/explore/fixtures.tsx:77
 #: superset-frontend/src/explore/fixtures.tsx:86
@@ -5369,11 +5375,11 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:40
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:34
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:41
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:61
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:53
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:63
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:44
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:48
 msgid "Business"
 msgstr ""
@@ -5393,6 +5399,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:37
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:38
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:44
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:33
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:49
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:54
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:44
@@ -5400,7 +5407,6 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:64
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:65
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/index.ts:64
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:43
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:43
 #: superset-frontend/src/visualizations/TimeTable/index.ts:34
 msgid "Comparison"
@@ -5425,12 +5431,12 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/index.js:38
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:39
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:33
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:36
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:45
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:64
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:56
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/index.ts:67
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:46
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/index.ts:61
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:51
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:167
@@ -5493,6 +5499,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:143
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:68
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:68
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:133
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:136
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:280
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:136
@@ -5502,7 +5509,6 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:136
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:129
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:112
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:207
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:319
 msgid "Number format"
 msgstr ""
@@ -6733,7 +6739,7 @@ msgstr "28 gün"
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:200
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:468
 #: superset-frontend/src/explore/controlPanels/sections.tsx:198
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:133
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:138
 msgid "30 days"
 msgstr "30 gün"
 
@@ -6927,6 +6933,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:35
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:46
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:37
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:38
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:39
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:71
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/index.ts:68
@@ -6987,11 +6994,11 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:44
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:40
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:47
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:35
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:41
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/index.ts:74
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:68
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:45
 #: superset-frontend/src/visualizations/TimeTable/index.ts:36
 msgid "Percentages"
 msgstr ""
@@ -7452,6 +7459,7 @@ msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/Polygon.tsx:72
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:73
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:356
 msgid "name"
 msgstr "isim"
 
@@ -8218,11 +8226,11 @@ msgid "Labels for the marker lines"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/index.js:26
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:28
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:30
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:32
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:53
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/index.ts:44
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:38
 msgid "KPI"
 msgstr ""
 
@@ -8326,7 +8334,8 @@ msgstr "Kategori Adı"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:116
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:99
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:323
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:409
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1415
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1428
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:147
 msgid "Value"
 msgstr "Değer"
@@ -8676,50 +8685,81 @@ msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:28
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:127
 msgid "Big Number Font Size"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:35
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:69
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:133
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:167
 msgid "Tiny"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:39
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:73
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:137
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:171
 #: superset-frontend/src/dashboard/util/headerStyleOptions.ts:25
 msgid "Small"
 msgstr "Küçük"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:43
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:77
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:141
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:175
 msgid "Normal"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:47
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:81
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:145
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:179
 #: superset-frontend/src/dashboard/util/headerStyleOptions.ts:35
 msgid "Large"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:51
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:85
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:149
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:183
 msgid "Huge"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:62
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:161
 msgid "Subheader Font Size"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/PopKPI.tsx:125
+#, python-format
+msgid "Data for %s"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/PopKPI.tsx:130
+msgid "Value difference between the time periods"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/PopKPI.tsx:135
+msgid "Percentage difference between the time periods"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:46
+msgid "Range for Comparison"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:56
+msgid ""
+"Set the time range that will be used for the comparison metrics. For "
+"example, \"Year\" will compare to the same dates one year earlier. Use "
+"\"Inherit range from time filters\" to shift the comparison time rangeby "
+"the same length as your time range and use \"Custom\" to set a custom "
+"comparison range."
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:70
+msgid "Filters for Comparison"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:112
+msgid "Comparison font size"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:121
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/controlPanel.ts:124
+msgid "Add color for positive/negative change"
+msgstr ""
+
+#: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberPeriodOverPeriod/index.ts:31
+msgid "Big Number with Time Period Comparison"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:37
@@ -10389,49 +10429,6 @@ msgstr ""
 msgid "CSS applied to the chart"
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/PopKPI.tsx:125
-#, python-format
-msgid "Data for %s"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/PopKPI.tsx:130
-msgid "Value difference between the time periods"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/PopKPI.tsx:135
-msgid "Percentage difference between the time periods"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:36
-msgid "Filters for comparison must have a value"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:63
-msgid "Range for Comparison"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:73
-msgid ""
-"Set the time range that will be used for the comparison metrics. For "
-"example, \"Year\" will compare to the same dates one year earlier. Use "
-"\"Inherit range from time filters\" to shift the comparison time rangeby "
-"the same length as your time range and use \"Custom\" to set a custom "
-"comparison range."
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:87
-msgid "Filters for Comparison"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:195
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/controlPanel.ts:198
-msgid "Add color for positive/negative change"
-msgstr ""
-
-#: superset-frontend/plugins/plugin-chart-period-over-period-kpi/src/plugin/index.ts:41
-msgid "Big Number with Time Period Comparison"
-msgstr ""
-
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:50
 msgid "Columns to group by on the columns"
 msgstr ""
@@ -11458,13 +11455,13 @@ msgstr "Çalıştır (Ctrl + Return)"
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:521
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger.tsx:250
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:349
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:390
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1237
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:229
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:271
 #: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:220
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1749
 #: superset-frontend/src/features/datasets/AddDataset/Header/index.tsx:52
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:238
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:235
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:114
 #: superset-frontend/src/features/tags/TagModal.tsx:284
@@ -11534,7 +11531,7 @@ msgstr "Sorguyu kaydet"
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:265
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:270
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:311
-#: superset-frontend/src/components/Modal/Modal.tsx:271
+#: superset-frontend/src/components/Modal/Modal.tsx:273
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:646
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:151
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/Footer/Footer.tsx:62
@@ -11542,7 +11539,7 @@ msgstr "Sorguyu kaydet"
 #: superset-frontend/src/explore/components/SaveModal.tsx:440
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:842
 #: superset-frontend/src/features/datasets/AddDataset/Footer/index.tsx:117
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:229
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:226
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:107
 #: superset-frontend/src/features/tags/TagModal.tsx:277
 msgid "Cancel"
@@ -11569,7 +11566,9 @@ msgid "Schedule query"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton/index.tsx:239
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:335
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:353
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:100
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:332
 #: superset-frontend/src/pages/AlertReportList/index.tsx:278
 msgid "Schedule"
 msgstr ""
@@ -12133,8 +12132,9 @@ msgid "on"
 msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:47
-msgid "and"
-msgstr "ve"
+#: superset-frontend/src/pages/ChartCreation/index.tsx:296
+msgid "or"
+msgstr ""
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:48
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:50
@@ -12513,6 +12513,7 @@ msgid "<new column>"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:567
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1295
 msgid "Select owners"
 msgstr ""
 
@@ -12787,7 +12788,7 @@ msgid "Confirm save"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:269
-#: superset-frontend/src/components/Modal/Modal.tsx:238
+#: superset-frontend/src/components/Modal/Modal.tsx:240
 #: superset-frontend/src/components/Table/index.tsx:217
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:864
 msgid "OK"
@@ -12965,7 +12966,7 @@ msgstr ""
 
 #: superset-frontend/src/components/Form/LabeledErrorBoundInput.tsx:134
 msgid "Hide password."
-msgstr ""
+msgstr "Şifreyi gizle."
 
 #: superset-frontend/src/components/Form/LabeledErrorBoundInput.tsx:138
 msgid "Show password."
@@ -12990,7 +12991,7 @@ msgstr "Veritabanı şifreleri"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1363
 #, python-format
 msgid "%s PASSWORD"
-msgstr ""
+msgstr "%s ŞİFRE"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:318
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1381
@@ -13334,12 +13335,12 @@ msgstr ""
 msgid "You have unsaved changes."
 msgstr "Kaydedilmeyen değişiklikler var."
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:199
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:206
 msgid "Drag and drop components and charts to the dashboard"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:200
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:223
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:207
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:230
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
@@ -13347,28 +13348,28 @@ msgstr ""
 "Yeni bir grafik oluşturabilir veya mevcut olanları sağdaki panelden "
 "ekleyebilirsiniz"
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:206
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:229
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:213
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:236
 #: superset-frontend/src/pages/ChartCreation/index.tsx:324
 msgid "Create a new chart"
 msgstr "Yeni grafik oluştur"
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:222
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:189
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:229
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:187
 msgid "Drag and drop components to this tab"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:243
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:190
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:250
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:188
 msgid "There are no components added to this tab"
 msgstr "Bu sekmeye eklenen herhangi bir komponent yok"
 
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:245
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:252
 msgid "You can add the components in the edit mode."
 msgstr "Edit modda komponentleri ekleyebilirsiniz."
 
-#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:654
-#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:247
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:663
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:254
 msgid "Edit the dashboard"
 msgstr "Dashboardı düzenle"
 
@@ -13512,15 +13513,15 @@ msgstr ""
 msgid "Live CSS editor"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:534
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:542
 msgid "Collapse tab content"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:647
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:656
 msgid "There are no charts added to this dashboard"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:650
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:659
 msgid "Go to the edit mode to configure the dashboard and add charts"
 msgstr ""
 
@@ -14025,7 +14026,7 @@ msgstr ""
 msgid "An error occurred while opening Explore"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Column.jsx:220
+#: superset-frontend/src/dashboard/components/gridComponents/Column.jsx:273
 msgid "Empty column"
 msgstr ""
 
@@ -14037,27 +14038,27 @@ msgstr ""
 msgid "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:250
+#: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:342
 msgid "Empty row"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:196
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:194
 msgid "You can"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:202
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:200
 msgid "create a new chart"
 msgstr "yeni grafik oluştur"
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:204
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:202
 msgid "or use existing ones from the panel on the right"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:208
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:206
 msgid "You can add the components in the"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:214
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:212
 msgid "edit mode"
 msgstr "düzenleme modu"
 
@@ -14167,6 +14168,7 @@ msgid "All charts/global scoping"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:132
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1470
 msgid "Select chart"
 msgstr "Grafik seç"
 
@@ -15955,23 +15957,28 @@ msgid "Custom"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
-msgid "last day"
+#, fuzzy
+msgid "Last day"
 msgstr "son gün"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
-msgid "last week"
+#, fuzzy
+msgid "Last week"
 msgstr "son hafta"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
-msgid "last month"
+#, fuzzy
+msgid "Last month"
 msgstr "son ay"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
-msgid "last quarter"
+#, fuzzy
+msgid "Last quarter"
 msgstr "son çeyrek"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
-msgid "last year"
+#, fuzzy
+msgid "Last year"
 msgstr "son yıl"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:50
@@ -16512,196 +16519,338 @@ msgstr ""
 msgid "My beautiful colors"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:98
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:103
 msgid "< (Smaller than)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:102
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:107
 msgid "> (Larger than)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:106
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:111
 msgid "<= (Smaller or equal)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:110
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:115
 msgid ">= (Larger or equal)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:114
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:119
 msgid "== (Is equal)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:118
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:123
 msgid "!= (Is not equal)"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:122
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:127
 msgid "Not null"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:137
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:142
 msgid "60 days"
 msgstr "60 gün"
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:141
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:146
 msgid "90 days"
 msgstr "90 gün"
 
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:163
+msgid "Send as PNG"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:167
+msgid "Send as CSV"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:171
+msgid "Send as text"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:349
+#, fuzzy
+msgid "General information"
+msgstr "Ek bilgi"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:350
+msgid "Alert condition"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:351
+#, fuzzy
+msgid "Alert contents"
+msgstr "Grafik sahipleri"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:352
+#, fuzzy
+msgid "Report contents"
+msgstr "son kullanılanlar"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:354
+#: superset-frontend/src/pages/AlertReportList/index.tsx:304
+msgid "Notification method"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:357
+#, fuzzy
+msgid "owners"
+msgstr "Sahipler"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:358
+#, fuzzy
+msgid "content type"
+msgstr "Filtre tipi"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:359
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:553
+#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:728
+#: superset-frontend/src/pages/DatabaseList/index.tsx:118
+msgid "database"
+msgstr "veritabanı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:360
+msgid "sql"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:361
+#, fuzzy
+msgid "alert condition"
+msgstr "Grafik seçenekleri"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:362
+#, fuzzy
+msgid "crontab"
+msgstr "sayı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:363
+msgid "working timeout"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:364
+#, fuzzy
+msgid "recipients"
+msgstr "son kullanılanlar"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:365
+msgid "Not all required fields are complete. Please provide the following:"
+msgstr ""
+
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
-msgid "Add notification method"
+msgid "Add another notification method"
 msgstr ""
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
 msgid "Add delivery method"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:391
-#: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:229
-#: superset-frontend/src/features/annotations/AnnotationModal.tsx:271
-#: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:220
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:238
-#: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
-msgid "Add"
-msgstr "Ekle"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:392
-msgid "Edit Report"
-msgstr "Raporu Düzenle"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:393
-msgid "Edit Alert"
-msgstr "Alarmı Düzenle"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
-msgid "Add Report"
-msgstr "Rapor Ekle"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
-msgid "Add Alert"
-msgstr "Alarm Ekle"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:396
-msgid "Report name"
-msgstr "Rapor ismi"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:397
-msgid "Alert name"
-msgstr "Alarm adı"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:400
-#: superset-frontend/src/pages/AlertReportList/index.tsx:348
-msgid "Active"
-msgstr "Aktif"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:401
-msgid "Alert condition"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:403
-#: superset-frontend/src/features/home/SavedQueries.tsx:258
-msgid "SQL Query"
-msgstr "SQL Sorgusu"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:404
-msgid "The result of this query should be a numeric-esque value"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:407
-msgid "Trigger Alert If..."
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:408
-msgid "Condition"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:410
-msgid "Report schedule"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:411
-msgid "Alert condition schedule"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:412
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:355
-msgid "Timezone"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:413
-msgid "Schedule settings"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:414
-msgid "Log retention"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:415
-msgid "Working timeout"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:416
-msgid "Time in seconds"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:417
-msgid "seconds"
-msgstr "saniye"
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:418
-msgid "Grace period"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:419
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:246
-msgid "Message content"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:422
-msgid "Send as PNG"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:423
-msgid "Send as CSV"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:424
-msgid "Send as text"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:425
-msgid "Ignore cache when generating report"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:426
-msgid "Screenshot width"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:427
-msgid "Input custom width in pixels"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:428
-#: superset-frontend/src/pages/AlertReportList/index.tsx:304
-msgid "Notification method"
-msgstr ""
-
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:592
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:575
 #: superset-frontend/src/pages/AlertReportList/index.tsx:112
 msgid "report"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:665
-#: superset-frontend/src/features/alerts/AlertReportModal.tsx:681
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:648
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:664
 #, python-format
 msgid "%s updated"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:84
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1213
+msgid "Edit Report"
+msgstr "Raporu Düzenle"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1216
+msgid "Edit Alert"
+msgstr "Alarmı Düzenle"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1219
+msgid "Add Report"
+msgstr "Rapor Ekle"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1222
+msgid "Add Alert"
+msgstr "Alarm Ekle"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1237
+#: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:229
+#: superset-frontend/src/features/annotations/AnnotationModal.tsx:271
+#: superset-frontend/src/features/cssTemplates/CssTemplateModal.tsx:220
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:235
+#: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:337
+msgid "Add"
+msgstr "Ekle"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1255
+msgid "Set up basic details, such as name and description."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1269
+msgid "Report name"
+msgstr "Rapor ismi"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1269
+msgid "Alert name"
+msgstr "Alarm adı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1278
+#, fuzzy
+msgid "Enter report name"
+msgstr "Rapor ismi"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1278
+#, fuzzy
+msgid "Enter alert name"
+msgstr "Alarm adı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1314
+#, python-format
+msgid "Include description to be sent with %s"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1329
+msgid "Report is active"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1329
+msgid "Alert is active"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1339
+msgid "Define the database, SQL query, and triggering conditions for alert."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1359
+#, fuzzy
+msgid "Select database"
+msgstr "Veritabanını sil"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1376
+#: superset-frontend/src/features/home/SavedQueries.tsx:258
+msgid "SQL Query"
+msgstr "SQL Sorgusu"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1378
+msgid ""
+"The result of this query must be a value capable of numeric "
+"interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
+"function)."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1399
+msgid "Trigger Alert If..."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1404
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1406
+msgid "Condition"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1444
+msgid "Customize data source, filters, and layout."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1455
+#, fuzzy
+msgid "Content type"
+msgstr "Filtre tipi"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1459
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1463
+#, fuzzy
+msgid "Select content type"
+msgstr "Geçerli sayfayı seç"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1486
+#, fuzzy
+msgid "Select chart to use"
+msgstr "Grafikleri seç"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1492
+#, fuzzy
+msgid "Select dashboard"
+msgstr "Dashboard seç"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1509
+#, fuzzy
+msgid "Select dashboard to use"
+msgstr "Dashboard seç"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1520
+#, fuzzy
+msgid "Content format"
+msgstr "Tarih formatı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1524
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1534
+#, fuzzy
+msgid "Select format"
+msgstr "Zaman formatı"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1543
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:270
+msgid "Screenshot width"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1549
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:277
+msgid "Input custom width in pixels"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1563
+msgid "Ignore cache when generating report"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1572
+msgid "Define delivery schedule, timezone, and frequency settings."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1589
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:352
+msgid "Timezone"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1599
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1604
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1605
+msgid "Log retention"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1621
+msgid "Working timeout"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1629
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1643
+msgid "Time in seconds"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1631
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1645
+msgid "seconds"
+msgstr "saniye"
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1637
+msgid "Grace period"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/AlertReportModal.tsx:1656
+msgid "Choose notification method and recipients."
+msgstr ""
+
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:39
+msgid "Recurring (every)"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:43
 msgid "CRON Schedule"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:95
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:82
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:87
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:88
+msgid "Schedule type"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/components/AlertReportCronScheduler.tsx:109
 msgid "CRON expression"
 msgstr ""
 
@@ -16738,15 +16887,24 @@ msgstr ""
 msgid "Alert Triggered, In Grace Period"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:124
+#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:118
+msgid "Notification Method"
+msgstr ""
+
+#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:121
 msgid "Delivery method"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:127
+#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:124
 msgid "Select Delivery Method"
 msgstr ""
 
-#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:160
+#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:149
+#, fuzzy, python-format
+msgid "%s recipients"
+msgstr "son kullanılanlar"
+
+#: superset-frontend/src/features/alerts/components/NotificationMethod.tsx:161
 msgid "Recipients are separated by \",\" or \";\""
 msgstr ""
 
@@ -17256,12 +17414,6 @@ msgstr ""
 msgid "Test connection"
 msgstr ""
 
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:553
-#: superset-frontend/src/features/databases/DatabaseModal/index.tsx:728
-#: superset-frontend/src/pages/DatabaseList/index.tsx:118
-msgid "database"
-msgstr "veritabanı"
-
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:651
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
@@ -17746,7 +17898,7 @@ msgstr "Görüldü"
 #: superset-frontend/src/pages/ChartList/index.tsx:561
 #: superset-frontend/src/pages/DashboardList/index.tsx:478
 msgid "Favorite"
-msgstr "Favori"
+msgstr "Favoriler"
 
 #: superset-frontend/src/features/home/ChartTable.tsx:153
 #: superset-frontend/src/features/home/DashboardTable.tsx:164
@@ -18022,54 +18174,58 @@ msgstr ""
 msgid "Your report could not be deleted"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:130
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:127
 #, python-format
 msgid "Weekly Report for %s"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:131
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:128
 msgid "Weekly Report"
 msgstr ""
 
 #: superset-frontend/src/features/reports/ReportModal/HeaderReportDropdown/index.tsx:250
 #: superset-frontend/src/features/reports/ReportModal/HeaderReportDropdown/index.tsx:271
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:221
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:218
 msgid "Edit email report"
 msgstr "Email raporunu düzenle"
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:221
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:218
 msgid "Schedule a new email report"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:257
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:243
+msgid "Message content"
+msgstr ""
+
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:254
 msgid "Text embedded in email"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:261
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:258
 msgid "Image (PNG) embedded in email"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:264
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:261
 msgid "Formatted CSV attached in email"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:311
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:308
 msgid "Report Name"
 msgstr "Rapor İsmi"
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:324
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:321
 msgid "Include a description that will be sent with your report"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:338
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:335
 msgid "A screenshot of the dashboard will be sent to your email at"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:372
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:369
 msgid "Failed to update report"
 msgstr ""
 
-#: superset-frontend/src/features/reports/ReportModal/index.tsx:373
+#: superset-frontend/src/features/reports/ReportModal/index.tsx:370
 msgid "Failed to create report"
 msgstr ""
 
@@ -18391,6 +18547,10 @@ msgstr ""
 msgid "Last run"
 msgstr ""
 
+#: superset-frontend/src/pages/AlertReportList/index.tsx:348
+msgid "Active"
+msgstr "Aktif"
+
 #: superset-frontend/src/pages/AlertReportList/index.tsx:369
 msgid "Execution log"
 msgstr ""
@@ -18591,10 +18751,6 @@ msgstr ""
 #: superset-frontend/src/pages/ChartCreation/index.tsx:294
 msgid "Add a dataset"
 msgstr "Veriseti Ekle"
-
-#: superset-frontend/src/pages/ChartCreation/index.tsx:296
-msgid "or"
-msgstr ""
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:327
 #: superset-frontend/src/pages/ChartCreation/index.tsx:338
