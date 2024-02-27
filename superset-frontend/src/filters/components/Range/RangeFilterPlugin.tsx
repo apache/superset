@@ -308,7 +308,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return Math.min(1, parseFloat(normalizedStepSize));
   };
 
-  const step = stepHeuristic(min, max);
+  const step = max - min <= 1 ? stepHeuristic(min, max) : 1;
 
   return (
     <FilterPluginStyle height={height} width={width}>
