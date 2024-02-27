@@ -60,6 +60,7 @@ tmp
 rat-results.txt
 superset/app/
 superset-websocket/config.json
+docker/.env*
 
 # Node.js, webpack artifacts, storybook
 *.entry.js
