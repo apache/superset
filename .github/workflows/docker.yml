@@ -13,13 +13,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_config: ${{ steps.set_matrix.outputs.matrix_config }}
+    steps:
+      - id: set_matrix
+        run: |
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["ci"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize"]'; fi)
+          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
+          echo $GITHUB_OUTPUT
+
   docker-build:
     name: docker-build
+    needs: setup_matrix
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_preset: |
-          ${{ fromJson(github.event_name == 'pull_request' ? '["ci"]' : '["dev", "lean", "py310", "websocket", "dockerize"]') }}
+        build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
