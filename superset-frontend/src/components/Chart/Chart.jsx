@@ -19,7 +19,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {
-  css,
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
@@ -127,6 +126,20 @@ const Styles = styled.div`
       margin: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
+`;
+
+const LoadingDiv = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const MessageSpan = styled.span`
+  display: block;
+  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
+  width: fit-content;
+  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 const MonospaceDiv = styled.div`
@@ -241,27 +254,10 @@ class Chart extends React.PureComponent {
     };
 
     return (
-      <div
-        css={css`
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-        `}
-      >
+      <LoadingDiv>
         <Loading position="inline-centered" />
-        <span
-          // eslint-disable-next-line theme-colors/no-literal-colors
-          css={css`
-            display: block;
-            margin: 16px auto;
-            width: fit-content;
-            color: #666666;
-          `}
-        >
-          {messages[chartStatus]}
-        </span>
-      </div>
+        <MessageSpan>{messages[chartStatus]}</MessageSpan>
+      </LoadingDiv>
     );
   }
 
