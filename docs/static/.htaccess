@@ -29,8 +29,7 @@ script-src 'self'; \
 img-src 'self' https://static.scarf.sh *; \
 style-src 'self' https://fonts.googleapis.com; \
 script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; \
-script-src-elem 'self' https://www.googletagmanager.com https://www.google-analytics.com; \
-style-src-elem 'self' https://fonts.googleapis.com; \
+style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://analytics.apache.org https://www.bugherd.com; \
 font-src 'self' https://fonts.gstatic.com; \
 frame-src 'self' https://calendar.google.com https://preset.io https://sidebar.bugherd.com https://unpkg.com; \
 "
