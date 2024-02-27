@@ -62,6 +62,8 @@ superset/app/
 superset-websocket/config.json
 docker/.env*
 docker/*env
+deploy.sh
+
 
 # Node.js, webpack artifacts, storybook
 *.entry.js
