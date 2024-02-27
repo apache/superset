@@ -22,15 +22,10 @@ RewriteRule ^(.*)$ https://superset.apache.org/$1 [R,L]
 RewriteCond %{HTTP_HOST} ^superset.incubator.apache.org$ [NC]
 RewriteRule ^(.*)$ https://superset.apache.org/$1 [R=301,L]
 
-# Header set Content-Security-Policy "default-src 'self'; img-src *;"
-
-Header set Content-Security-Policy "default-src 'self'; \
-script-src 'self'; \
-img-src 'self' https://static.scarf.sh *; \
-style-src 'self' https://fonts.googleapis.com; \
-script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; \
-style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://analytics.apache.org https://www.bugherd.com; \
-frame-ancestors 'self' https://preset.io; \
+Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org *.bugherd.com *.scarf.sh *.googleapis.com *.googletagmanager.com *.google-analytics.com 'unsafe-inline' 'unsafe-eval'; \
+frame-src *; \
+frame-ancestors 'self' *.preset.io *.google.com https://sidebar.bugherd.com https://unpkg.com; \
+form-action 'self'; \
+worker-src blob:; img-src 'self' blob: data: https:; \
 font-src 'self' https://fonts.gstatic.com; \
-frame-src 'self' https://calendar.google.com https://preset.io https://sidebar.bugherd.com https://unpkg.com; \
-"
+object-src 'none'
