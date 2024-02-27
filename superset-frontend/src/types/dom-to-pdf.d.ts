@@ -30,9 +30,7 @@ declare module 'dom-to-pdf' {
     excludeClassNames?: string[];
   }
 
-  const domToPdf = (
-    elementToPrint: Element,
-    options?: Options,
-  ): Promise<any> => {};
+  function domToPdf(elementToPrint: Element, options?: Options): Promise<any>;
+
   export default domToPdf;
 }

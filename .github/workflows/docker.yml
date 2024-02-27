@@ -5,7 +5,8 @@ on:
     branches:
       - 'master'
   pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+    branches:
+      - 'master'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -17,15 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
-        platform: ["linux/amd64", "linux/arm64"]
-        exclude:
-          # disabling because slow! no python wheels for arm/py39 and
-          # QEMU is slow!
-          - build_preset: "dev"
-            platform: "linux/arm64"
-          - build_preset: "lean"
-            platform: "linux/arm64"
+        build_preset: |
+          ${{ fromJson(github.event_name == 'pull_request' ? '["ci"]' : '["dev", "lean", "py310", "websocket", "dockerize"]') }}
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -46,4 +40,9 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           pip install click
-          ./scripts/build_docker.py ${{ matrix.build_preset }} ${{ github.event_name }} --platform ${{ matrix.platform }}
+          ./scripts/build_docker.py \
+            ${{ matrix.build_preset }} \
+            ${{ github.event_name }} \
+            --build_context_ref "$RELEASE" $FORCE_LATEST \
+            --platform "linux/arm64" \
+            --platform "linux/amd64"

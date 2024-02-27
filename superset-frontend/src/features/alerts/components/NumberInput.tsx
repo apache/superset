@@ -16,25 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { addToast } from './actions';
-import { ToastType } from './types';
+import React, { useState, ChangeEvent } from 'react';
 
-export default function toastsFromPyFlashMessages(flashMessages = []) {
-  const toasts = [];
+interface NumberInputProps {
+  timeUnit: string;
+  min: number;
+  name: string;
+  value: string | number;
+  placeholder: string;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}
 
-  flashMessages.forEach(([messageType, message]) => {
-    const toastType =
-      messageType === 'danger'
-        ? ToastType.Danger
-        : (messageType === 'success' && ToastType.Success) || ToastType.Info;
+export default function NumberInput({
+  timeUnit,
+  min,
+  name,
+  value,
+  placeholder,
+  onChange,
+}: NumberInputProps) {
+  const [isFocused, setIsFocused] = useState<boolean>(false);
 
-    const toast = addToast({
-      text: message,
-      toastType,
-    }).payload;
-
-    toasts.push(toast);
-  });
-
-  return toasts;
+  return (
+    <input
+      type="text"
+      min={min}
+      name={name}
+      value={value ? `${value}${!isFocused ? ` ${timeUnit}` : ''}` : ''}
+      placeholder={placeholder}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      onChange={onChange}
+    />
+  );
 }

@@ -793,7 +793,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             try:
                 for file_name, file_content in ExportChartsCommand(requested_ids).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except ChartNotFoundError:
                 return self.response_404()
         buf.seek(0)

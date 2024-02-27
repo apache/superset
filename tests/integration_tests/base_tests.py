@@ -199,11 +199,8 @@ class SupersetTestCase(TestCase):
     def login(self, username="admin", password="general"):
         return login(self.client, username, password)
 
-    def get_slice(self, slice_name: str, expunge_from_session: bool = True) -> Slice:
-        slc = db.session.query(Slice).filter_by(slice_name=slice_name).one()
-        if expunge_from_session:
-            db.session.expunge_all()
-        return slc
+    def get_slice(self, slice_name: str) -> Slice:
+        return db.session.query(Slice).filter_by(slice_name=slice_name).one()
 
     @staticmethod
     def get_table(

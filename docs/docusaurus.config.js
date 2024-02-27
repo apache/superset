@@ -139,7 +139,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs',
+          editUrl: 'https://github.com/apache/superset/edit/master/docs',
         },
         blog: {
           showReadingTime: true,
@@ -261,6 +261,7 @@ const config = {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
+      metadata: [{name: 'Content-Security-Policy', content: "default-src 'self'; frame-src 'https://calendar.google.com/' 'https://preset.io/' 'https://sidebar.bugherd.com/';"}],
     }),
   scripts: [
     '/script/matomo.js',

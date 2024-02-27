@@ -20,6 +20,7 @@
 docker
 flask-testing
 freezegun
+grpcio>=1.55.3
 openapi-spec-validator
 parameterized
 pyfakefs
