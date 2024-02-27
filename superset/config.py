@@ -59,6 +59,7 @@ from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from flask_appbuilder.security.manager import AUTH_OAUTH
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,23 @@ def _try_json_readsha(filepath: str, length: int) -> str | None:
     except Exception:  # pylint: disable=broad-except
         return None
 
+AUTH_TYPE = AUTH_OAUTH
+OAUTH_PROVIDERS = [{
+    'name':'google',
+    'icon':'fa-google',
+    'token_key':'access_token',
+    'remote_app': {
+        'client_id':'329142539528-9lq4lp8o63s4abgoihlab605nmpaposg.apps.googleusercontent.com',
+        'client_secret':'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',
+        'api_base_url':'https://www.googleapis.com/oauth2/v2/',
+        'client_kwargs':{
+            'scope': 'email profile'
+        },
+        'request_token_url':None,
+        'access_token_url':'https://accounts.google.com/o/oauth2/token',
+        'authorize_url':'https://accounts.google.com/o/oauth2/auth',
+    }
+}]
 
 #
 # If True, we will skip the call to load the logger config found in alembic.init
@@ -406,7 +424,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # editor no longer shows. Currently this is set to false so that the editor
     # option does show, but we will be depreciating it.
     "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
-    "ENABLE_TEMPLATE_PROCESSING": False,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
     # geospatial ones) by inputting javascript in controls. This exposes
@@ -463,7 +481,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
     # `cost_estimate_enabled: true` to the database `extra` attribute.
-    "ESTIMATE_QUERY_COST": False,
+    "ESTIMATE_QUERY_COST": True,
     # Allow users to enable ssh tunneling when creating a DB.
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
