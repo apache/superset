@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         build_preset: |
-          ${{ fromJson(github.event_name == 'pull_request' ? '["ci"]' : '["dev", "lean", "py310", "websocket", "dockerize"]') }}
+          ${{ fromJson(github.event_name === 'pull_request' ? '["ci"]' : '["dev", "lean", "py310", "websocket", "dockerize"]') }}
       fail-fast: false
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
