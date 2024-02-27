@@ -52,7 +52,8 @@ const setIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
   colorFn: CategoricalColorScale,
-  normalizer: number,
+  min: number,
+  max: number,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
   let intervalColorIndicesArray;
@@ -65,7 +66,7 @@ const setIntervalBoundsAndColors = (
   }
 
   const intervalBounds = intervalBoundsNonNormalized.map(
-    bound => bound / normalizer,
+    bound => (bound - min) / (max - min),
   );
   const intervalColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
@@ -221,12 +222,12 @@ export default function transformProps(
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );
-  const normalizer = max;
   const intervalBoundsAndColors = setIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
     colorFn,
-    normalizer,
+    min,
+    max,
   );
   const splitLineDistance =
     axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;
