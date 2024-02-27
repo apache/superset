@@ -28,6 +28,7 @@ Header set Content-Security-Policy "default-src 'self'; \
 script-src 'self'; \
 img-src 'self' https://static.scarf.sh *; \
 style-src 'self' https://fonts.googleapis.com; \
+script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; \
 script-src-elem 'self' https://www.googletagmanager.com https://www.google-analytics.com; \
 style-src-elem 'self' https://fonts.googleapis.com; \
 font-src 'self' https://fonts.gstatic.com; \
