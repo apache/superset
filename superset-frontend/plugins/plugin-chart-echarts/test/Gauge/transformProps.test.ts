@@ -256,8 +256,9 @@ describe('Echarts Gauge transformProps', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       groupby: ['year', 'platform'],
-      intervals: '50,100',
+      intervals: '60,100',
       intervalColorIndices: '1,2',
+      minVal: 20,
     };
     const queriesData = [
       {
