@@ -161,7 +161,7 @@
     "polished": "^3.7.2",
     "prop-types": "^15.7.2",
     "query-string": "^6.13.7",
-    "re-resizable": "^6.6.1",
+    "re-resizable": "^6.9.11",
     "react": "^16.13.1",
     "react-ace": "^10.1.0",
     "react-checkbox-tree": "^1.8.0",
