@@ -221,7 +221,7 @@ export function useListViewState({
       query.sortColumn && query.sortOrder
         ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
         : initialSort,
-    [query.sortColumn, query.sortOrder],
+    [initialSort, query.sortColumn, query.sortOrder],
   );
 
   const initialState = {
@@ -257,6 +257,7 @@ export function useListViewState({
     pageCount,
     gotoPage,
     setAllFilters,
+    setSortBy,
     selectedFlatRows,
     toggleAllRowsSelected,
     state: { pageIndex, pageSize, sortBy, filters },
@@ -374,6 +375,7 @@ export function useListViewState({
     rows,
     selectedFlatRows,
     setAllFilters,
+    setSortBy,
     state: { pageIndex, pageSize, sortBy, filters, internalFilters, viewMode },
     toggleAllRowsSelected,
     applyFilterValue,
