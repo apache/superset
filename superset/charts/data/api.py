@@ -25,7 +25,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
@@ -44,6 +44,7 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
+from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import (
@@ -359,6 +360,11 @@ class ChartDataRestApi(ChartRestApi):
             result = apply_post_process(result, form_data, datasource)
 
         if result_format in ChartDataResultFormat.table_like():
+            # Get chart name from slice_id
+            slice_obj = (
+                db.session.query(Slice).filter_by(id=form_data["slice_id"]).first()
+            )
+            chart_name = slice_obj.chart
             # Verify user has permission to export file
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
@@ -372,9 +378,14 @@ class ChartDataRestApi(ChartRestApi):
                 # return single query results
                 data = result["queries"][0]["data"]
                 if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                    return CsvResponse(
+                        data,
+                        headers=generate_download_headers("csv", filename=chart_name),
+                    )
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                return XlsxResponse(
+                    data, headers=generate_download_headers("xlsx", filename=chart_name)
+                )
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
@@ -383,13 +394,17 @@ class ChartDataRestApi(ChartRestApi):
                     return query_data.encode(encoding)
                 return query_data
 
-            files = {
-                f"query_{idx + 1}.{result_format}": _process_data(query["data"])
-                for idx, query in enumerate(result["queries"])
-            }
+            files = {}
+            for idx, query in enumerate(result["queries"]):
+                if idx == 0:
+                    file_name = f"{chart_name}.{result_format}"
+                else:
+                    file_name = f"{chart_name}_row_count.{result_format}"
+                data = _process_data(query["data"])
+                files[file_name] = data
             return Response(
                 create_zip(files),
-                headers=generate_download_headers("zip"),
+                headers=generate_download_headers("zip", filename=chart_name),
                 mimetype="application/zip",
             )
 
