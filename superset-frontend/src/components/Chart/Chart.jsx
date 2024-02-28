@@ -246,17 +246,16 @@ class Chart extends React.PureComponent {
     );
   }
 
-  renderSpinner(chartStatus, databaseName) {
-    const messages = {
-      loading: t('Fetching data from %s', databaseName),
-      success: t('Rendering chart'),
-      rendered: t('Success'),
-    };
+  renderSpinner(databaseName) {
+    const message =
+      databaseName === undefined
+        ? t('Waiting on database...')
+        : t('Waiting on %s', databaseName);
 
     return (
       <LoadingDiv>
         <Loading position="inline-centered" />
-        <MessageSpan>{messages[chartStatus]}</MessageSpan>
+        <MessageSpan>{message}</MessageSpan>
       </LoadingDiv>
     );
   }
@@ -347,7 +346,7 @@ class Chart extends React.PureComponent {
           width={width}
         >
           {isLoading
-            ? this.renderSpinner(chartStatus, databaseName)
+            ? this.renderSpinner(databaseName)
             : this.renderChartContainer()}
         </Styles>
       </ErrorBoundary>
