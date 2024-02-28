@@ -312,11 +312,8 @@ class AnnotationLayer extends React.PureComponent {
     });
   }
 
-  asyncFetch = async (search, page, pageSize) => {
+  asyncFetch = async (_, page, pageSize) => {
     const { annotationType, sourceType } = this.state;
-
-    // Bypassing eslint no-unused-vars error
-    search.trim();
 
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       const queryParams = rison.encode({
