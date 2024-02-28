@@ -393,7 +393,6 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
 type NotificationSetting = {
   method?: NotificationMethodOption;
-  email_subject?: string;
   recipients: string;
   options: NotificationMethodOption[];
 };
@@ -981,8 +980,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     notificationSettings.forEach(setting => {
       if (!!setting.method && setting.recipients?.length) {
-        hasInfo =
-          setting.method === 'Email' ? !!setting.email_subject?.length : true;
+        hasInfo = true;
       }
     });
 
@@ -1102,7 +1100,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([
         {
           recipients: '',
-          email_subject: '',
           options: allowedNotificationMethods,
           method: 'Email',
         },
@@ -1124,7 +1121,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
-          email_subject: resource.email_subject,
         };
       });
 
@@ -1687,9 +1683,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           key="notification"
         >
           {notificationSettings.map((notificationSetting, i) => (
-            <StyledNotificationMethodWrapper
-              key={`NotificationMethodWrapper-${i}`}
-            >
+            <StyledNotificationMethodWrapper>
               <NotificationMethod
                 setting={notificationSetting}
                 index={i}

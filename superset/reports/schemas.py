@@ -153,7 +153,7 @@ class ReportSchedulePostSchema(Schema):
             "example": "[Report]  Report name: Dashboard or chart name",
         },
         allow_none=True,
-        required=True,
+        required=False,
     )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},
@@ -287,7 +287,7 @@ class ReportSchedulePutSchema(Schema):
             "example": "[Report]  Report name: Dashboard or chart name",
         },
         allow_none=True,
-        required=True,
+        required=False,
     )
     context_markdown = fields.String(
         metadata={"description": context_markdown_description},

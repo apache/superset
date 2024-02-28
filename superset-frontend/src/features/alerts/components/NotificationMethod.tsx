@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -48,7 +48,6 @@ const StyledNotificationMethod = styled.div`
 
 type NotificationSetting = {
   method?: NotificationMethodOption;
-  email_subject?: string;
   recipients: string;
   options: NotificationMethodOption[];
 };
@@ -61,12 +60,12 @@ interface NotificationMethodProps {
   onInputChange?: (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => void;
-  email_subject?: string;
-  defaultSubject?: string;
+  email_subject: string;
+  defaultSubject: string;
 }
 
 const TRANSLATIONS = {
-  EMAIL_SUBJECT_NAME: t('Email subject name'),
+  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
 };
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -82,26 +81,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [emailSubject, setEmailSubject] = useState(
-    email_subject || defaultSubject,
-  );
   const theme = useTheme();
-
-  useEffect(() => {
-    if (onUpdate) {
-      const updatedSetting: NotificationSetting = {
-        ...setting,
-        email_subject: email_subject || defaultSubject,
-        recipients: setting?.recipients ?? '',
-        options: setting?.options ?? [],
-      };
-      onUpdate(index, updatedSetting);
-    }
-  }, []);
-
-  useEffect(() => {
-    setEmailSubject(email_subject || defaultSubject);
-  }, [defaultSubject]);
 
   if (!setting) {
     return null;
@@ -141,19 +121,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const onSubjectChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    const { target } = event;
-    setEmailSubject(target.value);
-
     if (onInputChange) {
       onInputChange(event);
-    }
-
-    if (onUpdate) {
-      const updatedSetting = {
-        ...setting,
-        email_subject: target.value,
-      };
-      onUpdate(index, updatedSetting);
     }
   };
 
@@ -200,16 +169,16 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             <>
               <div className="control-label">
                 {TRANSLATIONS.EMAIL_SUBJECT_NAME}
-                <span className="required">*</span>
               </div>
               <div className="input-container">
                 <input
                   type="text"
                   name="email_subject"
-                  value={emailSubject}
+                  value={email_subject}
+                  placeholder={defaultSubject}
                   onChange={onSubjectChange}
                 />
-              </div>
+              </div>{' '}
             </>
           ) : null}
           <div className="control-label">
