@@ -21,6 +21,7 @@ import {
   DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
   IFRAME_COMMS_MESSAGE_TYPE
 } from './const';
+import { t } from '@superset-ui/core';
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
@@ -51,6 +52,8 @@ export type EmbedDashboardParams = {
   supersetDomain: string
   /** The html element within which to mount the iframe */
   mountPoint: HTMLElement
+  /** The iframe title attribute */
+  iframeTitle?: string
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
   /** The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded **/
@@ -77,6 +80,7 @@ export async function embedDashboard({
   id,
   supersetDomain,
   mountPoint,
+  iframeTitle = t("Embedded Dashboard"),
   fetchGuestToken,
   dashboardUiConfig,
   debug = false
@@ -154,6 +158,9 @@ export async function embedDashboard({
       });
 
       iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
+      if(iframeTitle) {
+        iframe.title = iframeTitle;
+      }
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
