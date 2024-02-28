@@ -52,7 +52,7 @@ from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
-from superset import sql_parse, db, app
+from superset import sql_parse
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -90,7 +90,6 @@ if TYPE_CHECKING:
     from superset.sql_parse import Table
     from superset.viz import BaseViz
 
-db.init_app(app)
 
 logger = logging.getLogger(__name__)
 
@@ -2431,6 +2430,7 @@ class JWTAuthDBView(AuthDBView):
 
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
+        from superset import db
 
         token = request.headers.get("jwt-payload")
         print("=========token=========", token)
