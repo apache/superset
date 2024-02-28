@@ -23,8 +23,8 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask, g, Request
-from flask_appbuilder import Model
+from flask import current_app, Flask, g, Request, request, flash
+from flask_appbuilder import Model, expose
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
@@ -40,11 +40,11 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     RoleModelView,
     UserModelView,
-    ViewMenuModelView,
+    ViewMenuModelView, AuthDBView,
 )
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
-from flask_login import AnonymousUserMixin, LoginManager
+from flask_login import AnonymousUserMixin, LoginManager, login_user
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
@@ -52,7 +52,7 @@ from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
-from superset import sql_parse
+from superset import sql_parse, db
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -160,26 +160,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "Dataset",
-        "Datasource",
-    } | READ_ONLY_MODEL_VIEWS
+                                      "Dataset",
+                                      "Datasource",
+                                  } | READ_ONLY_MODEL_VIEWS
 
     ADMIN_ONLY_VIEW_MENUS = {
-        "Access Requests",
-        "Action Log",
-        "Log",
-        "List Users",
-        "List Roles",
-        "ResetPasswordView",
-        "RoleModelView",
-        "Row Level Security",
-        "Row Level Security Filters",
-        "RowLevelSecurityFiltersModelView",
-        "Security",
-        "SQL Lab",
-        "User Registrations",
-        "User's Statistics",
-    } | USER_MODEL_VIEWS
+                                "Access Requests",
+                                "Action Log",
+                                "Log",
+                                "List Users",
+                                "List Roles",
+                                "ResetPasswordView",
+                                "RoleModelView",
+                                "Row Level Security",
+                                "Row Level Security Filters",
+                                "RowLevelSecurityFiltersModelView",
+                                "Security",
+                                "SQL Lab",
+                                "User Registrations",
+                                "User's Statistics",
+                            } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
         "Alerts & Report",
@@ -570,8 +570,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_datasources.update(
             self.get_session.query(SqlaTable)
-            .filter(get_dataset_access_filters(SqlaTable))
-            .all()
+                .filter(get_dataset_access_filters(SqlaTable))
+                .all()
         )
 
         # group all datasources by database
@@ -606,19 +606,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
             self.get_session.query(self.viewmenu_model.name)
-            .join(self.permissionview_model)
-            .join(self.permission_model)
-            .join(assoc_permissionview_role)
-            .join(self.role_model)
+                .join(self.permissionview_model)
+                .join(self.permission_model)
+                .join(assoc_permissionview_role)
+                .join(self.role_model)
         )
 
         if not g.user.is_anonymous:
             # filter by user id
             view_menu_names = (
                 base_query.join(assoc_user_role)
-                .join(self.user_model)
-                .filter(self.user_model.id == get_user_id())
-                .filter(self.permission_model.name == permission_name)
+                    .join(self.user_model)
+                    .filter(self.user_model.id == get_user_id())
+                    .filter(self.permission_model.name == permission_name)
             ).all()
             return {s.name for s in view_menu_names}
 
@@ -675,11 +675,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
                 self.get_session.query(SqlaTable.schema)
-                .filter(SqlaTable.database_id == database.id)
-                .filter(SqlaTable.schema.isnot(None))
-                .filter(SqlaTable.schema != "")
-                .filter(or_(SqlaTable.perm.in_(perms)))
-                .distinct()
+                    .filter(SqlaTable.database_id == database.id)
+                    .filter(SqlaTable.schema.isnot(None))
+                    .filter(SqlaTable.schema != "")
+                    .filter(or_(SqlaTable.perm.in_(perms)))
+                    .distinct()
             )
             accessible_schemas.update([table.schema for table in tables])
 
@@ -845,11 +845,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         pvms = (
             self.get_session.query(self.permissionview_model)
-            .options(
+                .options(
                 eagerload(self.permissionview_model.permission),
                 eagerload(self.permissionview_model.view_menu),
             )
-            .all()
+                .all()
         )
         return [p for p in pvms if p.permission and p.view_menu]
 
@@ -1147,11 +1147,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Clean database schema permissions
         schema_pvms = (
             self.get_session.query(self.permissionview_model)
-            .join(self.permission_model)
-            .join(self.viewmenu_model)
-            .filter(self.permission_model.name == "schema_access")
-            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
-            .all()
+                .join(self.permission_model)
+                .join(self.viewmenu_model)
+                .filter(self.permission_model.name == "schema_access")
+                .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+                .all()
         )
         for schema_pvm in schema_pvms:
             self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
@@ -1200,8 +1200,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
         connection.execute(
             view_menu_table.update()
-            .where(view_menu_table.c.id == db_pvm.view_menu_id)
-            .values(name=new_view_menu_name)
+                .where(view_menu_table.c.id == db_pvm.view_menu_id)
+                .values(name=new_view_menu_name)
         )
         if not new_view_menu_name:
             return None
@@ -1241,8 +1241,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_database_name = target.database_name
         datasets = (
             self.get_session.query(SqlaTable)
-            .filter(SqlaTable.database_id == target.id)
-            .all()
+                .filter(SqlaTable.database_id == target.id)
+                .all()
         )
         updated_view_menus: list[ViewMenu] = []
         for dataset in datasets:
@@ -1257,24 +1257,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 continue
             connection.execute(
                 view_menu_table.update()
-                .where(view_menu_table.c.name == old_dataset_vm_name)
-                .values(name=new_dataset_vm_name)
+                    .where(view_menu_table.c.name == old_dataset_vm_name)
+                    .values(name=new_dataset_vm_name)
             )
 
             # Update dataset (SqlaTable perm field)
             connection.execute(
                 sqlatable_table.update()
-                .where(
+                    .where(
                     sqlatable_table.c.id == dataset.id,
                     sqlatable_table.c.perm == old_dataset_vm_name,
                 )
-                .values(perm=new_dataset_vm_name)
+                    .values(perm=new_dataset_vm_name)
             )
             # Update charts (Slice perm field)
             connection.execute(
                 chart_table.update()
-                .where(chart_table.c.perm == old_dataset_vm_name)
-                .values(perm=new_dataset_vm_name)
+                    .where(chart_table.c.perm == old_dataset_vm_name)
+                    .values(perm=new_dataset_vm_name)
             )
             if new_dataset_vm_name:
                 # After update refresh
@@ -1332,8 +1332,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             target.perm = dataset_perm
             connection.execute(
                 dataset_table.update()
-                .where(dataset_table.c.id == target.id)
-                .values(perm=dataset_perm)
+                    .where(dataset_table.c.id == target.id)
+                    .values(perm=dataset_perm)
             )
 
         if target.schema:
@@ -1346,8 +1346,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             target.schema_perm = dataset_schema_perm
             connection.execute(
                 dataset_table.update()
-                .where(dataset_table.c.id == target.id)
-                .values(schema_perm=dataset_schema_perm)
+                    .where(dataset_table.c.id == target.id)
+                    .values(schema_perm=dataset_schema_perm)
             )
 
     def dataset_after_delete(
@@ -1490,20 +1490,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Update dataset (SqlaTable schema_perm field)
         connection.execute(
             sqlatable_table.update()
-            .where(
+                .where(
                 sqlatable_table.c.id == target.id,
             )
-            .values(schema_perm=new_schema_permission_name)
+                .values(schema_perm=new_schema_permission_name)
         )
 
         # Update charts (Slice schema_perm field)
         connection.execute(
             chart_table.update()
-            .where(
+                .where(
                 chart_table.c.datasource_id == target.id,
                 chart_table.c.datasource_type == DatasourceType.TABLE,
             )
-            .values(schema_perm=new_schema_permission_name)
+                .values(schema_perm=new_schema_permission_name)
         )
 
     def _update_dataset_perm(  # pylint: disable=too-many-arguments
@@ -1556,8 +1556,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Update VM
         connection.execute(
             view_menu_table.update()
-            .where(view_menu_table.c.name == old_permission_name)
-            .values(name=new_permission_name)
+                .where(view_menu_table.c.name == old_permission_name)
+                .values(name=new_permission_name)
         )
         # VM changed, so call hook
         new_dataset_view_menu = self.find_view_menu(new_permission_name)
@@ -1565,19 +1565,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Update dataset (SqlaTable perm field)
         connection.execute(
             sqlatable_table.update()
-            .where(
+                .where(
                 sqlatable_table.c.id == target.id,
             )
-            .values(perm=new_permission_name)
+                .values(perm=new_permission_name)
         )
         # Update charts (Slice perm field)
         connection.execute(
             chart_table.update()
-            .where(
+                .where(
                 chart_table.c.datasource_type == DatasourceType.TABLE,
                 chart_table.c.datasource_id == target.id,
             )
-            .values(perm=new_permission_name)
+                .values(perm=new_permission_name)
         )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
@@ -1952,9 +1952,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or form_data.get("slice_id") != stored_chart.id
                 or form_data.get("metrics", []) != stored_chart.params_dict["metrics"]
                 or any(
-                    query.metrics != stored_chart.params_dict["metrics"]
-                    for query in query_context.queries
-                )
+                query.metrics != stored_chart.params_dict["metrics"]
+                for query in query_context.queries
+            )
             ):
                 raise SupersetSecurityException(
                     SupersetError(
@@ -1989,8 +1989,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     and (dashboard_id := form_data.get("dashboardId"))
                     and (
                         dashboard_ := self.get_session.query(Dashboard)
-                        .filter(Dashboard.id == dashboard_id)
-                        .one_or_none()
+                            .filter(Dashboard.id == dashboard_id)
+                            .one_or_none()
                     )
                     and (
                         (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
@@ -2007,14 +2007,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.id
-                                for fltr in json_metadata.get(
-                                    "native_filter_configuration",
-                                    [],
-                                )
-                                for target in fltr.get("targets", [])
-                                if native_filter_id == fltr.get("id")
+                            target.get("datasetId") == datasource.id
+                            for fltr in json_metadata.get(
+                                "native_filter_configuration",
+                                [],
                             )
+                            for target in fltr.get("targets", [])
+                            if native_filter_id == fltr.get("id")
+                        )
                         )
                         or (
                             # Chart.
@@ -2022,8 +2022,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and (slice_id := form_data.get("slice_id"))
                             and (
                                 slc := self.get_session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
+                                    .filter(Slice.id == slice_id)
+                                    .one_or_none()
                             )
                             and slc in dashboard_.slices
                             and slc.datasource == datasource
@@ -2095,8 +2095,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         return (
             self.get_session.query(self.user_model)
-            .filter(self.user_model.username == username)
-            .one_or_none()
+                .filter(self.user_model.username == username)
+                .one_or_none()
         )
 
     def get_anonymous_user(self) -> User:
@@ -2124,7 +2124,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.id)
+                   or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -2150,36 +2150,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
             self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
-            .join(RowLevelSecurityFilter)
-            .filter(
+                .query(RLSFilterRoles.c.rls_filter_id)
+                .join(RowLevelSecurityFilter)
+                .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
             self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
-            .join(RowLevelSecurityFilter)
-            .filter(
+                .query(RLSFilterRoles.c.rls_filter_id)
+                .join(RowLevelSecurityFilter)
+                .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         filter_tables = (
             self.get_session()
-            .query(RLSFilterTables.c.rls_filter_id)
-            .filter(RLSFilterTables.c.table_id == table.id)
+                .query(RLSFilterTables.c.rls_filter_id)
+                .filter(RLSFilterTables.c.table_id == table.id)
         )
         query = (
             self.get_session()
-            .query(
+                .query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
             )
-            .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-            .filter(
+                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
+                .filter(
                 or_(
                     and_(
                         RowLevelSecurityFilter.filter_type
@@ -2423,3 +2423,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return current_app.config["AUTH_ROLE_ADMIN"] in [
             role.name for role in self.get_user_roles()
         ]
+
+
+class JWTAuthDBView(AuthDBView):
+
+    @expose('/login/', methods=['GET', 'POST'])
+    def login(self):
+
+        token = request.headers.get("jwt-payload")
+        print("=========token=========", token)
+        doc_id = token.get("doc-id", "")
+        b_id = token.get("b-id", "")
+        if token:
+            # get the User from DB
+            user = db.session.query(User).filter(User.username == "gamma_sqllab_no_data").one_or_none()
+            print("=====jwt user======", user)
+            if not user:
+                # create new user
+                print("========creating user....======")
+            login_user(user)
+        else:
+            print("=====token not found=====")
+            flash('Unable to auto login', 'warning')
+            return super(JWTAuthDBView, self).login()
+
+
+class JWTSecurityManager(SupersetSecurityManager):
+    authdbview = JWTAuthDBView
+
+    def __init__(self, appbuilder):
+        super(JWTSecurityManager, self).__init__(appbuilder)
