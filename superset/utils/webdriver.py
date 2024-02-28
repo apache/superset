@@ -352,6 +352,7 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+        print("====get_screenshot=354====", user)
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
