@@ -125,6 +125,7 @@ class MachineAuthProvider:
     def get_auth_cookies(user: User) -> dict[str, str]:
         # Login with the user specified to get the reports
         with current_app.test_request_context("/login"):
+            print("======ab toh print kar de======", user)
             login_user(user)
             # A mock response object to get the cookie information from
             response = Response()
