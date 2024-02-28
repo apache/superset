@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-master-dev}
+x-superset-image: &superset-image ${DOCKER_IMAGE_URI}:${DOCKER_IMAGE_NAME}
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
-  - db
+  #- db
   - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
@@ -48,16 +48,16 @@ services:
     volumes:
       - redis:/data
 
-  db:
-    env_file: docker/.env
-    image: postgres:15
-    container_name: superset_db
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - db_home:/var/lib/postgresql/data
-      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+        #  db:
+        #    env_file: docker/.env
+        #    image: postgres:15
+        # container_name: superset_db
+        #restart: unless-stopped
+        # ports:
+        #     - "127.0.0.1:5432:5432"
+        #   volumes:
+        # - db_home:/var/lib/postgresql/data
+        # - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
     env_file: docker/.env
