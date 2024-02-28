@@ -271,10 +271,11 @@ function ListView<T extends object = any>({
     pageCount = 1,
     gotoPage,
     applyFilterValue,
+    setSortBy,
     selectedFlatRows,
     toggleAllRowsSelected,
     setViewMode,
-    state: { pageIndex, pageSize, internalFilters, viewMode },
+    state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
     bulkSelectColumnConfig,
@@ -350,11 +351,9 @@ function ListView<T extends object = any>({
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
-                initialSort={initialSort}
-                onChange={fetchData}
+                initialSort={sortBy}
+                onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}
-                pageIndex={pageIndex}
-                pageSize={pageSize}
               />
             )}
           </div>

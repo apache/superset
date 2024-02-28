@@ -759,7 +759,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
 
       resize(
-        '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
+        '[data-test="dashboard-markdown-editor"] .resizable-container div.resizable-container-handle--bottom + div',
       ).to(500, 600);
 
       cy.getBySel('dashboard-markdown-editor').contains('Test resize');

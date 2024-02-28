@@ -28,7 +28,7 @@ import sqlparse
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
 from sqlglot.dialects import Dialects
-from sqlglot.errors import ParseError
+from sqlglot.errors import SqlglotError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -287,7 +287,7 @@ class ParsedQuery:
         """
         try:
             statements = parse(self.stripped(), dialect=self._dialect)
-        except ParseError:
+        except SqlglotError:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
             return set()
 
@@ -319,12 +319,17 @@ class ParsedQuery:
         elif isinstance(statement, exp.Command):
             # Commands, like `SHOW COLUMNS FROM foo`, have to be converted into a
             # `SELECT` statetement in order to extract tables.
-            literal = statement.find(exp.Literal)
-            if not literal:
+            if not (literal := statement.find(exp.Literal)):
                 return set()
 
-            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=self._dialect)
-            sources = pseudo_query.find_all(exp.Table)
+            try:
+                pseudo_query = parse_one(
+                    f"SELECT {literal.this}",
+                    dialect=self._dialect,
+                )
+                sources = pseudo_query.find_all(exp.Table)
+            except SqlglotError:
+                return set()
         else:
             sources = [
                 source
