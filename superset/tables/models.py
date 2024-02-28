@@ -44,6 +44,7 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import Table as TableName
 from superset.superset_typing import ResultSetColumnType
+from superset import security_manager
 
 if TYPE_CHECKING:
     from superset.datasets.models import Dataset
@@ -204,3 +205,11 @@ class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
                 session.add(new_table)
 
         return all_tables
+    
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the Table.
+        :raises SupersetSecurityException: If the user cannot access the Table
+        """
+
+        security_manager.raise_for_access(query=self)

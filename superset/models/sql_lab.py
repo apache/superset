@@ -443,6 +443,15 @@ class SavedQuery(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     def last_run_delta_humanized(self) -> str:
         return self._last_run_delta_humanized
 
+    
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the SavedQuery.
+        :raises SupersetSecurityException: If the user cannot access the SavedQuery
+        """
+
+        security_manager.raise_for_access(query=self)
+
 
 class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     __tablename__ = "tab_state"
