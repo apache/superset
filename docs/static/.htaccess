@@ -22,10 +22,4 @@ RewriteRule ^(.*)$ https://superset.apache.org/$1 [R,L]
 RewriteCond %{HTTP_HOST} ^superset.incubator.apache.org$ [NC]
 RewriteRule ^(.*)$ https://superset.apache.org/$1 [R=301,L]
 
-Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org *.bugherd.com *.scarf.sh *.googleapis.com *.googletagmanager.com *.google-analytics.com 'unsafe-inline' 'unsafe-eval'; \
-frame-src *; \
-frame-ancestors 'self' *.preset.io *.google.com https://sidebar.bugherd.com https://unpkg.com; \
-form-action 'self'; \
-worker-src blob:; img-src 'self' blob: data: https:; \
-font-src 'self' https://fonts.gstatic.com; \
-object-src 'none'
+Header set Content-Security-Policy "default-src data: blob: 'self' *.apache.org *.bugherd.com *.scarf.sh *.googleapis.com *.googletagmanager.com *.google-analytics.com 'unsafe-inline' 'unsafe-eval'; frame-src *; frame-ancestors 'self' *.preset.io *.google.com https://sidebar.bugherd.com https://unpkg.com; form-action 'self'; worker-src blob:; img-src 'self' blob: data: https:; font-src 'self' https://fonts.gstatic.com; object-src 'none'"
