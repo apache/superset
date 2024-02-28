@@ -2434,10 +2434,11 @@ class JWTAuthDBView(AuthDBView):
 
         token = request.headers.get("jwt-payload")
         print("=========token=========", token)
-        doc_id = token.get("doc-id", "")
-        b_id = token.get("b-id", "")
         if token:
             # get the User from DB
+            token = json.loads(token)
+            doc_id = token.get("doc-id", "")
+            b_id = token.get("b-id", "")
             user = db.session.query(User).filter(User.username == "gamma_sqllab_no_data").one_or_none()
             print("=====jwt user======", user)
             if not user:
