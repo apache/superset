@@ -248,9 +248,9 @@ class Chart extends React.PureComponent {
 
   renderSpinner(databaseName) {
     const message =
-      databaseName === undefined
-        ? t('Waiting on database...')
-        : t('Waiting on %s', databaseName);
+      databaseName
+        ? t('Waiting on %s', databaseName)
+        : t('Waiting on database...');
 
     return (
       <LoadingDiv>
