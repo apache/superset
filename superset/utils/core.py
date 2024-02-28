@@ -797,7 +797,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             connection.should_close_with_result = save_should_close_with_result
 
     if some_engine.dialect.name == "sqlite":
-
         @event.listens_for(some_engine, "connect")
         def set_sqlite_pragma(  # pylint: disable=unused-argument
             connection: sqlite3.Connection,
@@ -1366,6 +1365,20 @@ def get_username() -> str | None:
         return None
 
 
+def get_static_user() -> str | None:
+    """
+    Get/print username (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
+    try:
+        print("=======user__dict=======", g.user.__dict__)
+        return g.user.username
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
 def get_user_id() -> int | None:
     """
     Get the user identifier (if defined) associated with the current user.
@@ -1522,7 +1535,7 @@ def split(
         elif character == ")":
             parens -= 1
         elif character == quote:
-            if quotes and string[j - len(escaped_quote) + 1 : j + 1] != escaped_quote:
+            if quotes and string[j - len(escaped_quote) + 1: j + 1] != escaped_quote:
                 quotes = False
             elif not quotes:
                 quotes = True

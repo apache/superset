@@ -39,7 +39,7 @@ from superset.utils.core import (
     get_user_email,
     get_user_id,
     get_username,
-    merge_extra_filters,
+    merge_extra_filters, get_static_user,
 )
 
 if TYPE_CHECKING:
@@ -86,6 +86,7 @@ class ExtraCache:
     regex = re.compile(
         r"\{\{.*("
         r"current_user_id\(.*\)|"
+        r"current_static_user_id\(.*\)|"
         r"current_username\(.*\)|"
         r"current_user_email\(.*\)|"
         r"cache_key_wrapper\(.*\)|"
@@ -114,6 +115,20 @@ class ExtraCache:
         """
 
         if user_id := get_user_id():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(user_id)
+            return user_id
+        return None
+
+    def current_static_user_id(self, add_to_cache_keys: bool = True) -> Optional[int]:
+        """
+        Return the user static to print ID of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user ID
+        """
+
+        if user_id := get_static_user():
             if add_to_cache_keys:
                 self.cache_key_wrapper(user_id)
             return user_id
@@ -206,8 +221,8 @@ class ExtraCache:
         if result and escape_result and self.dialect:
             # use the dialect specific quoting logic to escape string
             result = String().literal_processor(dialect=self.dialect)(value=result)[
-                1:-1
-            ]
+                     1:-1
+                     ]
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
@@ -547,6 +562,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "current_static_user_id": partial(safe_proxy, extra_cache.current_static_user_id),
                 "current_user_email": partial(
                     safe_proxy, extra_cache.current_user_email
                 ),
