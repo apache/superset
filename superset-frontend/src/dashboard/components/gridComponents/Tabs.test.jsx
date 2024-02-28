@@ -29,6 +29,14 @@ import { getMockStore } from 'spec/fixtures/mockStore';
 import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: ({ children }) => (
+    <div data-test="mock-draggable">{children({})}</div>
+  ),
+  Droppable: ({ children }) => (
+    <div data-test="mock-droppable">{children({})}</div>
+  ),
+}));
 jest.mock('src/dashboard/containers/DashboardComponent', () => ({ id }) => (
   <div data-test="mock-dashboard-component">{id}</div>
 ));
@@ -88,12 +96,12 @@ function setup(overrideProps) {
   });
 }
 
-test('should render a DragDroppable', () => {
-  // test just Tabs with no children DragDroppables
+test('should render a Draggable', () => {
+  // test just Tabs with no children Draggable
   const { getByTestId } = setup({
     component: { ...props.component, children: [] },
   });
-  expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
+  expect(getByTestId('mock-draggable')).toBeInTheDocument();
 });
 
 test('should render non-editable tabs', () => {

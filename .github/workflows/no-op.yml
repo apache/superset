@@ -19,7 +19,7 @@
 # - Ensure that the job names in this workflow match exactly the names of the corresponding jobs in the main workflows.
 # - This workflow should be kept as-is, without path-specific conditions.
 
-name: No Operation Checks
+name: no-op Checks
 on: pull_request
 
 jobs:

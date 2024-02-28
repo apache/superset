@@ -25,12 +25,7 @@ import { css, styled } from '@superset-ui/core';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
-import {
-  DROP_TOP,
-  DROP_RIGHT,
-  DROP_BOTTOM,
-  DROP_LEFT,
-} from '../../util/getDropPosition';
+import { DROP_FORBIDDEN } from '../../util/getDropPosition';
 
 const propTypes = {
   children: PropTypes.func,
@@ -39,6 +34,7 @@ const propTypes = {
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
+  dropToChild: PropTypes.bool,
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
@@ -61,6 +57,7 @@ const defaultProps = {
   style: null,
   parentComponent: null,
   disableDragDrop: false,
+  dropToChild: false,
   children() {},
   onDrop() {},
   onHover() {},
@@ -90,49 +87,18 @@ const DragDroppableStyles = styled.div`
       z-index: 10;
     }
 
-    &.empty-droptarget--full > .drop-indicator--top {
-      height: 100%;
-      opacity: 0.3;
-    }
-
     & {
       .drop-indicator {
         display: block;
         background-color: ${theme.colors.primary.base};
         position: absolute;
         z-index: 10;
-      }
-
-      .drop-indicator--top {
-        top: ${-theme.gridUnit - 2}px;
-        left: 0;
-        height: ${theme.gridUnit}px;
+        opacity: 0.3;
         width: 100%;
-        min-width: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--bottom {
-        bottom: ${-theme.gridUnit - 2}px;
-        left: 0;
-        height: ${theme.gridUnit}px;
-        width: 100%;
-        min-width: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--right {
-        top: 0;
-        left: calc(100% - ${theme.gridUnit}px);
         height: 100%;
-        width: ${theme.gridUnit}px;
-        min-height: ${theme.gridUnit * 4}px;
-      }
-
-      .drop-indicator--left {
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: ${theme.gridUnit}px;
-        min-height: ${theme.gridUnit * 4}px;
+        &.drop-indicator--forbidden {
+          background-color: ${theme.colors.error.light1};
+        }
       }
     }
   `};
@@ -189,10 +155,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         ? {
             className: cx(
               'drop-indicator',
-              dropIndicator === DROP_TOP && 'drop-indicator--top',
-              dropIndicator === DROP_BOTTOM && 'drop-indicator--bottom',
-              dropIndicator === DROP_LEFT && 'drop-indicator--left',
-              dropIndicator === DROP_RIGHT && 'drop-indicator--right',
+              dropIndicator === DROP_FORBIDDEN && 'drop-indicator--forbidden',
             ),
           }
         : null;
@@ -225,6 +188,9 @@ export class UnwrappedDragDroppable extends React.PureComponent {
 
 UnwrappedDragDroppable.propTypes = propTypes;
 UnwrappedDragDroppable.defaultProps = defaultProps;
+
+export const Draggable = DragSource(...dragConfig)(UnwrappedDragDroppable);
+export const Droppable = DropTarget(...dropConfig)(UnwrappedDragDroppable);
 
 // note that the composition order here determines using
 // component.method() vs decoratedComponentInstance.method() in the drag/drop config

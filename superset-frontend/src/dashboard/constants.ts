@@ -43,6 +43,7 @@ export const FILTER_BAR_HEADER_HEIGHT = 80;
 export const FILTER_BAR_TABS_HEIGHT = 46;
 export const BUILDER_SIDEPANEL_WIDTH = 374;
 export const OVERWRITE_INSPECT_FIELDS = ['css', 'json_metadata.filter_scopes'];
+export const EMPTY_CONTAINER_Z_INDEX = 10;
 
 export const DEFAULT_CROSS_FILTER_SCOPING: NativeFilterScope = {
   rootPath: [DASHBOARD_ROOT_ID],
