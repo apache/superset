@@ -17,26 +17,25 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
-const propTypes = {
-  copyNode: PropTypes.node,
-  getText: PropTypes.func,
-  onCopyEnd: PropTypes.func,
-  shouldShowText: PropTypes.bool,
-  text: PropTypes.string,
-  wrapped: PropTypes.bool,
-  tooltipText: PropTypes.string,
-  addDangerToast: PropTypes.func.isRequired,
-  addSuccessToast: PropTypes.func.isRequired,
-  hideTooltip: PropTypes.bool,
-};
+export interface CopyToClipboardProps {
+  copyNode?: React.ReactNode;
+  getText?: (callback: (data: string) => void) => void;
+  onCopyEnd?: () => void;
+  shouldShowText?: boolean;
+  text?: string;
+  wrapped?: boolean;
+  tooltipText?: string;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
+  hideTooltip?: boolean;
+}
 
-const defaultProps = {
+const defaultProps: Partial<CopyToClipboardProps> = {
   copyNode: <span>{t('Copy')}</span>,
   onCopyEnd: () => {},
   shouldShowText: true,
@@ -45,33 +44,33 @@ const defaultProps = {
   hideTooltip: false,
 };
 
-class CopyToClipboard extends React.Component {
-  constructor(props) {
-    super(props);
+class CopyToClipboard extends React.Component<CopyToClipboardProps> {
+  static defaultProps = defaultProps;
 
-    // bindings
+  constructor(props: CopyToClipboardProps) {
+    super(props);
     this.copyToClipboard = this.copyToClipboard.bind(this);
     this.onClick = this.onClick.bind(this);
   }
 
   onClick() {
     if (this.props.getText) {
-      this.props.getText(d => {
+      this.props.getText((d: string) => {
         this.copyToClipboard(Promise.resolve(d));
       });
     } else {
-      this.copyToClipboard(Promise.resolve(this.props.text));
+      this.copyToClipboard(Promise.resolve(this.props.text || ''));
     }
   }
 
   getDecoratedCopyNode() {
-    return React.cloneElement(this.props.copyNode, {
+    return React.cloneElement(this.props.copyNode as React.ReactElement, {
       style: { cursor: 'pointer' },
       onClick: this.onClick,
     });
   }
 
-  copyToClipboard(textToCopy) {
+  copyToClipboard(textToCopy: Promise<string>) {
     copyTextToClipboard(() => textToCopy)
       .then(() => {
         this.props.addSuccessToast(t('Copied to clipboard!'));
@@ -84,11 +83,11 @@ class CopyToClipboard extends React.Component {
         );
       })
       .finally(() => {
-        this.props.onCopyEnd();
+        if (this.props.onCopyEnd) this.props.onCopyEnd();
       });
   }
 
-  renderTooltip(cursor) {
+  renderTooltip(cursor: string) {
     return (
       <>
         {!this.props.hideTooltip ? (
@@ -96,7 +95,7 @@ class CopyToClipboard extends React.Component {
             id="copy-to-clipboard-tooltip"
             placement="topRight"
             style={{ cursor }}
-            title={this.props.tooltipText}
+            title={this.props.tooltipText || ''}
             trigger={['hover']}
             arrowPointAtCenter
           >
@@ -121,7 +120,7 @@ class CopyToClipboard extends React.Component {
             {this.props.text}
           </span>
         )}
-        {this.renderTooltip()}
+        {this.renderTooltip('pointer')}
       </span>
     );
   }
@@ -136,6 +135,3 @@ class CopyToClipboard extends React.Component {
 }
 
 export default withToasts(CopyToClipboard);
-
-CopyToClipboard.propTypes = propTypes;
-CopyToClipboard.defaultProps = defaultProps;
