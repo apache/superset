@@ -62,3 +62,21 @@ push_to_gar:
     - docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}"
   rules:
     - if: $CI_COMMIT_BRANCH # Branch push, not tag push
+
+tag_release:
+  stage: push_to_gar
+  image: google/cloud-sdk:alpine
+  services:
+    - name: docker:23-dind
+      alias: docker
+      command: [ "--tls=false" ]
+  before_script:
+    - *docker_login
+    - *login_to_gcp
+    - gcloud auth configure-docker -q europe-docker.pkg.dev
+  script:
+    - docker build -t ${NEXUS_IMAGE_NAME} .
+    - docker tag "${NEXUS_IMAGE_NAME}" "${GOOGLE_PREFIX}/${IMAGE_NAME}:$CI_COMMIT_TAG"
+    - docker push --all-tags "${GOOGLE_PREFIX}/${IMAGE_NAME}"
+  rules:
+    - if: $CI_COMMIT_TAG
