@@ -51,9 +51,17 @@ jobs:
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           pip install click
-          ./scripts/build_docker.py \
-            ${{ matrix.build_preset }} \
-            ${{ github.event_name }} \
-            --build_context_ref "$RELEASE" $FORCE_LATEST \
-            --platform "linux/arm64" \
-            --platform "linux/amd64"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            ./scripts/build_docker.py \
+              ${{ matrix.build_preset }} \
+              ${{ github.event_name }} \
+              --build_context_ref "$RELEASE" $FORCE_LATEST \
+              --platform "linux/arm64" \
+              --platform "linux/amd64"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            ./scripts/build_docker.py \
+              ${{ matrix.build_preset }} \
+              ${{ github.event_name }} \
+              --build_context_ref "$RELEASE" $FORCE_LATEST \
+              --platform "linux/amd64"
+          fi
