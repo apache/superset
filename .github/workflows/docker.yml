@@ -3,10 +3,10 @@ name: Docker
 on:
   push:
     branches:
-      - 'master'
+      - "master"
   pull_request:
     branches:
-      - 'master'
+      - "master"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}

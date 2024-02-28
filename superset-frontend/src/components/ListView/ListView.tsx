@@ -322,6 +322,12 @@ function ListView<T extends object = any>({
     if (!bulkSelectEnabled) toggleAllRowsSelected(false);
   }, [bulkSelectEnabled, toggleAllRowsSelected]);
 
+  useEffect(() => {
+    if (!loading && pageIndex > pageCount - 1 && pageCount > 0) {
+      gotoPage(0);
+    }
+  }, [gotoPage, loading, pageCount, pageIndex]);
+
   return (
     <ListViewStyles>
       {allowBulkTagActions && (
@@ -463,7 +469,7 @@ function ListView<T extends object = any>({
         <div className="pagination-container">
           <Pagination
             totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
+            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => gotoPage(p - 1)}
             hideFirstAndLastPageLinks
           />
