@@ -15226,7 +15226,8 @@ msgstr "Des profils n'existent pas"
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
 "for details."
-msgstr ""
+msgstr "Un problème s'est produit lors de l'authentification intégrée."
+" Veuillez vérifier la console de développement pour plus de détails."
 
 #: superset-frontend/src/dashboard/components/URLShortLinkButton/index.tsx:64
 #, fuzzy
@@ -17732,7 +17733,8 @@ msgstr "Cette mesure pourrait être incompatible avec l’ensemble de données a
 msgid ""
 "This page is intended to be embedded in an iframe, but it looks like that"
 " is not the case."
-msgstr ""
+msgstr "Cette page est destinée à être intégrée dans un iframe,"
+" mais il semble que ce ne soit pas le cas."
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:530
 #, fuzzy
