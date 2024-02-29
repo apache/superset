@@ -2461,9 +2461,10 @@ class JWTAuthDBView(AuthDBView):
                 # user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
                 #                                 last_name=lastname,
                 #                                 email=email, role="Gamma")
+                self.jwt_role = self.appbuilder.sm.find_role("Gamma")
                 user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
                                                 last_name=lastname,
-                                                email=email, role="Gamma")
+                                                email=email, role=self.jwt_role)
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======", user)
                 # login_user(AnonymousUserMixin(), force=True)
