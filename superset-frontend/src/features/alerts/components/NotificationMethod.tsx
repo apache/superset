@@ -65,7 +65,7 @@ interface NotificationMethodProps {
 }
 
 const TRANSLATIONS = {
-  EMAIL_SUBJECT_NAME: t('Email subject name (optional) '),
+  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
 };
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
