@@ -59,7 +59,6 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
-from superset.models.eka_user import EkaUser
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -76,7 +75,6 @@ from superset.utils.core import (
 )
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
-from superset.views.eka_user import EkaUserDBModelView
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -2456,6 +2454,9 @@ class JWTAuthDBView(AuthDBView):
 
 
 class JWTSecurityManager(SupersetSecurityManager):
+    from superset.models.eka_user import EkaUser
+    from superset.views.eka_user import EkaUserDBModelView
+
     authdbview = JWTAuthDBView
     user_model = EkaUser
     userdbmodelview = EkaUserDBModelView
