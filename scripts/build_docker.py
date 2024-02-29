@@ -23,8 +23,6 @@ from textwrap import dedent
 
 import click
 
-# For debugging
-
 REPO = "apache/superset"
 CACHE_REPO = f"{REPO}-cache"
 BASE_PY_IMAGE = "3.9-slim-bookworm"
