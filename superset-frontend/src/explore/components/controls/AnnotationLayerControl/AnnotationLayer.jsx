@@ -207,11 +207,11 @@ class AnnotationLayer extends React.PureComponent {
     this.isValidForm = this.isValidForm.bind(this);
     this.asyncFetch = this.asyncFetch.bind(this);
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
-    this.shouldfetchAppliedChart = this.shouldfetchAppliedChart.bind(this);
+    this.shouldFetchAppliedChart = this.shouldFetchAppliedChart.bind(this);
   }
 
   componentDidMount() {
-    if (this.shouldfetchAppliedChart()) {
+    if (this.shouldFetchAppliedChart()) {
       const { value } = this.state;
       this.fetchAppliedChart(value);
     }
@@ -235,7 +235,7 @@ class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  shouldfetchAppliedChart() {
+  shouldFetchAppliedChart() {
     // If the annotation is not new and the source is a chart
     const { value, valueOptions, sourceType } = this.state;
     return value && !valueOptions[value] && requiresQuery(sourceType);
@@ -534,7 +534,6 @@ class AnnotationLayer extends React.PureComponent {
           ariaLabel={t('Annotation layer value')}
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
-          placeholder=""
           options={this.asyncFetch}
           value={valueOptions[value] || null}
           onChange={this.handleSelectValue}
