@@ -99,7 +99,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   .ant-modal-content {
     display: flex;
     flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
+    max-height: ${({ theme }) => `calc(120vh - ${theme.gridUnit * 8}px)`};
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
   }

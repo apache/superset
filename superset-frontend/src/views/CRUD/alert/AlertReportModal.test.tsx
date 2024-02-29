@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
+import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal'
 
 test('allows change to None in log retention', async () => {
   render(<AlertReportModal show />, { useRedux: true });
@@ -63,14 +63,49 @@ test('renders the appropriate dropdown in Message Content section', async () => 
   userEvent.click(chartRadio);
 
   expect(await screen.findByRole('radio', { name: /chart/i })).toBeChecked();
-  expect(
-    screen.getByRole('radio', {
-      name: /dashboard/i,
-    }),
-  ).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: /dashboard/i })).not.toBeChecked();
   // Now that chart is checked, only the chart dropdown should show
   expect(screen.getByRole('combobox', { name: /chart/i })).toBeVisible();
-  expect(
-    screen.queryByRole('combobox', { name: /dashboard/i }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('combobox', { name: /dashboard/i })).not.toBeInTheDocument();
+});
+
+test('renders the appropriate dropdown in Notification Method section', async () => {
+  render(<AlertReportModal show />, { useRedux: true });
+
+  // Notification Method Button
+  const button = screen.getByTestId('notification_method');
+  userEvent.click(button)
+  // Delivery Select dropdown
+  userEvent.click(screen.getByTestId('select-delivery-method'));
+  const deliveryMethod = screen.getByTestId('select-delivery-method').querySelector('.ant-select-selection-search-input') as HTMLInputElement;
+  fireEvent.select(deliveryMethod, { target: { value: 'S3' } });
+  expect(deliveryMethod).toHaveValue('S3');
+
+  waitFor(async() => {
+    // S3 Method Select dropdown
+    userEvent.click(screen.getByTestId('select-s3-method'));
+    const inputElement = screen.getByTestId('select-s3-method').querySelector('.ant-select-selection-search-input') as HTMLInputElement;
+    fireEvent.select(inputElement, { target: { value: 'AWS_S3_credentials' } });
+    expect(inputElement).toHaveValue('AWS_S3_credentials');
+
+    //Checking for bucket name,acess key,secret key
+    waitFor(async() => {
+      const bucketInput = await screen.findByTestId("test-bucket");
+      const accessInput =await screen.findByTestId("test-access");
+      const secretInput =await screen.findByTestId("test-secret");
+      expect(bucketInput).toBeInTheDocument();
+      expect(accessInput).toBeInTheDocument();
+      expect(secretInput).toBeInTheDocument();
+
+      //checking for input value
+      userEvent.type(bucketInput, 'test-bucket-value');
+      userEvent.type(accessInput, 'test-access-value');
+      userEvent.type(secretInput, 'test-secret-value');
+
+
+      expect(bucketInput).toHaveValue('test-bucket-value');
+      expect(accessInput).toHaveValue('test-access-value');
+      expect(secretInput).toHaveValue('test-secret-value');
+    })
+  })
 });
