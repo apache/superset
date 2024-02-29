@@ -148,6 +148,8 @@ class PruneReportScheduleLogFailedError(CommandException):
 class ReportScheduleScreenshotFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a screenshot.")
 
+class ReportSchedulePdfFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating a pdf.")
 
 class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
