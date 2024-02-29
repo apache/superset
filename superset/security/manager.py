@@ -2447,7 +2447,7 @@ class JWTAuthDBView(AuthDBView):
             if not user:
                 # create new user
                 user = SecurityManager.add_user(username=email, first_name=firstname,
-                                                lastname=lastname,
+                                                last_name=lastname,
                                                 email=email, role="Gamma")
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======", user)
