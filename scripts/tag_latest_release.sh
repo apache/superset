@@ -16,6 +16,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# For debugging purposes
+
 run_git_tag () {
   if [[ "$DRY_RUN" == "false" ]] && [[ "$SKIP_TAG" == "false" ]]
   then
