@@ -2431,18 +2431,19 @@ class JWTAuthDBView(AuthDBView):
     jwt_first_name = ""
     jwt_last_name = ""
     jwt_email = ""
-    jwt_role = ""
+    jwt_role = "Gamma"
 
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
 
         token = request.headers.get("jwt-payload")
-        print("=========token=========", token)
-        if token:
-            # get the User from DB
+        if token and isinstance(token, str):
             token = json.loads(token)
             doc_id = token.get("doc-id", "")
+            print("=========token=========", token)
+        if token and doc_id:
+            # get the User from DB
             email = f'{doc_id}@dummyanalytics.com'
             b_id = token.get("b-id", "")
             firstname = f'{b_id}@dummyanalytics.com'
@@ -2452,7 +2453,6 @@ class JWTAuthDBView(AuthDBView):
             self.jwt_first_name = firstname
             self.jwt_last_name = lastname
             self.jwt_email = email
-            self.jwt_role = "Gamma"
 
             user = db.session.query(User).filter(User.email == email).one_or_none()
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
@@ -2463,12 +2463,12 @@ class JWTAuthDBView(AuthDBView):
                 #                                 email=email, role="Gamma")
                 self.jwt_role = self.appbuilder.sm.find_role("Gamma")
                 user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
-                                                last_name=lastname,
-                                                email=email, role=self.jwt_role)
+                                                   last_name=lastname,
+                                                   email=email, role=self.jwt_role)
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======", user)
                 # login_user(AnonymousUserMixin(), force=True)
-                #return "Logging in from JWTSecurityManager"
+                # return "Logging in from JWTSecurityManager"
             else:
                 login_user(user)
             return redirect("/")
@@ -2497,14 +2497,15 @@ class JWTSecurityManager(SupersetSecurityManager):
                  hashed_password=""):
         from superset import db
 
-        user = db.session.query(User).filter(User.email == self.authdbview.jwt_email).one_or_none()
+        user = db.session.query(User).filter(
+            User.email == self.authdbview.jwt_email).one_or_none()
         if not user:
             # create user
-            user = super(JWTSecurityManager, self).add_user(self.authdbview.jwt_username,
-                                                     self.authdbview.jwt_first_name,
-                                                     self.authdbview.jwt_last_name,
-                                                     self.authdbview.jwt_email,
-                                                     self.authdbview.jwt_role)
+            user = super(JWTSecurityManager, self).add_user(username,
+                                                            first_name,
+                                                            last_name,
+                                                            email,
+                                                            role)
             login_user(user)
         return user
 
