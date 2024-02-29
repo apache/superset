@@ -16,13 +16,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.reports.models import ReportRecipients
-from superset.reports.notifications.base import BaseNotification, NotificationContent
+from superset.reports.notifications.base import BaseNotification, NotificationContent, AwsConfiguration
 from superset.reports.notifications.email import EmailNotification
 from superset.reports.notifications.slack import SlackNotification
-
+from superset.reports.notifications.S3 import S3Notification
 
 def create_notification(
-    recipient: ReportRecipients, notification_content: NotificationContent
+    recipient: ReportRecipients, notification_content: NotificationContent, aws_Configuration: AwsConfiguration = None
 ) -> BaseNotification:
     """
     Notification polymorphic factory
@@ -30,5 +30,5 @@ def create_notification(
     """
     for plugin in BaseNotification.plugins:
         if plugin.type == recipient.type:
-            return plugin(recipient, notification_content)
+            return plugin(recipient, notification_content, aws_Configuration)
     raise Exception("Recipient type not supported")
