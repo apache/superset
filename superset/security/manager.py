@@ -89,8 +89,8 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
-    from superset.models.eka_user import EkaUser
     from superset.views.eka_user import EkaUserDBModelView
+    from superset.models.eka_user import EkaUser
 
 
 logger = logging.getLogger(__name__)
@@ -2458,8 +2458,8 @@ class JWTAuthDBView(AuthDBView):
 class JWTSecurityManager(SupersetSecurityManager):
 
     authdbview = JWTAuthDBView
-    user_model = EkaUser
-    userdbmodelview = EkaUserDBModelView
+    # user_model = EkaUser
+    # userdbmodelview = EkaUserDBModelView
 
     def __init__(self, appbuilder):
         super(JWTSecurityManager, self).__init__(appbuilder)
