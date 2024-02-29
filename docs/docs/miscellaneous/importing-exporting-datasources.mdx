@@ -75,9 +75,19 @@ The optional username flag **-u** sets the user used for the datasource import. 
 superset import_datasources -p <path / filename> -u 'admin'
 ```
 
-### Legacy Importing Datasources from YAML
+### Legacy Importing Datasources
 
-In Superset version 4.x.x the older way of datasource importing is supported as the command `legacy_import_datasources`. In older versions (2.x.x & 3.x.x) of Superset, to switch between ZIP and YAML files, the feature flag `VERSIONED_EXPORT` is used. When `VERSIONED_EXPORT` is `True`, `import_datasources` expects a ZIP file, otherwise YAML. Example:
+#### From older versions of Superset to current version
+
+When using Superset version 4.x.x to import from an older version (2.x.x or 3.x.x) importing is supported as the command `legacy_import_datasources` and expects a JSON or directory of JSONs. The options are `-r` for recursive and `-u` for specifying a user. Example:
+
+```
+superset legacy_import_datasources -p <path or filename>
+```
+
+#### From older versions of Superset to older versions
+
+When using an older Superset version (2.x.x & 3.x.x) of Superset, ZIP and YAML files are supported, and to switch between them the feature flag `VERSIONED_EXPORT` is used. When `VERSIONED_EXPORT` is `True`, `import_datasources` expects a ZIP file, otherwise YAML. Example:
 
 ```
 superset import_datasources -p <path or filename>
