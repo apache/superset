@@ -27,11 +27,11 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
+import superset
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
-from superset.security.manager import JWTSecurityManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
@@ -115,7 +115,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
-appbuilder = AppBuilder(update_perms=False, security_manager_class=JWTSecurityManager)
+appbuilder = AppBuilder(update_perms=False, security_manager_class=superset.security.manager.JWTSecurityManager)
 async_query_manager_factory = AsyncQueryManagerFactory()
 async_query_manager: AsyncQueryManager = LocalProxy(
     async_query_manager_factory.instance
