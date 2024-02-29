@@ -519,6 +519,7 @@ class TestDatabaseApi(SupersetTestCase):
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -527,6 +528,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_test_connection_database_command_run,
         mock_create_is_feature_enabled,
         mock_update_is_feature_enabled,
+        mock_delete_is_feature_enabled,
         mock_get_all_schema_names,
     ):
         """
@@ -534,10 +536,12 @@ class TestDatabaseApi(SupersetTestCase):
         """
         mock_create_is_feature_enabled.return_value = True
         mock_update_is_feature_enabled.return_value = True
+        mock_delete_is_feature_enabled.return_value = True
         self.login(username="admin")
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
+
         ssh_tunnel_properties = {
             "server_address": "123.132.123.1",
             "server_port": 8080,
@@ -576,8 +580,6 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": None,
         }
-
-        uri = "api/v1/database/{}".format(response.get("id"))
 
         rv = self.client.put(uri, json=database_data_with_ssh_tunnel_null)
         response_update = json.loads(rv.data.decode("utf-8"))
