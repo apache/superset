@@ -77,6 +77,7 @@ const defaultProps = {
 const DragDroppableStyles = styled.div`
   ${({ theme }) => css`
     position: relative;
+    transform: translate3d(0, 0, 0);
 
     &.dragdroppable--dragging {
       opacity: 0.2;
