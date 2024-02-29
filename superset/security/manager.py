@@ -2440,12 +2440,14 @@ class JWTAuthDBView(AuthDBView):
             email = f'{doc_id}@dummyanalytics.com'
             b_id = token.get("b-id", "")
             firstname = f'{b_id}@dummyanalytics.com'
+            lastname = token.get("lastname", "")
             user = db.session.query(User).filter(User.email == email).one_or_none()
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
             print("=====jwt user======", user)
             if not user:
                 # create new user
                 user = SecurityManager.add_user(username=email, first_name=firstname,
+                                                lastname=lastname,
                                                 email=email, role="Gamma")
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======", user)
