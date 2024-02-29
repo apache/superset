@@ -2458,11 +2458,14 @@ class JWTAuthDBView(AuthDBView):
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
             print("=====jwt user found from DB======", user)
             if not user:
-                user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
+                # user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
+                #                                 last_name=lastname,
+                #                                 email=email, role="Gamma")
+                user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
                                                 last_name=lastname,
                                                 email=email, role="Gamma")
                 print("========creating user in add_user of "
-                      "JWTSecurityManager....======")
+                      "JWTSecurityManager....======", user)
                 # login_user(AnonymousUserMixin(), force=True)
                 #return "Logging in from JWTSecurityManager"
 
