@@ -303,7 +303,7 @@ describe('SqlEditor', () => {
         .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation(
           featureFlag =>
-            featureFlag === uiCore.FeatureFlag.SqllabBackendPersistence,
+            featureFlag === uiCore.FeatureFlag.SQLLAB_BACKEND_PERSISTENCE,
         );
     });
     afterEach(() => {
