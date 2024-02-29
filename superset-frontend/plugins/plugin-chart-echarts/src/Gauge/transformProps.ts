@@ -48,7 +48,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
 
-const setIntervalBoundsAndColors = (
+const getIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
   colorFn: CategoricalColorScale,
@@ -222,7 +222,7 @@ export default function transformProps(
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );
-  const intervalBoundsAndColors = setIntervalBoundsAndColors(
+  const intervalBoundsAndColors = getIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
     colorFn,
