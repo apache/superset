@@ -124,17 +124,6 @@ export default class SelectControl extends React.PureComponent {
       onChangeVal = val[valueKey];
     }
     this.props.onChange(onChangeVal, []);
-
-    if (!this.state.options.some(option => option.value === onChangeVal)) {
-      this.setState(previousState => {
-        const newOptions = [
-          ...previousState.options,
-          { value: onChangeVal, label: onChangeVal },
-        ];
-        newOptions.sort((a, b) => a.value - b.value);
-        return { options: newOptions };
-      });
-    }
   }
 
   getOptions(props) {
