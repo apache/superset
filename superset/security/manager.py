@@ -51,6 +51,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
+from werkzeug.security import generate_password_hash
 
 from superset import sql_parse
 from superset.constants import RouteMethod
@@ -2426,6 +2427,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
 
 class JWTAuthDBView(AuthDBView):
+    jwt_username = ""
+    jwt_first_name = ""
+    jwt_last_name = ""
+    jwt_email = ""
+    jwt_role = ""
 
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
@@ -2441,19 +2447,26 @@ class JWTAuthDBView(AuthDBView):
             b_id = token.get("b-id", "")
             firstname = f'{b_id}@dummyanalytics.com'
             lastname = token.get("lastname", "")
+
+            self.jwt_username =  email
+            self.jwt_first_name = firstname
+            self.jwt_last_name = lastname
+            self.jwt_email = email
+            self.jwt_role = "Gamma"
+
             user = db.session.query(User).filter(User.email == email).one_or_none()
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
-            print("=====jwt user======", user)
+            print("=====jwt user found from DB======", user)
             if not user:
-                # create new user
-                user = SecurityManager.add_user(username=email, first_name=firstname,
-                                                last_name=lastname,
-                                                email=email, role="Gamma")
+                # user = SecurityManager.add_user(username=email, first_name=firstname,
+                #                                 last_name=lastname,
+                #                                 email=email, role="Gamma")
                 print("========creating user in add_user of "
-                      "JWTSecurityManager....======", user)
-            login_user(user)
+                      "JWTSecurityManager....======")
+            else:
+                login_user(user)
         else:
-            print("=====token not found=====")
+            print("=====token not found; prompt for=====")
             flash('Unable to auto login', 'warning')
             return super(JWTAuthDBView, self).login()
 
@@ -2467,23 +2480,26 @@ class JWTSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(JWTSecurityManager, self).__init__(appbuilder)
 
-    # def add_user(self,
-    #              username,
-    #              first_name,
-    #              last_name,
-    #              email,
-    #              role,
-    #              password="",
-    #              hashed_password=""):
-    #     from superset import db
-    #     user = db.session.query(User).filter(User.email == email).one_or_none()
-    #     if not user:
-    #         # create user
-    #         super(JWTSecurityManager, self).add_user(username, first_name, last_name,
-    #                                                  email, role, password,
-    #                                                  hashed_password)
-    #         login_user(user)
-    #     return user
+    def add_user(self,
+                 username,
+                 first_name,
+                 last_name,
+                 email,
+                 role,
+                 password="",
+                 hashed_password=""):
+        from superset import db
+
+        user = db.session.query(User).filter(User.email == self.authdbview.jwt_email).one_or_none()
+        if not user:
+            # create user
+            super(JWTSecurityManager, self).add_user(self.authdbview.jwt_username,
+                                                     self.authdbview.jwt_first_name,
+                                                     self.authdbview.jwt_last_name,
+                                                     self.authdbview.jwt_email,
+                                                     self.authdbview.jwt_role)
+            login_user(user)
+        return user
 
         # def add_user(
         #     self,
