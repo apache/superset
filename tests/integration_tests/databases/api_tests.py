@@ -381,9 +381,13 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         uri = "api/v1/database/"
-
-        with self.assertRaises(SSHTunnelDatabasePortError):
-            self.client.post(uri, json=database_data_with_ssh_tunnel)
+        rv = self.client.post(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
 
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -486,12 +490,6 @@ class TestDatabaseApi(SupersetTestCase):
             "ssh_tunnel": ssh_tunnel_properties,
         }
 
-        database_data_with_ssh_tunnel = {
-            "database_name": "test-db-with-ssh-tunnel",
-            "sqlalchemy_uri": modified_sqlalchemy_uri,
-            "ssh_tunnel": ssh_tunnel_properties,
-        }
-
         database_data = {
             "database_name": "test-db-with-ssh-tunnel",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -500,12 +498,20 @@ class TestDatabaseApi(SupersetTestCase):
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
         self.assertEqual(rv.status_code, 201)
 
         uri = "api/v1/database/{}".format(response.get("id"))
-
-        with self.assertRaises(SSHTunnelDatabasePortError):
-            self.client.put(uri, json=database_data_with_ssh_tunnel)
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
 
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
