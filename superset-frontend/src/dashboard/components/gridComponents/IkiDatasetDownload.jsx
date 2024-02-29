@@ -239,7 +239,10 @@ class IkiDatasetDownload extends React.PureComponent {
               widgetUrlQuery = new URLSearchParams(widgetUrl.search);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('dataset_id', messageData.dataset_id);
-              widgetUrlQuery.set('alias_id', messageData.alias_id);
+              widgetUrlQuery.set(
+                'dataset_alias_id',
+                messageData.dataset_alias_id,
+              );
               widgetUrlQuery.set('button_label', messageData.button_label);
               widgetUrlQuery.set('type', messageData.type);
               widgetUrlQuery.set('scid', this.props.component.id);
@@ -247,6 +250,13 @@ class IkiDatasetDownload extends React.PureComponent {
               widgetUrlQuery.set('btn_txt_color', messageData.btn_txt_color);
               widgetUrlQuery.set('btn_pos', messageData.btn_pos);
               widgetUrlQuery.set('show_header', messageData.show_header);
+
+              if (messageData.directory_alias_id) {
+                widgetUrlQuery.set(
+                  'directory_alias_id',
+                  messageData.directory_alias_id,
+                );
+              }
 
               widgetUrl.search = widgetUrlQuery.toString();
               const tempIframe = `<iframe
@@ -389,8 +399,15 @@ class IkiDatasetDownload extends React.PureComponent {
         const paramMode = iframeSrcUrl.searchParams.get('mode')
           ? iframeSrcUrl.searchParams.get('mode')
           : '';
-        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
-          ? iframeSrcUrl.searchParams.get('alias_id')
+        const paramDatasetAliasId = iframeSrcUrl.searchParams.get(
+          'dataset_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('dataset_alias_id')
+          : '';
+        const paramDirectoryAliasId = iframeSrcUrl.searchParams.get(
+          'directory_alias_id',
+        )
+          ? iframeSrcUrl.searchParams.get('directory_alias_id')
           : '';
         const paramDatasetId = iframeSrcUrl.searchParams.get('dataset_id')
           ? iframeSrcUrl.searchParams.get('dataset_id')
@@ -415,7 +432,12 @@ class IkiDatasetDownload extends React.PureComponent {
         const paramShowHeader = iframeSrcUrl.searchParams.get('show_header')
           ? iframeSrcUrl.searchParams.get('show_header')
           : '';
-        const newIframeSrc = `${ikigaiOrigin}/widget/dataset-download?mode=${paramMode}&dataset_id=${paramDatasetId}&alias_id=${paramAliasId}&button_label=${paramSubmitButtonLabel}&type=${paramType}&btn_color=${paramBtnColor}&btn_txt_color=${paramBtnTextColor}&btn_pos=${paramBtnPos}&show_header=${paramShowHeader}`;
+        let newIframeSrc = `${ikigaiOrigin}/widget/dataset-download?mode=${paramMode}&dataset_id=${paramDatasetId}&dataset_alias_id=${paramDatasetAliasId}&button_label=${paramSubmitButtonLabel}&type=${paramType}&btn_color=${paramBtnColor}&btn_txt_color=${paramBtnTextColor}&btn_pos=${paramBtnPos}&show_header=${paramShowHeader}`;
+
+        if (paramDirectoryAliasId) {
+          newIframeSrc = `${newIframeSrc}&directory_alias_id=${paramDirectoryAliasId}`;
+        }
+
         iframeSrc = newIframeSrc;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/dataset-download?mode=edit`;
