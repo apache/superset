@@ -115,7 +115,7 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
-appbuilder = AppBuilder(update_perms=False, security_manager_class=superset.security.manager.JWTSecurityManager)
+appbuilder = AppBuilder(update_perms=False)
 async_query_manager_factory = AsyncQueryManagerFactory()
 async_query_manager: AsyncQueryManager = LocalProxy(
     async_query_manager_factory.instance
