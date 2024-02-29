@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask, g, Request, request, flash
+from flask import current_app, Flask, g, Request, request, flash, redirect
 from flask_appbuilder import Model, expose
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
@@ -2448,7 +2448,7 @@ class JWTAuthDBView(AuthDBView):
             firstname = f'{b_id}@dummyanalytics.com'
             lastname = token.get("lastname", "")
 
-            self.jwt_username =  email
+            self.jwt_username = email
             self.jwt_first_name = firstname
             self.jwt_last_name = lastname
             self.jwt_email = email
@@ -2458,15 +2458,16 @@ class JWTAuthDBView(AuthDBView):
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
             print("=====jwt user found from DB======", user)
             if not user:
-                # user = SecurityManager.add_user(username=email, first_name=firstname,
-                #                                 last_name=lastname,
-                #                                 email=email, role="Gamma")
+                user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
+                                                last_name=lastname,
+                                                email=email, role="Gamma")
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======")
-                login_user(AnonymousUserMixin(), force=True)
+                # login_user(AnonymousUserMixin(), force=True)
                 #return "Logging in from JWTSecurityManager"
-            else:
-                login_user(user)
+
+            login_user(user)
+            return redirect("/")
         else:
             print("=====token not found; prompt for=====")
             flash('Unable to auto login', 'warning')
