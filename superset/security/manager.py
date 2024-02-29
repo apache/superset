@@ -59,6 +59,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.models.eka_user import EkaUser
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -75,6 +76,7 @@ from superset.utils.core import (
 )
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
+from superset.views.eka_user import EkaUserDBModelView
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -2439,11 +2441,13 @@ class JWTAuthDBView(AuthDBView):
             token = json.loads(token)
             doc_id = token.get("doc-id", "")
             b_id = token.get("b-id", "")
-            user = db.session.query(User).filter(User.username == "gamma_sqllab_no_data").one_or_none()
+            user = db.session.query(EkaUser).filter(EkaUser.doc_id == doc_id).one_or_none()
+            # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
             print("=====jwt user======", user)
             if not user:
                 # create new user
                 print("========creating user....======")
+            # in any case - user will be created here
             login_user(user)
         else:
             print("=====token not found=====")
@@ -2453,6 +2457,26 @@ class JWTAuthDBView(AuthDBView):
 
 class JWTSecurityManager(SupersetSecurityManager):
     authdbview = JWTAuthDBView
+    user_model = EkaUser
+    userdbmodelview = EkaUserDBModelView
 
     def __init__(self, appbuilder):
         super(JWTSecurityManager, self).__init__(appbuilder)
+
+    # def add_user(
+    #     self,
+    #     username,
+    #     first_name,
+    #     last_name,
+    #     email,
+    #     role,
+    #     password="",
+    #     hashed_password="",
+    #     doc_id="",
+    #     business_id="",
+    # ):
+    #     user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
+    #     eka_user = EkaUser(user)
+    #     eka_user.doc_id = doc_id
+    #     eka_user.business_id = business_id
+    #     eka_user
