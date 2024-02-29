@@ -2468,8 +2468,8 @@ class JWTAuthDBView(AuthDBView):
                       "JWTSecurityManager....======", user)
                 # login_user(AnonymousUserMixin(), force=True)
                 #return "Logging in from JWTSecurityManager"
-
-            login_user(user)
+            else:
+                login_user(user)
             return redirect("/")
         else:
             print("=====token not found; prompt for=====")
@@ -2499,7 +2499,7 @@ class JWTSecurityManager(SupersetSecurityManager):
         user = db.session.query(User).filter(User.email == self.authdbview.jwt_email).one_or_none()
         if not user:
             # create user
-            super(JWTSecurityManager, self).add_user(self.authdbview.jwt_username,
+            user = super(JWTSecurityManager, self).add_user(self.authdbview.jwt_username,
                                                      self.authdbview.jwt_first_name,
                                                      self.authdbview.jwt_last_name,
                                                      self.authdbview.jwt_email,
