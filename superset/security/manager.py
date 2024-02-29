@@ -75,6 +75,8 @@ from superset.utils.core import (
 )
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
+from ..models.eka_user import EkaUser
+from ..views.eka_user import EkaUserDBModelView
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -2431,7 +2433,6 @@ class JWTAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
-        from superset.models.eka_user import EkaUser
 
         token = request.headers.get("jwt-payload")
         print("=========token=========", token)
@@ -2455,8 +2456,6 @@ class JWTAuthDBView(AuthDBView):
 
 
 class JWTSecurityManager(SupersetSecurityManager):
-    from superset.models.eka_user import EkaUser
-    from superset.views.eka_user import EkaUserDBModelView
 
     authdbview = JWTAuthDBView
     user_model = EkaUser
