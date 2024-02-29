@@ -90,7 +90,6 @@ if TYPE_CHECKING:
     from superset.sql_parse import Table
     from superset.viz import BaseViz
 
-
 logger = logging.getLogger(__name__)
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
@@ -2431,7 +2430,6 @@ class JWTAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
-        from superset.models.eka_user import EkaUser
 
         token = request.headers.get("jwt-payload")
         print("=========token=========", token)
@@ -2439,14 +2437,18 @@ class JWTAuthDBView(AuthDBView):
             # get the User from DB
             token = json.loads(token)
             doc_id = token.get("doc-id", "")
+            email = f'{doc_id}@dummyanalytics.com'
             b_id = token.get("b-id", "")
-            user = db.session.query(EkaUser).filter(EkaUser.doc_id == doc_id).one_or_none()
+            firstname = f'{b_id}@dummyanalytics.com'
+            user = db.session.query(User).filter(User.email == email).one_or_none()
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
             print("=====jwt user======", user)
             if not user:
                 # create new user
-                print("========creating user....======")
-            # in any case - user will be created here
+                user = SecurityManager.add_user(username=email, first_name=firstname,
+                                                email=email, role="Gamma")
+                print("========creating user in add_user of "
+                      "JWTSecurityManager....======", user)
             login_user(user)
         else:
             print("=====token not found=====")
@@ -2455,30 +2457,48 @@ class JWTAuthDBView(AuthDBView):
 
 
 class JWTSecurityManager(SupersetSecurityManager):
-
     authdbview = JWTAuthDBView
+
     # user_model = EkaUser
     # userdbmodelview = EkaUserDBModelView
 
     def __init__(self, appbuilder):
         super(JWTSecurityManager, self).__init__(appbuilder)
 
-    def add_user(
-        self,
-        username,
-        first_name,
-        last_name,
-        email,
-        role,
-        password="",
-        hashed_password="",
-        doc_id="",
-        business_id="",
-    ):
-        from superset.models.eka_user import EkaUser
-        user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
-        eka_user = EkaUser(user)
-        eka_user.doc_id = doc_id
-        eka_user.business_id = business_id
-        super(JWTSecurityManager, self).update_user(eka_user)
-        print("======eka_user=======", eka_user)
+    # def add_user(self,
+    #              username,
+    #              first_name,
+    #              last_name,
+    #              email,
+    #              role,
+    #              password="",
+    #              hashed_password=""):
+    #     from superset import db
+    #     user = db.session.query(User).filter(User.email == email).one_or_none()
+    #     if not user:
+    #         # create user
+    #         super(JWTSecurityManager, self).add_user(username, first_name, last_name,
+    #                                                  email, role, password,
+    #                                                  hashed_password)
+    #         login_user(user)
+    #     return user
+
+        # def add_user(
+        #     self,
+        #     username,
+        #     first_name,
+        #     last_name,
+        #     email,
+        #     role,
+        #     password="",
+        #     hashed_password="",
+        #     doc_id="",
+        #     business_id="",
+        # ):
+        #     from superset.models.eka_user import EkaUser
+        #     user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
+        #     eka_user = EkaUser(user)
+        #     eka_user.doc_id = doc_id
+        #     eka_user.business_id = business_id
+        #     super(JWTSecurityManager, self).update_user(eka_user)
+        #     print("======eka_user=======", eka_user)
