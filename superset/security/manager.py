@@ -2463,7 +2463,7 @@ class JWTAuthDBView(AuthDBView):
                 #                                 email=email, role="Gamma")
                 print("========creating user in add_user of "
                       "JWTSecurityManager....======")
-                return False
+                return "Logging in from JWTSecurityManager"
             else:
                 login_user(user)
         else:
