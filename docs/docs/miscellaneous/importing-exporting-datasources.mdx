@@ -77,7 +77,7 @@ superset import_datasources -p <path / filename> -u 'admin'
 
 ### Legacy Importing Datasources from YAML
 
-In Superset 4 the older way of datasource importing is supported as `legacy_import_datasources`. In older versions (2 & 3) of Superset, to switch between ZIP and YAML files, the feature flag `VERSIONED_EXPORT` is used. When `VERSIONED_EXPORT` is `True`, `import_datasources` expects a ZIP file, otherwise YAML. Example:
+In Superset version 4.x.x the older way of datasource importing is supported as the command `legacy_import_datasources`. In older versions (2.x.x & 3.x.x) of Superset, to switch between ZIP and YAML files, the feature flag `VERSIONED_EXPORT` is used. When `VERSIONED_EXPORT` is `True`, `import_datasources` expects a ZIP file, otherwise YAML. Example:
 
 ```
 superset import_datasources -p <path or filename>
