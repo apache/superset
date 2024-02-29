@@ -497,10 +497,10 @@ class TestDatabaseApi(SupersetTestCase):
 
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
-        response = json.loads(rv.data.decode("utf-8"))
+        response_create = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 201)
 
-        uri = "api/v1/database/{}".format(response.get("id"))
+        uri = "api/v1/database/{}".format(response_create.get("id"))
         rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 400)
@@ -510,7 +510,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
 
         # Cleanup
-        model = db.session.query(Database).get(response.get("id"))
+        model = db.session.query(Database).get(response_create.get("id"))
         db.session.delete(model)
         db.session.commit()
 
