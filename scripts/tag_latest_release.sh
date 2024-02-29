@@ -98,13 +98,13 @@ done
 
 if [ -z "${GITHUB_TAG_NAME}" ]; then
     echo "Missing tag parameter, usage: ./scripts/tag_latest_release.sh <GITHUB_TAG_NAME>"
-    echo "SKIP_TAG=true" >>$GITHUB_OUTPUT
+    echo "::set-output name=SKIP_TAG::true"
     exit 1
 fi
 
 if [ -z "$(git_show_ref)" ]; then
     echo "The tag ${GITHUB_TAG_NAME} does not exist. Please use a different tag."
-    echo "SKIP_TAG=true" >>$GITHUB_OUTPUT
+    echo "::set-output name=SKIP_TAG::true"
     exit 0
 fi
 
@@ -112,7 +112,7 @@ fi
 if ! [[ ${GITHUB_TAG_NAME} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 then
   echo "This tag ${GITHUB_TAG_NAME} is not a valid release version. Not tagging."
-  echo "SKIP_TAG=true" >>$GITHUB_OUTPUT
+  echo "::set-output name=SKIP_TAG::true"
   exit 1
 fi
 
@@ -177,14 +177,14 @@ done
 # Determine the result based on the comparison
 if [[ -z "$compare_result" ]]; then
     echo "Versions are equal"
-    echo "SKIP_TAG=true" >>$GITHUB_OUTPUT
+    echo "::set-output name=SKIP_TAG::true"
 elif [[ "$compare_result" == "greater" ]]; then
     echo "This release tag ${GITHUB_TAG_NAME} is newer than the latest."
-    echo "SKIP_TAG=false" >>$GITHUB_OUTPUT
+    echo "::set-output name=SKIP_TAG::false"
     # Add other actions you want to perform for a newer version
 elif [[ "$compare_result" == "lesser" ]]; then
     echo "This release tag ${GITHUB_TAG_NAME} is older than the latest."
     echo "This release tag ${GITHUB_TAG_NAME} is not the latest. Not tagging."
     # if you've gotten this far, then we don't want to run any tags in the next step
-    echo "SKIP_TAG=true" >>$GITHUB_OUTPUT
+    echo "::set-output name=SKIP_TAG::true"
 fi
