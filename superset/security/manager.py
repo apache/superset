@@ -2433,6 +2433,7 @@ class JWTAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
+        from superset.models.eka_user import EkaUser
 
         token = request.headers.get("jwt-payload")
         print("=========token=========", token)
