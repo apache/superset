@@ -89,8 +89,6 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
-    from superset.views.eka_user import EkaUserDBModelView
-    from superset.models.eka_user import EkaUser
 
 
 logger = logging.getLogger(__name__)
@@ -2465,20 +2463,22 @@ class JWTSecurityManager(SupersetSecurityManager):
     def __init__(self, appbuilder):
         super(JWTSecurityManager, self).__init__(appbuilder)
 
-    # def add_user(
-    #     self,
-    #     username,
-    #     first_name,
-    #     last_name,
-    #     email,
-    #     role,
-    #     password="",
-    #     hashed_password="",
-    #     doc_id="",
-    #     business_id="",
-    # ):
-    #     user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
-    #     eka_user = EkaUser(user)
-    #     eka_user.doc_id = doc_id
-    #     eka_user.business_id = business_id
-    #     eka_user
+    def add_user(
+        self,
+        username,
+        first_name,
+        last_name,
+        email,
+        role,
+        password="",
+        hashed_password="",
+        doc_id="",
+        business_id="",
+    ):
+        from superset.models.eka_user import EkaUser
+        user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
+        eka_user = EkaUser(user)
+        eka_user.doc_id = doc_id
+        eka_user.business_id = business_id
+        super(JWTSecurityManager, self).update_user(eka_user)
+        print("======eka_user=======", eka_user)
