@@ -25,7 +25,7 @@
     "@docusaurus/preset-classic": "^2.4.3",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
-    "@mdx-js/react": "^1.6.22",
+    "@mdx-js/react": "^3.0.1",
     "@saucelabs/theme-github-codeblock": "^0.2.3",
     "@superset-ui/style": "^0.14.23",
     "@svgr/webpack": "^8.1.0",
