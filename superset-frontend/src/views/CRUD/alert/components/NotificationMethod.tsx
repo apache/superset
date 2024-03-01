@@ -21,7 +21,7 @@ import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption } from 'src/views/CRUD/alert/types';
-import { StyledInputContainer } from '../AlertReportModal';
+import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import { noBottomMargin } from 'src/components/ReportModal/styles';
 
@@ -115,7 +115,17 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       onUpdate(index, updatedSetting);
     }
   };
-
+  useEffect(() => {
+    if (onUpdateS3Setting && currentAlert) {
+      const updatedS3Setting = {
+        ...s3Setting,
+        aws_secretKey: secretKey,
+        aws_S3_types: s3Method,
+        aws_key: accessKey,
+      };
+      onUpdateS3Setting(updatedS3Setting);
+    }
+  }, []);
   const onRecipientsChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
@@ -184,18 +194,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       onUpdate(index, updatedSetting);
     }
   };
-  useEffect(() => {
-    if (onUpdateS3Setting && currentAlert) {
-      const updatedS3Setting = {
-        ...s3Setting,
-        aws_secretKey: secretKey,
-        aws_S3_types: s3Method,
-        aws_key: accessKey,
-      };
-
-      onUpdateS3Setting(updatedS3Setting);
-    }
-  }, []);
 
   return (
     <StyledNotificationMethod>

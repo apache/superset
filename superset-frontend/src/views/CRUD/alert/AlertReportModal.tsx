@@ -443,7 +443,11 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   };
 
   return (
-    <StyledNotificationAddButton className={status} onClick={checkStatus} data-test="notification_method">
+    <StyledNotificationAddButton
+      className={status}
+      onClick={checkStatus}
+      data-test="notification_method"
+    >
       <i className="fa fa-plus" />{' '}
       {status === 'active'
         ? TRANSLATIONS.ADD_NOTIFICATION_METHOD_TEXT
@@ -538,7 +542,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  //for s3 update
+  // for s3 update
   const handleS3SettingUpdate = (updatedS3Setting: any) => {
     setS3NotificationSettings(updatedS3Setting);
   };

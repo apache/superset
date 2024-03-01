@@ -344,22 +344,20 @@ function ReportModal({
             style={{ marginTop: '10px', marginBottom: '6px' }}
             className="inline-container"
           >
-
-              <div className="input-container">
-                <Select
-                  name="select-s3"
-                  ariaLabel={t('S3 methods')}
-                  data-test="select-s3-method"
-                  onChange={handleS3Method}
-                  placeholder="Select S3 Method"
-                  options={s3SubTypes.map((option: string) => ({
-                    label: option,
-                    value: option,
-                  }))}
-                  value={s3Method}
-                />
-              </div>
-
+            <div className="input-container">
+              <Select
+                name="select-s3"
+                ariaLabel={t('S3 methods')}
+                data-test="select-s3-method"
+                onChange={handleS3Method}
+                placeholder="Select S3 Method"
+                options={s3SubTypes.map((option: string) => ({
+                  label: option,
+                  value: option,
+                }))}
+                value={s3Method}
+              />
+            </div>
           </div>
         )}
         {s3Method === 'AWS_S3_credentials' && (
@@ -379,7 +377,7 @@ function ReportModal({
 
             <div className="control-label">{t('Access Key')}</div>
             <LabeledErrorBoundInput
-            data-test="test-access"
+              data-test="test-access"
               type="password"
               placeholder={t('Type[Access Key]')}
               name="accessKey"
@@ -391,7 +389,7 @@ function ReportModal({
             />
             <div className="control-label">{t('Secret Key')}</div>
             <LabeledErrorBoundInput
-            data-test="test-secret"
+              data-test="test-secret"
               type="password"
               placeholder={t('Type[Secret Key]')}
               name="secretKey"

@@ -94,7 +94,7 @@ export enum CreationMethod {
   DASHBOARDS = 'dashboards',
 }
 export interface HeaderReportProps {
-  reporttype: string;
+  reportType: string;
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
@@ -106,7 +106,7 @@ export interface HeaderReportProps {
 }
 
 export default function HeaderReportDropDown({
-  reporttype,
+  reportType,
   dashboardId,
   chart,
   useTextMenu = false,
@@ -123,7 +123,8 @@ export default function HeaderReportDropDown({
     return reportSelector(state, resourceType, dashboardId || chart?.id);
   });
 
-  const s3Report = report?.recipients !== undefined ? report?.recipients[0].type : null;
+  const s3Report =
+    report?.recipients !== undefined ? report?.recipients[0].type : null;
   const isReportActive: boolean = report?.active || false;
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
@@ -211,7 +212,7 @@ export default function HeaderReportDropDown({
     return (
       <>
         <Menu selectable={false} css={onMenuHover}>
-          {report && s3Report === reporttype ? (
+          {report && s3Report === reportType ? (
             (isDropdownVisible || showS3Modal) && (
               <>
                 <Menu.Item

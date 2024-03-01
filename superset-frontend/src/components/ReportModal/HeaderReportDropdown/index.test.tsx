@@ -25,9 +25,8 @@ import HeaderReportDropdown, { HeaderReportProps } from '.';
 // eslint-disable-next-line
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
-
 const createProps = () => ({
-  reporttype: 'Email',
+  reportType: 'Email',
   dashboardId: 1,
   useTextMenu: false,
   isDropdownVisible: false,
@@ -115,8 +114,6 @@ const stateWithUserAndReport = {
           },
         ],
         type: 'Report',
-        // result: {
-        // },
       },
     },
   },
@@ -153,8 +150,6 @@ const stateWithUserAndS3Report = {
           },
         ],
         type: 'Report',
-        // result: {
-        // },
       },
     },
   },
@@ -315,8 +310,8 @@ describe('Header S3 Report Dropdown', () => {
     let mockedProps = createProps();
     mockedProps = {
       ...mockedProps,
-      reporttype: "S3",
-      useS3Options: true
+      reportType: 'S3',
+      useS3Options: true,
     };
     act(() => {
       setup(mockedProps, stateWithUserAndS3Report);
@@ -328,10 +323,10 @@ describe('Header S3 Report Dropdown', () => {
     let mockedProps = createProps();
     mockedProps = {
       ...mockedProps,
-      reporttype: "S3",
+      reportType: 'S3',
       useTextMenu: true,
       isDropdownVisible: true,
-      useS3Options: true
+      useS3Options: true,
     };
     act(() => {
       setup(mockedProps, stateWithUserAndS3Report);
@@ -345,14 +340,14 @@ describe('Header S3 Report Dropdown', () => {
     let mockedProps = createProps();
     mockedProps = {
       ...mockedProps,
-      reporttype: "S3",
+      reportType: 'S3',
       useTextMenu: true,
       isDropdownVisible: true,
-      useS3Options: true
+      useS3Options: true,
     };
     act(() => {
       setup(mockedProps, stateWithNonAdminUser);
     });
     expect(screen.getByText('Set up S3 report')).toBeInTheDocument();
   });
-})
+});
