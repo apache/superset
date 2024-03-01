@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.utils import populate_owners
+from superset.commands.utils import populate_owners, update_owner_list
 
 
 class BaseCommand(ABC):
@@ -70,3 +70,17 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
         :returns: Final list of owners
         """
         return populate_owners(owner_ids, default_to_user=False)
+
+    @staticmethod
+    def update_owner_list(
+        current_owners: list[User],
+        new_owners: Optional[list[int]],
+    ) -> list[User]:
+        """
+        Handle list of owners for update events.
+
+        :param current_owners: list of current owners
+        :param new_owners: list of new owners specified in the update payload
+        :returns: Final list of owners
+        """
+        return update_owner_list(current_owners, new_owners)
