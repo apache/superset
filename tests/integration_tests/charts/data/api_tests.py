@@ -134,7 +134,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": 1, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": 1, "slice_id": None}
 
         # takes malformed content without raising an error
         self.query_context_payload["datasource"] = "1__table"
@@ -143,7 +143,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": None}
 
         # takes a slice id
         self.query_context_payload["datasource"] = None
@@ -153,7 +153,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": 1}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": 1}
 
         # takes missing slice id
         self.query_context_payload["datasource"] = None
@@ -163,7 +163,35 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": None}
+
+        # takes a dashboard id
+        self.query_context_payload["form_data"] = {"dashboardId": 1}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": None, "slice_id": None}
+
+        # takes a dashboard id and a slice id
+        self.query_context_payload["form_data"] = {"dashboardId": 1, "slice_id": 2}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": None, "slice_id": 2}
+
+        # takes a dashboard id, slice id and a dataset id
+        self.query_context_payload["datasource"] = {"id": 3, "type": "table"}
+        self.query_context_payload["form_data"] = {"dashboardId": 1, "slice_id": 2}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": 3, "slice_id": 2}
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch("superset.utils.decorators.g")

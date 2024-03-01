@@ -431,6 +431,7 @@ class ChartDataRestApi(ChartRestApi):
         self, form_data: dict[str, Any]
     ) -> dict[str, Any]:
         return {
+            "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
             "dataset_id": form_data.get("datasource", {}).get("id")
             if isinstance(form_data.get("datasource"), dict)
             and form_data.get("datasource", {}).get("type")
