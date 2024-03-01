@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
@@ -421,14 +421,14 @@ class ChartHolder extends React.Component {
                 extraControls={extraControls}
                 postTransformProps={this.handlePostTransformProps}
                 data-chart={component.meta?.sliceName}
-                //updateIdentifier={this.handleUpdateIdentifier}
+                // updateIdentifier={this.handleUpdateIdentifier}
               />
               {editMode && (
                 <HoverMenu position="top">
                   <div>
                     <Popover
                       placement="bottomRight"
-                      //title={'CSS identifier'}
+                      // title={'CSS identifier'}
                       trigger="click"
                       content={
                         <div style={{ maxWidth: '300px' }}>
