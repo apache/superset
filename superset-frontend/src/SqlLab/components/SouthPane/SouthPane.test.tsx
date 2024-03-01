@@ -123,6 +123,19 @@ test('should render offline when the state is offline', async () => {
   expect(getByText(STATUS_OPTIONS.offline)).toBeVisible();
 });
 
+test('should render empty result state when latestQuery is empty', () => {
+  const { getAllByRole } = render(
+    <SouthPane {...mockedProps} latestQueryId={undefined} />,
+    {
+      useRedux: true,
+      initialState: mockState,
+    },
+  );
+
+  const resultPanel = getAllByRole('tabpanel')[0];
+  expect(resultPanel).toHaveTextContent('Run a query to display results');
+});
+
 test('should render tabs for table preview queries', () => {
   const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
     useRedux: true,
