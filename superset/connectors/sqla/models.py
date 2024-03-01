@@ -1515,13 +1515,16 @@ class SqlaTable(
         mutate: bool = True,
     ) -> QueryStringExtended:
         # So we don't mutate the original query_obj
-        query_obj_clone = copy.copy(query_obj)
-        instant_time_comparison_info = query_obj.get("instant_time_comparison_info")
-        query_obj_clone.pop("instant_time_comparison_info", None)
-        sqlaq = self.get_sqla_query(**query_obj_clone)
+        sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
+
+        query_obj_clone = copy.copy(query_obj)
+        query_object_extras: dict[str, Any] = query_obj.get("extras", {})
+        instant_time_comparison_info = query_object_extras.get(
+            "instant_time_comparison_info", {}
+        )
 
         if mutate:
             sql = self.mutate_query_from_config(sql)

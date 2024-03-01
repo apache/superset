@@ -107,7 +107,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_shift: str | None
     time_range: str | None
     to_dttm: datetime | None
-    instant_time_comparison_info: dict[str, Any] | None
 
     def __init__(  # pylint: disable=too-many-locals
         self,
@@ -133,7 +132,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         series_limit_metric: Metric | None = None,
         time_range: str | None = None,
         time_shift: str | None = None,
-        instant_time_comparison_info: dict[str, Any] | None = None,
         **kwargs: Any,
     ):
         self._set_annotation_layers(annotation_layers)
@@ -163,7 +161,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.time_offsets = kwargs.get("time_offsets", [])
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
         self.inner_to_dttm = kwargs.get("inner_to_dttm")
-        self.instant_time_comparison_info = instant_time_comparison_info
         self._rename_deprecated_fields(kwargs)
         self._move_deprecated_extra_fields(kwargs)
 
@@ -338,7 +335,6 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit_metric": self.series_limit_metric,
             "to_dttm": self.to_dttm,
             "time_shift": self.time_shift,
-            "instant_time_comparison_info": self.instant_time_comparison_info,
         }
         return query_object_dict
 
