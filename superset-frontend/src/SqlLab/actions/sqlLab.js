@@ -131,6 +131,126 @@ const fieldConverter = mapping => obj =>
 export const convertQueryToServer = fieldConverter(queryServerMapping);
 export const convertQueryToClient = fieldConverter(queryClientMapping);
 
+function splitQueries(input) {
+  let inQuote = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  const queries = [];
+  let lastIndex = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+    const lookahead = input[i + 1];
+
+    // Handle quotation marks
+    if ((char === "'" || char === '"') && !inBlockComment && !inLineComment) {
+      inQuote = !inQuote;
+    }
+
+    // Handle line comment: --
+    else if (!inQuote && !inBlockComment && char === '-' && lookahead === '-') {
+      inLineComment = true;
+    }
+
+    // Handle block comment: /* */
+    else if (!inQuote && !inLineComment && char === '/' && lookahead === '*') {
+      inBlockComment = true;
+      i += 1;
+    } else if (inBlockComment && char === '*' && lookahead === '/') {
+      inBlockComment = false;
+      i += 1;
+    }
+
+    // Handle end of line
+    else if (inLineComment && char === '\n') {
+      inLineComment = false;
+    }
+
+    // Handle semicolon outside quotes
+    else if (!inQuote && !inLineComment && !inBlockComment && char === ';') {
+      const nextNewLinePos = input.indexOf('\n', i);
+      const endPosOfCurrentLine = nextNewLinePos > -1 ? nextNewLinePos : i;
+      const query = input.substring(lastIndex, endPosOfCurrentLine).trim();
+      queries.push(query);
+      lastIndex = endPosOfCurrentLine + 1;
+    }
+  }
+
+  // Add the last query if not ending with a semicolon
+  const lastQuery = input.substring(lastIndex, input.length).trim();
+  if (lastQuery) {
+    queries.push(lastQuery);
+  }
+
+  return queries;
+}
+
+export const getCurrentQuery = (cursorPosition, sql) => {
+  const cursorLineNumber = cursorPosition ? cursorPosition.row : 0;
+
+  const queries = sql
+    ?.replaceAll(/\r\n|\r/g, '\n')
+    .replaceAll(/\t\s*\n/g, '\n')
+    .split(/\n *\n/)
+    .flatMap(item =>
+      item.match(/^\s*\n/)
+        ? ['\n', item.substring(item.indexOf('\n') + 1)]
+        : [item],
+    );
+
+  let cumulativeLines = 0;
+  let currentQuery;
+  let prevQuery;
+  let matchedQuery;
+
+  queries?.some(item => {
+    cumulativeLines += 1;
+    matchedQuery = item;
+
+    if (item !== '\n') {
+      const blockLines = item.split('\n');
+      cumulativeLines += blockLines.length;
+
+      if (cumulativeLines > cursorLineNumber && item.includes(';')) {
+        cumulativeLines -= blockLines.length + 1;
+        const queryList = splitQueries(item).filter(str => str !== '');
+
+        queryList.some(query => {
+          matchedQuery = query;
+
+          const queryLines = query.split('\n').filter(str => str.trim() !== '');
+
+          cumulativeLines += queryLines.length;
+
+          return cumulativeLines > cursorLineNumber;
+        });
+
+        if (queryList[queryList.length - 1] === matchedQuery) {
+          cumulativeLines += 1;
+        }
+      }
+
+      prevQuery = matchedQuery.trim() === '' ? prevQuery : matchedQuery;
+    }
+
+    if (cumulativeLines > cursorLineNumber) {
+      if (matchedQuery.trim() === '') {
+        currentQuery = prevQuery?.includes(';')
+          ? splitQueries(prevQuery)
+              .filter(str => str !== '')
+              .pop()
+          : prevQuery;
+      } else {
+        currentQuery = matchedQuery;
+      }
+    }
+
+    return cumulativeLines > cursorLineNumber;
+  });
+
+  return currentQuery;
+};
+
 export function getUpToDateQuery(rootState, queryEditor, key) {
   const {
     sqlLab: { unsavedQueryEditor },
@@ -378,7 +498,8 @@ export function runQueryFromSqlEditor(
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText || qe.sql,
+      sql:
+        qe.selectedText || getCurrentQuery(qe.cursorPosition, qe.sql) || qe.sql,
       sqlEditorId: qe.id,
       tab: qe.name,
       schema: qe.schema,

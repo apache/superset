@@ -996,3 +996,541 @@ describe('async actions', () => {
     });
   });
 });
+
+describe('getCurrentQuery', () => {
+  it('returns query at cursor position correctly when there is only one query with ;', () => {
+    const mockQuery = 'SELECT A\nFROM schema.table_name\nWHERE 1;\n\n';
+    const cursorPosition = { row: 2, column: 6 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1',
+    );
+  });
+
+  it('returns query at cursor position correctly when there is only one query without ;', () => {
+    const mockQuery = 'SELECT B\nFROM schema.table_name\nWHERE 1;\n\n';
+    const cursorPosition = { row: 1, column: 6 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B\nFROM schema.table_name\nWHERE 1',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are multiple queries with ;', () => {
+    const mockQuery =
+      'SELECT A\nFROM schema.table_name\nWHERE 1;\nSELECT B, C\nFROM schema.table_name\nWHERE B > C;';
+    let cursorPosition = { row: 2, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1;',
+    );
+    cursorPosition = { row: 3, column: 6 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C\nFROM schema.table_name\nWHERE B > C',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are multiple queries without ;', () => {
+    const mockQuery =
+      'SELECT A\nFROM schema.table_name\nWHERE 1\n\nSELECT B, C\nFROM schema.table_name\nWHERE B > C\n';
+    let cursorPosition = { row: 2, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1',
+    );
+
+    cursorPosition = { row: 5, column: 6 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C\nFROM schema.table_name\nWHERE B > C\n',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are multiple queries both with and without ;', () => {
+    const mockQuery =
+      'SELECT A\nFROM schema.table_name\nWHERE 1\n\nSELECT B, C\nFROM schema.table_name\nWHERE B > C;\nSELECT *\nFROM schema.table_name';
+    let cursorPosition = { row: 2, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A\nFROM schema.table_name\nWHERE 1',
+    );
+
+    cursorPosition = { row: 4, column: 6 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C\nFROM schema.table_name\nWHERE B > C;',
+    );
+
+    cursorPosition = { row: 6, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C\nFROM schema.table_name\nWHERE B > C;',
+    );
+
+    cursorPosition = { row: 7, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT *\nFROM schema.table_name',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are multiple queries both with and without ; with -- comments', () => {
+    const mockQuery =
+      '\nSELECT A -- first\nFROM schema.table_name\nWHERE 1 -- second\n\nSELECT B, C -- third\nFROM schema.table_name -- fourth\nWHERE B > C; -- fifth\nSELECT * -- sixth\nFROM schema.table_name';
+    let cursorPosition = { row: 1, column: 12 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first\nFROM schema.table_name\nWHERE 1 -- second',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first\nFROM schema.table_name\nWHERE 1 -- second',
+    );
+
+    cursorPosition = { row: 4, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first\nFROM schema.table_name\nWHERE 1 -- second',
+    );
+
+    cursorPosition = { row: 5, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C -- third\nFROM schema.table_name -- fourth\nWHERE B > C; -- fifth',
+    );
+
+    cursorPosition = { row: 7, column: 11 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C -- third\nFROM schema.table_name -- fourth\nWHERE B > C; -- fifth',
+    );
+
+    cursorPosition = { row: 8, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT * -- sixth\nFROM schema.table_name',
+    );
+
+    cursorPosition = { row: 10, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT * -- sixth\nFROM schema.table_name',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are multiple queries both with and without ; with /* comments */', () => {
+    const mockQuery =
+      '\nSELECT A /* first */\nFROM schema.table_name\nWHERE 1 /* second */\n\nSELECT B, C /* third */\nFROM schema.table_name /* fourth */\nWHERE B > C; /* fifth */\nSELECT * /* sixth */\nFROM schema.table_name';
+    let cursorPosition = { row: 1, column: 12 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A /* first */\nFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A /* first */\nFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 4, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A /* first */\nFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 5, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C /* third */\nFROM schema.table_name /* fourth */\nWHERE B > C; /* fifth */',
+    );
+
+    cursorPosition = { row: 7, column: 11 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C /* third */\nFROM schema.table_name /* fourth */\nWHERE B > C; /* fifth */',
+    );
+
+    cursorPosition = { row: 8, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT * /* sixth */\nFROM schema.table_name',
+    );
+
+    cursorPosition = { row: 10, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT * /* sixth */\nFROM schema.table_name',
+    );
+  });
+
+  it('returns query at cursor position correctly when there are spaces between new lines', () => {
+    const mockQuery =
+      '\nSELECT A -- first \n\tFROM schema.table_name\nWHERE 1 /* second */\n  \nSELECT B, C /* third */\nFROM schema.table_name -- fourth \nWHERE B > C; /* fifth */';
+    let cursorPosition = { row: 1, column: 12 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first \n\tFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first \n\tFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 4, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A -- first \n\tFROM schema.table_name\nWHERE 1 /* second */',
+    );
+
+    cursorPosition = { row: 5, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C /* third */\nFROM schema.table_name -- fourth \nWHERE B > C',
+    );
+
+    cursorPosition = { row: 7, column: 11 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT B, C /* third */\nFROM schema.table_name -- fourth \nWHERE B > C',
+    );
+  });
+
+  it('returns query at cursor position correctly when semicolon is a part of query', () => {
+    const mockQuery = `SELECT A \nFROM schema.table_name\nWHERE 1;\n-- first\nSELECT B as 'C;', D, E -- ;; ;; ';'\nFROM schema.table_name ORDER BY 1 DESC; -- second\nSELECT F as “G” \nFROM schema.table_name\nORDER BY 1 DESC\n\n-- test 2\nSELECT A, B, C, D, E\nFROM schema.table_name\nGROUP BY C;\n\n-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name;\n \n\n\n \n-- test 4\nSELECT A, B, C as "D ; __ ; "\nFROM schema.table_name\n \n-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth\n\n\n/* comment\n*/\n\n\n-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name\n\n-- \n \n \nSELECT 1\nFROM schema.table_name;\n SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --\nSELECT 3 FROM schema.table_name;\nSELECT 4 FROM schema.table_name;\nSELECT 5 FROM schema.table_name\n\n\n\n`;
+    let cursorPosition = { row: 0, column: 0 };
+
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A \nFROM schema.table_name\nWHERE 1;',
+    );
+
+    cursorPosition = { row: 2, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A \nFROM schema.table_name\nWHERE 1;',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- first\nSELECT B as 'C;', D, E -- ;; ;; ';'\nFROM schema.table_name ORDER BY 1 DESC; -- second`,
+    );
+
+    cursorPosition = { row: 5, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- first\nSELECT B as 'C;', D, E -- ;; ;; ';'\nFROM schema.table_name ORDER BY 1 DESC; -- second`,
+    );
+
+    cursorPosition = { row: 6, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT F as “G” \nFROM schema.table_name\nORDER BY 1 DESC`,
+    );
+
+    cursorPosition = { row: 9, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT F as “G” \nFROM schema.table_name\nORDER BY 1 DESC`,
+    );
+
+    cursorPosition = { row: 10, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 2\nSELECT A, B, C, D, E\nFROM schema.table_name\nGROUP BY C`,
+    );
+
+    cursorPosition = { row: 14, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 2\nSELECT A, B, C, D, E\nFROM schema.table_name\nGROUP BY C`,
+    );
+
+    cursorPosition = { row: 15, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 18, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 21, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 22, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 4\nSELECT A, B, C as "D ; __ ; "\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 25, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 4\nSELECT A, B, C as "D ; __ ; "\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 26, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 28, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 30, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 30, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 31, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 32, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 34, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 35, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 38, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 39, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 39, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 41, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 42, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 1\nFROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 43, column: 12 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 1\nFROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 44, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --`,
+    );
+
+    cursorPosition = { row: 45, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --`,
+    );
+
+    cursorPosition = { row: 46, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 3 FROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 47, column: 11 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 4 FROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 48, column: 7 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 5 FROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 51, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 5 FROM schema.table_name`,
+    );
+  });
+
+  it(`returns query at cursor position correctly when it contains Windows new line character`, () => {
+    const mockQuery = `SELECT A \r\nFROM schema.table_name\nWHERE 1;\r\n-- first\r\nSELECT B as 'C;', D, E -- ;; ;; ';'\r\nFROM schema.table_name ORDER BY 1 DESC; -- second\r\nSELECT F as “G” \r\nFROM schema.table_name\r\nORDER BY 1 DESC\r\n\r\n-- test 2\r\nSELECT A, B, C, D, E\r\nFROM schema.table_name\r\nGROUP BY C;\r\n\r\n-- test 3\r\nSELECT SUM(A) as test_sum\r\nFROM schema.table_name;\r\n \r\n\r\n\r\n \r\n-- test 4\r\nSELECT A, B, C as "D ; __ ; "\r\nFROM schema.table_name\r\n \r\n-- test 5\r\nSELECT SUM(A) -- third\r\nFROM schema.table_name -- fourth\r\n\r\n\r\n/* comment\r\n*/\r\n\r\n\n-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name\r\n\r\n-- \r\n \r\n \r\nSELECT 1\r\nFROM schema.table_name;\r\n SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --\nSELECT 3 FROM schema.table_name;\nSELECT 4 FROM schema.table_name;\nSELECT 5 FROM schema.table_name\n\n\n\n`;
+    let cursorPosition = { row: 0, column: 0 };
+
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A \nFROM schema.table_name\nWHERE 1;',
+    );
+
+    cursorPosition = { row: 2, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      'SELECT A \nFROM schema.table_name\nWHERE 1;',
+    );
+
+    cursorPosition = { row: 3, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- first\nSELECT B as 'C;', D, E -- ;; ;; ';'\nFROM schema.table_name ORDER BY 1 DESC; -- second`,
+    );
+
+    cursorPosition = { row: 5, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- first\nSELECT B as 'C;', D, E -- ;; ;; ';'\nFROM schema.table_name ORDER BY 1 DESC; -- second`,
+    );
+
+    cursorPosition = { row: 6, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT F as “G” \nFROM schema.table_name\nORDER BY 1 DESC`,
+    );
+
+    cursorPosition = { row: 9, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT F as “G” \nFROM schema.table_name\nORDER BY 1 DESC`,
+    );
+
+    cursorPosition = { row: 10, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 2\nSELECT A, B, C, D, E\nFROM schema.table_name\nGROUP BY C`,
+    );
+
+    cursorPosition = { row: 14, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 2\nSELECT A, B, C, D, E\nFROM schema.table_name\nGROUP BY C`,
+    );
+
+    cursorPosition = { row: 15, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 18, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 21, column: 3 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 3\nSELECT SUM(A) as test_sum\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 22, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 4\nSELECT A, B, C as "D ; __ ; "\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 25, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 4\nSELECT A, B, C as "D ; __ ; "\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 26, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 28, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 30, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 30, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 5\nSELECT SUM(A) -- third\nFROM schema.table_name -- fourth`,
+    );
+
+    cursorPosition = { row: 31, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 32, column: 8 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 34, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `/* comment\n*/`,
+    );
+
+    cursorPosition = { row: 35, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 38, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `-- test 6\nSELECT 1234 as test_int, 5678910.1112 as test_double\nFROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 39, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 39, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 41, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(`-- `);
+
+    cursorPosition = { row: 42, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 1\nFROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 43, column: 12 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 1\nFROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 44, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --`,
+    );
+
+    cursorPosition = { row: 45, column: 10 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 2 as 'test ; ' -- d ;;\nFROM schema.table_name; --`,
+    );
+
+    cursorPosition = { row: 46, column: 1 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 3 FROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 47, column: 11 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 4 FROM schema.table_name;`,
+    );
+
+    cursorPosition = { row: 48, column: 7 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 5 FROM schema.table_name`,
+    );
+
+    cursorPosition = { row: 51, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      `SELECT 5 FROM schema.table_name`,
+    );
+  });
+
+  it('returns query at cursor position correctly when there is tab in between queries', () => {
+    const mockQuery =
+      '\tSELECT a.* \n  \tFROM  table a\n \t \n  \tSELECT b.id\n  \tFROM  table b\n  \tWHERE c\n';
+    let cursorPosition = { row: 0, column: 0 };
+
+    cursorPosition = { row: 0, column: 4 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      '\tSELECT a.* \n  \tFROM  table a',
+    );
+
+    cursorPosition = { row: 1, column: 2 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      '\tSELECT a.* \n  \tFROM  table a',
+    );
+
+    cursorPosition = { row: 2, column: 0 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      '\tSELECT a.* \n  \tFROM  table a',
+    );
+
+    cursorPosition = { row: 3, column: 5 };
+    expect(actions.getCurrentQuery(cursorPosition, mockQuery)).toEqual(
+      '  \tSELECT b.id\n  \tFROM  table b\n  \tWHERE c\n',
+    );
+  });
+});
