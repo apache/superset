@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import builtins
+import copy
 import dataclasses
 import json
 import logging
@@ -81,7 +82,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
-from superset.constants import EMPTY_STRING, NULL_STRING
+from superset.constants import EMPTY_STRING, InstantTimeComparison, NULL_STRING
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -105,6 +106,7 @@ from superset.models.helpers import (
     ImportExportMixin,
     QueryResult,
     QueryStringExtended,
+    SqlaQuery,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
@@ -120,7 +122,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils
 from superset.utils.backports import StrEnum
-from superset.utils.core import GenericDataType, MediumText
+from superset.utils.core import FilterOperator, GenericDataType, MediumText
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1413,24 +1415,138 @@ class SqlaTable(
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
 
+    def extract_column_names(self, final_selected_columns: Any) -> list[str]:
+        column_names = []
+        for selected_col in final_selected_columns:
+            # The key attribute usually holds the name or alias of the column
+            column_name = selected_col.key if hasattr(selected_col, "key") else None
+            # If the column has a name attribute, use it as a fallback
+            if not column_name and hasattr(selected_col, "name"):
+                column_name = selected_col.name
+            # For labeled elements, the name is stored in the 'name' attribute
+            if hasattr(selected_col, "name"):
+                column_name = selected_col.name
+            # Append the extracted name to the list
+            if column_name:
+                column_names.append(column_name)
+        return column_names
+
+    def process_time_compare_join(  # pylint: disable=too-many-locals
+        self,
+        query_obj: QueryObjectDict,
+        sqlaq: SqlaQuery,
+        mutate: bool,
+        instant_time_comparison_info: dict[str, Any],
+    ) -> tuple[str, list[str]]:
+        query_obj_clone = copy.copy(query_obj)
+        final_query_sql = ""
+        query_obj_clone["row_limit"] = None
+        query_obj_clone["row_offset"] = None
+        instant_time_comparison_range = instant_time_comparison_info.get("range")
+        if instant_time_comparison_range == InstantTimeComparison.CUSTOM:
+            custom_filter = instant_time_comparison_info.get("filter", {})
+            temporal_filters = [
+                filter["col"]
+                for filter in query_obj_clone.get("filter", {})
+                if filter.get("op", None) == FilterOperator.TEMPORAL_RANGE
+            ]
+            non_temporal_filters = [
+                filter["col"]
+                for filter in query_obj_clone.get("filter", {})
+                if filter.get("op", None) != FilterOperator.TEMPORAL_RANGE
+            ]
+            if len(temporal_filters) > 0:
+                # Edit the firt temporal filter to include the custom filter
+                temporal_filters[0] = custom_filter
+
+            new_filters = temporal_filters + non_temporal_filters
+            query_obj_clone["filter"] = new_filters
+        if instant_time_comparison_range != InstantTimeComparison.CUSTOM:
+            query_obj_clone["extras"] = {
+                **query_obj_clone.get("extras", {}),
+                "instant_time_comparison_range": instant_time_comparison_range,
+            }
+        sqlaq_2 = self.get_sqla_query(**query_obj_clone)
+        join_columns = query_obj_clone.get("columns") or []
+        sqla_query_a = sqlaq.sqla_query
+        sqla_query_b = sqlaq_2.sqla_query
+        sqla_query_b_subquery = sqla_query_b.subquery()
+        query_a_cte = sqla_query_a.cte("query_a_results")
+        column_names_a = [column.key for column in sqla_query_a.c]
+        exclude_columns_b = set(query_obj_clone.get("columns") or [])
+        selected_columns_a = [query_a_cte.c[col].label(col) for col in column_names_a]
+        # Renamed columns from Query B (with "prev_" prefix)
+        selected_columns_b = [
+            sqla_query_b_subquery.c[col].label(f"prev_{col}")
+            for col in sqla_query_b_subquery.c.keys()
+            if col not in exclude_columns_b
+        ]
+        # Combine selected columns from both queries
+        final_selected_columns = selected_columns_a + selected_columns_b
+        if join_columns and not query_obj_clone.get("is_rowcount"):
+            # Proceed with JOIN operation as before since join_columns is not empty
+            join_conditions = [
+                sqla_query_b_subquery.c[col] == query_a_cte.c[col]
+                for col in join_columns
+                if col in sqla_query_b_subquery.c and col in query_a_cte.c
+            ]
+            final_query = sa.select(*final_selected_columns).select_from(
+                sqla_query_b_subquery.join(query_a_cte, sa.and_(*join_conditions))
+            )
+        else:
+            final_query = sa.select(*final_selected_columns).select_from(
+                sqla_query_b_subquery.join(
+                    query_a_cte, sa.literal(True) == sa.literal(True)
+                )
+            )
+        final_query_sql = self.database.compile_sqla_query(final_query)
+        final_query_sql = self._apply_cte(final_query_sql, sqlaq.cte)
+        final_query_sql = sqlparse.format(final_query_sql, reindent=True)
+        if mutate:
+            final_query_sql = self.mutate_query_from_config(final_query_sql)
+
+        labels_expected = self.extract_column_names(final_selected_columns)
+
+        return final_query_sql, labels_expected
+
     def get_query_str_extended(
         self,
         query_obj: QueryObjectDict,
         mutate: bool = True,
     ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
+        # So we don't mutate the original query_obj
+        query_obj_clone = copy.copy(query_obj)
+        instant_time_comparison_info = query_obj.get("instant_time_comparison_info")
+        query_obj_clone.pop("instant_time_comparison_info", None)
+        sqlaq = self.get_sqla_query(**query_obj_clone)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
+
         if mutate:
             sql = self.mutate_query_from_config(sql)
+
+        if (
+            is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL")
+            and instant_time_comparison_info
+        ):
+            (
+                final_query_sql,
+                labels_expected,
+            ) = self.process_time_compare_join(
+                query_obj_clone, sqlaq, mutate, instant_time_comparison_info
+            )
+        else:
+            final_query_sql = sql
+            labels_expected = sqlaq.labels_expected
+
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
             rejected_filter_columns=sqlaq.rejected_filter_columns,
-            labels_expected=sqlaq.labels_expected,
+            labels_expected=labels_expected,
             prequeries=sqlaq.prequeries,
-            sql=sql,
+            sql=final_query_sql if final_query_sql else sql,
         )
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:

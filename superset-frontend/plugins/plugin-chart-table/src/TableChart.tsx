@@ -50,6 +50,7 @@ import {
   tn,
 } from '@superset-ui/core';
 
+import { isEmpty } from 'lodash';
 import { DataColumnMeta, TableChartTransformedProps } from './types';
 import DataTable, {
   DataTableProps,
@@ -238,6 +239,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     allowRearrangeColumns = false,
     onContextMenu,
     emitCrossFilters,
+    enableTimeComparison,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -412,6 +414,37 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           });
         }
       : undefined;
+
+  const comparisonLabels = [t('Main'), '#', '△', '%'];
+
+  const getHeaderColumns = (
+    columnsMeta: DataColumnMeta[],
+    enableTimeComparison?: boolean,
+  ) => {
+    const resultMap: Record<string, number[]> = {};
+
+    if (!enableTimeComparison) {
+      return resultMap;
+    }
+
+    columnsMeta.forEach((element, index) => {
+      // Check if element's label is one of the comparison labels
+      if (comparisonLabels.includes(element.label)) {
+        // Extract the key portion after the space, assuming the format is always "label key"
+        const keyPortion = element.key.split(' ')[1];
+
+        // If the key portion is not in the map, initialize it with the current index
+        if (!resultMap[keyPortion]) {
+          resultMap[keyPortion] = [index];
+        } else {
+          // Add the index to the existing array
+          resultMap[keyPortion].push(index);
+        }
+      }
+    });
+
+    return resultMap;
+  };
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
@@ -596,6 +629,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             style={{
               ...sharedStyle,
               ...style,
+              borderTop: 0,
             }}
             tabIndex={0}
             onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
@@ -670,6 +704,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [columnsMeta, getColumnConfigs],
   );
 
+  const groupHeaderColumns = useMemo(
+    () => getHeaderColumns(columnsMeta, enableTimeComparison),
+    [columnsMeta, enableTimeComparison],
+  );
+
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
       updateExternalFormData(setDataMask, pageNumber, pageSize);
@@ -734,6 +773,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        groupHeaderColumns={
+          !isEmpty(groupHeaderColumns) ? groupHeaderColumns : undefined
+        }
       />
     </Styles>
   );
