@@ -85,6 +85,7 @@ const basicQueryResult: ChartDataResponseResult = {
   status: 'success',
   from_dttm: null,
   to_dttm: null,
+  instant_time_comparison_range: null,
 };
 
 /**

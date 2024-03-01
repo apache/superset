@@ -47,6 +47,7 @@ def test_default_query_object_to_dict():
         "granularity": None,
         "inner_from_dttm": None,
         "inner_to_dttm": None,
+        "instant_time_comparison_info": None,
         "is_rowcount": False,
         "is_timeseries": False,
         "metrics": None,
