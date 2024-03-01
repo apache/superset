@@ -18,3 +18,4 @@
 #
 -e file:.
 urllib3>=1.26.18
+numexpr>=2.9.0
