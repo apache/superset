@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { createRef } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { useTheme } from '@superset-ui/core';
@@ -38,6 +38,9 @@ import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
 } from 'src/dashboard/util/constants';
+import Popover from 'src/components/Popover';
+import Icons from 'src/components/Icons';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const CHART_MARGIN = 32;
 
@@ -192,6 +195,9 @@ class ChartHolder extends React.Component {
       outlinedColumnName: null,
       directPathLastUpdated: 0,
       extraControls: {},
+      identifier: this.props.component.meta?.identifier
+        ? this.props.component.meta?.identifier
+        : '',
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -200,10 +206,16 @@ class ChartHolder extends React.Component {
     this.handleToggleFullSize = this.handleToggleFullSize.bind(this);
     this.handleExtraControl = this.handleExtraControl.bind(this);
     this.handlePostTransformProps = this.handlePostTransformProps.bind(this);
+    this.handleUpdateIdentifier = this.handleUpdateIdentifier.bind(this);
   }
 
   componentDidMount() {
     this.hideOutline({}, this.state);
+    if (this.props.component.meta?.identifier) {
+      this.setState({
+        identifier: this.props.component.meta?.identifier,
+      });
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -232,6 +244,23 @@ class ChartHolder extends React.Component {
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  handleUpdateIdentifier(e) {
+    const { component, updateComponents } = this.props;
+    updateComponents({
+      [component.id]: {
+        ...component,
+        meta: {
+          ...component.meta,
+          identifier: e.target.value,
+        },
+      },
+    });
+
+    this.setState({
+      identifier: e.target.value,
+    });
   }
 
   handleUpdateSliceName(nextName) {
@@ -269,7 +298,7 @@ class ChartHolder extends React.Component {
   }
 
   render() {
-    const { isFocused, extraControls } = this.state;
+    const { isFocused, extraControls, identifier } = this.state;
     const {
       component,
       parentComponent,
@@ -346,11 +375,14 @@ class ChartHolder extends React.Component {
             onResize={onResize}
             onResizeStop={onResizeStop}
             editMode={editMode}
+            data-resizable-container={component.meta?.sliceName}
           >
             <FilterFocusHighlight
               chartId={chartId}
               ref={dragSourceRef}
               data-test="dashboard-component-chart-holder"
+              data-chart-holder={component.meta?.sliceName}
+              data-identifier={identifier}
               className={cx(
                 'dashboard-component',
                 'dashboard-component-chart-holder',
@@ -388,9 +420,52 @@ class ChartHolder extends React.Component {
                 setControlValue={this.handleExtraControl}
                 extraControls={extraControls}
                 postTransformProps={this.handlePostTransformProps}
+                data-chart={component.meta?.sliceName}
+                //updateIdentifier={this.handleUpdateIdentifier}
               />
               {editMode && (
                 <HoverMenu position="top">
+                  <div>
+                    <Popover
+                      placement="bottomRight"
+                      //title={'CSS identifier'}
+                      trigger="click"
+                      content={
+                        <div style={{ maxWidth: '300px' }}>
+                          <div
+                            style={{ marginBottom: '8px', fontWeight: 'bold' }}
+                          >
+                            CSS identifier
+                          </div>
+                          <input
+                            type="text"
+                            maxLength={30}
+                            placeholder="Set CSS Identifier..."
+                            value={identifier}
+                            onChange={e => this.handleUpdateIdentifier(e)}
+                            style={{
+                              borderWidth: '2px',
+                              padding: '2px 6px',
+                            }}
+                          />
+                          <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                            <div>
+                              After setting CSS identifier, you are able to use
+                              it inside CSS Editor to add custom styling like on
+                              example bellow:
+                            </div>
+                            <div>
+                              <code>{`[data-identifier="test yellow3"] {
+  background-color: yellow !important;
+}`}</code>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <IconButton icon={<Icons.Link iconSize="xl" />} />
+                    </Popover>
+                  </div>
                   <div data-test="dashboard-delete-component-button">
                     <DeleteComponentButton
                       onDelete={this.handleDeleteComponent}

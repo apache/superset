@@ -394,6 +394,7 @@ export default class Chart extends React.Component {
         data-test-chart-id={id}
         data-test-viz-type={slice.viz_type}
         data-test-chart-name={slice.slice_name}
+        data-slice-container-name={slice.slice_name}
       >
         <SliceHeader
           innerRef={this.setHeaderRef}
@@ -450,6 +451,7 @@ export default class Chart extends React.Component {
             'dashboard-chart',
             isOverflowable && 'dashboard-chart--overflowable',
           )}
+          data-dashboard-chart={sliceName}
         >
           {(isLoading || isDeactivatedViz) && (
             <ChartOverlay
@@ -487,6 +489,7 @@ export default class Chart extends React.Component {
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
+            data-chart-container={sliceName}
           />
         </div>
       </SliceContainer>
