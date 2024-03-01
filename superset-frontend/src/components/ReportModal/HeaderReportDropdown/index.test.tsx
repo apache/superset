@@ -22,7 +22,7 @@ import { render, screen, act } from 'spec/helpers/testing-library';
 import * as featureFlags from '@superset-ui/core';
 import HeaderReportDropdown, { HeaderReportProps } from '.';
 
-
+// eslint-disable-next-line
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
 
@@ -35,7 +35,6 @@ const createProps = () => ({
   setShowReportSubMenu: jest.fn,
   useS3Options: false,
 });
-
 
 const stateWithOnlyUser = {
   user: {
@@ -51,7 +50,6 @@ const stateWithOnlyUser = {
   },
   reports: {},
 };
-
 
 const stateWithNonAdminUser = {
   user: {
@@ -71,7 +69,6 @@ const stateWithNonAdminUser = {
   reports: {},
 };
 
-
 const stateWithNonMenuAccessOnManage = {
   user: {
     email: 'nonaccess@test.com',
@@ -86,7 +83,6 @@ const stateWithNonMenuAccessOnManage = {
   },
   reports: {},
 };
-
 
 const stateWithUserAndReport = {
   user: {
@@ -126,7 +122,6 @@ const stateWithUserAndReport = {
   },
 };
 
-
 const stateWithUserAndS3Report = {
   user: {
     email: 'admin@test.com',
@@ -165,7 +160,6 @@ const stateWithUserAndS3Report = {
   },
 };
 
-
 function setup(props: HeaderReportProps, initialState = {}) {
   render(
     <div>
@@ -174,7 +168,6 @@ function setup(props: HeaderReportProps, initialState = {}) {
     { useRedux: true, initialState },
   );
 }
-
 
 describe('Header Report Dropdown', () => {
   beforeAll(() => {
@@ -186,12 +179,10 @@ describe('Header Report Dropdown', () => {
       );
   });
 
-
   afterAll(() => {
     // @ts-ignore
     isFeatureEnabledMock.restore();
   });
-
 
   it('renders correctly', () => {
     const mockedProps = createProps();
@@ -200,7 +191,6 @@ describe('Header Report Dropdown', () => {
     });
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
-
 
   it('renders the dropdown correctly', () => {
     const mockedProps = createProps();
@@ -213,7 +203,6 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Edit email report')).toBeInTheDocument();
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
-
 
   it('opens an edit modal', async () => {
     const mockedProps = createProps();
@@ -228,7 +217,6 @@ describe('Header Report Dropdown', () => {
     expect(textBoxes).toHaveLength(2);
   });
 
-
   it('opens a delete modal', () => {
     const mockedProps = createProps();
     act(() => {
@@ -241,7 +229,6 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Delete Report?')).toBeInTheDocument();
   });
 
-
   it('renders a new report modal if there is no report', () => {
     const mockedProps = createProps();
     act(() => {
@@ -251,7 +238,6 @@ describe('Header Report Dropdown', () => {
     userEvent.click(emailReportModalButton);
     expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
   });
-
 
   it('renders Manage Email Reports Menu if textMenu is set to true and there is a report', () => {
     let mockedProps = createProps();
@@ -268,7 +254,6 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Delete Email report')).toBeInTheDocument();
   });
 
-
   it('renders Schedule Email Reports if textMenu is set to true and there is a report', () => {
     let mockedProps = createProps();
     mockedProps = {
@@ -282,7 +267,6 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Set up an email report')).toBeInTheDocument();
   });
 
-
   it('renders Schedule Email Reports as long as user has permission through any role', () => {
     let mockedProps = createProps();
     mockedProps = {
@@ -295,7 +279,6 @@ describe('Header Report Dropdown', () => {
     });
     expect(screen.getByText('Set up an email report')).toBeInTheDocument();
   });
-
 
   it('do not render Schedule Email Reports if user no permission', () => {
     let mockedProps = createProps();
@@ -313,7 +296,6 @@ describe('Header Report Dropdown', () => {
   });
 });
 
-
 describe('Header S3 Report Dropdown', () => {
   beforeAll(() => {
     isFeatureEnabledMock = jest
@@ -324,12 +306,10 @@ describe('Header S3 Report Dropdown', () => {
       );
   });
 
-
   afterAll(() => {
     // @ts-ignore
     isFeatureEnabledMock.restore();
   });
-
 
   it.skip('renders S3 correctly', () => {
     let mockedProps = createProps();
@@ -343,7 +323,6 @@ describe('Header S3 Report Dropdown', () => {
     });
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
-
 
   it('renders the S3 dropdown correctly', () => {
     let mockedProps = createProps();
@@ -361,7 +340,6 @@ describe('Header S3 Report Dropdown', () => {
     expect(screen.getByText('Edit S3 report')).toBeInTheDocument();
     expect(screen.getByText('Delete S3 report')).toBeInTheDocument();
   });
-
 
   it.skip('renders Set up S3 report', () => {
     let mockedProps = createProps();

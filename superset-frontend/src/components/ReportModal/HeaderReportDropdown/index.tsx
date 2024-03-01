@@ -122,7 +122,8 @@ export default function HeaderReportDropDown({
       : CreationMethod.CHARTS;
     return reportSelector(state, resourceType, dashboardId || chart?.id);
   });
-  var s3Report = report?.recipients !== undefined ? report?.recipients[0].type : null;
+
+  const s3Report = report?.recipients !== undefined ? report?.recipients[0].type : null;
   const isReportActive: boolean = report?.active || false;
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
