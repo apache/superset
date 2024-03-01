@@ -19,11 +19,17 @@
 import {
   AdhocColumn,
   buildQueryContext,
+  buildQueryObject,
+  ComparisonTimeRangeType,
   ensureIsArray,
+  FeatureFlag,
+  getComparisonInfo,
   getMetricLabel,
+  isFeatureEnabled,
   isPhysicalColumn,
   QueryMode,
   QueryObject,
+  QueryObjectFilterClause,
   removeDuplicates,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
@@ -55,7 +61,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     percent_metrics: percentMetrics,
     order_desc: orderDesc = false,
     extra_form_data,
+    time_comparison: timeComparison,
+    enable_time_comparison,
   } = formData;
+  const canUseTimeComparison =
+    enable_time_comparison &&
+    isFeatureEnabled(FeatureFlag.ChartPluginsExperimental);
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
@@ -68,6 +79,34 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       include_time: false,
     };
   }
+
+  const addComparisonPercentMetrics = (metrics: string[]) =>
+    metrics.reduce((acc, metric) => {
+      const prevMetric = `prev_${metric}`;
+      return acc.concat([metric, prevMetric]);
+    }, [] as string[]);
+
+  const comparisonFormData = getComparisonInfo(
+    formDataCopy,
+    timeComparison,
+    extra_form_data,
+  );
+
+  const getFirstTemporalFilter = (
+    queryObject?: QueryObject,
+  ): QueryObjectFilterClause | undefined => {
+    const { filters = [] } = queryObject || {};
+    const timeFilterIndex: number =
+      filters?.findIndex(
+        filter => 'op' in filter && filter.op === 'TEMPORAL_RANGE',
+      ) ?? -1;
+
+    const timeFilter: QueryObjectFilterClause | undefined =
+      timeFilterIndex !== -1 && filters ? filters[timeFilterIndex] : undefined;
+    return timeFilter;
+  };
+  const comparisonQueryObject = buildQueryObject(comparisonFormData);
+  const firstTemporalFilter = getFirstTemporalFilter(comparisonQueryObject);
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
@@ -85,8 +124,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
+        const percentMetricsLabelsWithTimeComparison = canUseTimeComparison
+          ? addComparisonPercentMetrics(percentMetrics.map(getMetricLabel))
+          : percentMetrics.map(getMetricLabel);
         const percentMetricLabels = removeDuplicates(
-          percentMetrics.map(getMetricLabel),
+          percentMetricsLabelsWithTimeComparison,
         );
         metrics = removeDuplicates(
           metrics.concat(percentMetrics),
@@ -138,6 +180,20 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       post_processing: postProcessing,
       ...moreProps,
     };
+
+    // Customize the query for time comparison
+    if (canUseTimeComparison) {
+      queryObject = {
+        ...queryObject,
+        instant_time_comparison_info: {
+          range: timeComparison,
+          filter:
+            timeComparison === ComparisonTimeRangeType.Custom
+              ? firstTemporalFilter
+              : undefined,
+        },
+      };
+    }
 
     if (
       formData.server_pagination &&

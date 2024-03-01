@@ -78,6 +78,7 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
+  instant_time_comparison_range: string | null;
 }
 
 export interface TimeseriesChartDataResponseResult
