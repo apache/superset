@@ -73,7 +73,13 @@ class TestInstantTimeComparisonQueryGeneration:
         return {
             "apply_fetch_values_predicate": False,
             "columns": ["name"],
-            "extras": {"having": "", "where": ""},
+            "extras": {
+                "having": "",
+                "where": "",
+                "instant_time_comparison_info": {
+                    "range": "y",
+                },
+            },
             "filter": [
                 {"op": "TEMPORAL_RANGE", "val": "1984-01-01 : 2024-02-14", "col": "ds"}
             ],
@@ -132,9 +138,6 @@ class TestInstantTimeComparisonQueryGeneration:
                     "sqlExpression": None,
                 },
             ],
-            "instant_time_comparison_info": {
-                "range": "y",
-            },
         }
 
     @with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
@@ -256,7 +259,7 @@ class TestInstantTimeComparisonQueryGeneration:
     def test_creates_query_without_time_comparison(session: Session):
         table = TestInstantTimeComparisonQueryGeneration.base_setup(session)
         query_obj = TestInstantTimeComparisonQueryGeneration.generate_base_query_obj()
-        query_obj["instant_time_comparison_info"] = None
+        query_obj["extras"]["instant_time_comparison_info"] = None
         str = table.get_query_str_extended(query_obj)
         expected_str = """
             SELECT name AS name,
@@ -279,7 +282,7 @@ class TestInstantTimeComparisonQueryGeneration:
     def test_creates_time_comparison_query_custom_filters(session: Session):
         table = TestInstantTimeComparisonQueryGeneration.base_setup(session)
         query_obj = TestInstantTimeComparisonQueryGeneration.generate_base_query_obj()
-        query_obj["instant_time_comparison_info"] = {
+        query_obj["extras"]["instant_time_comparison_info"] = {
             "range": "c",
             "filter": {
                 "op": "TEMPORAL_RANGE",

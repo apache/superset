@@ -71,6 +71,7 @@ export type QueryObjectExtras = Partial<{
   where?: string;
   /** Instant Time Comparison */
   instant_time_comparison_range?: string;
+  instant_time_comparison_info?: QueryObjectInstantTimeComparisonInfo;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -156,9 +157,6 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
-
-  /** Instant Time Comparison */
-  instant_time_comparison_info?: QueryObjectInstantTimeComparisonInfo;
 }
 
 export interface QueryContext {

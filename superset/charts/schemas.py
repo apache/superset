@@ -1008,6 +1008,17 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    instant_time_comparison_info = fields.Nested(
+        # TODO: The instant_time_comparison_range must be deleted in favor of this one
+        # once we have the DATEDIFF in place. Keeping for backward compatibility in the
+        # meantime.
+        InstantTimeComparisonInfoSchema,
+        metadata={
+            "description": "Extra parameters to use instant time comparison"
+            " with JOINs using a single query"
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
@@ -1358,14 +1369,6 @@ class ChartDataQueryObjectSchema(Schema):
     )
     time_offsets = fields.List(
         fields.String(),
-        allow_none=True,
-    )
-    instant_time_comparison_info = fields.Nested(
-        InstantTimeComparisonInfoSchema,
-        metadata={
-            "description": "Extra parameters to use instant time comparison"
-            " with JOINs using a single query"
-        },
         allow_none=True,
     )
 
