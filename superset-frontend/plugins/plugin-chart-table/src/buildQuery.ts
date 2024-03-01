@@ -183,8 +183,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     // Customize the query for time comparison
     if (canUseTimeComparison) {
-      queryObject = {
-        ...queryObject,
+      queryObject.extras = {
+        ...queryObject.extras,
         instant_time_comparison_info: {
           range: timeComparison,
           filter:
