@@ -271,10 +271,11 @@ function ListView<T extends object = any>({
     pageCount = 1,
     gotoPage,
     applyFilterValue,
+    setSortBy,
     selectedFlatRows,
     toggleAllRowsSelected,
     setViewMode,
-    state: { pageIndex, pageSize, internalFilters, viewMode },
+    state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
     bulkSelectColumnConfig,
@@ -321,6 +322,12 @@ function ListView<T extends object = any>({
     if (!bulkSelectEnabled) toggleAllRowsSelected(false);
   }, [bulkSelectEnabled, toggleAllRowsSelected]);
 
+  useEffect(() => {
+    if (!loading && pageIndex > pageCount - 1 && pageCount > 0) {
+      gotoPage(0);
+    }
+  }, [gotoPage, loading, pageCount, pageIndex]);
+
   return (
     <ListViewStyles>
       {allowBulkTagActions && (
@@ -350,11 +357,9 @@ function ListView<T extends object = any>({
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
-                initialSort={initialSort}
-                onChange={fetchData}
+                initialSort={sortBy}
+                onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}
-                pageIndex={pageIndex}
-                pageSize={pageSize}
               />
             )}
           </div>
@@ -464,7 +469,7 @@ function ListView<T extends object = any>({
         <div className="pagination-container">
           <Pagination
             totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
+            currentPage={pageCount && pageIndex < pageCount ? pageIndex + 1 : 0}
             onChange={(p: number) => gotoPage(p - 1)}
             hideFirstAndLastPageLinks
           />

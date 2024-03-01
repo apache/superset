@@ -1384,6 +1384,19 @@ def get_user_id() -> int | None:
         return None
 
 
+def get_user_email() -> str | None:
+    """
+    Get the email (if defined) associated with the current user.
+
+    :returns: The email
+    """
+
+    try:
+        return g.user.email
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
 @contextmanager
 def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
     """
