@@ -73,7 +73,7 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def update_owner_list(
-        current_owners: list[User],
+        current_owners: Optional[list[User]],
         new_owners: Optional[list[int]],
     ) -> list[User]:
         """

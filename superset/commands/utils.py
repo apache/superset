@@ -63,7 +63,7 @@ def populate_owners(
 
 
 def update_owner_list(
-    current_owners: list[User],
+    current_owners: list[User] | None,
     new_owners: list[int] | None,
 ) -> list[User]:
     """
@@ -74,6 +74,7 @@ def update_owner_list(
     :param new_owners: list of new owners specified in the update payload
     :returns: Final list of owners
     """
+    current_owners = current_owners or []
     owners_ids = (
         [owner.id for owner in current_owners] if new_owners is None else new_owners
     )
