@@ -64,7 +64,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: `adhoc_custom`,
+            name: 'adhoc_custom',
             config: {
               ...sharedControls.adhoc_filters,
               label: t('Filters for Comparison'),

@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { ComparisonTimeRangeType } from '../time-comparison';
 import { t } from '../translation';
 import { ensureIsArray } from '../utils';
+import { ComparisonTimeRangeType } from '../query';
 
 export const validateTimeComparisonRangeValues = (
   timeRangeValue?: any,

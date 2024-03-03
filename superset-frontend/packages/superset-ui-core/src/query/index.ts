@@ -41,6 +41,7 @@ export * from './types/Query';
 
 export * from './api/v1/types';
 export { default as makeApi } from './api/v1/makeApi';
+export * from './extractTimeComparisonFilters';
 
 // API Callers
 export { ApiLegacy, ApiV1 };

@@ -69,8 +69,6 @@ export type QueryObjectExtras = Partial<{
   time_grain_sqla?: TimeGranularity;
   /** WHERE condition */
   where?: string;
-  /** Instant Time Comparison */
-  instant_time_comparison_range?: string;
 }>;
 
 export type ResidualQueryObjectData = {
@@ -466,5 +464,13 @@ export enum ContributionType {
 export type DatasourceSamplesQuery = {
   filters?: QueryObjectFilterClause[];
 };
+
+export enum ComparisonTimeRangeType {
+  Custom = 'c',
+  InheritedRange = 'r',
+  Month = 'm',
+  Week = 'w',
+  Year = 'y',
+}
 
 export default {};
