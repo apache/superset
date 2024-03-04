@@ -23,17 +23,21 @@ Create Date: 2024-03-04 14:48:16.998927
 """
 
 # revision identifiers, used by Alembic.
-revision = 'efb7a20ff8d8'
-down_revision = 'be1b217cd8cd'
+revision = "efb7a20ff8d8"
+down_revision = "be1b217cd8cd"
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
+
 
 def upgrade():
     op.create_index(
-        op.f("ix_query_sql_editor_id"), "query", ["sql_editor_id"], unique=False
+        op.f("ix_query_user_id_sql_editor_id"),
+        "query",
+        ["user_id", "sql_editor_id"],
+        unique=False,
     )
 
 
 def downgrade():
-    op.drop_index(op.f("ix_query_sql_editor_id"), table_name="query")
+    op.drop_index(op.f("ix_query_user_id_sql_editor_id"), table_name="query")
