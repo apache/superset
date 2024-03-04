@@ -30,3 +30,5 @@ export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   100,
   200,
 ]);
+
+export const COMPARISON_PREFIX = 'prev_';

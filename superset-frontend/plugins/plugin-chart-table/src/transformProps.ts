@@ -47,11 +47,10 @@ import {
   TableChartProps,
   TableChartTransformedProps,
 } from './types';
+import { COMPARISON_PREFIX } from './consts';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
-
-const COMPARISON_PREFIX = 'prev_';
 
 function isNumeric(key: string, data: DataRecord[] = []) {
   return data.every(
