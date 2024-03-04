@@ -14,13 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import calendar
 import logging
 import re
 from datetime import datetime, timedelta
 from functools import lru_cache
 from time import struct_time
-from typing import Optional
 
 import pandas as pd
 import parsedatetime
@@ -99,8 +100,8 @@ def dttm_from_timetuple(date_: struct_time) -> datetime:
 
 
 def get_past_or_future(
-    human_readable: Optional[str],
-    source_time: Optional[datetime] = None,
+    human_readable: str | None,
+    source_time: datetime | None = None,
 ) -> datetime:
     cal = parsedatetime.Calendar()
     source_dttm = dttm_from_timetuple(
@@ -110,8 +111,8 @@ def get_past_or_future(
 
 
 def parse_human_timedelta(
-    human_readable: Optional[str],
-    source_time: Optional[datetime] = None,
+    human_readable: str | None,
+    source_time: datetime | None = None,
 ) -> timedelta:
     """
     Returns ``datetime.timedelta`` from natural language time deltas
@@ -126,7 +127,7 @@ def parse_human_timedelta(
 
 
 def parse_past_timedelta(
-    delta_str: str, source_time: Optional[datetime] = None
+    delta_str: str, source_time: datetime | None = None
 ) -> timedelta:
     """
     Takes a delta like '1 year' and finds the timedelta for that period in
@@ -143,14 +144,14 @@ def parse_past_timedelta(
 
 
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
-    time_range: Optional[str] = None,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    time_shift: Optional[str] = None,
-    relative_start: Optional[str] = None,
-    relative_end: Optional[str] = None,
-    instant_time_comparison_range: Optional[str] = None,
-) -> tuple[Optional[datetime], Optional[datetime]]:
+    time_range: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    time_shift: str | None = None,
+    relative_start: str | None = None,
+    relative_end: str | None = None,
+    instant_time_comparison_range: str | None = None,
+) -> tuple[datetime | None, datetime | None]:
     """Return `since` and `until` date time tuple from string representations of
     time_range, since, until and time_shift.
 
@@ -228,7 +229,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         ]
 
         since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
-        since_and_until: list[Optional[str]] = []
+        since_and_until: list[str | None] = []
         for part in since_and_until_partition:
             if not part:
                 # if since or until is "", set as None
@@ -351,10 +352,29 @@ class EvalDateAddFunc:  # pylint: disable=too-few-public-methods
     def eval(self) -> datetime:
         dttm_expression, delta, unit = self.value
         dttm = dttm_expression.eval()
+        delta = delta.eval() if hasattr(delta, "eval") else delta
         if unit.lower() == "quarter":
             delta = delta * 3
             unit = "month"
         return dttm + parse_human_timedelta(f"{delta} {unit}s", dttm)
+
+
+class EvalDateDiffFunc:  # pylint: disable=too-few-public-methods
+    def __init__(self, tokens: ParseResults) -> None:
+        self.value = tokens[1]
+
+    def eval(self) -> int:
+        if len(self.value) == 2:
+            _dttm_from, _dttm_to = self.value
+            return (_dttm_to.eval() - _dttm_from.eval()).days
+
+        if len(self.value) == 3:
+            _dttm_from, _dttm_to, _unit = self.value
+            if _unit == "year":
+                return _dttm_to.eval().year - _dttm_from.eval().year
+            if _unit == "day":
+                return (_dttm_to.eval() - _dttm_from.eval()).days
+        raise ValueError(_("Unable to calculate such a date delta"))
 
 
 class EvalDateTruncFunc:  # pylint: disable=too-few-public-methods
@@ -441,6 +461,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,
         DATEADD,
+        DATEDIFF,
         DATETRUNC,
         LASTDAY,
         HOLIDAY,
@@ -454,11 +475,10 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         SECOND,
     ) = map(
         CaselessKeyword,
-        "datetime dateadd datetrunc lastday holiday "
+        "datetime dateadd datediff datetrunc lastday holiday "
         "year quarter month week day hour minute second".split(),
     )
     lparen, rparen, comma = map(Suppress, "(),")
-    int_operand = pyparsing_common.signed_integer().setName("int_operand")
     text_operand = quotedString.setName("text_operand").setParseAction(EvalText)
 
     # allow expression to be used recursively
@@ -469,6 +489,12 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     holiday_func = Forward().setName("holiday")
     date_expr = (
         datetime_func | dateadd_func | datetrunc_func | lastday_func | holiday_func
+    )
+
+    # literal integer and expression that return a literal integer
+    datediff_func = Forward().setName("datediff")
+    int_operand = (
+        pyparsing_common.signed_integer().setName("int_operand") | datediff_func
     )
 
     datetime_func <<= (DATETIME + lparen + text_operand + rparen).setParseAction(
@@ -517,11 +543,22 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         )
         + rparen
     ).setParseAction(EvalHolidayFunc)
+    datediff_func <<= (
+        DATEDIFF
+        + lparen
+        + Group(
+            date_expr
+            + comma
+            + date_expr
+            + ppOptional(comma + (YEAR | DAY) + ppOptional(comma))
+        )
+        + rparen
+    ).setParseAction(EvalDateDiffFunc)
 
-    return date_expr
+    return date_expr | datediff_func
 
 
-def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetime]:
+def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
