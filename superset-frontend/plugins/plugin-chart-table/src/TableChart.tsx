@@ -48,6 +48,7 @@ import {
   css,
   t,
   tn,
+  useTheme,
 } from '@superset-ui/core';
 
 import { isEmpty } from 'lodash';
@@ -251,6 +252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+  const theme = useTheme();
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -446,6 +448,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     return resultMap;
   };
 
+  const renderGroupingHeaders = (): JSX.Element => {
+    // TODO: Make use of ColumnGroup to render the aditional headers
+    const headers: any = [];
+    let currentColumnIndex = 0;
+
+    Object.entries(groupHeaderColumns || {}).forEach(([key, value]) => {
+      // Calculate the number of placeholder columns needed before the current header
+      const startPosition = value[0];
+      const colSpan = value.length;
+
+      // Add placeholder <th> for columns before this header
+      for (let i = currentColumnIndex; i < startPosition; i += 1) {
+        headers.push(
+          <th
+            key={`placeholder-${i}`}
+            style={{ borderBottom: 0 }}
+            aria-label={`Header-${i}`}
+          />,
+        );
+      }
+
+      // Add the current header <th>
+      headers.push(
+        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
+          {key}
+        </th>,
+      );
+
+      // Update the current column index
+      currentColumnIndex = startPosition + colSpan;
+    });
+
+    return (
+      <tr
+        css={css`
+          th {
+            border-right: 2px solid ${theme.colors.grayscale.light2};
+          }
+          th:first-child {
+            border-left: none;
+          }
+          th:last-child {
+            border-right: none;
+          }
+        `}
+      >
+        {headers}
+      </tr>
+    );
+  };
+
+  const groupHeaderColumns = useMemo(
+    () => getHeaderColumns(columnsMeta, enableTimeComparison),
+    [columnsMeta, enableTimeComparison],
+  );
+
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const {
@@ -491,6 +549,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       let className = '';
       if (emitCrossFilters && !isMetric) {
         className += ' dt-is-filter';
+      }
+
+      if (enableTimeComparison) {
+        if (!isMetric && !isPercentMetric) {
+          className += ' right-border-only';
+        } else if (comparisonLabels.includes(label)) {
+          const groupinHeader = key.substring(label.length);
+          const columnsUnderHeader = groupHeaderColumns[groupinHeader] || [];
+          if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
+            className += ' right-border-only';
+          }
+        }
       }
 
       return {
@@ -704,11 +774,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [columnsMeta, getColumnConfigs],
   );
 
-  const groupHeaderColumns = useMemo(
-    () => getHeaderColumns(columnsMeta, enableTimeComparison),
-    [columnsMeta, enableTimeComparison],
-  );
-
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {
       updateExternalFormData(setDataMask, pageNumber, pageSize);
@@ -773,8 +838,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
-        groupHeaderColumns={
-          !isEmpty(groupHeaderColumns) ? groupHeaderColumns : undefined
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
         }
       />
     </Styles>
