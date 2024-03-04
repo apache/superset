@@ -103,12 +103,18 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['y_axis_format'],
         ['currency_format'],
-        [headerFontSize],
+        [
+          {
+            ...headerFontSize,
+            config: { ...headerFontSize.config, default: 0.2 },
+          },
+        ],
         [
           {
             ...subheaderFontSize,
             config: {
               ...subheaderFontSize.config,
+              default: 0.125,
               label: t('Comparison font size'),
             },
           },
