@@ -107,7 +107,7 @@ def test_rolling():
         )
 
 
-def test_rolling_should_empty_df():
+def test_rolling_min_periods_trims_correctly():
     pivot_df = pp.pivot(
         df=single_metric_df,
         index=["dttm"],
@@ -121,7 +121,7 @@ def test_rolling_should_empty_df():
         min_periods=2,
         columns={"sum_metric": "sum_metric"},
     )
-    assert rolling_df.empty is True
+    assert len(rolling_df) == 1
 
 
 def test_rolling_after_pivot_with_single_metric():
