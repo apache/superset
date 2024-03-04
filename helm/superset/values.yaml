@@ -448,6 +448,9 @@ supersetWorker:
 supersetCeleryBeat:
   # -- This is only required if you intend to use alerts and reports
   enabled: false
+  image:
+    repository: ~
+    tag: ~
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryBeat pods
   podDisruptionBudget:
     # -- Whether the pod disruption budget should be created
@@ -505,6 +508,9 @@ supersetCeleryFlower:
   # WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images)
   # flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support
   enabled: false
+  image:
+    repository: ~
+    tag: ~
   replicaCount: 1
   # -- Sets the [pod disruption budget](https://kubernetes.io/docs/tasks/run-application/configure-pdb/) for supersetCeleryFlower pods
   podDisruptionBudget:
