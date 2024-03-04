@@ -431,7 +431,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Check if element's label is one of the comparison labels
       if (comparisonLabels.includes(element.label)) {
         // Extract the key portion after the space, assuming the format is always "label key"
-        const keyPortion = element.key.split(' ')[1];
+        const keyPortion = element.key.substring(element.label.length);
 
         // If the key portion is not in the map, initialize it with the current index
         if (!resultMap[keyPortion]) {
