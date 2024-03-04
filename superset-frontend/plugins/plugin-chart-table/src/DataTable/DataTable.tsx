@@ -67,7 +67,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
-  groupHeaderColumns?: Record<string, number[]>;
+  renderGroupingHeaders?: () => JSX.Element;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -100,7 +100,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
-  groupHeaderColumns,
+  renderGroupingHeaders,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -250,46 +250,11 @@ export default typedMemo(function DataTable<D extends object>({
     e.preventDefault();
   };
 
-  const renderDynamicHeaders = () => {
-    // TODO: Make use of ColumnGroup to render the aditional headers
-    const headers: any = [];
-    let currentColumnIndex = 0;
-
-    Object.entries(groupHeaderColumns || {}).forEach(([key, value], index) => {
-      // Calculate the number of placeholder columns needed before the current header
-      const startPosition = value[0];
-      const colSpan = value.length;
-
-      // Add placeholder <th> for columns before this header
-      for (let i = currentColumnIndex; i < startPosition; i += 1) {
-        headers.push(
-          <th
-            key={`placeholder-${i}`}
-            style={{ borderBottom: 0 }}
-            aria-label={`Header-${i}`}
-          />,
-        );
-      }
-
-      // Add the current header <th>
-      headers.push(
-        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
-          {key}
-        </th>,
-      );
-
-      // Update the current column index
-      currentColumnIndex = startPosition + colSpan;
-    });
-
-    return headers;
-  };
-
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
         {/* Render dynamic headers based on resultMap */}
-        {groupHeaderColumns ? <tr>{renderDynamicHeaders()}</tr> : null}
+        {renderGroupingHeaders ? renderGroupingHeaders() : null}
         {headerGroups.map(headerGroup => {
           const { key: headerGroupKey, ...headerGroupProps } =
             headerGroup.getHeaderGroupProps();
