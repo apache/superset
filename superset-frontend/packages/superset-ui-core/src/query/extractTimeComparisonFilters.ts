@@ -54,7 +54,7 @@ const timeRangeLookup: [RegExp, any][] = [
     /^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$/i,
     (text: string) => text,
   ],
-  // any plain text should match above case
+  // any plain text should match the following case
   [/^.*$/i, (text: string) => `DATETIME('${text}')`],
 ];
 
