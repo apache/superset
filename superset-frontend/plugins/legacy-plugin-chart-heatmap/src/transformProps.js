@@ -58,14 +58,14 @@ export default function transformProps(chartProps) {
     coltypes[0] === GenericDataType.TEMPORAL
       ? getTimeFormatter(timeFormat)
       : coltypes[0] === GenericDataType.Numeric
-        ? Number
-        : String;
+      ? Number
+      : String;
   const yAxisFormatter =
     coltypes[1] === GenericDataType.TEMPORAL
       ? getTimeFormatter(timeFormat)
       : coltypes[1] === GenericDataType.Numeric
-        ? Number
-        : String;
+      ? Number
+      : String;
   return {
     width,
     height,
