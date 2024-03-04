@@ -9,6 +9,18 @@ build_push_deploy_prod() {
     DOCKERFILE="Dockerfile"
     BUILD_CONTEXT="."
 
+    #Git PULL
+
+    git pull origin master
+    # AWS details
+    AWS_ACCOUNT_ID="559615561845"
+    AWS_REGION="ap-south-1"
+    ECR_REPO_NAME="devops-scripts"    
+
+    #ECR LOGIN
+    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+    echo "ECR Login Succeeded"
+
     # Build Docker image
     docker build -t "${IMAGE_NAME}:${IMAGE_VERSION}" -f "${DOCKERFILE}" "${BUILD_CONTEXT}"
 
