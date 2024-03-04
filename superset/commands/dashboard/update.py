@@ -86,7 +86,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
         # Validate/Populate owner
         try:
-            owners = self.update_owner_list(
+            owners = self.update_owners(
                 self._model.owners,
                 owner_ids,
             )

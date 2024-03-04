@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.utils import populate_owners, update_owner_list
+from superset.commands.utils import populate_owner_list, update_owner_list
 
 
 class BaseCommand(ABC):
@@ -55,7 +55,7 @@ class CreateMixin:  # pylint: disable=too-few-public-methods
         :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
-        return populate_owners(owner_ids, default_to_user=True)
+        return populate_owner_list(owner_ids, default_to_user=True)
 
 
 class UpdateMixin:  # pylint: disable=too-few-public-methods
@@ -69,10 +69,10 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
         :raises OwnersNotFoundValidationError: if at least one owner can't be resolved
         :returns: Final list of owners
         """
-        return populate_owners(owner_ids, default_to_user=False)
+        return populate_owner_list(owner_ids, default_to_user=False)
 
     @staticmethod
-    def update_owner_list(
+    def update_owners(
         current_owners: Optional[list[User]],
         new_owners: Optional[list[int]],
     ) -> list[User]:

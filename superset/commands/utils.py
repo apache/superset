@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
 
 
-def populate_owners(
+def populate_owner_list(
     owner_ids: list[int] | None,
     default_to_user: bool,
 ) -> list[User]:
@@ -78,7 +78,7 @@ def update_owner_list(
     owners_ids = (
         [owner.id for owner in current_owners] if new_owners is None else new_owners
     )
-    return populate_owners(owners_ids, default_to_user=False)
+    return populate_owner_list(owners_ids, default_to_user=False)
 
 
 def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
