@@ -1358,7 +1358,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
+              value={currentAlert?.crontab || ''}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
