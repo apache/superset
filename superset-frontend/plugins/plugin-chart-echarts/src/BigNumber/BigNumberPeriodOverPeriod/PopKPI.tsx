@@ -79,6 +79,7 @@ export default function PopKPI(props: PopKPIProps) {
     align-items: center;
     height: ${height}px;
     width: ${width}px;
+    overflow: auto;
   `;
 
   const bigValueContainerStyles = css`
