@@ -62,7 +62,7 @@ def populate_owner_list(
     return owners
 
 
-def update_owner_list(
+def compute_owner_list(
     current_owners: list[User] | None,
     new_owners: list[int] | None,
 ) -> list[User]:

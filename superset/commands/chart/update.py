@@ -90,7 +90,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_ownership(self._model)
-                owners = self.update_owners(
+                owners = self.compute_owners(
                     self._model.owners,
                     owner_ids,
                 )

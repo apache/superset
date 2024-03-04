@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.commands.utils import populate_owner_list, update_owner_list, User
+from superset.commands.utils import compute_owner_list, populate_owner_list, User
 
 
 @patch("superset.commands.utils.g")
@@ -74,45 +74,45 @@ def test_populate_owner_list_non_admin(mock_user_id, mock_sm, mock_g):
 
 
 @patch("superset.commands.utils.populate_owner_list")
-def test_update_owner_list_new_owners(mock_populate_owner_list):
+def test_compute_owner_list_new_owners(mock_populate_owner_list):
     current_owners = [User(id=1), User(id=2), User(id=3)]
     new_owners = [4, 5, 6]
 
-    update_owner_list(current_owners, new_owners)
+    compute_owner_list(current_owners, new_owners)
     mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
 
 
 @patch("superset.commands.utils.populate_owner_list")
-def test_update_owner_list_no_new_owners(mock_populate_owner_list):
+def test_compute_owner_list_no_new_owners(mock_populate_owner_list):
     current_owners = [User(id=1), User(id=2), User(id=3)]
     new_owners = None
 
-    update_owner_list(current_owners, new_owners)
+    compute_owner_list(current_owners, new_owners)
     mock_populate_owner_list.assert_called_once_with([1, 2, 3], default_to_user=False)
 
 
 @patch("superset.commands.utils.populate_owner_list")
-def test_update_owner_list_new_owner_empty_list(mock_populate_owner_list):
+def test_compute_owner_list_new_owner_empty_list(mock_populate_owner_list):
     current_owners = [User(id=1), User(id=2), User(id=3)]
     new_owners = []
 
-    update_owner_list(current_owners, new_owners)
+    compute_owner_list(current_owners, new_owners)
     mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
 
 
 @patch("superset.commands.utils.populate_owner_list")
-def test_update_owner_list_no_owners(mock_populate_owner_list):
+def test_compute_owner_list_no_owners(mock_populate_owner_list):
     current_owners = []
     new_owners = [4, 5, 6]
 
-    update_owner_list(current_owners, new_owners)
+    compute_owner_list(current_owners, new_owners)
     mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)
 
 
 @patch("superset.commands.utils.populate_owner_list")
-def test_update_owner_list_no_owners_handle_none(mock_populate_owner_list):
+def test_compute_owner_list_no_owners_handle_none(mock_populate_owner_list):
     current_owners = None
     new_owners = [4, 5, 6]
 
-    update_owner_list(current_owners, new_owners)
+    compute_owner_list(current_owners, new_owners)
     mock_populate_owner_list.assert_called_once_with(new_owners, default_to_user=False)

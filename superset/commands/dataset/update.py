@@ -100,7 +100,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(DatabaseChangeValidationError())
         # Validate/Populate owner
         try:
-            owners = self.update_owners(
+            owners = self.compute_owners(
                 self._model.owners,
                 owner_ids,
             )

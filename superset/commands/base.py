@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import User
 
-from superset.commands.utils import populate_owner_list, update_owner_list
+from superset.commands.utils import compute_owner_list, populate_owner_list
 
 
 class BaseCommand(ABC):
@@ -72,7 +72,7 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
         return populate_owner_list(owner_ids, default_to_user=False)
 
     @staticmethod
-    def update_owners(
+    def compute_owners(
         current_owners: Optional[list[User]],
         new_owners: Optional[list[int]],
     ) -> list[User]:
@@ -83,4 +83,4 @@ class UpdateMixin:  # pylint: disable=too-few-public-methods
         :param new_owners: list of new owners specified in the update payload
         :returns: Final list of owners
         """
-        return update_owner_list(current_owners, new_owners)
+        return compute_owner_list(current_owners, new_owners)
