@@ -80,6 +80,7 @@ assists people when migrating to a new version.
 ### Potential Downtime
 
 - [26416](https://github.com/apache/superset/pull/26416): Adds two database indexes to the `report_execution_log` table and one database index to the `report_recipient` to improve performance. Scheduled downtime may be required for large deployments.
+- [27392](https://github.com/apache/superset/pull/27392): adds sql_editor_id index to query to improve performance, this may cause downtime on large deployments.
 
 ## 3.1.0
 
