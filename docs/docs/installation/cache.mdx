@@ -108,7 +108,7 @@ An example config where images are stored on S3 could be:
 
 ```python
 from flask import Flask
-from s3cache.s3cache import S3Cache
+from s3cache import S3Cache
 
 ...
 
@@ -125,11 +125,11 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 
-def init_thumbnail_cache(app: Flask) -> S3Cache:
+def init_thumbnail_cache(app: Flask, config, cache_args, cache_options) -> S3Cache:
     return S3Cache("bucket_name", 'thumbs_cache/')
 
 
-THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
+THUMBNAIL_CACHE_CONFIG = {'CACHE_TYPE': 'superset_config.init_thumbnail_cache'}
 # Async selenium thumbnail task will use the following user
 THUMBNAIL_SELENIUM_USER = "Admin"
 ```
