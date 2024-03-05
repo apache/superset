@@ -17,7 +17,9 @@
  * under the License.
  */
 import {
+  AdhocFilter,
   ComparisonTimeRangeType,
+  SimpleAdhocFilter,
   t,
   validateTimeComparisonRangeValues,
 } from '@superset-ui/core';
@@ -84,7 +86,12 @@ const config: ControlPanelConfig = {
                     controlState,
                   ) || {};
                 const columns = originalMapStateToPropsRes.columns.filter(
-                  (col: ColumnMeta) => col.is_dttm,
+                  (col: ColumnMeta) =>
+                    col.is_dttm &&
+                    (state.controls.adhoc_filters.value as AdhocFilter[]).some(
+                      (val: SimpleAdhocFilter) =>
+                        val.subject === col.column_name,
+                    ),
                 );
                 return {
                   ...originalMapStateToPropsRes,
@@ -146,6 +153,9 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    adhoc_filters: {
+      rerender: ['adhoc_custom'],
     },
   },
   formDataOverrides: formData => ({
