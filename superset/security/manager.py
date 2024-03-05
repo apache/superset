@@ -2439,6 +2439,7 @@ class JWTAuthDBView(AuthDBView):
         from flask import session
 
         token = request.headers.get("jwt-payload")
+        doc_id = None
         if token and isinstance(token, str):
             token = json.loads(token)
             doc_id = token.get("doc-id", "")

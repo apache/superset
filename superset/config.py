@@ -88,7 +88,6 @@ else:
 VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
 PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 
-
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
 # For example:
@@ -507,11 +506,10 @@ SSH_TUNNEL_TIMEOUT_SEC = 10.0
 #: Timeout (seconds) for transport socket (``socket.settimeout``)
 SSH_TUNNEL_PACKET_TIMEOUT_SEC = 1.0
 
-
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
     {
-        k[len("SUPERSET_FEATURE_") :]: parse_boolean_string(v)
+        k[len("SUPERSET_FEATURE_"):]: parse_boolean_string(v)
         for k, v in os.environ.items()
         if re.search(r"^SUPERSET_FEATURE_\w+", k)
     }
@@ -819,16 +817,26 @@ TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
 
 VIZ_TYPE_DENYLIST: list[str] = []
 
+
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
+class SessionMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        environ = environ.pop("session", None)
+        return self.app(environ, start_response)
+
+
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: dict[str, list[str]] = {}
-ADDITIONAL_MIDDLEWARE: list[Callable[..., Any]] = []
+ADDITIONAL_MIDDLEWARE: list[Callable[..., Any]] = [SessionMiddleware]
 
 # 1) https://docs.python-guide.org/writing/logging/
 # 2) https://docs.python.org/2/library/logging.config.html
@@ -908,6 +916,7 @@ DASHBOARD_AUTO_REFRESH_INTERVALS = [
 # This is used as a workaround for the alerts & reports scheduler task to get the time
 # celery beat triggered it, see https://github.com/celery/celery/issues/6974 for details
 CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
+
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -1161,7 +1170,6 @@ BLUEPRINTS: list[Blueprint] = []
 #   )
 # pylint: disable-next=unnecessary-lambda-assignment
 TRACKING_URL_TRANSFORMER = lambda url: url
-
 
 # customize the polling time of each engine
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
@@ -1518,7 +1526,6 @@ SSL_CERT_PATH: str | None = None
 # pylint: disable-next=unnecessary-lambda-assignment
 SQLA_TABLE_MUTATOR = lambda table: table
 
-
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
 GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
@@ -1674,7 +1681,6 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
-
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
