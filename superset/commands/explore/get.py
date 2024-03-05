@@ -21,7 +21,7 @@ from typing import Any, cast, Optional
 
 import simplejson as json
 from flask import request
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
