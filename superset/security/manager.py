@@ -2433,6 +2433,7 @@ class JWTAuthDBView(AuthDBView):
     jwt_email = ""
     jwt_role = "Gamma"
 
+    @current_app.before_request
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
