@@ -1365,7 +1365,7 @@ def get_username() -> str | None:
         return None
 
 
-def get_static_user() -> str | None:
+def get_doc_id() -> str | None:
     """
     Get/print username (if defined) associated with the current user.
 
@@ -1374,7 +1374,7 @@ def get_static_user() -> str | None:
 
     try:
         print("=======user__dict=======", g.user.__dict__)
-        return g.user.username
+        return g.user.email.split("@")[0]
     except Exception:  # pylint: disable=broad-except
         return None
 

@@ -2436,6 +2436,7 @@ class JWTAuthDBView(AuthDBView):
     @expose('/login/', methods=['GET', 'POST'])
     def login(self):
         from superset import db
+        from flask import session
 
         token = request.headers.get("jwt-payload")
         if token and isinstance(token, str):
@@ -2471,6 +2472,9 @@ class JWTAuthDBView(AuthDBView):
                 # return "Logging in from JWTSecurityManager"
             else:
                 login_user(user)
+            session.pop("_user_id")
+            session.pop("_fresh")
+            session.pop("_id")
             return redirect("/")
         else:
             print("=====token not found; prompt for=====")
