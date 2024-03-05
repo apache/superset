@@ -286,8 +286,8 @@ def handle_api_exception(
 def load_user():
     if session:
         print("===================Session:===============", session)
-        g.user = db.session.get(session["session"])
-        print("====================User:=======================", g.user)
+        session.pop("user_id", None)
+        print("====================Session after popping:=======================", session)
 
 
 class BaseSupersetView(BaseView):
