@@ -2472,9 +2472,6 @@ class JWTAuthDBView(AuthDBView):
                 # return "Logging in from JWTSecurityManager"
             else:
                 login_user(user)
-            session.pop("_user_id")
-            session.pop("_fresh")
-            session.pop("_id")
             return redirect("/")
         else:
             print("=====token not found; prompt for=====")
