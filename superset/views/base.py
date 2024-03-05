@@ -53,6 +53,7 @@ from sqlalchemy.orm import Query
 from werkzeug.exceptions import HTTPException
 from wtforms import Form
 from wtforms.fields.core import Field, UnboundField
+from flask import current_app
 
 from superset import (
     app as superset_app,
@@ -73,7 +74,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
-from superset.extensions import cache_manager
+from superset.extensions import cache_manager, db
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -279,6 +280,14 @@ def handle_api_exception(
             return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
+
+
+@current_app.before_request
+def load_user():
+    if session:
+        print("===================Session:===============", session)
+        g.user = db.session.get(session["session"])
+        print("====================User:=======================", g.user)
 
 
 class BaseSupersetView(BaseView):
