@@ -58,9 +58,8 @@ const timeRangeLookup: [RegExp, any][] = [
   [/^.*$/i, (text: string) => `DATETIME('${text}')`],
 ];
 
-export const getShiftedTimeRange = (
+export const getSinceAndUntil = (
   timeRange: string,
-  timeShiftType: ComparisonTimeRangeType,
   start = 'today',
   end = 'today',
 ) => {
@@ -86,25 +85,36 @@ export const getShiftedTimeRange = (
         const args = ensureIsArray(token.match(matchedPattern[0]));
         return matchedPattern[1](...args);
       });
-
-    let unit = 'DAY';
-    let delta = '-1';
-    if (timeShiftType === ComparisonTimeRangeType.Year) {
-      unit = 'YEAR';
-    }
-    if (timeShiftType === ComparisonTimeRangeType.Month) {
-      unit = 'MONTH';
-    }
-    if (timeShiftType === ComparisonTimeRangeType.Week) {
-      unit = 'WEEK';
-    }
-    if (timeShiftType === ComparisonTimeRangeType.InheritedRange) {
-      delta = `DATEDIFF(${until}, ${since})`;
-    }
-    return `DATEADD(${since}, ${delta}, ${unit})${separator}DATEADD(${until}, ${delta}, ${unit})`;
+    return [since, until];
   }
+  return [];
+};
 
-  return _timeRange;
+export const getShiftedTimeRange = (
+  timeRange: string,
+  timeShiftType: ComparisonTimeRangeType,
+  start = 'today',
+  end = 'today',
+) => {
+  const [since, until] = getSinceAndUntil(timeRange, start, end);
+  if (!since && !until) {
+    return timeRange;
+  }
+  let unit = 'DAY';
+  let delta = '-1';
+  if (timeShiftType === ComparisonTimeRangeType.Year) {
+    unit = 'YEAR';
+  }
+  if (timeShiftType === ComparisonTimeRangeType.Month) {
+    unit = 'MONTH';
+  }
+  if (timeShiftType === ComparisonTimeRangeType.Week) {
+    unit = 'WEEK';
+  }
+  if (timeShiftType === ComparisonTimeRangeType.InheritedRange) {
+    delta = `DATEDIFF(${until}, ${since})`;
+  }
+  return `DATEADD(${since}, ${delta}, ${unit})${separator}DATEADD(${until}, ${delta}, ${unit})`;
 };
 
 export const getTimeComparisonFiltersByQueryObject = (
