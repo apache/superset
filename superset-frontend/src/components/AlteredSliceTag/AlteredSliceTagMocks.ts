@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import { ControlPanelConfig } from 'packages/superset-ui-chart-controls/src/types';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 import { DiffType, RowType } from './index';
 
 export const defaultProps: Record<string, Partial<QueryFormData>> = {
