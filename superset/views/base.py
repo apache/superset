@@ -286,7 +286,7 @@ def handle_api_exception(
 def load_user():
     if session:
         print("===================Session:===============", session)
-        session.pop("user_id", None)
+        session.pop("_user_id", None)
         print("====================Session after popping:=======================", session)
 
 
