@@ -17,11 +17,14 @@
  * under the License.
  */
 import {
+  AdhocFilter,
   ComparisonTimeRangeType,
+  SimpleAdhocFilter,
   t,
   validateTimeComparisonRangeValues,
 } from '@superset-ui/core';
 import {
+  ColumnMeta,
   ControlPanelConfig,
   ControlPanelState,
   ControlState,
@@ -76,16 +79,29 @@ const config: ControlPanelConfig = {
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
-              ) => ({
-                ...(sharedControls.adhoc_filters.mapStateToProps?.(
-                  state,
-                  controlState,
-                ) || {}),
-                externalValidationErrors: validateTimeComparisonRangeValues(
-                  state.controls?.time_comparison?.value,
-                  controlState.value,
-                ),
-              }),
+              ) => {
+                const originalMapStateToPropsRes =
+                  sharedControls.adhoc_filters.mapStateToProps?.(
+                    state,
+                    controlState,
+                  ) || {};
+                const columns = originalMapStateToPropsRes.columns.filter(
+                  (col: ColumnMeta) =>
+                    col.is_dttm &&
+                    (state.controls.adhoc_filters.value as AdhocFilter[]).some(
+                      (val: SimpleAdhocFilter) =>
+                        val.subject === col.column_name,
+                    ),
+                );
+                return {
+                  ...originalMapStateToPropsRes,
+                  columns,
+                  externalValidationErrors: validateTimeComparisonRangeValues(
+                    state.controls?.time_comparison?.value,
+                    controlState.value,
+                  ),
+                };
+              },
             },
           },
         ],
@@ -137,6 +153,9 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    adhoc_filters: {
+      rerender: ['adhoc_custom'],
     },
   },
   formDataOverrides: formData => ({
