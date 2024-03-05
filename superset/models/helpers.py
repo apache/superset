@@ -1070,7 +1070,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        logger.info(f"{__name__} - get_rendered_sql: Stripping comments from SQL")
         sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
         if not sql:
             raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
