@@ -282,12 +282,12 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-@current_app.before_request
-def load_user():
-    if session:
-        print("===================Session:===============", session)
-        session["sessionID"] = ""
-        print("====================Session after popping:=======================", session)
+# @current_app.before_request
+# def load_user():
+#     if session:
+#         print("===================Session:===============", session)
+#         session["sessionID"] = ""
+#         print("====================Session after popping:=======================", session)
 
 
 class BaseSupersetView(BaseView):
