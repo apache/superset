@@ -296,12 +296,12 @@ def check_sess_token():
         session_user_id = session.get("_user_id", "")
         if session_user_id:
             session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
-            print("===============Before Request Session User=========", session_user)
             session_user_username = session_user.username
+            print("===============Before Request Session User=========", session_user_username)
 
         token_user_username = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
-        print("===============Before Request TOken User=========", token_user)
+        print("===============Before Request TOken User=========", token_user_username)
         if token_user_username != session_user_username:
             login_user(token_user)
             print("=========Before Request Session After Login=========", session)
