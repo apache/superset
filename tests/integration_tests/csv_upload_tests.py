@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import shutil
-from typing import Dict, Optional
+from typing import Optional, Union
 
 from unittest import mock
 
@@ -129,9 +129,13 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
+def upload_csv(
+    filename: str,
+    table_name: str,
+    extra: Optional[dict[str, str]] = None,
+    dtype: Union[str, None] = None,
+):
     csv_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "csv_file": open(filename, "rb"),
         "delimiter": ",",
@@ -141,18 +145,19 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
         "index_label": "test_label",
         "overwrite_duplicate": False,
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
+    if dtype:
+        form_data["dtype"] = dtype
     return get_resp(test_client, "/csvtodatabaseview/form", data=form_data)
 
 
 def upload_excel(
-    filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    filename: str, table_name: str, extra: Optional[dict[str, str]] = None
 ):
     excel_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
@@ -160,9 +165,8 @@ def upload_excel(
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
-        "mangle_dupe_cols": False,
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
@@ -170,10 +174,9 @@ def upload_excel(
 
 
 def upload_columnar(
-    filename: str, table_name: str, extra: Optional[Dict[str, str]] = None
+    filename: str, table_name: str, extra: Optional[dict[str, str]] = None
 ):
     columnar_upload_db_id = get_upload_db().id
-    schema = utils.get_example_default_schema()
     form_data = {
         "columnar_file": open(filename, "rb"),
         "name": table_name,
@@ -181,7 +184,7 @@ def upload_columnar(
         "if_exists": "fail",
         "index_label": "test_label",
     }
-    if schema:
+    if schema := utils.get_example_default_schema():
         form_data["schema"] = schema
     if extra:
         form_data.update(extra)
@@ -200,7 +203,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     # only needed for the hive tests
     import docker
 
-    client = docker.from_env()
+    client = docker.from_env()  # type: ignore
     container = client.containers.get("namenode")
     # docker mounted volume that contains csv uploads
     src = os.path.join("/tmp/superset_uploads", os.path.basename(filename))
@@ -214,7 +217,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
 
 
 def escaped_double_quotes(text):
-    return f"\&#34;{text}\&#34;"
+    return rf"\&#34;{text}\&#34;"
 
 
 def escaped_parquet(text):
@@ -232,6 +235,9 @@ def escaped_parquet(text):
 def test_import_csv_enforced_schema(mock_event_logger):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
+
+    if utils.backend() == "mysql":
+        pytest.skip("This test is flaky on MySQL")
 
     full_table_name = f"admin_database.{CSV_UPLOAD_TABLE_W_SCHEMA}"
 
@@ -264,7 +270,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
 
     with get_upload_db().get_sqla_engine_with_context() as engine:
         data = engine.execute(
-            f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA}"
+            f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA} ORDER BY b"
         ).fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
@@ -375,13 +381,46 @@ def test_import_csv(mock_event_logger):
     )
     # make sure that john and empty string are replaced with None
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [(None, 1, "x"), ("paul", 2, None)]
         # default null values
         upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
         # make sure that john and empty string are replaced with None
-        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [("john", 1, "x"), ("paul", 2, None)]
+
+    # cleanup
+    with get_upload_db().get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
+
+    # with dtype
+    upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE,
+        dtype='{"a": "string", "b": "float64"}',
+    )
+
+    # you can change the type to something compatible, like an object to string
+    # or an int to a float
+    # file upload should work as normal
+    with test_db.get_sqla_engine_with_context() as engine:
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY b").fetchall()
+        assert data == [("john", 1), ("paul", 2)]
+
+    # cleanup
+    with get_upload_db().get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
+
+    # with dtype - wrong type
+    resp = upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE,
+        dtype='{"a": "int"}',
+    )
+
+    # you cannot pass an incompatible dtype
+    fail_msg = f"Unable to upload CSV file {escaped_double_quotes(CSV_FILENAME1)} to table {escaped_double_quotes(CSV_UPLOAD_TABLE)}"
+    assert fail_msg in resp
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
@@ -437,7 +476,9 @@ def test_import_excel(mock_event_logger):
     )
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {EXCEL_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(
+            f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [(0, "john", 1), (1, "paul", 2)]
 
 
@@ -501,7 +542,9 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f1 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
     # replace table with zip file
@@ -512,5 +555,7 @@ def test_import_parquet(mock_event_logger):
     assert success_msg_f2 in resp
 
     with test_db.get_sqla_engine_with_context() as engine:
-        data = engine.execute(f"SELECT * from {PARQUET_UPLOAD_TABLE}").fetchall()
+        data = engine.execute(
+            f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
+        ).fetchall()
         assert data == [("john", 1), ("paul", 2), ("max", 3), ("bob", 4)]

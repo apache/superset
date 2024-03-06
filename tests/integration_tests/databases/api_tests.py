@@ -23,11 +23,12 @@ from io import BytesIO
 from unittest import mock
 from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
-from operator import itemgetter
 
 import prison
 import pytest
 import yaml
+
+from unittest.mock import Mock
 
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError
@@ -52,7 +53,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.certificates import ssl_certificate
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_with_slice,
     load_energy_table_data,
@@ -66,6 +66,11 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     database_metadata_config,
     dataset_metadata_config,
+    database_with_ssh_tunnel_config_password,
+    database_with_ssh_tunnel_config_private_key,
+    database_with_ssh_tunnel_config_mix_credentials,
+    database_with_ssh_tunnel_config_no_credentials,
+    database_with_ssh_tunnel_config_private_pass_only,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,
@@ -192,6 +197,7 @@ class TestDatabaseApi(SupersetTestCase):
             "allows_subquery",
             "allows_virtual_table_explore",
             "backend",
+            "changed_by",
             "changed_on",
             "changed_on_delta_humanized",
             "created_by",
@@ -283,9 +289,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -331,10 +337,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -392,10 +398,10 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
-    @mock.patch("superset.databases.commands.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -472,12 +478,12 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     def test_cascade_delete_ssh_tunnel(
         self,
         mock_test_connection_database_command_run,
@@ -526,20 +532,22 @@ class TestDatabaseApi(SupersetTestCase):
         assert model_ssh_tunnel is None
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
+    @mock.patch("superset.extensions.db.session.rollback")
     def test_do_not_create_database_if_ssh_tunnel_creation_fails(
         self,
+        mock_rollback,
         mock_test_connection_database_command_run,
         mock_create_is_feature_enabled,
         mock_get_all_schema_names,
     ):
         """
-        Database API: Test Database is not created if SSH Tunnel creation fails
+        Database API: Test rollback is called if SSH Tunnel creation fails
         """
         mock_create_is_feature_enabled.return_value = True
         self.login(username="admin")
@@ -560,6 +568,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
+
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == response.get("id"))
@@ -567,19 +576,14 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert model_ssh_tunnel is None
         self.assertEqual(response, fail_message)
-        # Cleanup
-        model = (
-            db.session.query(Database)
-            .filter(Database.database_name == "test-db-failure-ssh-tunnel")
-            .one_or_none()
-        )
-        # the DB should not be created
-        assert model is None
+
+        # Check that rollback was called
+        mock_rollback.assert_called()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
-    @mock.patch("superset.databases.commands.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
@@ -632,7 +636,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -681,6 +685,22 @@ class TestDatabaseApi(SupersetTestCase):
         # the DB should not be created
         assert model is None
 
+    def test_get_table_details_with_slash_in_table_name(self):
+        table_name = "table_with/slash"
+        database = get_example_database()
+        query = f'CREATE TABLE IF NOT EXISTS "{table_name}" (col VARCHAR(256))'
+        if database.backend == "mysql":
+            query = query.replace('"', "`")
+
+        with database.get_sqla_engine_with_context() as engine:
+            engine.execute(query)
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
+        rv = self.client.get(uri)
+
+        self.assertEqual(rv.status_code, 200)
+
     def test_create_database_invalid_configuration_method(self):
         """
         Database API: Test create with an invalid configuration method.
@@ -708,7 +728,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+            "message": {
+                "configuration_method": [
+                    "Must be one of: sqlalchemy_form, dynamic_form."
+                ]
+            }
         }
         assert rv.status_code == 400
 
@@ -884,9 +908,9 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.views.core.app.config",
         {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
     )
-    def test_create_database_fail_sqllite(self):
+    def test_create_database_fail_sqlite(self):
         """
-        Database API: Test create fail with sqllite
+        Database API: Test create fail with sqlite
         """
         database_data = {
             "database_name": "test-create-sqlite-database",
@@ -1110,7 +1134,11 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
-            "message": {"configuration_method": ["Invalid enum value BAD_FORM"]}
+            "message": {
+                "configuration_method": [
+                    "Must be one of: sqlalchemy_form, dynamic_form."
+                ]
+            }
         }
         assert rv.status_code == 400
 
@@ -1337,12 +1365,11 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star with datasource access
         """
-        session = db.session
         table = SqlaTable(
             schema="main", table_name="ab_permission", database=get_main_database()
         )
-        session.add(table)
-        session.commit()
+        db.session.add(table)
+        db.session.commit()
 
         tmp_table_perm = security_manager.find_permission_view_menu(
             "datasource_access", table.get_perm()
@@ -1378,7 +1405,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         example_db = get_example_database()
-        # sqllite will not raise a NoSuchTableError
+        # sqlite will not raise a NoSuchTableError
         if example_db.backend == "sqlite":
             return
         uri = f"api/v1/database/{example_db.id}/select_star/table_does_not_exist/"
@@ -1704,15 +1731,14 @@ class TestDatabaseApi(SupersetTestCase):
         with self.create_app().app_context():
             main_db = get_main_database()
             main_db.allow_file_upload = True
-            session = db.session
             table = SqlaTable(
                 schema="public",
                 table_name="ab_permission",
                 database=get_main_database(),
             )
 
-            session.add(table)
-            session.commit()
+            db.session.add(table)
+            db.session.commit()
             tmp_table_perm = security_manager.find_permission_view_menu(
                 "datasource_access", table.get_perm()
             )
@@ -1800,10 +1826,10 @@ class TestDatabaseApi(SupersetTestCase):
             schemas = [
                 s[0] for s in database.get_all_table_names_in_schema(schema_name)
             ]
-            self.assertEquals(response["count"], len(schemas))
+            self.assertEqual(response["count"], len(schemas))
             for option in response["result"]:
-                self.assertEquals(option["extra"], None)
-                self.assertEquals(option["type"], "table")
+                self.assertEqual(option["extra"], None)
+                self.assertEqual(option["type"], "table")
                 self.assertTrue(option["value"] in schemas)
 
     def test_database_tables_not_found(self):
@@ -1976,10 +2002,10 @@ class TestDatabaseApi(SupersetTestCase):
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @mock.patch(
-        "superset.databases.commands.test_connection.DatabaseDAO.build_db_for_connection_test",
+        "superset.commands.database.test_connection.DatabaseDAO.build_db_for_connection_test",
     )
     @mock.patch(
-        "superset.databases.commands.test_connection.event_logger",
+        "superset.commands.database.test_connection.event_logger",
     )
     def test_test_connection_failed_invalid_hostname(
         self, mock_event_logger, mock_build_db
@@ -2045,7 +2071,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response["charts"]["count"], 34)
+        self.assertEqual(response["charts"]["count"], 33)
         self.assertEqual(response["dashboards"]["count"], 3)
 
     def test_get_database_related_objects_not_found(self):
@@ -2132,7 +2158,6 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
@@ -2203,7 +2228,6 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
-        dataset.owners = []
         db.session.delete(dataset)
         db.session.commit()
         db.session.delete(database)
@@ -2361,12 +2385,455 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with masked password
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_password.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": ["Must provide a password for the ssh tunnel"]
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_password_provided(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with masked password provided
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_password.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "ssh_tunnel_passwords": json.dumps(
+                {"databases/imported_database.yaml": "TEST"}
+            ),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database.id)
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.password, "TEST")
+        db.session.delete(database)
+        db.session.commit()
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_private_key_and_password(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with masked private_key
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": [
+                                "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",
+                            ]
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_private_key_and_password_provided(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with masked password provided
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "ssh_tunnel_private_keys": json.dumps(
+                {"databases/imported_database.yaml": "TestPrivateKey"}
+            ),
+            "ssh_tunnel_private_key_passwords": json.dumps(
+                {"databases/imported_database.yaml": "TEST"}
+            ),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database.id)
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.private_key, "TestPrivateKey")
+        self.assertEqual(model_ssh_tunnel.private_key_password, "TEST")
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_database_masked_ssh_tunnel_feature_flag_disabled(self):
+        """
+        Database API: Test import database with ssh_tunnel and feature flag disabled
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert response == {
+            "errors": [
+                {
+                    "message": "SSH Tunneling is not enabled",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_no_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_no_credentials.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Must provide credentials for the SSH Tunnel",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_mix_credentials(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = database_with_ssh_tunnel_config_mix_credentials.copy()
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Cannot have multiple credentials for the SSH Tunnel",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    @mock.patch("superset.databases.schemas.is_feature_enabled")
+    def test_import_database_masked_ssh_tunnel_feature_only_pk_passwd(
+        self, mock_schema_is_feature_enabled
+    ):
+        """
+        Database API: Test import database with ssh_tunnel that has no credentials
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+        mock_schema_is_feature_enabled.return_value = True
+
+        masked_database_config = (
+            database_with_ssh_tunnel_config_private_pass_only.copy()
+        )
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": [
+                                "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",
+                            ]
+                        },
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
     @mock.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",
     )
     def test_function_names(self, mock_get_function_names):
         example_db = get_example_database()
-        if example_db.backend in {"hive", "presto"}:
+        if example_db.backend in {"hive", "presto", "sqlite"}:
             return
 
         mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
@@ -2379,6 +2846,136 @@ class TestDatabaseApi(SupersetTestCase):
 
         assert rv.status_code == 200
         assert response == {"function_names": ["AVG", "MAX", "SUM"]}
+
+    def test_function_names_sqlite(self):
+        example_db = get_example_database()
+        if example_db.backend != "sqlite":
+            return
+
+        self.login(username="admin")
+        uri = "api/v1/database/1/function_names/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {
+            "function_names": [
+                "abs",
+                "acos",
+                "acosh",
+                "asin",
+                "asinh",
+                "atan",
+                "atan2",
+                "atanh",
+                "avg",
+                "ceil",
+                "ceiling",
+                "changes",
+                "char",
+                "coalesce",
+                "cos",
+                "cosh",
+                "count",
+                "cume_dist",
+                "date",
+                "datetime",
+                "degrees",
+                "dense_rank",
+                "exp",
+                "first_value",
+                "floor",
+                "format",
+                "glob",
+                "group_concat",
+                "hex",
+                "ifnull",
+                "iif",
+                "instr",
+                "json",
+                "json_array",
+                "json_array_length",
+                "json_each",
+                "json_error_position",
+                "json_extract",
+                "json_group_array",
+                "json_group_object",
+                "json_insert",
+                "json_object",
+                "json_patch",
+                "json_quote",
+                "json_remove",
+                "json_replace",
+                "json_set",
+                "json_tree",
+                "json_type",
+                "json_valid",
+                "julianday",
+                "lag",
+                "last_insert_rowid",
+                "last_value",
+                "lead",
+                "length",
+                "like",
+                "likelihood",
+                "likely",
+                "ln",
+                "load_extension",
+                "log",
+                "log10",
+                "log2",
+                "lower",
+                "ltrim",
+                "max",
+                "min",
+                "mod",
+                "nth_value",
+                "ntile",
+                "nullif",
+                "percent_rank",
+                "pi",
+                "pow",
+                "power",
+                "printf",
+                "quote",
+                "radians",
+                "random",
+                "randomblob",
+                "rank",
+                "replace",
+                "round",
+                "row_number",
+                "rtrim",
+                "sign",
+                "sin",
+                "sinh",
+                "soundex",
+                "sqlite_compileoption_get",
+                "sqlite_compileoption_used",
+                "sqlite_offset",
+                "sqlite_source_id",
+                "sqlite_version",
+                "sqrt",
+                "strftime",
+                "substr",
+                "substring",
+                "sum",
+                "tan",
+                "tanh",
+                "time",
+                "total_changes",
+                "trim",
+                "trunc",
+                "typeof",
+                "unhex",
+                "unicode",
+                "unixepoch",
+                "unlikely",
+                "upper",
+                "zeroblob",
+            ]
+        }
 
     @mock.patch("superset.databases.api.get_available_engine_specs")
     @mock.patch("superset.databases.api.app")
@@ -2427,7 +3024,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2436,6 +3032,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
@@ -2502,7 +3102,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2511,6 +3110,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
@@ -2547,7 +3150,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
-                        "supports_file_upload": False,
+                        "supports_file_upload": True,
                         "disable_ssh_tunneling": True,
                     },
                 },
@@ -2577,7 +3180,6 @@ class TestDatabaseApi(SupersetTestCase):
                             },
                             "port": {
                                 "description": "Database port",
-                                "format": "int32",
                                 "maximum": 65536,
                                 "minimum": 0,
                                 "type": "integer",
@@ -2586,6 +3188,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "additionalProperties": {},
                                 "description": "Additional parameters",
                                 "type": "object",
+                            },
+                            "ssh": {
+                                "description": "Use an ssh tunnel connection to the database",
+                                "type": "boolean",
                             },
                             "username": {
                                 "description": "Username",
@@ -2608,6 +3214,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -2639,6 +3246,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "preferred": True,
+                    "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -2649,6 +3257,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
                         "disable_ssh_tunneling": False,
@@ -3136,7 +3745,7 @@ class TestDatabaseApi(SupersetTestCase):
             },
         )
 
-    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch("superset.commands.database.validate_sql.get_validator_by_name")
     @patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         PRESTO_SQL_VALIDATORS_BY_ENGINE,
@@ -3171,3 +3780,94 @@ class TestDatabaseApi(SupersetTestCase):
             return
         self.assertEqual(rv.status_code, 422)
         self.assertIn("Kaboom!", response["errors"][0]["message"])
+
+    def test_get_databases_with_extra_filters(self):
+        """
+        API: Test get database with extra query filter.
+        Here we are testing our default where all databases
+        must be returned if nothing is being set in the config.
+        Then, we're adding the patch for the config to add the filter function
+        and testing it's being applied.
+        """
+        self.login(username="admin")
+        extra = {
+            "metadata_params": {},
+            "engine_params": {},
+            "metadata_cache_timeout": {},
+            "schemas_allowed_for_file_upload": [],
+        }
+        example_db = get_example_database()
+
+        if example_db.backend == "sqlite":
+            return
+        # Create our two databases
+        database_data = {
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
+            "server_cert": None,
+            "extra": json.dumps(extra),
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(
+            uri, json={**database_data, "database_name": "dyntest-create-database-1"}
+        )
+        first_response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        uri = "api/v1/database/"
+        rv = self.client.post(
+            uri, json={**database_data, "database_name": "create-database-2"}
+        )
+        second_response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        # The filter function
+        def _base_filter(query):
+            from superset.models.core import Database
+
+            return query.filter(Database.database_name.startswith("dyntest"))
+
+        # Create the Mock
+        base_filter_mock = Mock(side_effect=_base_filter)
+        dbs = db.session.query(Database).all()
+        expected_names = [db.database_name for db in dbs]
+        expected_names.sort()
+
+        uri = f"api/v1/database/"
+        # Get the list of databases without filter in the config
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        # All databases must be returned if no filter is present
+        self.assertEqual(data["count"], len(dbs))
+        database_names = [item["database_name"] for item in data["result"]]
+        database_names.sort()
+        # All Databases because we are an admin
+        self.assertEqual(database_names, expected_names)
+        assert rv.status_code == 200
+        # Our filter function wasn't get called
+        base_filter_mock.assert_not_called()
+
+        # Now we patch the config to include our filter function
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_DYNAMIC_QUERY_FILTERS": {"databases": base_filter_mock}},
+        ):
+            uri = f"api/v1/database/"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            # Only one database start with dyntest
+            self.assertEqual(data["count"], 1)
+            database_names = [item["database_name"] for item in data["result"]]
+            # Only the database that starts with tests, even if we are an admin
+            self.assertEqual(database_names, ["dyntest-create-database-1"])
+            assert rv.status_code == 200
+            # The filter function is called now that it's defined in our config
+            base_filter_mock.assert_called()
+
+        # Cleanup
+        first_model = db.session.query(Database).get(first_response.get("id"))
+        second_model = db.session.query(Database).get(second_response.get("id"))
+        db.session.delete(first_model)
+        db.session.delete(second_model)
+        db.session.commit()

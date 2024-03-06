@@ -17,10 +17,8 @@
  * under the License.
  */
 import RadioButtonControl from './RadioButtonControl';
-import ColumnConfigControl from './ColumnConfigControl';
 
 export * from './RadioButtonControl';
-export * from './ColumnConfigControl';
 
 /**
  * Shared chart controls. Can be referred via string shortcuts in chart control
@@ -28,5 +26,4 @@ export * from './ColumnConfigControl';
  */
 export default {
   RadioButtonControl,
-  ColumnConfigControl,
 };

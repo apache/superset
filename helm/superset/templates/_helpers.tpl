@@ -16,12 +16,13 @@
  limitations under the License.
 
 */}}
+
 {{/* vim: set filetype=mustache: */}}
 {{/*
 Expand the name of the chart.
 */}}
 {{- define "superset.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+  {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -30,78 +31,91 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 If release name contains chart name it will be used as a full name.
 */}}
 {{- define "superset.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
+  {{- if .Values.fullnameOverride -}}
+    {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+  {{- else -}}
+    {{- $name := default .Chart.Name .Values.nameOverride -}}
+    {{- if contains $name .Release.Name -}}
+      {{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+    {{- else -}}
+      {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
 {{- define "superset.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-{{- default (include "superset.fullname" .) .Values.serviceAccountName -}}
-{{- else -}}
-{{- default "default" .Values.serviceAccountName -}}
-{{- end -}}
+  {{- if .Values.serviceAccount.create -}}
+    {{- default (include "superset.fullname" .) .Values.serviceAccountName -}}
+  {{- else -}}
+    {{- default "default" .Values.serviceAccountName -}}
+  {{- end -}}
 {{- end -}}
 
 {{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "superset.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+  {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
 
 {{- define "superset-config" }}
 import os
-from cachelib.redis import RedisCache
+from flask_caching.backends.rediscache import RedisCache
 
 def env(key, default=None):
     return os.getenv(key, default)
 
+# Redis Base URL
+{{- if .Values.supersetNode.connections.redis_password }}
+REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_USER', '')}:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+{{- else }}
+REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
+{{- end }}
+
+# Redis URL Params
+{{- if .Values.supersetNode.connections.redis_ssl.enabled }}
+REDIS_URL_PARAMS = f"?ssl_cert_reqs={env('REDIS_SSL_CERT_REQS')}"
+{{- else }}
+REDIS_URL_PARAMS = ""
+{{- end}}
+
+# Build Redis URLs
+CACHE_REDIS_URL = f"{REDIS_BASE_URL}/{env('REDIS_DB', 1)}{REDIS_URL_PARAMS}"
+CELERY_REDIS_URL = f"{REDIS_BASE_URL}/{env('REDIS_CELERY_DB', 0)}{REDIS_URL_PARAMS}"
+
 MAPBOX_API_KEY = env('MAPBOX_API_KEY', '')
 CACHE_CONFIG = {
-      'CACHE_TYPE': 'redis',
+      'CACHE_TYPE': 'RedisCache',
       'CACHE_DEFAULT_TIMEOUT': 300,
       'CACHE_KEY_PREFIX': 'superset_',
-      'CACHE_REDIS_HOST': env('REDIS_HOST'),
-      'CACHE_REDIS_PORT': env('REDIS_PORT'),
-      'CACHE_REDIS_PASSWORD': env('REDIS_PASSWORD'),
-      'CACHE_REDIS_DB': env('REDIS_DB', 1),
+      'CACHE_REDIS_URL': CACHE_REDIS_URL,
 }
 DATA_CACHE_CONFIG = CACHE_CONFIG
 
 SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{env('DB_USER')}:{env('DB_PASS')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
 SQLALCHEMY_TRACK_MODIFICATIONS = True
-SECRET_KEY = env('SECRET_KEY', 'thisISaSECRET_1234')
 
-class CeleryConfig(object):
-  CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-{{- if .Values.supersetNode.connections.redis_password }}
-  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-{{- else }}
-  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-{{- end }}
+class CeleryConfig:
+  imports  = ("superset.sql_lab", )
+  broker_url = CELERY_REDIS_URL
+  result_backend = CELERY_REDIS_URL
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
-{{- if .Values.supersetNode.connections.redis_password }}
+      {{- if .Values.supersetNode.connections.redis_password }}
       password=env('REDIS_PASSWORD'),
-{{- end }}
+      {{- end }}
       port=env('REDIS_PORT'),
-      key_prefix='superset_results'
+      key_prefix='superset_results',
+      {{- if .Values.supersetNode.connections.redis_ssl.enabled }}
+      ssl=True,
+      ssl_cert_reqs=env('REDIS_SSL_CERT_REQS'),
+      {{- end }}
 )
 
 {{ if .Values.configOverrides }}
@@ -111,6 +125,7 @@ RESULTS_BACKEND = RedisCache(
 {{ tpl $value $ }}
 {{- end }}
 {{- end }}
+
 {{ if .Values.configOverridesFiles }}
 # Overrides from files
 {{- $files := .Files }}
@@ -120,4 +135,29 @@ RESULTS_BACKEND = RedisCache(
 {{- end }}
 {{- end }}
 
+{{- end }}
+
+{{- define "supersetCeleryBeat.selectorLabels" -}}
+app: {{ include "superset.name" . }}-celerybeat
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetCeleryFlower.selectorLabels" -}}
+app: {{ include "superset.name" . }}-flower
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetNode.selectorLabels" -}}
+app: {{ include "superset.name" . }}
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetWebsockets.selectorLabels" -}}
+app: {{ include "superset.name" . }}-ws
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetWorker.selectorLabels" -}}
+app: {{ include "superset.name" . }}-worker
+release: {{ .Release.Name }}
 {{- end }}

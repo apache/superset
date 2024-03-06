@@ -25,9 +25,13 @@ import {
   smartDateFormatter,
   smartDateVerboseFormatter,
 } from '@superset-ui/core';
+import { FormatLocaleDefinition } from 'd3-format';
 
-export default function setupFormatters() {
+export default function setupFormatters(
+  d3Format: Partial<FormatLocaleDefinition>,
+) {
   getNumberFormatterRegistry()
+    .setD3Format(d3Format)
     // Add shims for format strings that are deprecated or common typos.
     // Temporary solution until performing a db migration to fix this.
     .registerValue(',0', getNumberFormatter(',.4~f'))

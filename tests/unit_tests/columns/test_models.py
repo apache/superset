@@ -24,9 +24,10 @@ def test_column_model(session: Session) -> None:
     """
     Test basic attributes of a ``Column``.
     """
+    from superset import db
     from superset.columns.models import Column
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Column.metadata.create_all(engine)  # pylint: disable=no-member
 
     column = Column(
@@ -35,8 +36,8 @@ def test_column_model(session: Session) -> None:
         expression="ds",
     )
 
-    session.add(column)
-    session.flush()
+    db.session.add(column)
+    db.session.flush()
 
     assert column.id == 1
     assert column.uuid is not None

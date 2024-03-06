@@ -32,12 +32,12 @@ describe('localStorageHelpers', () => {
   });
 
   it('gets a value that was set', () => {
-    setItem(LocalStorageKeys.is_datapanel_open, false);
+    setItem(LocalStorageKeys.IsDatapanelOpen, false);
 
-    expect(getItem(LocalStorageKeys.is_datapanel_open, true)).toBe(false);
+    expect(getItem(LocalStorageKeys.IsDatapanelOpen, true)).toBe(false);
   });
 
   it('returns the default value for an unset value', () => {
-    expect(getItem(LocalStorageKeys.is_datapanel_open, true)).toBe(true);
+    expect(getItem(LocalStorageKeys.IsDatapanelOpen, true)).toBe(true);
   });
 });

@@ -54,4 +54,17 @@ pybabel update \
   -d superset/translations \
   --ignore-obsolete
 
+# Chop off last blankline from po/pot files, see https://github.com/python-babel/babel/issues/799
+for file in $( find superset/translations/** );
+do
+  extension=${file##*.}
+  filename="${file%.*}"
+  if [ $extension == "po" ] || [ $extension == "pot" ]
+  then
+    mv $file $file.tmp
+    sed "$ d" $file.tmp > $file
+    rm $file.tmp
+  fi
+done
+
 cd $CURRENT_DIR

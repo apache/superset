@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from flask_caching import Cache
 from pandas import DataFrame
@@ -37,7 +37,7 @@ config = app.config
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
-_cache: Dict[CacheRegion, Cache] = {
+_cache: dict[CacheRegion, Cache] = {
     CacheRegion.DEFAULT: cache_manager.cache,
     CacheRegion.DATA: cache_manager.data_cache,
 }
@@ -53,17 +53,17 @@ class QueryCacheManager:
         self,
         df: DataFrame = DataFrame(),
         query: str = "",
-        annotation_data: Optional[Dict[str, Any]] = None,
-        applied_template_filters: Optional[List[str]] = None,
-        applied_filter_columns: Optional[List[Column]] = None,
-        rejected_filter_columns: Optional[List[Column]] = None,
-        status: Optional[str] = None,
-        error_message: Optional[str] = None,
+        annotation_data: dict[str, Any] | None = None,
+        applied_template_filters: list[str] | None = None,
+        applied_filter_columns: list[Column] | None = None,
+        rejected_filter_columns: list[Column] | None = None,
+        status: str | None = None,
+        error_message: str | None = None,
         is_loaded: bool = False,
-        stacktrace: Optional[str] = None,
-        is_cached: Optional[bool] = None,
-        cache_dttm: Optional[str] = None,
-        cache_value: Optional[Dict[str, Any]] = None,
+        stacktrace: str | None = None,
+        is_cached: bool | None = None,
+        cache_dttm: str | None = None,
+        cache_value: dict[str, Any] | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -85,10 +85,10 @@ class QueryCacheManager:
         self,
         key: str,
         query_result: QueryResult,
-        annotation_data: Optional[Dict[str, Any]] = None,
-        force_query: Optional[bool] = False,
-        timeout: Optional[int] = None,
-        datasource_uid: Optional[str] = None,
+        annotation_data: dict[str, Any] | None = None,
+        force_query: bool | None = False,
+        timeout: int | None = None,
+        datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         """
@@ -136,11 +136,11 @@ class QueryCacheManager:
     @classmethod
     def get(
         cls,
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
-        force_query: Optional[bool] = False,
-        force_cached: Optional[bool] = False,
-    ) -> "QueryCacheManager":
+        force_query: bool | None = False,
+        force_cached: bool | None = False,
+    ) -> QueryCacheManager:
         """
         Initialize QueryCacheManager by query-cache key
         """
@@ -148,9 +148,8 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        cache_value = _cache[region].get(key)
-        if cache_value:
-            logger.info("Cache key: %s", key)
+        if cache_value := _cache[region].get(key):
+            logger.debug("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]
@@ -180,7 +179,7 @@ class QueryCacheManager:
                     error_msg_from_exception(ex),
                     exc_info=True,
                 )
-            logger.info("Serving from cache")
+            logger.debug("Serving from cache")
 
         if force_cached and not query_cache.is_loaded:
             logger.warning(
@@ -191,10 +190,10 @@ class QueryCacheManager:
 
     @staticmethod
     def set(
-        key: Optional[str],
-        value: Dict[str, Any],
-        timeout: Optional[int] = None,
-        datasource_uid: Optional[str] = None,
+        key: str | None,
+        value: dict[str, Any],
+        timeout: int | None = None,
+        datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         """
@@ -205,7 +204,7 @@ class QueryCacheManager:
 
     @staticmethod
     def delete(
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> None:
         if key:
@@ -213,7 +212,7 @@ class QueryCacheManager:
 
     @staticmethod
     def has(
-        key: Optional[str],
+        key: str | None,
         region: CacheRegion = CacheRegion.DEFAULT,
     ) -> bool:
         return bool(_cache[region].get(key)) if key else False

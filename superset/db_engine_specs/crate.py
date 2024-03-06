@@ -17,10 +17,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import types
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 
 if TYPE_CHECKING:
@@ -28,20 +29,19 @@ if TYPE_CHECKING:
 
 
 class CrateEngineSpec(BaseEngineSpec):
-
     engine = "crate"
     engine_name = "CrateDB"
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "DATE_TRUNC('second', {col})",
-        "PT1M": "DATE_TRUNC('minute', {col})",
-        "PT1H": "DATE_TRUNC('hour', {col})",
-        "P1D": "DATE_TRUNC('day', {col})",
-        "P1W": "DATE_TRUNC('week', {col})",
-        "P1M": "DATE_TRUNC('month', {col})",
-        "P3M": "DATE_TRUNC('quarter', {col})",
-        "P1Y": "DATE_TRUNC('year', {col})",
+        TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('day', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('month', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
 
     @classmethod
@@ -54,8 +54,8 @@ class CrateEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.TIMESTAMP):

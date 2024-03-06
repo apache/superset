@@ -21,10 +21,10 @@ from decimal import Decimal
 import json
 import os
 import re
-from typing import Any, Tuple, List, Optional
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -54,12 +54,11 @@ from superset.utils.core import (
     format_timedelta,
     GenericDataType,
     get_form_data_token,
-    get_iterable,
+    as_list,
     get_email_address_list,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
-    JSONEncodedDict,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -121,12 +120,12 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(np.int64(1)), int)
         assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
         assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv(set([1])), list)
+        assert isinstance(base_json_conv({1}), list)
         assert isinstance(base_json_conv(Decimal("1.0")), float)
         assert isinstance(base_json_conv(uuid.uuid4()), str)
         assert isinstance(base_json_conv(time()), str)
         assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(bytes()), str)
+        assert isinstance(base_json_conv(b""), str)
         assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
 
         with pytest.raises(TypeError):
@@ -242,7 +241,6 @@ class TestUtils(SupersetTestCase):
                 {"col": "__time_col", "op": "in", "val": "birth_year"},
                 {"col": "__time_grain", "op": "in", "val": "years"},
                 {"col": "A", "op": "like", "val": "hello"},
-                {"col": "__granularity", "op": "in", "val": "90 seconds"},
             ]
         }
         expected = {
@@ -260,12 +258,10 @@ class TestUtils(SupersetTestCase):
             "time_range": "1 year ago :",
             "granularity_sqla": "birth_year",
             "time_grain_sqla": "years",
-            "granularity": "90 seconds",
             "applied_time_extras": {
                 "__time_range": "1 year ago :",
                 "__time_col": "birth_year",
                 "__time_grain": "years",
-                "__granularity": "90 seconds",
             },
         }
         merge_extra_filters(form_data)
@@ -586,15 +582,6 @@ class TestUtils(SupersetTestCase):
             "-16 days, 4:03:00",
         )
 
-    def test_json_encoded_obj(self):
-        obj = {"a": 5, "b": ["a", "g", 5]}
-        val = '{"a": 5, "b": ["a", "g", 5]}'
-        jsonObj = JSONEncodedDict()
-        resp = jsonObj.process_bind_param(obj, "dialect")
-        self.assertIn('"a": 5', resp)
-        self.assertIn('"b": ["a", "g", 5]', resp)
-        self.assertEqual(jsonObj.process_result_value(val, "dialect"), obj)
-
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
         self.assertIsNone(validate_json(valid))
@@ -634,38 +621,6 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
-    def test_convert_legacy_filters_into_adhoc_having(self):
-        form_data = {"having": "COUNT(1) = 1"}
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "HAVING",
-                    "expressionType": "SQL",
-                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
-                    "sqlExpression": "COUNT(1) = 1",
-                }
-            ]
-        }
-        convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
-
-    def test_convert_legacy_filters_into_adhoc_having_filters(self):
-        form_data = {"having_filters": [{"col": "COUNT(1)", "op": "==", "val": 1}]}
-        expected = {
-            "adhoc_filters": [
-                {
-                    "clause": "HAVING",
-                    "comparator": 1,
-                    "expressionType": "SIMPLE",
-                    "filterOptionName": "967d0fb409f6d9c7a6c03a46cf933c9c",
-                    "operator": "==",
-                    "subject": "COUNT(1)",
-                }
-            ]
-        }
-        convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
-
     def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {"adhoc_filters": [], "where": "a = 1"}
         expected = {
@@ -681,6 +636,21 @@ class TestUtils(SupersetTestCase):
         convert_legacy_filters_into_adhoc(form_data)
         self.assertEqual(form_data, expected)
 
+    def test_convert_legacy_filters_into_adhoc_having(self):
+        form_data = {"having": "COUNT(1) = 1"}
+        expected = {
+            "adhoc_filters": [
+                {
+                    "clause": "HAVING",
+                    "expressionType": "SQL",
+                    "filterOptionName": "683f1c26466ab912f75a00842e0f2f7b",
+                    "sqlExpression": "COUNT(1) = 1",
+                }
+            ]
+        }
+        convert_legacy_filters_into_adhoc(form_data)
+        self.assertEqual(form_data, expected)
+
     def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
         form_data = {
             "adhoc_filters": [
@@ -688,7 +658,6 @@ class TestUtils(SupersetTestCase):
             ],
             "filters": [{"col": "a", "op": "in", "val": "someval"}],
             "having": "COUNT(1) = 1",
-            "having_filters": [{"col": "COUNT(1)", "op": "==", "val": 1}],
         }
         expected = {
             "adhoc_filters": [
@@ -763,54 +732,17 @@ class TestUtils(SupersetTestCase):
         with self.assertRaises(DatabaseInvalidError):
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
-    def test_get_iterable(self):
-        self.assertListEqual(get_iterable(123), [123])
-        self.assertListEqual(get_iterable([123]), [123])
-        self.assertListEqual(get_iterable("foo"), ["foo"])
+    def test_get_or_create_db_existing_invalid_uri(self):
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        database.sqlalchemy_uri = "None"
+        db.session.commit()
+        database = get_or_create_db("test_db", "sqlite:///superset.db")
+        assert database.sqlalchemy_uri == "sqlite:///superset.db"
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_build_extra_filters(self):
-        world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
-        layout = json.loads(world_health.position_json)
-        filter_ = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
-        world = db.session.query(Slice).filter_by(slice_name="World's Population").one()
-        box_plot = db.session.query(Slice).filter_by(slice_name="Box plot").one()
-        treemap = db.session.query(Slice).filter_by(slice_name="Treemap").one()
-
-        filter_scopes = {
-            str(filter_.id): {
-                "region": {"scope": ["ROOT_ID"], "immune": [treemap.id]},
-                "country_name": {
-                    "scope": ["ROOT_ID"],
-                    "immune": [treemap.id, box_plot.id],
-                },
-            }
-        }
-
-        default_filters = {
-            str(filter_.id): {
-                "region": ["North America"],
-                "country_name": ["United States"],
-            }
-        }
-
-        # immune to all filters
-        assert (
-            build_extra_filters(layout, filter_scopes, default_filters, treemap.id)
-            == []
-        )
-
-        # in scope
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, world.id
-        ) == [
-            {"col": "region", "op": "==", "val": "North America"},
-            {"col": "country_name", "op": "in", "val": ["United States"]},
-        ]
-
-        assert build_extra_filters(
-            layout, filter_scopes, default_filters, box_plot.id
-        ) == [{"col": "region", "op": "==", "val": "North America"}]
+    def test_as_list(self):
+        self.assertListEqual(as_list(123), [123])
+        self.assertListEqual(as_list([123]), [123])
+        self.assertListEqual(as_list("foo"), ["foo"])
 
     def test_merge_extra_filters_with_no_extras(self):
         form_data = {
@@ -827,7 +759,7 @@ class TestUtils(SupersetTestCase):
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
         """
-        Make sure native filter is applied if filter box time range is unset.
+        Make sure native filter is applied if filter time range is unset.
         """
         form_data = {
             "time_range": "Last 10 days",
@@ -842,28 +774,6 @@ class TestUtils(SupersetTestCase):
             {
                 "time_range": "Last year",
                 "applied_time_extras": {},
-                "adhoc_filters": [],
-            },
-        )
-
-    def test_merge_extra_filters_with_conflicting_time_ranges(self):
-        """
-        Make sure filter box takes precedence if both native filter and filter box
-        time ranges are set.
-        """
-        form_data = {
-            "time_range": "Last 10 days",
-            "extra_filters": [{"col": "__time_range", "op": "==", "val": "Last week"}],
-            "extra_form_data": {
-                "time_range": "Last year",
-            },
-        }
-        merge_extra_filters(form_data)
-        self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last week",
-                "applied_time_extras": {"__time_range": "Last week"},
                 "adhoc_filters": [],
             },
         )
@@ -988,7 +898,7 @@ class TestUtils(SupersetTestCase):
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
-        slc = self.get_slice("Girls", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -1046,8 +956,8 @@ class TestUtils(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extract_dataframe_dtypes(self):
-        slc = self.get_slice("Girls", db.session)
-        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+        slc = self.get_slice("Girls")
+        cols: tuple[tuple[str, GenericDataType, list[Any]], ...] = (
             ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
             (
                 "dttm",
@@ -1128,7 +1038,7 @@ class TestUtils(SupersetTestCase):
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
 
-        # test that out of bounds timestamps are coerced to None instead of
-        # erroring out
+        # test that we raise an error when we can't convert
         df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
-        assert pd.isnull(normalize_col(df, None, 0, None)[DTTM_ALIAS][0])
+        with pytest.raises(pd.errors.OutOfBoundsDatetime):
+            normalize_col(df, None, 0, None)

@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  GenericDataType,
+  getTimeFormatter,
+  getValueFormatter,
+} from '@superset-ui/core';
+
 export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, datasource } = chartProps;
   const {
     bottomMargin,
     canvasImageRendering,
@@ -36,12 +42,34 @@ export default function transformProps(chartProps) {
     yscaleInterval,
     yAxisBounds,
     yAxisFormat,
+    timeFormat,
+    currencyFormat,
   } = formData;
-
+  const { data = [], coltypes = [] } = queriesData[0];
+  const { columnFormats = {}, currencyFormats = {} } = datasource;
+  const valueFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    yAxisFormat,
+    currencyFormat,
+  );
+  const xAxisFormatter =
+    coltypes[0] === GenericDataType.Temporal
+      ? getTimeFormatter(timeFormat)
+      : coltypes[0] === GenericDataType.Numeric
+        ? Number
+        : String;
+  const yAxisFormatter =
+    coltypes[1] === GenericDataType.Temporal
+      ? getTimeFormatter(timeFormat)
+      : coltypes[1] === GenericDataType.Numeric
+        ? Number
+        : String;
   return {
     width,
     height,
-    data: queriesData[0].data,
+    data,
     bottomMargin,
     canvasImageRendering,
     colorScheme: linearColorScheme,
@@ -50,7 +78,6 @@ export default function transformProps(chartProps) {
     leftMargin,
     metric,
     normalized,
-    numberFormat: yAxisFormat,
     showLegend,
     showPercentage: showPerc,
     showValues,
@@ -59,5 +86,8 @@ export default function transformProps(chartProps) {
     xScaleInterval: parseInt(xscaleInterval, 10),
     yScaleInterval: parseInt(yscaleInterval, 10),
     yAxisBounds,
+    valueFormatter,
+    xAxisFormatter,
+    yAxisFormatter,
   };
 }

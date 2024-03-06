@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Type
+from typing import Any
 
 from flask_appbuilder import Model
 from sqlalchemy import or_
@@ -22,7 +22,7 @@ from sqlalchemy.sql.elements import BooleanClauseList
 
 
 def get_dataset_access_filters(
-    base_model: Type[Model],
+    base_model: type[Model],
     *args: Any,
 ) -> BooleanClauseList:
     # pylint: disable=import-outside-toplevel

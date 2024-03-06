@@ -18,7 +18,8 @@ import json
 import logging
 import os
 import time
-from typing import Any, Callable, Dict, Iterator, Optional, Union
+from collections.abc import Iterator
+from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
@@ -42,11 +43,9 @@ def table_has_column(table: str, column: str) -> bool:
     :param column: A column name
     :returns: True iff the column exists in the table
     """
-    config = op.get_context().config
-    engine = engine_from_config(
-        config.get_section(config.config_ini_section), prefix="sqlalchemy."
-    )
-    insp = reflection.Inspector.from_engine(engine)
+
+    insp = inspect(op.get_context().bind)
+
     try:
         return any(col["name"] == column for col in insp.get_columns(table))
     except NoSuchTableError:
@@ -127,7 +126,7 @@ def paginated_update(
             print_page_progress(processed, total)
 
 
-def try_load_json(data: Optional[str]) -> Dict[str, Any]:
+def try_load_json(data: Optional[str]) -> dict[str, Any]:
     try:
         return data and json.loads(data) or {}
     except json.decoder.JSONDecodeError:

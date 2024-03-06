@@ -26,7 +26,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const createMdxCompiler = require('@storybook/addon-docs/mdx-compiler-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -98,11 +97,10 @@ const plugins = [
             .filter(x => x.endsWith('.css'))
             .map(x => `${output.publicPath}${x}`),
           js: chunks
-            .filter(x => x.endsWith('.js'))
+            .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
             .map(x => `${output.publicPath}${x}`),
         };
       });
-
       return {
         ...seed,
         entrypoints: entryFiles,
@@ -116,6 +114,9 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
+    'process.env.REDUX_DEFAULT_MIDDLEWARE':
+      process.env.REDUX_DEFAULT_MIDDLEWARE,
+    'process.env.SCARF_ANALYTICS': JSON.stringify(process.env.SCARF_ANALYTICS),
   }),
 
   new CopyPlugin({
@@ -210,9 +211,6 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
-    sqllab: addPreamble('/src/SqlLab/index.tsx'),
-    profile: addPreamble('/src/profile/index.tsx'),
-    showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
   },
   output,
   stats: 'minimal',
@@ -248,9 +246,7 @@ const config = {
               'redux',
               'react-redux',
               'react-hot-loader',
-              'react-select',
               'react-sortable-hoc',
-              'react-virtualized',
               'react-table',
               'react-ace',
               '@hot-loader.*',
@@ -349,6 +345,10 @@ const config = {
         ],
         use: [babelLoader],
       },
+      {
+        test: /ace-builds.*\/worker-.*$/,
+        type: 'asset/resource',
+      },
       // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
       // see https://github.com/gaearon/react-hot-loader/issues/1311
       // TODO: refactor recurseReactClone
@@ -418,12 +418,11 @@ const config = {
           {
             loader: '@svgr/webpack',
             options: {
-              svgoConfig: {
-                plugins: {
-                  removeViewBox: false,
-                  icon: true,
-                },
-              },
+              titleProp: true,
+              ref: true,
+              // this is the default value for the icon. Using other values
+              // here will replace width and height in svg with 1em
+              icon: false,
             },
           },
         ],
@@ -449,24 +448,20 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      {
-        test: /\.mdx$/,
-        use: [
-          {
-            loader: 'babel-loader',
-            // may or may not need this line depending on your app's setup
-            options: {
-              plugins: ['@babel/plugin-transform-react-jsx'],
-            },
-          },
-          {
-            loader: '@mdx-js/loader',
-            options: {
-              compilers: [createMdxCompiler({})],
-            },
-          },
-        ],
-      },
+      // {
+      //   test: /\.mdx?$/,
+      //   use: [
+      //     {
+      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
+      //       options: {
+      //         skipCsf: false,
+      //         mdxCompileOptions: {
+      //           remarkPlugins: [remarkGfm],
+      //         },
+      //       },
+      //     },
+      //   ],
+      // },
     ],
   },
   externals: {
@@ -512,7 +507,11 @@ if (isDevMode) {
       () => proxyConfig,
     ],
     client: {
-      overlay: { errors: true, warnings: false },
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: error => !/ResizeObserver/.test(error.message),
+      },
       logging: 'error',
     },
     static: path.join(process.cwd(), '../static/assets'),

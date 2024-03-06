@@ -45,9 +45,16 @@ def test_export_assets(
         ),
         ("databases/example.yaml", "<DATABASE CONTENTS>"),
     ]
+    mocked_export_result = [
+        (
+            "metadata.yaml",
+            lambda: "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n",
+        ),
+        ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
+    ]
 
     ExportAssetsCommand = mocker.patch("superset.importexport.api.ExportAssetsCommand")
-    ExportAssetsCommand().run.return_value = mocked_contents[:]
+    ExportAssetsCommand().run.return_value = mocked_export_result[:]
 
     response = client.get("/api/v1/assets/export/")
     assert response.status_code == 200
@@ -99,7 +106,13 @@ def test_import_assets(
     assert response.json == {"message": "OK"}
 
     passwords = {"assets_export/databases/imported_database.yaml": "SECRET"}
-    ImportAssetsCommand.assert_called_with(mocked_contents, passwords=passwords)
+    ImportAssetsCommand.assert_called_with(
+        mocked_contents,
+        passwords=passwords,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+    )
 
 
 def test_import_assets_not_zip(

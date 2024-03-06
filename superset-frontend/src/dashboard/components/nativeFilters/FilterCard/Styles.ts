@@ -96,4 +96,5 @@ export const TooltipTrigger = styled.div`
 export const InternalRow = styled.div`
   display: flex;
   align-items: center;
+  overflow: hidden;
 `;

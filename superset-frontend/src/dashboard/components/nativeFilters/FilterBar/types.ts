@@ -47,6 +47,7 @@ interface VerticalBarConfig {
 }
 
 export interface FiltersBarProps {
+  hidden?: boolean;
   orientation: FilterBarOrientation;
   verticalConfig?: VerticalBarConfig;
 }
@@ -57,11 +58,4 @@ export type HorizontalBarProps = CommonFiltersBarProps & {
 
 export type VerticalBarProps = Omit<FiltersBarProps, 'orientation'> &
   CommonFiltersBarProps &
-  VerticalBarConfig & {
-    isDisabled: boolean;
-  };
-
-export enum TabIds {
-  AllFilters = 'allFilters',
-  FilterSets = 'filterSets',
-}
+  VerticalBarConfig;

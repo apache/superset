@@ -45,7 +45,11 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   useLegacyApi: true,
-  behaviors: [Behavior.DRILL_TO_DETAIL],
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
 });
 
 export default class WorldMapChartPlugin extends ChartPlugin {

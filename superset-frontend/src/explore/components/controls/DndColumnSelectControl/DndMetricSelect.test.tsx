@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -68,22 +67,18 @@ const adhocMetricB = {
   optionName: 'def',
 };
 
-beforeAll(() => {
-  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
-});
-
-afterAll(() => {
-  window.featureFlags = {};
-});
-
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
-  expect(screen.getByText('Drop column or metric here')).toBeInTheDocument();
+  expect(
+    screen.getByText('Drop a column/metric here or click'),
+  ).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
   render(<DndMetricSelect {...defaultProps} multi />, { useDnd: true });
-  expect(screen.getByText('Drop columns or metrics here')).toBeInTheDocument();
+  expect(
+    screen.getByText('Drop columns/metrics here or click'),
+  ).toBeInTheDocument();
 });
 
 test('render selected metrics correctly', () => {
@@ -159,7 +154,7 @@ test('remove selected custom metric when metric gets removed from dataset for si
 
   expect(screen.getByText('Metric B')).toBeVisible();
   expect(
-    screen.queryByText('Drop column or metric here'),
+    screen.queryByText('Drop a column/metric here or click'),
   ).not.toBeInTheDocument();
 
   const newPropsWithRemovedMetric = {
@@ -182,7 +177,7 @@ test('remove selected custom metric when metric gets removed from dataset for si
   );
 
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
-  expect(screen.getByText('Drop column or metric here')).toBeVisible();
+  expect(screen.getByText('Drop a column/metric here or click')).toBeVisible();
 });
 
 test('remove selected adhoc metric when column gets removed from dataset', async () => {

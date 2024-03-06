@@ -29,8 +29,10 @@ import { Dispatch } from 'redux';
 import {
   ensureIsArray,
   getCategoricalSchemeRegistry,
+  getColumnLabel,
   getSequentialSchemeRegistry,
   NO_TIME_RANGE,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -73,9 +75,26 @@ export const hydrateExplore =
       initialFormData.time_range =
         common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
+    if (
+      initialFormData.include_time &&
+      initialFormData.granularity_sqla &&
+      !initialFormData.groupby?.some(
+        (col: QueryFormColumn) =>
+          getColumnLabel(col) ===
+          getColumnLabel(initialFormData.granularity_sqla!),
+      )
+    ) {
+      initialFormData.groupby = [
+        initialFormData.granularity_sqla,
+        ...ensureIsArray(initialFormData.groupby),
+      ];
+      initialFormData.granularity_sqla = undefined;
+    }
+
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;
     }
+
     const initialDatasource = dataset;
 
     const initialExploreState = {

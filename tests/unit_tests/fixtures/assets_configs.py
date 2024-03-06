@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any
 
-databases_config: Dict[str, Any] = {
+databases_config: dict[str, Any] = {
     "databases/examples.yaml": {
         "database_name": "examples",
         "sqlalchemy_uri": "sqlite:///test.db",
@@ -32,7 +32,7 @@ databases_config: Dict[str, Any] = {
         "allow_csv_upload": False,
     },
 }
-datasets_config: Dict[str, Any] = {
+datasets_config: dict[str, Any] = {
     "datasets/examples/video_game_sales.yaml": {
         "table_name": "video_game_sales",
         "main_dttm_col": None,
@@ -80,7 +80,7 @@ datasets_config: Dict[str, Any] = {
         "database_uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
     },
 }
-charts_config_1: Dict[str, Any] = {
+charts_config_1: dict[str, Any] = {
     "charts/Games_per_Genre_over_time_95.yaml": {
         "slice_name": "Games per Genre over time",
         "viz_type": "line",
@@ -92,7 +92,7 @@ charts_config_1: Dict[str, Any] = {
     },
     "charts/Games_per_Genre_131.yaml": {
         "slice_name": "Games per Genre",
-        "viz_type": "treemap",
+        "viz_type": "treemap_v2",
         "params": {},
         "cache_timeout": None,
         "uuid": "0499bdec-0837-44f3-ae8a-8c670de81afd",
@@ -100,7 +100,7 @@ charts_config_1: Dict[str, Any] = {
         "dataset_uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
     },
 }
-dashboards_config_1: Dict[str, Any] = {
+dashboards_config_1: dict[str, Any] = {
     "dashboards/Video_Game_Sales_11.yaml": {
         "dashboard_title": "Video Game Sales",
         "description": None,
@@ -174,7 +174,6 @@ dashboards_config_1: Dict[str, Any] = {
             "default_filters": "{}",
             "color_scheme": "supersetColors",
             "label_colors": {},
-            "show_native_filters": True,
             "color_scheme_domain": [],
             "shared_label_colors": {},
             "cross_filters_enabled": False,
@@ -183,10 +182,10 @@ dashboards_config_1: Dict[str, Any] = {
     },
 }
 
-charts_config_2: Dict[str, Any] = {
+charts_config_2: dict[str, Any] = {
     "charts/Games_per_Genre_131.yaml": {
         "slice_name": "Games per Genre",
-        "viz_type": "treemap",
+        "viz_type": "treemap_v2",
         "params": {},
         "cache_timeout": None,
         "uuid": "0499bdec-0837-44f3-ae8a-8c670de81afd",
@@ -194,7 +193,7 @@ charts_config_2: Dict[str, Any] = {
         "dataset_uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
     },
 }
-dashboards_config_2: Dict[str, Any] = {
+dashboards_config_2: dict[str, Any] = {
     "dashboards/Video_Game_Sales_11.yaml": {
         "dashboard_title": "Video Game Sales",
         "description": None,
@@ -251,7 +250,6 @@ dashboards_config_2: Dict[str, Any] = {
             "default_filters": "{}",
             "color_scheme": "supersetColors",
             "label_colors": {},
-            "show_native_filters": True,
             "color_scheme_domain": [],
             "shared_label_colors": {},
         },

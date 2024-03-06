@@ -18,9 +18,8 @@
  */
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, t, useTheme } from '@superset-ui/core';
+import { css, t, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { useTruncation } from 'src/hooks/useTruncation';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   DependencyItem,

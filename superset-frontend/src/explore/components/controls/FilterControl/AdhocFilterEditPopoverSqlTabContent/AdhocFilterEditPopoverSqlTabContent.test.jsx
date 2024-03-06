@@ -21,16 +21,14 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSqlTabContent from '.';
+import { Clauses, ExpressionTypes } from '../types';
 
 const sqlAdhocFilter = new AdhocFilter({
-  expressionType: EXPRESSION_TYPES.SQL,
+  expressionType: ExpressionTypes.Sql,
   sqlExpression: 'value > 10',
-  clause: CLAUSES.WHERE,
+  clause: Clauses.Where,
 });
 
 function setup(overrides) {
@@ -54,11 +52,11 @@ describe('AdhocFilterEditPopoverSqlTabContent', () => {
 
   it('passes the new clause to onChange after onSqlExpressionClauseChange', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onSqlExpressionClauseChange(CLAUSES.HAVING);
+    wrapper.instance().onSqlExpressionClauseChange(Clauses.Having);
     expect(onChange.calledOnce).toBe(true);
     expect(
       onChange.lastCall.args[0].equals(
-        sqlAdhocFilter.duplicateWith({ clause: CLAUSES.HAVING }),
+        sqlAdhocFilter.duplicateWith({ clause: Clauses.Having }),
       ),
     ).toBe(true);
   });

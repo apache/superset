@@ -26,7 +26,7 @@ from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
 from superset import db, event_logger
-from superset.charts.commands.exceptions import (
+from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
@@ -40,7 +40,15 @@ from superset.views.base import api, BaseSupersetView, handle_api_exception
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
 
-get_time_range_schema = {"type": "string"}
+get_time_range_schema = {
+    "type": ["string", "array"],
+    "items": {
+        "type": "object",
+        "properties": {
+            "timeRange": {"type": "string"},
+        },
+    },
+}
 
 
 class Api(BaseSupersetView):
@@ -50,10 +58,10 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/query/", methods=["POST"])
+    @expose("/v1/query/", methods=("POST",))
     def query(self) -> FlaskResponse:
         """
-        Takes a query_obj constructed in the client and returns payload data response
+        Take a query_obj constructed in the client and returns payload data response
         for the given query_obj.
 
         raises SupersetSecurityException: If the user cannot access the resource
@@ -72,41 +80,47 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/form_data/", methods=["GET"])
-    def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    @expose("/v1/form_data/", methods=("GET",))
+    def query_form_data(self) -> FlaskResponse:
         """
-        Get the formdata stored in the database for existing slice.
+        Get the form_data stored in the database for existing slice.
         params: slice_id: integer
         """
         form_data = {}
-        slice_id = request.args.get("slice_id")
-        if slice_id:
+        if slice_id := request.args.get("slice_id"):
             slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
 
         update_time_range(form_data)
 
-        return json.dumps(form_data)
+        return self.json_response(form_data)
 
     @api
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
-    @expose("/v1/time_range/", methods=["GET"])
+    @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
-        """Get actually time range from human readable string or datetime expression"""
-        time_range = kwargs["rison"]
+        """Get actually time range from human-readable string or datetime expression."""
+        time_ranges = kwargs["rison"]
         try:
-            since, until = get_since_until(time_range)
-            result = {
-                "since": since.isoformat() if since else "",
-                "until": until.isoformat() if until else "",
-                "timeRange": time_range,
-            }
-            return self.json_response({"result": result})
+            if isinstance(time_ranges, str):
+                time_ranges = [{"timeRange": time_ranges}]
+
+            rv = []
+            for time_range in time_ranges:
+                since, until = get_since_until(time_range["timeRange"])
+                rv.append(
+                    {
+                        "since": since.isoformat() if since else "",
+                        "until": until.isoformat() if until else "",
+                        "timeRange": time_range["timeRange"],
+                    }
+                )
+            return self.json_response({"result": rv})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
-            error_msg = {"message": _("Unexpected time range: %s" % error)}
+            error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
 
     def get_query_context_factory(self) -> QueryContextFactory:

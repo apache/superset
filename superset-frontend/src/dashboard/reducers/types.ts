@@ -18,22 +18,11 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
-import { NativeFilterScope, JsonObject } from '@superset-ui/core';
 
 export enum Scoping {
   All = 'All',
   Specific = 'Specific',
 }
-
-export type ChartConfiguration = {
-  [chartId: number]: {
-    id: number;
-    crossFilters: {
-      scope: NativeFilterScope;
-      chartsInScope: number[];
-    };
-  };
-};
 
 export type User = {
   email: string;
@@ -73,7 +62,7 @@ export type Layout = { [key: string]: LayoutItem };
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {
@@ -89,17 +78,4 @@ export type LayoutItem = {
     uuid: string;
     width: number;
   };
-};
-
-export type FilterSetFullData = {
-  changed_by_fk: string | null;
-  changed_on: string | null;
-  created_by_fk: string | null;
-  created_on: string | null;
-  dashboard_id: number;
-  description: string | null;
-  name: string;
-  owner_id: number;
-  owner_type: string;
-  params: JsonObject;
 };

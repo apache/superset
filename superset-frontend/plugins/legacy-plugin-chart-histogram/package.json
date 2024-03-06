@@ -13,7 +13,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache-superset/superset-ui.git"
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/legacy-plugin-chart-histogram"
   },
   "keywords": [
     "superset"
@@ -21,19 +22,19 @@
   "author": "Superset",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/apache-superset/superset-ui/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
-  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/legacy-plugin-chart-histogram#readme",
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@data-ui/histogram": "^0.0.84",
     "@data-ui/theme": "^0.0.84",
-    "@vx/legend": "^0.0.198",
+    "@vx/legend": "^0.0.199",
     "@vx/responsive": "^0.0.199",
-    "@vx/scale": "^0.0.197",
-    "prop-types": "^15.6.2"
+    "@vx/scale": "^0.0.199",
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

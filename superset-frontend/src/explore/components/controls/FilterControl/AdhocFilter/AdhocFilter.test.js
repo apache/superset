@@ -16,29 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AdhocFilter, {
-  EXPRESSION_TYPES,
-  CLAUSES,
-} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
+import { ExpressionTypes, Clauses } from '../types';
 
 describe('AdhocFilter', () => {
   it('sets filterOptionName in constructor', () => {
     const adhocFilter = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     expect(adhocFilter.filterOptionName.length).toBeGreaterThan(10);
     expect(adhocFilter).toEqual({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       datasourceWarning: false,
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
       filterOptionName: adhocFilter.filterOptionName,
       sqlExpression: null,
       isExtra: false,
@@ -49,11 +47,11 @@ describe('AdhocFilter', () => {
   it('can create altered duplicates', () => {
     const adhocFilter1 = new AdhocFilter({
       isNew: true,
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     const adhocFilter2 = adhocFilter1.duplicateWith({ operator: '<' });
 
@@ -72,11 +70,11 @@ describe('AdhocFilter', () => {
 
   it('can verify equality', () => {
     const adhocFilter1 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     const adhocFilter2 = adhocFilter1.duplicateWith({});
 
@@ -88,11 +86,11 @@ describe('AdhocFilter', () => {
 
   it('can verify inequality', () => {
     const adhocFilter1 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     const adhocFilter2 = adhocFilter1.duplicateWith({ operator: '<' });
 
@@ -100,9 +98,9 @@ describe('AdhocFilter', () => {
     expect(adhocFilter1.equals(adhocFilter2)).toBe(false);
 
     const adhocFilter3 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SQL,
+      expressionType: ExpressionTypes.Sql,
       sqlExpression: 'value > 10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     const adhocFilter4 = adhocFilter3.duplicateWith({
       sqlExpression: 'value = 5',
@@ -114,27 +112,27 @@ describe('AdhocFilter', () => {
 
   it('can determine if it is valid', () => {
     const adhocFilter1 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter1.isValid()).toBe(true);
 
     const adhocFilter2 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '>',
       comparator: null,
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter2.isValid()).toBe(false);
 
     const adhocFilter3 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SQL,
+      expressionType: ExpressionTypes.Sql,
       sqlExpression: 'some expression',
       clause: null,
     });
@@ -142,67 +140,67 @@ describe('AdhocFilter', () => {
     expect(adhocFilter3.isValid()).toBe(false);
 
     const adhocFilter4 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: 'IN',
       comparator: [],
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter4.isValid()).toBe(false);
 
     const adhocFilter5 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: 'IN',
       comparator: ['val1'],
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter5.isValid()).toBe(true);
 
     const adhocFilter6 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '==',
       comparator: 1,
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter6.isValid()).toBe(true);
 
     const adhocFilter7 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '==',
       comparator: 0,
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter7.isValid()).toBe(true);
 
     const adhocFilter8 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '==',
       comparator: null,
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter8.isValid()).toBe(false);
 
     const adhocFilter9 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: 'IS NULL',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     expect(adhocFilter9.isValid()).toBe(true);
     const adhocFilter10 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: 'IS NOT NULL',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter10.isValid()).toBe(true);
@@ -210,43 +208,75 @@ describe('AdhocFilter', () => {
 
   it('can translate from simple expressions to sql expressions', () => {
     const adhocFilter1 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'value',
       operator: '==',
       comparator: '10',
-      clause: CLAUSES.WHERE,
+      clause: Clauses.Where,
     });
     expect(adhocFilter1.translateToSql()).toBe('value = 10');
 
     const adhocFilter2 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
       operator: '!=',
       comparator: '5',
-      clause: CLAUSES.HAVING,
+      clause: Clauses.Having,
     });
     expect(adhocFilter2.translateToSql()).toBe('SUM(value) <> 5');
   });
   it('sets comparator to null when operator is IS_NULL', () => {
     const adhocFilter2 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
       operator: 'IS NULL',
-      operatorId: Operators.IS_NULL,
+      operatorId: Operators.IsNull,
       comparator: '5',
-      clause: CLAUSES.HAVING,
+      clause: Clauses.Having,
     });
     expect(adhocFilter2.comparator).toBe(null);
   });
   it('sets comparator to null when operator is IS_NOT_NULL', () => {
     const adhocFilter2 = new AdhocFilter({
-      expressionType: EXPRESSION_TYPES.SIMPLE,
+      expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
       operator: 'IS NOT NULL',
-      operatorId: Operators.IS_NOT_NULL,
+      operatorId: Operators.IsNotNull,
       comparator: '5',
-      clause: CLAUSES.HAVING,
+      clause: Clauses.Having,
     });
     expect(adhocFilter2.comparator).toBe(null);
+  });
+  it('sets the label properly if subject is a string', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'order_date',
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('order_date');
+  });
+  it('sets the label properly if subject is an object with the column_date property', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: {
+        column_name: 'year',
+      },
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('year');
+  });
+  it('sets the label to empty is there is no column_name in the object', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: {
+        unknown: 'year',
+      },
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('');
+  });
+  it('sets the label to empty is there is no subject', () => {
+    const adhocFilter2 = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: undefined,
+    });
+    expect(adhocFilter2.getDefaultLabel()).toBe('');
   });
 });

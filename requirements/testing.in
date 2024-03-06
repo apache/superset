@@ -16,10 +16,11 @@
 #
 -r development.in
 -r integration.in
--e file:.[bigquery,hive,presto,trino]
+-e file:.[bigquery,hive,presto,prophet,trino,gsheets,playwright]
 docker
 flask-testing
 freezegun
+grpcio>=1.55.3
 openapi-spec-validator
 parameterized
 pyfakefs

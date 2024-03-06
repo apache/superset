@@ -18,10 +18,16 @@
  */
 
 import React from 'react';
+import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import { queryClient } from 'src/views/QueryProvider';
+import {
+  render,
+  screen,
+  waitFor,
+  defaultStore as store,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { api } from 'src/hooks/apiResources/queryApi';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
 import { EmptyStateSmall } from '../EmptyState';
 
@@ -40,7 +46,6 @@ const createProps = (): DatabaseSelectorProps => ({
   handleError: jest.fn(),
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
-  onSchemasLoad: jest.fn(),
 });
 
 const fakeDatabaseApiResult = {
@@ -164,29 +169,31 @@ function setupFetchMock() {
 }
 
 beforeEach(() => {
-  queryClient.clear();
   setupFetchMock();
 });
 
 afterEach(() => {
   fetchMock.reset();
+  act(() => {
+    store.dispatch(api.util.resetApiState());
+  });
 });
 
 test('Should render', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
   expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
 test('Refresh should work', async () => {
   const props = createProps();
 
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
 
   expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
 
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
 
   userEvent.click(select);
@@ -213,13 +220,39 @@ test('Refresh should work', async () => {
 
 test('Should database select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
+});
+
+test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.get(
+    databaseApiRoute,
+    {
+      ...fakeDatabaseApiResult,
+      count: fakeDatabaseApiResult.result.length + 1,
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
+  );
+  expect(select).toBeInTheDocument();
+  userEvent.type(select, 'keywordtest');
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
+  );
+  expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain('keywordtest');
 });
 
 test('should show empty state if there are no options', async () => {
@@ -234,10 +267,10 @@ test('should show empty state if there are no options', async () => {
       db={undefined}
       emptyState={<EmptyStateSmall title="empty" image="" />}
     />,
-    { useRedux: true },
+    { useRedux: true, store },
   );
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   userEvent.click(select);
   const emptystate = await screen.findByText('empty');
@@ -247,9 +280,9 @@ test('should show empty state if there are no options', async () => {
 
 test('Should schema select display options', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -263,9 +296,9 @@ test('Should schema select display options', async () => {
 
 test('Sends the correct db when changing the database', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
   const select = screen.getByRole('combobox', {
-    name: 'Select database or type database name',
+    name: 'Select database or type to search databases',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -283,9 +316,15 @@ test('Sends the correct db when changing the database', async () => {
 
 test('Sends the correct schema when changing the schema', async () => {
   const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true });
+  const { rerender } = render(<DatabaseSelector {...props} db={null} />, {
+    useRedux: true,
+    store,
+  });
+  await waitFor(() => expect(fetchMock.calls(databaseApiRoute).length).toBe(1));
+  rerender(<DatabaseSelector {...props} />);
+  expect(props.onSchemaChange).toBeCalledTimes(0);
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type schema name',
+    name: 'Select schema or type to search schemas',
   });
   expect(select).toBeInTheDocument();
   userEvent.click(select);
@@ -294,4 +333,5 @@ test('Sends the correct schema when changing the schema', async () => {
   await waitFor(() =>
     expect(props.onSchemaChange).toHaveBeenCalledWith('information_schema'),
   );
+  expect(props.onSchemaChange).toBeCalledTimes(1);
 });

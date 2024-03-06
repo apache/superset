@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Set
+from typing import Any
 
-from flask import g
+from flask import current_app, g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm import Query
@@ -30,7 +30,7 @@ from superset.views.base import BaseFilter
 
 def can_access_databases(
     view_menu_name: str,
-) -> Set[str]:
+) -> set[str]:
     return {
         security_manager.unpack_database_and_schema(vm).database
         for vm in security_manager.user_view_menu_names(view_menu_name)
@@ -41,6 +41,19 @@ class DatabaseFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     # TODO(bogdan): consider caching.
 
     def apply(self, query: Query, value: Any) -> Query:
+        """
+        Dynamic Filters need to be applied to the Query before we filter
+        databases with anything else. This way you can show/hide databases using
+        Feature Flags for example in conjuction with the regular role filtering.
+        If not, if an user has access to all Databases it would skip this dynamic
+        filtering.
+        """
+
+        if dynamic_filters := current_app.config["EXTRA_DYNAMIC_QUERY_FILTERS"]:
+            if dynamic_databases_filter := dynamic_filters.get("databases"):
+                query = dynamic_databases_filter(query)
+
+        # We can proceed with default filtering now
         if security_manager.can_access_all_databases():
             return query
         database_perms = security_manager.user_view_menu_names("database_access")
@@ -73,8 +86,8 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
 
         if hasattr(g, "user"):
             allowed_schemas = [
-                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](db, g.user)
-                for db in datasource_access_databases
+                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](database, g.user)
+                for database in datasource_access_databases
             ]
 
             if len(allowed_schemas):

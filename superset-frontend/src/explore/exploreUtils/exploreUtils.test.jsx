@@ -24,7 +24,7 @@ import {
   exploreChart,
   getExploreUrl,
   getSimpleSQLExpression,
-  shouldUseLegacyApi,
+  getQuerySettings,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
@@ -96,7 +96,7 @@ describe('exploreUtils', () => {
       compareURI(
         URI(url),
         URI('/explore/').search({
-          standalone: DashboardStandaloneMode.HIDE_NAV,
+          standalone: DashboardStandaloneMode.HideNav,
         }),
       );
     });
@@ -199,7 +199,7 @@ describe('exploreUtils', () => {
     });
   });
 
-  describe('shouldUseLegacyApi', () => {
+  describe('getQuerySettings', () => {
     beforeAll(() => {
       getChartMetadataRegistry()
         .registerValue('my_legacy_viz', { useLegacyApi: true })
@@ -211,32 +211,36 @@ describe('exploreUtils', () => {
     });
 
     it('returns true for legacy viz', () => {
-      const useLegacyApi = shouldUseLegacyApi({
+      const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'my_legacy_viz',
       });
       expect(useLegacyApi).toBe(true);
+      expect(parseMethod).toBe('json-bigint');
     });
 
     it('returns false for v1 viz', () => {
-      const useLegacyApi = shouldUseLegacyApi({
+      const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'my_v1_viz',
       });
       expect(useLegacyApi).toBe(false);
+      expect(parseMethod).toBe('json-bigint');
     });
 
     it('returns false for formData with unregistered viz_type', () => {
-      const useLegacyApi = shouldUseLegacyApi({
+      const [useLegacyApi, parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'undefined_viz',
       });
       expect(useLegacyApi).toBe(false);
+      expect(parseMethod).toBe('json-bigint');
     });
 
     it('returns false for formData without viz_type', () => {
-      const useLegacyApi = shouldUseLegacyApi(formData);
+      const [useLegacyApi, parseMethod] = getQuerySettings(formData);
       expect(useLegacyApi).toBe(false);
+      expect(parseMethod).toBe('json-bigint');
     });
   });
 

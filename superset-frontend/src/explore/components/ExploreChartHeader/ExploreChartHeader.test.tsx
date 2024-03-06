@@ -34,7 +34,7 @@ const chartEndpoint = 'glob:*api/v1/chart/*';
 fetchMock.get(chartEndpoint, { json: 'foo' });
 
 window.featureFlags = {
-  [FeatureFlag.EMBEDDABLE_CHARTS]: true,
+  [FeatureFlag.EmbeddableCharts]: true,
 };
 
 const createProps = (additionalProps = {}) => ({
@@ -360,9 +360,8 @@ describe('Additional actions tests', () => {
       expect(spy).toBeCalledTimes(0);
 
       userEvent.hover(screen.getByText('Download'));
-      const downloadAsImageElement = await screen.findByText(
-        'Download as image',
-      );
+      const downloadAsImageElement =
+        await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
       expect(spy).toBeCalledTimes(1);

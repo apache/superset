@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 
 import pandas as pd
+import pytest
 from flask_babel import lazy_gettext as _
 from numpy import True_
-from pytest import raises
 from sqlalchemy.orm.session import Session
 
 from superset.charts.post_processing import apply_post_process, pivot_df, table
@@ -1387,9 +1386,9 @@ def test_apply_post_process_without_result_format():
     A query without result_format should raise an exception
     """
     result = {"queries": [{"result_format": "foo"}]}
-    form_data = {"viz_type": "pivot_table"}
+    form_data = {"viz_type": "pivot_table_v2"}
 
-    with raises(Exception) as ex:
+    with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)
 
     assert ex.match("Result format foo not supported") == True
@@ -1659,12 +1658,13 @@ def test_apply_post_process_csv_format_empty_string():
     }
 
 
-def test_apply_post_process_csv_format_no_data():
+@pytest.mark.parametrize("data", [None, "", "\n"])
+def test_apply_post_process_csv_format_no_data(data):
     """
     It should be able to process csv results with no data
     """
 
-    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]}
+    result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}
     form_data = {
         "datasource": "19__table",
         "viz_type": "pivot_table_v2",
@@ -1726,7 +1726,7 @@ def test_apply_post_process_csv_format_no_data():
     }
 
     assert apply_post_process(result, form_data) == {
-        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": None}]
+        "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
 
 
@@ -1965,12 +1965,13 @@ def test_apply_post_process_json_format_data_is_none():
 
 
 def test_apply_post_process_verbose_map(session: Session):
+    from superset import db
     from superset.connectors.sqla.models import SqlaTable, SqlMetric
     from superset.models.core import Database
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
@@ -1982,7 +1983,7 @@ def test_apply_post_process_verbose_map(session: Session):
                 expression="COUNT(*)",
             )
         ],
-        database=db,
+        database=database,
     )
 
     result = {

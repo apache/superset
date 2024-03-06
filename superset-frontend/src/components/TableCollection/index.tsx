@@ -295,7 +295,6 @@ export default React.memo(
                   const isWrapText = columnsForWrapText?.includes(
                     cell.column.Header as string,
                   );
-
                   return (
                     <td
                       data-test="table-row-cell"
