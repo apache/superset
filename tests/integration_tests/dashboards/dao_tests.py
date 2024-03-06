@@ -49,16 +49,15 @@ class TestDashboardDAO(SupersetTestCase):
             assert changed_on == DashboardDAO.get_dashboard_changed_on("world_health")
 
             old_changed_on = dashboard.changed_on
-
             # freezegun doesn't work for some reason, so we need to sleep here :(
             time.sleep(1)
             data = dashboard.data
             positions = data["position_json"]
             data.update({"positions": positions})
             original_data = copy.deepcopy(data)
-
             data.update({"foo": "bar"})
             DashboardDAO.set_dash_metadata(dashboard, data)
+            db.session.flush()
             db.session.commit()
             new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
             assert old_changed_on.replace(microsecond=0) < new_changed_on
@@ -70,6 +69,7 @@ class TestDashboardDAO(SupersetTestCase):
             )
 
             DashboardDAO.set_dash_metadata(dashboard, original_data)
+            db.session.flush()
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

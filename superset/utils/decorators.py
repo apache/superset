@@ -20,10 +20,12 @@ import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app, g, Response
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
@@ -210,3 +212,42 @@ def suppress_logging(
         yield
     finally:
         target_logger.setLevel(original_level)
+
+
+def on_error(
+    ex: Exception,
+    reraise: type[Exception] | None = SQLAlchemyError,
+) -> None:
+    if hasattr(ex, "exception"):
+        logger.exception(ex.exception)
+
+    if reraise:
+        print(ex, type(ex))
+        raise reraise() from ex
+
+
+def transaction(  # pylint: disable=redefined-outer-name
+    catches: tuple[type[Exception], ...] = (SQLAlchemyError,),
+    on_error: Callable[..., Any] | None = on_error,
+) -> Callable[..., Any]:
+    """
+    :see: https://github.com/apache/superset/issues/25108
+    """
+
+    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(func)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            from superset import db
+
+            try:
+                with db.session.begin_nested():
+                    return func(*args, **kwargs)
+            except catches as ex:
+                if on_error:
+                    on_error(ex)
+
+                return None
+
+        return wrapped
+
+    return decorate

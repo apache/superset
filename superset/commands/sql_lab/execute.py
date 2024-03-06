@@ -22,10 +22,10 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -178,7 +178,7 @@ class ExecuteSqlCommand(BaseCommand):
     def _save_new_query(self, query: Query) -> None:
         try:
             self._query_dao.create(query)
-        except DAOCreateFailedError as ex:
+        except SQLAlchemyError as ex:
             raise SqlLabException(
                 self._execution_context,
                 SupersetErrorType.GENERIC_DB_ENGINE_ERROR,

@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -32,10 +33,9 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import populate_roles
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db
 from superset.models.dashboard import Dashboard
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -46,22 +46,19 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Dashboard] = None
 
+    @transaction(on_error=partial(on_error, reraise=DashboardUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
 
-        try:
-            dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
-            if self._properties.get("json_metadata"):
-                dashboard = DashboardDAO.set_dash_metadata(
-                    dashboard,
-                    data=json.loads(self._properties.get("json_metadata", "{}")),
-                    commit=False,
-                )
-            db.session.commit()
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise DashboardUpdateFailedError() from ex
+        dashboard = DashboardDAO.update(self._model, self._properties)
+
+        if self._properties.get("json_metadata"):
+            DashboardDAO.set_dash_metadata(
+                dashboard,
+                data=json.loads(self._properties.get("json_metadata", "{}")),
+            )
+
         return dashboard
 
     def validate(self) -> None:

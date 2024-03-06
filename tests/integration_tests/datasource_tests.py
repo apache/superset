@@ -78,7 +78,14 @@ class TestDatasource(SupersetTestCase):
         )
 
     def test_always_filter_main_dttm(self):
+        print(">>> login <<<")
+        from flask import g
+
+        print(hasattr(g, "user"))
+        if hasattr(g, "user"):
+            print(g.user)
         self.login(username="admin")
+        print(g.user)
         database = get_example_database()
 
         sql = f"SELECT DATE() as default_dttm, DATE() as additional_dttm, 1 as metric;"

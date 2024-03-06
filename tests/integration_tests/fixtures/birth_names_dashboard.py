@@ -46,25 +46,22 @@ def load_birth_names_data(
 @pytest.fixture()
 def load_birth_names_dashboard_with_slices(load_birth_names_data):
     with app.app_context():
-        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        _create_dashboards()
         yield
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
 @pytest.fixture(scope="module")
 def load_birth_names_dashboard_with_slices_module_scope(load_birth_names_data):
     with app.app_context():
-        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        _create_dashboards()
         yield
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
 @pytest.fixture(scope="class")
 def load_birth_names_dashboard_with_slices_class_scope(load_birth_names_data):
     with app.app_context():
-        dash_id_to_delete, slices_ids_to_delete = _create_dashboards()
+        _create_dashboards()
         yield
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
 def _create_dashboards():
@@ -77,10 +74,7 @@ def _create_dashboards():
     from superset.examples.birth_names import create_dashboard, create_slices
 
     slices, _ = create_slices(table)
-    dash = create_dashboard(slices)
-    slices_ids_to_delete = [slice.id for slice in slices]
-    dash_id_to_delete = dash.id
-    return dash_id_to_delete, slices_ids_to_delete
+    create_dashboard(slices)
 
 
 def _create_table(
@@ -97,20 +91,4 @@ def _create_table(
 
     _set_table_metadata(table, database)
     _add_table_metrics(table)
-    db.session.commit()
     return table
-
-
-def _cleanup(dash_id: int, slice_ids: list[int]) -> None:
-    schema = get_example_default_schema()
-    for datasource in db.session.query(SqlaTable).filter_by(
-        table_name="birth_names", schema=schema
-    ):
-        for col in datasource.columns + datasource.metrics:
-            db.session.delete(col)
-
-    for dash in db.session.query(Dashboard).filter_by(id=dash_id):
-        db.session.delete(dash)
-    for slc in db.session.query(Slice).filter(Slice.id.in_(slice_ids)):
-        db.session.delete(slc)
-    db.session.commit()

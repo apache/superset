@@ -39,10 +39,10 @@ def create_gamma_sqllab_no_data():
         )
 
         yield
-        user = (
+        if user := (
             db.session.query(User)
             .filter(User.username == "gamma_sqllab_no_data")
             .one_or_none()
-        )
-        db.session.delete(user)
+        ):
+            db.session.delete(user)
         db.session.commit()

@@ -61,7 +61,6 @@ def load_unicode_dashboard_with_slice(load_unicode_data):
     with app.app_context():
         dash = _create_unicode_dashboard(slice_name, None)
         yield
-        _cleanup(dash, slice_name)
 
 
 @pytest.fixture()
@@ -71,7 +70,6 @@ def load_unicode_dashboard_with_position(load_unicode_data):
     with app.app_context():
         dash = _create_unicode_dashboard(slice_name, position)
         yield
-        _cleanup(dash, slice_name)
 
 
 def _get_dataframe():
@@ -97,24 +95,18 @@ def _create_unicode_dashboard(slice_title: str, position: str) -> Dashboard:
     table.fetch_metadata()
 
     if slice_title:
-        slice = _create_and_commit_unicode_slice(table, slice_title)
+        slice = _create_unicode_slice(table, slice_title)
 
     return create_dashboard("unicode-test", "Unicode Test", position, [slice])
 
 
-def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
-    slice = create_slice(title, "word_cloud", table, {})
-    o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
-    if o:
-        db.session.delete(o)
-    db.session.add(slice)
-    db.session.commit()
-    return slice
-
-
-def _cleanup(dash: Dashboard, slice_name: str) -> None:
-    db.session.delete(dash)
-    if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
-        db.session.delete(slice)
-    db.session.commit()
+def _create_unicode_slice(table: SqlaTable, title: str):
+    slc = create_slice(title, "word_cloud", table, {})
+    if (
+        obj := db.session.query(Slice)
+        .filter_by(slice_name=slc.slice_name)
+        .one_or_none()
+    ):
+        db.session.delete(obj)
+    db.session.add(slc)
+    return slc

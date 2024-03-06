@@ -676,7 +676,7 @@ class Superset(BaseSupersetView):
 
         if dash and slc not in dash.slices:
             dash.slices.append(slc)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         response = {
             "can_add": slice_add_perm,

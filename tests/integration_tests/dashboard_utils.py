@@ -97,6 +97,5 @@ def create_dashboard(
     if slices is not None:
         dash.slices = slices
     db.session.add(dash)
-    db.session.commit()
 
     return dash

@@ -25,10 +25,14 @@ def public_role_like_gamma():
     with app.app_context():
         app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
         security_manager.sync_role_definitions()
+        print(">>> public_role_like_gamma <<<")
+        print(security_manager.get_public_role())
+        db.session.commit()
 
         yield
-
-        security_manager.get_public_role().permissions = []
+        print(">>> after yield <<<")
+        print(security_manager.get_public_role())
+        # security_manager.get_public_role().permissions = []
         db.session.commit()
 
 

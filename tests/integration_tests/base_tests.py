@@ -269,7 +269,15 @@ class SupersetTestCase(TestCase):
         self.grant_role_access_to_table(table, role_name)
 
     def grant_role_access_to_table(self, table, role_name):
+        print(">>> grant_role_access_to_table <<<")
+        print(role_name)
+        print(db.session.get_bind())
+        from flask_appbuilder.security.sqla.models import Role
+
+        print(list(db.session.query(Role).all()))
         role = security_manager.find_role(role_name)
+        print(role)
+
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (

@@ -28,8 +28,9 @@ export SUPERSET_TESTENV=true
 echo "Superset config module: $SUPERSET_CONFIG"
 
 superset db upgrade
+superset load-test-users
 superset init
 
 echo "Running tests"
 
-pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset ./tests/integration_tests "$@"
+pytest --durations-min=2 --cov-report= --cov=superset ./tests/integration_tests "$@"

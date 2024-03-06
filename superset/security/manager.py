@@ -48,7 +48,7 @@ from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import eagerload, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
@@ -274,6 +274,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     guest_user_cls = GuestUser
     pyjwt_for_guest_token = _jwt_global_obj
+
+    @property
+    def get_session(self) -> Session:
+        """
+        Flask-AppBuilder (FAB) which has a tendency to explicitly commit, thus violating
+        our definition of "unit of work".
+
+        By providing a monkey patched transaction for the FAB session ensures that any
+        explicit commit merely flushes and any rollback is a no-op.
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+
+        with db.session.begin_nested() as transaction:
+            transaction.session.commit = transaction.session.flush
+            transaction.session.rollback = lambda: None
+            return transaction.session
 
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
@@ -805,7 +823,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 == None,
             )
         )
-        self.get_session.commit()
+        self.get_session.flush()
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
@@ -835,9 +853,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
         self.create_missing_perms()
-
-        # commit role and view menu updates
-        self.get_session.commit()
+        self.get_session.flush()
         self.clean_perms()
 
     def _get_all_pvms(self) -> list[PermissionView]:
@@ -910,7 +926,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     role_from_permissions.append(permission_view)
         role_to.permissions = role_from_permissions
-        self.get_session.commit()
+        self.get_session.flush()
 
     def set_role(
         self,
@@ -931,7 +947,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission_view for permission_view in pvms if pvm_check(permission_view)
         ]
         role.permissions = role_pvms
-        self.get_session.commit()
+        self.get_session.flush()
 
     def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
@@ -2148,10 +2164,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             RowLevelSecurityFilter,
         )
 
+        print(">>> get_rls_filters <<<")
+        print(g.user)
+        print(self.get_user_roles(g.user))
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         regular_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
@@ -2159,22 +2177,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         base_filter_roles = (
-            self.get_session()
-            .query(RLSFilterRoles.c.rls_filter_id)
+            self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
-        filter_tables = (
-            self.get_session()
-            .query(RLSFilterTables.c.rls_filter_id)
-            .filter(RLSFilterTables.c.table_id == table.id)
+        filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
+            RLSFilterTables.c.table_id == table.id
         )
         query = (
-            self.get_session()
-            .query(
+            self.get_session.query(
                 RowLevelSecurityFilter.id,
                 RowLevelSecurityFilter.group_key,
                 RowLevelSecurityFilter.clause,
@@ -2377,13 +2391,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the current user is not an owner
         """
 
-        # pylint: disable=import-outside-toplevel
-        from superset import db
-
         if self.is_admin():
             return
 
-        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        orig_resource = self.get_session.query(resource.__class__).get(resource.id)
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

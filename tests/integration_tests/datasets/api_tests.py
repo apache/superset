@@ -32,11 +32,6 @@ from sqlalchemy.sql import func
 from superset import app
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.daos.exceptions import (
-    DAOCreateFailedError,
-    DAODeleteFailedError,
-    DAOUpdateFailedError,
-)
 from superset.datasets.models import Dataset
 from superset.extensions import db, security_manager
 from superset.models.core import Database
@@ -1370,7 +1365,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test update dataset sqlalchemy error
         """
 
-        mock_dao_update.side_effect = DAOUpdateFailedError()
+        mock_dao_update.side_effect = SQLAlchemyError()
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
@@ -1434,7 +1429,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset sqlalchemy error
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
@@ -1503,7 +1498,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset column
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
         dataset = self.get_fixture_datasets()[0]
         column_id = dataset.columns[0].id
         self.login(username="admin")
@@ -1575,7 +1570,7 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test delete dataset metric
         """
 
-        mock_dao_delete.side_effect = DAODeleteFailedError()
+        mock_dao_delete.side_effect = SQLAlchemyError()
         dataset = self.get_fixture_datasets()[0]
         column_id = dataset.metrics[0].id
         self.login(username="admin")

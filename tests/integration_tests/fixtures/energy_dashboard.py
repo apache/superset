@@ -61,7 +61,6 @@ def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
         slices = _create_energy_table()
         yield slices
-        _cleanup()
 
 
 def _get_dataframe():
@@ -108,24 +107,6 @@ def _create_and_commit_energy_slice(
     db.session.add(slice)
     db.session.commit()
     return slice
-
-
-def _cleanup() -> None:
-    for slice_data in _get_energy_slices():
-        slice = (
-            db.session.query(Slice)
-            .filter_by(slice_name=slice_data["slice_title"])
-            .first()
-        )
-        db.session.delete(slice)
-
-    metric = (
-        db.session.query(SqlMetric).filter_by(metric_name="sum__value").one_or_none()
-    )
-    if metric:
-        db.session.delete(metric)
-
-    db.session.commit()
 
 
 def _get_energy_data():
