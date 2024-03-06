@@ -42,6 +42,8 @@ services:
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
+    environment:
+      - TZ=UTC
     env_file: docker/.env-non-dev
     image: *superset-image
     container_name: superset_app
