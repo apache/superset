@@ -292,10 +292,12 @@ def check_sess_token():
         print("=========Before Request Token=========", token)
         print("=========Before Request Session=========", session)
 
+        session_user_username = None
         session_user_id = session.get("_user_id", "")
-        session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
-        print("===============Before Request Session User=========", session_user)
-        session_user_username = session_user.username
+        if session_user_id:
+            session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+            print("===============Before Request Session User=========", session_user)
+            session_user_username = session_user.username
 
         token_user_username = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
