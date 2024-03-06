@@ -283,35 +283,35 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-@current_app.before_request
-def check_sess_token():
-    token = request.headers.get("jwt-payload")
-    if token and isinstance(token, str):
-        token = json.loads(token)
-        doc_id = token.get("doc-id", "")
-        print("=========Before Request Token=========", token)
-        print("=========Before Request Session=========", session)
-
-        session_user_username = None
-        if session:
-            session_user_id = session.get("_user_id", "")
-            session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
-            session_user_username = session_user.username
-            print("===============Before Request Session User=========", session_user_username)
-
-        token_user_username = doc_id+'@dummyanalytics.com'
-        token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
-        print("===============Before Request TOken User=========", token_user_username)
-        if token_user_username != session_user_username:
-            login_user(token_user)
-            print("=========Before Request Session After Login=========", session)
-            # session["_user_id"] = token_user.id
-        else:
-            print("========Same User Found====================")
-            pass
-    else:
-        flash("Unable to login")
-        redirect("/login")
+# @current_app.before_request
+# def check_sess_token():
+#     token = request.headers.get("jwt-payload")
+#     if token and isinstance(token, str):
+#         token = json.loads(token)
+#         doc_id = token.get("doc-id", "")
+#         print("=========Before Request Token=========", token)
+#         print("=========Before Request Session=========", session)
+#
+#         session_user_username = None
+#         if session:
+#             session_user_id = session.get("_user_id", "")
+#             session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+#             session_user_username = session_user.username
+#             print("===============Before Request Session User=========", session_user_username)
+#
+#         token_user_username = doc_id+'@dummyanalytics.com'
+#         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
+#         print("===============Before Request TOken User=========", token_user_username)
+#         if token_user_username != session_user_username:
+#             login_user(token_user)
+#             print("=========Before Request Session After Login=========", session)
+#             # session["_user_id"] = token_user.id
+#         else:
+#             print("========Same User Found====================")
+#             pass
+#     else:
+#         flash("Unable to login")
+#         redirect("/login")
 
 
 class BaseSupersetView(BaseView):
