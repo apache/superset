@@ -141,7 +141,3 @@ tzlocal==4.3
     # via trino
 websocket-client==1.5.1
     # via docker
-
-# The following packages are considered to be unsafe in a requirements file:
-# pip
-# setuptools
