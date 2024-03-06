@@ -293,8 +293,8 @@ def check_sess_token():
         print("=========Before Request Session=========", session)
 
         session_user_username = None
-        session_user_id = session.get("_user_id", "")
-        if session_user_id:
+        if session:
+            session_user_id = session.get("_user_id", "")
             session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
             session_user_username = session_user.username
             print("===============Before Request Session User=========", session_user_username)
