@@ -46,7 +46,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
-from flask_login import login_user, login_required
+from flask_login import login_user
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import exc
@@ -283,7 +283,6 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-@login_required
 @current_app.before_request
 def check_sess_token():
     token = request.headers.get("jwt-payload")
