@@ -68,3 +68,7 @@ virtualenv==20.23.1
     #   tox
 wheel==0.40.0
     # via pip-tools
+
+# The following packages are considered to be unsafe in a requirements file:
+# pip
+# setuptools

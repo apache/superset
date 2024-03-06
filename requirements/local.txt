@@ -10,3 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools
