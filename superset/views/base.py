@@ -289,15 +289,20 @@ def check_sess_token():
     if token and isinstance(token, str):
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
-        print("=========token=========", token)
+        print("=========Before Request Token=========", token)
+        print("=========Before Request Session=========", session)
+
         session_user_id = session["_user_id"]
         session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+        print("===============Before Request Session User=========", session_user)
         session_user_mail = session_user.email
 
         token_user_mail = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.email == token_user_mail).one_or_none()
+        print("===============Before Request TOken User=========", token_user)
         if token_user_mail != session_user_mail:
             login_user(token_user)
+            print("=========Before Request Session After Login=========", session)
             # session["_user_id"] = token_user.id
         else:
             pass
