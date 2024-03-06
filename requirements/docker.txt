@@ -10,13 +10,13 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/docker.in
-gevent==23.9.1
+gevent==24.2.1
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-zope-event==4.5.0
+zope-event==5.0
     # via gevent
-zope-interface==5.4.0
+zope-interface==6.2
     # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:

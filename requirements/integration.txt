@@ -5,51 +5,55 @@
 #
 #    pip-compile-multi
 #
-build==0.10.0
+build==1.1.1
     # via pip-tools
-cachetools==5.3.2
+cachetools==5.3.3
     # via tox
-cfgv==3.3.1
+cfgv==3.4.0
     # via pre-commit
-chardet==5.1.0
+chardet==5.2.0
     # via tox
-click==8.1.3
+click==8.1.7
     # via
     #   pip-compile-multi
     #   pip-tools
 colorama==0.4.6
     # via tox
-distlib==0.3.6
+distlib==0.3.8
     # via virtualenv
-filelock==3.12.2
+filelock==3.13.1
     # via
     #   tox
     #   virtualenv
-identify==2.5.24
+identify==2.5.35
     # via pre-commit
-nodeenv==1.7.0
+importlib-metadata==7.0.1
+    # via build
+nodeenv==1.8.0
     # via pre-commit
-packaging==23.1
+packaging==23.2
     # via
     #   build
     #   pyproject-api
     #   tox
 pip-compile-multi==2.6.3
     # via -r requirements/integration.in
-pip-tools==7.3.0
+pip-tools==7.4.0
     # via pip-compile-multi
-platformdirs==3.8.1
+platformdirs==4.2.0
     # via
     #   tox
     #   virtualenv
-pluggy==1.2.0
+pluggy==1.4.0
     # via tox
-pre-commit==3.3.3
+pre-commit==3.6.2
     # via -r requirements/integration.in
-pyproject-api==1.5.2
+pyproject-api==1.6.1
     # via tox
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pyyaml==6.0.1
     # via pre-commit
 tomli==2.0.1
@@ -57,17 +61,20 @@ tomli==2.0.1
     #   build
     #   pip-tools
     #   pyproject-api
+    #   pyproject-hooks
     #   tox
 toposort==1.10
     # via pip-compile-multi
-tox==4.6.4
+tox==4.14.0
     # via -r requirements/integration.in
-virtualenv==20.23.1
+virtualenv==20.25.1
     # via
     #   pre-commit
     #   tox
-wheel==0.40.0
+wheel==0.42.0
     # via pip-tools
+zipp==3.17.0
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
