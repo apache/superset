@@ -520,6 +520,9 @@ const config: ControlPanelConfig = {
               description: t(
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
+              visibility: ({ controls }) =>
+                !controls?.enable_time_comparison?.value ||
+                !isFeatureEnabled(FeatureFlag.ChartPluginsExperimental),
             },
           },
         ],
