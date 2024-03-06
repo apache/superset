@@ -19,10 +19,6 @@ set -ex
 
 echo "[WARNING] this entrypoint creates an admin/admin user"
 echo "[WARNING] it should only be used for lightweight testing/validation"
-if [ "$SUPERSET_TESTENV" = "true" ]
-then
-  echo "SUPERSET IS RUNNING IN TEST MODE"
-fi
 
 if [ -z "${SUPERSET_TESTENV}" ]; then
   echo "SUPERSET IS RUNNING IN TEST MODE"
