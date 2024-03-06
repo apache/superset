@@ -46,6 +46,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_login import login_user
 from flask_wtf.csrf import CSRFError
 from flask_wtf.form import FlaskForm
 from sqlalchemy import exc
@@ -282,12 +283,27 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-# @current_app.before_request
-# def load_user():
-#     if session:
-#         print("===================Session:===============", session)
-#         session["sessionID"] = ""
-#         print("====================Session after popping:=======================", session)
+@current_app.before_request
+def check_sess_token():
+    token = request.headers.get("jwt-payload")
+    if token and isinstance(token, str):
+        token = json.loads(token)
+        doc_id = token.get("doc-id", "")
+        print("=========token=========", token)
+        session_user_id = session["_user_id"]
+        session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+        session_user_mail = session_user.email
+
+        token_user_mail = doc_id+'@dummyanalytics.com'
+        token_user = db.session.query(User).filter(User.email == token_user_mail).one_or_none()
+        if token_user_mail != session_user_mail:
+            login_user(token_user)
+            # session["_user_id"] = token_user.id
+        else:
+            pass
+    else:
+        flash("Unable to login")
+        redirect("/login")
 
 
 class BaseSupersetView(BaseView):
