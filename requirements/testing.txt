@@ -7,7 +7,7 @@
 #
 -r development.txt
 -r integration.txt
--e file:.
+-e file:///Users/max/code/superset
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
