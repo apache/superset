@@ -301,14 +301,17 @@ def check_sess_token():
 
         token_user_username = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
-        print("===============Before Request TOken User=========", token_user_username)
-        if token_user_username != session_user_username:
-            login_user(token_user)
-            print("=========Before Request Session After Login=========", session)
-            # session["_user_id"] = token_user.id
-        else:
-            print("========Same User Found====================")
-            pass
+        print("===============Before Request Token User=========", token_user_username)
+        if token_user:
+            if token_user_username != session_user_username:
+                # switch case
+                login_user(token_user)
+                print("=========Before Request Session After Login=========", session)
+                # session["_user_id"] = token_user.id
+            else:
+                # same user
+                print("========Same User Found====================")
+                pass
     else:
         flash("Unable to login")
         redirect("/login")
