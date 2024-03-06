@@ -411,7 +411,8 @@ export default function transformProps(
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = `${inverted[entryName] || entryName} (1)`;
-    const colorScaleKey = getOriginalSeries(seriesName, array);
+    const colorScaleSeriesName = inverted[entryName] || entryName;
+    const colorScaleKey = getOriginalSeries(colorScaleSeriesName, array);
 
     const seriesFormatter = getFormatter(
       customFormattersSecondary,
