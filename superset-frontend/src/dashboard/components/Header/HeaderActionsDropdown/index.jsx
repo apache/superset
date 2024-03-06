@@ -34,8 +34,6 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
-import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const propTypes = {
