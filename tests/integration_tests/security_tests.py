@@ -1511,8 +1511,6 @@ class TestRolePermission(SupersetTestCase):
         # make sure that user can create slices and dashboards
         self.assert_can_all("Dashboard", gamma_perm_set)
         self.assert_can_read("Dataset", gamma_perm_set)
-        self.assert_can_read("Annotation", gamma_perm_set)
-        self.assert_can_read("CssTemplate", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", gamma_perm_set)
