@@ -19,7 +19,13 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject } from './types';
