@@ -169,7 +169,6 @@ class SecurityRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
-    @permission_name("grant_guest_token")
     def add_user(self) -> Response:
         try:
             body = user_schema.load(request.json)
@@ -177,10 +176,11 @@ class SecurityRestApi(BaseSupersetApi):
             first_name = body.get("first_name")
             last_name = body.get("last_name")
             email = body.get("email")
-            role = self.appbuilder.sm.find_role("Gamma")
-            user = self.appbuilder.sm.add_user(username, first_name, last_name, email, role)
-            if user:
-                return self.response(200, success=True)
+            role = self.appbuilder.sm.find_role("Doctor")
+            if role and email and last_name and first_name and username:
+                user = self.appbuilder.sm.add_user(username, first_name, last_name, email, role)
+                if user:
+                    return self.response(200, success=True)
         except Exception as error:
             print("=======add_user EXCEPTION========", str(error))
             return self.response_400(message="User creation failed")
