@@ -377,7 +377,8 @@ const transformProps = (
   } = formData;
   const canUseTimeComparison =
     enableTimeComparison &&
-    isFeatureEnabled(FeatureFlag.ChartPluginsExperimental);
+    isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+    queryMode === QueryMode.Aggregate;
   const timeGrain = extractTimegrain(formData);
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
