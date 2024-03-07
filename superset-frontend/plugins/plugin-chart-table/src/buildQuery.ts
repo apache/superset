@@ -64,10 +64,11 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     time_comparison: timeComparison,
     enable_time_comparison,
   } = formData;
+  const queryMode = getQueryMode(formData);
   const canUseTimeComparison =
     enable_time_comparison &&
-    isFeatureEnabled(FeatureFlag.ChartPluginsExperimental);
-  const queryMode = getQueryMode(formData);
+    isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+    queryMode === QueryMode.Aggregate;
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
