@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { TableTab } from 'src/views/CRUD/types';
 import ActivityTable from './ActivityTable';
@@ -118,10 +117,10 @@ describe('ActivityTable', () => {
     renderActivityTable(activityProps);
     const editedButton = screen.getByText(/edited/i);
     expect(editedButton).toBeInTheDocument();
-    userEvent.click(editedButton);
+    fireEvent.click(editedButton);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
     const chartCall = fetchMock.calls(/chart\/\?q/);
-    // waitFor() does not work here in this instance...
+    // `await waitFor()` does not work in this instance...
     setTimeout(() => {
       expect(chartCall).toHaveLength(1);
       expect(dashboardCall).toHaveLength(1);
