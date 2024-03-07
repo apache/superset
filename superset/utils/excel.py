@@ -22,33 +22,24 @@ import pandas as pd
 from superset.utils.core import GenericDataType
 
 
-def df_to_excel(
-    df: pd.DataFrame, coltypes: list[GenericDataType], **kwargs: Any
-) -> Any:
+def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     output = io.BytesIO()
-
-    # timezones are not supported
-    for column in df.select_dtypes(include=["datetimetz"]).columns:
-        df[column] = df[column].astype(str)
-
-    ndf = convert_df_with_datatypes(df, coltypes)
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        ndf.to_excel(writer, **kwargs)
+        df.to_excel(writer, **kwargs)
 
     return output.getvalue()
 
 
-def convert_df_with_datatypes(
-    df: pd.DataFrame, coltypes: list[GenericDataType]
+def apply_column_types(
+    df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
-    ndf = df.copy()
-    try:
-        columns = list(df)
-        for i, col in enumerate(columns):
-            if coltypes[i] == GenericDataType.NUMERIC:
-                ndf[col] = pd.to_numeric(df[col], errors="raise")
-        return ndf
-    except (ValueError, IndexError):
-        return df
+
+    for column, column_type in zip(df.columns, column_types):
+        if column_type == GenericDataType.NUMERIC:
+            df[column] = pd.to_numeric(df[column])
+        elif pd.api.types.is_datetime64tz_dtype(df[column]):
+            # timezones are not supported
+            df[column] = df[column].astype(str)
+    return df
