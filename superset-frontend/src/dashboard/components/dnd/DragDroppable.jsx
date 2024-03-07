@@ -74,6 +74,12 @@ const defaultProps = {
 const DragDroppableStyles = styled.div`
   ${({ theme }) => css`
     position: relative;
+    /*
+      Next line is a workaround for a bug in react-dnd where the drag
+      preview expands outside of the bounds of the drag source card, see:
+      https://github.com/react-dnd/react-dnd/issues/832#issuecomment-442071628
+    */
+    transform: translate3d(0, 0, 0);
 
     &.dragdroppable--dragging {
       opacity: 0.2;

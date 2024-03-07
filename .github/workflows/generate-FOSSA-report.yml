@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "[0-9].[0-9]"
 
 jobs:
   config:
@@ -33,8 +34,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '11'
+          distribution: "temurin"
+          java-version: "11"
       - name: Generate fossa report
         env:
           FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
