@@ -31,7 +31,7 @@ def df_to_excel(
     for column in df.select_dtypes(include=["datetimetz"]).columns:
         df[column] = df[column].astype(str)
 
-    ndf = copy_df_with_datatype_conversion(df, coltypes)
+    ndf = convert_df_with_datatypes(df, coltypes)
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -40,7 +40,7 @@ def df_to_excel(
     return output.getvalue()
 
 
-def copy_df_with_datatype_conversion(
+def convert_df_with_datatypes(
     df: pd.DataFrame, coltypes: list[GenericDataType]
 ) -> pd.DataFrame:
     ndf = df.copy()
@@ -48,7 +48,7 @@ def copy_df_with_datatype_conversion(
         columns = list(df)
         for i, col in enumerate(columns):
             if coltypes[i] == GenericDataType.NUMERIC:
-                ndf[col] = pd.to_numeric(df[col], errors="ignore")
+                ndf[col] = pd.to_numeric(df[col], errors="raise")
         return ndf
-    except:
+    except (ValueError, IndexError):
         return df

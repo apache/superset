@@ -21,7 +21,7 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
 from superset.utils.core import GenericDataType
-from superset.utils.excel import copy_df_with_datatype_conversion, df_to_excel
+from superset.utils.excel import convert_df_with_datatypes, df_to_excel
 
 
 def test_timezone_conversion() -> None:
@@ -55,7 +55,7 @@ def test_column_data_types_with_one_numeric_column():
     ]
 
     # only col1 should be converted to numeric, according to coltypes definition
-    xdf = copy_df_with_datatype_conversion(df, coltypes)
+    xdf = convert_df_with_datatypes(df, coltypes)
     assert not is_numeric_dtype(xdf["col0"])
     assert is_numeric_dtype(xdf["col1"])
     assert not is_numeric_dtype(xdf["col2"])
@@ -84,7 +84,7 @@ def test_column_data_types_with_failing_numeric_data():
     ]
 
     # given data in col1, conversion to numeric should fail silently
-    xdf = copy_df_with_datatype_conversion(df, coltypes)
+    xdf = convert_df_with_datatypes(df, coltypes)
     assert not is_numeric_dtype(xdf["col0"])
     assert not is_numeric_dtype(xdf["col1"])
     assert not is_numeric_dtype(xdf["col2"])
