@@ -889,6 +889,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test update dataset preserves owner list (if un-changed)
         """
+        if backend() == "sqlite":
+            return
 
         dataset = self.insert_default_dataset()
         current_owners = dataset.owners
@@ -907,6 +909,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test update dataset admin can clear ownership config
         """
+        if backend() == "sqlite":
+            return
 
         dataset = self.insert_default_dataset()
         self.login(username="admin")
@@ -925,6 +929,8 @@ class TestDatasetApi(SupersetTestCase):
         Dataset API: Test update admin can update dataset with
         no owners to a different owner
         """
+        if backend() == "sqlite":
+            return
         self.login(username="admin")
         gamma = self.get_user("gamma")
         dataset = self.insert_dataset("ab_permission", [], get_main_database())
