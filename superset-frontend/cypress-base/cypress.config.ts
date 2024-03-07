@@ -65,5 +65,6 @@ export default defineConfig({
     baseUrl: 'http://localhost:8088',
     excludeSpecPattern: ['**/*.applitools.test.ts'],
     specPattern: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
+    experimentalMemoryManagement: true,
   },
 });
