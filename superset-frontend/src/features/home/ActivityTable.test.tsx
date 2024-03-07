@@ -19,16 +19,9 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
 import { TableTab } from 'src/views/CRUD/types';
 import ActivityTable from './ActivityTable';
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
@@ -101,28 +94,28 @@ describe('ActivityTable', () => {
     isFetchingActivityData: false,
   };
 
-  const renderActivityTable = (props: any) => (
-    <Provider store={store}>
-      <BrowserRouter>
-        <ActivityTable {...props} />
-      </BrowserRouter>
-    </Provider>
-  );
+  const renderOptions = {
+    useRedux: true,
+    useRouter: true,
+  };
+
+  const renderActivityTable = (props: any) =>
+    render(<ActivityTable {...props} />, renderOptions);
 
   it('the component renders with ActivityCards', async () => {
-    render(renderActivityTable(activityProps), { useRedux: true });
+    renderActivityTable(activityProps);
     expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
   });
   it('renders tabs with three buttons', async () => {
-    render(renderActivityTable(activityProps), { useRedux: true });
+    renderActivityTable(activityProps);
     expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
   it('renders Viewed tab with ActivityCards', async () => {
-    render(renderActivityTable(activityViewedTabProps), { useRedux: true });
+    renderActivityTable(activityViewedTabProps);
     expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
   });
   it('calls the getEdited batch call when edited tab is clicked', async () => {
-    render(renderActivityTable(activityProps), { useRedux: true });
+    renderActivityTable(activityProps);
     const editedButton = screen.getByText(/edited/i);
     expect(editedButton).toBeInTheDocument();
     userEvent.click(editedButton);
@@ -135,7 +128,7 @@ describe('ActivityTable', () => {
     });
   });
   it('show empty state if there is no data', () => {
-    render(renderActivityTable(emptyActivityProps), { useRedux: true });
+    renderActivityTable(emptyActivityProps);
     expect(
       screen.getByText(
         /recently created charts, dashboards, and saved queries will appear here/i,
