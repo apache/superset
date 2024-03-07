@@ -158,3 +158,20 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/add_user/", methods=("POST",))
+    @event_logger.log_this
+    def add_user(self) -> Response:
+        try:
+            body = guest_token_create_schema.load(request.json)
+            username = body.get("username")
+            first_name = body.get("first_name")
+            last_name = body.get("last_name")
+            email = body.get("email")
+            role = self.appbuilder.sm.find_role("Gamma")
+            user = self.appbuilder.sm.add_user(username, first_name, last_name, email, role)
+            if user:
+                return self.response(200, success=True)
+        except Exception as error:
+            print("=======add_user EXCEPTION========", str(error))
+            return self.response_400(message="User creation failed")
