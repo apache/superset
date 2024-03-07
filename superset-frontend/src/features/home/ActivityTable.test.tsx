@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { act } from 'react-dom/test-utils';
-import { ReactWrapper } from 'enzyme';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
@@ -85,55 +85,61 @@ describe('ActivityTable', () => {
     isFetchingActivityData: false,
   };
 
-  let wrapper: ReactWrapper;
+  const activityViewedTabProps = {
+    activeChild: TableTab.Viewed,
+    activityData: mockData,
+    setActiveChild: jest.fn(),
+    user: { userId: '1' },
+    isFetchingActivityData: false,
+  };
 
-  beforeAll(async () => {
-    await act(async () => {
-      wrapper = mount(
-        <Provider store={store}>
-          <ActivityTable {...activityProps} />
-        </Provider>,
-      );
-    });
-  });
+  const emptyActivityProps = {
+    activeChild: TableTab.Created,
+    activityData: {},
+    setActiveChild: jest.fn(),
+    user: { userId: '1' },
+    isFetchingActivityData: false,
+  };
 
-  it('the component renders', () => {
-    expect(wrapper.find(ActivityTable)).toExist();
+  const renderActivityTable = (props: any) => (
+    <Provider store={store}>
+      <BrowserRouter>
+        <ActivityTable {...props} />
+      </BrowserRouter>
+    </Provider>
+  );
+
+  it('the component renders with ActivityCards', async () => {
+    render(renderActivityTable(activityProps), { useRedux: true });
+    expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
   });
-  it('renders tabs with three buttons', () => {
-    expect(wrapper.find('[role="tab"]')).toHaveLength(3);
+  it('renders tabs with three buttons', async () => {
+    render(renderActivityTable(activityProps), { useRedux: true });
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
-  it('renders ActivityCards', async () => {
-    expect(wrapper.find('ListViewCard')).toExist();
+  it('renders Viewed tab with ActivityCards', async () => {
+    render(renderActivityTable(activityViewedTabProps), { useRedux: true });
+    expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
   });
   it('calls the getEdited batch call when edited tab is clicked', async () => {
-    act(() => {
-      const handler = wrapper.find('[role="tab"] a').at(1).prop('onClick');
-      if (handler) {
-        handler({} as any);
-      }
-    });
+    render(renderActivityTable(activityProps), { useRedux: true });
+    const editedButton = screen.getByText(/edited/i);
+    expect(editedButton).toBeInTheDocument();
+    userEvent.click(editedButton);
     const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
     const chartCall = fetchMock.calls(/chart\/\?q/);
-    // waitforcomponenttopaint does not work here in this instance...
+    // waitFor() does not work here in this instance...
     setTimeout(() => {
       expect(chartCall).toHaveLength(1);
       expect(dashboardCall).toHaveLength(1);
     });
   });
   it('show empty state if there is no data', () => {
-    const activityProps = {
-      activeChild: TableTab.Created,
-      activityData: {},
-      setActiveChild: jest.fn(),
-      user: { userId: '1' },
-      isFetchingActivityData: false,
-    };
-    const wrapper = mount(
-      <Provider store={store}>
-        <ActivityTable {...activityProps} />
-      </Provider>,
-    );
-    expect(wrapper.find('EmptyState')).toExist();
+    render(renderActivityTable(emptyActivityProps), { useRedux: true });
+    expect(
+      screen.getByText(
+        /recently created charts, dashboards, and saved queries will appear here/i,
+      ),
+    ).toBeInTheDocument();
   });
 });
