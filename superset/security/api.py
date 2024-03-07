@@ -49,6 +49,10 @@ class UserSchema(PermissiveSchema):
     last_name = fields.String()
 
 
+class AddUserSchema(UserSchema):
+    email = fields.String()
+
+
 class ResourceSchema(PermissiveSchema):
     type = fields.Enum(GuestTokenResourceType, by_value=True, required=True)
     id = fields.String(required=True)
@@ -74,6 +78,7 @@ class GuestTokenCreateSchema(PermissiveSchema):
 
 
 guest_token_create_schema = GuestTokenCreateSchema()
+user_schema = UserSchema()
 
 
 class SecurityRestApi(BaseSupersetApi):
@@ -161,9 +166,13 @@ class SecurityRestApi(BaseSupersetApi):
 
     @expose("/add_user/", methods=("POST",))
     @event_logger.log_this
+    @protect()
+    @safe
+    @statsd_metrics
+    @permission_name("grant_guest_token")
     def add_user(self) -> Response:
         try:
-            body = guest_token_create_schema.load(request.json)
+            body = user_schema.load(request.json)
             username = body.get("username")
             first_name = body.get("first_name")
             last_name = body.get("last_name")
