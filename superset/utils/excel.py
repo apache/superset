@@ -19,16 +19,36 @@ from typing import Any
 
 import pandas as pd
 
+from superset.utils.core import GenericDataType
 
-def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
+
+def df_to_excel(
+    df: pd.DataFrame, coltypes: list[GenericDataType], **kwargs: Any
+) -> Any:
     output = io.BytesIO()
 
     # timezones are not supported
     for column in df.select_dtypes(include=["datetimetz"]).columns:
         df[column] = df[column].astype(str)
 
+    ndf = copy_df_with_datatype_conversion(df, coltypes)
+
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, **kwargs)
+        ndf.to_excel(writer, **kwargs)
 
     return output.getvalue()
+
+
+def copy_df_with_datatype_conversion(
+    df: pd.DataFrame, coltypes: list[GenericDataType]
+) -> pd.DataFrame:
+    ndf = df.copy()
+    try:
+        columns = list(df)
+        for i, col in enumerate(columns):
+            if coltypes[i] == GenericDataType.NUMERIC:
+                ndf[col] = pd.to_numeric(df[col], errors="ignore")
+        return ndf
+    except:
+        return df

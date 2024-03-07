@@ -574,21 +574,10 @@ class QueryContextProcessor:
                     df, index=include_index, **config["CSV_EXPORT"]
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                ndf = self.copy_df_for_excel_export(df, coltypes)
-                result = excel.df_to_excel(ndf, **config["EXCEL_EXPORT"])
+                result = excel.df_to_excel(ndf, coltypes, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")
-
-    def copy_df_for_excel_export(
-        self, df: pd.DataFrame, coltypes: list[GenericDataType]
-    ) -> pd.DataFrame:
-        ndf = df.copy()
-        columns = list(df)
-        for i, col in enumerate(columns):
-            if coltypes[i] == GenericDataType.NUMERIC:
-                ndf[col] = pd.to_numeric(df[col], errors="ignore")
-        return ndf
 
     def get_payload(
         self,
