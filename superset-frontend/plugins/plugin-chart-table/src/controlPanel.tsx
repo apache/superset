@@ -94,7 +94,13 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
+  rerender: [
+    'all_columns',
+    'groupby',
+    'metrics',
+    'percent_metrics',
+    'enable_time_comparison',
+  ],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -269,8 +275,9 @@ const config: ControlPanelConfig = {
               label: t('Enable Time Comparison'),
               description: t('Enable time comparison (experimental feature)'),
               default: false,
-              visibility: () =>
-                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental),
+              visibility: ({ controls }) =>
+                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+                isAggMode({ controls }),
             },
           },
         ],
@@ -297,7 +304,8 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }) =>
                 Boolean(controls?.enable_time_comparison?.value) &&
-                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental),
+                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+                isAggMode({ controls }),
             },
           },
         ],
@@ -312,7 +320,8 @@ const config: ControlPanelConfig = {
               visibility: ({ controls }) =>
                 Boolean(controls?.enable_time_comparison?.value) &&
                 controls?.time_comparison?.value ===
-                  ComparisonTimeRangeType.Custom,
+                  ComparisonTimeRangeType.Custom &&
+                isAggMode({ controls }),
               mapStateToProps: (
                 state: ControlPanelState,
                 controlState: ControlState,
