@@ -26,18 +26,24 @@ Create Date: 2024-03-04 14:48:16.998927
 revision = "efb7a20ff8d8"
 down_revision = "be1b217cd8cd"
 
-import sqlalchemy as sa
 from alembic import op
+
+from superset.migrations.shared.utils import table_has_index
+
+table = "query"
+index = "ix_query_user_id_sql_editor_id"
 
 
 def upgrade():
-    op.create_index(
-        op.f("ix_query_user_id_sql_editor_id"),
-        "query",
-        ["user_id", "sql_editor_id"],
-        unique=False,
-    )
+    if not table_has_index(table, index):
+        op.create_index(
+            op.f(index),
+            table,
+            ["user_id", "sql_editor_id"],
+            unique=False,
+        )
 
 
 def downgrade():
-    op.drop_index(op.f("ix_query_user_id_sql_editor_id"), table_name="query")
+    if table_has_index(table, index):
+        op.drop_index(op.f(index), table_name=table)
