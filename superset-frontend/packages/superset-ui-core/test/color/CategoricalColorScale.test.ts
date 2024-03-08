@@ -59,7 +59,30 @@ describe('CategoricalColorScale', () => {
     });
   });
 
-  describe('.getColor(value)', () => {
+  describe('.getColor(value, sliceId)', () => {
+    let scale: CategoricalColorScale;
+    let addSliceSpy: jest.SpyInstance<
+      void,
+      [label: string, color: string, sliceId: number]
+    >;
+    let getNextAvailableColorSpy: jest.SpyInstance<
+      string,
+      [currentColor: string]
+    >;
+
+    beforeEach(() => {
+      scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      // Spy on the addSlice method of sharedColorMapInstance
+      addSliceSpy = jest.spyOn(scale.sharedColorMapInstance, 'addSlice');
+      getNextAvailableColorSpy = jest
+        .spyOn(scale, 'getNextAvailableColor')
+        .mockImplementation(color => color);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('returns same color for same value', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green'], {
         pig: 'red',
@@ -120,50 +143,49 @@ describe('CategoricalColorScale', () => {
       scale.getColor('goat');
       expect(scale.range()).toHaveLength(9);
     });
-  });
-
-  describe('.getColor(value, sliceId)', () => {
-    let scale: CategoricalColorScale;
-    let addSliceSpy: jest.SpyInstance<
-      void,
-      [label: string, color: string, sliceId: number]
-    >;
-
-    beforeEach(() => {
-      scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      // Spy on the addSlice method of sharedColorMapInstance
-      addSliceSpy = jest.spyOn(scale.sharedColorMapInstance, 'addSlice');
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
     it('adds the color and value to sliceMap and calls addSlice', () => {
       const value = 'testValue';
       const sliceId = 123;
 
-      // Initially, sliceMap should be empty
       expect(scale.sliceMap.has(value)).toBe(false);
 
-      // Call getColor which should add to sliceMap and call addSlice
       scale.getColor(value, sliceId);
 
-      // Now, sliceMap should have the entry
       expect(scale.sliceMap.has(value)).toBe(true);
       expect(scale.sliceMap.get(value)).toBeDefined();
 
-      // Verify that addSlice was called with the correct arguments
       expect(addSliceSpy).toHaveBeenCalledWith(
         value,
         expect.any(String),
         sliceId,
       );
 
-      // Additional check to ensure the color returned by getColor is the same as in sliceMap
       const expectedColor = scale.sliceMap.get(value);
       const returnedColor = scale.getColor(value, sliceId);
       expect(returnedColor).toBe(expectedColor);
+    });
+    it('conditionally calls getNextAvailableColor', () => {
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: true,
+      };
+
+      scale.getColor('testValue1');
+      scale.getColor('testValue2');
+      scale.getColor('testValue1');
+      scale.getColor('testValue3');
+      scale.getColor('testValue4');
+
+      expect(getNextAvailableColorSpy).toHaveBeenCalledWith('blue');
+
+      getNextAvailableColorSpy.mockClear();
+
+      window.featureFlags = {
+        [FeatureFlag.AvoidColorsCollision]: false,
+      };
+
+      scale.getColor('testValue3');
+
+      expect(getNextAvailableColorSpy).not.toHaveBeenCalled();
     });
   });
 
