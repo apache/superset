@@ -165,10 +165,8 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response_400(message=error.messages)
 
     @expose("/add_user/", methods=("POST",))
-    @event_logger.log_this
     @protect()
     @safe
-    @statsd_metrics
     def add_user(self) -> Response:
         try:
             body = user_schema.load(request.json)
