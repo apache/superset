@@ -122,12 +122,8 @@ class RefreshIntervalModal extends React.PureComponent<
 
   createIntervalOptions(refreshIntervalOptions: [number, string][]) {
     const refresh_options = [];
-    if (!refreshIntervalOptions.length) {
-      refresh_options.push({ value: -1, label: 'Custom interval' });
-      return refresh_options;
-    }
 
-    refresh_options.push({ value: -1, label: 'Custom interval' });
+    refresh_options.push({ value: -1, label: t('Custom interval') });
     refresh_options.push(
       ...refreshIntervalOptions.map(option => ({
         value: option[0],
@@ -181,66 +177,67 @@ class RefreshIntervalModal extends React.PureComponent<
                 sortComparator={propertyComparator('value')}
               />
             </div>
-            <div
-              style={{
-                opacity: custom_block === true ? 1 : 0,
-                display: 'flex',
-                marginTop: '15px',
-              }}
-            >
-              <div style={{ width: '30%', margin: 'auto' }}>
-                <FormLabel>
-                  <b>{t('HOUR')}</b>
-                </FormLabel>{' '}
-                <br />
-                <Input
-                  type="number"
-                  min="0"
-                  className="form-control input-sm"
-                  placeholder={t('Type a number')}
-                  onChange={event => {
-                    this.setState({
-                      custom_hour: Number(event.target.value),
-                    });
-                  }}
-                  value={custom_hour}
-                />
+            {custom_block && (
+              <div
+                style={{
+                  display: 'flex',
+                  marginTop: '15px',
+                }}
+              >
+                <div style={{ width: '30%', margin: 'auto' }}>
+                  <FormLabel>
+                    <b>{t('HOUR')}</b>
+                  </FormLabel>{' '}
+                  <br />
+                  <Input
+                    type="number"
+                    min="0"
+                    className="form-control input-sm"
+                    placeholder={t('Type a number')}
+                    onChange={event => {
+                      this.setState({
+                        custom_hour: Number(event.target.value),
+                      });
+                    }}
+                    value={custom_hour}
+                  />
+                </div>
+                <div style={{ width: '30%', margin: 'auto' }}>
+                  <FormLabel>
+                    <b>{t('MINUTE')}</b>
+                  </FormLabel>{' '}
+                  <br />
+                  <Select
+                    ariaLabel={t('Minutes value')}
+                    options={this.min_sec_options('minutes')}
+                    value={custom_min}
+                    onChange={(value: number) => {
+                      this.setState({
+                        custom_min: value,
+                      });
+                    }}
+                    sortComparator={propertyComparator('value')}
+                  />
+                </div>
+                <div style={{ width: '30%', margin: 'auto' }}>
+                  <FormLabel>
+                    <b>{t('SECOND')}</b>
+                  </FormLabel>{' '}
+                  <br />
+                  <Select
+                    ariaLabel={t('Seconds value')}
+                    options={this.min_sec_options('seconds')}
+                    value={custom_sec}
+                    onChange={(value: number) => {
+                      this.setState({
+                        custom_sec: value,
+                      });
+                    }}
+                    sortComparator={propertyComparator('value')}
+                  />
+                </div>
               </div>
-              <div style={{ width: '30%', margin: 'auto' }}>
-                <FormLabel>
-                  <b>{t('MINUTE')}</b>
-                </FormLabel>{' '}
-                <br />
-                <Select
-                  ariaLabel={t('Minutes value')}
-                  options={this.min_sec_options('minutes')}
-                  value={custom_min}
-                  onChange={(value: number) => {
-                    this.setState({
-                      custom_min: value,
-                    });
-                  }}
-                  sortComparator={propertyComparator('value')}
-                />
-              </div>
-              <div style={{ width: '30%', margin: 'auto' }}>
-                <FormLabel>
-                  <b>{t('SECOND')}</b>
-                </FormLabel>{' '}
-                <br />
-                <Select
-                  ariaLabel={t('Seconds value')}
-                  options={this.min_sec_options('seconds')}
-                  value={custom_sec}
-                  onChange={(value: number) => {
-                    this.setState({
-                      custom_sec: value,
-                    });
-                  }}
-                  sortComparator={propertyComparator('value')}
-                />
-              </div>
-            </div>
+            )}
             {showRefreshWarning && (
               <RefreshWarningContainer>
                 <Alert
