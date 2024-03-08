@@ -19,10 +19,10 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 import simplejson as json
-from flask import request
+from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access_api, protect
 from flask_babel import lazy_gettext as _
 
 from superset import db, event_logger
@@ -32,6 +32,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
+from superset.security.api import user_schema
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.date_parser import get_since_until
@@ -115,3 +116,20 @@ class Api(BaseSupersetView):
 
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
+
+    @expose("/add_user/", methods=("POST",))
+    def add_user(self) -> Response:
+        try:
+            body = user_schema.load(request.json)
+            username = body.get("username")
+            first_name = body.get("first_name")
+            last_name = body.get("last_name")
+            email = body.get("email")
+            role = self.appbuilder.sm.find_role("Doctor")
+            if role and email and last_name and first_name and username:
+                user = self.appbuilder.sm.add_user(username, first_name, last_name, email, role)
+                if user:
+                    return self.response(200, success=True)
+        except Exception as error:
+            print("=======add_user EXCEPTION========", str(error))
+            return self.response_400(message="User creation failed")
