@@ -17,11 +17,13 @@ class CategoricalColorScale extends ExtensibleFunction {
 
   colors: string[];
 
+  expandedColors: string[];
+
   scale: ScaleOrdinal<{ toString(): string }, string>;
 
   forcedColors: ColorsLookup;
 
-  colorUsageCount: Map<string, number>;
+  sharedColorMapInstance: ReturnType<typeof getSharedLabelColor>;
 
   sliceMap: Map<string, string>;
 
@@ -35,8 +37,17 @@ class CategoricalColorScale extends ExtensibleFunction {
    */
   constructor(colors: string[], forcedColors: ColorsInitLookup = {}) {
     super((value: string, sliceId?: number) => this.getColor(value, sliceId));
+    // holds original color scheme colors
     this.originColors = colors;
-    this.colors = colors;
+    // holds the extended color range (includes analagous colors)
+    this.expandedColors = colors;
+    // holds the values of this specific slice (label+color)
+    this.sliceMap = new Map();
+    // shared color map instance (when context is shared, i.e. dashboard)
+    this.sharedColorMapInstance = getSharedLabelColor();
+    // holds the multiple value for analogous colors range
+    this.multiple = 0;
+
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
 
@@ -49,18 +60,12 @@ class CategoricalColorScale extends ExtensibleFunction {
     });
 
     // forced colors from parent (usually CategoricalColorNamespace)
+    // currently used in dashboards to set custom label colors
     this.forcedColors = forcedColors as ColorsLookup;
-    // holds the usage count for each color including forced colors from parent
-    this.colorUsageCount = this.initColorUsageCounter();
-    // holds the values in this specific slice
-    this.sliceMap = new Map();
-    // holds the multiple value for analogous colors range
-    this.multiple = 0;
   }
 
   /**
    * Increments the color range with analogous colors
-   *
    */
   incrementColorRange() {
     const multiple = Math.floor(
@@ -71,34 +76,24 @@ class CategoricalColorScale extends ExtensibleFunction {
     if (multiple > this.multiple) {
       this.multiple = multiple;
       const newRange = getAnalogousColors(this.originColors, multiple);
-      this.range(this.originColors.concat(newRange));
-      // update the colorUsageCount map with the new colors
-      newRange.forEach(color => {
-        this.colorUsageCount.set(color, 0);
-      });
+      const expandedColors = this.originColors.concat(newRange);
+
+      this.range(expandedColors);
+      this.expandedColors = expandedColors;
     }
   }
 
   /**
-   * Initializes the color usage count map
-   * @returns a map of color to usage count
+   * Get the color for a given value
+   * @param value
+   * @param sliceId
+   * @returns the color for the given value
    */
-  initColorUsageCounter(): Map<string, number> {
-    const colorUsageCount = new Map(this.colors.map(color => [color, 0]));
-    // add forced colors to the usage count map
-    // helps reducing conflicts but increases randomness
-    Object.values(this.forcedColors).forEach(color => {
-      const count = colorUsageCount.get(color) || 0;
-      colorUsageCount.set(color, count + 1);
-    });
-    return colorUsageCount;
-  }
-
   getColor(value?: string, sliceId?: number): string {
     const cleanedValue = stringifyAndTrim(value);
-    const sharedLabelColor = getSharedLabelColor();
-    const sharedColorMap = sharedLabelColor.getColorMap();
+    const sharedColorMap = this.sharedColorMapInstance.getColorMap();
     const sharedColor = sharedColorMap.get(cleanedValue);
+    // priority: forced color (example: custom label colors) > shared color > scale color
     const forcedColor = this.forcedColors?.[cleanedValue] || sharedColor;
     let color = forcedColor || this.scale(cleanedValue);
 
@@ -107,21 +102,23 @@ class CategoricalColorScale extends ExtensibleFunction {
       if (isFeatureEnabled(FeatureFlag.UseAnalagousColors)) {
         this.incrementColorRange();
       }
-      if (this.isColorUsed(color)) {
-        // color was used in this slice already
+      if (
+        // feature flag to be deprecated (will become standard behaviour)
+        isFeatureEnabled(FeatureFlag.AvoidColorsCollision) &&
+        this.isColorUsed(color)
+      ) {
         // fallback to least used color
         color = this.getNextAvailableColor(color);
       }
     }
 
-    // increment the usage count for the color
-    this.incrementColorUsage(color);
-
-    // store the value+color in the shared map for dashboard consistency
-    sharedLabelColor.addSlice(cleanedValue, color, sliceId);
-
     // keep track of values in this slice
     this.sliceMap.set(cleanedValue, color);
+
+    // store the value+color in the shared context
+    if (sliceId) {
+      this.sharedColorMapInstance.addSlice(cleanedValue, color, sliceId);
+    }
 
     return color;
   }
@@ -132,30 +129,69 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @returns whether the color is used in this slice
    */
   isColorUsed(color: string): boolean {
-    return Array.from(this.sliceMap.values()).includes(color);
+    return this.getColorUsageCount(color) > 0;
+  }
+
+  /**
+   * Get the count of the color usage in this slice
+   * @param sliceId
+   * @param color
+   * @returns the count of the color usage in this slice
+   */
+  getColorUsageCount(currentColor: string): number {
+    let count = 0;
+    this.sliceMap.forEach(color => {
+      if (color === currentColor) {
+        count += 1;
+      }
+    });
+    return count;
   }
 
   /**
    * Lower chances of color collision by returning the least used color
-   * Checks across colors of current slice and forced colors (all slices from parent)
+   * Checks across colors of current slice within SharedLabelColorSingleton
    *
-   * @param excludeColor
+   * @param currentColor
    * @returns the least used color that is not the excluded color
    */
-  getNextAvailableColor(excludeColor: string) {
-    // sort the colors by count, then exclude the specified color
-    const sortedColors = [...this.colorUsageCount.entries()]
-      .sort((a, b) => a[1] - b[1])
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .filter(([color, _]) => color !== excludeColor);
-    const color = sortedColors[0][0];
+  getNextAvailableColor(currentColor: string) {
+    const colorUsageArray = this.expandedColors.map(color => ({
+      color,
+      count: this.getColorUsageCount(color),
+    }));
+    const currentColorCount = this.getColorUsageCount(currentColor);
+    const otherColors = colorUsageArray.filter(
+      colorEntry => colorEntry.color !== currentColor,
+    );
+    // all other colors are used as much or more than currentColor
+    const hasNoneAvailable = otherColors.every(
+      colorEntry => colorEntry.count >= currentColorCount,
+    );
 
-    return color;
+    // fallback to currentColor color
+    if (!otherColors.length || hasNoneAvailable) {
+      return currentColor;
+    }
+
+    // Finding the least used color
+    const leastUsedColor = otherColors.reduce((min, entry) =>
+      entry.count < min.count ? entry : min,
+    ).color;
+
+    return leastUsedColor;
   }
 
-  incrementColorUsage(color: string) {
-    const currentCount = this.colorUsageCount.get(color) || 0;
-    this.colorUsageCount.set(color, currentCount + 1);
+  /**
+   * Enforce specific color for a given value at the scale level
+   * Overrides any existing color and forced color for the given value
+   *
+   * @param {*} value value
+   * @param {*} forcedColor forcedColor
+   */
+  setColor(value: string, forcedColor: string) {
+    this.forcedColors[stringifyAndTrim(value)] = forcedColor;
+    return this;
   }
 
   /**
@@ -163,11 +199,15 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @returns an object where the key is the data value and the value is the hex color code
    */
   getColorMap() {
-    const colorMap = {};
+    const colorMap: { [key: string]: string | undefined } = {};
     this.scale.domain().forEach(value => {
       colorMap[value.toString()] = this.scale(value);
     });
-    return { ...colorMap, ...this.forcedColors };
+
+    return {
+      ...colorMap,
+      ...this.forcedColors,
+    };
   }
 
   /**
@@ -179,7 +219,6 @@ class CategoricalColorScale extends ExtensibleFunction {
       this.forcedColors,
     );
     copy.forcedColors = { ...this.forcedColors };
-    copy.colorUsageCount = new Map(this.colorUsageCount);
     copy.domain(this.domain());
     copy.unknown(this.unknown());
     return copy;
@@ -225,7 +264,7 @@ class CategoricalColorScale extends ExtensibleFunction {
       return this.scale.range();
     }
 
-    this.colors = newRange;
+    this.expandedColors = newRange;
     this.scale.range(newRange);
     return this;
   }

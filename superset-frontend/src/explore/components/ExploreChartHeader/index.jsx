@@ -24,6 +24,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
+  getSharedLabelColor,
   logging,
   SupersetClient,
   t,
@@ -95,6 +96,16 @@ export const ExploreChartHeader = ({
     const { dashboards } = metadata || {};
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
+    const categoricalNamespace = CategoricalColorNamespace.getNamespace();
+    const sharedLabelColor = getSharedLabelColor();
+
+    if (!dashboard) {
+      // clean up color namespace and shared color maps
+      // to avoid colors spill outside of dashboard context
+      categoricalNamespace.resetColors();
+      sharedLabelColor.clear();
+      return;
+    }
 
     if (dashboard) {
       try {
@@ -106,21 +117,19 @@ export const ExploreChartHeader = ({
         const result = response?.json?.result;
 
         // setting the chart to use the dashboard custom label colors if any
-        const metadata = JSON.parse(result.json_metadata);
-        const sharedLabelColors = metadata.shared_label_colors || {};
-        const customLabelColors = metadata.label_colors || {};
+        const dashboardMetadata = JSON.parse(result.json_metadata);
+        const sharedLabelColors = dashboardMetadata.shared_label_colors || {};
+        const customLabelColors = dashboardMetadata.label_colors || {};
         const mergedLabelColors = {
           ...sharedLabelColors,
           ...customLabelColors,
         };
 
-        const categoricalNamespace = CategoricalColorNamespace.getNamespace();
-
         Object.keys(mergedLabelColors).forEach(label => {
           categoricalNamespace.setColor(
             label,
             mergedLabelColors[label],
-            metadata.color_scheme,
+            dashboardMetadata.color_scheme,
           );
         });
       } catch (error) {
@@ -130,7 +139,7 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    if (dashboardId) updateCategoricalNamespace();
+    updateCategoricalNamespace();
   }, []);
 
   const openPropertiesModal = () => {

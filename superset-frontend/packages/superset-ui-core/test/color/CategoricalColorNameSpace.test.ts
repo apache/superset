@@ -98,7 +98,7 @@ describe('CategoricalColorNamespace', () => {
       namespace.setColor('dog', 'black');
       const scale = namespace.getScale('testColors');
       scale.setColor('dog', 'pink');
-      expect(scale.getColor('dog')).toBe('black');
+      expect(scale.getColor('dog')).toBe('pink');
       expect(scale.getColor('boy')).not.toBe('black');
     });
     it('does not affect scales in other namespaces', () => {

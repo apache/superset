@@ -54,16 +54,15 @@ export function dashboardInfoChanged(newInfo: { metadata: any }) {
   const categoricalNamespace = CategoricalColorNamespace.getNamespace(
     metadata?.color_namespace,
   );
-
+  // reset forced colors
   categoricalNamespace.resetColors();
 
-  if (metadata?.shared_label_colors) {
-    updateColorSchema(metadata, metadata?.shared_label_colors);
-  }
+  const mergedLabelColors = {
+    ...(metadata?.label_colors || {}),
+    ...(metadata?.shared_label_colors || {}),
+  };
 
-  if (metadata?.label_colors) {
-    updateColorSchema(metadata, metadata?.label_colors);
-  }
+  updateColorSchema(metadata, mergedLabelColors);
 
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
