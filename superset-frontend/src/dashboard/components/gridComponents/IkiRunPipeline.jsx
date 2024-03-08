@@ -589,7 +589,7 @@ class IkiRunPipeline extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
-      dashboardLayout,
+      // dashboardLayout,
     } = this.props;
 
     // inherit the size of parent columns
