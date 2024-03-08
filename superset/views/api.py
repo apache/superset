@@ -117,6 +117,10 @@ class Api(BaseSupersetView):
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
 
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
     @expose("/add_user/", methods=("POST",))
     def add_user(self) -> Response:
         try:
