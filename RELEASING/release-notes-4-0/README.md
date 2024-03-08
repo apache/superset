@@ -92,8 +92,9 @@ TODO
 
 ### Session management improvements
 
-TODO @john-bodley
+As part of [[SIP-99] Proposal for correctly handling business logic](https://github.com/apache/superset/issues/25048) (specifically [SIP-99A](https://github.com/apache/superset/issues/25107) and [SIP-99B](https://github.com/apache/superset/issues/25108)) in order to ensure a consistent "unit of work"—via a single atomic unit—all non-Alembic database operations should be associated with the same Flask-SQLAlchemy session (`db.session`).
 
+- https://github.com/apache/superset/pull/26909
 - https://github.com/apache/superset/pull/26200
 - https://github.com/apache/superset/pull/26186
 
