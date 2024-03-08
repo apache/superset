@@ -21,6 +21,8 @@ under the License.
 
 4.0.0 brings a plethora of exciting changes to Superset. We have introduced several breaking changes to improve the overall architecture and scalability of our codebase. These changes may require some code updates, but they are designed to enhance performance and maintainability in the long run. We have also upgraded various dependencies to their latest versions and deprecated certain features that are no longer aligned with our long-term roadmap. We encourage all developers to carefully review the `CHANGELOG.md` and `UPDATING.md` files and update their code accordingly. Even though, our main focus was on code cleanup, this release still contain exciting new features and mark a significant milestone for us, paving the way for our continued growth and success.
 
+Here are some of the highlights of this release.
+
 ### Alerts and Reports modal redesign
 
 The Alerts and Reports modal has been [redesigned](https://github.com/apache/superset/discussions/25729) to improve the user experience and make it more intuitive. The new design is has the following goals:
@@ -41,7 +43,7 @@ TODO @rusackas
 
 ### New CHANGELOG format
 
-TODO
+We changed the structure of the `CHANGELOG.md` file to better organize the contents of each release and also to deal with GitHub size limitations when displaying the file. Now every release will have its own file at `CHANGELOG/<version>.md`. The main `CHANGELOG.md` file is now an index with links to all releases.
 
 - https://github.com/apache/superset/pull/26800
 
@@ -52,7 +54,7 @@ TODO
 
 ### Dropping support for 3.0.X versions
 
-TODO
+In accordance with our [release process](https://github.com/apache/superset/wiki/Release-Process), we are dropping support for the 3.0.X versions. As a result, we will no longer be providing bug fixes for these versions. We strongly recommend that all users upgrade to the latest version to take advantage of the newest features and bug fixes. Moving forward, the supported versions will be 3.1.X and 4.0.X. Bug fixes will continue to be backported to 3.1.X until the next minor release. For more information, please refer to our [release schedule](https://github.com/apache/superset/wiki/Release-Process#schedule).
 
 ### Feature flag changes
 
