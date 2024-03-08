@@ -121,6 +121,52 @@ describe('CategoricalColorScale', () => {
       expect(scale.range()).toHaveLength(9);
     });
   });
+
+  describe('.getColor(value, sliceId)', () => {
+    let scale: CategoricalColorScale;
+    let addSliceSpy: jest.SpyInstance<
+      void,
+      [label: string, color: string, sliceId: number]
+    >;
+
+    beforeEach(() => {
+      scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      // Spy on the addSlice method of sharedColorMapInstance
+      addSliceSpy = jest.spyOn(scale.sharedColorMapInstance, 'addSlice');
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('adds the color and value to sliceMap and calls addSlice', () => {
+      const value = 'testValue';
+      const sliceId = 123;
+
+      // Initially, sliceMap should be empty
+      expect(scale.sliceMap.has(value)).toBe(false);
+
+      // Call getColor which should add to sliceMap and call addSlice
+      scale.getColor(value, sliceId);
+
+      // Now, sliceMap should have the entry
+      expect(scale.sliceMap.has(value)).toBe(true);
+      expect(scale.sliceMap.get(value)).toBeDefined();
+
+      // Verify that addSlice was called with the correct arguments
+      expect(addSliceSpy).toHaveBeenCalledWith(
+        value,
+        expect.any(String),
+        sliceId,
+      );
+
+      // Additional check to ensure the color returned by getColor is the same as in sliceMap
+      const expectedColor = scale.sliceMap.get(value);
+      const returnedColor = scale.getColor(value, sliceId);
+      expect(returnedColor).toBe(expectedColor);
+    });
+  });
+
   describe('.setColor(value, forcedColor)', () => {
     it('overrides default color', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -255,6 +301,69 @@ describe('CategoricalColorScale', () => {
 
       // Yellow is the least used color, so it should be returned.
       expect(scale.getNextAvailableColor('blue')).toBe('yellow');
+    });
+  });
+
+  describe('.isColorUsed(color)', () => {
+    it('returns true if the color is already used, false otherwise', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      // Initially, no color is used
+      expect(scale.isColorUsed('blue')).toBe(false);
+      expect(scale.isColorUsed('red')).toBe(false);
+      expect(scale.isColorUsed('green')).toBe(false);
+
+      scale.getColor('item1');
+
+      // Now, 'blue' is used, but 'red' and 'green' are not
+      expect(scale.isColorUsed('blue')).toBe(true);
+      expect(scale.isColorUsed('red')).toBe(false);
+      expect(scale.isColorUsed('green')).toBe(false);
+
+      // Simulate using the 'red' color
+      scale.getColor('item2'); // Assigns 'red' to 'item2'
+
+      // Now, 'blue' and 'red' are used
+      expect(scale.isColorUsed('blue')).toBe(true);
+      expect(scale.isColorUsed('red')).toBe(true);
+      expect(scale.isColorUsed('green')).toBe(false);
+    });
+  });
+
+  describe('.getColorUsageCount(color)', () => {
+    it('accurately counts the occurrences of a specific color', () => {
+      const scale = new CategoricalColorScale([
+        'blue',
+        'red',
+        'green',
+        'yellow',
+      ]);
+      // No colors are used initially
+      expect(scale.getColorUsageCount('blue')).toBe(0);
+      expect(scale.getColorUsageCount('red')).toBe(0);
+      expect(scale.getColorUsageCount('green')).toBe(0);
+      expect(scale.getColorUsageCount('yellow')).toBe(0);
+
+      // Simulate using colors
+      scale.getColor('item1');
+      scale.getColor('item2');
+      scale.getColor('item1');
+
+      // Check the counts after using the colors
+      expect(scale.getColorUsageCount('blue')).toBe(1);
+      expect(scale.getColorUsageCount('red')).toBe(1);
+      expect(scale.getColorUsageCount('green')).toBe(0);
+      expect(scale.getColorUsageCount('yellow')).toBe(0);
+
+      // Simulate using colors more
+      scale.getColor('item3');
+      scale.getColor('item4');
+      scale.getColor('item3');
+
+      // Final counts
+      expect(scale.getColorUsageCount('blue')).toBe(1);
+      expect(scale.getColorUsageCount('red')).toBe(1);
+      expect(scale.getColorUsageCount('green')).toBe(1);
+      expect(scale.getColorUsageCount('yellow')).toBe(1);
     });
   });
 
