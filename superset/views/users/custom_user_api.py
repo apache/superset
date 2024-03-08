@@ -5,6 +5,8 @@ from superset.views.base import BaseSupersetView
 
 
 class CustomUserAPI(BaseSupersetView):
+    allow_browser_login = True
+
     route_base = '/api/v1/'
 
     @expose("/add_user/", methods=("POST",))
