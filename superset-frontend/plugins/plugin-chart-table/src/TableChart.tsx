@@ -51,7 +51,12 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { Dropdown, Menu } from '@superset-ui/chart-controls';
-import { CheckOutlined, DownOutlined } from '@ant-design/icons';
+import {
+  CheckOutlined,
+  DownOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
+} from '@ant-design/icons';
 
 import { isEmpty } from 'lodash';
 import { DataColumnMeta, TableChartTransformedProps } from './types';
@@ -263,6 +268,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const [showTimeComparisonDropdown, setShowTimeComparisonDropdown] =
     useState(false);
   const [selectedKeys, setSelectedKeys] = useState([comparisonColumns[0].key]);
+  const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
   const theme = useTheme();
 
   // only take relevant page size options
@@ -388,25 +394,31 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       return columnsMeta;
     }
     const allColumns = comparisonColumns[0].key;
-    const isAllColumnsKeySelected = selectedKeys.includes(allColumns);
-    const mainLabel = comparisonLabels[0];
+    const main = comparisonLabels[0];
+    const showAllColumns = selectedKeys.includes(allColumns);
 
-    return columnsMeta.filter(col => {
-      const { label } = col;
+    return columnsMeta.filter(({ label, key }) => {
+      // Extract the key portion after the space, assuming the format is always "label key"
+      const keyPortion = key.substring(label.length);
+      const isKeyHidded = hideComparisonKeys.includes(keyPortion);
+      const isLableMain = label === main;
 
       return (
-        label === mainLabel ||
-        !comparisonLabels.includes(label) ||
-        isAllColumnsKeySelected ||
-        selectedKeys.includes(label)
+        (isKeyHidded && isLableMain) ||
+        (!isKeyHidded &&
+          (isLableMain ||
+            !comparisonLabels.includes(label) ||
+            showAllColumns ||
+            selectedKeys.includes(label)))
       );
     });
   }, [
     columnsMeta,
     comparisonColumns,
     comparisonLabels,
-    selectedKeys,
     enableTimeComparison,
+    hideComparisonKeys,
+    selectedKeys,
   ]);
 
   const handleContextMenu =
@@ -589,6 +601,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
           {key}
+          <span
+            css={css`
+              float: right;
+              color: ${theme.colors.grayscale.base};
+            `}
+          >
+            {hideComparisonKeys.includes(key) ? (
+              <PlusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys(
+                    hideComparisonKeys.filter(k => k !== key),
+                  )
+                }
+              />
+            ) : (
+              <MinusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys([...hideComparisonKeys, key])
+                }
+              />
+            )}
+          </span>
         </th>,
       );
 
