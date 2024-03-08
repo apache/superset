@@ -265,9 +265,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
-  const [showTimeComparisonDropdown, setShowTimeComparisonDropdown] =
-    useState(false);
-  const [selectedKeys, setSelectedKeys] = useState([comparisonColumns[0].key]);
+  const [showComparisonDropdown, setShowComparisonDropdown] = useState(false);
+  const [selectedComparisonColumns, setSelectedComparisonColumns] = useState([
+    comparisonColumns[0].key,
+  ]);
   const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
   const theme = useTheme();
 
@@ -395,7 +396,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
     const allColumns = comparisonColumns[0].key;
     const main = comparisonLabels[0];
-    const showAllColumns = selectedKeys.includes(allColumns);
+    const showAllColumns = selectedComparisonColumns.includes(allColumns);
 
     return columnsMeta.filter(({ label, key }) => {
       // Extract the key portion after the space, assuming the format is always "label key"
@@ -404,12 +405,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const isLableMain = label === main;
 
       return (
-        (isKeyHidded && isLableMain) ||
+        isLableMain ||
         (!isKeyHidded &&
-          (isLableMain ||
-            !comparisonLabels.includes(label) ||
+          (!comparisonLabels.includes(label) ||
             showAllColumns ||
-            selectedKeys.includes(label)))
+            selectedComparisonColumns.includes(label)))
       );
     });
   }, [
@@ -418,7 +418,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     comparisonLabels,
     enableTimeComparison,
     hideComparisonKeys,
-    selectedKeys,
+    selectedComparisonColumns,
   ]);
 
   const handleContextMenu =
@@ -501,38 +501,38 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const { key } = data;
       // Toggle 'All' key selection
       if (key === allKey) {
-        setSelectedKeys([allKey]);
-      } else if (selectedKeys.includes(allKey)) {
-        setSelectedKeys([key]);
+        setSelectedComparisonColumns([allKey]);
+      } else if (selectedComparisonColumns.includes(allKey)) {
+        setSelectedComparisonColumns([key]);
       } else {
         // Toggle selection for other keys
-        setSelectedKeys(
-          selectedKeys.includes(key)
-            ? selectedKeys.filter(k => k !== key) // Deselect if already selected
-            : [...selectedKeys, key],
+        setSelectedComparisonColumns(
+          selectedComparisonColumns.includes(key)
+            ? selectedComparisonColumns.filter(k => k !== key) // Deselect if already selected
+            : [...selectedComparisonColumns, key],
         ); // Select if not already selected
       }
     };
 
     const handleOnBlur = () => {
-      if (selectedKeys.length === 3) {
-        setSelectedKeys([comparisonColumns[0].key]);
+      if (selectedComparisonColumns.length === 3) {
+        setSelectedComparisonColumns([comparisonColumns[0].key]);
       }
     };
 
     return (
       <Dropdown
         placement="bottomRight"
-        visible={showTimeComparisonDropdown}
+        visible={showComparisonDropdown}
         onVisibleChange={(flag: boolean) => {
-          setShowTimeComparisonDropdown(flag);
+          setShowComparisonDropdown(flag);
         }}
         overlay={
           <Menu
             multiple
             onClick={handleOnClick}
             onBlur={handleOnBlur}
-            selectedKeys={selectedKeys}
+            selectedKeys={selectedComparisonColumns}
           >
             <div
               css={css`
@@ -561,7 +561,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     font-size: ${theme.typography.sizes.s}px;
                   `}
                 >
-                  {selectedKeys.includes(column.key) && <CheckOutlined />}
+                  {selectedComparisonColumns.includes(column.key) && (
+                    <CheckOutlined />
+                  )}
                 </span>
               </Menu.Item>
             ))}
