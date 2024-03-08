@@ -362,7 +362,9 @@ export default typedMemo(function DataTable<D extends object>({
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
           <div className="row">
-            <div className="col-sm-5">
+            <div
+              className={renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'}
+            >
               {hasPagination ? (
                 <SelectPageSize
                   total={resultsSize}
@@ -378,7 +380,11 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div className="col-sm-5">
+              <div
+                className={
+                  renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'
+                }
+              >
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput

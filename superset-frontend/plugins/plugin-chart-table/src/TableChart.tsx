@@ -606,7 +606,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           <span
             css={css`
               float: right;
-              color: ${theme.colors.grayscale.base};
+              & svg {
+                color: ${theme.colors.grayscale.base} !important;
+              }
             `}
           >
             {hideComparisonKeys.includes(key) ? (
