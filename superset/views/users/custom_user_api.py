@@ -18,7 +18,7 @@ class CustomUserAPI(BaseSupersetView):
             first_name = body.get("first_name")
             last_name = body.get("last_name")
             email = body.get("email")
-            is_active = body.get("active", True)
+            # is_active = body.get("active", True)
 
             # Ensure role exists and is valid
             role = self.appbuilder.sm.find_role("Doctor")
@@ -27,7 +27,7 @@ class CustomUserAPI(BaseSupersetView):
 
             # Create user with the specified role
             user = self.appbuilder.sm.add_user(username, first_name, last_name, email,
-                                               role, is_active)
+                                               role)
             if user:
                 return jsonify(
                     {"success": True, "message": "User added successfully"}), 200
