@@ -19,7 +19,7 @@ class CustomUserAPI(BaseSupersetView):
             last_name = body.get("last_name")
             email = body.get("email")
             # is_active = body.get("active", True)
-            print("======username======", username, first_name, last_name, email)
+
             # Ensure role exists and is valid
             role = self.appbuilder.sm.find_role("Doctor")
             if not role:
