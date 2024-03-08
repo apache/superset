@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  AdhocFilter,
   buildQueryContext,
+  getComparisonInfo,
+  ComparisonTimeRangeType,
   QueryFormData,
 } from '@superset-ui/core';
-import { computeQueryBComparator } from '../utils';
 
 /**
  * The buildQuery function is used to create an instance of QueryContext that's
@@ -52,63 +52,28 @@ export default function buildQuery(formData: QueryFormData) {
     },
   ]);
 
-  const timeFilterIndex: number =
-    formData.adhoc_filters?.findIndex(
-      filter => 'operator' in filter && filter.operator === 'TEMPORAL_RANGE',
-    ) ?? -1;
+  const comparisonFormData = getComparisonInfo(
+    formData,
+    timeComparison,
+    extraFormData,
+  );
 
-  const timeFilter: AdhocFilter | null =
-    timeFilterIndex !== -1 && formData.adhoc_filters
-      ? formData.adhoc_filters[timeFilterIndex]
-      : null;
-
-  let formDataB: QueryFormData;
-  let queryBComparator = null;
-
-  if (timeComparison !== 'c') {
-    queryBComparator = computeQueryBComparator(
-      formData.adhoc_filters || [],
-      timeComparison,
-      extraFormData,
-    );
-
-    const queryBFilter: any = {
-      ...timeFilter,
-      comparator: queryBComparator,
-    };
-
-    const otherFilters = formData.adhoc_filters?.filter(
-      (_value: any, index: number) => timeFilterIndex !== index,
-    );
-    const queryBFilters = otherFilters
-      ? [queryBFilter, ...otherFilters]
-      : [queryBFilter];
-
-    formDataB = {
-      ...formData,
-      adhoc_filters: queryBFilters,
-      extra_form_data: {
-        ...extraFormData,
-        time_range: undefined,
+  const queryContextB = buildQueryContext(
+    comparisonFormData,
+    baseQueryObject => [
+      {
+        ...baseQueryObject,
+        groupby,
+        extras: {
+          ...baseQueryObject.extras,
+          instant_time_comparison_range:
+            timeComparison !== ComparisonTimeRangeType.Custom
+              ? timeComparison
+              : undefined,
+        },
       },
-    };
-  } else {
-    formDataB = {
-      ...formData,
-      adhoc_filters: formData.adhoc_custom,
-      extra_form_data: {
-        ...extraFormData,
-        time_range: undefined,
-      },
-    };
-  }
-
-  const queryContextB = buildQueryContext(formDataB, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      groupby,
-    },
-  ]);
+    ],
+  );
 
   return {
     ...queryContextA,
