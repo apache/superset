@@ -50,6 +50,8 @@ import {
   tn,
   useTheme,
 } from '@superset-ui/core';
+import { Dropdown, Menu } from '@superset-ui/chart-controls';
+import { CheckOutlined, DownOutlined } from '@ant-design/icons';
 
 import { isEmpty } from 'lodash';
 import { DataColumnMeta, TableChartTransformedProps } from './types';
@@ -242,6 +244,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     enableTimeComparison,
   } = props;
+  const comparisonColumns = [
+    { key: 'all', label: t('Display all') },
+    { key: '#', label: '#' },
+    { key: '△', label: '△' },
+    { key: '%', label: '%' },
+  ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
@@ -252,6 +260,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+  const [showTimeComparisonDropdown, setShowTimeComparisonDropdown] =
+    useState(false);
+  const [selectedKeys, setSelectedKeys] = useState([comparisonColumns[0].key]);
   const theme = useTheme();
 
   // only take relevant page size options
@@ -371,6 +382,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     };
   };
 
+  const comparisonLabels = [t('Main'), '#', '△', '%'];
+  const filteredColumnsMeta = useMemo(() => {
+    if (!enableTimeComparison) {
+      return columnsMeta;
+    }
+    const allColumns = comparisonColumns[0].key;
+    const isAllColumnsKeySelected = selectedKeys.includes(allColumns);
+    const mainLabel = comparisonLabels[0];
+
+    return columnsMeta.filter(col => {
+      const { label } = col;
+
+      return (
+        label === mainLabel ||
+        !comparisonLabels.includes(label) ||
+        isAllColumnsKeySelected ||
+        selectedKeys.includes(label)
+      );
+    });
+  }, [
+    columnsMeta,
+    comparisonColumns,
+    comparisonLabels,
+    selectedKeys,
+    enableTimeComparison,
+  ]);
+
   const handleContextMenu =
     onContextMenu && !isRawRecords
       ? (
@@ -384,7 +422,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           clientY: number,
         ) => {
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-          columnsMeta.forEach(col => {
+          filteredColumnsMeta.forEach(col => {
             if (!col.isMetric) {
               const dataRecordValue = value[col.key];
               drillToDetailFilters.push({
@@ -416,8 +454,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       : undefined;
 
-  const comparisonLabels = [t('Main'), '#', '△', '%'];
-
   const getHeaderColumns = (
     columnsMeta: DataColumnMeta[],
     enableTimeComparison?: boolean,
@@ -445,6 +481,87 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     });
 
     return resultMap;
+  };
+
+  const renderTimeComparisonDropdown = (): JSX.Element => {
+    const allKey = comparisonColumns[0].key;
+    const handleOnClick = (data: any) => {
+      const { key } = data;
+      // Toggle 'All' key selection
+      if (key === allKey) {
+        setSelectedKeys([allKey]);
+      } else if (selectedKeys.includes(allKey)) {
+        setSelectedKeys([key]);
+      } else {
+        // Toggle selection for other keys
+        setSelectedKeys(
+          selectedKeys.includes(key)
+            ? selectedKeys.filter(k => k !== key) // Deselect if already selected
+            : [...selectedKeys, key],
+        ); // Select if not already selected
+      }
+    };
+
+    const handleOnBlur = () => {
+      if (selectedKeys.length === 3) {
+        setSelectedKeys([comparisonColumns[0].key]);
+      }
+    };
+
+    return (
+      <Dropdown
+        placement="bottomRight"
+        visible={showTimeComparisonDropdown}
+        onVisibleChange={(flag: boolean) => {
+          setShowTimeComparisonDropdown(flag);
+        }}
+        overlay={
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedKeys}
+          >
+            <div
+              css={css`
+                max-width: 242px;
+                padding: 0 ${theme.gridUnit * 2}px;
+                color: ${theme.colors.grayscale.base};
+                font-size: ${theme.typography.sizes.s}px;
+              `}
+            >
+              {t(
+                'Select columns that will be displayed in the table. You can multiselect columns.',
+              )}
+            </div>
+            {comparisonColumns.map(column => (
+              <Menu.Item key={column.key}>
+                <span
+                  css={css`
+                    color: ${theme.colors.grayscale.dark2};
+                  `}
+                >
+                  {column.label}
+                </span>
+                <span
+                  css={css`
+                    float: right;
+                    font-size: ${theme.typography.sizes.s}px;
+                  `}
+                >
+                  {selectedKeys.includes(column.key) && <CheckOutlined />}
+                </span>
+              </Menu.Item>
+            ))}
+          </Menu>
+        }
+        trigger={['click']}
+      >
+        <span>
+          {t('Display columns')} <DownOutlined />
+        </span>
+      </Dropdown>
+    );
   };
 
   const renderGroupingHeaders = (): JSX.Element => {
@@ -499,8 +616,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const groupHeaderColumns = useMemo(
-    () => getHeaderColumns(columnsMeta, enableTimeComparison),
-    [columnsMeta, enableTimeComparison],
+    () => getHeaderColumns(filteredColumnsMeta, enableTimeComparison),
+    [filteredColumnsMeta, enableTimeComparison],
   );
 
   const getColumnConfigs = useCallback(
@@ -769,8 +886,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const columns = useMemo(
-    () => columnsMeta.map(getColumnConfigs),
-    [columnsMeta, getColumnConfigs],
+    () => filteredColumnsMeta.map(getColumnConfigs),
+    [filteredColumnsMeta, getColumnConfigs],
   );
 
   const handleServerPaginationChange = useCallback(
@@ -839,6 +956,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         sticky={sticky}
         renderGroupingHeaders={
           !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
+        renderTimeComparisonDropdown={
+          enableTimeComparison ? renderTimeComparisonDropdown : undefined
         }
       />
     </Styles>
