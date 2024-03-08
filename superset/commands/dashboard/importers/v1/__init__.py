@@ -21,6 +21,7 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
+from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.dashboard.exceptions import DashboardImportError
@@ -59,9 +60,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         # discover charts and datasets associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
@@ -87,7 +86,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+                database = import_database(config, overwrite=False)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -98,7 +97,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+                dataset = import_dataset(config, overwrite=False)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -122,12 +121,12 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 if "query_context" in config:
                     config["query_context"] = None
 
-                chart = import_chart(session, config, overwrite=False)
+                chart = import_chart(config, overwrite=False)
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = session.execute(
+        existing_relationships = db.session.execute(
             select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
         ).fetchall()
 
@@ -137,7 +136,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(session, config, overwrite=overwrite)
+                dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
@@ -151,7 +150,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        session.execute(dashboard_slices.insert(), values)
+        db.session.execute(dashboard_slices.insert(), values)
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:
@@ -160,4 +159,4 @@ class ImportDashboardsCommand(ImportModelsCommand):
         # Remove all obsolete filter-box charts.
         for chart in charts:
             if chart.viz_type == "filter_box":
-                session.delete(chart)
+                db.session.delete(chart)

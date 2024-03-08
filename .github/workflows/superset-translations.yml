@@ -3,7 +3,8 @@ name: Translations
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -24,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version:  '16'
+          node-version: "16"
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:

@@ -75,7 +75,7 @@ class TestExportChartsCommand(SupersetTestCase):
         assert expected == list(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
 
         assert metadata == {
@@ -133,7 +133,7 @@ class TestExportChartsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "slice_name",
@@ -413,7 +413,7 @@ class TestChartWarmUpCacheCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self):
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         result = ChartWarmUpCacheCommand(slc.id, None, None).run()
         self.assertEqual(
             result, {"chart_id": slc.id, "viz_error": None, "viz_status": "success"}

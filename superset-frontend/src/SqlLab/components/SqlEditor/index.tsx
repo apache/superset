@@ -54,7 +54,7 @@ import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { AntdDropdown, AntdSwitch } from 'src/components';
+import { AntdDropdown, AntdSwitch, Skeleton } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -77,6 +77,7 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
+  switchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -244,29 +245,33 @@ const SqlEditor: React.FC<Props> = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const { database, latestQuery, hideLeftBar } = useSelector<
-    SqlLabRootState,
-    {
-      database?: DatabaseObject;
-      latestQuery?: QueryResponse;
-      hideLeftBar?: boolean;
-    }
-  >(({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
-    let { dbId, latestQueryId, hideLeftBar } = queryEditor;
-    if (unsavedQueryEditor?.id === queryEditor.id) {
-      dbId = unsavedQueryEditor.dbId || dbId;
-      latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
-        ? unsavedQueryEditor.hideLeftBar
-        : hideLeftBar;
-    }
-    return {
-      database: databases[dbId || ''],
-      latestQuery: queries[latestQueryId || ''],
-      hideLeftBar,
-    };
-  }, shallowEqual);
+  const { database, latestQuery, hideLeftBar, currentQueryEditorId } =
+    useSelector<
+      SqlLabRootState,
+      {
+        database?: DatabaseObject;
+        latestQuery?: QueryResponse;
+        hideLeftBar?: boolean;
+        currentQueryEditorId: QueryEditor['id'];
+      }
+    >(({ sqlLab: { unsavedQueryEditor, databases, queries, tabHistory } }) => {
+      let { dbId, latestQueryId, hideLeftBar } = queryEditor;
+      if (unsavedQueryEditor?.id === queryEditor.id) {
+        dbId = unsavedQueryEditor.dbId || dbId;
+        latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
+        hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
+          ? unsavedQueryEditor.hideLeftBar
+          : hideLeftBar;
+      }
+      return {
+        database: databases[dbId || ''],
+        latestQuery: queries[latestQueryId || ''],
+        hideLeftBar,
+        currentQueryEditorId: tabHistory.slice(-1)[0],
+      };
+    }, shallowEqual);
 
+  const isActive = currentQueryEditorId === queryEditor.id;
   const [height, setHeight] = useState(0);
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
@@ -490,6 +495,16 @@ const SqlEditor: React.FC<Props> = ({
     }
   });
 
+  const shouldLoadQueryEditor =
+    isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+    !queryEditor.loaded;
+
+  const loadQueryEditor = useEffectEvent(() => {
+    if (shouldLoadQueryEditor) {
+      dispatch(switchQueryEditor(queryEditor, displayLimit));
+    }
+  });
+
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
@@ -498,16 +513,18 @@ const SqlEditor: React.FC<Props> = ({
       () => setHeight(getSqlEditorHeight()),
       WINDOW_RESIZE_THROTTLE_MS,
     );
-
-    window.addEventListener('resize', handleWindowResizeWithThrottle);
-    window.addEventListener('beforeunload', onBeforeUnload);
+    if (isActive) {
+      loadQueryEditor();
+      window.addEventListener('resize', handleWindowResizeWithThrottle);
+      window.addEventListener('beforeunload', onBeforeUnload);
+    }
 
     return () => {
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
-  }, [onBeforeUnload]);
+  }, [onBeforeUnload, loadQueryEditor, isActive]);
 
   useEffect(() => {
     if (!database || isEmpty(database)) {
@@ -518,15 +535,14 @@ const SqlEditor: React.FC<Props> = ({
   useEffect(() => {
     // setup hotkeys
     const hotkeys = getHotkeyConfig();
-    hotkeys.forEach(keyConfig => {
-      Mousetrap.bind([keyConfig.key], keyConfig.func);
-    });
-    return () => {
+    if (isActive) {
+      // MouseTrap always override the same key
+      // Unbind (reset) will be called when App component unmount
       hotkeys.forEach(keyConfig => {
-        Mousetrap.unbind(keyConfig.key);
+        Mousetrap.bind([keyConfig.key], keyConfig.func);
       });
-    };
-  }, [getHotkeyConfig, latestQuery]);
+    }
+  }, [getHotkeyConfig, latestQuery, isActive]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
@@ -843,7 +859,17 @@ const SqlEditor: React.FC<Props> = ({
           )}
         </ResizableSidebar>
       </CSSTransition>
-      {showEmptyState ? (
+      {shouldLoadQueryEditor ? (
+        <div
+          data-test="sqlEditor-loading"
+          css={css`
+            flex: 1;
+            padding: ${theme.gridUnit * 4}px;
+          `}
+        >
+          <Skeleton active />
+        </div>
+      ) : showEmptyState ? (
         <EmptyStateBig
           image="vector.svg"
           title={t('Select a database to write a query')}

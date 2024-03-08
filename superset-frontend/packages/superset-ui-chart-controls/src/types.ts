@@ -330,8 +330,8 @@ export type ControlConfig<
 > = T extends InternalControlType
   ? SharedControlConfig<T, O>
   : T extends object
-  ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  : CustomControlConfig<any>;
+    ? CustomControlConfig<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    : CustomControlConfig<any>;
 
 /** ===========================================================
  * Chart plugin control panel config
@@ -526,36 +526,36 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       validators?: ControlFormValueValidator<string>[];
     }
   : T extends 'RadioButtonControl'
-  ? {
-      options: [string, ReactNode][];
-      value?: string;
-      defaultValue?: string;
-    }
-  : T extends 'Checkbox'
-  ? {
-      value?: boolean;
-      defaultValue?: boolean;
-    }
-  : T extends 'InputNumber' | 'Slider'
-  ? {
-      min?: number;
-      max?: number;
-      step?: number;
-      value?: number;
-      defaultValue?: number;
-      validators?: ControlFormValueValidator<number>[];
-    }
-  : T extends 'Input'
-  ? {
-      controlType: 'Input';
-      value?: string;
-      defaultValue?: string;
-      validators?: ControlFormValueValidator<string>[];
-    }
-  : T extends 'CurrencyControl'
-  ? {
-      controlType: 'CurrencyControl';
-      value?: Currency;
-      defaultValue?: Currency;
-    }
-  : {});
+    ? {
+        options: [string, ReactNode][];
+        value?: string;
+        defaultValue?: string;
+      }
+    : T extends 'Checkbox'
+      ? {
+          value?: boolean;
+          defaultValue?: boolean;
+        }
+      : T extends 'InputNumber' | 'Slider'
+        ? {
+            min?: number;
+            max?: number;
+            step?: number;
+            value?: number;
+            defaultValue?: number;
+            validators?: ControlFormValueValidator<number>[];
+          }
+        : T extends 'Input'
+          ? {
+              controlType: 'Input';
+              value?: string;
+              defaultValue?: string;
+              validators?: ControlFormValueValidator<string>[];
+            }
+          : T extends 'CurrencyControl'
+            ? {
+                controlType: 'CurrencyControl';
+                value?: Currency;
+                defaultValue?: Currency;
+              }
+            : {});

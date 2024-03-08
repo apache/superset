@@ -33,8 +33,11 @@ import DrillDetailMenuItems, {
 jest.mock(
   './DrillDetailPane',
   () =>
-    ({ initialFilters }: { initialFilters: BinaryQueryObjectFilterClause[] }) =>
-      <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
+    ({
+      initialFilters,
+    }: {
+      initialFilters: BinaryQueryObjectFilterClause[];
+    }) => <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
 );
 
 const { id: defaultChartId, form_data: defaultFormData } =

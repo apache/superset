@@ -64,7 +64,10 @@ export const supersetClientQuery: BaseQueryFn<
     }))
     .catch(response =>
       getClientErrorObject(response).then(errorObj => ({
-        error: errorObj,
+        error: {
+          error: errorObj?.message || errorObj?.error || response.statusText,
+          status: response.status,
+        },
       })),
     );
 

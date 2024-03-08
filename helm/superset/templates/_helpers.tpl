@@ -78,7 +78,7 @@ REDIS_BASE_URL=f"{env('REDIS_PROTO')}://{env('REDIS_HOST')}:{env('REDIS_PORT')}"
 
 # Redis URL Params
 {{- if .Values.supersetNode.connections.redis_ssl.enabled }}
-REDIS_URL_PARAMS = f"?ssl_cert_req={env('REDIS_SSL_CERT_REQS')}"
+REDIS_URL_PARAMS = f"?ssl_cert_reqs={env('REDIS_SSL_CERT_REQS')}"
 {{- else }}
 REDIS_URL_PARAMS = ""
 {{- end}}
@@ -135,4 +135,29 @@ RESULTS_BACKEND = RedisCache(
 {{- end }}
 {{- end }}
 
+{{- end }}
+
+{{- define "supersetCeleryBeat.selectorLabels" -}}
+app: {{ include "superset.name" . }}-celerybeat
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetCeleryFlower.selectorLabels" -}}
+app: {{ include "superset.name" . }}-flower
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetNode.selectorLabels" -}}
+app: {{ include "superset.name" . }}
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetWebsockets.selectorLabels" -}}
+app: {{ include "superset.name" . }}-ws
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "supersetWorker.selectorLabels" -}}
+app: {{ include "superset.name" . }}-worker
+release: {{ .Release.Name }}
 {{- end }}

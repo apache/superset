@@ -47,11 +47,3 @@ InteractiveSlider.argTypes = {
     control: { type: 'boolean' },
   },
 };
-
-InteractiveSlider.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

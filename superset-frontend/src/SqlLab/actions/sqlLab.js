@@ -743,15 +743,18 @@ export function removeQueryEditor(queryEditor) {
 
     return sync
       .then(() => dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor }))
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'An error occurred while removing tab. Please contact your administrator.',
+      .catch(({ status }) => {
+        if (status !== 404) {
+          return dispatch(
+            addDangerToast(
+              t(
+                'An error occurred while removing tab. Please contact your administrator.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+        return dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
+      });
   };
 }
 

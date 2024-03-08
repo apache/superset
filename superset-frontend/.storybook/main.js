@@ -1,3 +1,4 @@
+import { dirname, join } from 'path';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,21 +21,21 @@
 const customConfig = require('../webpack.config.js');
 
 module.exports = {
-  core: {
-    builder: 'webpack5',
-  },
   stories: [
     '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.stories.@(tsx|jsx)',
-    '../src/@(components|common|filters|explore|views|dashboard|features)/**/*.*.@(mdx)',
+    '../packages/superset-ui-demo/storybook/stories/**/*.*.@(tsx|jsx)',
   ],
+
   addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs',
-    'storybook-addon-paddings',
+    getAbsolutePath('@storybook/addon-essentials'),
+    getAbsolutePath('@storybook/addon-links'),
+    getAbsolutePath('storybook-addon-jsx'),
+    getAbsolutePath('@storybook/addon-controls'),
+    getAbsolutePath('@storybook/addon-mdx-gfm'),
   ],
+
   staticDirs: ['../src/assets/images'],
+
   webpackFinal: config => ({
     ...config,
     module: {
@@ -47,7 +48,21 @@ module.exports = {
     },
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
+
   typescript: {
     reactDocgen: 'react-docgen-typescript',
   },
+
+  framework: {
+    name: getAbsolutePath('@storybook/react-webpack5'),
+    options: {},
+  },
+
+  docs: {
+    autodocs: false,
+  },
 };
+
+function getAbsolutePath(value) {
+  return dirname(require.resolve(join(value, 'package.json')));
+}

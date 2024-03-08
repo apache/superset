@@ -70,7 +70,7 @@ def test_remove_user_favorite_tag(mocker):
     # Check that users_favorited no longer contains the user
     assert mock_user not in mock_tag.users_favorited
 
-    # Check that the session was committed
+    # Check that the db.session.was committed
     mock_session.commit.assert_called_once()
 
 

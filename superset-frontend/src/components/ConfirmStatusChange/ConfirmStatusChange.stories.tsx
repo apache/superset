@@ -39,11 +39,3 @@ InteractiveConfirmStatusChange.args = {
 InteractiveConfirmStatusChange.argTypes = {
   onConfirm: { action: 'onConfirm' },
 };
-
-InteractiveConfirmStatusChange.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -4,7 +4,8 @@ name: Python-Integration
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -54,8 +55,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -120,8 +121,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -180,8 +181,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
+          cache: "pip"
+          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

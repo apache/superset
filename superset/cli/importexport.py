@@ -28,6 +28,7 @@ from flask.cli import with_appcontext
 
 from superset import security_manager
 from superset.extensions import db
+from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ def export_dashboards(dashboard_file: Optional[str] = None) -> None:
         with ZipFile(dashboard_file, "w") as bundle:
             for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the dashboards, please check "
@@ -116,7 +117,7 @@ def export_datasources(datasource_file: Optional[str] = None) -> None:
         with ZipFile(datasource_file, "w") as bundle:
             for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "There was an error when exporting the datasets, please check "
@@ -170,26 +171,34 @@ def import_dashboards(path: str, username: Optional[str]) -> None:
     "-p",
     help="Path to a single ZIP file",
 )
-def import_datasources(path: str) -> None:
+@click.option(
+    "--username",
+    "-u",
+    required=False,
+    default="admin",
+    help="Specify the user name to assign datasources to",
+)
+def import_datasources(path: str, username: Optional[str] = "admin") -> None:
     """Import datasources from ZIP file"""
     # pylint: disable=import-outside-toplevel
     from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
     from superset.commands.importers.v1.utils import get_contents_from_bundle
 
-    if is_zipfile(path):
-        with ZipFile(path) as bundle:
-            contents = get_contents_from_bundle(bundle)
-    else:
-        with open(path) as file:
-            contents = {path: file.read()}
-    try:
-        ImportDatasetsCommand(contents, overwrite=True).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception(
-            "There was an error when importing the dataset(s), please check the "
-            "exception traceback in the log"
-        )
-        sys.exit(1)
+    with override_user(user=security_manager.find_user(username=username)):
+        if is_zipfile(path):
+            with ZipFile(path) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            with open(path) as file:
+                contents = {path: file.read()}
+        try:
+            ImportDatasetsCommand(contents, overwrite=True).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dataset(s), please check the "
+                "exception traceback in the log"
+            )
+            sys.exit(1)
 
 
 @click.command()
@@ -214,7 +223,7 @@ def legacy_export_dashboards(
     # pylint: disable=import-outside-toplevel
     from superset.utils import dashboard_import_export
 
-    data = dashboard_import_export.export_dashboards(db.session)
+    data = dashboard_import_export.export_dashboards()
     if print_stdout or not dashboard_file:
         print(data)
     if dashboard_file:
@@ -263,7 +272,6 @@ def legacy_export_datasources(
     from superset.utils import dict_import_export
 
     data = dict_import_export.export_to_dict(
-        session=db.session,
         recursive=True,
         back_references=back_references,
         include_defaults=include_defaults,

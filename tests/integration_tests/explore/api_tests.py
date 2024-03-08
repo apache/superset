@@ -21,6 +21,7 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset import db
 from superset.commands.explore.form_data.state import TemporaryExploreState
 from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
@@ -39,25 +40,22 @@ FORM_DATA = {"test": "test value"}
 @pytest.fixture
 def chart_id(load_world_bank_dashboard_with_slices) -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        chart = session.query(Slice).filter_by(slice_name="World's Population").one()
+        chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
         return chart.id
 
 
 @pytest.fixture
 def admin_id() -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        admin = session.query(User).filter_by(username="admin").one()
+        admin = db.session.query(User).filter_by(username="admin").one()
         return admin.id
 
 
 @pytest.fixture
 def dataset() -> int:
     with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
         dataset = (
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name="wb_health_population")
             .first()
         )
@@ -199,7 +197,7 @@ def test_get_from_permalink_unknown_key(test_client, login_as_admin):
 
 
 @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-def test_get_dataset_access_denied(
+def test_get_dataset_access_denied_with_form_data_key(
     mock_can_access_datasource, test_client, login_as_admin, dataset
 ):
     message = "Dataset access denied"
@@ -208,6 +206,24 @@ def test_get_dataset_access_denied(
     )
     resp = test_client.get(
         f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&datasource_id={dataset.id}&datasource_type={dataset.type}"
+    )
+    data = json.loads(resp.data.decode("utf-8"))
+    assert resp.status_code == 403
+    assert data["datasource_id"] == dataset.id
+    assert data["datasource_type"] == dataset.type
+    assert data["message"] == message
+
+
+@patch("superset.security.SupersetSecurityManager.can_access_datasource")
+def test_get_dataset_access_denied(
+    mock_can_access_datasource, test_client, login_as_admin, dataset
+):
+    message = "Dataset access denied"
+    mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
+        message=message, datasource_id=dataset.id, datasource_type=dataset.type
+    )
+    resp = test_client.get(
+        f"api/v1/explore/?datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))
     assert resp.status_code == 403
