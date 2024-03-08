@@ -19,12 +19,7 @@
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
-import {
-  interceptGet,
-  interceptUpdate,
-  openTab,
-  interceptGet as interceptDashboardGet,
-} from './utils';
+import { interceptGet, interceptUpdate, openTab } from './utils';
 import {
   interceptExploreJson,
   interceptFiltering as interceptCharts,
@@ -174,7 +169,7 @@ function writeMetadata(metadata: string) {
 
 function openExplore(chartName: string) {
   interceptExploreJson();
-  interceptDashboardGet();
+  interceptGet();
 
   cy.get(
     `[data-test-chart-name='${chartName}'] [aria-label='More Options']`,
