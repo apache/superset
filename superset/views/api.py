@@ -127,9 +127,10 @@ class Api(BaseSupersetView):
             email = body.get("email")
             role = self.appbuilder.sm.find_role("Doctor")
             if role and email and last_name and first_name and username:
-                user = self.appbuilder.sm.add_user(username, first_name, last_name, email, role)
+                user = self.appbuilder.sm.add_user(username, first_name, last_name,
+                                                   email, role)
                 if user:
-                    return self.response(200, success=True)
+                    return self.json_response(json.dumps({"success": True}), 200)
         except Exception as error:
             print("=======add_user EXCEPTION========", str(error))
-            return self.response_400(message="User creation failed")
+            return self.json_response(json.dumps({"success": False}), 400)
