@@ -144,7 +144,6 @@ def _get_samples(
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
-    query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
     qry_obj_cols = []
@@ -153,6 +152,7 @@ def _get_samples(
             qry_obj_cols.append(o.get("column_name"))
         else:
             qry_obj_cols.append(o.column_name)
+    query_obj.orderby = [(query_obj.columns[0], True)]
     query_obj.columns = qry_obj_cols
     query_obj.from_dttm = None
     query_obj.to_dttm = None
