@@ -10,7 +10,6 @@ class CustomUserAPI(BaseSupersetView):
     route_base = '/api/v1/'
 
     @expose("/add_user/", methods=("POST",))
-    @protect()
     @safe
     def add_user(self):
         try:
