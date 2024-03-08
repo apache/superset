@@ -57,7 +57,6 @@ from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import is_test, pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
-from superset.views.users.custom_user_api import CustomUserAPI
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
@@ -192,6 +191,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
         from superset.views.users.api import CurrentUserRestApi
+        from superset.views.users.custom_user_api import CustomUserAPI
 
         #
         # Setup API views
