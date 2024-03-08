@@ -62,3 +62,33 @@ def test_column_data_types_with_one_numeric_column():
     assert is_numeric_dtype(df["col1"])
     assert not is_numeric_dtype(df["col2"])
     assert not is_numeric_dtype(df["col3"])
+
+
+def test_column_data_types_with_failing_conversion():
+    df = pd.DataFrame(
+        {
+            "col0": ["123", "1", "2", "3"],
+            "col1": ["456", "non_numeric_value", "0", ".45"],
+            "col2": [
+                datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc),
+                datetime(2023, 1, 2, 0, 0, tzinfo=timezone.utc),
+                datetime(2023, 1, 3, 0, 0, tzinfo=timezone.utc),
+                datetime(2023, 1, 4, 0, 0, tzinfo=timezone.utc),
+            ],
+            "col3": ["True", "False", "True", "False"],
+        }
+    )
+    coltypes: list[GenericDataType] = [
+        GenericDataType.STRING,
+        GenericDataType.NUMERIC,
+        GenericDataType.TEMPORAL,
+        GenericDataType.BOOLEAN,
+    ]
+
+    # should not fail neither convert
+    assert not is_numeric_dtype(df["col1"])
+    apply_column_types(df, coltypes)
+    assert not is_numeric_dtype(df["col0"])
+    assert not is_numeric_dtype(df["col1"])
+    assert not is_numeric_dtype(df["col2"])
+    assert not is_numeric_dtype(df["col3"])

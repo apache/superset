@@ -35,10 +35,12 @@ def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
 def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
-
     for column, column_type in zip(df.columns, column_types):
         if column_type == GenericDataType.NUMERIC:
-            df[column] = pd.to_numeric(df[column])
+            try:
+                df[column] = pd.to_numeric(df[column])
+            except ValueError:
+                df[column] = df[column].astype(str)
         elif pd.api.types.is_datetime64tz_dtype(df[column]):
             # timezones are not supported
             df[column] = df[column].astype(str)
