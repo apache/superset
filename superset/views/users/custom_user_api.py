@@ -36,3 +36,9 @@ class CustomUserAPI(BaseSupersetView):
                 return jsonify({"success": False, "message": "Failed to add user"}), 400
         except Exception as error:
             return jsonify({"success": False, "message": str(error)}), 400
+
+    def response_403(self):
+        """
+        Custom response for 403 Forbidden errors.
+        """
+        return jsonify({"success": False, "message": "Forbidden"}), 403
