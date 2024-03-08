@@ -99,6 +99,6 @@ describe('Visualization > Compare', () => {
     ).should('exist');
     cy.get('.compare .nv-legend .nv-legend-symbol')
       .first()
-      .should('have.css', 'fill', 'rgb(31, 168, 201)');
+      .should('have.css', 'fill', 'rgb(69, 78, 124)');
   });
 });

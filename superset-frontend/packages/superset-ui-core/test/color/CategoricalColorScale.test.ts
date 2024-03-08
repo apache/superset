@@ -21,6 +21,10 @@ import { ScaleOrdinal } from 'd3-scale';
 import { CategoricalColorScale, FeatureFlag } from '@superset-ui/core';
 
 describe('CategoricalColorScale', () => {
+  beforeEach(() => {
+    window.featureFlags = {};
+  });
+
   it('exists', () => {
     expect(CategoricalColorScale !== undefined).toBe(true);
   });
@@ -81,9 +85,6 @@ describe('CategoricalColorScale', () => {
       expect(c3).not.toBe(c1);
     });
     it('recycles colors when number of items exceed available colors', () => {
-      window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: false,
-      };
       const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const colors = [
@@ -209,20 +210,7 @@ describe('CategoricalColorScale', () => {
   });
 
   describe('a CategoricalColorScale instance is also a color function itself', () => {
-    it('scale(value) returns least used color', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
-      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
-      expect(scale.getColor('pig')).toBe('blue');
-      expect(scale('pig')).toBe('red'); // blue is now used and red is next available
-      expect(scale.getColor('cat')).toBe('blue'); // pig got red, now blue is available
-      expect(scale('cat')).toBe('green'); // blue is now used and green is next available
-    });
     it('scale(value) returns same color for same value', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: false,
-      };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale.getColor('pig')).toBe('blue');
       expect(scale('pig')).toBe('blue');
