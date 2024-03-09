@@ -28,7 +28,7 @@ x-common-build: &common-build
   cache_from:
     - apache/superset-cache:3.9-slim-bookworm
 
-version: "3.7"
+version: "4.0"
 services:
   redis:
     image: redis:7
