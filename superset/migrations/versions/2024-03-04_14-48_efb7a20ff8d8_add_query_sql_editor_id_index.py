@@ -31,7 +31,7 @@ from alembic import op
 from superset.migrations.shared.utils import table_has_index
 
 table = "query"
-index = "ix_query_user_id_sql_editor_id"
+index = "ix_sql_editor_id"
 
 
 def upgrade():
@@ -39,7 +39,7 @@ def upgrade():
         op.create_index(
             op.f(index),
             table,
-            ["user_id", "sql_editor_id"],
+            ["sql_editor_id"],
             unique=False,
         )
 

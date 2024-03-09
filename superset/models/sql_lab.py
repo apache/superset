@@ -86,7 +86,7 @@ class Query(
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))
-    sql_editor_id = Column(String(256))
+    sql_editor_id = Column(String(256), index=True)
     schema = Column(String(256))
     sql = Column(MediumText())
     # Query to retrieve the results,
@@ -128,10 +128,7 @@ class Query(
     )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
-    __table_args__ = (
-        sqla.Index("ti_user_id_changed_on", user_id, changed_on),
-        sqla.Index("ix_query_user_id_sql_editor_id", user_id, sql_editor_id),
-    )
+    __table_args__ = (sqla.Index("ti_user_id_changed_on", user_id, changed_on),)
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(query=self, database=self.database, **kwargs)
