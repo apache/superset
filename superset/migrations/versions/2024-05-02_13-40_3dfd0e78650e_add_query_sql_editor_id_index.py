@@ -16,22 +16,22 @@
 # under the License.
 """add_query_sql_editor_id_index
 
-Revision ID: efb7a20ff8d8
-Revises: be1b217cd8cd
-Create Date: 2024-03-04 14:48:16.998927
+Revision ID: 3dfd0e78650e
+Revises: 5f57af97bc3f
+Create Date: 2024-05-02 13:40:23.126659
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "efb7a20ff8d8"
-down_revision = "be1b217cd8cd"
+revision = '3dfd0e78650e'
+down_revision = '5f57af97bc3f'
 
 from alembic import op
 
 from superset.migrations.shared.utils import table_has_index
 
 table = "query"
-index = "ix_query_user_id_sql_editor_id"
+index = "ix_sql_editor_id"
 
 
 def upgrade():
@@ -39,7 +39,7 @@ def upgrade():
         op.create_index(
             op.f(index),
             table,
-            ["user_id", "sql_editor_id"],
+            ["sql_editor_id"],
             unique=False,
         )
 
