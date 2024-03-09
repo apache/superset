@@ -19,7 +19,7 @@ set -e
 
 # Packages needed for puppeteer:
 apt update
-if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
+if [ "$PUPPETEER_SKIP_CHROMIUM_DOWNLOAD" = "false" ]; then
     apt install -y chromium
 fi
 
