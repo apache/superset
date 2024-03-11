@@ -30,9 +30,9 @@ class CustomUserAPI(BaseSupersetView):
                                                role)
             if user:
                 return jsonify(
-                    {"success": True, "message": "User added successfully"}), 200
+                    {"success": True, "message": f"{user.username} added successfully"}), 200
             else:
-                return jsonify({"success": False, "message": "Failed to add user"}), 400
+                return jsonify({"success": False, "message": f"Failed to add user {user.username}"}), 400
         except Exception as error:
             return jsonify({"success": False, "message": str(error)}), 400
 
