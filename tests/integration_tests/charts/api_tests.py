@@ -1505,7 +1505,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
-        self.assertEqual(len(data["result"]), 4)
+        self.assertEqual(len(data["result"][0]), 4)
 
     def test_query_form_data(self):
         """
