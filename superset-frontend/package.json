@@ -48,6 +48,7 @@
     "cover": "cross-env NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --color --watch",
     "dev-server": "cross-env NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
+    "build-exf": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --config webpack.exf.config.js --mode=production --color",
     "eslint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx",
     "format": "npm run _prettier -- --write",
     "lint": "npm run eslint -- . && npm run type",
