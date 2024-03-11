@@ -67,29 +67,29 @@ In accordance with our [release process](https://github.com/apache/superset/wiki
 
 Following our 4.0 proposals, the following feature flags were removed:
 
-- VERSIONED_EXPORT
-- DASHBOARD_FILTERS_EXPERIMENTAL
-- ENABLE_EXPLORE_JSON_CSRF_PROTECTION
-- ENABLE_TEMPLATE_REMOVE_FILTERS
-- REMOVE_SLICE_LEVEL_LABEL_COLORS
-- CLIENT_CACHE
-- DASHBOARD_CACHE
-- DASHBOARD_NATIVE_FILTERS_SET
-- ENABLE_EXPLORE_DRAG_AND_DROP
-- DISABLE_DATASET_SOURCE_EDIT
-- DASHBOARD_NATIVE_FILTERS
-- GENERIC_CHART_AXES
+- `VERSIONED_EXPORT`
+- `DASHBOARD_FILTERS_EXPERIMENTAL`
+- `ENABLE_EXPLORE_JSON_CSRF_PROTECTION`
+- `ENABLE_TEMPLATE_REMOVE_FILTERS`
+- `REMOVE_SLICE_LEVEL_LABEL_COLORS`
+- `CLIENT_CACHE`
+- `DASHBOARD_CACHE`
+- `DASHBOARD_NATIVE_FILTERS_SET`
+- `ENABLE_EXPLORE_DRAG_AND_DROP`
+- `DISABLE_DATASET_SOURCE_EDIT`
+- `DASHBOARD_NATIVE_FILTERS`
+- `GENERIC_CHART_AXES`
 
 The following feature flags were deprecated:
 
-- DASHBOARD_CROSS_FILTERS
-- ENABLE_JAVASCRIPT_CONTROLS
-- KV_STORE
+- `DASHBOARD_CROSS_FILTERS`
+- `ENABLE_JAVASCRIPT_CONTROLS`
+- `KV_STORE`
 
 The following feature flags were enabled by default:
 
-- DASHBOARD_VIRTUALIZATION
-- DRILL_BY
+- `DASHBOARD_VIRTUALIZATION`
+- `DRILL_BY`
 
 ### Removed features
 
@@ -121,10 +121,12 @@ TODO @rusackas
 
 The ECharts version of the Sunburst chart was introduced by [#22833](https://github.com/apache/superset/pull/22833) as part of our efforts to complete [SIP-50](https://github.com/apache/superset/issues/10418). In 4.0, legacy Sunburst charts are [automatically migrated](https://github.com/apache/superset/pull/26350) to ECharts and the legacy version was removed.
 
+![Sunburst](media/sunburst.png)
+
 ### Some cool stats
 
 - ~15K lines of code were removed by PRs related to 4.0 proposals
 - We reduced the number of NPM packages vulnerabilities by 72%
   - 3.1: 90 vulnerabilities (42 moderate, 34 high, 14 critical)
   - 4.0: 25 vulnerabilities (16 moderate, 8 high, 1 critical)
-- TODO package bump stats
+- 40+ dependency changes (upgrades, additions, and removals)
