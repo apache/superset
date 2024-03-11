@@ -63,6 +63,10 @@ const defaultDb = {
   engine: 'mysql',
 } as DatabaseObject;
 
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 test('Renders SSH Tunnel switch enabled by default and toggles its state', () => {
   render(
     <SSHTunnelSwitch
@@ -118,6 +122,7 @@ test('Checks the switch based on db.parameters.ssh', () => {
 test('Calls onParametersChange with true if SSH Tunnel info exists', () => {
   const dbWithSSHTunnelInfo = {
     ...defaultDb,
+    parameters: { ssh: undefined },
     ssh_tunnel: { host: 'example.com' },
   } as DatabaseObject;
   render(

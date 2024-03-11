@@ -686,22 +686,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return false;
   };
 
-  const onChange = (type: any, payload: any) => {
-    setDB({ type, payload } as DBReducerActionType);
-  };
+  const onChange = useCallback(
+    (type: DBReducerActionType['type'], payload: DBReducerPayloadType) => {
+      setDB({ type, payload } as DBReducerActionType);
+    },
+    [],
+  );
 
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
   }, [setValidationErrors]);
 
-  const handleParametersChange = ({ target }: { target: HTMLInputElement }) => {
-    onChange(ActionType.ParametersChange, {
-      type: target.type,
-      name: target.name,
-      checked: target.checked,
-      value: target.value,
-    });
-  };
+  const handleParametersChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.ParametersChange, {
+        type: target.type,
+        name: target.name,
+        checked: target.checked,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
 
   const onClose = () => {
     setDB({ type: ActionType.Reset });

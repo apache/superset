@@ -44,17 +44,19 @@ class UpdateSSHTunnelCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            if self._model is not None:  # So we dont get incompatible types error
-                # unset password if private key is provided
-                if self._properties.get("private_key"):
-                    self._properties["password"] = None
+            if self._model is None:
+                return
 
-                # unset private key and password if password is provided
-                if self._properties.get("password"):
-                    self._properties["private_key"] = None
-                    self._properties["private_key_password"] = None
+            # unset password if private key is provided
+            if self._properties.get("private_key"):
+                self._properties["password"] = None
 
-                tunnel = SSHTunnelDAO.update(self._model, self._properties)
+            # unset private key and password if password is provided
+            if self._properties.get("password"):
+                self._properties["private_key"] = None
+                self._properties["private_key_password"] = None
+
+            tunnel = SSHTunnelDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             raise SSHTunnelUpdateFailedError() from ex
         return tunnel

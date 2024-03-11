@@ -56,9 +56,11 @@ class UpdateDatabaseCommand(BaseCommand):
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
-        self._model = DatabaseDAO.find_by_id(self._model_id)
+        self._model: Optional[Database] = None
 
     def run(self) -> Model:  # pylint: disable=too-many-statements, too-many-branches
+        self._model = DatabaseDAO.find_by_id(self._model_id)
+
         if not self._model:
             raise DatabaseNotFoundError()
 

@@ -39,8 +39,7 @@ const SSHTunnelSwitch = ({
   const sshTunnelEnabled = isFeatureEnabled(FeatureFlag.SshTunneling);
   const disableSSHTunnelingForEngine =
     dbModel?.engine_information?.disable_ssh_tunneling || false;
-  const isSSHTunnelEnabled =
-    sshTunnelEnabled && disableSSHTunnelingForEngine === false;
+  const isSSHTunnelEnabled = sshTunnelEnabled && !disableSSHTunnelingForEngine;
 
   const handleOnChange = (changed: boolean) => {
     setChecked(changed);
