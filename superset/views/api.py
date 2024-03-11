@@ -117,24 +117,3 @@ class Api(BaseSupersetView):
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
 
-    @event_logger.log_this
-    @api
-    @handle_api_exception
-    @has_access_api
-    @expose("/add_user/", methods=("POST",))
-    def add_user(self) -> Response:
-        try:
-            body = user_schema.load(request.json)
-            username = body.get("username")
-            first_name = body.get("first_name")
-            last_name = body.get("last_name")
-            email = body.get("email")
-            role = self.appbuilder.sm.find_role("Doctor")
-            if role and email and last_name and first_name and username:
-                user = self.appbuilder.sm.add_user(username, first_name, last_name,
-                                                   email, role)
-                if user:
-                    return self.json_response(json.dumps({"success": True}), 200)
-        except Exception as error:
-            print("=======add_user EXCEPTION========", str(error))
-            return self.json_response(json.dumps({"success": False}), 400)
