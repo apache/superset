@@ -6,6 +6,7 @@ on:
       - "docs/**"
     branches:
       - "master"
+      - "[0-9].[0-9]"
 
 jobs:
   config:
@@ -38,7 +39,7 @@ jobs:
       - name: Set up Node.js 16
         uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: "16"
       - name: yarn install
         run: |
           yarn install --check-cache

@@ -110,6 +110,8 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/testing.in
+pyhive[presto]==0.7.0
+    # via apache-superset
 pytest==7.3.1
     # via
     #   -r requirements/testing.in

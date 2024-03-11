@@ -57,7 +57,7 @@ export default function getInitialState({
     version: LatestQueryEditorVersion,
     loaded: true,
     name: t('Untitled query'),
-    sql: 'SELECT *\nFROM\nWHERE',
+    sql: '',
     latestQueryId: null,
     autorun: false,
     dbId: common.conf.SQLLAB_DEFAULT_DBID,
