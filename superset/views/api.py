@@ -142,12 +142,14 @@ class Api(BaseSupersetView):
             since, until = get_since_until(
                 time_range=base_time_range, instant_time_comparison_range=shift
             )
-            result = {
-                "since": since.isoformat() if since else "",
-                "until": until.isoformat() if until else "",
-                "baseTimeRange": base_time_range,
-                "shift": shift,
-            }
+            result = [
+                {
+                    "since": since.isoformat() if since else "",
+                    "until": until.isoformat() if until else "",
+                    "baseTimeRange": base_time_range,
+                    "shift": shift,
+                }
+            ]
             return self.json_response({"result": result})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
