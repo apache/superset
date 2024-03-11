@@ -1367,14 +1367,38 @@ def get_username() -> str | None:
 
 def get_doc_id() -> str | None:
     """
-    Get/print username (if defined) associated with the current user.
+    Get/print doctor id (doc_id) (if defined) associated with the current user.
 
     :returns: The username
     """
 
     try:
-        print("=======user__dict=======", g.user.__dict__)
-        return g.user.email.split("@")[0]
+        print("=======user__dict doc_id=======", g.user.__dict__)
+        if g.user.first_name.lower() == 'doctor':
+            return g.user.email.split("@")[0]
+        else:
+            logger.info("Non business id data called for get_doc_id %s" % str(
+                g.user.first_name.lower()))
+            return None
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+def get_business_id() -> str | None:
+    """
+    Get/print business id (business_id) (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
+    try:
+        print("=======user__dict business_id=======", g.user.__dict__)
+        if g.user.first_name.lower() == 'business':
+            return g.user.email.split("@")[0]
+        else:
+            logger.info("Non business id data called for get_business_id %s"%str(
+                g.user.first_name.lower()))
+            return None
     except Exception:  # pylint: disable=broad-except
         return None
 
