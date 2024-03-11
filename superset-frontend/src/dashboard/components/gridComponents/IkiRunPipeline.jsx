@@ -313,7 +313,6 @@ class IkiRunPipeline extends React.PureComponent {
             'widget-to-superset/sending-charts-to-refresh'
           ) {
             const { selectedCharts } = messageData;
-            console.log('selectedCharts', selectedCharts);
             this.refreshCharts(selectedCharts);
           }
         }
@@ -342,7 +341,7 @@ class IkiRunPipeline extends React.PureComponent {
               }
             });
           }
-          console.log('findChartEle', findChartEle);
+
           if (findChartEle) {
             this.refreshChart(findChartEle, this.state.dashboardId, false);
           }
@@ -477,7 +476,6 @@ class IkiRunPipeline extends React.PureComponent {
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
-      console.log('markdownSource Run Pipeline', markdownSource);
       if (markdownSource) {
         // iframe = markdownSource;
         const iframeWrapper = document.createElement('div');
@@ -589,7 +587,6 @@ class IkiRunPipeline extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
-      // dashboardLayout,
     } = this.props;
 
     // inherit the size of parent columns
