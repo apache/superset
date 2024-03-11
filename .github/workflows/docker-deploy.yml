@@ -44,4 +44,5 @@ jobs:
         run: |
           TAG=$([[ -z "${{env.TAG}}" ]] && echo "${{env.BRANCH_NAME}}" || echo "${{env.BRANCH_NAME}}-${{env.TAG}}" )
           echo "Tag: $TAG"
+          chmod +x .github/workflows/docker_build.sh
           .github/workflows/docker_build.sh -r "$DOCKERHUB_REPOSITORY" -u "$DOCKERHUB_USER" -t "$DOCKERHUB_TOKEN" -T "$TAG" -p "$DOCKERFILE_PATH" -D "$DOCKER_BUILD_TARGET"
