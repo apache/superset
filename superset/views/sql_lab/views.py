@@ -112,7 +112,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("DELETE",))
     def delete(self, tab_state_id: int) -> FlaskResponse:
-        if _get_owner_id(tab_state_id) != get_user_id():
+        owner_id = _get_owner_id(tab_state_id)
+        if owner_id is None:
+            return Response(status=404)
+        if owner_id != get_user_id():
             return Response(status=403)
 
         db.session.query(TabState).filter(TabState.id == tab_state_id).delete(
@@ -127,7 +130,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("/<int:tab_state_id>", methods=("GET",))
     def get(self, tab_state_id: int) -> FlaskResponse:
-        if _get_owner_id(tab_state_id) != get_user_id():
+        owner_id = _get_owner_id(tab_state_id)
+        if owner_id is None:
+            return Response(status=404)
+        if owner_id != get_user_id():
             return Response(status=403)
 
         tab_state = db.session.query(TabState).filter_by(id=tab_state_id).first()
@@ -157,7 +163,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
     def put(self, tab_state_id: int) -> FlaskResponse:
-        if _get_owner_id(tab_state_id) != get_user_id():
+        owner_id = _get_owner_id(tab_state_id)
+        if owner_id is None:
+            return Response(status=404)
+        if owner_id != get_user_id():
             return Response(status=403)
 
         fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
@@ -172,7 +181,10 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/migrate_query", methods=("POST",))
     def migrate_query(self, tab_state_id: int) -> FlaskResponse:
-        if _get_owner_id(tab_state_id) != get_user_id():
+        owner_id = _get_owner_id(tab_state_id)
+        if owner_id is None:
+            return Response(status=404)
+        if owner_id != get_user_id():
             return Response(status=403)
 
         client_id = json.loads(request.form["queryId"])

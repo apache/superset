@@ -52,6 +52,12 @@ pyproject-hooks==1.0.0
     # via build
 pyyaml==6.0.1
     # via pre-commit
+tomli==2.0.1
+    # via
+    #   build
+    #   pip-tools
+    #   pyproject-api
+    #   tox
 toposort==1.10
     # via pip-compile-multi
 tox==4.6.4
