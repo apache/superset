@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-// import { styledMount as mount } from 'spec/helpers/theming';
 import {
   render,
   screen,
@@ -55,67 +54,66 @@ fetchMock.get(chartFavoriteStatusEndpoint, {
   result: [],
 });
 
-describe('ChartTable', () => {
-  const mockedProps = {
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
-    user: {
-      userId: '2',
-    },
-    mine: [],
-    otherTabData: [],
-    otherTabFilters: [],
-    otherTabTitle: 'Other',
-    showThumbnails: false,
-  };
+const mockedProps = {
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
+  user: {
+    userId: '2',
+  },
+  mine: [],
+  otherTabData: [],
+  otherTabFilters: [],
+  otherTabTitle: 'Other',
+  showThumbnails: false,
+};
 
-  const otherTabProps = {
-    ...mockedProps,
-    otherTabData: mockCharts,
-  };
+const otherTabProps = {
+  ...mockedProps,
+  otherTabData: mockCharts,
+};
 
-  const mineTabProps = {
-    ...mockedProps,
-    mine: mockCharts,
-  };
+const mineTabProps = {
+  ...mockedProps,
+  mine: mockCharts,
+};
 
-  const renderOptions = {
-    useRedux: true,
-    useRouter: true,
-  };
+const renderOptions = {
+  useRedux: true,
+  useRouter: true,
+};
 
-  const renderChartTable = (props: any) =>
-    act(async () => {
-      render(<ChartTable {...props} />, renderOptions);
-    });
-
-  it('renders with EmptyState if no data present', async () => {
-    await renderChartTable(mockedProps);
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
-    expect(
-      screen.getByText(/other charts will appear here/i),
-    ).toBeInTheDocument();
+const renderChartTable = (props: any) =>
+  // Use of act here prevents an error about state updates inside tests
+  act(async () => {
+    render(<ChartTable {...props} />, renderOptions);
   });
 
-  it('fetches chart favorites and renders chart cards', async () => {
-    await renderChartTable(mockedProps);
-    fireEvent.click(screen.getByText(/favorite/i));
-    await waitFor(() => {
-      expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
-      expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
-    });
-  });
+test('renders with EmptyState if no data present', async () => {
+  await renderChartTable(mockedProps);
+  expect(screen.getAllByRole('tab')).toHaveLength(3);
+  expect(
+    screen.getByText(/other charts will appear here/i),
+  ).toBeInTheDocument();
+});
 
-  it('renders other tab by default', async () => {
-    await renderChartTable(otherTabProps);
+test('fetches chart favorites and renders chart cards', async () => {
+  await renderChartTable(mockedProps);
+  fireEvent.click(screen.getByText(/favorite/i));
+  await waitFor(() => {
+    expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
+});
 
-  it('renders mine tab on click', async () => {
-    await renderChartTable(mineTabProps);
-    fireEvent.click(screen.getByText(/mine/i));
-    await waitFor(() => {
-      expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
-    });
+test('renders other tab by default', async () => {
+  await renderChartTable(otherTabProps);
+  expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
+});
+
+test('renders mine tab on click', async () => {
+  await renderChartTable(mineTabProps);
+  fireEvent.click(screen.getByText(/mine/i));
+  await waitFor(() => {
+    expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
 });
