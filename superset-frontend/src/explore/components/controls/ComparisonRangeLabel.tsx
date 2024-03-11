@@ -19,7 +19,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { isEqual } from 'lodash';
 import {
+  BinaryAdhocFilter,
   ComparisonTimeRangeType,
   css,
   SimpleAdhocFilter,
@@ -29,14 +31,31 @@ import {
 import { RootState } from 'src/views/store';
 import { Tooltip } from 'src/components/Tooltip';
 
+const isTimeRangeEqual = (
+  left: BinaryAdhocFilter[],
+  right: BinaryAdhocFilter[],
+) => isEqual(left, right);
+
 export const ComparisonRangeLabel = () => {
-  const [label, setLabel] = useState('');
-  const currentTimeRange = useSelector<RootState, string>(
+  const [labels, setLabels] = useState<string[]>([]);
+  const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
       state.explore.form_data.adhoc_filters.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
-      )[0]?.comparator,
+      ),
+    isTimeRangeEqual,
+  );
+  const customTimeRangeComparisonFilters = useSelector<
+    RootState,
+    BinaryAdhocFilter[]
+  >(
+    state =>
+      state.explore.form_data.adhoc_custom.filter(
+        (adhoc_filter: SimpleAdhocFilter) =>
+          adhoc_filter.operator === 'TEMPORAL_RANGE',
+      ),
+    isTimeRangeEqual,
   );
   const shift = useSelector<RootState, ComparisonTimeRangeType>(
     state => state.explore.form_data.time_comparison,
@@ -44,28 +63,39 @@ export const ComparisonRangeLabel = () => {
 
   useEffect(() => {
     if (shift === ComparisonTimeRangeType.Custom) {
-      setLabel('');
+      const promises = customTimeRangeComparisonFilters.map(filter =>
+        fetchTimeRange(filter.comparator, filter.subject),
+      );
+      Promise.all(promises).then(res => {
+        setLabels(res.map(r => r.value ?? ''));
+      });
     }
-  }, [shift]);
+  }, [customTimeRangeComparisonFilters, shift]);
 
   useEffect(() => {
     if (shift !== ComparisonTimeRangeType.Custom) {
-      fetchTimeRange(currentTimeRange, 'col', shift).then(res => {
-        setLabel(res.value ?? '');
+      const promises = currentTimeRangeFilters.map(filter =>
+        fetchTimeRange(filter.comparator, filter.subject, shift),
+      );
+      Promise.all(promises).then(res => {
+        setLabels(res.map(r => r.value ?? ''));
       });
     }
-  }, [currentTimeRange, shift]);
+  }, [currentTimeRangeFilters, shift]);
 
-  return label ? (
-    <Tooltip title={t('Actual time range for comparison')}>
-      <span
-        css={theme => css`
-          font-size: ${theme.typography.sizes.m}px;
-          color: ${theme.colors.grayscale.base};
-        `}
-      >
-        {label}
-      </span>
-    </Tooltip>
-  ) : null;
+  return labels.length
+    ? labels.map((label, index) => (
+        <Tooltip title={t('Actual time range for comparison')} key={index}>
+          <div
+            css={theme => css`
+              font-size: ${theme.typography.sizes.m}px;
+              color: ${theme.colors.grayscale.dark1};
+            `}
+          >
+            {label}
+            {index < labels.length - 1 ? ',' : ''}
+          </div>
+        </Tooltip>
+      ))
+    : null;
 };
