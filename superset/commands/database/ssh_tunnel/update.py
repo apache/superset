@@ -41,11 +41,11 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
 
-    def run(self) -> Model:
+    def run(self) -> Optional[Model]:
         self.validate()
         try:
             if self._model is None:
-                return
+                return None
 
             # unset password if private key is provided
             if self._properties.get("private_key"):
@@ -57,9 +57,9 @@ class UpdateSSHTunnelCommand(BaseCommand):
                 self._properties["private_key_password"] = None
 
             tunnel = SSHTunnelDAO.update(self._model, self._properties)
+            return tunnel
         except DAOUpdateFailedError as ex:
             raise SSHTunnelUpdateFailedError() from ex
-        return tunnel
 
     def validate(self) -> None:
         # Validate/populate model exists

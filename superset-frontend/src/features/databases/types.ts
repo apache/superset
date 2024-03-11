@@ -240,7 +240,7 @@ export interface ExtraJson {
   version?: string;
 }
 
-type CustomTextType = {
+export type CustomTextType = {
   value?: string | boolean | number;
   type?: string | null;
   name?: string;

@@ -64,6 +64,7 @@ import {
   CatalogObject,
   Engines,
   ExtraJson,
+  CustomTextType,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
@@ -687,7 +688,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onChange = useCallback(
-    (type: DBReducerActionType['type'], payload: DBReducerPayloadType) => {
+    (
+      type: DBReducerActionType['type'],
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
       setDB({ type, payload } as DBReducerActionType);
     },
     [],
