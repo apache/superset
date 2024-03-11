@@ -27,8 +27,8 @@ import {
   SimpleAdhocFilter,
   t,
 } from '@superset-ui/core';
+import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
-import { Tooltip } from 'src/components/Tooltip';
 import { fetchTimeRange } from './DateFilterControl';
 
 const isTimeRangeEqual = (
@@ -84,7 +84,8 @@ export const ComparisonRangeLabel = () => {
   }, [currentTimeRangeFilters, shift]);
 
   return labels.length ? (
-    <Tooltip title={t('Actual time range for comparison')}>
+    <>
+      <ControlHeader label={t('Actual range for comparison')} />
       {labels.map((label, index) => (
         <div
           css={theme => css`
@@ -97,6 +98,6 @@ export const ComparisonRangeLabel = () => {
           {index < labels.length - 1 ? ',' : ''}
         </div>
       ))}
-    </Tooltip>
+    </>
   ) : null;
 };
