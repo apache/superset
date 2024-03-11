@@ -79,12 +79,10 @@ RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
-    --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
-    --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
+RUN --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
     --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade setuptools pip && \
-    pip install -r requirements/local.txt
+    pip install -r requirements/base.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
@@ -128,10 +126,9 @@ RUN apt-get update -qq \
     && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
     && apt-get autoremove -yqq --purge wget && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*
 # Cache everything for dev purposes...
-RUN --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
-    --mount=type=bind,target=./requirements/docker.txt,src=./requirements/docker.txt \
+RUN --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
     --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/docker.txt
+    pip install -r requirements/development.txt
 
 USER superset
 ######################################################################

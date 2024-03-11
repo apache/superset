@@ -83,7 +83,7 @@ jobs:
         with:
           run: |
             pip-upgrade
-            pip install -r requirements/testing.txt
+            pip install -r requirements/development.txt
       - name: Setup postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

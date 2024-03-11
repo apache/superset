@@ -57,7 +57,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
+          cache-dependency-path: "requirements/development.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -66,7 +66,7 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install wheel
-            pip install -r requirements/testing.txt
+            pip install -r requirements/development.txt
             setup-postgres
       - name: superset init
         if: steps.check.outcome == 'failure'

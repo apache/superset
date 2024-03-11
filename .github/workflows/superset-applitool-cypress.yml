@@ -70,7 +70,7 @@ jobs:
         with:
           run: |
             pip-upgrade
-            pip install -r requirements/testing.txt
+            pip install -r requirements/development.txt
       - name: Setup postgres
         uses: ./.github/actions/cached-dependencies
         with:
