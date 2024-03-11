@@ -162,7 +162,8 @@ class TestInstantTimeComparisonQueryGeneration:
                 query_a_results."SUM(num_girls)" AS "SUM(num_girls)",
                 anon_1."SUM(num_boys)" AS "prev_SUM(num_boys)",
                 anon_1."SUM(num_girls)" AS "prev_SUM(num_girls)"
-            FROM
+            FROM query_a_results
+            LEFT OUTER JOIN
             (SELECT name AS name,
                     sum(num_boys) AS "SUM(num_boys)",
                     sum(num_girls) AS "SUM(num_girls)"
@@ -170,8 +171,7 @@ class TestInstantTimeComparisonQueryGeneration:
             WHERE ds >= '1983-01-01 00:00:00'
                 AND ds < '2023-02-14 00:00:00'
             GROUP BY name
-            ORDER BY "SUM(num_boys)" DESC) AS anon_1
-            JOIN query_a_results ON anon_1.name = query_a_results.name
+            ORDER BY "SUM(num_boys)" DESC) AS anon_1 ON anon_1.name = query_a_results.name
         """
         simplified_query1 = " ".join(str.sql.split()).lower()
         simplified_query2 = " ".join(expected_str.split()).lower()
@@ -201,14 +201,14 @@ class TestInstantTimeComparisonQueryGeneration:
                 query_a_results."SUM(num_girls)" AS "SUM(num_girls)",
                 anon_1."SUM(num_boys)" AS "prev_SUM(num_boys)",
                 anon_1."SUM(num_girls)" AS "prev_SUM(num_girls)"
-            FROM
+            FROM query_a_results
+            LEFT OUTER JOIN
             (SELECT sum(num_boys) AS "SUM(num_boys)",
                     sum(num_girls) AS "SUM(num_girls)"
             FROM my_schema.my_table
             WHERE ds >= '1983-01-01 00:00:00'
                 AND ds < '2023-02-14 00:00:00'
-            ORDER BY "SUM(num_boys)" DESC) AS anon_1
-            JOIN query_a_results ON 1 = 1
+            ORDER BY "SUM(num_boys)" DESC) AS anon_1 ON 1 = 1
         """
         simplified_query1 = " ".join(str.sql.split()).lower()
         simplified_query2 = " ".join(expected_str.split()).lower()
@@ -237,7 +237,8 @@ class TestInstantTimeComparisonQueryGeneration:
             OFFSET 0) AS rowcount_qry)
         SELECT query_a_results.rowcount AS rowcount,
             anon_1.rowcount AS prev_rowcount
-        FROM
+        FROM query_a_results
+        LEFT OUTER JOIN
         (SELECT COUNT(*) AS rowcount
         FROM
             (SELECT name AS name,
@@ -247,8 +248,7 @@ class TestInstantTimeComparisonQueryGeneration:
             WHERE ds >= '1983-01-01 00:00:00'
                 AND ds < '2023-02-14 00:00:00'
             GROUP BY name
-            ORDER BY "SUM(num_boys)" DESC) AS rowcount_qry) AS anon_1
-        JOIN query_a_results ON 1 = 1
+            ORDER BY "SUM(num_boys)" DESC) AS rowcount_qry) AS anon_1 ON 1 = 1
         """
         simplified_query1 = " ".join(str.sql.split()).lower()
         simplified_query2 = " ".join(expected_str.split()).lower()
@@ -308,7 +308,8 @@ class TestInstantTimeComparisonQueryGeneration:
                 query_a_results."SUM(num_girls)" AS "SUM(num_girls)",
                 anon_1."SUM(num_boys)" AS "prev_SUM(num_boys)",
                 anon_1."SUM(num_girls)" AS "prev_SUM(num_girls)"
-            FROM
+            FROM query_a_results
+            LEFT OUTER JOIN
             (SELECT name AS name,
                     sum(num_boys) AS "SUM(num_boys)",
                     sum(num_girls) AS "SUM(num_girls)"
@@ -316,8 +317,7 @@ class TestInstantTimeComparisonQueryGeneration:
             WHERE ds >= '1900-01-01 00:00:00'
                 AND ds < '1950-02-14 00:00:00'
             GROUP BY name
-            ORDER BY "SUM(num_boys)" DESC) AS anon_1
-            JOIN query_a_results ON anon_1.name = query_a_results.name
+            ORDER BY "SUM(num_boys)" DESC) AS anon_1 ON anon_1.name = query_a_results.name
         """
         simplified_query1 = " ".join(str.sql.split()).lower()
         simplified_query2 = " ".join(expected_str.split()).lower()
@@ -347,7 +347,8 @@ class TestInstantTimeComparisonQueryGeneration:
                 query_a_results."SUM(num_girls)" AS "SUM(num_girls)",
                 anon_1."SUM(num_boys)" AS "prev_SUM(num_boys)",
                 anon_1."SUM(num_girls)" AS "prev_SUM(num_girls)"
-            FROM
+            FROM query_a_results
+            LEFT OUTER JOIN
             (SELECT name AS name,
                     sum(num_boys) AS "SUM(num_boys)",
                     sum(num_girls) AS "SUM(num_girls)"
@@ -355,8 +356,7 @@ class TestInstantTimeComparisonQueryGeneration:
             WHERE ds >= '1983-01-01 00:00:00'
                 AND ds < '2023-02-14 00:00:00'
             GROUP BY name
-            ORDER BY "SUM(num_boys)" DESC) AS anon_1
-            JOIN query_a_results ON anon_1.name = query_a_results.name
+            ORDER BY "SUM(num_boys)" DESC) AS anon_1 ON anon_1.name = query_a_results.name
         """
         simplified_query1 = " ".join(str.sql.split()).lower()
         simplified_query2 = " ".join(expected_str.split()).lower()

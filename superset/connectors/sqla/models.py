@@ -1509,15 +1509,17 @@ class SqlaTable(
                 if col in shifted_query_b_subquery.c and col in query_a_cte.c
             ]
             final_query = sa.select(*final_selected_columns).select_from(
-                shifted_query_b_subquery.join(query_a_cte, sa.and_(*join_conditions))
+                query_a_cte.outerjoin(
+                    shifted_query_b_subquery, sa.and_(*join_conditions)
+                )
             )
         else:
             # When dealing with queries that have no columns or that are totals,
             # rowcounts etc we join with the 1 = 1 to create a result set that have
             # both sets (original and prev)
             final_query = sa.select(*final_selected_columns).select_from(
-                shifted_query_b_subquery.join(
-                    query_a_cte, sa.literal(True) == sa.literal(True)
+                query_a_cte.outerjoin(
+                    shifted_query_b_subquery, sa.literal(True) == sa.literal(True)
                 )
             )
         # Transform the query as you would within get_query_str_extended
