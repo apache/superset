@@ -173,6 +173,13 @@ describe('Charts list', () => {
       orderAlphabetical();
       cy.getBySel('styled-card').first().contains('% Rural');
     });
+
+    it('should preserve other filters when sorting', () => {
+      cy.getBySel('styled-card').should('have.length', 25);
+      setFilter('Type', 'Big Number');
+      setFilter('Sort', 'Least recently modified');
+      cy.getBySel('styled-card').should('have.length', 3);
+    });
   });
 
   describe('common actions', () => {

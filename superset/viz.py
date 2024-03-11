@@ -1907,7 +1907,7 @@ class BaseDeckGLViz(BaseViz):
 
         except Exception as ex:
             raise SpatialException(
-                _("Invalid spatial point encountered: %(coords)s") % {"coords": coords}
+                _("Invalid spatial point encountered: %(latlong)s", latlong=coords)
             ) from ex
 
     @staticmethod

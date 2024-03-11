@@ -1581,7 +1581,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           key="schedule"
         >
           <AlertReportCronScheduler
-            value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
+            value={currentAlert?.crontab || ''}
             onChange={newVal => updateAlertState('crontab', newVal)}
           />
           <StyledInputContainer>

@@ -382,7 +382,18 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     return new AdhocFilter(config);
   }, [droppedItem]);
 
-  const canDrop = useCallback(() => true, []);
+  const canDrop = useCallback(
+    (item: DatasourcePanelDndItem) => {
+      if (item.type === DndItemType.Column) {
+        return props.columns.some(
+          col => col.column_name === (item.value as ColumnMeta).column_name,
+        );
+      }
+      return true;
+    },
+    [props.columns],
+  );
+
   const handleDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
       setDroppedItem(item.value);

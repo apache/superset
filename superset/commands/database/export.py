@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-
+import functools
 import json
 import logging
-from typing import Any
+from typing import Any, Callable
 from collections.abc import Iterator
 
 import yaml
@@ -56,12 +56,12 @@ class ExportDatabasesCommand(ExportModelsCommand):
     not_found = DatabaseNotFoundError
 
     @staticmethod
-    def _export(
-        model: Database, export_related: bool = True
-    ) -> Iterator[tuple[str, str]]:
+    def _file_name(model: Database) -> str:
         db_file_name = get_filename(model.database_name, model.id, skip_id=True)
-        file_path = f"databases/{db_file_name}.yaml"
+        return f"databases/{db_file_name}.yaml"
 
+    @staticmethod
+    def _file_content(model: Database) -> str:
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
@@ -100,9 +100,18 @@ class ExportDatabasesCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_path, file_content
+        return file_content
+
+    @staticmethod
+    def _export(
+        model: Database, export_related: bool = True
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
+        yield ExportDatabasesCommand._file_name(
+            model
+        ), lambda: ExportDatabasesCommand._file_content(model)
 
         if export_related:
+            db_file_name = get_filename(model.database_name, model.id, skip_id=True)
             for dataset in model.tables:
                 ds_file_name = get_filename(
                     dataset.table_name, dataset.id, skip_id=True
@@ -118,5 +127,6 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["version"] = EXPORT_VERSION
                 payload["database_uuid"] = str(model.uuid)
 
-                file_content = yaml.safe_dump(payload, sort_keys=False)
-                yield file_path, file_content
+                yield file_path, functools.partial(  # type: ignore
+                    yaml.safe_dump, payload, sort_keys=False
+                )

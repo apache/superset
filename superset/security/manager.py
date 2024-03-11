@@ -756,6 +756,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_share_dashboard", "Superset")
         self.add_permission_view_menu("can_share_chart", "Superset")
+        self.add_permission_view_menu("can_sqllab", "Superset")
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
 
