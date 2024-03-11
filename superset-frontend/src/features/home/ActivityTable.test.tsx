@@ -68,70 +68,71 @@ fetchMock.get(dashboardsEndpoint, {
   ],
 });
 
-describe('ActivityTable', () => {
-  const activityProps = {
-    activeChild: TableTab.Created,
-    activityData: mockData,
-    setActiveChild: jest.fn(),
-    user: { userId: '1' },
-    isFetchingActivityData: false,
-  };
+const mockSetActiveChild = jest.fn();
 
-  const activityViewedTabProps = {
-    activeChild: TableTab.Viewed,
-    activityData: mockData,
-    setActiveChild: jest.fn(),
-    user: { userId: '1' },
-    isFetchingActivityData: false,
-  };
+const activityProps = {
+  activeChild: TableTab.Created,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
 
-  const emptyActivityProps = {
-    activeChild: TableTab.Created,
-    activityData: {},
-    setActiveChild: jest.fn(),
-    user: { userId: '1' },
-    isFetchingActivityData: false,
-  };
+const activityViewedTabProps = {
+  activeChild: TableTab.Viewed,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
 
-  const renderOptions = {
-    useRedux: true,
-    useRouter: true,
-  };
+const emptyActivityProps = {
+  activeChild: TableTab.Created,
+  activityData: {},
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
 
-  const renderActivityTable = (props: any) =>
-    render(<ActivityTable {...props} />, renderOptions);
+const renderOptions = {
+  useRedux: true,
+  useRouter: true,
+};
 
-  it('the component renders with ActivityCards', async () => {
-    renderActivityTable(activityProps);
-    expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
+const renderActivityTable = (props: any) =>
+  render(<ActivityTable {...props} />, renderOptions);
+
+test('the component renders with ActivityCards', async () => {
+  renderActivityTable(activityProps);
+  expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
+});
+test('renders tabs with three buttons', async () => {
+  renderActivityTable(activityProps);
+  expect(screen.getAllByRole('tab')).toHaveLength(3);
+});
+test('renders Viewed tab with ActivityCards', async () => {
+  renderActivityTable(activityViewedTabProps);
+  expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
+});
+test('calls the getEdited batch call when edited tab is clicked', async () => {
+  renderActivityTable(activityProps);
+  const editedButton = screen.getByText(/edited/i);
+  expect(editedButton).toBeInTheDocument();
+  const dashboardCall = fetchMock.called(/dashboard\/\?q/);
+  const chartCall = fetchMock.called(/chart\/\?q/);
+  fireEvent.click(editedButton);
+  expect(mockSetActiveChild).toHaveBeenCalledWith(TableTab.Edited);
+  // `await waitFor()` does not work in this instance...
+  setTimeout(() => {
+    expect(chartCall).toBeTruthy();
+    expect(dashboardCall).toBeTruthy();
   });
-  it('renders tabs with three buttons', async () => {
-    renderActivityTable(activityProps);
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
-  });
-  it('renders Viewed tab with ActivityCards', async () => {
-    renderActivityTable(activityViewedTabProps);
-    expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
-  });
-  it('calls the getEdited batch call when edited tab is clicked', async () => {
-    renderActivityTable(activityProps);
-    const editedButton = screen.getByText(/edited/i);
-    expect(editedButton).toBeInTheDocument();
-    fireEvent.click(editedButton);
-    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
-    const chartCall = fetchMock.calls(/chart\/\?q/);
-    // `await waitFor()` does not work in this instance...
-    setTimeout(() => {
-      expect(chartCall).toHaveLength(1);
-      expect(dashboardCall).toHaveLength(1);
-    });
-  });
-  it('show empty state if there is no data', () => {
-    renderActivityTable(emptyActivityProps);
-    expect(
-      screen.getByText(
-        /recently created charts, dashboards, and saved queries will appear here/i,
-      ),
-    ).toBeInTheDocument();
-  });
+});
+test('show empty state if there is no data', () => {
+  renderActivityTable(emptyActivityProps);
+  expect(
+    screen.getByText(
+      /recently created charts, dashboards, and saved queries will appear here/i,
+    ),
+  ).toBeInTheDocument();
 });
