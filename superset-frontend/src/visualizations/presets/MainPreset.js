@@ -79,7 +79,7 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { LiquidChartPlugin } from 'superset-plugin-chart-liquid';
-import { SupersetPluginsChartHeatmap } from "superset-plugins-chart-heatmap";
+import { SupersetPluginsChartHeatmap } from 'superset-plugins-chart-heatmap';
 import { SupersetPluginsChartScatter } from 'superset-plugin-chart-scatter';
 import { SupersetPluginChartInfoPanel } from 'superset-plugin-chart-info-panel';
 import { SupersetPluginsChartBoxPlot } from 'superset-plugin-chart-box-plot';
@@ -184,12 +184,20 @@ export default class MainPreset extends Preset {
         new SupersetPluginsChartScatter().configure({ key: 'ext-scatter' }),
         new SupersetPluginChartInfoPanel().configure({ key: 'ext-info-panel' }),
         new SupersetPluginsChartBoxPlot().configure({ key: 'ext-box-plot' }),
-        new SupersetPluginsChartLineSlider().configure({ key: 'ext-line-slider' }),
-        new SupersetPluginsChartColumnSlider().configure({ key: 'ext-column-slider' }),
+        new SupersetPluginsChartLineSlider().configure({
+          key: 'ext-line-slider',
+        }),
+        new SupersetPluginsChartColumnSlider().configure({
+          key: 'ext-column-slider',
+        }),
         new SupersetPluginsChartTinyArea().configure({ key: 'ext-tiny-area' }),
         new SupersetPluginsChartDendogram().configure({ key: 'ext-dendogram' }),
-        new SupersetPluginsChartRingProgress().configure({ key: 'ext-ring-progress' }),
-        new SupersetPluginsChartLiquidProgress().configure({ key: 'ext-liquid-progress' }),
+        new SupersetPluginsChartRingProgress().configure({
+          key: 'ext-ring-progress',
+        }),
+        new SupersetPluginsChartLiquidProgress().configure({
+          key: 'ext-liquid-progress',
+        }),
         new SupersetPluginsChartTimeline().configure({ key: 'ext-timeline' }),
         new SupersetPluginsChartHeatTree().configure({ key: 'ext-heat-tree' }),
         ...experimentalplugins,
