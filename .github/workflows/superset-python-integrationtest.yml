@@ -66,6 +66,7 @@ jobs:
             pip-upgrade
             pip install wheel
             pip install -r requirements/development.txt
+            pip install -r requirements/base.txt
             setup-mysql
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -132,6 +133,7 @@ jobs:
             pip-upgrade
             pip install wheel
             pip install -r requirements/development.txt
+            pip install -r requirements/base.txt
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
