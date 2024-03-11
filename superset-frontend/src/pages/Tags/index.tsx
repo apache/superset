@@ -42,6 +42,7 @@ import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import { withPrefix } from 'src/utils/routeUtils';
 
 const PAGE_SIZE = 25;
 
@@ -150,7 +151,9 @@ function TagList(props: TagListProps) {
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
+            <Link to={withPrefix(`/superset/all_entities/?id=${id}`)}>
+              {tagName}
+            </Link>
           </AntdTag>
         ),
         Header: t('Name'),

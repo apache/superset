@@ -36,6 +36,7 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerModal';
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
+import { withPrefix } from 'src/utils/routeUtils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 
 const PAGE_SIZE = 25;
@@ -143,10 +144,16 @@ function AnnotationLayersList({
           }
 
           if (hasHistory) {
-            return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
+            return (
+              <Link to={withPrefix(`/annotationlayer/${id}/annotation`)}>
+                {name}
+              </Link>
+            );
           }
 
-          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
+          return (
+            <a href={withPrefix(`/annotationlayer/${id}/annotation`)}>{name}</a>
+          );
         },
       },
       {
@@ -277,7 +284,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = `/annotationlayer/${id}/annotation`;
+    window.location.href = withPrefix(`/annotationlayer/${id}/annotation`);
   };
 
   const onModalHide = () => {
