@@ -20,8 +20,6 @@ import {
   t,
   styled,
   SupersetTheme,
-  FeatureFlag,
-  isFeatureEnabled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import React, {
@@ -31,6 +29,7 @@ import React, {
   useState,
   useReducer,
   Reducer,
+  useCallback,
 } from 'react';
 import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -65,6 +64,7 @@ import {
   CatalogObject,
   Engines,
   ExtraJson,
+  CustomTextType,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
@@ -208,8 +208,8 @@ export type DBReducerActionType =
   | {
       type:
         | ActionType.Reset
-        | ActionType.AddTableCatalogSheet
-        | ActionType.RemoveSSHTunnelConfig;
+        | ActionType.RemoveSSHTunnelConfig
+        | ActionType.AddTableCatalogSheet;
     }
   | {
       type: ActionType.RemoveTableCatalogSheet;
@@ -595,7 +595,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const SSHTunnelSwitchComponent =
     extensionsRegistry.get('ssh_tunnel.form.switch') ?? SSHTunnelSwitch;
 
-  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean | undefined>(
+    undefined,
+  );
 
   let dbConfigExtraExtension = extensionsRegistry.get(
     'databaseconnection.extraOption',
@@ -618,14 +620,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
-  const disableSSHTunnelingForEngine = (
-    availableDbs?.databases?.find(
-      (DB: DatabaseObject) =>
-        DB.backend === db?.engine || DB.engine === db?.engine,
-    ) as DatabaseObject
-  )?.engine_information?.disable_ssh_tunneling;
-  const isSSHTunneling =
-    isFeatureEnabled(FeatureFlag.SshTunneling) && !disableSSHTunnelingForEngine;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -659,7 +653,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       extra: db?.extra,
       masked_encrypted_extra: db?.masked_encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
-      ssh_tunnel: db?.ssh_tunnel || undefined,
+      ssh_tunnel:
+        !isEmpty(db?.ssh_tunnel) && useSSHTunneling
+          ? {
+              ...db.ssh_tunnel,
+              server_port: Number(db.ssh_tunnel!.server_port),
+            }
+          : undefined,
     };
     setTestInProgress(true);
     testDatabaseConnection(
@@ -687,10 +687,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     return false;
   };
 
+  const onChange = useCallback(
+    (
+      type: DBReducerActionType['type'],
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      setDB({ type, payload } as DBReducerActionType);
+    },
+    [],
+  );
+
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+  }, [setValidationErrors]);
+
+  const handleParametersChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.ParametersChange, {
+        type: target.type,
+        name: target.name,
+        checked: target.checked,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
   const onClose = () => {
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
-    setValidationErrors(null); // reset validation errors on close
+    handleClearValidationErrors(); // reset validation errors on close
     clearError();
     setEditNewDb(false);
     setFileList([]);
@@ -705,7 +731,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
     setConfirmedOverwrite(false);
-    setUseSSHTunneling(false);
+    setUseSSHTunneling(undefined);
     onHide();
   };
 
@@ -729,12 +755,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setImportingErrorMessage(msg);
   });
 
-  const onChange = (type: any, payload: any) => {
-    setDB({ type, payload } as DBReducerActionType);
-  };
-
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
+
+    setLoading(true);
+
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -743,6 +768,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           addDangerToast(error);
         }
       });
+
     if (dbConfigExtraExtensionOnSaveError) {
       setLoading(false);
       return;
@@ -762,17 +788,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         });
       }
 
-      // only do validation for non ssh tunnel connections
-      if (!dbToUpdate?.ssh_tunnel) {
-        // make sure that button spinner animates
-        setLoading(true);
-        const errors = await getValidation(dbToUpdate, true);
-        if ((validationErrors && !isEmpty(validationErrors)) || errors) {
-          setLoading(false);
-          return;
-        }
-        // end spinner animation
+      const errors = await getValidation(dbToUpdate, true);
+      if (!isEmpty(validationErrors) || errors?.length) {
+        addDangerToast(
+          t('Connection failed, please check your connection settings.'),
+        );
         setLoading(false);
+        return;
       }
 
       const parameters_schema = isEditMode
@@ -829,7 +851,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     }
 
-    setLoading(true);
+    // strictly checking for false as an indication that the toggle got unchecked
+    if (useSSHTunneling === false) {
+      // remove ssh tunnel
+      dbToUpdate.ssh_tunnel = null;
+    }
+
     if (db?.id) {
       const result = await updateResource(
         db.id as number,
@@ -1282,10 +1309,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
-    if (db && isSSHTunneling) {
-      setUseSSHTunneling(!isEmpty(db?.ssh_tunnel));
+    if (db?.parameters?.ssh !== undefined) {
+      setUseSSHTunneling(db.parameters.ssh);
     }
-  }, [db, isSSHTunneling]);
+  }, [db?.parameters?.ssh]);
 
   const onDbImport = async (info: UploadChangeParam) => {
     setImportingErrorMessage('');
@@ -1550,17 +1577,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderSSHTunnelForm = () => (
     <SSHTunnelForm
       db={db as DatabaseObject}
-      onSSHTunnelParametersChange={({
-        target,
-      }: {
-        target: HTMLInputElement | HTMLTextAreaElement;
-      }) =>
+      onSSHTunnelParametersChange={({ target }) => {
         onChange(ActionType.ParametersSSHTunnelChange, {
           type: target.type,
           name: target.name,
           value: target.value,
-        })
-      }
+        });
+        handleClearValidationErrors();
+      }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
           type: ActionType.SetSSHTunnelLoginMethod,
@@ -1623,14 +1647,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             payload: { indexToDelete: idx },
           });
         }}
-        onParametersChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.ParametersChange, {
-            type: target.type,
-            name: target.name,
-            checked: target.checked,
-            value: target.value,
-          })
-        }
+        onParametersChange={handleParametersChange}
         onChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.TextChange, {
             name: target.name,
@@ -1640,9 +1657,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
-        clearValidationErrors={() => setValidationErrors(null)}
+        clearValidationErrors={handleClearValidationErrors}
       />
-      {db?.parameters?.ssh && (
+      {useSSHTunneling && (
         <SSHTunnelContainer>{renderSSHTunnelForm()}</SSHTunnelContainer>
       )}
     </>
@@ -1792,13 +1809,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testInProgress={testInProgress}
               >
                 <SSHTunnelSwitchComponent
-                  isEditMode={isEditMode}
-                  dbFetched={dbFetched}
-                  disableSSHTunnelingForEngine={disableSSHTunnelingForEngine}
-                  useSSHTunneling={useSSHTunneling}
-                  setUseSSHTunneling={setUseSSHTunneling}
-                  setDB={setDB}
-                  isSSHTunneling={isSSHTunneling}
+                  dbModel={dbModel}
+                  db={db as DatabaseObject}
+                  changeMethods={{
+                    onParametersChange: handleParametersChange,
+                  }}
+                  clearValidationErrors={handleClearValidationErrors}
                 />
                 {useSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
