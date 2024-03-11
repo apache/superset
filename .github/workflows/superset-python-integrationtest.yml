@@ -192,6 +192,7 @@ jobs:
             pip-upgrade
             pip install wheel
             pip install -r requirements/development.txt
+            pip install -r requirements/base.txt
             mkdir ${{ github.workspace }}/.temp
       - name: Run celery
         if: steps.check.outcome == 'failure'
