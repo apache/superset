@@ -17,7 +17,7 @@
 # under the License.
 #
 -r base.in
--e file:.[bigquery,core,druid,hive,gevent,mysql,postgres,presto,prophet,trino,gsheets,playwright,thumbnails]
+-e file:.[bigquery,druid,hive,gevent,mysql,postgres,presto,prophet,trino,gsheets,playwright,thumbnails]
 docker
 flask-testing
 freezegun
