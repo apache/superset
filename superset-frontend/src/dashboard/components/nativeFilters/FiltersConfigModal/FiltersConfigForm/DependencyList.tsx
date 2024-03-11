@@ -112,11 +112,7 @@ const Row = ({
         }
         value={value}
       />
-      <DeleteFilter
-        iconSize="xl"
-        role="button"
-        onClick={() => onDelete(selection)}
-      />
+      <DeleteFilter iconSize="xl" onClick={() => onDelete(selection)} />
     </RowPanel>
   );
 };

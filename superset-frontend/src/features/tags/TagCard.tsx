@@ -104,7 +104,6 @@ function TagCard({
         description={t('Modified %s', tag.changed_on_delta_humanized)}
         actions={
           <ListViewCard.Actions
-            role="button"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

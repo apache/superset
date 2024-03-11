@@ -90,7 +90,7 @@ const FilterTitlePane: React.FC<Props> = ({
   const menu = (
     <Menu mode="horizontal">
       {options.map(item => (
-        <Menu.Item role="button" onClick={() => handleOnAdd(item.type)}>
+        <Menu.Item onClick={() => handleOnAdd(item.type)}>
           {item.label}
         </Menu.Item>
       ))}

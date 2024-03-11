@@ -234,9 +234,7 @@ export default function EditableTitle({
         {value}
       </Link>
     ) : (
-      <span data-test="editable-title-input" role="button">
-        {value}
-      </span>
+      <span data-test="editable-title-input">{value}</span>
     );
   }
   return (

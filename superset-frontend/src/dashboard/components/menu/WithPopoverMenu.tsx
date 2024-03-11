@@ -190,7 +190,7 @@ export default class WithPopoverMenu extends React.PureComponent<
     return (
       <WithPopoverMenuStyles
         ref={this.setRef}
-        role="button"
+        role="none"
         onClick={this.handleClick}
         className={cx(
           'with-popover-menu',

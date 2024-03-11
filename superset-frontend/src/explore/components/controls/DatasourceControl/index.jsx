@@ -301,7 +301,7 @@ class DatasourceControl extends React.PureComponent {
     };
 
     const defaultDatasourceMenu = (
-      <Menu role="button" onClick={this.handleMenuItemClick}>
+      <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && !isMissingDatasource && (
           <Menu.Item
             key={EDIT_DATASET}
@@ -339,7 +339,7 @@ class DatasourceControl extends React.PureComponent {
     );
 
     const queryDatasourceMenu = (
-      <Menu role="button" onClick={this.handleMenuItemClick}>
+      <Menu onClick={this.handleMenuItemClick}>
         <Menu.Item key={QUERY_PREVIEW}>
           <ModalTrigger
             triggerNode={

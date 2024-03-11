@@ -93,10 +93,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
       trigger={['click']}
       overlayStyle={{ zIndex: theme.zIndex.max }}
       overlay={
-        <Menu
-          role="button"
-          onClick={({ key }: HandleSelectProps) => onChange(key)}
-        >
+        <Menu onClick={({ key }: HandleSelectProps) => onChange(key)}>
           {options.map(option => (
             <MenuItem
               id="menu-item"

@@ -83,7 +83,6 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
             margin-top: 3px; // we need exactly 3px to align the icon
             margin-right: ${theme.gridUnit}px;
           `}
-          role="button"
           onClick={() => setPopoverVisible(true)}
         />
       </Popover>

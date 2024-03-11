@@ -381,7 +381,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
 
   const menu = (
     <Menu
-      role="button"
       onClick={handleMenuClick}
       selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
@@ -541,7 +540,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
-          role="button"
           onClick={() => {
             props.handleToggleFullSize();
           }}

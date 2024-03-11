@@ -367,7 +367,6 @@ const RightMenu = ({
       <Menu
         selectable={false}
         mode="horizontal"
-        role="button"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
       >
