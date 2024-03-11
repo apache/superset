@@ -103,13 +103,9 @@ As part of the 4.0 approved initiatives, the following features were removed fro
 
 - Redirect API: [#26377](https://github.com/apache/superset/pull/26377) removed the deprecated Redirect API that supported short URLs (`/r`) and the `url` metadata table used to store them that was used before the permalink feature. Users lost the ability to generate R links ~1.5 years ago which seems sufficient time to remove the API.
 
-### Session management improvements
+### Business logic improvements
 
-As part of [[SIP-99] Proposal for correctly handling business logic](https://github.com/apache/superset/issues/25048) (specifically [SIP-99A](https://github.com/apache/superset/issues/25107) and [SIP-99B](https://github.com/apache/superset/issues/25108)) in order to ensure a consistent "unit of work"—via a single atomic unit—all non-Alembic database operations should be associated with the same Flask-SQLAlchemy session (`db.session`).
-
-- https://github.com/apache/superset/pull/26909
-- https://github.com/apache/superset/pull/26200
-- https://github.com/apache/superset/pull/26186
+As part of [[SIP-99] Proposal for correctly handling business logic](https://github.com/apache/superset/issues/25048) (specifically [SIP-99A](https://github.com/apache/superset/issues/25107) and [SIP-99B](https://github.com/apache/superset/issues/25108)), this release contains many improvements to the handling of business logic in Superset, specifically related to SQLAlchemy sessions and transactions. The goal of these efforts is to simplify the code, improve code quality, ensure a consistent "unit of work" approach, and provide clear guidance and examples of accepted code standards. These changes aim to improve developer experience by making the code simpler, improving testing, and ensuring a more streamlined and reliable system. We still have a long way to go to fully implement the SIP-99 proposal, but we are making progress and we are excited about the improvements that have been made so far.
 
 ### All country maps are now managed via the Jupyter notebook
 
