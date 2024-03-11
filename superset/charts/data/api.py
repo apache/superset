@@ -361,10 +361,13 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Get chart name from slice_id
-            slice_obj = (
-                db.session.query(Slice).filter_by(id=form_data["slice_id"]).first()
-            )
-            chart_name = slice_obj.chart
+            if form_data is not None:
+                slice_obj = (
+                    db.session.query(Slice).filter_by(id=form_data["slice_id"]).first()
+                )
+                chart_name = slice_obj.chart
+            else:
+                chart_name = "query"
             # Verify user has permission to export file
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
