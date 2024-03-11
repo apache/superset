@@ -49,6 +49,13 @@ We changed the structure of the `CHANGELOG.md` file to better organize the conte
 
 ### Improved drag and drop experience when editing a dashboard
 
+When a component was being dragged towards the edge of the tab container or the row/column containers, multiple drop indicators were often displayed. This created confusion about the exact insertion point of the element. To fix this, we built a distinct, non-conflicting area for the drop zone, which is highlighted during the dragging process to clearly indicate where the element will be placed. We also improved the forbidden drop zones to prevent users from dropping elements in invalid locations.
+
+<div>
+    <img src="media/dashboard-dnd-1.png" alt="Image" width="45%">
+    <img src="media/dashboard-dnd-2.png" alt="Image" width="48%">
+</div>
+
 - https://github.com/apache/superset/pull/26699
 - https://github.com/apache/superset/pull/26313
 
@@ -84,11 +91,17 @@ The following feature flags were enabled by default:
 - DASHBOARD_VIRTUALIZATION
 - DRILL_BY
 
-### Filter Box was removed
+### Removed features
 
-TODO
+As part of the 4.0 approved initiatives, the following features were removed from Superset:
 
-- https://github.com/apache/superset/pull/26328
+- Filter Box: [#26328](https://github.com/apache/superset/pull/26328) removed the Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removed the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native filters.
+
+- Filter Sets: [#26369](https://github.com/apache/superset/pull/26369) removed the Filters Set feature including the deprecated `DASHBOARD_NATIVE_FILTERS_SET` feature flag and all related API endpoints. The feature is permanently removed as it was not being actively maintained, it was not widely used, and it was full of bugs. We also considered that if we were to provide a similar feature, it would be better to re-implement it from scratch given the amount of technical debt that the implementation had.
+
+- Profile: [#26462](https://github.com/apache/superset/pull/26462) removed the Profile feature given that it was not actively maintained and not widely used.
+
+- Redirect API: [#26377](https://github.com/apache/superset/pull/26377) removed the deprecated Redirect API that supported short URLs (`/r`) and the `url` metadata table used to store them that was used before the permalink feature. Users lost the ability to generate R links ~1.5 years ago which seems sufficient time to remove the API.
 
 ### Session management improvements
 
@@ -98,12 +111,6 @@ As part of [[SIP-99] Proposal for correctly handling business logic](https://git
 - https://github.com/apache/superset/pull/26200
 - https://github.com/apache/superset/pull/26186
 
-### Profile was removed
-
-TODO
-
-- https://github.com/apache/superset/pull/26462
-
 ### All country maps are now managed via the Jupyter notebook
 
 TODO @rusackas
@@ -112,11 +119,7 @@ TODO @rusackas
 
 ### Sunburst chart migrated to ECharts
 
-- https://github.com/apache/superset/pull/26350
-
-### Old redirect (/r) endpoint was removed
-
-- https://github.com/apache/superset/pull/26377
+The ECharts version of the Sunburst chart was introduced by [#22833](https://github.com/apache/superset/pull/22833) as part of our efforts to complete [SIP-50](https://github.com/apache/superset/issues/10418). In 4.0, legacy Sunburst charts are [automatically migrated](https://github.com/apache/superset/pull/26350) to ECharts and the legacy version was removed.
 
 ### Some cool stats
 
