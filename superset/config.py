@@ -60,6 +60,7 @@ from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 from superset.security.manager import JWTSecurityManager
+from superset.security.custom_initializer import MySupsersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
@@ -235,13 +236,14 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
+WTF_CSRF_ENABLED = False
 
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
-    "superset.charts.data.api.data",
+    "superset.charts.data.api.data"
+    #"superset.security.api.add_user"
 ]
 
 # Whether to run the web server in debug mode or not
@@ -255,7 +257,7 @@ PROFILING = False
 # Superset allows server-side python stacktraces to be surfaced to the
 # user when this feature is on. This may have security implications
 # and it's more secure to turn it off in production settings.
-SHOW_STACKTRACE = False
+SHOW_STACKTRACE = True
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
@@ -461,7 +463,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    "HORIZONTAL_FILTER_BAR": False,
+    "HORIZONTAL_FILTER_BAR": True,
     # The feature is off by default, and currently only supported in Presto and Postgres,
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
@@ -883,7 +885,7 @@ QUERY_LOGGER = None
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
 # Maximum number of rows returned for any analytical database query
-SQL_MAX_ROW = 100000
+SQL_MAX_ROW = 1000000
 
 # Maximum number of rows displayed in SQL Lab UI
 # Is set to avoid out of memory/localstorage issues in browsers. Does not affect
@@ -892,7 +894,7 @@ DISPLAY_MAX_ROW = 1000000
 
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI
-DEFAULT_SQLLAB_LIMIT = 1000
+DEFAULT_SQLLAB_LIMIT = 1000000
 
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
@@ -1142,9 +1144,10 @@ ENABLE_CHUNK_ENCODING = False
 SILENCE_FAB = True
 
 FAB_ADD_SECURITY_VIEWS = True
-FAB_ADD_SECURITY_PERMISSION_VIEW = False
-FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
-FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
+FAB_ADD_SECURITY_PERMISSION_VIEW = True
+FAB_ADD_SECURITY_VIEW_MENU_VIEW = True
+FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = True
+FAB_ADD_SECURITY_API = True
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -1165,6 +1168,7 @@ BLUEPRINTS: list[Blueprint] = []
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
 
+# APP_INITIALIZER = MySupsersetAppInitializer
 
 # Transform SQL query tracking url for Hive and Presto engines. You may also
 # access information about the query itself by adding a second parameter
@@ -1408,7 +1412,8 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+#TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
