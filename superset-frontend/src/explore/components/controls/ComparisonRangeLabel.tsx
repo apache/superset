@@ -83,19 +83,20 @@ export const ComparisonRangeLabel = () => {
     }
   }, [currentTimeRangeFilters, shift]);
 
-  return labels.length
-    ? labels.map((label, index) => (
-        <Tooltip title={t('Actual time range for comparison')} key={index}>
-          <div
-            css={theme => css`
-              font-size: ${theme.typography.sizes.m}px;
-              color: ${theme.colors.grayscale.dark1};
-            `}
-          >
-            {label}
-            {index < labels.length - 1 ? ',' : ''}
-          </div>
-        </Tooltip>
-      ))
-    : null;
+  return labels.length ? (
+    <Tooltip title={t('Actual time range for comparison')}>
+      {labels.map((label, index) => (
+        <div
+          css={theme => css`
+            font-size: ${theme.typography.sizes.m}px;
+            color: ${theme.colors.grayscale.dark1};
+          `}
+          key={index}
+        >
+          {label}
+          {index < labels.length - 1 ? ',' : ''}
+        </div>
+      ))}
+    </Tooltip>
+  ) : null;
 };
