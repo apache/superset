@@ -2447,11 +2447,14 @@ class JWTAuthDBView(AuthDBView):
             print("=========token=========", token)
         if token and doc_id:
             # get the User from DB
-            email = f'{doc_id}@dummyanalytics.com'
             b_id = token.get("b-id", "")
-            firstname = f'{b_id}@dummyanalytics.com'
-            lastname = token.get("lastname", "")
-
+            if b_id:
+                email = f'{b_id}@dummyanalytics.com'
+                firstname = 'business'
+            else:
+                email = f'{doc_id}@dummyanalytics.com'
+                firstname = 'doctor'
+            lastname = ''
             self.jwt_username = email
             self.jwt_first_name = firstname
             self.jwt_last_name = lastname
@@ -2464,7 +2467,7 @@ class JWTAuthDBView(AuthDBView):
                 # user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
                 #                                 last_name=lastname,
                 #                                 email=email, role="Gamma")
-                self.jwt_role = self.appbuilder.sm.find_role("Gamma")
+                self.jwt_role = self.appbuilder.sm.find_role("Doctor")
                 user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
                                                    last_name=lastname,
                                                    email=email, role=self.jwt_role)

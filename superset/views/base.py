@@ -289,6 +289,7 @@ def check_sess_token():
     if token and isinstance(token, str):
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
+        b_id = token.get("b-id", "")
         print("=========Before Request Token=========", token)
         print("=========Before Request Session=========", session)
 
@@ -299,7 +300,10 @@ def check_sess_token():
             session_user_username = session_user.username
             print("===============Before Request Session User=========", session_user_username)
 
-        token_user_username = doc_id+'@dummyanalytics.com'
+        if b_id:
+            token_user_username = b_id + '@dummyanalytics.com'
+        else:
+            token_user_username = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
         print("===============Before Request Token User=========", token_user_username)
         if token_user:
