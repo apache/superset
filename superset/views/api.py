@@ -116,7 +116,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @rison(ger_relative_time_range_schema)
+    @rison(get_relative_time_range_schema)
     @expose("/v1/relative_time_range/", methods=("GET",))
     def relative_time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actual time range shifted by InstantTimeComparison value from
