@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Optional
+from typing import Any, cast, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import jinja_context
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseNotFoundValidationError,
@@ -34,6 +35,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
+from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         database = DatasetDAO.get_database_by_id(database_id)
         if not database:
             exceptions.append(DatabaseNotFoundValidationError())
+        database = cast(Database, database)
         self._properties["database"] = database
 
         # Validate table exists on dataset if sql is not provided
@@ -85,10 +88,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table_name))
 
         if sql:
+            processor = jinja_context.get_template_processor(database=database)
+            rendered_sql = processor.process_template(sql)
             try:
                 security_manager.raise_for_access(
                     database=database,
-                    sql=sql,
+                    sql=rendered_sql,
                     schema=schema,
                 )
             except SupersetSecurityException as ex:
