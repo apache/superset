@@ -35,6 +35,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -340,6 +341,58 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_create_database_with_missing_port_raises_error(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test that missing port raises SSHTunnelDatabaseError
+        """
+        mock_create_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        modified_sqlalchemy_uri = "postgresql://foo:bar@localhost/test-db"
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -392,6 +445,154 @@ class TestDatabaseApi(SupersetTestCase):
             .one()
         )
         self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_update_database_with_missing_port_raises_error(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_update_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test that missing port raises SSHTunnelDatabaseError
+        """
+        mock_create_is_feature_enabled.return_value = True
+        mock_update_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        modified_sqlalchemy_uri = "postgresql://foo:bar@localhost/test-db"
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response_create = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        uri = "api/v1/database/{}".format(response_create.get("id"))
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
+
+        # Cleanup
+        model = db.session.query(Database).get(response_create.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_delete_ssh_tunnel(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_update_is_feature_enabled,
+        mock_delete_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test deleting a SSH tunnel via Database update
+        """
+        mock_create_is_feature_enabled.return_value = True
+        mock_update_is_feature_enabled.return_value = True
+        mock_delete_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        uri = "api/v1/database/{}".format(response.get("id"))
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
+        response_update = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response_update.get("id"))
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+
+        database_data_with_ssh_tunnel_null = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": None,
+        }
+
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel_null)
+        response_update = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response_update.get("id"))
+            .one_or_none()
+        )
+
+        assert model_ssh_tunnel is None
+
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
         db.session.delete(model)
