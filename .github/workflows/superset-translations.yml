@@ -47,9 +47,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+        uses: ./.github/actions/setup-backend/
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
