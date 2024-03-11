@@ -290,11 +290,14 @@ def test_extract_tables_illdefined() -> None:
         == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
     )
 
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables('SELECT * FROM "tbname')
+    assert str(excinfo.value) == 'Unable to parse SQL (generic): SELECT * FROM "tbname'
+
     # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
         Table(table="tbname", schema=None, catalog="catalogname")
     }
-    assert extract_tables('SELECT * FROM "tbname') == set()
 
 
 def test_extract_tables_show_tables_from() -> None:
