@@ -72,7 +72,7 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      {update && <Refresh role="button" onClick={update} />}
+      {update && <Refresh onClick={update} />}
     </TextStyles>
   );
 };

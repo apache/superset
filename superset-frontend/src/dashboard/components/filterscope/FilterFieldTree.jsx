@@ -62,7 +62,6 @@ export default function FilterFieldTree({
       onCheck={onCheck}
       onExpand={onExpand}
       icons={treeIcons}
-      role="button"
     />
   );
 }

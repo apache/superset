@@ -47,7 +47,7 @@ export interface IconProps extends IconType {
 }
 
 export const Icon = (props: IconProps) => {
-  const { fileName, ...iconProps } = props;
+  const { fileName, onClick, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
   const name = fileName.replace('_', '-');
@@ -70,6 +70,7 @@ export const Icon = (props: IconProps) => {
 
   return (
     <StyledIcon
+      role={onClick ? 'button' : undefined}
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
       {...iconProps}

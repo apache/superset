@@ -162,7 +162,6 @@ export default function ChartCard({
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
-            role="button"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();

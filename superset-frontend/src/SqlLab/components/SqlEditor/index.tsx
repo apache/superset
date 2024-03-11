@@ -650,9 +650,7 @@ const SqlEditor: React.FC<Props> = ({
             />
           </Menu.Item>
         )}
-        <Menu.Item role="button" onClick={formatCurrentQuery}>
-          {t('Format SQL')}
-        </Menu.Item>
+        <Menu.Item onClick={formatCurrentQuery}>{t('Format SQL')}</Menu.Item>
         {!isEmpty(scheduledQueriesConf) && (
           <Menu.Item>
             <ScheduleQueryButton
@@ -689,7 +687,6 @@ const SqlEditor: React.FC<Props> = ({
       <Menu>
         {allowCTAS && (
           <Menu.Item
-            role="button"
             onClick={() => {
               setShowCreateAsModal(true);
               setCreateAs(CtasEnum.Table);
@@ -701,7 +698,6 @@ const SqlEditor: React.FC<Props> = ({
         )}
         {allowCVAS && (
           <Menu.Item
-            role="button"
             onClick={() => {
               setShowCreateAsModal(true);
               setCreateAs(CtasEnum.View);

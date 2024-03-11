@@ -107,8 +107,8 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
   renderTemplateSelector() {
     if (this.state.templates) {
       const menu = (
-        <Menu role="button" onClick={this.changeCssTemplate}>
-          {this.props.templates.map(template => (
+        <Menu onClick={this.changeCssTemplate}>
+          {this.state.templates.map(template => (
             <Menu.Item key={template.css}>{template.label}</Menu.Item>
           ))}
         </Menu>

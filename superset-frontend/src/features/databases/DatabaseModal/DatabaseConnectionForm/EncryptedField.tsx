@@ -156,7 +156,6 @@ export const EncryptedField = ({
                 {fileToUpload}
                 <Icons.DeleteFilled
                   iconSize="m"
-                  role="button"
                   onClick={() => {
                     setFileToUpload(null);
                     changeMethods.onParametersChange({

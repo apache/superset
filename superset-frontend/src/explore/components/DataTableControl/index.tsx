@@ -186,7 +186,7 @@ const DataTableTemporalHeaderCell = ({
   const overlayContent = useMemo(
     () =>
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <FormatPickerContainer role="button" onClick={e => e.stopPropagation()}>
+        <FormatPickerContainer onClick={e => e.stopPropagation()}>
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
           <Global
             styles={css`
@@ -222,7 +222,6 @@ const DataTableTemporalHeaderCell = ({
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={{ marginRight: `${theme.gridUnit}px` }}
-          role="button"
           onClick={e => e.stopPropagation()}
         />
       </Popover>

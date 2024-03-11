@@ -40,7 +40,6 @@ const FilterIndicator: FC<IndicatorProps> = ({
   const resultValue = getFilterValueForDisplay(value);
   return (
     <FilterItem
-      role="button"
       onClick={
         onClick ? () => onClick([...path, `LABEL-${column}`]) : undefined
       }

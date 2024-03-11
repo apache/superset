@@ -44,7 +44,6 @@ const CacheLabel: React.FC<CacheLabelProps> = ({
       <Label
         className={`${className}`}
         type={labelType}
-        role="button"
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}

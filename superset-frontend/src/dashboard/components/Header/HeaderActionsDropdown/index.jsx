@@ -199,7 +199,6 @@ class HeaderActionsDropdown extends React.PureComponent {
             data-test="refresh-dashboard-menu-item"
             disabled={isLoading}
             onClick={this.handleMenuClick}
-            role="button"
           >
             {t('Refresh dashboard')}
           </Menu.Item>
@@ -208,7 +207,6 @@ class HeaderActionsDropdown extends React.PureComponent {
           <Menu.Item
             key={MenuKeys.ToggleFullscreen}
             onClick={this.handleMenuClick}
-            role="button"
           >
             {getUrlParam(URL_PARAMS.standalone)
               ? t('Exit fullscreen')
@@ -219,7 +217,6 @@ class HeaderActionsDropdown extends React.PureComponent {
           <Menu.Item
             key={MenuKeys.EditProperties}
             onClick={this.handleMenuClick}
-            role="button"
           >
             {t('Edit properties')}
           </Menu.Item>
@@ -296,7 +293,6 @@ class HeaderActionsDropdown extends React.PureComponent {
           <Menu.Item
             key={MenuKeys.ManageEmbedded}
             onClick={this.handleMenuClick}
-            role="button"
           >
             {t('Embed dashboard')}
           </Menu.Item>

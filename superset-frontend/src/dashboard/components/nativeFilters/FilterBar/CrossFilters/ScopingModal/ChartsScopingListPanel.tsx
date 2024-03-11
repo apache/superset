@@ -78,7 +78,6 @@ const ScopingTitle = ({
           event.stopPropagation();
           onRemove(id);
         }}
-        role="button"
         css={css`
           margin-left: auto;
         `}
