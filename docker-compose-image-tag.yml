@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest}
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -22,13 +23,7 @@ x-superset-volumes:
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
-x-common-build: &common-build
-  context: .
-  target: dev
-  cache_from:
-    - apache/superset-cache:3.9-slim-bookworm
-
-version: "4.0"
+version: "3.7"
 services:
   redis:
     image: redis:7
@@ -48,8 +43,7 @@ services:
 
   superset:
     env_file: docker/.env
-    build:
-      <<: *common-build
+    image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
     user: "root"
@@ -60,9 +54,8 @@ services:
     volumes: *superset-volumes
 
   superset-init:
+    image: *superset-image
     container_name: superset_init
-    build:
-      <<: *common-build
     command: ["/app/docker/docker-init.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
@@ -72,8 +65,7 @@ services:
       disable: true
 
   superset-worker:
-    build:
-      <<: *common-build
+    image: *superset-image
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
@@ -89,8 +81,7 @@ services:
         ]
 
   superset-worker-beat:
-    build:
-      <<: *common-build
+    image: *superset-image
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file: docker/.env
