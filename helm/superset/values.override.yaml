@@ -1,0 +1,240 @@
+
+# Superset node configuration
+supersetNode:
+  connections:
+    # -- Change in case of bringing your own redis and then also set redis.enabled:false
+    redis_host: '{{ .Release.Name }}-redis-headless'
+    # redis_password: superset
+    redis_port: "6379"
+    # You need to change below configuration incase bringing own PostgresSQL instance and also set postgresql.enabled:false
+    db_host: ns-ii-tech-stg-pg-srv.postgres.database.azure.com
+    db_port: "5432"
+    # db_user: 
+    db_name: superset
+    # db_pass: ""
+
+postgresql:
+  ##
+  ## Use the PostgreSQL chart dependency.
+  ## Set to false if bringing your own PostgreSQL.
+  enabled: false
+
+# -- Extra environment variables that will be passed into pods
+extraEnv:
+  GUNICORN_TIMEOUT: 300
+  APP_ICON: https://i.ibb.co/fChLX4G/Natural-State-Logo-Icon.png
+  APP_NAME: "Natural Impact Portal"
+  # BASEURL: PLACEHODLER_BASEURL
+
+# -- Extra environment variables to pass as secrets
+extraSecretEnv: {}
+  # MAPBOX_API_KEY: PLACEHOLDER_MAPBOX_API_KEY
+  # SMTP_USER: PLACEHOLDER
+  # SMTP_PASSWORD: PLACEHOLDER
+  # SMTP_MAIL_FROM: PLACEHOLDER
+  # --set
+
+configOverrides:
+  my_override: |
+    # This will make sure the redirect_uri is properly computed, even with SSL offloading
+    ENABLE_PROXY_FIX = True
+    FEATURE_FLAGS = {
+        "DYNAMIC_PLUGINS": True
+    }
+  secret: |
+    PREVIOUS_SECRET_KEY = "YOUR_OWN_RANDOM_GENERATED_SECRET_KEY"
+    SECRET_KEY = os.getenv("SECRET_KEY")
+  csp: |
+    # Content Security Policy
+    # https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+    # https://flask-talisman.readthedocs.io/en/latest/
+    
+    TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "default-src": ["'self'"],
+        "img-src": ["'self'", "blob:", "data:", "https://i.ibb.co", "https://images.unsplash.com"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+        ],
+        "object-src": "'none'",
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+        ],
+        "script-src": ["'self'", "'strict-dynamic'"],
+    },
+    "content_security_policy_nonce_in": ["script-src"],
+    "force_https": False,
+    "session_cookie_secure": False,
+    }
+
+  logo: |
+    MAPBOX_API_KEY = os.getenv("MAPBOX_API_KEY")
+    APP_NAME = os.getenv("APP_NAME")
+    APP_ICON = os.getenv("APP_ICON")
+    FAVICONS = [
+      {
+        "href": "https://i.ibb.co/fChLX4G/Natural-State-Logo-Icon.png",
+        "rel": "icon",
+        "size": "192x192"
+      }
+    ]
+  gunicorn: |
+    GUNICORN_TIMEOUT= os.getenv("GUNICORN_TIMEOUT")
+
+  alerts_reports: |
+    from celery.schedules import crontab
+    from superset.tasks.types import ExecutorType
+
+    FEATURE_FLAGS = {
+        "ALERT_REPORTS": True,
+        "DASHBOARD_RBAC": True,
+        "ALLOW_FULL_CSV_EXPORT": True
+    }
+
+    REDIS_HOST = "superset-release-redis-headless"
+    REDIS_PORT = "6379"
+
+    class CeleryConfig:
+        broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+        imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+        result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+        worker_prefetch_multiplier = 10
+        task_acks_late = True
+        task_annotations = {
+            'sql_lab.get_sql_results': {
+                'rate_limit': '100/s',
+            },
+            'email_reports.send': {
+                'rate_limit': '1/s',
+                'time_limit': 600,
+                'soft_time_limit': 600,
+                'ignore_result': True,
+            },
+        }
+        beat_schedule = {
+            'reports.scheduler': {
+                'task': 'reports.scheduler',
+                'schedule': crontab(minute='*', hour='*'),
+            },
+            'reports.prune_log': {
+                'task': 'reports.prune_log',
+                'schedule': crontab(minute=0, hour=0),
+            },
+        }
+    CELERY_CONFIG = CeleryConfig
+
+    SCREENSHOT_LOCATE_WAIT = 100
+    SCREENSHOT_LOAD_WAIT = 600
+
+    # Slack configuration
+    SLACK_API_TOKEN = "xoxb-"
+
+    # Email configuration
+    SMTP_HOST = "smtp.office365.com"
+    SMTP_PORT = 587 
+    SMTP_STARTTLS = True
+    SMTP_SSL_SERVER_AUTH = True # If your using an SMTP server with a valid certificate
+    SMTP_SSL = False
+    SMTP_USER = os.getenv("SMTP_USER")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+    SMTP_MAIL_FROM = os.getenv("SMTP_MAIL_FROM")
+    EMAIL_REPORTS_SUBJECT_PREFIX = "[Natural Impact Portal] " # optional - overwrites default value in config.py of "[Report] "
+
+    # WebDriver configuration
+    # If you use Firefox, you can stick with default values
+    # If you use Chrome, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
+    WEBDRIVER_TYPE = "firefox"
+
+    # This is for internal use, you can keep http
+    WEBDRIVER_BASEURL = os.getenv("BASEURL")
+    # This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
+    WEBDRIVER_BASEURL_USER_FRIENDLY = os.getenv("BASEURL")
+
+    # THUMBNAIL_SELENIUM_USER = 'admin'
+    # ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
+
+image:
+  # repository: apache/superset
+  repository: naturalstate/superset
+  # tag: 2.1.3 ok
+  tag: 3.1.1
+  # tag: 3.1.1-dev
+  # latest is lean
+  # tag: latest
+  pullPolicy: Always
+
+ingress:
+  enabled: true
+  annotations:
+    traefik.ingress.kubernetes.io/ssl-redirect: "true"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  pathType: Prefix
+  # hosts: []
+  paths:
+    - path: /
+      pathType: "Prefix"
+      service:
+        name: superset-release
+        port: 8088
+  # tls: []
+
+traefik:
+  enabled: true
+  ports:
+    web:
+      redirectTo: websecure
+  service:
+    externalIPs:
+  ssl:
+    enabled: true
+
+# Superset beat configuration (to trigger scheduled jobs like reports)
+supersetCeleryBeat:
+  # -- This is only required if you intend to use alerts and reports
+  enabled: true
+  # -- Command
+  # @default -- a `celery beat` command
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+  # -- If true, forces deployment to reload on each upgrade
+  forceReload: false
+  # -- List of init containers
+  # @default -- a container waiting for postgres
+  initContainers:
+    - name: wait-for-postgres-redis
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
+      envFrom:
+        - secretRef:
+            name: "{{ tpl .Values.envFromSecret . }}"
+      command:
+        - /bin/sh
+        - -c
+        - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
+  # -- Annotations to be added to supersetCeleryBeat deployment
+  deploymentAnnotations: {}
+  # -- Affinity to be added to supersetCeleryBeat deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetCeleryBeat deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetCeleryBeat pods
+  podAnnotations: {}
+  # -- Labels to be added to supersetCeleryBeat pods
+  podLabels: {}
+  # -- Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above.
+  resources: {}
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+  podSecurityContext: {}
+  containerSecurityContext: {}
