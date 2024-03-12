@@ -44,15 +44,15 @@ interface MenuObjectChildProps {
   disable?: boolean;
 }
 
-export interface SwitchProps {
-  isEditMode: boolean;
-  dbFetched: any;
-  disableSSHTunnelingForEngine?: boolean;
-  useSSHTunneling: boolean;
-  setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
-  setDB: React.Dispatch<any>;
-  isSSHTunneling: boolean;
-}
+// loose typing to avoid any circular dependencies
+// refer to SSHTunnelSwitch component for strict typing
+type SwitchProps = {
+  db: object;
+  changeMethods: {
+    onParametersChange: (event: any) => void;
+  };
+  clearValidationErrors: () => void;
+};
 
 type ConfigDetailsProps = {
   embeddedId: string;

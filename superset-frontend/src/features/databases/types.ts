@@ -1,3 +1,7 @@
+import { JsonObject } from '@superset-ui/core';
+import { InputProps } from 'antd/lib/input';
+import { ChangeEvent, EventHandler, FormEvent } from 'react';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -108,7 +112,7 @@ export type DatabaseObject = {
   };
 
   // SSH Tunnel information
-  ssh_tunnel?: SSHTunnelObject;
+  ssh_tunnel?: SSHTunnelObject | null;
 };
 
 export type DatabaseForm = {
@@ -195,6 +199,10 @@ export type DatabaseForm = {
   };
   preferred: boolean;
   sqlalchemy_uri_placeholder: string;
+  engine_information: {
+    supports_file_upload: boolean;
+    disable_ssh_tunneling: boolean;
+  };
 };
 
 // the values should align with the database
@@ -231,3 +239,73 @@ export interface ExtraJson {
   };
   version?: string;
 }
+
+export type CustomTextType = {
+  value?: string | boolean | number;
+  type?: string | null;
+  name?: string;
+  checked?: boolean;
+};
+
+type CustomHTMLInputElement = Omit<Partial<CustomTextType>, 'value' | 'type'> &
+  CustomTextType;
+
+type CustomHTMLTextAreaElement = Omit<
+  Partial<CustomTextType>,
+  'value' | 'type'
+> &
+  CustomTextType;
+
+export type CustomParametersChangeType<T = CustomTextType> =
+  | FormEvent<InputProps>
+  | { target: T };
+
+export type CustomEventHandlerType = EventHandler<
+  ChangeEvent<CustomHTMLInputElement | CustomHTMLTextAreaElement>
+>;
+
+export interface FieldPropTypes {
+  required: boolean;
+  hasTooltip?: boolean;
+  tooltipText?: (value: any) => string;
+  placeholder?: string;
+  onParametersChange: (event: CustomParametersChangeType) => void;
+  onParametersUploadFileChange: (value: any) => string;
+  changeMethods: {
+    onParametersChange: (event: CustomParametersChangeType) => void;
+  } & {
+    onChange: (value: any) => string;
+  } & {
+    onQueryChange: (value: any) => string;
+  } & { onParametersUploadFileChange: (value: any) => string } & {
+    onAddTableCatalog: () => void;
+    onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onExtraInputChange: (value: any) => void;
+    onSSHTunnelParametersChange: CustomEventHandlerType;
+  };
+  validationErrors: JsonObject | null;
+  getValidation: () => void;
+  clearValidationErrors: () => void;
+  db?: DatabaseObject;
+  dbModel?: DatabaseForm;
+  field: string;
+  isEditMode?: boolean;
+  sslForced?: boolean;
+  defaultDBName?: string;
+  editNewDb?: boolean;
+}
+
+type ChangeMethodsType = FieldPropTypes['changeMethods'];
+
+// changeMethods compatibility with dynamic forms
+type SwitchPropsChangeMethodsType = {
+  onParametersChange: ChangeMethodsType['onParametersChange'];
+};
+
+export type SwitchProps = {
+  dbModel: DatabaseForm;
+  db: DatabaseObject;
+  changeMethods: SwitchPropsChangeMethodsType;
+  clearValidationErrors: () => void;
+};
