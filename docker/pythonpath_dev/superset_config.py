@@ -47,6 +47,8 @@ SQLALCHEMY_DATABASE_URI = (
     f"{DATABASE_USER}:{DATABASE_PASSWORD}@"
     f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
 )
+# SQLALCHEMY_DATABASE_URI = "mysql://superset:superset@host.docker.internal:3306/superset"
+# SQLALCHEMY_EXAMPLES_URI = "mysql://superset:superset@host.docker.internal:3306/superset"
 
 SQLALCHEMY_EXAMPLES_URI = (
     f"{DATABASE_DIALECT}://"
