@@ -100,6 +100,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         secondary=slice_user,
         passive_deletes=True,
     )
+    slice_name_RU = Column(Text, nullable=True)
+    primary_lang = Column(Text, nullable=True)
     tags = relationship(
         "Tag",
         secondary="tagged_object",
