@@ -62,6 +62,7 @@ jobs:
             pip-upgrade
             pip install wheel
             pip install -r requirements/development.txt
+            pip install shillelagh
             mkdir ${{ github.workspace }}/.temp
       - name: Python unit tests
         if: steps.check.outcome == 'failure'
