@@ -4,7 +4,8 @@ on:
     paths:
       - "superset/migrations/**"
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     paths:
       - "superset/migrations/**"

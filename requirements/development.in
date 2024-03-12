@@ -23,5 +23,4 @@ progress>=1.5,<2
 pyinstrument>=4.0.2,<5
 pylint
 python-ldap>=3.4.3
-setuptools>=65.5.1
 sqloxide

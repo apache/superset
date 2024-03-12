@@ -80,8 +80,7 @@ setup(
         "colorama",
         "croniter>=0.3.28",
         "cron-descriptor",
-        # snowflake-connector-python as of 3.7.0 doesn't support >=42.* therefore lowering the min to 41.0.2
-        "cryptography>=41.0.2, <43.0.0",
+        "cryptography>=42.0.4, <43.0.0",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.2.5, <3.0.0",
         "flask-appbuilder>=4.4.1, <5.0.0",
@@ -118,7 +117,7 @@ setup(
         "pyarrow>=14.0.1, <15",
         "pyyaml>=6.0.0, <7.0.0",
         "PyJWT>=2.4.0, <3.0",
-        "redis>=4.5.4, <5.0",
+        "redis>=4.6.0, <5.0",
         "selenium>=3.141.0, <4.10.0",
         "shillelagh[gsheetsapi]>=1.2.10, <2.0",
         "shortid",
