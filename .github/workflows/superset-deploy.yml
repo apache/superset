@@ -18,8 +18,8 @@ env:
   KUBERNETES_RESOURCE_GROUP: "${{secrets.KUBERNETES_RESOURCE_GROUP}}"
   KUBERNETES_CLUSTER_NAME: "${{secrets.KUBERNETES_CLUSTER_NAME}}"
   POSTGRES_KEYVAULT: "${{secrets.POSTGRES_KEYVAULT}}"
-  namespace: "superset3-namespace"
-  helm_release: "superset3-release"
+  namespace: "superset-namespace"
+  helm_release: "superset-release"
   k8s_secret_name: "ingress-tls"
 
 
