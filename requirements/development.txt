@@ -784,6 +784,7 @@ urllib3[socks]==1.26.18
     #   requests
     #   requests-cache
     #   selenium
+    #   urllib3
 vine==5.1.0
     # via
     #   amqp
