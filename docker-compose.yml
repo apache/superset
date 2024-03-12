@@ -39,7 +39,7 @@ services:
     volumes:
       - redis:/data
 
- db:
+  db:
    platform: linux/amd64
    env_file: docker/.env
    image: postgres:14
