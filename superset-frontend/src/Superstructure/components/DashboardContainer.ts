@@ -1,4 +1,3 @@
-// DODO was here
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { RootState } from 'src/dashboard/types';

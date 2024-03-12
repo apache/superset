@@ -1,4 +1,3 @@
-// DODO was here
 import React, { FC, useEffect, useMemo, useRef, Suspense } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';

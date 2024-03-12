@@ -1,4 +1,3 @@
-// DODO was here
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
