@@ -28,6 +28,7 @@ export const ORG_LIST = [
 export const PROTECTED_LABEL_PATTERNS = [
   'protected.*',
   'released.*',
+  'hold.*',
   '^v\\d+(\\.\\d+)*$',
   '(🚢|🍒|🎯).*',
 ];
