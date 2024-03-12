@@ -31,7 +31,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
           cache-dependency-path: |
-            requirements/base.txt
             requirements/development.txt
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
@@ -40,7 +39,6 @@ jobs:
             apt-get-install
             pip-upgrade
             pip install wheel
-            pip install -r requirements/base.txt
             pip install -r requirements/development.txt
       # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
       - name: Enable brew and helm-docs
