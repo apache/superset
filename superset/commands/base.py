@@ -58,7 +58,7 @@ class CreateMixin:  # pylint: disable=too-few-public-methods
         return populate_owner_list(owner_ids, default_to_user=True)
 
 
-class UpdateMixin:  # pylint: disable=too-few-public-methods
+class UpdateMixin:
     @staticmethod
     def populate_owners(owner_ids: Optional[list[int]] = None) -> list[User]:
         """
