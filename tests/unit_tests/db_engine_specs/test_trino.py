@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+import copy
 import json
 from datetime import datetime
 from typing import Any, Optional
@@ -23,16 +24,44 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import ConnectionError as RequestsConnectionError
 from sqlalchemy import types
+from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
+from trino.sqlalchemy import datatype
 
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+    SupersetDBAPIProgrammingError,
+)
+from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
 from tests.unit_tests.fixtures.common import dttm
+
+
+def _assert_columns_equal(actual_cols, expected_cols) -> None:
+    """
+    Assert equality of the given cols, bearing in mind sqlalchemy type
+    instances can't be compared for equality, so will have to be converted to
+    strings first.
+    """
+    actual = copy.deepcopy(actual_cols)
+    expected = copy.deepcopy(expected_cols)
+
+    for col in actual:
+        col["type"] = str(col["type"])
+
+    for col in expected:
+        col["type"] = str(col["type"])
+
+    assert actual == expected
 
 
 @pytest.mark.parametrize(
@@ -331,9 +360,8 @@ def test_prepare_cancel_query(
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
-    session_mock = mocker.MagicMock()
     query = Query(extra_json=json.dumps(initial_extra))
-    TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+    TrinoEngineSpec.prepare_cancel_query(query=query)
     assert query.extra == final_extra
 
 
@@ -353,14 +381,13 @@ def test_handle_cursor_early_cancel(
 
     cursor_mock = engine_mock.return_value.__enter__.return_value
     cursor_mock.query_id = query_id
-    session_mock = mocker.MagicMock()
 
     query = Query()
 
     if cancel_early:
-        TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
+        TrinoEngineSpec.prepare_cancel_query(query=query)
 
-    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query, session=session_mock)
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
     if cancel_early:
         assert cancel_query_mock.call_args[1]["cancel_query_id"] == query_id
@@ -378,7 +405,6 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
     mock_cursor.query_id = None
 
     mock_query = mocker.MagicMock()
-    mock_session = mocker.MagicMock()
 
     def _mock_execute(*args, **kwargs):
         mock_cursor.query_id = query_id
@@ -389,9 +415,136 @@ def test_execute_with_cursor_in_parallel(mocker: MockerFixture):
         cursor=mock_cursor,
         sql="SELECT 1 FROM foo",
         query=mock_query,
-        session=mock_session,
     )
 
     mock_query.set_extra_json_key.assert_called_once_with(
         key=QUERY_CANCEL_KEY, value=query_id
     )
+
+
+def test_get_columns(mocker: MockerFixture):
+    """Test that ROW columns are not expanded without expand_rows"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    field1_type = datatype.parse_sqltype("row(a varchar, b date)")
+    field2_type = datatype.parse_sqltype("row(r1 row(a varchar, b varchar))")
+    field3_type = datatype.parse_sqltype("int")
+
+    sqla_columns = [
+        SQLAColumnType(name="field1", type=field1_type, is_dttm=False),
+        SQLAColumnType(name="field2", type=field2_type, is_dttm=False),
+        SQLAColumnType(name="field3", type=field3_type, is_dttm=False),
+    ]
+    mock_inspector = mocker.MagicMock()
+    mock_inspector.get_columns.return_value = sqla_columns
+
+    actual = TrinoEngineSpec.get_columns(mock_inspector, "table", "schema")
+    expected = [
+        ResultSetColumnType(
+            name="field1", column_name="field1", type=field1_type, is_dttm=False
+        ),
+        ResultSetColumnType(
+            name="field2", column_name="field2", type=field2_type, is_dttm=False
+        ),
+        ResultSetColumnType(
+            name="field3", column_name="field3", type=field3_type, is_dttm=False
+        ),
+    ]
+
+    _assert_columns_equal(actual, expected)
+
+
+def test_get_columns_expand_rows(mocker: MockerFixture):
+    """Test that ROW columns are correctly expanded with expand_rows"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    field1_type = datatype.parse_sqltype("row(a varchar, b date)")
+    field2_type = datatype.parse_sqltype("row(r1 row(a varchar, b varchar))")
+    field3_type = datatype.parse_sqltype("int")
+
+    sqla_columns = [
+        SQLAColumnType(name="field1", type=field1_type, is_dttm=False),
+        SQLAColumnType(name="field2", type=field2_type, is_dttm=False),
+        SQLAColumnType(name="field3", type=field3_type, is_dttm=False),
+    ]
+    mock_inspector = mocker.MagicMock()
+    mock_inspector.get_columns.return_value = sqla_columns
+
+    actual = TrinoEngineSpec.get_columns(
+        mock_inspector, "table", "schema", {"expand_rows": True}
+    )
+    expected = [
+        ResultSetColumnType(
+            name="field1", column_name="field1", type=field1_type, is_dttm=False
+        ),
+        ResultSetColumnType(
+            name="field1.a",
+            column_name="field1.a",
+            type=types.VARCHAR(),
+            is_dttm=False,
+            query_as='"field1"."a" AS "field1.a"',
+        ),
+        ResultSetColumnType(
+            name="field1.b",
+            column_name="field1.b",
+            type=types.DATE(),
+            is_dttm=True,
+            query_as='"field1"."b" AS "field1.b"',
+        ),
+        ResultSetColumnType(
+            name="field2", column_name="field2", type=field2_type, is_dttm=False
+        ),
+        ResultSetColumnType(
+            name="field2.r1",
+            column_name="field2.r1",
+            type=datatype.parse_sqltype("row(a varchar, b varchar)"),
+            is_dttm=False,
+            query_as='"field2"."r1" AS "field2.r1"',
+        ),
+        ResultSetColumnType(
+            name="field2.r1.a",
+            column_name="field2.r1.a",
+            type=types.VARCHAR(),
+            is_dttm=False,
+            query_as='"field2"."r1"."a" AS "field2.r1.a"',
+        ),
+        ResultSetColumnType(
+            name="field2.r1.b",
+            column_name="field2.r1.b",
+            type=types.VARCHAR(),
+            is_dttm=False,
+            query_as='"field2"."r1"."b" AS "field2.r1.b"',
+        ),
+        ResultSetColumnType(
+            name="field3", column_name="field3", type=field3_type, is_dttm=False
+        ),
+    ]
+
+    _assert_columns_equal(actual, expected)
+
+
+def test_get_indexes_no_table():
+    from sqlalchemy.exc import NoSuchTableError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = Mock()
+    inspector_mock = Mock()
+    inspector_mock.get_indexes = Mock(
+        side_effect=NoSuchTableError("The specified table does not exist.")
+    )
+    result = TrinoEngineSpec.get_indexes(
+        db_mock, inspector_mock, "test_table", "test_schema"
+    )
+    assert result == []
+
+
+def test_get_dbapi_exception_mapping():
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mapping = TrinoEngineSpec.get_dbapi_exception_mapping()
+    assert mapping.get(TrinoUserError) == SupersetDBAPIProgrammingError
+    assert mapping.get(TrinoInternalError) == SupersetDBAPIDatabaseError
+    assert mapping.get(TrinoExternalError) == SupersetDBAPIOperationalError
+    assert mapping.get(RequestsConnectionError) == SupersetDBAPIConnectionError
+    assert mapping.get(Exception) is None

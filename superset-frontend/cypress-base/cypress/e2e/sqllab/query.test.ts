@@ -25,7 +25,7 @@ function parseClockStr(node: JQuery) {
 
 describe('SqlLab query panel', () => {
   beforeEach(() => {
-    cy.visit('/superset/sqllab');
+    cy.visit('/sqllab');
   });
 
   it.skip('supports entering and running a query', () => {
@@ -122,9 +122,6 @@ describe('SqlLab query panel', () => {
     cy.get('.modal-sm .modal-body button')
       .eq(0) // save
       .click();
-
-    // visit saved queries
-    cy.visit('/sqllab/my_queries/');
 
     // first row contains most recent link, follow back to SqlLab
     cy.get('table tr:first-child a[href*="savedQueryId"').click();

@@ -33,7 +33,7 @@ This implementation is based on the architecture defined in [SIP-39](https://git
 
 ### Streams
 
-Async events are pushed to [Redis Streams](https://redis.io/topics/streams-intro) from the [Superset Flask app](https://github.com/preset-io/superset/blob/master/superset/utils/async_query_manager.py). An event for a particular user is published to two streams: 1) the global event stream that includes events for all users, and 2) a channel/session-specific stream only for the user. This approach provides a good balance of performance (reading off of a single global stream) and fault tolerance (dropped connections can "catch up" by reading from the channel-specific stream).
+Async events are pushed to [Redis Streams](https://redis.io/topics/streams-intro) from the [Superset Flask app](https://github.com/preset-io/superset/blob/master/superset/async_events/async_query_manager.py). An event for a particular user is published to two streams: 1) the global event stream that includes events for all users, and 2) a channel/session-specific stream only for the user. This approach provides a good balance of performance (reading off of a single global stream) and fault tolerance (dropped connections can "catch up" by reading from the channel-specific stream).
 
 Note that Redis Stream [consumer groups](https://redis.io/topics/streams-intro#consumer-groups) are not used here due to the fact that each group receives a subset of the data for a stream, and WebSocket clients have a persistent connection to each app instance, requiring access to all data in a stream. Horizontal scaling of the WebSocket app requires having multiple WebSocket servers, each with full access to the Redis Stream data.
 

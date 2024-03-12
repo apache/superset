@@ -20,17 +20,22 @@ import json
 
 import pytest
 from pytest_mock import MockFixture
+from sqlalchemy.dialects import mysql
 
-from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.jinja_context import dataset_macro, where_in
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.jinja_context import dataset_macro, WhereInMacro
 
 
 def test_where_in() -> None:
     """
     Test the ``where_in`` Jinja2 filter.
     """
+    where_in = WhereInMacro(mysql.dialect())
     assert where_in([1, "b", 3]) == "(1, 'b', 3)"
-    assert where_in([1, "b", 3], '"') == '(1, "b", 3)'
+    assert where_in([1, "b", 3], '"') == (
+        "(1, 'b', 3)\n-- WARNING: the `mark` parameter was removed from the "
+        "`where_in` macro for security reasons\n"
+    )
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 

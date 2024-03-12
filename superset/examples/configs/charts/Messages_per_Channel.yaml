@@ -50,7 +50,7 @@ params:
     dashboards: '#3CCCCB'
     design: '#1FA8C9'
     developers: '#9EE5E5'
-    embedd-dashboards: '#ACE1C4'
+    embedded-dashboards: '#ACE1C4'
     feature-requests: '#454E7C'
     general: '#3CCCCB'
     github-notifications: '#E04355'

@@ -337,14 +337,14 @@ def test_fetch_data_success(fetch_data_mock):
 @mock.patch("superset.db_engine_specs.hive.HiveEngineSpec._latest_partition_from_df")
 def test_where_latest_partition(mock_method):
     mock_method.return_value = ("01-01-19", 1)
-    db = mock.Mock()
-    db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
-    db.get_extra = mock.Mock(return_value={})
-    db.get_df = mock.Mock()
+    database = mock.Mock()
+    database.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
+    database.get_extra = mock.Mock(return_value={})
+    database.get_df = mock.Mock()
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select(), columns
+            "test_table", "test_schema", database, select(), columns
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
@@ -353,11 +353,11 @@ def test_where_latest_partition(mock_method):
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")
 def test_where_latest_partition_super_method_exception(mock_method):
     mock_method.side_effect = Exception()
-    db = mock.Mock()
+    database = mock.Mock()
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select(), columns
+            "test_table", "test_schema", database, select(), columns
         )
     assert result is None
     mock_method.assert_called()

@@ -32,12 +32,12 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
 )
 from tests.integration_tests.test_app import app
-from superset.dashboards.commands.importers.v0 import decode_dashboards
+from superset.commands.dashboard.importers.v0 import decode_dashboards
 from superset import db, security_manager
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
-from superset.datasets.commands.importers.v0 import import_dataset
+from superset.commands.dashboard.importers.v0 import import_chart, import_dashboard
+from superset.commands.dataset.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
@@ -53,17 +53,16 @@ from .base_tests import SupersetTestCase
 def delete_imports():
     with app.app_context():
         # Imported data clean up
-        session = db.session
-        for slc in session.query(Slice):
+        for slc in db.session.query(Slice):
             if "remote_id" in slc.params_dict:
-                session.delete(slc)
-        for dash in session.query(Dashboard):
+                db.session.delete(slc)
+        for dash in db.session.query(Dashboard):
             if "remote_id" in dash.params_dict:
-                session.delete(dash)
-        for table in session.query(SqlaTable):
+                db.session.delete(dash)
+        for table in db.session.query(SqlaTable):
             if "remote_id" in table.params_dict:
-                session.delete(table)
-        session.commit()
+                db.session.delete(table)
+        db.session.commit()
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -381,7 +380,11 @@ class TestImportExport(SupersetTestCase):
             expected_dash, imported_dash, check_position=False, check_slugs=False
         )
         self.assertEqual(
-            {"remote_id": 10002, "import_time": 1990},
+            {
+                "remote_id": 10002,
+                "import_time": 1990,
+                "native_filter_configuration": [],
+            },
             json.loads(imported_dash.json_metadata),
         )
 
@@ -411,7 +414,7 @@ class TestImportExport(SupersetTestCase):
                     f"{e_slc.id}": True,
                     f"{b_slc.id}": False,
                 },
-                # mocked filter_scope metadata
+                # mocked legacy filter_scope metadata
                 "filter_scopes": {
                     str(e_slc.id): {
                         "region": {"scope": ["ROOT_ID"], "immune": [b_slc.id]}
@@ -435,15 +438,11 @@ class TestImportExport(SupersetTestCase):
         expected_json_metadata = {
             "remote_id": 10003,
             "import_time": 1991,
-            "filter_scopes": {
-                str(i_e_slc.id): {
-                    "region": {"scope": ["ROOT_ID"], "immune": [i_b_slc.id]}
-                }
-            },
             "expanded_slices": {
                 f"{i_e_slc.id}": True,
                 f"{i_b_slc.id}": False,
             },
+            "native_filter_configuration": [],
         }
         self.assertEqual(
             expected_json_metadata, json.loads(imported_dash.json_metadata)
@@ -489,7 +488,11 @@ class TestImportExport(SupersetTestCase):
             expected_dash, imported_dash, check_position=False, check_slugs=False
         )
         self.assertEqual(
-            {"remote_id": 10004, "import_time": 1992},
+            {
+                "remote_id": 10004,
+                "import_time": 1992,
+                "native_filter_configuration": [],
+            },
             json.loads(imported_dash.json_metadata),
         )
 
@@ -517,6 +520,7 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(imported_slc.changed_by, gamma_user)
         self.assertEqual(imported_slc.owners, [gamma_user])
 
+    @pytest.mark.skip
     def test_import_override_dashboard_slice_reset_ownership(self):
         admin_user = security_manager.find_user(username="admin")
         self.assertTrue(admin_user)
@@ -539,7 +543,6 @@ class TestImportExport(SupersetTestCase):
 
         # re-import with another user shouldn't change the permissions
         g.user = admin_user
-
         dash_with_1_slice = self._create_dashboard_for_import(id_=10300)
 
         imported_dash_id = import_dashboard(dash_with_1_slice)

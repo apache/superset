@@ -28,11 +28,17 @@ under the License.
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](http://bit.ly/join-superset-slack)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
 
-<img
-  src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
-  alt="Superset"
-  width="500"
-/>
+<picture width="500">
+  <source
+    media="(prefers-color-scheme: dark)"
+    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache-dark.png"
+    alt="Superset logo (dark)"
+  />
+  <img
+    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
+    alt="Superset logo (light)"
+  />
+</picture>
 
 A modern, enterprise-ready business intelligence web application.
 
@@ -122,7 +128,9 @@ Here are some of the major database solutions that are supported:
   <img src="superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/databend.png" alt="databend" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
+  <img src="superset-frontend/src/assets/images/doris.png" alt="doris" border="0" width="200" height="80"/>
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/databases/installing-database-drivers).
@@ -138,7 +146,9 @@ Want to add support for your datastore or data engine? Read more [here](https://
 - Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 - [Join our community's Slack](http://bit.ly/join-superset-slack)
   and please read our [Slack Community Guidelines](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md#slack-community-guidelines)
-- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
+- [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org). To join, simply send an email to [dev-subscribe@superset.apache.org](mailto:dev-subscribe@superset.apache.org)
+- If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
+- Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings.  Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
 
 ## Contributor Guide
 
@@ -148,6 +158,12 @@ to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 
 ## Resources
+
+- [Superset "In the Wild"](RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
+- [Feature Flags](RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
+- [Standard Roles](RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
+- [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
+- [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
 
 Superset 2.0!
 - [Superset 2.0 Meetup](https://preset.io/events/superset-2-0-meetup/)
@@ -172,7 +188,7 @@ Understanding the Superset Points of View
   - [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset)
 
 - Recordings of Past [Superset Community Events](https://preset.io/events)
-  - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)  
+  - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
   - [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://preset.io/events/how-the-bing-team-heavily-customized-superset-for-their-internal-data/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
 	- [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
@@ -184,6 +200,16 @@ Understanding the Superset Points of View
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 
 - [Superset API](https://superset.apache.org/docs/rest-api)
+
+## Repo Activity
+<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" style="display: block" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto">
+    <img alt="Performance Stats of apache/superset - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light" width="655" height="auto">
+  </picture>
+</a>
+
+<!-- Made with [OSS Insight](https://ossinsight.io/) -->
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />

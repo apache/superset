@@ -17,6 +17,7 @@
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
+from typing import Callable
 
 import yaml
 from flask_appbuilder import Model
@@ -41,10 +42,20 @@ class ExportModelsCommand(BaseCommand):
         self._models: list[Model] = []
 
     @staticmethod
-    def _export(model: Model, export_related: bool = True) -> Iterator[tuple[str, str]]:
+    def _file_name(model: Model) -> str:
+        raise NotImplementedError("Subclasses MUST implement _file_name")
+
+    @staticmethod
+    def _file_content(model: Model) -> str:
         raise NotImplementedError("Subclasses MUST implement _export")
 
-    def run(self) -> Iterator[tuple[str, str]]:
+    @staticmethod
+    def _export(
+        model: Model, export_related: bool = True
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
+        raise NotImplementedError("Subclasses MUST implement _export")
+
+    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
         self.validate()
 
         metadata = {
@@ -52,7 +63,7 @@ class ExportModelsCommand(BaseCommand):
             "type": self.dao.model_cls.__name__,  # type: ignore
             "timestamp": datetime.now(tz=timezone.utc).isoformat(),
         }
-        yield METADATA_FILE_NAME, yaml.safe_dump(metadata, sort_keys=False)
+        yield METADATA_FILE_NAME, lambda: yaml.safe_dump(metadata, sort_keys=False)
 
         seen = {METADATA_FILE_NAME}
         for model in self._models:

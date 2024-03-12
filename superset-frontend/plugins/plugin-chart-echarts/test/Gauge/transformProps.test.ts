@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
-import transformProps from '../../src/Gauge/transformProps';
+import {
+  CategoricalColorNamespace,
+  ChartProps,
+  SqlaFormData,
+  supersetTheme,
+} from '@superset-ui/core';
+import transformProps, {
+  getIntervalBoundsAndColors,
+} from '../../src/Gauge/transformProps';
 import { EchartsGaugeChartProps } from '../../src/Gauge/types';
 
 describe('Echarts Gauge transformProps', () => {
@@ -256,8 +263,9 @@ describe('Echarts Gauge transformProps', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       groupby: ['year', 'platform'],
-      intervals: '50,100',
+      intervals: '60,100',
       intervalColorIndices: '1,2',
+      minVal: 20,
     };
     const queriesData = [
       {
@@ -340,5 +348,45 @@ describe('Echarts Gauge transformProps', () => {
         }),
       }),
     );
+  });
+});
+
+describe('getIntervalBoundsAndColors', () => {
+  it('should generate correct interval bounds and colors', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(getIntervalBoundsAndColors('', '', colorFn, 0, 10)).toEqual([]);
+    expect(getIntervalBoundsAndColors('4, 10', '1, 2', colorFn, 0, 10)).toEqual(
+      [
+        [0.4, '#1f77b4'],
+        [1, '#ff7f0e'],
+      ],
+    );
+    expect(
+      getIntervalBoundsAndColors('4, 8, 10', '9, 8, 7', colorFn, 0, 10),
+    ).toEqual([
+      [0.4, '#bcbd22'],
+      [0.8, '#7f7f7f'],
+      [1, '#e377c2'],
+    ]);
+    expect(getIntervalBoundsAndColors('4, 10', '1, 2', colorFn, 2, 10)).toEqual(
+      [
+        [0.25, '#1f77b4'],
+        [1, '#ff7f0e'],
+      ],
+    );
+    expect(
+      getIntervalBoundsAndColors('-4, 0', '1, 2', colorFn, -10, 0),
+    ).toEqual([
+      [0.6, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+    expect(
+      getIntervalBoundsAndColors('-4, -2', '1, 2', colorFn, -10, -2),
+    ).toEqual([
+      [0.75, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
   });
 });

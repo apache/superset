@@ -26,8 +26,6 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   css,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   isDefined,
   styled,
   SupersetClient,
@@ -70,7 +68,6 @@ type SaveModalState = {
   action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
-  vizType?: string;
   dashboard?: { label: string; value: string | number };
 };
 
@@ -93,7 +90,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       datasetName: props.datasource?.name,
       action: this.canOverwriteSlice() ? 'overwrite' : 'saveas',
       isLoading: false,
-      vizType: props.form_data?.viz_type,
       dashboard: undefined,
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
@@ -119,7 +115,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   async componentDidMount() {
     let { dashboardId } = this.props;
     if (!dashboardId) {
-      const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      let lastDashboard = null;
+      try {
+        lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      } catch (error) {
+        // continue regardless of error
+      }
       dashboardId = lastDashboard && parseInt(lastDashboard, 10);
     }
     if (dashboardId) {
@@ -158,6 +159,17 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   onHide() {
     this.props.dispatch(setSaveChartModalVisibility(false));
   }
+
+  handleRedirect = (windowLocationSearch: string, chart: any) => {
+    const searchParams = new URLSearchParams(windowLocationSearch);
+    searchParams.set('save_action', this.state.action);
+    if (this.state.action !== 'overwrite') {
+      searchParams.delete('form_data_key');
+    }
+
+    searchParams.set('slice_id', chart.id.toString());
+    return searchParams;
+  };
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
@@ -249,10 +261,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
-      if (dashboard) {
-        sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
-      } else {
-        sessionStorage.removeItem(SK_DASHBOARD_ID);
+      try {
+        if (dashboard) {
+          sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
+        } else {
+          sessionStorage.removeItem(SK_DASHBOARD_ID);
+        }
+      } catch (error) {
+        // continue regardless of error
       }
 
       // Go to new dashboard url
@@ -261,14 +277,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         return;
       }
 
-      const searchParams = new URLSearchParams(window.location.search);
-      searchParams.set('save_action', this.state.action);
-      if (this.state.action !== 'overwrite') {
-        searchParams.delete('form_data_key');
-      }
-      if (this.state.action === 'saveas') {
-        searchParams.set('slice_id', value.id.toString());
-      }
+      const searchParams = this.handleRedirect(window.location.search, value);
       this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
       this.setState({ isLoading: false });
@@ -370,32 +379,27 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormItem>
         )}
-        {!(
-          isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-          this.state.vizType === 'filter_box'
-        ) && (
-          <FormItem
-            label={t('Add to dashboard')}
-            data-test="save-chart-modal-select-dashboard-form"
-          >
-            <AsyncSelect
-              allowClear
-              allowNewOptions
-              ariaLabel={t('Select a dashboard')}
-              options={this.loadDashboards}
-              onChange={this.onDashboardChange}
-              value={this.state.dashboard}
-              placeholder={
-                <div>
-                  <b>{t('Select')}</b>
-                  {t(' a dashboard OR ')}
-                  <b>{t('create')}</b>
-                  {t(' a new one')}
-                </div>
-              }
-            />
-          </FormItem>
-        )}
+        <FormItem
+          label={t('Add to dashboard')}
+          data-test="save-chart-modal-select-dashboard-form"
+        >
+          <AsyncSelect
+            allowClear
+            allowNewOptions
+            ariaLabel={t('Select a dashboard')}
+            options={this.loadDashboards}
+            onChange={this.onDashboardChange}
+            value={this.state.dashboard}
+            placeholder={
+              <div>
+                <b>{t('Select')}</b>
+                {t(' a dashboard OR ')}
+                <b>{t('create')}</b>
+                {t(' a new one')}
+              </div>
+            }
+          />
+        </FormItem>
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
           <Alert
@@ -442,9 +446,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           !this.state.newSliceName ||
           !this.state.dashboard ||
           (this.props.datasource?.type !== DatasourceType.Table &&
-            !this.state.datasetName) ||
-          (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            this.state.vizType === 'filter_box')
+            !this.state.datasetName)
         }
         onClick={() => this.saveOrOverwrite(true)}
       >
@@ -518,3 +520,6 @@ function mapStateToProps({
 }
 
 export default withRouter(connect(mapStateToProps)(SaveModal));
+
+// User for testing purposes need to revisit once we convert this to functional component
+export { SaveModal as PureSaveModal };

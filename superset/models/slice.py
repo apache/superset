@@ -51,7 +51,7 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -78,8 +78,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
-    params = Column(Text)
-    query_context = Column(Text)
+    params = Column(utils.MediumText())
+    query_context = Column(utils.MediumText())
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))

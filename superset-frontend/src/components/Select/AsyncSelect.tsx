@@ -31,8 +31,7 @@ import React, {
 } from 'react';
 import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
-import { isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
@@ -49,6 +48,8 @@ import {
   dropDownRenderHelper,
   handleFilterOptionHelper,
   mapOptions,
+  getOption,
+  isObject,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -88,8 +89,6 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -523,21 +522,36 @@ const AsyncSelect = forwardRef(
       [ref],
     );
 
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        const value: AntdLabeledValue = {
+          label: text,
+          value: text,
+        };
+        if (option) {
+          value.label = isObject(option) ? option.label : option;
+          value.value = isObject(option) ? option.value! : option;
+        }
+        return value;
+      },
+      [fullSelectOptions],
+    );
+
     const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue({ label: pastedText, value: pastedText });
+        setSelectValue(getPastedTextValue(pastedText));
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array.map(item => getPastedTextValue(item));
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
-          ...array.map<AntdLabeledValue>(value => ({
-            label: value,
-            value,
-          })),
+          ...values,
         ]);
       }
+      fireOnChange();
     };
 
     const shouldRenderChildrenOptions = useMemo(

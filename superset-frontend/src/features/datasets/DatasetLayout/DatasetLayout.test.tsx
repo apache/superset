@@ -35,7 +35,7 @@ jest.mock('react-router-dom', () => ({
 
 describe('DatasetLayout', () => {
   it('renders nothing when no components are passed in', () => {
-    render(<DatasetLayout />);
+    render(<DatasetLayout />, { useRouter: true });
     const layoutWrapper = screen.getByTestId('dataset-layout-wrapper');
 
     expect(layoutWrapper).toHaveTextContent('');
@@ -55,7 +55,7 @@ describe('DatasetLayout', () => {
   it('renders a LeftPanel when passed in', async () => {
     render(
       <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
-      { useRedux: true },
+      { useRedux: true, useRouter: true },
     );
 
     expect(
@@ -65,7 +65,9 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a DatasetPanel when passed in', () => {
-    render(<DatasetLayout datasetPanel={<DatasetPanel />} />);
+    render(<DatasetLayout datasetPanel={<DatasetPanel />} />, {
+      useRouter: true,
+    });
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     const blankDatasetTitle = screen.getByText(/select dataset source/i);
@@ -75,13 +77,16 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a RightPanel when passed in', () => {
-    render(<DatasetLayout rightPanel={RightPanel()} />);
+    render(<DatasetLayout rightPanel={RightPanel()} />, { useRouter: true });
 
     expect(screen.getByText(/right panel/i)).toBeVisible();
   });
 
   it('renders a Footer when passed in', () => {
-    render(<DatasetLayout footer={<Footer url="" />} />, { useRedux: true });
+    render(<DatasetLayout footer={<Footer url="" />} />, {
+      useRedux: true,
+      useRouter: true,
+    });
 
     expect(screen.getByText(/Cancel/i)).toBeVisible();
   });

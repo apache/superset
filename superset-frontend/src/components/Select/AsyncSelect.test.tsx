@@ -218,8 +218,8 @@ test('sort the options by label if no sort comparator is provided', async () => 
 
 test('sort the options using a custom sort comparator', async () => {
   const sortComparator = (
-    option1: typeof OPTIONS[0],
-    option2: typeof OPTIONS[0],
+    option1: (typeof OPTIONS)[0],
+    option2: (typeof OPTIONS)[0],
   ) => option1.gender.localeCompare(option2.gender);
   render(<AsyncSelect {...defaultProps} sortComparator={sortComparator} />);
   await open();
@@ -840,6 +840,48 @@ test('does not fire onChange when searching but no selection', async () => {
   expect(onChange).toHaveBeenCalledTimes(1);
 });
 
+test('fires onChange when clearing the selection in single mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      onChange={onChange}
+      mode="single"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when clearing the selection in multiple mode', async () => {
+  const onChange = jest.fn();
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      onChange={onChange}
+      mode="multiple"
+      value={OPTIONS[0]}
+    />,
+  );
+  clearAll();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('fires onChange when pasting a selection', async () => {
+  const onChange = jest.fn();
+  render(<AsyncSelect {...defaultProps} onChange={onChange} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 test('does not duplicate options when using numeric values', async () => {
   render(
     <AsyncSelect
@@ -856,6 +898,45 @@ test('does not duplicate options when using numeric values', async () => {
   );
   await type('1');
   await waitFor(() => expect(getAllSelectOptions().length).toBe(1));
+});
+
+test('pasting an existing option does not duplicate it', async () => {
+  const options = jest.fn(async () => ({
+    data: [OPTIONS[0]],
+    totalCount: 1,
+  }));
+  render(<AsyncSelect {...defaultProps} options={options} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => OPTIONS[0].label,
+    },
+  });
+  fireEvent(input, paste);
+  expect(await findAllSelectOptions()).toHaveLength(1);
+});
+
+test('pasting an existing option does not duplicate it in multiple mode', async () => {
+  const options = jest.fn(async () => ({
+    data: [
+      { label: 'John', value: 1 },
+      { label: 'Liam', value: 2 },
+      { label: 'Olivia', value: 3 },
+    ],
+    totalCount: 3,
+  }));
+  render(<AsyncSelect {...defaultProps} options={options} mode="multiple" />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'John,Liam,Peter',
+    },
+  });
+  fireEvent(input, paste);
+  // Only Peter should be added
+  expect(await findAllSelectOptions()).toHaveLength(4);
 });
 
 /*

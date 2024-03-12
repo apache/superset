@@ -66,6 +66,7 @@ class SupersetErrorType(StrEnum):
     MISSING_OWNERSHIP_ERROR = "MISSING_OWNERSHIP_ERROR"
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
     DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
+    CHART_SECURITY_ACCESS_ERROR = "CHART_SECURITY_ACCESS_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
@@ -90,6 +91,7 @@ class SupersetErrorType(StrEnum):
     # API errors
     INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
     INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
+    MARSHMALLOW_ERROR = "MARSHMALLOW_ERROR"
 
     # Report errors
     REPORT_NOTIFICATION_ERROR = "REPORT_NOTIFICATION_ERROR"
@@ -131,7 +133,7 @@ ISSUE_CODES = {
     1025: _("CVAS (create view as select) query is not a SELECT statement."),
     1026: _("Query is too complex and takes too long to run."),
     1027: _("The database is currently running too many queries."),
-    1028: _("One or more parameters specified in the query are malformatted."),
+    1028: _("One or more parameters specified in the query are malformed."),
     1029: _("The object does not exist in the given database."),
     1030: _("The query has a syntax error."),
     1031: _("The results backend no longer has the data from the query."),
@@ -144,6 +146,7 @@ ISSUE_CODES = {
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
     1037: _("Custom SQL fields cannot contain sub-queries."),
+    1040: _("The submitted payload failed validation."),
 }
 
 
@@ -181,6 +184,7 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
     SupersetErrorType.ASYNC_WORKERS_ERROR: [1035],
     SupersetErrorType.DATABASE_NOT_FOUND_ERROR: [1011, 1036],
     SupersetErrorType.CONNECTION_DATABASE_TIMEOUT: [1001, 1009],
+    SupersetErrorType.MARSHMALLOW_ERROR: [1040],
 }
 
 

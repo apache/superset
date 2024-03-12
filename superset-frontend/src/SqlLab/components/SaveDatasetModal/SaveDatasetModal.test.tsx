@@ -39,7 +39,7 @@ const mockedProps = {
   datasource: testQuery,
 };
 
-fetchMock.get('glob:*/api/v1/dataset?*', {
+fetchMock.get('glob:*/api/v1/dataset/?*', {
   result: mockdatasets,
   dataset_count: 3,
 });

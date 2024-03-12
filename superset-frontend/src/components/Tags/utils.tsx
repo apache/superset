@@ -46,7 +46,7 @@ export const tagToSelectOption = (
 ): SelectTagsValue => ({
   value: item.name,
   label: item.name,
-  key: item.name,
+  key: item.id,
 });
 
 export const loadTags = async (
@@ -56,7 +56,10 @@ export const loadTags = async (
 ) => {
   const searchColumn = 'name';
   const query = rison.encode({
-    filters: [{ col: searchColumn, opr: 'ct', value: search }],
+    filters: [
+      { col: searchColumn, opr: 'ct', value: search },
+      { col: 'type', opr: 'custom_tag', value: true },
+    ],
     page,
     page_size: pageSize,
     order_column: searchColumn,
@@ -66,7 +69,7 @@ export const loadTags = async (
   const getErrorMessage = ({ error, message }: ClientErrorObject) => {
     let errorText = message || error || t('An error has occurred');
     if (message === 'Forbidden') {
-      errorText = t('You do not have permission to edit this dashboard');
+      errorText = t('You do not have permission to read tags');
     }
     return errorText;
   };
@@ -78,9 +81,7 @@ export const loadTags = async (
       const data: {
         label: string;
         value: string | number;
-      }[] = response.json.result
-        .filter((item: Tag & { table_name: string }) => item.type === 1)
-        .map(tagToSelectOption);
+      }[] = response.json.result.map(tagToSelectOption);
       return {
         data,
         totalCount: response.json.count,

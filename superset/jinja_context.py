@@ -17,23 +17,28 @@
 """Defines the templating context for SQL Lab"""
 import json
 import re
+from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
-from flask import current_app, g, has_request_context, request
+import dateutil
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
+    get_user_email,
     get_user_id,
+    get_username,
     merge_extra_filters,
 )
 
@@ -82,6 +87,7 @@ class ExtraCache:
         r"\{\{.*("
         r"current_user_id\(.*\)|"
         r"current_username\(.*\)|"
+        r"current_user_email\(.*\)|"
         r"cache_key_wrapper\(.*\)|"
         r"url_param\(.*\)"
         r").*\}\}"
@@ -107,11 +113,10 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if hasattr(g, "user") and g.user:
-            id_ = get_user_id()
+        if user_id := get_user_id():
             if add_to_cache_keys:
-                self.cache_key_wrapper(id_)
-            return id_
+                self.cache_key_wrapper(user_id)
+            return user_id
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -122,10 +127,24 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user and hasattr(g.user, "username"):
+        if username := get_username():
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.username)
-            return g.user.username
+                self.cache_key_wrapper(username)
+            return username
+        return None
+
+    def current_user_email(self, add_to_cache_keys: bool = True) -> Optional[str]:
+        """
+        Return the email address of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user email address
+        """
+
+        if email_address := get_user_email():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(email_address)
+            return email_address
         return None
 
     def cache_key_wrapper(self, key: Any) -> Any:
@@ -157,7 +176,7 @@ class ExtraCache:
 
         When in SQL Lab, it's possible to add arbitrary URL "query string" parameters,
         and use those in your SQL code. For instance you can alter your url and add
-        `?foo=bar`, as in `{domain}/superset/sqllab?foo=bar`. Then if your query is
+        `?foo=bar`, as in `{domain}/sqllab?foo=bar`. Then if your query is
         something like SELECT * FROM foo = '{{ url_param('foo') }}', it will be parsed
         at runtime and replaced by the value in the URL.
 
@@ -396,23 +415,39 @@ def validate_template_context(
     return validate_context_types(context)
 
 
-def where_in(values: list[Any], mark: str = "'") -> str:
-    """
-    Given a list of values, build a parenthesis list suitable for an IN expression.
+class WhereInMacro:  # pylint: disable=too-few-public-methods
+    def __init__(self, dialect: Dialect):
+        self.dialect = dialect
 
-        >>> where_in([1, "b", 3])
-        (1, 'b', 3)
+    def __call__(self, values: list[Any], mark: Optional[str] = None) -> str:
+        """
+        Given a list of values, build a parenthesis list suitable for an IN expression.
 
-    """
+            >>> from sqlalchemy.dialects import mysql
+            >>> where_in = WhereInMacro(dialect=mysql.dialect())
+            >>> where_in([1, "Joe's", 3])
+            (1, 'Joe''s', 3)
 
-    def quote(value: Any) -> str:
-        if isinstance(value, str):
-            value = value.replace(mark, mark * 2)
-            return f"{mark}{value}{mark}"
-        return str(value)
+        """
+        binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
+        string_representations = [
+            str(
+                bind.compile(
+                    dialect=self.dialect, compile_kwargs={"literal_binds": True}
+                )
+            )
+            for bind in binds
+        ]
+        joined_values = ", ".join(string_representations)
+        result = f"({joined_values})"
 
-    joined_values = ", ".join(quote(value) for value in values)
-    return f"({joined_values})"
+        if mark:
+            result += (
+                "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
+                "macro for security reasons\n"
+            )
+
+        return result
 
 
 class BaseTemplateProcessor:
@@ -448,7 +483,7 @@ class BaseTemplateProcessor:
         self.set_context(**kwargs)
 
         # custom filters
-        self._env.filters["where_in"] = where_in
+        self._env.filters["where_in"] = WhereInMacro(database.get_dialect())
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
@@ -469,6 +504,19 @@ class BaseTemplateProcessor:
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
+    def _parse_datetime(self, dttm: str) -> Optional[datetime]:
+        """
+        Try to parse a datetime and default to None in the worst case.
+
+        Since this may have been rendered by different engines, the datetime may
+        vary slightly in format. We try to make it consistent, and if all else
+        fails, just return None.
+        """
+        try:
+            return dateutil.parser.parse(dttm)
+        except dateutil.parser.ParserError:
+            return None
+
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         extra_cache = ExtraCache(
@@ -477,15 +525,35 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             removed_filters=self._removed_filters,
             dialect=self._database.get_dialect(),
         )
+
+        from_dttm = (
+            self._parse_datetime(dttm)
+            if (dttm := self._context.get("from_dttm"))
+            else None
+        )
+        to_dttm = (
+            self._parse_datetime(dttm)
+            if (dttm := self._context.get("to_dttm"))
+            else None
+        )
+
+        dataset_macro_with_context = partial(
+            dataset_macro,
+            from_dttm=from_dttm,
+            to_dttm=to_dttm,
+        )
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "current_user_email": partial(
+                    safe_proxy, extra_cache.current_user_email
+                ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
-                "dataset": partial(safe_proxy, dataset_macro),
+                "dataset": partial(safe_proxy, dataset_macro_with_context),
             }
         )
 
@@ -621,12 +689,18 @@ def dataset_macro(
     dataset_id: int,
     include_metrics: bool = False,
     columns: Optional[list[str]] = None,
+    from_dttm: Optional[datetime] = None,
+    to_dttm: Optional[datetime] = None,
 ) -> str:
     """
     Given a dataset ID, return the SQL that represents it.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
+
+    The from_dttm and to_dttm parameters are filled in from filter values in explore
+    views, and we take them to make those properties available to jinja templates in
+    the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.dataset import DatasetDAO
@@ -642,6 +716,8 @@ def dataset_macro(
         "filter": [],
         "metrics": metrics if include_metrics else None,
         "columns": columns,
+        "from_dttm": from_dttm,
+        "to_dttm": to_dttm,
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql

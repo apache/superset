@@ -128,6 +128,20 @@ const Styles = styled.div`
   }
 `;
 
+const LoadingDiv = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const MessageSpan = styled.span`
+  display: block;
+  margin: ${({ theme }) => theme.gridUnit * 4}px auto;
+  width: fit-content;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 const MonospaceDiv = styled.div`
   font-family: ${({ theme }) => theme.typography.families.monospace};
   word-break: break-word;
@@ -155,27 +169,15 @@ class Chart extends React.PureComponent {
   }
 
   runQuery() {
-    if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
-      // Load saved chart with a GET request
-      this.props.actions.getSavedChart(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    } else {
-      // Create chart with POST request
-      this.props.actions.postChartFormData(
-        this.props.formData,
-        this.props.force || getUrlParam(URL_PARAMS.force), // allow override via url params force=true
-        this.props.timeout,
-        this.props.chartId,
-        this.props.dashboardId,
-        this.props.ownState,
-      );
-    }
+    // Create chart with POST request
+    this.props.actions.postChartFormData(
+      this.props.formData,
+      Boolean(this.props.force || getUrlParam(URL_PARAMS.force)), // allow override via url params force=true
+      this.props.timeout,
+      this.props.chartId,
+      this.props.dashboardId,
+      this.props.ownState,
+    );
   }
 
   handleRenderContainerFailure(error, info) {
@@ -215,7 +217,7 @@ class Chart extends React.PureComponent {
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
-      datasetsStatus !== ResourceStatus.ERROR
+      datasetsStatus !== ResourceStatus.Error
     ) {
       return (
         <Styles
@@ -244,16 +246,49 @@ class Chart extends React.PureComponent {
     );
   }
 
+  renderSpinner(databaseName) {
+    const message = databaseName
+      ? t('Waiting on %s', databaseName)
+      : t('Waiting on database...');
+
+    return (
+      <LoadingDiv>
+        <Loading position="inline-centered" />
+        <MessageSpan>{message}</MessageSpan>
+      </LoadingDiv>
+    );
+  }
+
+  renderChartContainer() {
+    return (
+      <div className="slice_container" data-test="slice-container">
+        {this.props.isInView ||
+        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+        isCurrentUserBot() ? (
+          <ChartRenderer
+            {...this.props}
+            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            data-test={this.props.vizType}
+          />
+        ) : (
+          <Loading />
+        )}
+      </div>
+    );
+  }
+
   render() {
     const {
       height,
       chartAlert,
       chartStatus,
+      datasource,
       errorMessage,
       chartIsStale,
       queriesResponse = [],
       width,
     } = this.props;
+    const databaseName = datasource?.database?.name;
 
     const isLoading = chartStatus === 'loading';
     this.renderContainerStartTime = Logger.getTimestamp();
@@ -309,20 +344,9 @@ class Chart extends React.PureComponent {
           height={height}
           width={width}
         >
-          <div className="slice_container" data-test="slice-container">
-            {this.props.isInView ||
-            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ||
-            isCurrentUserBot() ? (
-              <ChartRenderer
-                {...this.props}
-                source={this.props.dashboardId ? 'dashboard' : 'explore'}
-                data-test={this.props.vizType}
-              />
-            ) : (
-              <Loading />
-            )}
-          </div>
-          {isLoading && <Loading />}
+          {isLoading
+            ? this.renderSpinner(databaseName)
+            : this.renderChartContainer()}
         </Styles>
       </ErrorBoundary>
     );

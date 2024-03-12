@@ -18,38 +18,38 @@
  */
 
 export enum MetadataType {
-  DASHBOARDS = 'dashboards',
-  DESCRIPTION = 'description',
-  LAST_MODIFIED = 'lastModified',
-  OWNER = 'owner',
-  ROWS = 'rows',
-  SQL = 'sql',
-  TABLE = 'table',
-  TAGS = 'tags',
+  Dashboards = 'dashboards',
+  Description = 'description',
+  LastModified = 'lastModified',
+  Owner = 'owner',
+  Rows = 'rows',
+  Sql = 'sql',
+  Table = 'table',
+  Tags = 'tags',
 }
 
 export type Dashboards = {
-  type: MetadataType.DASHBOARDS;
+  type: MetadataType.Dashboards;
   title: string;
   description?: string;
   onClick?: (type: string) => void;
 };
 
 export type Description = {
-  type: MetadataType.DESCRIPTION;
+  type: MetadataType.Description;
   value: string;
   onClick?: (type: string) => void;
 };
 
 export type LastModified = {
-  type: MetadataType.LAST_MODIFIED;
+  type: MetadataType.LastModified;
   value: string;
   modifiedBy: string;
   onClick?: (type: string) => void;
 };
 
 export type Owner = {
-  type: MetadataType.OWNER;
+  type: MetadataType.Owner;
   createdBy: string;
   owners?: string[];
   createdOn: string;
@@ -57,25 +57,25 @@ export type Owner = {
 };
 
 export type Rows = {
-  type: MetadataType.ROWS;
+  type: MetadataType.Rows;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Sql = {
-  type: MetadataType.SQL;
+  type: MetadataType.Sql;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Table = {
-  type: MetadataType.TABLE;
+  type: MetadataType.Table;
   title: string;
   onClick?: (type: string) => void;
 };
 
 export type Tags = {
-  type: MetadataType.TAGS;
+  type: MetadataType.Tags;
   values: string[];
   onClick?: (type: string) => void;
 };

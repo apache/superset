@@ -24,10 +24,10 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
-import { Table } from 'src/SqlLab/types';
+import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
   addTable,
@@ -46,7 +46,7 @@ import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components/DatabaseSelector';
 import { emptyStateComponent } from 'src/components/EmptyState';
 import {
   getItem,
@@ -55,16 +55,11 @@ import {
 } from 'src/utils/localStorageHelpers';
 import TableElement from '../TableElement';
 
-interface ExtendedTable extends Table {
-  expanded: boolean;
-}
-
-interface SqlEditorLeftBarProps {
+export interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
-  tables?: ExtendedTable[];
-  database: DatabaseObject;
-  setEmptyState: Dispatch<SetStateAction<boolean>>;
+  database?: DatabaseObject;
+  setEmptyState?: Dispatch<SetStateAction<boolean>>;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -85,7 +80,9 @@ const collapseStyles = (theme: SupersetTheme) => css`
     padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
-    top: ${theme.gridUnit * 2}px !important;
+    padding: 0 !important;
+    bottom: ${theme.gridUnit}px !important;
+    right: ${theme.gridUnit * 4}px !important;
     color: ${theme.colors.primary.dark1} !important;
     &:hover {
       color: ${theme.colors.primary.dark2} !important;
@@ -109,10 +106,14 @@ const LeftBarStyles = styled.div`
 const SqlEditorLeftBar = ({
   database,
   queryEditorId,
-  tables = [],
   height = 500,
   setEmptyState,
 }: SqlEditorLeftBarProps) => {
+  const tables = useSelector<SqlLabRootState, Table[]>(
+    ({ sqlLab }) =>
+      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
+    shallowEqual,
+  );
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
 
@@ -125,14 +126,16 @@ const SqlEditorLeftBar = ({
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
     const userSelected = getItem(
-      LocalStorageKeys.db,
+      LocalStorageKeys.Database,
       null,
     ) as DatabaseObject | null;
 
     if (bool && userSelected) {
       setUserSelected(userSelected);
-      setItem(LocalStorageKeys.db, null);
-    } else setUserSelected(database);
+      setItem(LocalStorageKeys.Database, null);
+    } else if (database) {
+      setUserSelected(database);
+    }
   }, [database]);
 
   const onEmptyResults = (searchText?: string) => {
@@ -140,7 +143,7 @@ const SqlEditorLeftBar = ({
   };
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState(false);
+    setEmptyState?.(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 
@@ -173,7 +176,7 @@ const SqlEditorLeftBar = ({
   };
 
   const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: ExtendedTable) => {
+    tables.forEach(table => {
       if (!updatedTables.includes(table.id.toString()) && table.expanded) {
         dispatch(collapseTable(table));
       } else if (

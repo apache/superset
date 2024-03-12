@@ -109,14 +109,12 @@ describe('Charts list', () => {
 
     it('should load rows in list mode', () => {
       cy.getBySel('listview-table').should('be.visible');
-      cy.getBySel('sort-header').eq(1).contains('Chart');
-      cy.getBySel('sort-header').eq(2).contains('Visualization type');
+      cy.getBySel('sort-header').eq(1).contains('Name');
+      cy.getBySel('sort-header').eq(2).contains('Type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
-      // cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
-      cy.getBySel('sort-header').eq(4).contains('Modified by');
+      cy.getBySel('sort-header').eq(4).contains('Owners');
       cy.getBySel('sort-header').eq(5).contains('Last modified');
-      cy.getBySel('sort-header').eq(6).contains('Created by');
-      cy.getBySel('sort-header').eq(7).contains('Actions');
+      cy.getBySel('sort-header').eq(6).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {
@@ -174,6 +172,13 @@ describe('Charts list', () => {
     it('should sort in card mode', () => {
       orderAlphabetical();
       cy.getBySel('styled-card').first().contains('% Rural');
+    });
+
+    it('should preserve other filters when sorting', () => {
+      cy.getBySel('styled-card').should('have.length', 25);
+      setFilter('Type', 'Big Number');
+      setFilter('Sort', 'Least recently modified');
+      cy.getBySel('styled-card').should('have.length', 3);
     });
   });
 

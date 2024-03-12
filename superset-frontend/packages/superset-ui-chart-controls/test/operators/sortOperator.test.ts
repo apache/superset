@@ -18,7 +18,6 @@
  */
 import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { sortOperator } from '@superset-ui/chart-controls';
-import * as supersetCoreModule from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   metrics: [
@@ -54,16 +53,6 @@ const queryObject: QueryObject = {
 };
 
 test('should ignore the sortOperator', () => {
-  // FF is disabled
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: false,
-  });
-  expect(sortOperator(formData, queryObject)).toEqual(undefined);
-
-  // FF is enabled
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
@@ -78,9 +67,6 @@ test('should ignore the sortOperator', () => {
   ).toEqual(undefined);
 
   // sortOperator doesn't support multiple series
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
@@ -98,9 +84,6 @@ test('should ignore the sortOperator', () => {
 });
 
 test('should sort by metric', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
@@ -123,9 +106,6 @@ test('should sort by metric', () => {
 });
 
 test('should sort by axis', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {
@@ -148,9 +128,6 @@ test('should sort by axis', () => {
 });
 
 test('should sort by extra metric', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   expect(
     sortOperator(
       {

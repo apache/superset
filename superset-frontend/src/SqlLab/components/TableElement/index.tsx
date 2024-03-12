@@ -259,6 +259,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           display: flex;
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
+          & span {
+            display: flex;
+            justify-content: center;
+            width: ${theme.gridUnit * 4}px;
+          }
         `}
       >
         {keyLink}
@@ -372,9 +377,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       >
         {renderWell()}
         <div>
-          {cols?.map(col => (
-            <ColumnElement column={col} key={col.name} />
-          ))}
+          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
         </div>
       </div>
     );

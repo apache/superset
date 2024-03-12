@@ -36,11 +36,11 @@ export const FRAME_OPTIONS: SelectOptionType[] = [
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('last day') },
-  { value: 'Last week', label: t('last week') },
-  { value: 'Last month', label: t('last month') },
-  { value: 'Last quarter', label: t('last quarter') },
-  { value: 'Last year', label: t('last year') },
+  { value: 'Last day', label: t('Last day') },
+  { value: 'Last week', label: t('Last week') },
+  { value: 'Last month', label: t('Last month') },
+  { value: 'Last quarter', label: t('Last quarter') },
+  { value: 'Last year', label: t('Last year') },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
   COMMON_RANGE_OPTIONS.map(({ value }) => value),
@@ -132,11 +132,11 @@ export const LOCALE_MAPPING = {
   nl: 'nl_NL',
 };
 
-export enum DATE_FILTER_TEST_KEY {
-  commonFrame = 'common-frame',
-  modalOverlay = 'modal-overlay',
-  popoverOverlay = 'time-range-trigger',
-  noFilter = 'no-filter',
-  cancelButton = 'cancel-button',
-  applyButton = 'date-filter-control__apply-button',
+export enum DateFilterTestKey {
+  CommonFrame = 'common-frame',
+  ModalOverlay = 'modal-overlay',
+  PopoverOverlay = 'time-range-trigger',
+  NoFilter = 'no-filter',
+  CancelButton = 'cancel-button',
+  ApplyButton = 'date-filter-control__apply-button',
 }

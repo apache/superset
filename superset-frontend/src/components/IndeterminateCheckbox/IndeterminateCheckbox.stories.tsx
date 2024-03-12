@@ -35,11 +35,3 @@ InteractiveIndeterminateCheckbox.args = {
   title: 'Checkbox title',
   onChange: () => null,
 };
-
-InteractiveIndeterminateCheckbox.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
