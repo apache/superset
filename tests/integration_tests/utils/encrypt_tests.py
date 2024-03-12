@@ -30,7 +30,7 @@ class CustomEncFieldAdapter(AbstractEncryptedFieldAdapter):
         self,
         app_config: Optional[dict[str, Any]],
         *args: list[Any],
-        **kwargs: Optional[dict[str, Any]]
+        **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
             return StringEncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
