@@ -59,7 +59,10 @@ def upgrade():
         #
         needs_upgrade = True
         try:
-            json_metadata = json.loads(dashboard.json_metadata or "{}")
+            try:
+                json_metadata = json.loads(dashboard.json_metadata or "{}")
+            except Exception as e:
+                json_metadata = json.loads("{}")
             new_chart_configuration = {}
             for config in json_metadata.get("chart_configuration", {}).values():
                 if not isinstance(config, dict):
