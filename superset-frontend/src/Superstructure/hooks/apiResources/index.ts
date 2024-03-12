@@ -1,4 +1,3 @@
-// DODO was here
 export {
   useApiResourceFullBody,
   useApiV1Resource,

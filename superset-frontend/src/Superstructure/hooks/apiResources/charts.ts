@@ -1,4 +1,3 @@
-// DODO was here
 import rison from 'rison';
 import Chart from 'src/types/Chart';
 import {
