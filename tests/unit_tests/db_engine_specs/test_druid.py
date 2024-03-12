@@ -74,10 +74,10 @@ def test_extras_without_ssl() -> None:
     from superset.db_engine_specs.druid import DruidEngineSpec
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = None
-    extras = DruidEngineSpec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = None
+    extras = DruidEngineSpec.get_extra_params(database)
     assert "connect_args" not in extras["engine_params"]
 
 
@@ -86,10 +86,10 @@ def test_extras_with_ssl() -> None:
     from tests.integration_tests.fixtures.certificates import ssl_certificate
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = ssl_certificate
-    extras = DruidEngineSpec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = ssl_certificate
+    extras = DruidEngineSpec.get_extra_params(database)
     connect_args = extras["engine_params"]["connect_args"]
     assert connect_args["scheme"] == "https"
     assert "ssl_verify_cert" in connect_args

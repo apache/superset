@@ -20,7 +20,6 @@ from typing import Any, Callable, Optional
 
 import yaml
 from flask_appbuilder import Model
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import make_transient
 
 from superset import db
@@ -86,7 +85,6 @@ def import_dataset(
         raise DatasetInvalidError
 
     return import_datasource(
-        db.session,
         i_datasource,
         lookup_database,
         lookup_datasource,
@@ -95,9 +93,9 @@ def import_dataset(
     )
 
 
-def lookup_sqla_metric(session: Session, metric: SqlMetric) -> SqlMetric:
+def lookup_sqla_metric(metric: SqlMetric) -> SqlMetric:
     return (
-        session.query(SqlMetric)
+        db.session.query(SqlMetric)
         .filter(
             SqlMetric.table_id == metric.table_id,
             SqlMetric.metric_name == metric.metric_name,
@@ -106,13 +104,13 @@ def lookup_sqla_metric(session: Session, metric: SqlMetric) -> SqlMetric:
     )
 
 
-def import_metric(session: Session, metric: SqlMetric) -> SqlMetric:
-    return import_simple_obj(session, metric, lookup_sqla_metric)
+def import_metric(metric: SqlMetric) -> SqlMetric:
+    return import_simple_obj(metric, lookup_sqla_metric)
 
 
-def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
+def lookup_sqla_column(column: TableColumn) -> TableColumn:
     return (
-        session.query(TableColumn)
+        db.session.query(TableColumn)
         .filter(
             TableColumn.table_id == column.table_id,
             TableColumn.column_name == column.column_name,
@@ -121,12 +119,11 @@ def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
     )
 
 
-def import_column(session: Session, column: TableColumn) -> TableColumn:
-    return import_simple_obj(session, column, lookup_sqla_column)
+def import_column(column: TableColumn) -> TableColumn:
+    return import_simple_obj(column, lookup_sqla_column)
 
 
-def import_datasource(  # pylint: disable=too-many-arguments
-    session: Session,
+def import_datasource(
     i_datasource: Model,
     lookup_database: Callable[[Model], Optional[Model]],
     lookup_datasource: Callable[[Model], Optional[Model]],
@@ -155,11 +152,11 @@ def import_datasource(  # pylint: disable=too-many-arguments
 
     if datasource:
         datasource.override(i_datasource)
-        session.flush()
+        db.session.flush()
     else:
         datasource = i_datasource.copy()
-        session.add(datasource)
-        session.flush()
+        db.session.add(datasource)
+        db.session.flush()
 
     for metric in i_datasource.metrics:
         new_m = metric.copy()
@@ -169,7 +166,7 @@ def import_datasource(  # pylint: disable=too-many-arguments
             new_m.to_json(),
             i_datasource.full_name,
         )
-        imported_m = import_metric(session, new_m)
+        imported_m = import_metric(new_m)
         if imported_m.metric_name not in [m.metric_name for m in datasource.metrics]:
             datasource.metrics.append(imported_m)
 
@@ -181,44 +178,40 @@ def import_datasource(  # pylint: disable=too-many-arguments
             new_c.to_json(),
             i_datasource.full_name,
         )
-        imported_c = import_column(session, new_c)
+        imported_c = import_column(new_c)
         if imported_c.column_name not in [c.column_name for c in datasource.columns]:
             datasource.columns.append(imported_c)
-    session.flush()
+    db.session.flush()
     return datasource.id
 
 
-def import_simple_obj(
-    session: Session, i_obj: Model, lookup_obj: Callable[[Session, Model], Model]
-) -> Model:
+def import_simple_obj(i_obj: Model, lookup_obj: Callable[[Model], Model]) -> Model:
     make_transient(i_obj)
     i_obj.id = None
     i_obj.table = None
 
     # find if the column was already imported
-    existing_column = lookup_obj(session, i_obj)
+    existing_column = lookup_obj(i_obj)
     i_obj.table = None
     if existing_column:
         existing_column.override(i_obj)
-        session.flush()
+        db.session.flush()
         return existing_column
 
-    session.add(i_obj)
-    session.flush()
+    db.session.add(i_obj)
+    db.session.flush()
     return i_obj
 
 
-def import_from_dict(
-    session: Session, data: dict[str, Any], sync: Optional[list[str]] = None
-) -> None:
+def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> None:
     """Imports databases from dictionary"""
     if not sync:
         sync = []
     if isinstance(data, dict):
         logger.info("Importing %d %s", len(data.get(DATABASES_KEY, [])), DATABASES_KEY)
         for database in data.get(DATABASES_KEY, []):
-            Database.import_from_dict(session, database, sync=sync)
-        session.commit()
+            Database.import_from_dict(database, sync=sync)
+        db.session.commit()
     else:
         logger.info("Supplied object is not a dictionary.")
 
@@ -254,7 +247,7 @@ class ImportDatasetsCommand(BaseCommand):
         for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
             if isinstance(config, dict):
-                import_from_dict(db.session, config, sync=self.sync)
+                import_from_dict(config, sync=self.sync)
             else:  # list
                 for dataset in config:
                     # UI exports don't have the database metadata, so we assume
@@ -266,7 +259,7 @@ class ImportDatasetsCommand(BaseCommand):
                         .one()
                     )
                     dataset["database_id"] = database.id
-                    SqlaTable.import_from_dict(db.session, dataset, sync=self.sync)
+                    SqlaTable.import_from_dict(dataset, sync=self.sync)
 
     def validate(self) -> None:
         # ensure all files are YAML

@@ -186,8 +186,8 @@ const ColumnSelectPopover = ({
   const defaultActiveTabKey = initialAdhocColumn
     ? 'sqlExpression'
     : initialSimpleColumn || calculatedColumns.length === 0
-    ? 'simple'
-    : 'saved';
+      ? 'simple'
+      : 'saved';
 
   useEffect(() => {
     getCurrentTab(defaultActiveTabKey);

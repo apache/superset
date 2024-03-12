@@ -25,7 +25,7 @@ import { ColumnTypeLabel, ColumnTypeLabelProps } from '../../src';
 
 describe('ColumnOption', () => {
   const defaultProps = {
-    type: GenericDataType.STRING,
+    type: GenericDataType.String,
   };
 
   const props = { ...defaultProps };
@@ -40,15 +40,15 @@ describe('ColumnOption', () => {
     );
   });
   it('string type shows ABC icon', () => {
-    renderColumnTypeLabel({ type: GenericDataType.STRING });
+    renderColumnTypeLabel({ type: GenericDataType.String });
     expect(screen.getByLabelText('string type icon')).toBeVisible();
   });
   it('int type shows # icon', () => {
-    renderColumnTypeLabel({ type: GenericDataType.NUMERIC });
+    renderColumnTypeLabel({ type: GenericDataType.Numeric });
     expect(screen.getByLabelText('numeric type icon')).toBeVisible();
   });
   it('bool type shows 1|0 icon', () => {
-    renderColumnTypeLabel({ type: GenericDataType.BOOLEAN });
+    renderColumnTypeLabel({ type: GenericDataType.Boolean });
     expect(screen.getByLabelText('boolean type icon')).toBeVisible();
   });
   it('expression type shows function icon', () => {
@@ -60,7 +60,7 @@ describe('ColumnOption', () => {
     expect(screen.getByLabelText('unknown type icon')).toBeVisible();
   });
   it('datetime type displays', () => {
-    renderColumnTypeLabel({ type: GenericDataType.TEMPORAL });
+    renderColumnTypeLabel({ type: GenericDataType.Temporal });
     expect(screen.getByLabelText('temporal type icon')).toBeVisible();
   });
 });

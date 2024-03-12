@@ -49,7 +49,10 @@ is configured as a pre-commit hook. There are also numerous [editor integrations
 ```bash
 cd superset-frontend
 npm ci
-npm run lint
+# run eslint checks
+npm run eslint -- .
+# run tsc (typescript) checks
+npm run type
 ```
 
 If using the eslint extension with vscode, put the following in your workspace `settings.json` file:

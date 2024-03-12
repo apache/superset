@@ -55,7 +55,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: QueryState.SUCCESS,
+  status: QueryState.Success,
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',

@@ -26,3 +26,5 @@ export { default as PathChartPlugin } from './layers/Path';
 export { default as PolygonChartPlugin } from './layers/Polygon';
 export { default as ScatterChartPlugin } from './layers/Scatter';
 export { default as ScreengridChartPlugin } from './layers/Screengrid';
+export { default as ContourChartPlugin } from './layers/Contour';
+export { default as HeatmapChartPlugin } from './layers/Heatmap';

@@ -122,7 +122,7 @@ function DashboardCard({
           <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
         cover={
-          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
           ) : null
         }

@@ -80,7 +80,7 @@ class ImportExportRestApi(BaseSupersetApi):
         with ZipFile(buf, "w") as bundle:
             for file_name, file_content in ExportAssetsCommand().run():
                 with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+                    fp.write(file_content().encode())
         buf.seek(0)
 
         response = send_file(

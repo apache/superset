@@ -23,6 +23,7 @@ from pandas import DataFrame
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
+from superset.utils.decorators import suppress_logging
 from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 
@@ -52,8 +53,10 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
     Fit a prophet model and return a DataFrame with predicted results.
     """
     try:
-        # pylint: disable=import-outside-toplevel
-        from prophet import Prophet
+        # `prophet` complains about `plotly` not being installed
+        with suppress_logging("prophet.plot"):
+            # pylint: disable=import-outside-toplevel
+            from prophet import Prophet
 
         prophet_logger = logging.getLogger("prophet.plot")
         prophet_logger.setLevel(logging.CRITICAL)

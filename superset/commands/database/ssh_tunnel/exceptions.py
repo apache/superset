@@ -38,6 +38,10 @@ class SSHTunnelInvalidError(CommandInvalidError):
     message = _("SSH Tunnel parameters are invalid.")
 
 
+class SSHTunnelDatabasePortError(CommandInvalidError):
+    message = _("A database port is required when connecting via SSH Tunnel.")
+
+
 class SSHTunnelUpdateFailedError(UpdateFailedError):
     message = _("SSH Tunnel could not be updated.")
 

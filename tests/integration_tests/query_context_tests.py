@@ -145,7 +145,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )
@@ -169,7 +168,6 @@ class TestQueryContext(SupersetTestCase):
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(payload["datasource"]["type"]),
             datasource_id=payload["datasource"]["id"],
         )

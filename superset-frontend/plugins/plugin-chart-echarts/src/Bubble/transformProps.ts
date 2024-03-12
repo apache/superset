@@ -158,7 +158,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     convertInteger(xAxisTitleMargin),
   );
 
-  const xAxisType = logXAxis ? AxisType.log : AxisType.value;
+  const xAxisType = logXAxis ? AxisType.Log : AxisType.Value;
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
@@ -196,7 +196,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       nameGap: convertInteger(yAxisTitleMargin),
       min: yAxisMin,
       max: yAxisMax,
-      type: logYAxis ? AxisType.log : AxisType.value,
+      type: logYAxis ? AxisType.Log : AxisType.Value,
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),

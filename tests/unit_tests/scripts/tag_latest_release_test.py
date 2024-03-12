@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import subprocess
 from unittest import mock
 from unittest.mock import patch
@@ -17,7 +33,7 @@ def wrapped(*args, **kwargs):
     "tag, expected_output",
     [
         ("1.0.0", "This release tag 1.0.0 is older than the latest."),
-        ("2.1.0", "Versions are equal\n::set-output name=SKIP_TAG::true"),
+        ("2.1.0", "Versions are equal\n"),
         ("2.1.1", "This release tag 2.1.1 is newer than the latest."),
         ("3.0.0", "This release tag 3.0.0 is newer than the latest."),
         ("2.1.0rc1", "This tag 2.1.0rc1 is not a valid release version. Not tagging."),
@@ -28,7 +44,7 @@ def wrapped(*args, **kwargs):
         ("2.1", "This tag 2.1 is not a valid release version. Not tagging."),
         (
             "does_not_exist",
-            "The tag does_not_exist does not exist. Please use a different tag.\n::set-output name=SKIP_TAG::true",
+            "The tag does_not_exist does not exist. Please use a different tag.\n",
         ),
     ],
 )

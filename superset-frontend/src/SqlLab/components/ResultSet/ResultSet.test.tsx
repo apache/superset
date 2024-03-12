@@ -37,65 +37,91 @@ import {
 
 const mockedProps = {
   cache: true,
-  query: queries[0],
+  queryId: queries[0].id,
   height: 140,
   database: { allows_virtual_table_explore: true },
-  user,
+  displayLimit: 1000,
   defaultQueryLimit: 1000,
 };
-const stoppedQueryProps = { ...mockedProps, query: stoppedQuery };
-const runningQueryProps = { ...mockedProps, query: runningQuery };
-const fetchingQueryProps = {
-  ...mockedProps,
-  query: {
-    dbId: 1,
-    cached: false,
-    ctas: false,
-    id: 'ryhHUZCGb',
-    progress: 100,
-    state: 'fetching',
-    startDttm: Date.now() - 500,
-  },
-};
-const cachedQueryProps = { ...mockedProps, query: cachedQuery };
-const failedQueryWithErrorMessageProps = {
-  ...mockedProps,
-  query: failedQueryWithErrorMessage,
-};
-const failedQueryWithErrorsProps = {
-  ...mockedProps,
-  query: failedQueryWithErrors,
-};
-const newProps = {
-  query: {
-    cached: false,
-    resultsKey: 'new key',
-    results: {
-      data: [{ a: 1 }],
+const stoppedQueryState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [stoppedQuery.id]: stoppedQuery,
     },
   },
+};
+const runningQueryState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [runningQuery.id]: runningQuery,
+    },
+  },
+};
+const fetchingQueryState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [mockedProps.queryId]: {
+        dbId: 1,
+        cached: false,
+        ctas: false,
+        id: 'ryhHUZCGb',
+        progress: 100,
+        state: 'fetching',
+        startDttm: Date.now() - 500,
+      },
+    },
+  },
+};
+const cachedQueryState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [cachedQuery.id]: cachedQuery,
+    },
+  },
+};
+const failedQueryWithErrorMessageState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [failedQueryWithErrorMessage.id]: failedQueryWithErrorMessage,
+    },
+  },
+};
+const failedQueryWithErrorsState = {
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    queries: {
+      [failedQueryWithErrors.id]: failedQueryWithErrors,
+    },
+  },
+};
+
+const newProps = {
+  displayLimit: 1001,
 };
 const asyncQueryProps = {
   ...mockedProps,
   database: { allow_run_async: true },
 };
-const asyncRefetchDataPreviewProps = {
-  ...asyncQueryProps,
-  query: {
-    state: 'success',
-    results: undefined,
-    isDataPreview: true,
-  },
-};
-const asyncRefetchResultsTableProps = {
-  ...asyncQueryProps,
-  query: {
-    state: 'success',
-    results: undefined,
-    resultsKey: 'async results key',
-  },
-};
+
+const reRunQueryEndpoint = 'glob:*/api/v1/sqllab/execute/';
 fetchMock.get('glob:*/api/v1/dataset/?*', { result: [] });
+fetchMock.post(reRunQueryEndpoint, { result: [] });
+fetchMock.get('glob:*/api/v1/sqllab/results/*', { result: [] });
+
+beforeEach(() => {
+  fetchMock.resetHistory();
+});
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -107,25 +133,47 @@ const setup = (props?: any, store?: Store) =>
 
 describe('ResultSet', () => {
   test('renders a Table', async () => {
-    const { getByTestId } = setup(mockedProps, mockStore(initialState));
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: queries[0],
+          },
+        },
+      }),
+    );
     const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
   });
 
   test('should render success query', async () => {
+    const query = queries[0];
     const { queryAllByText, getByTestId } = setup(
       mockedProps,
-      mockStore(initialState),
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [query.id]: query,
+          },
+        },
+      }),
     );
 
     const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
 
     const firstColumn = queryAllByText(
-      mockedProps.query.results?.columns[0].column_name ?? '',
+      query.results?.columns[0].column_name ?? '',
     )[0];
     const secondColumn = queryAllByText(
-      mockedProps.query.results?.columns[1].column_name ?? '',
+      query.results?.columns[1].column_name ?? '',
     )[0];
     expect(firstColumn).toBeInTheDocument();
     expect(secondColumn).toBeInTheDocument();
@@ -135,12 +183,24 @@ describe('ResultSet', () => {
   });
 
   test('should render empty results', async () => {
-    const props = {
-      ...mockedProps,
-      query: { ...mockedProps.query, results: { data: [] } },
+    const query = {
+      ...queries[0],
+      results: { data: [] },
     };
     await waitFor(() => {
-      setup(props, mockStore(initialState));
+      setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user,
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [query.id]: query,
+            },
+          },
+        }),
+      );
     });
 
     const alert = screen.getByRole('alert');
@@ -149,42 +209,70 @@ describe('ResultSet', () => {
   });
 
   test('should call reRunQuery if timed out', async () => {
-    const store = mockStore(initialState);
-    const propsWithError = {
-      ...mockedProps,
-      query: { ...queries[0], errorMessage: 'Your session timed out' },
+    const query = {
+      ...queries[0],
+      errorMessage: 'Your session timed out',
     };
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [query.id]: query,
+        },
+      },
+    });
 
-    setup(propsWithError, store);
+    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    setup(mockedProps, store);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.errorMessage).toEqual(
       'Your session timed out',
     );
     expect(store.getActions()[0].type).toEqual('START_QUERY');
+    await waitFor(() =>
+      expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
+    );
   });
 
   test('should not call reRunQuery if no error', async () => {
-    const store = mockStore(initialState);
+    const query = queries[0];
+    const store = mockStore({
+      ...initialState,
+      user,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [query.id]: query,
+        },
+      },
+    });
     setup(mockedProps, store);
     expect(store.getActions()).toEqual([]);
+    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
   });
 
   test('should render cached query', async () => {
-    const store = mockStore(initialState);
-    const { rerender } = setup(cachedQueryProps, store);
+    const store = mockStore(cachedQueryState);
+    const { rerender } = setup(
+      { ...mockedProps, queryId: cachedQuery.id },
+      store,
+    );
 
     // @ts-ignore
-    rerender(<ResultSet {...newProps} />);
-    expect(store.getActions()).toHaveLength(2);
-    expect(store.getActions()[0].query.results).toEqual(
-      cachedQueryProps.query.results,
-    );
+    rerender(<ResultSet {...mockedProps} {...newProps} />);
+    expect(store.getActions()).toHaveLength(1);
+    expect(store.getActions()[0].query.results).toEqual(cachedQuery.results);
     expect(store.getActions()[0].type).toEqual('CLEAR_QUERY_RESULTS');
   });
 
   test('should render stopped query', async () => {
     await waitFor(() => {
-      setup(stoppedQueryProps, mockStore(initialState));
+      setup(
+        { ...mockedProps, queryId: stoppedQuery.id },
+        mockStore(stoppedQueryState),
+      );
     });
 
     const alert = screen.getByRole('alert');
@@ -192,15 +280,18 @@ describe('ResultSet', () => {
   });
 
   test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(runningQueryProps, mockStore(initialState));
+    const { getByTestId } = setup(
+      { ...mockedProps, queryId: runningQuery.id },
+      mockStore(runningQueryState),
+    );
     const progressBar = getByTestId('progress-bar');
     expect(progressBar).toBeInTheDocument();
   });
 
   test('should render fetching w/ 100 progress query', async () => {
     const { getByRole, getByText } = setup(
-      fetchingQueryProps,
-      mockStore(initialState),
+      mockedProps,
+      mockStore(fetchingQueryState),
     );
     const loading = getByRole('status');
     expect(loading).toBeInTheDocument();
@@ -209,7 +300,10 @@ describe('ResultSet', () => {
 
   test('should render a failed query with an error message', async () => {
     await waitFor(() => {
-      setup(failedQueryWithErrorMessageProps, mockStore(initialState));
+      setup(
+        { ...mockedProps, queryId: failedQueryWithErrorMessage.id },
+        mockStore(failedQueryWithErrorMessageState),
+      );
     });
 
     expect(screen.getByText('Database error')).toBeInTheDocument();
@@ -218,44 +312,129 @@ describe('ResultSet', () => {
 
   test('should render a failed query with an errors object', async () => {
     await waitFor(() => {
-      setup(failedQueryWithErrorsProps, mockStore(initialState));
+      setup(
+        { ...mockedProps, queryId: failedQueryWithErrors.id },
+        mockStore(failedQueryWithErrorsState),
+      );
     });
     expect(screen.getByText('Database error')).toBeInTheDocument();
   });
 
   test('renders if there is no limit in query.results but has queryLimit', async () => {
+    const query = {
+      ...queries[0],
+    };
+    await waitFor(() => {
+      setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user,
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [query.id]: query,
+            },
+          },
+        }),
+      );
+    });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
     expect(getByRole('table')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
-    const props = { ...mockedProps, query: queryWithNoQueryLimit };
-    const { getByRole } = setup(props, mockStore(initialState));
+    const props = { ...mockedProps, queryId: queryWithNoQueryLimit.id };
+    const { getByRole } = setup(
+      props,
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queryWithNoQueryLimit.id]: queryWithNoQueryLimit,
+          },
+        },
+      }),
+    );
     expect(getByRole('table')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
-    setup(asyncRefetchDataPreviewProps, mockStore(initialState));
+    const asyncRefetchDataPreviewQuery = {
+      ...queries[0],
+      state: 'success',
+      results: undefined,
+      isDataPreview: true,
+    };
+    setup(
+      { ...asyncQueryProps, queryId: asyncRefetchDataPreviewQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [asyncRefetchDataPreviewQuery.id]: asyncRefetchDataPreviewQuery,
+          },
+        },
+      }),
+    );
     expect(
       screen.getByRole('button', {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).toBe(null);
+    expect(screen.queryByRole('table')).toBe(null);
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
-    setup(asyncRefetchResultsTableProps, mockStore(initialState));
+    const asyncRefetchResultsTableQuery = {
+      ...queries[0],
+      state: 'success',
+      results: undefined,
+      resultsKey: 'async results key',
+    };
+
+    setup(
+      { ...asyncQueryProps, queryId: asyncRefetchResultsTableQuery.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [asyncRefetchResultsTableQuery.id]: asyncRefetchResultsTableQuery,
+          },
+        },
+      }),
+    );
     expect(
       screen.getByRole('button', {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('grid')).toBe(null);
+    expect(screen.queryByRole('table')).toBe(null);
   });
 
   test('Async queries - renders on the first call', () => {
-    setup(asyncQueryProps, mockStore(initialState));
+    const query = {
+      ...queries[0],
+    };
+    setup(
+      { ...asyncQueryProps, queryId: query.id },
+      mockStore({
+        ...initialState,
+        user,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [query.id]: query,
+          },
+        },
+      }),
+    );
     expect(screen.getByRole('table')).toBeVisible();
     expect(
       screen.queryByRole('button', {

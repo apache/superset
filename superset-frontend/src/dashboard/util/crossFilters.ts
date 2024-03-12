@@ -37,7 +37,7 @@ import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
-  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
   (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);
 
 export const getCrossFiltersConfiguration = (
@@ -48,7 +48,7 @@ export const getCrossFiltersConfiguration = (
   >,
   charts: ChartsState,
 ) => {
-  if (!isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (!isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     return undefined;
   }
 
@@ -82,7 +82,7 @@ export const getCrossFiltersConfiguration = (
         {}
       )?.behaviors ?? [];
 
-    if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
+    if (behaviors.includes(Behavior.InteractiveChart)) {
       if (metadata.chart_configuration?.[chartId]) {
         // We need to clone to avoid mutating Redux state
         chartConfiguration[chartId] = cloneDeep(

@@ -49,14 +49,6 @@ export const InteractiveTooltip = (args: TooltipProps) => (
   </Tooltip>
 );
 
-InteractiveTooltip.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 InteractiveTooltip.args = {
   title: 'Simple tooltip text',
   mouseEnterDelay: 0.1,

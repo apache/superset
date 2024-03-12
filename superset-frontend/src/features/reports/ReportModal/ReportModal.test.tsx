@@ -56,7 +56,7 @@ describe('Email Report Modal', () => {
     isFeatureEnabledMock = jest
       .spyOn(uiCore, 'isFeatureEnabled')
       .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.ALERT_REPORTS,
+        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
       );
   });
 

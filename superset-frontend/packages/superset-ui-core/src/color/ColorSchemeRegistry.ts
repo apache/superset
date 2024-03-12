@@ -23,7 +23,7 @@ export default class ColorSchemeRegistry<T> extends RegistryWithDefaultKey<T> {
   constructor() {
     super({
       name: 'ColorScheme',
-      overwritePolicy: OverwritePolicy.WARN,
+      overwritePolicy: OverwritePolicy.Warn,
       setFirstItemAsDefault: true,
     });
   }

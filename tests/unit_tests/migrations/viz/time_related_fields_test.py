@@ -17,7 +17,6 @@
 from typing import Any
 
 from superset.migrations.shared.migrate_viz import MigratePivotTable
-from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 SOURCE_FORM_DATA: dict[str, Any] = {
@@ -35,15 +34,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
 }
 
 
-@with_feature_flags(GENERIC_CHART_AXES=False)
-def test_migration_without_generic_chart_axes() -> None:
-    source = SOURCE_FORM_DATA.copy()
-    target = TARGET_FORM_DATA.copy()
-    upgrade_downgrade(source, target)
-
-
-@with_feature_flags(GENERIC_CHART_AXES=True)
-def test_migration_with_generic_chart_axes() -> None:
+def test_migration() -> None:
     source = SOURCE_FORM_DATA.copy()
     target = TARGET_FORM_DATA.copy()
     target["adhoc_filters"] = [
@@ -60,7 +51,6 @@ def test_migration_with_generic_chart_axes() -> None:
     upgrade_downgrade(source, target)
 
 
-@with_feature_flags(GENERIC_CHART_AXES=True)
 def test_custom_sql_time_column() -> None:
     source = SOURCE_FORM_DATA.copy()
     source["granularity_sqla"] = {

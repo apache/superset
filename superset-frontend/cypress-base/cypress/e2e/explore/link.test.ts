@@ -78,7 +78,9 @@ describe('Test explore links', () => {
     cy.url().then(() => {
       cy.get('[data-test="query-save-button"]').click();
       cy.get('[data-test="saveas-radio"]').check();
-      cy.get('[data-test="new-chart-name"]').type(newChartName);
+      cy.get('[data-test="new-chart-name"]').type(newChartName, {
+        force: true,
+      });
       cy.get('[data-test="btn-modal-save"]').click();
       cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
       cy.visitChartByName(newChartName);

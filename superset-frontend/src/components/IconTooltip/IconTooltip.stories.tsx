@@ -57,11 +57,3 @@ InteractiveIconTooltip.argTypes = {
     control: { type: 'select', options: PLACEMENTS },
   },
 };
-
-InteractiveIconTooltip.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -19,7 +19,7 @@
 import React, { ReactNode } from 'react';
 import { AntdDropdown, AntdTooltip } from 'src/components';
 import { styled } from '@superset-ui/core';
-import kebabCase from 'lodash/kebabCase';
+import { kebabCase } from 'lodash';
 
 const StyledDropdownButton = styled.div`
   .ant-btn-group {

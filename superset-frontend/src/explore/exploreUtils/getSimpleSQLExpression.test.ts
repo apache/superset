@@ -39,8 +39,8 @@ test('Should return "" if subject is falsy', () => {
 });
 
 test('Should return null string and empty string', () => {
-  expect(getSimpleSQLExpression(params.subject, Operators.IN, [null, ''])).toBe(
-    `subject ${Operators.IN} (${NULL_STRING}, ${EMPTY_STRING})`,
+  expect(getSimpleSQLExpression(params.subject, Operators.In, [null, ''])).toBe(
+    `subject ${Operators.In} (${NULL_STRING}, ${EMPTY_STRING})`,
   );
 });
 

@@ -39,8 +39,8 @@ const common = { ...bootstrapData.common };
 const user = { ...bootstrapData.user };
 
 const noopReducer =
-  (initialState: unknown) =>
-  (state = initialState) =>
+  <STATE = unknown>(initialState: STATE) =>
+  (state: STATE = initialState) =>
     state;
 
 export default {

@@ -310,7 +310,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     @staticmethod
     def _do_post(
-        session: Session,
+        session: Session,  # pylint: disable=disallowed-name
         url: str,
         body: dict[str, Any],
         **kwargs: Any,
@@ -385,7 +385,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                     conn,
                     spreadsheet_url or EXAMPLE_GSHEETS_URL,
                 )
-                session = adapter._get_session()  # pylint: disable=protected-access
+                session = (  # pylint: disable=disallowed-name
+                    adapter._get_session()  # pylint: disable=protected-access
+                )
 
         # clear existing sheet, or create a new one
         if spreadsheet_url:

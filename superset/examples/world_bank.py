@@ -266,13 +266,13 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         ),
         Slice(
             slice_name="Rural Breakdown",
-            viz_type="sunburst",
+            viz_type="sunburst_v2",
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="sunburst",
-                groupby=["region", "country_name"],
+                viz_type="sunburst_v2",
+                columns=["region", "country_name"],
                 since="2011-01-01",
                 until="2011-01-02",
                 metric=metric,

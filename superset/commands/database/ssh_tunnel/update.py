@@ -21,6 +21,7 @@ from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
     SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
     SSHTunnelRequiredFieldValidationError,
@@ -29,6 +30,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.daos.database import SSHTunnelDAO
 from superset.daos.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +41,33 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
 
-    def run(self) -> Model:
+    def run(self) -> Optional[Model]:
         self.validate()
         try:
-            if self._model is not None:  # So we dont get incompatible types error
-                tunnel = SSHTunnelDAO.update(self._model, self._properties)
+            if self._model is None:
+                return None
+
+            # unset password if private key is provided
+            if self._properties.get("private_key"):
+                self._properties["password"] = None
+
+            # unset private key and password if password is provided
+            if self._properties.get("password"):
+                self._properties["private_key"] = None
+                self._properties["private_key_password"] = None
+
+            tunnel = SSHTunnelDAO.update(self._model, self._properties)
+            return tunnel
         except DAOUpdateFailedError as ex:
             raise SSHTunnelUpdateFailedError() from ex
-        return tunnel
 
     def validate(self) -> None:
         # Validate/populate model exists
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
+
+        url = make_url_safe(self._model.database.sqlalchemy_uri)
         private_key: Optional[str] = self._properties.get("private_key")
         private_key_password: Optional[str] = self._properties.get(
             "private_key_password"
@@ -61,3 +76,5 @@ class UpdateSSHTunnelCommand(BaseCommand):
             raise SSHTunnelInvalidError(
                 exceptions=[SSHTunnelRequiredFieldValidationError("private_key")]
             )
+        if not url.port:
+            raise SSHTunnelDatabasePortError()

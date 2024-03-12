@@ -169,7 +169,7 @@ class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
             )
 
         default_props = default_props or {}
-        session: Session = inspect(database).session
+        session: Session = inspect(database).session  # pylint: disable=disallowed-name
         # load existing tables
         predicate = or_(
             *[

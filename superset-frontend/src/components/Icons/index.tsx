@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import _ from 'lodash';
+import { startCase } from 'lodash';
 import AntdEnhancedIcons from './AntdEnhanced';
 import Icon from './Icon';
 import IconType from './IconType';
@@ -168,7 +168,7 @@ const IconFileNames = [
 
 const iconOverrides: Record<string, React.FC<IconType>> = {};
 IconFileNames.forEach(fileName => {
-  const keyName = _.startCase(fileName).replace(/ /g, '');
+  const keyName = startCase(fileName).replace(/ /g, '');
   iconOverrides[keyName] = (props: IconType) => (
     <Icon fileName={fileName} {...props} />
   );

@@ -34,11 +34,3 @@ InteractiveRefreshLabel.args = {
 InteractiveRefreshLabel.argTypes = {
   onClick: { action: 'onClick' },
 };
-
-InteractiveRefreshLabel.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

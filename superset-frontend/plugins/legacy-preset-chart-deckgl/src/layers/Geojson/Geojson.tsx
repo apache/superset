@@ -93,13 +93,13 @@ const recurseGeoJson = (
 
 function setTooltipContent(o: JsonObject) {
   return (
-    o.object.extraProps && (
+    o.object?.extraProps && (
       <div className="deckgl-tooltip">
         {Object.keys(o.object.extraProps).map((prop, index) => (
           <TooltipRow
             key={`prop-${index}`}
             label={`${prop}: `}
-            value={`${o.object.extraProps[prop]}`}
+            value={`${o.object.extraProps?.[prop]}`}
           />
         ))}
       </div>

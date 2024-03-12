@@ -43,11 +43,3 @@ InteractiveEditableTitle.args = {
 InteractiveEditableTitle.argTypes = {
   onSaveTitle: { action: 'onSaveTitle' },
 };
-
-InteractiveEditableTitle.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

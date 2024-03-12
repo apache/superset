@@ -22,7 +22,6 @@ from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError, StatementError
-from sqlalchemy.orm import Session
 
 from superset.daos.exceptions import (
     DAOCreateFailedError,
@@ -59,16 +58,14 @@ class BaseDAO(Generic[T]):
     def find_by_id(
         cls,
         model_id: str | int,
-        session: Session = None,
         skip_base_filter: bool = False,
     ) -> T | None:
         """
         Find a model by id, if defined applies `base_filter`
         """
-        session = session or db.session
-        query = session.query(cls.model_cls)
+        query = db.session.query(cls.model_cls)
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, session)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -83,7 +80,6 @@ class BaseDAO(Generic[T]):
     def find_by_ids(
         cls,
         model_ids: list[str] | list[int],
-        session: Session = None,
         skip_base_filter: bool = False,
     ) -> list[T]:
         """
@@ -92,10 +88,9 @@ class BaseDAO(Generic[T]):
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
         if id_col is None:
             return []
-        session = session or db.session
-        query = session.query(cls.model_cls).filter(id_col.in_(model_ids))
+        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, session)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)

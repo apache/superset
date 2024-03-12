@@ -38,10 +38,10 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](/docs/installation/installing-superset-using-docker-compose/).
 All you need to do is add the required config variables described in this guide (See `Detailed Config`).
 
-If you are running a non-dev docker image, e.g., a stable release like `apache/superset:2.0.1`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.
+If you are running a non-dev docker image, e.g., a stable release like `apache/superset:3.1.0`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.
 You can either install and configure the headless browser - see "Custom Dockerfile" section below - or when deploying via `docker compose`, modify your `docker-compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
 
-*Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `2.0.1-dev` is identical to `2.0.1` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
+*Note*: In this context, a "dev image" is the same application software as its corresponding non-dev image, just bundled with additional tools.  So an image like `3.1.0-dev` is identical to `3.1.0` when it comes to stability, functionality, and running in production.  The actual "in-development" versions of Superset - cutting-edge and unstable - are not tagged with version numbers on Docker Hub and will display version `0.0.0-dev` within the Superset UI.
 
 #### Slack integration
 
@@ -197,7 +197,7 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 
 ### Custom Dockerfile
 
-If you're running the dev version of a released Superset image, like `apache/superset:2.0.1-dev`, you should be set with the above.
+If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.
 
 But if you're building your own image, or starting with a non-dev version, a webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient.
 Here's how you can modify your Dockerfile to take the screenshots either with Firefox or Chrome.
@@ -205,7 +205,7 @@ Here's how you can modify your Dockerfile to take the screenshots either with Fi
 #### Using Firefox
 
 ```docker
-FROM apache/superset:2.0.1
+FROM apache/superset:3.1.0
 
 USER root
 
@@ -226,7 +226,7 @@ USER superset
 #### Using Chrome
 
 ```docker
-FROM apache/superset:2.0.1
+FROM apache/superset:3.1.0
 
 USER root
 

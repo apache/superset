@@ -45,12 +45,12 @@ const colnames = [
   STRTIME_KEY,
 ];
 const coltypes = [
-  GenericDataType.BOOLEAN,
-  GenericDataType.BOOLEAN,
-  GenericDataType.STRING,
-  GenericDataType.STRING,
-  GenericDataType.TEMPORAL,
-  GenericDataType.TEMPORAL,
+  GenericDataType.Boolean,
+  GenericDataType.Boolean,
+  GenericDataType.String,
+  GenericDataType.String,
+  GenericDataType.Temporal,
+  GenericDataType.Temporal,
 ];
 
 const cellValues = {

@@ -45,12 +45,15 @@ export const extractForecastSeriesContext = (
 export const extractForecastSeriesContexts = (
   seriesNames: string[],
 ): { [key: string]: ForecastSeriesEnum[] } =>
-  seriesNames.reduce((agg, name) => {
-    const context = extractForecastSeriesContext(name);
-    const currentContexts = agg[context.name] || [];
-    currentContexts.push(context.type);
-    return { ...agg, [context.name]: currentContexts };
-  }, {} as { [key: string]: ForecastSeriesEnum[] });
+  seriesNames.reduce(
+    (agg, name) => {
+      const context = extractForecastSeriesContext(name);
+      const currentContexts = agg[context.name] || [];
+      currentContexts.push(context.type);
+      return { ...agg, [context.name]: currentContexts };
+    },
+    {} as { [key: string]: ForecastSeriesEnum[] },
+  );
 
 export const extractForecastValuesFromTooltipParams = (
   params: any[],

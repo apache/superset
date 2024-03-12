@@ -25,14 +25,14 @@ export const INPUT_WIDTH = 270;
 export const TIME_FILTER_INPUT_WIDTH = 350;
 
 export const FILTER_SUPPORTED_TYPES = {
-  filter_time: [GenericDataType.TEMPORAL],
-  filter_timegrain: [GenericDataType.TEMPORAL],
-  filter_timecolumn: [GenericDataType.TEMPORAL],
+  filter_time: [GenericDataType.Temporal],
+  filter_timegrain: [GenericDataType.Temporal],
+  filter_timecolumn: [GenericDataType.Temporal],
   filter_select: [
-    GenericDataType.BOOLEAN,
-    GenericDataType.STRING,
-    GenericDataType.NUMERIC,
-    GenericDataType.TEMPORAL,
+    GenericDataType.Boolean,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
   ],
-  filter_range: [GenericDataType.NUMERIC],
+  filter_range: [GenericDataType.Numeric],
 };

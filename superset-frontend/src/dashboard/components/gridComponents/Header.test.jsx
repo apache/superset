@@ -27,7 +27,7 @@ import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButto
 import EditableTitle from 'src/components/EditableTitle';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import Header from 'src/dashboard/components/gridComponents/Header';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -65,9 +65,9 @@ describe('Header', () => {
     return wrapper;
   }
 
-  it('should render a DragDroppable', () => {
+  it('should render a Draggable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toExist();
+    expect(wrapper.find(Draggable)).toExist();
   });
 
   it('should render a WithPopoverMenu', () => {

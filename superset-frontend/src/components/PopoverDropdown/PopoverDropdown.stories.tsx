@@ -83,11 +83,3 @@ InteractivePopoverDropdown.argTypes = {
     table: { disable: true },
   },
 };
-
-InteractivePopoverDropdown.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

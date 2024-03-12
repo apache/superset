@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// TODO: These tests should be made atomic in separate files
+
 import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
@@ -30,7 +33,7 @@ import {
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';
-import { DatabaseObject, CONFIGURATION_METHOD } from '../types';
+import { DatabaseObject, ConfigurationMethod } from '../types';
 import DatabaseModal, {
   dbReducer,
   DBReducerActionType,
@@ -304,7 +307,7 @@ fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
 const databaseFixture: DatabaseObject = {
   id: 123,
   backend: 'postgres',
-  configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+  configuration_method: ConfigurationMethod.DynamicForm,
   database_name: 'Postgres',
   name: 'PostgresDB',
   is_managed_externally: false,
@@ -1227,9 +1230,9 @@ describe('DatabaseModal', () => {
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
-          expect(SSHTunnelServerPortInput).toHaveValue('');
+          expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          expect(SSHTunnelServerPortInput).toHaveValue(22);
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
@@ -1263,9 +1266,9 @@ describe('DatabaseModal', () => {
           const SSHTunnelServerPortInput = screen.getByTestId(
             'ssh-tunnel-server_port-input',
           );
-          expect(SSHTunnelServerPortInput).toHaveValue('');
+          expect(SSHTunnelServerPortInput).toHaveValue(null);
           userEvent.type(SSHTunnelServerPortInput, '22');
-          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          expect(SSHTunnelServerPortInput).toHaveValue(22);
           const SSHTunnelUsernameInput = screen.getByTestId(
             'ssh-tunnel-username-input',
           );
@@ -1639,14 +1642,14 @@ describe('DatabaseModal', () => {
 
 describe('dbReducer', () => {
   test('it will reset state to null', () => {
-    const action: DBReducerActionType = { type: ActionType.reset };
+    const action: DBReducerActionType = { type: ActionType.Reset };
     const currentState = dbReducer(databaseFixture, action);
     expect(currentState).toBeNull();
   });
 
   test('it will set state to payload from fetched', () => {
     const action: DBReducerActionType = {
-      type: ActionType.fetched,
+      type: ActionType.Fetched,
       payload: databaseFixture,
     };
     const currentState = dbReducer({}, action);
@@ -1661,7 +1664,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from extra editor', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraEditorChange,
+      type: ActionType.ExtraEditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1674,7 +1677,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from editor', () => {
     const action: DBReducerActionType = {
-      type: ActionType.editorChange,
+      type: ActionType.EditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1687,7 +1690,7 @@ describe('dbReducer', () => {
 
   test('it will add extra payload to existing extra data', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraEditorChange,
+      type: ActionType.ExtraEditorChange,
       payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     // extra should be a string
@@ -1707,7 +1710,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from extra input change', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'foo', value: 'bar' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1721,7 +1724,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'foo', type: 'checkbox', checked: true },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1735,7 +1738,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from extra input change when schema_cache_timeout', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'schema_cache_timeout', value: 'bar' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1749,7 +1752,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'table_cache_timeout', value: 'bar' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1763,7 +1766,7 @@ describe('dbReducer', () => {
 
   test('it will overwrite state to payload from extra input change when table_cache_timeout', () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'table_cache_timeout', value: 'bar' },
     };
     const currentState = dbReducer(
@@ -1784,7 +1787,7 @@ describe('dbReducer', () => {
   test(`it will set state to payload from extra
   input change when schemas_allowed_for_file_upload`, () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'schemas_allowed_for_file_upload', value: 'bar' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1799,7 +1802,7 @@ describe('dbReducer', () => {
   test(`it will overwrite state to payload from extra
   input change when schemas_allowed_for_file_upload`, () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'schemas_allowed_for_file_upload', value: 'bar' },
     };
     const currentState = dbReducer(
@@ -1821,7 +1824,7 @@ describe('dbReducer', () => {
   input change when schemas_allowed_for_file_upload
   with blank list`, () => {
     const action: DBReducerActionType = {
-      type: ActionType.extraInputChange,
+      type: ActionType.ExtraInputChange,
       payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1835,7 +1838,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from input change', () => {
     const action: DBReducerActionType = {
-      type: ActionType.inputChange,
+      type: ActionType.InputChange,
       payload: { name: 'foo', value: 'bar' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1848,7 +1851,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from input change for checkbox', () => {
     const action: DBReducerActionType = {
-      type: ActionType.inputChange,
+      type: ActionType.InputChange,
       payload: { name: 'foo', type: 'checkbox', checked: true },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1861,7 +1864,7 @@ describe('dbReducer', () => {
 
   test('it will change state to payload from input change for checkbox', () => {
     const action: DBReducerActionType = {
-      type: ActionType.inputChange,
+      type: ActionType.InputChange,
       payload: { name: 'allow_ctas', type: 'checkbox', checked: false },
     };
     const currentState = dbReducer(
@@ -1880,7 +1883,7 @@ describe('dbReducer', () => {
 
   test('it will add a parameter', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersChange,
+      type: ActionType.ParametersChange,
       payload: { name: 'host', value: '127.0.0.1' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -1895,7 +1898,7 @@ describe('dbReducer', () => {
 
   test('it will add a parameter with existing parameters', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersChange,
+      type: ActionType.ParametersChange,
       payload: { name: 'port', value: '1234' },
     };
     const currentState = dbReducer(
@@ -1919,7 +1922,7 @@ describe('dbReducer', () => {
 
   test('it will change a parameter with existing parameters', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersChange,
+      type: ActionType.ParametersChange,
       payload: { name: 'host', value: 'localhost' },
     };
     const currentState = dbReducer(
@@ -1942,7 +1945,7 @@ describe('dbReducer', () => {
 
   test('it will set state to payload from parametersChange with catalog', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersChange,
+      type: ActionType.ParametersChange,
       payload: { name: 'name', type: 'catalog-0', value: 'bar' },
     };
     const currentState = dbReducer(
@@ -1963,7 +1966,7 @@ describe('dbReducer', () => {
 
   test('it will add a new catalog array when empty', () => {
     const action: DBReducerActionType = {
-      type: ActionType.addTableCatalogSheet,
+      type: ActionType.AddTableCatalogSheet,
     };
     const currentState = dbReducer(databaseFixture, action);
 
@@ -1975,7 +1978,7 @@ describe('dbReducer', () => {
 
   test('it will add a new catalog array when one exists', () => {
     const action: DBReducerActionType = {
-      type: ActionType.addTableCatalogSheet,
+      type: ActionType.AddTableCatalogSheet,
     };
     const currentState = dbReducer(
       { ...databaseFixture, catalog: [{ name: 'foo', value: 'baz' }] },
@@ -1993,7 +1996,7 @@ describe('dbReducer', () => {
 
   test('it will remove a catalog when one exists', () => {
     const action: DBReducerActionType = {
-      type: ActionType.removeTableCatalogSheet,
+      type: ActionType.RemoveTableCatalogSheet,
       payload: { indexToDelete: 0 },
     };
     const currentState = dbReducer(
@@ -2010,7 +2013,7 @@ describe('dbReducer', () => {
   test('it will add db information when one is selected', () => {
     const { backend, ...db } = databaseFixture;
     const action: DBReducerActionType = {
-      type: ActionType.dbSelected,
+      type: ActionType.DbSelected,
       payload: {
         engine_information: {
           supports_file_upload: true,
@@ -2042,7 +2045,7 @@ describe('dbReducer', () => {
 
   test('it will add a SSH Tunnel config parameter', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersSSHTunnelChange,
+      type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_address', value: '127.0.0.1' },
     };
     const currentState = dbReducer(databaseFixture, action);
@@ -2057,7 +2060,7 @@ describe('dbReducer', () => {
 
   test('it will add a SSH Tunnel config parameter with existing configs', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersSSHTunnelChange,
+      type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_port', value: '22' },
     };
     const currentState = dbReducer(
@@ -2081,7 +2084,7 @@ describe('dbReducer', () => {
 
   test('it will change a SSH Tunnel config parameter with existing configs', () => {
     const action: DBReducerActionType = {
-      type: ActionType.parametersSSHTunnelChange,
+      type: ActionType.ParametersSSHTunnelChange,
       payload: { name: 'server_address', value: 'localhost' },
     };
     const currentState = dbReducer(
@@ -2104,7 +2107,7 @@ describe('dbReducer', () => {
 
   test('it will remove the SSH Tunnel config parameters', () => {
     const action: DBReducerActionType = {
-      type: ActionType.removeSSHTunnelConfig,
+      type: ActionType.RemoveSSHTunnelConfig,
     };
     const currentState = dbReducer(databaseFixture, action);
     expect(currentState).toEqual({

@@ -18,6 +18,6 @@
  */
 
 export enum ColorBy {
-  metric = 'metric',
-  country = 'country',
+  Metric = 'metric',
+  Country = 'country',
 }

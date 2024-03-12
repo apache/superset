@@ -18,15 +18,15 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import ErrorBoundary from '.';
+import ErrorBoundary, { ErrorBoundaryProps } from '.';
 
-const mockedProps = {
+const mockedProps: Partial<ErrorBoundaryProps> = {
   children: <span>Error children</span>,
-  onError: () => null,
+  onError: jest.fn(),
   showMessage: false,
 };
 
-const Child = () => {
+const Child = (): React.ReactElement => {
   throw new Error('Thrown error');
 };
 

@@ -27,7 +27,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Literal, TYPE_CHECKING
 
-from flask import current_app, g, request
+from flask import g, request
 from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -139,6 +139,7 @@ class AbstractEventLogger(ABC):
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset import db
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request and request.referrer else None
@@ -152,8 +153,7 @@ class AbstractEventLogger(ABC):
         # need to add them back before logging to capture user_id
         if user_id is None:
             try:
-                session = current_app.appbuilder.get_session
-                session.add(g.user)
+                db.session.add(g.user)
                 user_id = get_user_id()
             except Exception as ex:  # pylint: disable=broad-except
                 logging.warning(ex)
@@ -332,6 +332,7 @@ class DBEventLogger(AbstractEventLogger):
         **kwargs: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
+        from superset import db
         from superset.models.core import Log
 
         records = kwargs.get("records", [])
@@ -353,9 +354,8 @@ class DBEventLogger(AbstractEventLogger):
             )
             logs.append(log)
         try:
-            sesh = current_app.appbuilder.get_session
-            sesh.bulk_save_objects(logs)
-            sesh.commit()
+            db.session.bulk_save_objects(logs)
+            db.session.commit()
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)

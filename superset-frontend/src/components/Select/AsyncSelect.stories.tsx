@@ -324,11 +324,3 @@ AsynchronousSelect.argTypes = {
     },
   },
 };
-
-AsynchronousSelect.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

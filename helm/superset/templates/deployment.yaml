@@ -42,8 +42,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}
-      release: {{ .Release.Name }}
+    {{- include "supersetNode.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:

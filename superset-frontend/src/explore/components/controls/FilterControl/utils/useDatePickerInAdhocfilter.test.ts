@@ -18,27 +18,9 @@
  */
 import { renderHook } from '@testing-library/react-hooks';
 import { TestDataset } from '@superset-ui/chart-controls';
-import * as supersetCoreModule from '@superset-ui/core';
 import { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';
 
-test('should return undefined if Generic Axis is disabled', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: false,
-  });
-  const { result } = renderHook(() =>
-    useDatePickerInAdhocFilter({
-      columnName: 'ds',
-      datasource: TestDataset,
-      onChange: jest.fn(),
-    }),
-  );
-  expect(result.current).toBeUndefined();
-});
-
 test('should return undefined if column is not temporal', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   const { result } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'gender',
@@ -50,9 +32,6 @@ test('should return undefined if column is not temporal', () => {
 });
 
 test('should return JSX', () => {
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
   const { result } = renderHook(() =>
     useDatePickerInAdhocFilter({
       columnName: 'ds',

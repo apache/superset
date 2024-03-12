@@ -177,7 +177,6 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
     with app.app_context():
         engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
         meta = MetaData()
-        session = db.session
 
         students = Table(
             "students",
@@ -196,8 +195,8 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
         )
         column = TableColumn(table_id=dataset.id, column_name="name")
         dataset.columns = [column]
-        session.add(dataset)
-        session.commit()
+        db.session.add(dataset)
+        db.session.commit()
         yield dataset
 
         # cleanup
@@ -205,8 +204,8 @@ def load_dataset_with_columns() -> Generator[SqlaTable, None, None]:
         if students_table is not None:
             base = declarative_base()
             # needed for sqlite
-            session.commit()
+            db.session.commit()
             base.metadata.drop_all(engine, [students_table], checkfirst=True)
-        session.delete(dataset)
-        session.delete(column)
-        session.commit()
+        db.session.delete(dataset)
+        db.session.delete(column)
+        db.session.commit()

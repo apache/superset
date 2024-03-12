@@ -354,6 +354,7 @@ export default styled(BigNumberVis)`
     .header-line {
       position: relative;
       line-height: 1em;
+      white-space: nowrap;
       span {
         position: absolute;
         bottom: 0;

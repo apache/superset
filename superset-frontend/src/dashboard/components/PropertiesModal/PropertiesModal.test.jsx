@@ -17,15 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
-import { Provider } from 'react-redux';
+import { render } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
-import {
-  supersetTheme,
-  SupersetClient,
-  ThemeProvider,
-} from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -73,15 +68,10 @@ describe.skip('PropertiesModal', () => {
   };
 
   function setup(overrideProps) {
-    return mount(
-      <Provider store={mockStore}>
-        <PropertiesModal {...requiredProps} {...overrideProps} />
-      </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: { theme: supersetTheme },
-      },
-    );
+    return render(<PropertiesModal {...requiredProps} {...overrideProps} />, {
+      useRedux: true,
+      store: mockStore,
+    });
   }
 
   describe('onColorSchemeChange', () => {

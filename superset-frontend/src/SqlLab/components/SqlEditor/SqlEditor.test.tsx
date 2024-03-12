@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import * as uiCore from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
@@ -31,7 +32,7 @@ import {
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, FeatureFlag } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
@@ -63,6 +64,7 @@ fetchMock.get('glob:*/api/v1/database/*/function_names/', {
 });
 fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 fetchMock.get('glob:*/api/v1/database/*/tables/*', { options: [] });
+fetchMock.get('glob:*/tabstateview/*', defaultQueryEditor);
 fetchMock.post('glob:*/sqllab/execute/*', { result: [] });
 
 let store: Store;
@@ -145,8 +147,8 @@ describe('SqlEditor', () => {
     (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
       <div data-test="mock-sql-editor-left-bar" />
     ));
-    (ResultSet as jest.Mock).mockClear();
-    (ResultSet as jest.Mock).mockImplementation(() => (
+    (ResultSet as unknown as jest.Mock).mockClear();
+    (ResultSet as unknown as jest.Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
     ));
   });
@@ -182,7 +184,8 @@ describe('SqlEditor', () => {
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
     const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
-    const renderCountForSouthPane = (ResultSet as jest.Mock).mock.calls.length;
+    const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
+      .calls.length;
     expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
@@ -289,5 +292,44 @@ describe('SqlEditor', () => {
     expect(
       await findByText('sqleditor.extension.form extension component'),
     ).toBeInTheDocument();
+  });
+
+  describe('with SqllabBackendPersistence enabled', () => {
+    let isFeatureEnabledMock: jest.MockInstance<
+      boolean,
+      [feature: FeatureFlag]
+    >;
+    beforeEach(() => {
+      isFeatureEnabledMock = jest
+        .spyOn(uiCore, 'isFeatureEnabled')
+        .mockImplementation(
+          featureFlag =>
+            featureFlag === uiCore.FeatureFlag.SqllabBackendPersistence,
+        );
+    });
+    afterEach(() => {
+      isFeatureEnabledMock.mockClear();
+    });
+
+    it('should render loading state when its Editor is not loaded', async () => {
+      const switchTabApi = `glob:*/tabstateview/${defaultQueryEditor.id}/activate`;
+      fetchMock.post(switchTabApi, {});
+      const { getByTestId } = setup(
+        {
+          ...mockedProps,
+          queryEditor: {
+            ...mockedProps.queryEditor,
+            loaded: false,
+          },
+        },
+        store,
+      );
+      const indicator = getByTestId('sqlEditor-loading');
+      expect(indicator).toBeInTheDocument();
+      await waitFor(() =>
+        expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
+      );
+      expect(fetchMock.calls(switchTabApi).length).toBe(1);
+    });
   });
 });

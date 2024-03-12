@@ -161,7 +161,7 @@ const useDatasetChartRecords = (datasetId: string) => {
     () => [
       {
         id: 'datasource_id',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         value: datasetId,
       },
     ],
@@ -241,7 +241,7 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
       <Table
         columns={columns}
         data={data}
-        size={TableSize.MIDDLE}
+        size={TableSize.Middle}
         defaultPageSize={DEFAULT_PAGE_SIZE}
         recordCount={recordCount}
         loading={loading}

@@ -88,6 +88,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
 }
 
 function resetTabbedDashboard(go = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
     const jsonMetadata = r?.json_metadata || '{}';
     const metadata = JSON.parse(jsonMetadata);
@@ -758,7 +759,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
 
       resize(
-        '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
+        '[data-test="dashboard-markdown-editor"] .resizable-container div.resizable-container-handle--bottom + div',
       ).to(500, 600);
 
       cy.getBySel('dashboard-markdown-editor').contains('Test resize');

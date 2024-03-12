@@ -25,13 +25,13 @@ import {
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationType,
+  AxisType,
   DataRecord,
   evalExpression,
   FormulaAnnotationLayer,
   isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationResult,
-  AxisType,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../types';
 import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
@@ -46,7 +46,7 @@ export function evalFormula(
 
   return data.map(row => {
     let value = row[xAxis];
-    if (xAxisType === 'time') {
+    if (xAxisType === AxisType.Time) {
       value = new Date(value as string).getTime();
     }
     return [value, evalExpression(expression, (value || 0) as number)];

@@ -24,7 +24,7 @@ import CrossFilterTitle from './CrossFilterTitle';
 
 const mockedProps = {
   title: 'test-title',
-  orientation: FilterBarOrientation.HORIZONTAL,
+  orientation: FilterBarOrientation.Horizontal,
   onHighlightFilterSource: jest.fn(),
 };
 

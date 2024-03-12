@@ -58,11 +58,3 @@ InteractiveTabs.argTypes = {
     },
   },
 };
-
-InteractiveTabs.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

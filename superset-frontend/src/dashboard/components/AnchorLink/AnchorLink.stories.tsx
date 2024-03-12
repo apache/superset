@@ -40,11 +40,3 @@ InteractiveAnchorLink.argTypes = {
     placement: { type: 'select', options: PLACEMENTS },
   },
 };
-
-InteractiveAnchorLink.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

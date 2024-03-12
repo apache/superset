@@ -134,7 +134,7 @@ beforeEach(() => {
     .callsFake(() => ({
       // @ts-ignore
       get: () => ({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.InteractiveChart],
       }),
     }));
 });
@@ -146,7 +146,7 @@ afterEach(() => {
 test('Generate correct cross filters configuration without initial configuration', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+    [FeatureFlag.DashboardCrossFilters]: true,
   };
 
   // @ts-ignore
@@ -180,7 +180,7 @@ test('Generate correct cross filters configuration without initial configuration
 test('Generate correct cross filters configuration with initial configuration', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+    [FeatureFlag.DashboardCrossFilters]: true,
   };
 
   expect(
@@ -222,7 +222,7 @@ test('Generate correct cross filters configuration with initial configuration', 
 test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: false,
+    [FeatureFlag.DashboardCrossFilters]: false,
   };
   expect(
     getCrossFiltersConfiguration(
@@ -236,7 +236,7 @@ test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () 
 test('Recalculate charts in global filter scope when charts change', () => {
   // @ts-ignore
   global.featureFlags = {
-    [FeatureFlag.DASHBOARD_CROSS_FILTERS]: true,
+    [FeatureFlag.DashboardCrossFilters]: true,
   };
   expect(
     getCrossFiltersConfiguration(

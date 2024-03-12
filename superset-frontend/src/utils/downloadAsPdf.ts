@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
-import kebabCase from 'lodash/kebabCase';
+import { kebabCase } from 'lodash';
 import { logging, t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
@@ -61,6 +61,7 @@ export default function downloadAsPdf(
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
+      excludeClassNames: ['header-controls'],
     };
     return domToPdf(elementToPrint, options)
       .then(() => {

@@ -70,7 +70,9 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         ]
         assert expected == list(contents.keys())
 
-        metadata = yaml.safe_load(contents["queries/examples/schema1/The_answer.yaml"])
+        metadata = yaml.safe_load(
+            contents["queries/examples/schema1/The_answer.yaml"]()
+        )
         assert metadata == {
             "schema": "schema1",
             "label": "The answer",
@@ -127,7 +129,9 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["queries/examples/schema1/The_answer.yaml"])
+        metadata = yaml.safe_load(
+            contents["queries/examples/schema1/The_answer.yaml"]()
+        )
         assert list(metadata.keys()) == [
             "schema",
             "label",

@@ -137,6 +137,65 @@ class TestSqlLabApi(SupersetTestCase):
         result = resp["result"]
         self.assertEqual(len(result["queries"]), 1)
 
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_deleted_tab(self):
+        username = "admin"
+        self.login(username)
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 2",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 200
+        resp = self.client.get("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 404
+        resp = self.client.put(
+            "/tabstateview/" + str(tab_state_id),
+            json=data,
+        )
+        assert resp.status_code == 404
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_delete_tab_already_removed(self):
+        username = "admin"
+        self.login(username)
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 3",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 200
+        resp = self.client.delete("/tabstateview/" + str(tab_state_id))
+        assert resp.status_code == 404
+
     def test_get_access_denied(self):
         new_role = Role(name="Dummy Role", permissions=[])
         db.session.add(new_role)

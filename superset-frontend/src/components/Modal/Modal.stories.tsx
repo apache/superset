@@ -45,14 +45,6 @@ InteractiveModal.argTypes = {
   onHide: { action: 'onHide' },
 };
 
-InteractiveModal.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 export const ModalFunctions = (props: ModalFuncProps) => (
   <div>
     <Button onClick={() => Modal.error(props)}>Error</Button>

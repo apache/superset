@@ -50,7 +50,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
     ) -> Optional[SQLValidationAnnotation]:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
-        parsed_query = ParsedQuery(statement)
+        parsed_query = ParsedQuery(statement, engine=db_engine_spec.engine)
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
@@ -154,7 +154,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        parsed_query = ParsedQuery(sql)
+        parsed_query = ParsedQuery(sql, engine=database.db_engine_spec.engine)
         statements = parsed_query.get_statements()
 
         logger.info("Validating %i statement(s)", len(statements))

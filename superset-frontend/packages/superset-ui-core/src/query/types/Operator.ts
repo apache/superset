@@ -42,13 +42,13 @@ const SET_OPERATORS = ['IN', 'NOT IN'] as const;
 //---------------------------------------------------
 
 /** An operator that does not require another operand */
-export type UnaryOperator = typeof UNARY_OPERATORS[number];
+export type UnaryOperator = (typeof UNARY_OPERATORS)[number];
 
 /** An operator that requires another operand that is a single value */
-export type BinaryOperator = typeof BINARY_OPERATORS[number];
+export type BinaryOperator = (typeof BINARY_OPERATORS)[number];
 
 /** An operator that require another operand that is a set */
-export type SetOperator = typeof SET_OPERATORS[number];
+export type SetOperator = (typeof SET_OPERATORS)[number];
 
 //---------------------------------------------------
 // Type guards

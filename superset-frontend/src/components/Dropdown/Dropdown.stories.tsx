@@ -64,11 +64,3 @@ InteractiveDropdown.argTypes = {
     control: { type: 'radio', options: ['menu', 'custom'] },
   },
 };
-
-InteractiveDropdown.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

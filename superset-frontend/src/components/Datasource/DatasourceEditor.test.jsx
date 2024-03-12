@@ -96,7 +96,7 @@ describe('DatasourceEditor', () => {
 
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
-    const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
+    const inputDtmFormat = screen.getByPlaceholderText('%Y-%m-%d');
     const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
     const inputCertDetails = screen.getByPlaceholderText(
       'Certification details',

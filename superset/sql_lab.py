@@ -199,7 +199,7 @@ def execute_sql_statement(
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-    parsed_query = ParsedQuery(sql_statement)
+    parsed_query = ParsedQuery(sql_statement, engine=db_engine_spec.engine)
     if is_feature_enabled("RLS_IN_SQLLAB"):
         # There are two ways to insert RLS: either replacing the table with a subquery
         # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
@@ -219,7 +219,8 @@ def execute_sql_statement(
                     database.id,
                     query.schema,
                 )
-            )
+            ),
+            engine=db_engine_spec.engine,
         )
 
     sql = parsed_query.stripped()
@@ -409,7 +410,11 @@ def execute_sql_statements(
         )
 
     # Breaking down into multiple statements
-    parsed_query = ParsedQuery(rendered_query, strip_comments=True)
+    parsed_query = ParsedQuery(
+        rendered_query,
+        strip_comments=True,
+        engine=db_engine_spec.engine,
+    )
     if not db_engine_spec.run_multiple_statements_as_one:
         statements = parsed_query.get_statements()
         logger.info(

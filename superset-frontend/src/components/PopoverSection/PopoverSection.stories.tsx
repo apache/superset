@@ -45,11 +45,3 @@ InteractivePopoverSection.args = {
   isSelected: true,
   info: 'Some description about the content',
 };
-
-InteractivePopoverSection.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

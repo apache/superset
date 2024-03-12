@@ -41,63 +41,26 @@ describe('nativeFilterGate', () => {
     });
 
     it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
+      expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
     });
 
     it('should return false for native filter chart with cross filter support', () => {
       expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
+        nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
       ).toEqual(false);
     });
 
     it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
+      expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
     });
   });
 
-  describe('with only native filters feature flag enabled', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          (featureFlag: FeatureFlag) =>
-            featureFlag === FeatureFlag.DASHBOARD_NATIVE_FILTERS,
-        );
-    });
-
-    afterAll(() => {
-      // @ts-ignore
-      isFeatureEnabledMock.restore();
-    });
-
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
-    });
-
-    it('should return false for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
-      ).toEqual(false);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
-    });
-  });
-
-  describe('with native filters and experimental feature flag enabled', () => {
+  describe('with cross filters and experimental feature flag enabled', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(uiCore, 'isFeatureEnabled')
         .mockImplementation((featureFlag: FeatureFlag) =>
-          [
-            FeatureFlag.DASHBOARD_CROSS_FILTERS,
-            FeatureFlag.DASHBOARD_FILTERS_EXPERIMENTAL,
-          ].includes(featureFlag),
+          [FeatureFlag.DashboardCrossFilters].includes(featureFlag),
         );
     });
 
@@ -111,17 +74,17 @@ describe('nativeFilterGate', () => {
     });
 
     it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.INTERACTIVE_CHART])).toEqual(true);
+      expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
     });
 
     it('should return true for native filter chart with cross filter support', () => {
       expect(
-        nativeFilterGate([Behavior.NATIVE_FILTER, Behavior.INTERACTIVE_CHART]),
+        nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
       ).toEqual(true);
     });
 
     it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NATIVE_FILTER])).toEqual(false);
+      expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
     });
   });
 });

@@ -66,8 +66,11 @@ const BackgroundStyleOption = styled.div`
         linear-gradient(45deg, transparent 75%, ${theme.colors.text.label} 75%),
         linear-gradient(-45deg, transparent 75%, ${theme.colors.text.label} 75%);
       background-size: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
-      background-position: 0 0, 0 ${theme.gridUnit}px,
-        ${theme.gridUnit}px ${-theme.gridUnit}px, ${-theme.gridUnit}px 0px;
+      background-position:
+        0 0,
+        0 ${theme.gridUnit}px,
+        ${theme.gridUnit}px ${-theme.gridUnit}px,
+        ${-theme.gridUnit}px 0px;
     }
   `}
 `;

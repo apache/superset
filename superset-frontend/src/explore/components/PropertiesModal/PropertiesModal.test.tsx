@@ -38,7 +38,7 @@ const createProps = () =>
     onHide: jest.fn(),
     onSave: jest.fn(),
     addSuccessToast: jest.fn(),
-  } as PropertiesModalProps);
+  }) as PropertiesModalProps;
 
 fetchMock.get('glob:*/api/v1/chart/318', {
   body: {

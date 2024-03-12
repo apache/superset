@@ -29,7 +29,7 @@ const metadata = new ChartMetadata({
     'Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.',
   ),
   exampleGallery: [{ url: example }],
-  label: ChartLabel.DEPRECATED,
+  label: ChartLabel.Deprecated,
   name: t('Bubble Chart (legacy)'),
   tags: [
     t('Multi-Dimensions'),

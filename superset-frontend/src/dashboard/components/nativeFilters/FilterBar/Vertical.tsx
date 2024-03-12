@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import throttle from 'lodash/throttle';
+import { throttle } from 'lodash';
 import React, {
   useEffect,
   useState,
@@ -190,16 +190,10 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
 
   const crossFilters = useMemo(
     () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
+      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
         <CrossFiltersVertical />
       ) : null,
     [],
-  );
-
-  const actionsElement = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ? actions : null,
-    [actions],
   );
 
   return (
@@ -235,12 +229,11 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
                 {crossFilters}
-                {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-                  filterControls}
+                {filterControls}
               </>
             </div>
           )}
-          {actionsElement}
+          {actions}
         </Bar>
       </BarWrapper>
     </FilterBarScrollContext.Provider>

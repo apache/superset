@@ -100,7 +100,7 @@ const config: ControlPanelConfig = {
 
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
-    <%if (chartType === 'timeseries') { %>sections.legacyTimeseriesTime,<% } else { %>sections.legacyRegularTime,<% } %>
+    <%if (chartType === 'timeseries') { %>sections.legacyTimeseriesTime,<% } %>
     {
       label: t('Query'),
       expanded: true,

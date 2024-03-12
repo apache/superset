@@ -24,7 +24,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import Divider from 'src/dashboard/components/gridComponents/Divider';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -56,9 +56,9 @@ describe('Divider', () => {
     return wrapper;
   }
 
-  it('should render a DragDroppable', () => {
+  it('should render a Draggable', () => {
     const wrapper = setup();
-    expect(wrapper.find(DragDroppable)).toExist();
+    expect(wrapper.find(Draggable)).toExist();
   });
 
   it('should render a div with class "dashboard-component-divider"', () => {

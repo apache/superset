@@ -35,7 +35,7 @@ const metadata = new ChartMetadata({
     { url: example2 },
     { url: battery, caption: t('Battery level over time') },
   ],
-  label: ChartLabel.DEPRECATED,
+  label: ChartLabel.Deprecated,
   name: t('Line Chart (legacy)'),
   supportedAnnotationTypes: [
     ANNOTATION_TYPES.TIME_SERIES,

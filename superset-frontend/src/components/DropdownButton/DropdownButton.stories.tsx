@@ -69,11 +69,3 @@ InteractiveDropdownButton.argTypes = {
     },
   },
 };
-
-InteractiveDropdownButton.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -32,14 +32,6 @@ export const Component = (props: DropDownSelectableProps) => (
   />
 );
 
-Component.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 Component.args = {
   info: 'Info go here',
   selectedKeys: ['vertical'],

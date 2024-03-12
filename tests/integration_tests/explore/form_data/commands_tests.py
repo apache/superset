@@ -45,22 +45,22 @@ class TestCreateFormDataCommand(SupersetTestCase):
                 schema=get_example_default_schema(),
                 sql="select 123 as intcol, 'abc' as strcol",
             )
-            session = db.session
-            session.add(dataset)
-            session.commit()
+            db.session.add(dataset)
+            db.session.commit()
 
             yield dataset
 
             # rollback
-            session.delete(dataset)
-            session.commit()
+            db.session.delete(dataset)
+            db.session.commit()
 
     @pytest.fixture()
     def create_slice(self):
         with self.create_app().app_context():
-            session = db.session
             dataset = (
-                session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+                db.session.query(SqlaTable)
+                .filter_by(table_name="dummy_sql_table")
+                .first()
             )
             slice = Slice(
                 datasource_id=dataset.id,
@@ -69,34 +69,32 @@ class TestCreateFormDataCommand(SupersetTestCase):
                 slice_name="slice_name",
             )
 
-            session.add(slice)
-            session.commit()
+            db.session.add(slice)
+            db.session.commit()
 
             yield slice
 
             # rollback
-            session.delete(slice)
-            session.commit()
+            db.session.delete(slice)
+            db.session.commit()
 
     @pytest.fixture()
     def create_query(self):
         with self.create_app().app_context():
-            session = db.session
-
             query = Query(
                 sql="select 1 as foo;",
                 client_id="sldkfjlk",
                 database=get_example_database(),
             )
 
-            session.add(query)
-            session.commit()
+            db.session.add(query)
+            db.session.commit()
 
             yield query
 
             # rollback
-            session.delete(query)
-            session.commit()
+            db.session.delete(query)
+            db.session.commit()
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice")

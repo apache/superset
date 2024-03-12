@@ -41,11 +41,3 @@ export const InteractiveEsmComponent = (args: PlaceholderProps) => (
 InteractiveEsmComponent.args = {
   bold: true,
 };
-
-InteractiveEsmComponent.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

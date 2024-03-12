@@ -16,6 +16,7 @@
 # under the License.
 
 
+import logging
 import uuid
 from contextlib import nullcontext
 from inspect import isclass
@@ -249,3 +250,47 @@ def test_context_decorator(flask_g_mock) -> None:
 
     context_func_not_callable()
     assert flask_g_mock.logs_context == {}
+
+
+class ListHandler(logging.Handler):
+    """
+    Simple logging handler that stores records in a list.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.log_records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.log_records.append(record)
+
+    def reset(self) -> None:
+        self.log_records = []
+
+
+def test_suppress_logging() -> None:
+    """
+    Test the `suppress_logging` decorator.
+    """
+    handler = ListHandler()
+    logger = logging.getLogger("test-logger")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+    def func() -> None:
+        logger.error("error")
+        logger.critical("critical")
+
+    func()
+    assert len(handler.log_records) == 2
+
+    handler.log_records = []
+    decorated = decorators.suppress_logging("test-logger")(func)
+    decorated()
+    assert len(handler.log_records) == 1
+    assert handler.log_records[0].levelname == "CRITICAL"
+
+    handler.log_records = []
+    decorated = decorators.suppress_logging("test-logger", logging.CRITICAL + 1)(func)
+    decorated()
+    assert len(handler.log_records) == 0

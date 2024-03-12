@@ -128,7 +128,7 @@ export function ActionCell(props: ActionCellProps) {
   };
   return (
     <Dropdown
-      iconOrientation={IconOrientation.HORIZONTAL}
+      iconOrientation={IconOrientation.Horizontal}
       onVisibleChange={handleVisibleChange}
       trigger={['click']}
       overlay={

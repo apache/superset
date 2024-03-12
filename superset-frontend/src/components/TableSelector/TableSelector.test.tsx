@@ -51,7 +51,7 @@ const getTableMockFunction = () =>
       { label: 'table_c', value: 'table_c' },
       { label: 'table_d', value: 'table_d' },
     ],
-  } as any);
+  }) as any;
 
 const databaseApiRoute = 'glob:*/api/v1/database/?*';
 const schemaApiRoute = 'glob:*/api/v1/database/*/schemas/?*';

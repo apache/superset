@@ -7,7 +7,7 @@
 #
 build==0.10.0
     # via pip-tools
-cachetools==5.3.1
+cachetools==5.3.2
     # via tox
 cfgv==3.3.1
     # via pre-commit

@@ -53,7 +53,7 @@ describe('SharedLabelColor', () => {
   });
 
   beforeEach(() => {
-    getSharedLabelColor().source = SharedLabelColorSource.dashboard;
+    getSharedLabelColor().source = SharedLabelColorSource.Dashboard;
     getSharedLabelColor().clear();
   });
 
@@ -95,7 +95,7 @@ describe('SharedLabelColor', () => {
 
     it('should do nothing when source is not dashboard', () => {
       const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.source = SharedLabelColorSource.explore;
+      sharedLabelColor.source = SharedLabelColorSource.Explore;
       sharedLabelColor.addSlice('a', 'red');
       expect(Object.fromEntries(sharedLabelColor.sliceLabelMap)).toEqual({});
     });
@@ -127,7 +127,7 @@ describe('SharedLabelColor', () => {
     it('should do nothing when source is not dashboard', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.source = SharedLabelColorSource.explore;
+      sharedLabelColor.source = SharedLabelColorSource.Explore;
       sharedLabelColor.removeSlice(1);
       expect(sharedLabelColor.sliceLabelMap.has(1)).toEqual(true);
     });
@@ -151,7 +151,7 @@ describe('SharedLabelColor', () => {
 
     it('should use recycle colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
+        [FeatureFlag.UseAnalagousColors]: false,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
@@ -166,7 +166,7 @@ describe('SharedLabelColor', () => {
 
     it('should use analagous colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
+        [FeatureFlag.UseAnalagousColors]: true,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from superset import app, db
+from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
@@ -35,7 +35,7 @@ config = app.config
 
 
 def create_query_object_factory() -> QueryObjectFactory:
-    return QueryObjectFactory(config, DatasourceDAO(), db.session)
+    return QueryObjectFactory(config, DatasourceDAO())
 
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
@@ -95,7 +95,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return DatasourceDAO.get_datasource(
-            session=db.session,
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
         )

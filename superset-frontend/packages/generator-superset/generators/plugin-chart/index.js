@@ -20,7 +20,14 @@
 /* eslint-disable sort-keys */
 
 const Generator = require('yeoman-generator');
-const _ = require('lodash');
+// eslint-disable-next-line lodash/import-scope
+const kebabCase = require('lodash/kebabCase');
+// eslint-disable-next-line lodash/import-scope
+const startCase = require('lodash/startCase');
+// eslint-disable-next-line lodash/import-scope
+const camelCase = require('lodash/camelCase');
+// eslint-disable-next-line lodash/import-scope
+const upperFirst = require('lodash/upperFirst');
 
 module.exports = class extends Generator {
   async prompting() {
@@ -32,15 +39,15 @@ module.exports = class extends Generator {
         name: 'packageName',
         message: 'Package name:',
         // Default to current folder name, e.g. superset-plugin-chart-hello-world
-        default: _.kebabCase(this.appname),
+        default: kebabCase(this.appname),
       },
       {
         type: 'input',
         name: 'pluginName',
         message: 'Plugin name:',
         // Hello World
-        default: _.startCase(
-          _.camelCase(this.appname.replace('superset plugin chart', '').trim()),
+        default: startCase(
+          camelCase(this.appname.replace('superset plugin chart', '').trim()),
         ),
       },
       {
@@ -48,7 +55,7 @@ module.exports = class extends Generator {
         name: 'description',
         message: 'Description:',
         // Superset Plugin Chart Hello World
-        default: _.upperFirst(_.startCase(this.appname)),
+        default: upperFirst(startCase(this.appname)),
       },
       {
         type: 'list',
@@ -70,7 +77,7 @@ module.exports = class extends Generator {
 
   writing() {
     // SupersetPluginChartHelloWorld
-    const packageLabel = _.upperFirst(_.camelCase(this.answers.packageName));
+    const packageLabel = upperFirst(camelCase(this.answers.packageName));
 
     const params = {
       ...this.answers,

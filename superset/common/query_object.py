@@ -125,7 +125,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         order_desc: bool = True,
         orderby: list[OrderBy] | None = None,
         post_processing: list[dict[str, Any] | None] | None = None,
-        row_limit: int | None,
+        row_limit: int | None = None,
         row_offset: int | None = None,
         series_columns: list[Column] | None = None,
         series_limit: int = 0,

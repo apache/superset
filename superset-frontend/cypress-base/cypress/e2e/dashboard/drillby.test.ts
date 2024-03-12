@@ -77,6 +77,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
 
 const verifyExpectedFormData = (
   interceptedRequest: Interception,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expectedFormData: Record<string, any>,
 ) => {
   const actualFormData = interceptedRequest.request.body?.form_data;
@@ -502,28 +503,28 @@ describe('Drill by modal', () => {
     });
 
     it('Line chart', () => {
-      testEchart('echarts_timeseries_line', 'Time-Series Line Chart', [
+      testEchart('echarts_timeseries_line', 'Line Chart', [
         [70, 93],
         [70, 93],
       ]);
     });
 
     it('Area Chart', () => {
-      testEchart('echarts_area', 'Time-Series Area Chart', [
+      testEchart('echarts_area', 'Area Chart', [
         [70, 93],
         [70, 93],
       ]);
     });
 
-    it('Time-Series Scatter Chart', () => {
-      testEchart('echarts_timeseries_scatter', 'Time-Series Scatter Chart', [
+    it('Scatter Chart', () => {
+      testEchart('echarts_timeseries_scatter', 'Scatter Chart', [
         [70, 93],
         [70, 93],
       ]);
     });
 
-    it('Time-Series Bar Chart V2', () => {
-      testEchart('echarts_timeseries_bar', 'Time-Series Bar Chart V2', [
+    it('Bar Chart V2', () => {
+      testEchart('echarts_timeseries_bar', 'Bar Chart V2', [
         [70, 94],
         [362, 68],
       ]);
@@ -556,22 +557,22 @@ describe('Drill by modal', () => {
       );
     });
 
-    it('Time-Series Generic Chart', () => {
-      testEchart('echarts_timeseries', 'Time-Series Generic Chart', [
+    it('Generic Chart', () => {
+      testEchart('echarts_timeseries', 'Generic Chart', [
         [70, 93],
         [70, 93],
       ]);
     });
 
-    it('Time-Series Smooth Line Chart', () => {
-      testEchart('echarts_timeseries_smooth', 'Time-Series Smooth Line Chart', [
+    it('Smooth Line Chart', () => {
+      testEchart('echarts_timeseries_smooth', 'Smooth Line Chart', [
         [70, 93],
         [70, 93],
       ]);
     });
 
-    it('Time-Series Step Line Chart', () => {
-      testEchart('echarts_timeseries_step', 'Time-Series Step Line Chart', [
+    it('Step Line Chart', () => {
+      testEchart('echarts_timeseries_step', 'Step Line Chart', [
         [70, 93],
         [70, 93],
       ]);

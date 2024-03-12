@@ -82,7 +82,7 @@ export type FunnelChartTransformedProps =
     ContextMenuTransformedProps;
 
 export enum PercentCalcType {
-  TOTAL = 'total',
-  PREV_STEP = 'prev_step',
-  FIRST_STEP = 'first_step',
+  Total = 'total',
+  PreviousStep = 'prev_step',
+  FirstStep = 'first_step',
 }

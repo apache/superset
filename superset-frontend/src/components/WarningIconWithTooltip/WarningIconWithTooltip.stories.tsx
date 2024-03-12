@@ -34,11 +34,3 @@ InteractiveWarningIcon.args = {
   warningMarkdown: 'Markdown example',
   size: 20,
 };
-
-InteractiveWarningIcon.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

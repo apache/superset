@@ -165,7 +165,7 @@ describe('Rule modal', () => {
       rule: {
         id: 1,
         name: 'test rule',
-        filter_type: FilterType.BASE,
+        filter_type: FilterType.Base,
         tables: [{ key: 1, id: 1, value: 'birth_names' }],
         roles: [],
       },
@@ -183,7 +183,7 @@ describe('Rule modal', () => {
       rule: {
         id: 1,
         name: 'rls 1',
-        filter_type: FilterType.BASE,
+        filter_type: FilterType.Base,
       },
     });
 
@@ -284,7 +284,7 @@ describe('Rule modal', () => {
       rule: {
         id: 1,
         name: 'rls 1',
-        filter_type: FilterType.BASE,
+        filter_type: FilterType.Base,
       },
     });
 

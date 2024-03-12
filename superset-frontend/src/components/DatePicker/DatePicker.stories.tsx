@@ -65,14 +65,6 @@ InteractiveDatePicker.args = {
 
 InteractiveDatePicker.argTypes = interactiveTypes;
 
-InteractiveDatePicker.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};
-
 export const InteractiveRangePicker = (args: RangePickerProps) => (
   <RangePicker {...args} />
 );
@@ -85,11 +77,3 @@ InteractiveRangePicker.args = {
 };
 
 InteractiveRangePicker.argTypes = interactiveTypes;
-
-InteractiveRangePicker.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

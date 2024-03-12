@@ -65,7 +65,7 @@ describe('ColumnOption', () => {
         column: {
           column_name: 'foo',
           type: 'VARCHAR',
-          type_generic: GenericDataType.STRING,
+          type_generic: GenericDataType.String,
         },
       }),
     );
@@ -92,11 +92,11 @@ describe('ColumnOption', () => {
   it('dttm column has correct column label if showType is true', () => {
     props.showType = true;
     props.column.expression = undefined;
-    props.column.type_generic = GenericDataType.TEMPORAL;
+    props.column.type_generic = GenericDataType.Temporal;
     wrapper = shallow(factory(props));
     expect(wrapper.find(ColumnTypeLabel)).toHaveLength(1);
     expect(wrapper.find(ColumnTypeLabel).props().type).toBe(
-      GenericDataType.TEMPORAL,
+      GenericDataType.Temporal,
     );
   });
 });

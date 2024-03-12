@@ -75,7 +75,7 @@ export default function Header({
     placeholder: DEFAULT_TITLE,
     onSave: (newDatasetName: string) => {
       setDataset({
-        type: DatasetActionType.changeDataset,
+        type: DatasetActionType.ChangeDataset,
         payload: { name: 'dataset_name', value: newDatasetName },
       });
     },

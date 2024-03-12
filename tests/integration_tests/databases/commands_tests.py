@@ -158,7 +158,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             big_int_type = "BIGINT(20)"
         else:
             big_int_type = "BIGINT"
-        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        metadata = yaml.safe_load(contents["databases/examples.yaml"]())
         assert metadata == (
             {
                 "allow_csv_upload": True,
@@ -176,7 +176,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         )
 
-        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"]())
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
@@ -359,7 +359,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["databases/examples.yaml"])
+        metadata = yaml.safe_load(contents["databases/examples.yaml"]())
         assert list(metadata.keys()) == [
             "database_name",
             "sqlalchemy_uri",

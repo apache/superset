@@ -32,11 +32,3 @@ InteractiveIcon.args = {
   details: 'All requirements have been met.',
   size: 30,
 };
-
-InteractiveIcon.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -26,12 +26,12 @@ export type ReportCreationMethod = 'charts' | 'dashboards' | 'alerts_reports';
 export type ReportRecipientType = 'Email' | 'Slack';
 
 export enum ReportType {
-  DASHBOARDS = 'dashboards',
-  CHARTS = 'charts',
+  Dashboards = 'dashboards',
+  Charts = 'charts',
 }
 
-export enum NOTIFICATION_FORMATS {
-  TEXT = 'TEXT',
+export enum NotificationFormats {
+  Text = 'TEXT',
   PNG = 'PNG',
   CSV = 'CSV',
 }

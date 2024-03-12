@@ -52,7 +52,7 @@ export const useOpenModal = (
   // add a filter on modal open
   useEffect(() => {
     if (createNewOnOpen && isOpen && !wasOpen) {
-      addFilter(NativeFilterType.NATIVE_FILTER);
+      addFilter(NativeFilterType.NativeFilter);
     }
   }, [createNewOnOpen, isOpen, wasOpen, addFilter]);
 };

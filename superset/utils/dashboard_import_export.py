@@ -16,17 +16,16 @@
 # under the License.
 import logging
 
-from sqlalchemy.orm import Session
-
+from superset import db
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)
 
 
-def export_dashboards(session: Session) -> str:
+def export_dashboards() -> str:
     """Returns all dashboards metadata as a json dump"""
     logger.info("Starting export")
-    dashboards = session.query(Dashboard)
+    dashboards = db.session.query(Dashboard)
     dashboard_ids = set()
     for dashboard in dashboards:
         dashboard_ids.add(dashboard.id)

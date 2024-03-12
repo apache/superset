@@ -21,12 +21,13 @@ import { css, QueryData, SupersetTheme } from '@superset-ui/core';
 import RowCountLabel from 'src/explore/components/RowCountLabel';
 import CachedLabel from 'src/components/CachedLabel';
 import Timer from 'src/components/Timer';
+import { Type } from 'src/components/Label';
 
-enum CHART_STATUS_MAP {
-  failed = 'danger',
-  loading = 'warning',
-  success = 'success',
-}
+const CHART_STATUS_MAP = {
+  failed: 'danger' as Type,
+  loading: 'warning' as Type,
+  success: 'success' as Type,
+};
 
 export type ChartPillsProps = {
   queriesResponse: QueryData[];

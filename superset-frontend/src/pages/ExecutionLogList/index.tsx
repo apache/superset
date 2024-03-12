@@ -176,8 +176,8 @@ function ExecutionLog({
                 ? alertResource.type === 'Alert'
                   ? `${ALERT_TEXT}:`
                   : alertResource.type === 'Report'
-                  ? `${REPORT_TEXT}:`
-                  : null
+                    ? `${REPORT_TEXT}:`
+                    : null
                 : null}{' '}
               {alertResource?.name}
             </span>

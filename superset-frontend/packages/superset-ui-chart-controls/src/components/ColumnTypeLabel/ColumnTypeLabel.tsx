@@ -57,13 +57,13 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
 
   if (type === '' || type === 'expression') {
     typeIcon = <FunctionSvg aria-label={t('function type icon')} />;
-  } else if (type === GenericDataType.STRING) {
+  } else if (type === GenericDataType.String) {
     typeIcon = <StringSvg aria-label={t('string type icon')} />;
-  } else if (type === GenericDataType.NUMERIC) {
+  } else if (type === GenericDataType.Numeric) {
     typeIcon = <NumSvg aria-label={t('numeric type icon')} />;
-  } else if (type === GenericDataType.BOOLEAN) {
+  } else if (type === GenericDataType.Boolean) {
     typeIcon = <BooleanSvg aria-label={t('boolean type icon')} />;
-  } else if (type === GenericDataType.TEMPORAL) {
+  } else if (type === GenericDataType.Temporal) {
     typeIcon = <ClockCircleOutlined aria-label={t('temporal type icon')} />;
   }
 

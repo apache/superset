@@ -30,7 +30,7 @@ function setTooltipContent(o: JsonObject) {
     <div className="deckgl-tooltip">
       <TooltipRow
         label={t('Centroid (Longitude and Latitude): ')}
-        value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
+        value={`(${o?.coordinate[0]}, ${o?.coordinate[1]})`}
       />
     </div>
   );

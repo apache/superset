@@ -106,7 +106,7 @@ class CategoricalColorScale extends ExtensibleFunction {
       this.forcedColors?.[cleanedValue] ||
       sharedColor;
 
-    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+    if (isFeatureEnabled(FeatureFlag.UseAnalagousColors)) {
       const multiple = Math.floor(
         this.domain().length / this.originColors.length,
       );
@@ -119,7 +119,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     const newColor = this.scale(cleanedValue);
     if (!color) {
       color = newColor;
-      if (isFeatureEnabled(FeatureFlag.AVOID_COLORS_COLLISION)) {
+      if (isFeatureEnabled(FeatureFlag.AvoidColorsCollision)) {
         this.removeSharedLabelColorFromRange(sharedColorMap, cleanedValue);
         color = this.scale(cleanedValue);
       }

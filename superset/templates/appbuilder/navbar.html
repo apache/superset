@@ -18,7 +18,7 @@
 #}
 {% set menu = appbuilder.menu %}
 {% set app_icon_width = appbuilder.app.config['APP_ICON_WIDTH'] %}
-{% set logo_target_path = appbuilder.app.config['LOGO_TARGET_PATH'] or '/profile/{}/'.format(current_user.username) %}
+{% set logo_target_path = appbuilder.app.config['LOGO_TARGET_PATH'] or '/' %}
 {% set root_path = logo_target_path if not logo_target_path.startswith('/') else '/superset' + logo_target_path if current_user.username is defined else '#'  %}
 
 {% block navbar %}

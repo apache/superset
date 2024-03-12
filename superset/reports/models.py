@@ -41,6 +41,7 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.utils.backports import StrEnum
+from superset.utils.core import MediumText
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -108,7 +109,6 @@ report_schedule_user = Table(
 
 
 class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
-
     """
     Report Schedules, supports alerts and reports
     """
@@ -128,7 +128,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     )
     timezone = Column(String(100), default="UTC", nullable=False)
     report_format = Column(String(50), default=ReportDataFormat.VISUALIZATION)
-    sql = Column(Text())
+    sql = Column(MediumText())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)
     chart = relationship(Slice, backref="report_schedules", foreign_keys=[chart_id])
@@ -150,11 +150,11 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     last_eval_dttm = Column(DateTime)
     last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
-    last_value_row_json = Column(Text)
+    last_value_row_json = Column(MediumText())
 
     # (Alerts) Observed value validation related columns
     validator_type = Column(String(100))
-    validator_config_json = Column(Text, default="{}")
+    validator_config_json = Column(MediumText(), default="{}")
 
     # Log retention
     log_retention = Column(Integer, default=90)
@@ -187,7 +187,7 @@ class ReportRecipients(Model, AuditMixinNullable):
     __tablename__ = "report_recipient"
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    recipient_config_json = Column(Text, default="{}")
+    recipient_config_json = Column(MediumText(), default="{}")
     report_schedule_id = Column(
         Integer, ForeignKey("report_schedule.id"), nullable=False
     )
@@ -203,7 +203,6 @@ class ReportRecipients(Model, AuditMixinNullable):
 
 
 class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
-
     """
     Report Execution Log, hold the result of the report execution with timestamps,
     last observation and possible error messages
@@ -220,7 +219,7 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
 
     # (Alerts) Observed values
     value = Column(Float)
-    value_row_json = Column(Text)
+    value_row_json = Column(MediumText())
 
     state = Column(String(50), nullable=False)
     error_message = Column(Text)

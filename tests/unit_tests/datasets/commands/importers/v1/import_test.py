@@ -28,6 +28,7 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
     ImportFailedError,
@@ -46,12 +47,12 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     config = {
@@ -108,7 +109,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
         "database_id": database.id,
     }
 
-    sqla_table = import_dataset(session, config)
+    sqla_table = import_dataset(config)
     assert sqla_table.table_name == "my_table"
     assert sqla_table.main_dttm_col == "ds"
     assert sqla_table.description == "This is the description"
@@ -162,23 +163,23 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     dataset_uuid = uuid.uuid4()
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset = SqlaTable(
         uuid=dataset_uuid, table_name="existing_dataset", database_id=database.id
     )
     column = TableColumn(column_name="existing_column")
-    session.add(dataset)
-    session.add(column)
-    session.flush()
+    db.session.add(dataset)
+    db.session.add(column)
+    db.session.flush()
 
     config = {
         "table_name": dataset.table_name,
@@ -234,7 +235,7 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
         "database_id": database.id,
     }
 
-    sqla_table = import_dataset(session, config, overwrite=True)
+    sqla_table = import_dataset(config, overwrite=True)
     assert sqla_table.table_name == dataset.table_name
     assert sqla_table.main_dttm_col == "ds"
     assert sqla_table.description == "This is the description"
@@ -288,12 +289,12 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -352,7 +353,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    sqla_table = import_dataset(session, dataset_config)
+    sqla_table = import_dataset(dataset_config)
 
     assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
@@ -373,12 +374,12 @@ def test_import_dataset_extra_empty_string(
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -417,7 +418,7 @@ def test_import_dataset_extra_empty_string(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    sqla_table = import_dataset(session, dataset_config)
+    sqla_table = import_dataset(dataset_config)
 
     assert sqla_table.extra == None
 
@@ -443,12 +444,12 @@ def test_import_column_allowed_data_url(
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -495,9 +496,8 @@ def test_import_column_allowed_data_url(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    _ = import_dataset(session, dataset_config, force_data=True)
-    session.connection()
-    assert [("value1",), ("value2",)] == session.execute(
+    _ = import_dataset(dataset_config, force_data=True)
+    assert [("value1",), ("value2",)] == db.session.execute(
         "SELECT * FROM my_table"
     ).fetchall()
 
@@ -517,19 +517,19 @@ def test_import_dataset_managed_externally(
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     config = copy.deepcopy(dataset_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
     config["database_id"] = database.id
 
-    sqla_table = import_dataset(session, config)
+    sqla_table = import_dataset(config)
     assert sqla_table.is_managed_externally is True
     assert sqla_table.external_url == "https://example.org/my_table"
 

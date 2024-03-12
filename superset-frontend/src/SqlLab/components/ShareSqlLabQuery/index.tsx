@@ -92,7 +92,7 @@ const ShareSqlLabQuery = ({
     }
   };
   const getCopyUrl = (callback: Function) => {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+    if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
       return getCopyUrlForKvStore(callback);
     }
     return getCopyUrlForSavedQuery(callback);
@@ -116,7 +116,7 @@ const ShareSqlLabQuery = ({
   };
 
   const canShare =
-    !!remoteId || isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+    !!remoteId || isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore);
 
   return (
     <>

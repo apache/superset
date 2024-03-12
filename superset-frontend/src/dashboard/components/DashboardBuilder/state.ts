@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { useCallback, useEffect, useState } from 'react';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -42,8 +41,7 @@ export const useNativeFilters = () => {
   );
 
   const nativeFiltersEnabled =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-    (canEdit || (!canEdit && filterValues.length !== 0));
+    canEdit || (!canEdit && filterValues.length !== 0);
 
   const requiredFirstFilter = filterValues.filter(
     filter => filter.requiredFirst,

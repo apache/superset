@@ -170,7 +170,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
-    def set_dash_metadata(  # pylint: disable=too-many-locals
+    def set_dash_metadata(
         dashboard: Dashboard,
         data: dict[Any, Any],
         old_to_new_slice_ids: dict[int, int] | None = None,
@@ -187,8 +187,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 if isinstance(value, dict)
             ]
 
-            session = db.session()
-            current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+            current_slices = (
+                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+            )
 
             dashboard.slices = current_slices
 

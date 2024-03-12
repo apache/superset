@@ -55,7 +55,7 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -471,7 +471,7 @@ class Header extends React.PureComponent {
     const userCanShare = dashboardInfo.dash_share_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
     const userCanCurate =
-      isFeatureEnabled(FeatureFlag.EMBEDDED_SUPERSET) &&
+      isFeatureEnabled(FeatureFlag.EmbeddedSuperset) &&
       findPermission('can_set_embedded', 'Dashboard', user.roles);
     const refreshLimit =
       dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;

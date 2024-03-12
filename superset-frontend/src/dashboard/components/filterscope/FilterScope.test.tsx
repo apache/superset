@@ -161,8 +161,8 @@ function getCheckboxState(name: string): CheckboxState {
   return fill === supersetTheme.colors.primary.base
     ? CHECKED
     : fill === supersetTheme.colors.grayscale.light1
-    ? INDETERMINATE
-    : UNCHECKED;
+      ? INDETERMINATE
+      : UNCHECKED;
 }
 
 function clickCheckbox(name: string) {

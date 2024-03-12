@@ -439,8 +439,8 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowSubTotals,
       highlightHeaderCellsOnHover:
         emitCrossFilters ||
-        isFeatureEnabled(FeatureFlag.DRILL_BY) ||
-        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
+        isFeatureEnabled(FeatureFlag.DrillBy) ||
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },

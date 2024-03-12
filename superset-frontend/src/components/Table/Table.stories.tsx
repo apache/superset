@@ -17,17 +17,17 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { ComponentMeta, ComponentStory } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
 import {
+  ColumnsType,
+  ETableAction,
+  OnChangeFunction,
+  SUPERSET_TABLE_COLUMN,
   Table,
   TableSize,
-  SUPERSET_TABLE_COLUMN,
-  ColumnsType,
-  OnChangeFunction,
-  ETableAction,
 } from './index';
-import { numericalSort, alphabeticalSort } from './sorters';
+import { alphabeticalSort, numericalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';
 import { exampleMenuOptions } from './cell-renderers/ActionCell/fixtures';
@@ -88,7 +88,7 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
       width: 90,
       render: (value: number) => (
         <NumericCell
-          options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+          options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
           value={value}
           locale={LocaleCode.en_US}
         />
@@ -238,7 +238,7 @@ const rendererColumns: ColumnsType<RendererData> = [
     key: 'euroCell',
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+        options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
         value={value}
         locale={LocaleCode.en_US}
       />
@@ -250,7 +250,7 @@ const rendererColumns: ColumnsType<RendererData> = [
     key: 'dollarCell',
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.CURRENCY, currency: CurrencyCode.USD }}
+        options={{ style: Style.Currency, currency: CurrencyCode.USD }}
         value={value}
         locale={LocaleCode.en_US}
       />
@@ -326,7 +326,7 @@ function handlers(record: object, rowIndex: number) {
 Basic.args = {
   data: basicData,
   columns: basicColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   onRow: handlers,
   usePagination: false,
 };
@@ -338,7 +338,7 @@ export const Pagination: ComponentStory<typeof Table> = args => (
 Pagination.args = {
   data: basicData,
   columns: basicColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   pageSizeOptions: ['5', '10', '15', '20', '25'],
   defaultPageSize: 5,
 };
@@ -377,7 +377,7 @@ const paginationColumns: ColumnsType<BasicData> = [
     width: 100,
     render: (value: number) => (
       <NumericCell
-        options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+        options={{ style: Style.Currency, currency: CurrencyCode.EUR }}
         value={value}
         locale={LocaleCode.en_US}
       />
@@ -413,7 +413,7 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
     const pageSize = pagination?.pageSize ?? 5;
     const current = pagination?.current ?? 0;
     switch (extra?.action) {
-      case ETableAction.PAGINATE: {
+      case ETableAction.Paginate: {
         setLoading(true);
         // simulate a fetch
         setTimeout(() => {
@@ -422,11 +422,11 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
         }, 1000);
         break;
       }
-      case ETableAction.SORT: {
+      case ETableAction.Sort: {
         action(`table-sort-change: ${JSON.stringify(sorter)}`);
         break;
       }
-      case ETableAction.FILTER: {
+      case ETableAction.Filter: {
         action(`table-sort-change: ${JSON.stringify(filters)}`);
         break;
       }
@@ -450,7 +450,7 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
 
 ServerPagination.args = {
   columns: paginationColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   pageSizeOptions: ['5', '20', '50'],
   defaultPageSize: 5,
 };
@@ -462,7 +462,7 @@ export const VirtualizedPerformance: ComponentStory<typeof Table> = args => (
 VirtualizedPerformance.args = {
   data: bigdata,
   columns: bigColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   resizable: true,
   reorderable: true,
   height: 350,
@@ -477,7 +477,7 @@ export const Loading: ComponentStory<typeof Table> = args => (
 Loading.args = {
   data: basicData,
   columns: basicColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   loading: true,
 };
 
@@ -488,7 +488,7 @@ export const ResizableColumns: ComponentStory<typeof Table> = args => (
 ResizableColumns.args = {
   data: basicData,
   columns: basicColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   resizable: true,
 };
 
@@ -543,7 +543,7 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
 ReorderableColumns.args = {
   data: basicData,
   columns: basicColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   reorderable: true,
 };
 
@@ -578,7 +578,7 @@ export const CellRenderers: ComponentStory<typeof Table> = args => (
 CellRenderers.args = {
   data: rendererData,
   columns: rendererColumns,
-  size: TableSize.SMALL,
+  size: TableSize.Small,
   reorderable: true,
 };
 
@@ -659,7 +659,7 @@ export const HeaderRenderers: ComponentStory<typeof Table> = () => {
         <NumericCell
           value={value}
           options={{
-            style: Style.CURRENCY,
+            style: Style.Currency,
             currency:
               priceLocale === LocaleCode.en_US
                 ? CurrencyCode.USD
@@ -675,7 +675,7 @@ export const HeaderRenderers: ComponentStory<typeof Table> = () => {
     <Table<ShoppingData>
       data={shoppingData}
       columns={shoppingColumns}
-      size={TableSize.SMALL}
+      size={TableSize.Small}
       resizable
     />
   );

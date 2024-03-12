@@ -46,9 +46,9 @@ export default class EchartsFunnelChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsFunnel'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('KPI'),
         credits: ['https://echarts.apache.org'],

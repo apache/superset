@@ -118,10 +118,11 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             raise ReportScheduleForbiddenError() from ex
 
         # Validate/Populate owner
-        if owner_ids is None:
-            owner_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = self.populate_owners(owner_ids)
+            owners = self.compute_owners(
+                self._model.owners,
+                owner_ids,
+            )
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

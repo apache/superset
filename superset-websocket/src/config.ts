@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import * as _ from 'lodash';
+import { merge as _merge } from 'lodash';
 
 export interface RedisConfig {
   port: number;
@@ -142,6 +142,6 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
 }
 
 export function buildConfig(): ConfigType {
-  const config = _.merge(defaultConfig(), configFromFile());
+  const config = _merge(defaultConfig(), configFromFile());
   return applyEnvOverrides(config);
 }

@@ -230,15 +230,14 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                 schema=get_example_default_schema(),
                 sql="select 123 as intcol, 'abc' as strcol",
             )
-            session = db.session
-            session.add(dataset)
-            session.commit()
+            db.session.add(dataset)
+            db.session.commit()
 
             yield dataset
 
             # rollback
-            session.delete(dataset)
-            session.commit()
+            db.session.delete(dataset)
+            db.session.commit()
 
     def setUp(self) -> None:
         self.dash = self.get_dash_by_slug("births")
@@ -258,11 +257,9 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                 ],
             }
         )
-        self.chart = self.get_slice("Girls", db.session, expunge_from_session=False)
+        self.chart = self.get_slice("Girls")
         self.datasource = self.chart.datasource
-        self.other_chart = self.get_slice(
-            "Treemap", db.session, expunge_from_session=False
-        )
+        self.other_chart = self.get_slice("Treemap")
         self.other_datasource = self.other_chart.datasource
         self.native_filter_datasource = (
             db.session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
@@ -288,7 +285,10 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                         form_data={
                             "dashboardId": self.dash.id,
                             "slice_id": self.chart.id,
+                            "metrics": self.chart.params_dict["metrics"],
                         },
+                        slice_=self.chart,
+                        queries=[],
                     )
                 }
             )
@@ -304,7 +304,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                             "dashboardId": self.dash.id,
                             "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
                             "type": "NATIVE_FILTER",
+                            "slice_id": self.chart.id,
+                            "metrics": self.chart.params_dict["metrics"],
                         },
+                        slice_=self.chart,
+                        queries=[],
                     )
                 }
             )
@@ -382,7 +386,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                             form_data={
                                 "dashboardId": self.dash.id,
                                 "type": "NATIVE_FILTER",
+                                "slice_id": self.chart.id,
+                                "metrics": self.chart.params_dict["metrics"],
                             },
+                            slice_=self.chart,
+                            queries=[],
                         )
                     }
                 )
@@ -399,7 +407,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                                 "dashboardId": self.dash.id,
                                 "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
                                 "type": "NATIVE_FILTER",
+                                "slice_id": self.chart.id,
+                                "metrics": self.chart.params_dict["metrics"],
                             },
+                            slice_=self.chart,
+                            queries=[],
                         )
                     }
                 )

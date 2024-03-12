@@ -50,9 +50,9 @@ export default class EchartsGraphChartPlugin extends EchartsChartPlugin {
         ],
         thumbnail,
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
       },
       transformProps,

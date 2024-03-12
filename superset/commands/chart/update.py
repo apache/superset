@@ -90,7 +90,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_ownership(self._model)
-                owners = self.populate_owners(owner_ids)
+                owners = self.compute_owners(
+                    self._model.owners,
+                    owner_ids,
+                )
                 self._properties["owners"] = owners
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex

@@ -38,7 +38,6 @@ import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
-import FilterBoxItemControl from './FilterBoxItemControl';
 import ConditionalFormattingControl from './ConditionalFormattingControl';
 import ContourControl from './ContourControl';
 import DndColumnSelectControl, {
@@ -78,7 +77,6 @@ const controlMap = {
   VizTypeControl,
   MetricsControl,
   AdhocFilterControl,
-  FilterBoxItemControl,
   ConditionalFormattingControl,
   XAxisSortControl,
   ContourControl,

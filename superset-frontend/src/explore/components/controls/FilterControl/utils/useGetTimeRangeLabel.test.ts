@@ -22,15 +22,15 @@ import { Operators } from 'src/explore/constants';
 import * as FetchTimeRangeModule from 'src/explore/components/controls/DateFilterControl';
 import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 import AdhocFilter from '../AdhocFilter';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({
-    expressionType: EXPRESSION_TYPES.SIMPLE,
+    expressionType: ExpressionTypes.Simple,
     subject: 'value',
     operator: '>',
     comparator: '10',
-    clause: CLAUSES.WHERE,
+    clause: Clauses.Where,
   });
   const { result } = renderHook(() => useGetTimeRangeLabel(adhocFilter));
   expect(result.current).toEqual({});
@@ -38,11 +38,11 @@ test('should return empty object if operator is not TEMPORAL_RANGE', () => {
 
 test('should return empty object if expressionType is SQL', () => {
   const adhocFilter = new AdhocFilter({
-    expressionType: EXPRESSION_TYPES.SQL,
+    expressionType: ExpressionTypes.Sql,
     subject: 'temporal column',
-    operator: Operators.TEMPORAL_RANGE,
+    operator: Operators.TemporalRange,
     comparator: 'Last week',
-    clause: CLAUSES.WHERE,
+    clause: Clauses.Where,
   });
   const { result } = renderHook(() => useGetTimeRangeLabel(adhocFilter));
   expect(result.current).toEqual({});
@@ -50,11 +50,11 @@ test('should return empty object if expressionType is SQL', () => {
 
 test('should get "No filter" label', () => {
   const adhocFilter = new AdhocFilter({
-    expressionType: EXPRESSION_TYPES.SIMPLE,
+    expressionType: ExpressionTypes.Simple,
     subject: 'temporal column',
-    operator: Operators.TEMPORAL_RANGE,
+    operator: Operators.TemporalRange,
     comparator: NO_TIME_RANGE,
-    clause: CLAUSES.WHERE,
+    clause: Clauses.Where,
   });
   const { result } = renderHook(() => useGetTimeRangeLabel(adhocFilter));
   expect(result.current).toEqual({
@@ -69,11 +69,11 @@ test('should get actualTimeRange and title', async () => {
     .mockResolvedValue({ value: 'MOCK TIME' });
 
   const adhocFilter = new AdhocFilter({
-    expressionType: EXPRESSION_TYPES.SIMPLE,
+    expressionType: ExpressionTypes.Simple,
     subject: 'temporal column',
-    operator: Operators.TEMPORAL_RANGE,
+    operator: Operators.TemporalRange,
     comparator: 'Last week',
-    clause: CLAUSES.WHERE,
+    clause: Clauses.Where,
   });
 
   const { result } = await renderHook(() => useGetTimeRangeLabel(adhocFilter));
@@ -89,11 +89,11 @@ test('should get actualTimeRange and title when gets an error', async () => {
     .mockResolvedValue({ error: 'MOCK ERROR' });
 
   const adhocFilter = new AdhocFilter({
-    expressionType: EXPRESSION_TYPES.SIMPLE,
+    expressionType: ExpressionTypes.Simple,
     subject: 'temporal column',
-    operator: Operators.TEMPORAL_RANGE,
+    operator: Operators.TemporalRange,
     comparator: 'Last week',
-    clause: CLAUSES.WHERE,
+    clause: Clauses.Where,
   });
 
   const { result } = await renderHook(() => useGetTimeRangeLabel(adhocFilter));

@@ -21,11 +21,8 @@ import React from 'react';
 import {
   ChartDataResponseResult,
   ensureIsArray,
-  FeatureFlag,
   GenericDataType,
-  hasGenericChartAxes,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
@@ -40,7 +37,6 @@ import {
   ControlStateMapping,
   D3_TIME_FORMAT_OPTIONS,
   QueryModeLabel,
-  sections,
   sharedControls,
   ControlPanelState,
   ControlState,
@@ -54,14 +50,14 @@ import { PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
-  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+  if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
     | QueryFormColumn[]
     | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
-  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
+  return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
 /**
@@ -72,8 +68,8 @@ function isQueryMode(mode: QueryMode) {
     getQueryMode(controls) === mode;
 }
 
-const isAggMode = isQueryMode(QueryMode.aggregate);
-const isRawMode = isQueryMode(QueryMode.raw);
+const isAggMode = isQueryMode(QueryMode.Aggregate);
+const isRawMode = isQueryMode(QueryMode.Raw);
 
 const validateAggControlValues = (
   controls: ControlStateMapping,
@@ -90,8 +86,8 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   label: t('Query mode'),
   default: null,
   options: [
-    [QueryMode.aggregate, QueryModeLabel[QueryMode.aggregate]],
-    [QueryMode.raw, QueryModeLabel[QueryMode.raw]],
+    [QueryMode.Aggregate, QueryModeLabel[QueryMode.Aggregate]],
+    [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
   rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
@@ -149,7 +145,6 @@ const percentMetricsControl: typeof sharedControls.metrics = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
@@ -191,35 +186,33 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          hasGenericChartAxes && isAggMode
-            ? {
-                name: 'time_grain_sqla',
-                config: {
-                  ...sharedControls.time_grain_sqla,
-                  visibility: ({ controls }) => {
-                    const dttmLookup = Object.fromEntries(
-                      ensureIsArray(controls?.groupby?.options).map(option => [
-                        option.column_name,
-                        option.is_dttm,
-                      ]),
-                    );
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.groupby?.options).map(option => [
+                    option.column_name,
+                    option.is_dttm,
+                  ]),
+                );
 
-                    return ensureIsArray(controls?.groupby.value)
-                      .map(selection => {
-                        if (isAdhocColumn(selection)) {
-                          return true;
-                        }
-                        if (isPhysicalColumn(selection)) {
-                          return !!dttmLookup[selection];
-                        }
-                        return false;
-                      })
-                      .some(Boolean);
-                  },
-                },
-              }
-            : null,
-          hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
+                return ensureIsArray(controls?.groupby.value)
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
         ],
         [
           {
@@ -290,22 +283,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-        isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)
-          ? [
-              {
-                name: 'server_pagination',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Server pagination'),
-                  description: t(
-                    'Enable server side pagination of results (experimental feature)',
-                  ),
-                  default: false,
-                },
-              },
-            ]
-          : [],
+        [
+          {
+            name: 'server_pagination',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Server pagination'),
+              description: t(
+                'Enable server side pagination of results (experimental feature)',
+              ),
+              default: false,
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
@@ -329,23 +319,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        !hasGenericChartAxes
-          ? [
-              {
-                name: 'include_time',
-                config: {
-                  type: 'CheckboxControl',
-                  label: t('Include time'),
-                  description: t(
-                    'Whether to include the time granularity as defined in the time section',
-                  ),
-                  default: false,
-                  visibility: isAggMode,
-                  resetOnHide: false,
-                },
-              },
-            ]
-          : [null],
         [
           {
             name: 'order_desc',
@@ -528,7 +501,7 @@ const config: ControlPanelConfig = {
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.NUMERIC,
+                            coltypes[index] === GenericDataType.Numeric,
                         )
                         .map(colname => ({
                           value: colname,

@@ -43,14 +43,12 @@ class ImportDatabasesCommand(ImportModelsCommand):
     import_error = DatabaseImportError
 
     @staticmethod
-    def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         # first import databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=overwrite)
+                database = import_database(config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import related datasets
@@ -61,4 +59,4 @@ class ImportDatabasesCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 # overwrite=False prevents deleting any non-imported columns/metrics
-                import_dataset(session, config, overwrite=False)
+                import_dataset(config, overwrite=False)

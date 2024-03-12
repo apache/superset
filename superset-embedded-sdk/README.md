@@ -40,10 +40,15 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
       hideTitle: true,
       filters: {
           expanded: true,
+      },
+      urlParams: {
+          foo: 'value1',
+          bar: 'value2',
+          // ...
       }
   },
 });
@@ -75,6 +80,10 @@ From the backend, http `POST` to `/security/guest_token` with some parameters to
 Guest tokens can have Row Level Security rules which filter data for the user carrying the token.
 
 The agent making the `POST` request must be authenticated with the `can_grant_guest_token` permission.
+
+Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object.  This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
++
++The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
 
 Example `POST /security/guest_token` payload:
 

@@ -18,7 +18,6 @@ from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.exc import MultipleResultsFound
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
 from superset import db
@@ -70,7 +69,6 @@ class ImportExamplesCommand(ImportModelsCommand):
         # rollback to prevent partial imports
         try:
             self._import(
-                db.session,
                 self._configs,
                 self.overwrite,
                 self.force_data,
@@ -92,7 +90,6 @@ class ImportExamplesCommand(ImportModelsCommand):
 
     @staticmethod
     def _import(  # pylint: disable=too-many-locals, too-many-branches
-        session: Session,
         configs: dict[str, Any],
         overwrite: bool = False,
         force_data: bool = False,
@@ -102,7 +99,6 @@ class ImportExamplesCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -133,7 +129,6 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 try:
                     dataset = import_dataset(
-                        session,
                         config,
                         overwrite=overwrite,
                         force_data=force_data,
@@ -164,7 +159,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
                 chart = import_chart(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -172,7 +166,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
-        existing_relationships = session.execute(
+        existing_relationships = db.session.execute(
             select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
         ).fetchall()
 
@@ -186,7 +180,6 @@ class ImportExamplesCommand(ImportModelsCommand):
                     continue
 
                 dashboard = import_dashboard(
-                    session,
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
@@ -203,4 +196,4 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        session.execute(dashboard_slices.insert(), values)
+        db.session.execute(dashboard_slices.insert(), values)

@@ -15,6 +15,5 @@
 # limitations under the License.
 #
 -r base.in
--e .[postgres]
-gevent
+-e .[postgres,gevent]
 greenlet>=2.0.2

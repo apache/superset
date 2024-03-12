@@ -115,7 +115,7 @@ export const DrillByMenuItems = ({
     () =>
       getChartMetadataRegistry()
         .get(formData.viz_type)
-        ?.behaviors.find(behavior => behavior === Behavior.DRILL_BY),
+        ?.behaviors.find(behavior => behavior === Behavior.DrillBy),
     [formData.viz_type],
   );
   const verboseMap = useVerboseMap(dataset);

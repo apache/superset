@@ -65,7 +65,7 @@ const testColumns: ColumnsType<BasicData> = [
 
 test('renders with default props', async () => {
   render(
-    <Table size={TableSize.MIDDLE} columns={testColumns} data={testData} />,
+    <Table size={TableSize.Middle} columns={testColumns} data={testData} />,
   );
   await waitFor(() =>
     testColumns.forEach(column =>

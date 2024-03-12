@@ -36,7 +36,6 @@ from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import backend, override_user
-from superset.views.base import generate_download_headers
 
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -1551,6 +1550,43 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_clear_owner_list(self):
+        """
+        Dashboard API: Test update admin can clear up owners list
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        dashboard_data = {"owners": []}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard_id)
+        self.assertEqual([], model.owners)
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_populate_owner(self):
+        """
+        Dashboard API: Test update admin can update dashboard with
+        no owners to a different owner
+        """
+        self.login(username="admin")
+        gamma = self.get_user("gamma")
+        dashboard = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [],
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}"
+        dashboard_data = {"owners": [gamma.id]}
+        rv = self.client.put(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 200)
+        model = db.session.query(Dashboard).get(dashboard.id)
+        self.assertEqual([gamma], model.owners)
+        db.session.delete(model)
+        db.session.commit()
+
     def test_update_dashboard_slug_formatting(self):
         """
         Dashboard API: Test update slug formatting
@@ -1652,11 +1688,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    @patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        {"VERSIONED_EXPORT": False},
-        clear=True,
-    )
     @pytest.mark.usefixtures(
         "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
@@ -1667,12 +1698,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         Dashboard API: Test dashboard export
         """
         self.login(username="admin")
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        dashboards_ids = get_dashboards_ids(["world_health", "births"])
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         rv = self.get_assert_metric(uri, "export")
-        headers = generate_download_headers("json")["Content-Disposition"]
 
+        headers = f"attachment; filename=dashboard_export_20220101T000000.zip"
         assert rv.status_code == 200
         assert rv.headers["Content-Disposition"] == headers
 
@@ -1705,7 +1736,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dashboard API: Test dashboard export
         """
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        dashboards_ids = get_dashboards_ids(["world_health", "births"])
         uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         self.login(username="admin")

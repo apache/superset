@@ -54,7 +54,7 @@ const config = (contentType: ContentType) => {
    */
 
   switch (type) {
-    case MetadataType.DASHBOARDS:
+    case MetadataType.Dashboards:
       return {
         icon: Icons.FundProjectionScreenOutlined,
         title: contentType.title,
@@ -65,13 +65,13 @@ const config = (contentType: ContentType) => {
         ) : undefined,
       };
 
-    case MetadataType.DESCRIPTION:
+    case MetadataType.Description:
       return {
         icon: Icons.BookOutlined,
         title: contentType.value,
       };
 
-    case MetadataType.LAST_MODIFIED:
+    case MetadataType.LastModified:
       return {
         icon: Icons.EditOutlined,
         title: contentType.value,
@@ -83,7 +83,7 @@ const config = (contentType: ContentType) => {
         ),
       };
 
-    case MetadataType.OWNER:
+    case MetadataType.Owner:
       return {
         icon: Icons.UserOutlined,
         title: contentType.createdBy,
@@ -98,28 +98,28 @@ const config = (contentType: ContentType) => {
         ),
       };
 
-    case MetadataType.ROWS:
+    case MetadataType.Rows:
       return {
         icon: Icons.InsertRowBelowOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.SQL:
+    case MetadataType.Sql:
       return {
         icon: Icons.ConsoleSqlOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.TABLE:
+    case MetadataType.Table:
       return {
         icon: Icons.Table,
         title: contentType.title,
         tooltip: contentType.title,
       };
 
-    case MetadataType.TAGS:
+    case MetadataType.Tags:
       return {
         icon: Icons.TagsOutlined,
         title: contentType.values.join(', '),

@@ -45,12 +45,12 @@ function setTooltipContent(o: JsonObject) {
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Longitude and Latitude') + ': '}
-        value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
+        value={`${o?.coordinate?.[0]}, ${o?.coordinate?.[1]}`}
       />
       <TooltipRow
         // eslint-disable-next-line prefer-template
         label={t('Weight') + ': '}
-        value={`${o.object.cellWeight}`}
+        value={`${o.object?.cellWeight}`}
       />
     </div>
   );

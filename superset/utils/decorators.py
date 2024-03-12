@@ -191,3 +191,22 @@ def debounce(duration: float | int = 0.1) -> Callable[..., Any]:
 
 def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
+
+
+@contextmanager
+def suppress_logging(
+    logger_name: str | None = None,
+    new_level: int = logging.CRITICAL,
+) -> Iterator[None]:
+    """
+    Context manager to suppress logging during the execution of code block.
+
+    Use with caution and make sure you have the least amount of code inside it.
+    """
+    target_logger = logging.getLogger(logger_name)
+    original_level = target_logger.getEffectiveLevel()
+    target_logger.setLevel(new_level)
+    try:
+        yield
+    finally:
+        target_logger.setLevel(original_level)

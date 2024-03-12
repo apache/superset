@@ -41,7 +41,7 @@ const sqlLabPersistStateConfig = {
     slicer: paths => state => {
       const subset = {};
       paths.forEach(path => {
-        if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
+        if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
           const {
             queryEditors,
             editorTabLastUpdatedAt,

@@ -126,7 +126,7 @@ class ChartDataProvider extends React.PureComponent<
                   datasource,
                   formData,
                   queriesData,
-                } as Payload),
+                }) as Payload,
             ),
           )
           .then(this.handleReceiveData)

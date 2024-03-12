@@ -23,7 +23,7 @@ import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
-import DragDroppable from './dnd/DragDroppable';
+import { Droppable } from './dnd/DragDroppable';
 import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
 
@@ -41,15 +41,8 @@ const propTypes = {
 
 const defaultProps = {};
 
-const renderDraggableContentBottom = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--bottom" />
-  );
-
-const renderDraggableContentTop = dropProps =>
-  dropProps.dropIndicatorProps && (
-    <div className="drop-indicator drop-indicator--top" />
-  );
+const renderDraggableContent = dropProps =>
+  dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
 const DashboardEmptyStateContainer = styled.div`
   position: absolute;
@@ -60,28 +53,42 @@ const DashboardEmptyStateContainer = styled.div`
 `;
 
 const GridContent = styled.div`
-  ${({ theme }) => css`
+  ${({ theme, editMode }) => css`
     display: flex;
     flex-direction: column;
 
     /* gutters between rows */
     & > div:not(:last-child):not(.empty-droptarget) {
-      margin-bottom: ${theme.gridUnit * 4}px;
+      ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px`};
     }
 
-    & > .empty-droptarget {
+    .empty-droptarget {
       width: 100%;
-      height: 100%;
+      height: ${theme.gridUnit * 4}px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: ${theme.gridUnit}px;
+      overflow: hidden;
+
+      &:before {
+        content: '';
+        display: block;
+        width: calc(100% - ${theme.gridUnit * 2}px);
+        height: calc(100% - ${theme.gridUnit * 2}px);
+        border: 1px dashed transparent;
+        border-radius: ${theme.gridUnit}px;
+        opacity: 0.5;
+      }
     }
 
     & > .empty-droptarget:first-child {
-      height: ${theme.gridUnit * 12}px;
-      margin-top: ${theme.gridUnit * -6}px;
+      height: ${theme.gridUnit * 4}px;
+      margin-top: ${theme.gridUnit * -4}px;
     }
 
     & > .empty-droptarget:last-child {
-      height: ${theme.gridUnit * 12}px;
-      margin-top: ${theme.gridUnit * -6}px;
+      height: ${theme.gridUnit * 24}px;
     }
 
     & > .empty-droptarget.empty-droptarget--full:only-child {
@@ -265,10 +272,14 @@ class DashboardGrid extends React.PureComponent {
           </DashboardEmptyStateContainer>
         )}
         <div className="dashboard-grid" ref={this.setGridRef}>
-          <GridContent className="grid-content" data-test="grid-content">
+          <GridContent
+            className="grid-content"
+            data-test="grid-content"
+            editMode={editMode}
+          >
             {/* make the area above components droppable */}
             {editMode && (
-              <DragDroppable
+              <Droppable
                 component={gridComponent}
                 depth={depth}
                 parentComponent={null}
@@ -281,41 +292,43 @@ class DashboardGrid extends React.PureComponent {
                     gridComponent?.children?.length === 0,
                 })}
                 editMode
+                dropToChild={gridComponent?.children?.length === 0}
               >
-                {renderDraggableContentTop}
-              </DragDroppable>
+                {renderDraggableContent}
+              </Droppable>
             )}
             {gridComponent?.children?.map((id, index) => (
-              <DashboardComponent
-                key={id}
-                id={id}
-                parentId={gridComponent.id}
-                depth={depth + 1}
-                index={index}
-                availableColumnCount={GRID_COLUMN_COUNT}
-                columnWidth={columnWidth}
-                isComponentVisible={isComponentVisible}
-                onResizeStart={this.handleResizeStart}
-                onResize={this.handleResize}
-                onResizeStop={this.handleResizeStop}
-                onChangeTab={this.handleChangeTab}
-              />
+              <React.Fragment key={id}>
+                <DashboardComponent
+                  id={id}
+                  parentId={gridComponent.id}
+                  depth={depth + 1}
+                  index={index}
+                  availableColumnCount={GRID_COLUMN_COUNT}
+                  columnWidth={columnWidth}
+                  isComponentVisible={isComponentVisible}
+                  onResizeStart={this.handleResizeStart}
+                  onResize={this.handleResize}
+                  onResizeStop={this.handleResizeStop}
+                  onChangeTab={this.handleChangeTab}
+                />
+                {/* make the area below components droppable */}
+                {editMode && (
+                  <Droppable
+                    component={gridComponent}
+                    depth={depth}
+                    parentComponent={null}
+                    index={index + 1}
+                    orientation="column"
+                    onDrop={handleComponentDrop}
+                    className="empty-droptarget"
+                    editMode
+                  >
+                    {renderDraggableContent}
+                  </Droppable>
+                )}
+              </React.Fragment>
             ))}
-            {/* make the area below components droppable */}
-            {editMode && gridComponent?.children?.length > 0 && (
-              <DragDroppable
-                component={gridComponent}
-                depth={depth}
-                parentComponent={null}
-                index={gridComponent.children.length}
-                orientation="column"
-                onDrop={handleComponentDrop}
-                className="empty-droptarget"
-                editMode
-              >
-                {renderDraggableContentBottom}
-              </DragDroppable>
-            )}
             {isResizing &&
               Array(GRID_COLUMN_COUNT)
                 .fill(null)

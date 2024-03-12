@@ -66,7 +66,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owners_ids: Optional[list[int]] = self._properties.get("owners")
+        owner_ids: Optional[list[int]] = self._properties.get("owners")
         roles_ids: Optional[list[int]] = self._properties.get("roles")
         slug: Optional[str] = self._properties.get("slug")
 
@@ -85,10 +85,11 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         # Validate/Populate owner
-        if owners_ids is None:
-            owners_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = self.populate_owners(owners_ids)
+            owners = self.compute_owners(
+                self._model.owners,
+                owner_ids,
+            )
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

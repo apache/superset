@@ -172,7 +172,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
       ...getRegistryData(),
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       fetchAll,
-      loading: isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS),
+      loading: isFeatureEnabled(FeatureFlag.DynamicPlugins),
       // TODO: Write fetchByKeys
     }),
   );
@@ -210,7 +210,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
   }
 
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
+    if (isFeatureEnabled(FeatureFlag.DynamicPlugins)) {
       fetchAll();
     }
     const registryListener = () => {

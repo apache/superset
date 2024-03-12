@@ -67,11 +67,3 @@ InteractiveControlHeader.argTypes = {
   tooltipOnClick: { action: 'tooltipOnClick' },
   onClick: { action: 'onClick' },
 };
-
-InteractiveControlHeader.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

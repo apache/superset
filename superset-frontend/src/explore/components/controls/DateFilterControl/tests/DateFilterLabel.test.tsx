@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event';
 import { NO_TIME_RANGE } from '@superset-ui/core';
 import DateFilterLabel from '..';
 import { DateFilterControlProps } from '../types';
-import { DATE_FILTER_TEST_KEY } from '../utils';
+import { DateFilterTestKey } from '../utils';
 
 const mockStore = configureStore([thunk]);
 
@@ -56,7 +56,7 @@ test('DateFilter with default props', () => {
   // should be popover by default
   userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(
-    screen.getByTestId(DATE_FILTER_TEST_KEY.popoverOverlay),
+    screen.getByTestId(DateFilterTestKey.PopoverOverlay),
   ).toBeInTheDocument();
 });
 
@@ -65,7 +65,7 @@ test('DateFilter should be applied the overlayStyle props', () => {
   // should be Modal as overlay
   userEvent.click(screen.getByText(NO_TIME_RANGE));
   expect(
-    screen.getByTestId(DATE_FILTER_TEST_KEY.modalOverlay),
+    screen.getByTestId(DateFilterTestKey.ModalOverlay),
   ).toBeInTheDocument();
 });
 
@@ -82,9 +82,7 @@ test('DateFilter should be applied the global config time_filter from the store'
   expect(screen.getByText('Last week')).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Last week'));
-  expect(
-    screen.getByTestId(DATE_FILTER_TEST_KEY.commonFrame),
-  ).toBeInTheDocument();
+  expect(screen.getByTestId(DateFilterTestKey.CommonFrame)).toBeInTheDocument();
 });
 
 test('Open and close popover', () => {

@@ -47,7 +47,6 @@ describe('Dashboard', () => {
       triggerQuery() {},
       logEvent() {},
     },
-    initMessages: [],
     dashboardState,
     dashboardInfo,
     charts: chartQueries,
