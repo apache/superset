@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:3.0.0
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
@@ -39,7 +39,7 @@ services:
     volumes:
       - redis:/data
 
- db:
+  db:
    platform: linux/amd64
    env_file: docker/.env
    image: postgres:14
