@@ -1,0 +1,42 @@
+name: "Superset: Key Gen"
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "The environment to deploy to"
+        type: environment
+        default: dev
+        required: true
+
+defaults:
+  run:
+    working-directory: ".github/workflows"
+
+env:
+  POSTGRES_KEYVAULT: "${{secrets.POSTGRES_KEYVAULT}}"
+  app_name: "superset"
+
+jobs:
+  deployment:
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+      - name: Generate secret key
+        id: keygen
+        run: |
+          SECRET_KEY=$(openssl rand -base64 42)
+          echo "::add-mask::$SECRET_KEY"
+          echo "SECRET_KEY=$SECRET_KEY" >> "$GITHUB_OUTPUT"
+          
+      - name: Push key to keyvault
+        run: |
+          az keyvault secret set --name secretKey --vault-name $POSTGRES_KEYVAULT --value ${{ steps.keygen.outputs.SECRET_KEY }} -o none

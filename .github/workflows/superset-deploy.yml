@@ -1,0 +1,73 @@
+name: "Superset: Deploy"
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "The environment to deploy to"
+        type: environment
+        default: dev
+        required: true
+
+defaults:
+  run:
+    working-directory: ".github/workflows"
+
+env:
+  TLS_CRT: "${{secrets.TLS_CRT}}"
+  TLS_KEY: "${{secrets.TLS_KEY}}"
+  KUBERNETES_RESOURCE_GROUP: "${{secrets.KUBERNETES_RESOURCE_GROUP}}"
+  KUBERNETES_CLUSTER_NAME: "${{secrets.KUBERNETES_CLUSTER_NAME}}"
+  POSTGRES_KEYVAULT: "${{secrets.POSTGRES_KEYVAULT}}"
+  app_name: "superset"
+  namespace: "superset-namespace"
+  helm_release: "superset-release"
+  k8s_secret_name: "ingress-tls"
+
+
+jobs:
+  deployment:
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+      # mask the ouptuts
+      - name: Get keyvault secrets
+        id: kvsecrets
+        run: |
+          echo "::add-mask::$POSTGRES_KEYVAULT"
+          DB_HOST=$(./keyvault.sh host $POSTGRES_KEYVAULT)
+          DB_USERNAME=$(./keyvault.sh username $POSTGRES_KEYVAULT)
+          DB_PASSWORD=$(./keyvault.sh password $POSTGRES_KEYVAULT)
+          SECRET_KEY=$(./keyvault.sh secretKey $POSTGRES_KEYVAULT)
+          echo "::add-mask::$DB_HOST"
+          echo "::add-mask::$DB_USERNAME"
+          echo "::add-mask::$DB_PASSWORD"
+          echo "::add-mask::$SECRET_KEY"
+          echo "DB_HOST=$DB_HOST" >> "$GITHUB_OUTPUT"
+          echo "DB_USERNAME=$DB_USERNAME" >> "$GITHUB_OUTPUT"
+          echo "DB_PASSWORD=$DB_PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "SECRET_KEY=$SECRET_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Azure Kubernetes set context
+        uses: Azure/aks-set-context@v3
+        with:
+          resource-group: "${{ env.KUBERNETES_RESOURCE_GROUP }}"
+          cluster-name: "${{ env.KUBERNETES_CLUSTER_NAME }}"
+
+      - name: Create namespace and secret
+        run: |
+          source ./secrets.sh -n ${{env.namespace}} -s ${{env.k8s_secret_name}} --tls-crt ${{env.TLS_CRT}} --tls-key ${{env.TLS_KEY}}
+
+      - name: Update helm chart and values
+        run: |
+          source ./deployment.sh
+          deploy_superset ${{env.namespace}} ${{env.helm_release}} ${{secrets.DOMAIN_NAME}} ${{env.k8s_secret_name}} ${{ steps.kvsecrets.outputs.DB_HOST }} ${{steps.kvsecrets.outputs.DB_USERNAME}} ${{steps.kvsecrets.outputs.DB_PASSWORD}} ${{secrets.MAPBOX_API_KEY}} ${{secrets.SMTP_USER}} ${{secrets.SMTP_PASSWORD}} ${{secrets.SMTP_MAIL_FROM}} ${{steps.kvsecrets.outputs.SECRET_KEY}}
+
