@@ -205,15 +205,21 @@ class AnnotationLayer extends React.PureComponent {
     this.handleSelectValue = this.handleSelectValue.bind(this);
     this.handleTextValue = this.handleTextValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
-    this.asyncFetch = this.asyncFetch.bind(this);
+    this.fetchOptions = this.fetchOptions.bind(this);
+    this.fetchCharts = this.fetchCharts.bind(this);
+    this.fetchNativeAnnotations = this.fetchNativeAnnotations.bind(this);
+    this.fetchAppliedAnnotation = this.fetchAppliedAnnotation.bind(this);
     this.fetchAppliedChart = this.fetchAppliedChart.bind(this);
-    this.shouldFetchAppliedChart = this.shouldFetchAppliedChart.bind(this);
+    this.fetchAppliedNativeAnnotation =
+      this.fetchAppliedNativeAnnotation.bind(this);
+    this.shouldfetchAppliedAnnotation =
+      this.shouldfetchAppliedAnnotation.bind(this);
   }
 
   componentDidMount() {
-    if (this.shouldFetchAppliedChart()) {
+    if (this.shouldfetchAppliedAnnotation()) {
       const { value } = this.state;
-      this.fetchAppliedChart(value);
+      this.fetchAppliedAnnotation(value);
     }
   }
 
@@ -235,7 +241,7 @@ class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  shouldFetchAppliedChart() {
+  shouldfetchAppliedAnnotation() {
     // If the annotation is not new and the source is a chart
     const { value, valueOptions, sourceType } = this.state;
     return value && !valueOptions[value] && requiresQuery(sourceType);
@@ -312,94 +318,112 @@ class AnnotationLayer extends React.PureComponent {
     });
   }
 
-  asyncFetch = async (_, page, pageSize) => {
-    const { annotationType, sourceType } = this.state;
+  fetchNativeAnnotations = async (search, page, pageSize) => {
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'name',
+          opr: 'ct',
+          value: search,
+        },
+      ],
+      page,
+      page_size: pageSize,
+    });
 
-    if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-      const queryParams = rison.encode({
-        page,
-        page_size: pageSize,
-      });
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
+    });
 
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/annotation_layer/?q=${queryParams}`,
-      });
+    const { result, count } = json;
 
-      const { result, count } = json;
+    const layersObj = result.reduce((acc, layer) => {
+      acc[layer.id] = {
+        value: layer.id,
+        label: layer.name,
+      };
+      return acc;
+    }, {});
 
-      const layersObj = result.reduce((acc, layer) => {
-        acc[layer.id] = {
-          value: layer.id,
-          label: layer.name,
+    const layersArray = Object.values(layersObj);
+
+    this.setState(prevState => ({
+      valueOptions: { ...prevState.valueOptions, ...layersObj },
+    }));
+
+    return {
+      data: layersArray,
+      totalCount: count,
+    };
+  };
+
+  fetchCharts = async (search, page, pageSize) => {
+    const { annotationType } = this.state;
+
+    const queryParams = rison.encode({
+      filters: [
+        { col: 'slice_name', opr: 'chart_all_text', value: search },
+        {
+          col: 'id',
+          opr: 'chart_owned_created_favored_by_me',
+          value: true,
+        },
+      ],
+      order_column: 'slice_name',
+      order_direction: 'asc',
+      page,
+      page_size: pageSize,
+    });
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=${queryParams}`,
+    });
+
+    const { result, count } = json;
+    const registry = getChartMetadataRegistry();
+
+    const chartsObj = result
+      .filter(chart => {
+        const metadata = registry.get(chart.viz_type);
+        return metadata && metadata.canBeAnnotationType(annotationType);
+      })
+      .reduce((acc, chart) => {
+        acc[chart.id] = {
+          value: chart.id,
+          label: chart.slice_name,
+          slice: {
+            ...chart,
+            data: {
+              ...chart.form_data,
+              groupby: chart.form_data.groupby?.map(column =>
+                getColumnLabel(column),
+              ),
+            },
+          },
         };
         return acc;
       }, {});
 
-      const layersArray = Object.values(layersObj);
+    const chartsArray = Object.values(chartsObj);
 
-      this.setState(prevState => ({
-        valueOptions: { ...prevState.valueOptions, ...layersObj },
-      }));
+    this.setState(prevState => ({
+      valueOptions: { ...prevState.valueOptions, ...chartsObj },
+    }));
 
-      return {
-        data: layersArray,
-        totalCount: count,
-      };
+    return {
+      data: chartsArray,
+      totalCount: count,
+    };
+  };
+
+  fetchOptions = (search, page, pageSize) => {
+    const { sourceType } = this.state;
+
+    if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+      return this.fetchNativeAnnotations(search, page, pageSize);
     }
 
     if (requiresQuery(sourceType)) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'id',
-            opr: 'chart_owned_created_favored_by_me',
-            value: true,
-          },
-        ],
-        order_column: 'slice_name',
-        order_direction: 'asc',
-        page,
-        page_size: pageSize,
-      });
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${queryParams}`,
-      });
-
-      const { result, count } = json;
-      const registry = getChartMetadataRegistry();
-
-      const chartsObj = result
-        .filter(chart => {
-          const metadata = registry.get(chart.viz_type);
-          return metadata && metadata.canBeAnnotationType(annotationType);
-        })
-        .reduce((acc, chart) => {
-          acc[chart.id] = {
-            value: chart.id,
-            label: chart.slice_name,
-            slice: {
-              ...chart,
-              data: {
-                ...chart.form_data,
-                groupby: chart.form_data.groupby?.map(column =>
-                  getColumnLabel(column),
-                ),
-              },
-            },
-          };
-          return acc;
-        }, {});
-
-      const chartsArray = Object.values(chartsObj);
-
-      this.setState(prevState => ({
-        valueOptions: { ...prevState.valueOptions, ...chartsObj },
-      }));
-
-      return {
-        data: chartsArray,
-        totalCount: count,
-      };
+      return this.fetchCharts(search, page, pageSize);
     }
 
     return {
@@ -408,7 +432,8 @@ class AnnotationLayer extends React.PureComponent {
     };
   };
 
-  fetchAppliedChart(id) {
+  fetchAppliedAnnotation(id) {
+    const { sourceType } = this.state;
     const queryParams = rison.encode({
       filters: [
         {
@@ -418,6 +443,13 @@ class AnnotationLayer extends React.PureComponent {
         },
       ],
     });
+    if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+      return this.fetchAppliedNativeAnnotation(id);
+    }
+    return this.fetchAppliedChart(queryParams);
+  }
+
+  fetchAppliedChart(queryParams) {
     SupersetClient.get({
       endpoint: `/api/v1/chart/?q=${queryParams}`,
     }).then(({ json }) => {
@@ -438,6 +470,24 @@ class AnnotationLayer extends React.PureComponent {
                 ),
               },
             },
+          },
+        },
+      }));
+    });
+  }
+
+  fetchAppliedNativeAnnotation(id) {
+    SupersetClient.get({
+      endpoint: `/api/v1/annotation_layer/${id}`,
+    }).then(({ json }) => {
+      const { result } = json;
+      const layer = result;
+      this.setState(prevState => ({
+        valueOptions: {
+          ...prevState.valueOptions,
+          [layer.id]: {
+            value: layer.id,
+            label: layer.name,
           },
         },
       }));
@@ -534,7 +584,7 @@ class AnnotationLayer extends React.PureComponent {
           ariaLabel={t('Annotation layer value')}
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
-          options={this.asyncFetch}
+          options={this.fetchOptions}
           value={valueOptions[value] || null}
           onChange={this.handleSelectValue}
           notFoundContent={<NotFoundContent />}
