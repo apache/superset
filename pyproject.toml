@@ -20,7 +20,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
-dynamic = ["version", "entry-points"]
+dynamic = ["version"]
 readme = "README.md"
 requires-python = "~=3.9"
 authors = [{ name = "Apache Software Foundation", email = "dev@superset.apache.org" }]
@@ -102,6 +102,14 @@ Documentation = "https://superset.apache.org/docs/intro"
 
 [project.scripts]
 superset = "superset.cli.main:superset"
+
+[project.entry-points."sqlalchemy.dialects"]
+superset = "superset.extensions.metadb:SupersetAPSWDialect"
+postgres = "sqlalchemy.dialects.postgresql:dialect"
+"postgres.psycopg2" = "sqlalchemy.dialects.postgresql:dialect"
+
+[project.entry-points."shillelagh.adapter"]
+superset = "superset.extensions.metadb:SupersetShillelaghAdapter"
 
 [project.optional-dependencies]
 athena = ["pyathena[pandas]>=2, <3"]

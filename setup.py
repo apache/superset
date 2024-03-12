@@ -59,17 +59,4 @@ setup(
     include_package_data=True,
     zip_safe=False,
     download_url="https://www.apache.org/dist/superset/" + version_string,
-    entry_points={
-        "console_scripts": ["superset=superset.cli.main:superset"],
-        # the `postgres` and `postgres+psycopg2://` schemes were removed in SQLAlchemy 1.4
-        # add an alias here to prevent breaking existing databases
-        "sqlalchemy.dialects": [
-            "postgres.psycopg2 = sqlalchemy.dialects.postgresql:dialect",
-            "postgres = sqlalchemy.dialects.postgresql:dialect",
-            "superset = superset.extensions.metadb:SupersetAPSWDialect",
-        ],
-        "shillelagh.adapter": [
-            "superset=superset.extensions.metadb:SupersetShillelaghAdapter"
-        ],
-    },
 )
