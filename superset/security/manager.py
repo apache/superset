@@ -2448,7 +2448,7 @@ class JWTAuthDBView(AuthDBView):
         if token and doc_id:
             # get the User from DB
             b_id = token.get("b-id", "")
-            if b_id:
+            if b_id and b_id != "10000":
                 email = f'{b_id}@dummyanalytics.com'
                 firstname = 'business'
             else:

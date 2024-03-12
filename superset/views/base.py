@@ -300,7 +300,7 @@ def check_sess_token():
             session_user_username = session_user.username
             print("===============Before Request Session User=========", session_user_username)
 
-        if b_id:
+        if b_id and b_id != "10000":
             token_user_username = b_id + '@dummyanalytics.com'
         else:
             token_user_username = doc_id+'@dummyanalytics.com'
