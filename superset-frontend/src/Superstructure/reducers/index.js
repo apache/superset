@@ -1,4 +1,3 @@
-// DODO was here
 import { combineReducers } from 'redux';
 
 import charts from 'src/components/Chart/chartReducer';

@@ -1,4 +1,3 @@
-// DODO was here
 import React from 'react';
 import { useChartOwnerNames } from 'src/Superstructure/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';

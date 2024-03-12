@@ -1,5 +1,4 @@
 // DODO was here
-
 import { Dashboard, Datasource, EmbeddedDashboard } from 'src/dashboard/types';
 import { Chart } from 'src/types/Chart';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
@@ -22,6 +21,7 @@ export const useDashboardCharts = (
   idOrSlug: string | number,
   language?: string,
 ) =>
+  // DODO added
   useApiV1Resource<Chart[]>(
     language
       ? `/api/v1/dashboard/${idOrSlug}/charts?language=${language}`
@@ -35,6 +35,7 @@ export const useDashboardDatasets = (
   idOrSlug: string | number,
   language?: string,
 ) =>
+  // DODO added
   useApiV1Resource<Datasource[]>(
     language
       ? `/api/v1/dashboard/${idOrSlug}/datasets?language=${language}`
