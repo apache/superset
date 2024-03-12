@@ -151,6 +151,7 @@ export type Extensions = Partial<{
   'embedded.documentation.url': string;
   'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
   'dashboard.nav.right': React.ComponentType;
+  'home.submenu': React.ComponentType;
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
   'report-modal.dropdown.item.icon': React.ComponentType;
