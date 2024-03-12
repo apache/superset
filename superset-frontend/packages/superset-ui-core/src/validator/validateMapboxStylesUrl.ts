@@ -21,16 +21,20 @@ import { t } from '../translation';
 
 /**
  * Validate a [Mapbox styles URL](https://docs.mapbox.com/help/glossary/style-url/)
+ * or a tile server URL
  * @param v
  */
 export default function validateMapboxStylesUrl(v: unknown) {
   if (
     typeof v === 'string' &&
     v.trim().length > 0 &&
-    v.trim().startsWith('mapbox://styles/')
+    (v.trim().startsWith('mapbox://styles/') ||
+      v.trim().startsWith('tile://http'))
   ) {
     return false;
   }
 
-  return t('is expected to be a Mapbox URL');
+  return t(
+    'is expected to be a Mapbox URL (eg. mapbox://styles/...) or a tile server URL (eg. tile://http...)',
+  );
 }

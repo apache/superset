@@ -36,6 +36,11 @@ import { JsonObject, JsonValue, styled, usePrevious } from '@superset-ui/core';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Viewport } from './utils/fitViewport';
+import {
+  buildTileLayer,
+  TILE_LAYER_PREFIX,
+  MAPBOX_LAYER_PREFIX,
+} from './utils';
 
 const TICK = 250; // milliseconds
 
@@ -98,8 +103,13 @@ export const DeckGLContainer = memo(
         ) as Layer[];
       }
 
+      if (props.mapStyle?.startsWith(TILE_LAYER_PREFIX)) {
+        props.layers.unshift(
+          buildTileLayer(props.mapStyle.replace(TILE_LAYER_PREFIX, '')),
+        );
+      }
       return props.layers as Layer[];
-    }, [props.layers]);
+    }, [props.layers, props.mapStyle]);
 
     const { children = null, height, width } = props;
 
@@ -115,11 +125,28 @@ export const DeckGLContainer = memo(
             glOptions={{ preserveDrawingBuffer: true }}
             onViewStateChange={onViewStateChange}
           >
-            <StaticMap
-              preserveDrawingBuffer
-              mapStyle={props.mapStyle || 'light'}
-              mapboxApiAccessToken={props.mapboxApiAccessToken}
-            />
+            {props.mapStyle?.startsWith(MAPBOX_LAYER_PREFIX) && (
+              <StaticMap
+                preserveDrawingBuffer
+                mapStyle={props.mapStyle || 'light'}
+                mapboxApiAccessToken={props.mapboxApiAccessToken}
+              />
+            )}
+            {props.mapStyle?.indexOf('openstreetmap') !== -1 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  bottom: 0,
+                  backgroundColor: 'hsla(0,0%,100%,.5)',
+                  padding: '0 5px',
+                }}
+              >
+                <a href="http://www.openstreetmap.org/copyright">
+                  © OpenStreetMap contributors
+                </a>
+              </div>
+            )}
           </DeckGL>
           {children}
         </div>
