@@ -1,0 +1,8 @@
+# defining which extra_requires set of packages I need
+-e .[development,hive]
+
+# add an extra library to my own environment
+cherrytree
+
+# pin an existing Superset reference to a specific version
+boto3==1.18.44
