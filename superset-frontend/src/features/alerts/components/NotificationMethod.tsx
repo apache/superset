@@ -164,39 +164,47 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         </StyledInputContainer>
       </div>
       {method !== undefined ? (
-        <StyledInputContainer>
-          {method === 'Email' ? (
-            <>
+        <>
+          <div className="inline-container">
+            <StyledInputContainer>
+              {method === 'Email' ? (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+                  </div>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="email_subject"
+                      value={email_subject}
+                      placeholder={defaultSubject}
+                      onChange={onSubjectChange}
+                    />
+                  </div>{' '}
+                </>
+              ) : null}
+            </StyledInputContainer>
+          </div>
+          <div className="inline-container">
+            <StyledInputContainer>
               <div className="control-label">
-                {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+                {t('%s recipients', method)}
+                <span className="required">*</span>
               </div>
               <div className="input-container">
-                <input
-                  type="text"
-                  name="email_subject"
-                  value={email_subject}
-                  placeholder={defaultSubject}
-                  onChange={onSubjectChange}
+                <textarea
+                  name="recipients"
+                  data-test="recipients"
+                  value={recipientValue}
+                  onChange={onRecipientsChange}
                 />
-              </div>{' '}
-            </>
-          ) : null}
-          <div className="control-label">
-            {t('%s recipients', method)}
-            <span className="required">*</span>
+              </div>
+              <div className="helper">
+                {t('Recipients are separated by "," or ";"')}
+              </div>
+            </StyledInputContainer>
           </div>
-          <div className="input-container">
-            <textarea
-              name="recipients"
-              data-test="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
-            />
-          </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
-        </StyledInputContainer>
+        </>
       ) : null}
     </StyledNotificationMethod>
   );
