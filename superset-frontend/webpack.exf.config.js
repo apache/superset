@@ -37,7 +37,7 @@ const packageConfig = require('./package');
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 // output dir
-const BUILD_DIR = path.resolve(__dirname, '../../operations/tools/superset/frontend/static');
+const BUILD_DIR = path.resolve(__dirname, './dist');
 const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
