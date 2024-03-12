@@ -76,95 +76,94 @@ export default function getCLI(context) {
       await wrapped({labels, prId, actor: opts.actor, verbose: opts.verbose, dryRun: opts.dryRun});
     });
 
-  program.command('release-label-prs')
-    .description('Given a set of PRs, auto-release label them')
-    .option('-s, --search <search>', 'extra search string to append using the GitHub mini-language')
-    .option('-p, --pages <pages>', 'the number of pages (100 per page) to fetch and process', 10)
-    .action(async function () {
-      const opts = context.processOptions(this, ['repo']);
-
-      const github = new Github({ context, issueNumber: opts.issue });
-      const prs = await github.searchMergedPRs({
-        query: opts.search,
-        onlyUnlabeled: true,
-        verbose: opts.verbose,
-        pages: opts.pages,
-      });
-      const prIdLabelMap = new Map(prs.map((pr) => [pr.number, pr.labels]));
-      const git = new Git(context);
-      await git.loadReleases();
-
-      const prsPromises = prs.map(async (pr) => {
-        const labels = await git.getReleaseLabels(pr.number, opts.verbose);
-        return { prId: pr.number, labels };
-      });
-      const prsTargetLabel = await Promise.all(prsPromises);
-      // eslint-disable-next-line no-restricted-syntax
-      for (const { prId, labels } of prsTargetLabel) {
-        // Running sequentially to avoid rate limiting
-        // eslint-disable-next-line no-await-in-loop
-        await github.syncLabels({
-          labels,
-          existingLabels: prIdLabelMap.get(prId).map(l => l.name),
-          prId,
-          ...opts,
-        });
-      }
-    });
-
-  program.command('release-label <release>')
-    .description('Figure out first release for PR and label it')
-    .addOption(excludeCherriesOption)
-    .action(async function (release) {
-      const opts = context.processOptions(this, ['repo']);
-      const git = new Git(context);
-      await git.loadReleases();
-      const prs = await git.getPRsToSync(release, opts.verbose, opts.excludeCherries);
-
-      const github = new Github({ context });
-      // eslint-disable-next-line no-restricted-syntax
-      for (const { prNumber, labels } of prs) {
-        // Running sequentially to avoid rate limiting
-        // eslint-disable-next-line no-await-in-loop
-        await github.syncLabels(labels, prNumber, opts.actor, opts.verbose, opts.dryRun);
-      }
-    });
-
-  program.command('orglabel')
-    .description('Add an org label based on the author')
-    .addOption(issueOption)
-    .action(async function () {
-      const opts = context.processOptions(this, ['issue', 'repo']);
-      const github = new Github({ context, issueNumber: opts.issue });
-      await github.assignOrgLabel(opts.issue, opts.verbose, opts.dryRun);
-    });
-
-  program.command('docker')
-    .option('-t, --preset', 'Build preset', /^(lean|dev|dockerize|websocket|py310|ci)$/i, 'lean')
-    .option('-c, --context <context>', 'Build context', /^(push|pull_request|release)$/i, 'local')
-    .option('-r, --context-ref <ref>', 'Reference to the PR, release, or branch')
-    .option('-p, --platform <platform...>', 'Platforms (multiple values allowed)')
-    .option('-f, --force-latest', 'Force the "latest" tag on the release')
-    .option('-v, --verbose', 'Print more info')
-    .action(function (preset) {
-      const opts = context.processOptions(this);
-      opts.platform = opts.platform || ['linux/arm64'];
-      const cmd = docker.getDockerCommand({ preset, ...opts });
-      context.log(cmd);
-      if (!opts.dryRun) {
-        utils.runShellCommand(cmd, false);
-      }
-    });
-  program.command('test')
-    .action(async () => {
-      const git = new Git(context);
-      await git.loadRelease('master');
-    });
   program.command('version')
     .action(async () => {
       const version = await utils.currentPackageVersion();
       context.log(version);
     });
+
+  if (context.source === 'CLI') {
+    program.command('release-label-prs')
+      .description('Given a set of PRs, auto-release label them')
+      .option('-s, --search <search>', 'extra search string to append using the GitHub mini-language')
+      .option('-p, --pages <pages>', 'the number of pages (100 per page) to fetch and process', 10)
+      .action(async function () {
+        const opts = context.processOptions(this, ['repo']);
+
+        const github = new Github({ context, issueNumber: opts.issue });
+        const prs = await github.searchMergedPRs({
+          query: opts.search,
+          onlyUnlabeled: true,
+          verbose: opts.verbose,
+          pages: opts.pages,
+        });
+        const prIdLabelMap = new Map(prs.map((pr) => [pr.number, pr.labels]));
+        const git = new Git(context);
+        await git.loadReleases();
+
+        const prsPromises = prs.map(async (pr) => {
+          const labels = await git.getReleaseLabels(pr.number, opts.verbose);
+          return { prId: pr.number, labels };
+        });
+        const prsTargetLabel = await Promise.all(prsPromises);
+        // eslint-disable-next-line no-restricted-syntax
+        for (const { prId, labels } of prsTargetLabel) {
+          // Running sequentially to avoid rate limiting
+          // eslint-disable-next-line no-await-in-loop
+          await github.syncLabels({
+            labels,
+            existingLabels: prIdLabelMap.get(prId).map(l => l.name),
+            prId,
+            ...opts,
+          });
+        }
+      });
+
+    program.command('release-label <release>')
+      .description('Figure out first release for PR and label it')
+      .addOption(excludeCherriesOption)
+      .action(async function (release) {
+        const opts = context.processOptions(this, ['repo']);
+        const git = new Git(context);
+        await git.loadReleases();
+        const prs = await git.getPRsToSync(release, opts.verbose, opts.excludeCherries);
+
+        const github = new Github({ context });
+        // eslint-disable-next-line no-restricted-syntax
+        for (const { prNumber, labels } of prs) {
+          // Running sequentially to avoid rate limiting
+          // eslint-disable-next-line no-await-in-loop
+          await github.syncLabels(labels, prNumber, opts.actor, opts.verbose, opts.dryRun);
+        }
+      });
+
+    program.command('orglabel')
+      .description('Add an org label based on the author')
+      .addOption(issueOption)
+      .action(async function () {
+        const opts = context.processOptions(this, ['issue', 'repo']);
+        const github = new Github({ context, issueNumber: opts.issue });
+        await github.assignOrgLabel(opts.issue, opts.verbose, opts.dryRun);
+      });
+
+
+    program.command('docker')
+      .option('-t, --preset', 'Build preset', /^(lean|dev|dockerize|websocket|py310|ci)$/i, 'lean')
+      .option('-c, --context <context>', 'Build context', /^(push|pull_request|release)$/i, 'local')
+      .option('-r, --context-ref <ref>', 'Reference to the PR, release, or branch')
+      .option('-p, --platform <platform...>', 'Platforms (multiple values allowed)')
+      .option('-f, --force-latest', 'Force the "latest" tag on the release')
+      .option('-v, --verbose', 'Print more info')
+      .action(function (preset) {
+        const opts = context.processOptions(this);
+        opts.platform = opts.platform || ['linux/arm64'];
+        const cmd = docker.getDockerCommand({ preset, ...opts });
+        context.log(cmd);
+        if (!opts.dryRun) {
+          utils.runShellCommand(cmd, false);
+        }
+      });
+  }
 
   return program;
 }
