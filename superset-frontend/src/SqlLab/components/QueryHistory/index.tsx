@@ -105,7 +105,7 @@ const QueryHistory = ({
     }
   }, [hasReachedBottom, loadNext, loadedDataCount, totalCount]);
 
-  if (!data?.result.length && isLoading) {
+  if (!editorQueries.length && isLoading) {
     return <Skeleton active />;
   }
 
