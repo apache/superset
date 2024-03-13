@@ -226,13 +226,7 @@ export const countryOptions = Object.keys(countries).map(x => {
   if (x === 'turkey_regions') {
     return [x, 'Turkey (regions)'];
   }
-  return [
-    x,
-    x
-      .split('_')
-      .map(e => e[0].toUpperCase() + e.slice(1))
-      .join(' '),
-  ];
+  return [x, x.split('_').map((e) => e[0].toUpperCase() + e.slice(1)).join(' ')];
 });
 
 export default countries;
