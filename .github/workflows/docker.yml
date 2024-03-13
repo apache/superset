@@ -1,4 +1,4 @@
-name: Docker
+name: Build & publish docker images
 
 on:
   push:
@@ -34,10 +34,6 @@ jobs:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -45,24 +41,34 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Setup Node Env
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: install supersetbot
+        run: |
+          npm install -g supersetbot
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Build Docker Image
         shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          pip install click
+          # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then
-            ./scripts/build_docker.py \
-              ${{ matrix.build_preset }} \
-              ${{ github.event_name }} \
-              --build_context_ref "$RELEASE" $FORCE_LATEST \
-              --platform "linux/arm64" \
-              --platform "linux/amd64"
+            PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            ./scripts/build_docker.py \
-              ${{ matrix.build_preset }} \
-              ${{ github.event_name }} \
-              --build_context_ref "$RELEASE" $FORCE_LATEST \
-              --platform "linux/amd64"
+            PLATFORM_ARG="--platform linux/amd64"
           fi
+
+          supersetbot docker \
+            --preset ${{ matrix.build_preset }} \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            $PLATFORM_ARG
