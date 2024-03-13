@@ -41,24 +41,19 @@ const BUILD_DIR = path.resolve(__dirname, './dist');
 const ROOT_DIR = path.resolve(__dirname, '..');
 
 const {
-  mode = 'development',
+  mode = 'production',
   measure = false,
   analyzeBundle = false,
   analyzerPort = 8888,
   nameChunks = false,
 } = parsedArgs;
-const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
 const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: `${BUILD_DIR}/static/assets`,
   publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
-if (isDevMode) {
-  output.filename = '[name].[contenthash:8].entry.js';
-  output.chunkFilename = '[name].[contenthash:8].chunk.js';
-} else if (nameChunks) {
+if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
 } else {
@@ -66,9 +61,7 @@ if (isDevMode) {
   output.chunkFilename = '[chunkhash].chunk.js';
 }
 
-if (!isDevMode) {
-  output.clean = true;
-}
+output.clean = true;
 
 function entrypointFileTemplate(paths, type) {
   let rows = "";
@@ -162,9 +155,6 @@ const plugins = [
         entrypoints: entryFiles,
       };
     },
-    // Also write manifest.json to disk when running `npm run dev`.
-    // This is required for Flask to work.
-    writeToFileEmit: isDevMode && !isDevServer,
   }),
 
   // expose mode variable to other modules
@@ -203,28 +193,25 @@ if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
 }
 
-if (!isDevMode) {
-  // text loading (webpack 4+)
-  plugins.push(
-    new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].entry.css',
-      chunkFilename: '[name].[chunkhash].chunk.css',
-    }),
-  );
+plugins.push(
+  new MiniCssExtractPlugin({
+    filename: '[name].[chunkhash].entry.css',
+    chunkFilename: '[name].[chunkhash].chunk.css',
+  }),
+);
 
-  plugins.push(
-    // runs type checking on a separate process to speed up the build
-    new ForkTsCheckerWebpackPlugin({
-      eslint: {
-        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
-        memoryLimit: 4096,
-        options: {
-          ignorePath: './.eslintignore',
-        },
+plugins.push(
+  // runs type checking on a separate process to speed up the build
+  new ForkTsCheckerWebpackPlugin({
+    eslint: {
+      files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
+      memoryLimit: 4096,
+      options: {
+        ignorePath: './.eslintignore',
       },
-    }),
-  );
-}
+    },
+  }),
+);
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
 
@@ -273,7 +260,7 @@ const config = {
     splitChunks: {
       chunks: 'all',
       // increase minSize for devMode to 1000kb because of sourcemap
-      minSize: isDevMode ? 1000000 : 20000,
+      minSize: 20000,
       name: nameChunks,
       automaticNameDelimiter: '-',
       minChunks: 2,
@@ -409,7 +396,7 @@ const config = {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          MiniCssExtractPlugin.loader,
           {
             loader: 'css-loader',
             options: {
@@ -422,7 +409,7 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          MiniCssExtractPlugin.loader,
           {
             loader: 'css-loader',
             options: {
