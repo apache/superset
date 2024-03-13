@@ -25,6 +25,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
+from superset.superset_typing import AdhocMetric
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
@@ -152,8 +153,8 @@ def _get_samples(
             qry_obj_cols.append(o.get("column_name"))
         else:
             qry_obj_cols.append(o.column_name)
-    query_obj.orderby = [(query_obj.columns[0], True)]
     query_obj.columns = qry_obj_cols
+    query_obj.orderby = [(query_obj.columns[0], True)]
     query_obj.from_dttm = None
     query_obj.to_dttm = None
     return _get_full(query_context, query_obj, force_cached)
