@@ -41,7 +41,7 @@ DEV_EXTRAS = [
 ]
 
 
-def read_requirements(path):
+def read_requirements(path: str) -> dict[str, str]:
     """Read requirements from a file and return them as a dictionary."""
     requirements = {}
     with open(path) as file:
@@ -50,12 +50,14 @@ def read_requirements(path):
             if line and not line.startswith("#"):
                 parts = line.split("==")
                 lib_name = parts[0].strip()
-                version = parts[1].strip() if len(parts) == 2 else None
+                version = parts[1].strip() if len(parts) == 2 else ""
                 requirements[lib_name] = version
     return requirements
 
 
-def compare_requirements(reqs1, reqs2):
+def compare_requirements(
+    reqs1: dict[str, str], reqs2: dict[str, str]
+) -> tuple[dict[str, str], dict[str, str], dict[str, tuple[str, str]]]:
     """Compare two sets of requirements and identify differences."""
     added = {lib: ver for lib, ver in reqs2.items() if lib not in reqs1}
     removed = {lib: ver for lib, ver in reqs1.items() if lib not in reqs2}
@@ -67,7 +69,7 @@ def compare_requirements(reqs1, reqs2):
     return added, removed, version_changed
 
 
-def bash(cmd):
+def bash(cmd: str) -> None:
     print(f"RUN: {cmd}")
     result = subprocess.run(cmd, shell=True)
     if result.returncode != 0:
@@ -76,13 +78,13 @@ def bash(cmd):
 
 
 @click.group()
-def cli():
+def cli() -> None:
     pass
 
 
 @click.command()
 @click.option("--pip-flags", default="", help="Flags to pass directly to pip-compile.")
-def compile_deps(pip_flags):
+def compile_deps(pip_flags: str) -> None:
     """Compile dependencies using pip-compile with optional flags."""
     # pip-compile commands
     bash(f"pip-compile -o {BASE_REQS} {pip_flags}")
@@ -95,7 +97,7 @@ def compile_deps(pip_flags):
 @click.option(
     "--dev", is_flag=True, help="Install development dependencies instead of base."
 )
-def install_deps(dev):
+def install_deps(dev: bool) -> None:
     """Install dependencies from the compiled requirements file."""
     file_path = "requirements/development.txt" if dev else "requirements/base.txt"
     bash(f"pip install -r {file_path}")
@@ -107,7 +109,7 @@ def install_deps(dev):
 @click.command()
 @click.argument("file1", type=click.Path(exists=True), default=BASE_REQS)
 @click.argument("file2", type=click.Path(exists=True), default=DEV_REQS)
-def compare_versions(file1, file2):
+def compare_versions(file1: str, file2: str) -> None:
     """Load two requirements files, compare them, and print differences."""
     reqs1 = read_requirements(file1)
     reqs2 = read_requirements(file2)
@@ -130,7 +132,7 @@ def compare_versions(file1, file2):
 @click.command()
 @click.argument("input_file")
 @click.argument("output_file")
-def merge_compile(input_file, output_file):
+def merge_compile(input_file: str, output_file: str) -> None:
     """Merge, compile and check versions."""
     # Step 1: Copy development.txt to the output file
     copyfile(DEV_REQS, output_file)
