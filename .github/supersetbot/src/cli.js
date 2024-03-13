@@ -77,6 +77,7 @@ export default function getCLI(context) {
     });
 
   program.command('version')
+    .description("Prints supersetbot's version number")
     .action(async () => {
       const version = await utils.currentPackageVersion();
       context.log(version);
@@ -148,6 +149,7 @@ export default function getCLI(context) {
 
 
     program.command('docker')
+      .description('Generates/run docker build commands use in CI')
       .option('-t, --preset', 'Build preset', /^(lean|dev|dockerize|websocket|py310|ci)$/i, 'lean')
       .option('-c, --context <context>', 'Build context', /^(push|pull_request|release)$/i, 'local')
       .option('-r, --context-ref <ref>', 'Reference to the PR, release, or branch')
