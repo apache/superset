@@ -21,7 +21,6 @@ import {
   ChartProps,
   getMetricLabel,
   getValueFormatter,
-  NumberFormats,
   getNumberFormatter,
   formatTimeRange,
 } from '@superset-ui/core';
