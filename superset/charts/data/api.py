@@ -53,7 +53,7 @@ from superset.utils.core import (
     get_user_id,
     json_int_dttm_ser,
 )
-from superset.utils.decorators import logs_context
+from superset.utils.decorators import logs_context, show_telemetry
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -181,6 +181,7 @@ class ChartDataRestApi(ChartRestApi):
 
     @expose("/data", methods=("POST",))
     @protect()
+    @show_telemetry
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -358,7 +359,8 @@ class ChartDataRestApi(ChartRestApi):
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data, datasource)
+            with g.telemetry("Post processing data"):
+                result = apply_post_process(result, form_data, datasource)
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
@@ -396,11 +398,12 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
-                {"result": result["queries"]},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
+            with g.telemetry("JSON encoding"):
+                response_data = simplejson.dumps(
+                    {"result": result["queries"]},
+                    default=json_int_dttm_ser,
+                    ignore_nan=True,
+                )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
@@ -415,7 +418,8 @@ class ChartDataRestApi(ChartRestApi):
         datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         try:
-            result = command.run(force_cached=force_cached)
+            with g.telemetry("Running command"):
+                result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)
         except ChartDataQueryFailedError as exc:

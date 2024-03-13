@@ -20,10 +20,11 @@ import logging
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING
 from uuid import UUID
 
-from flask import current_app, g, Response
+from flask import current_app, g, jsonify, Response
 
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
@@ -210,3 +211,34 @@ def suppress_logging(
         yield
     finally:
         target_logger.setLevel(original_level)
+
+
+def show_telemetry(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    For JSON responses, add telemetry information to the payload.
+
+    This allows us to instrument the stack, but adding timestamps at different levels,
+    eg:
+
+        with g.telemetry("Run query"):
+            data = run_query(sql)
+
+    And then we can display this information in the UI.
+    """
+
+    @wraps(f)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        result = f(*args, **kwargs)
+        if hasattr(result, "get_json"):
+            try:
+                json_data = result.get_json()
+            except Exception:  # pylint: disable=broad-exception-caught
+                return result
+
+            if isinstance(json_data, dict) and hasattr(g, "telemetry"):
+                json_data["telemetry"] = g.telemetry.events
+                return jsonify(json_data)
+
+        return result
+
+    return wrapped

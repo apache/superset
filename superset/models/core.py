@@ -579,35 +579,41 @@ class Database(
                 )
 
         with self.get_raw_connection(schema=schema) as conn:
-            cursor = conn.cursor()
-            for sql_ in sqls[:-1]:
+            with g.telemetry("Executing query"):
+                cursor = conn.cursor()
+                for sql_ in sqls[:-1]:
+                    if mutate_after_split:
+                        sql_ = sql_query_mutator(
+                            sql_,
+                            security_manager=security_manager,
+                            database=None,
+                        )
+                    _log_query(sql_)
+                    self.db_engine_spec.execute(cursor, sql_)
+                    cursor.fetchall()
+
                 if mutate_after_split:
-                    sql_ = sql_query_mutator(
-                        sql_,
+                    last_sql = sql_query_mutator(
+                        sqls[-1],
                         security_manager=security_manager,
                         database=None,
                     )
-                _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_)
-                cursor.fetchall()
+                    _log_query(last_sql)
+                    self.db_engine_spec.execute(cursor, last_sql)
+                else:
+                    _log_query(sqls[-1])
+                    self.db_engine_spec.execute(cursor, sqls[-1])
 
-            if mutate_after_split:
-                last_sql = sql_query_mutator(
-                    sqls[-1],
-                    security_manager=security_manager,
-                    database=None,
-                )
-                _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql)
-            else:
-                _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1])
+            with g.telemetry("Fetching data from cursor"):
+                data = self.db_engine_spec.fetch_data(cursor)
 
-            data = self.db_engine_spec.fetch_data(cursor)
             result_set = SupersetResultSet(
-                data, cursor.description, self.db_engine_spec
+                data,
+                cursor.description,
+                self.db_engine_spec,
             )
-            df = result_set.to_pandas_df()
+            with g.telemetry("Loading data into dataframe"):
+                df = result_set.to_pandas_df()
             if mutator:
                 df = mutator(df)
 

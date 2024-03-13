@@ -43,7 +43,8 @@ class ChartDataCommand(BaseCommand):
         force_cached = kwargs.get("force_cached", False)
         try:
             payload = self._query_context.get_payload(
-                cache_query_context=cache_query_context, force_cached=force_cached
+                cache_query_context=cache_query_context,
+                force_cached=force_cached,
             )
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
