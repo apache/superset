@@ -17,9 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { TableTab } from 'src/views/CRUD/types';
+import userEvent from '@testing-library/user-event';
 import ActivityTable from './ActivityTable';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -78,6 +79,14 @@ const activityProps = {
   isFetchingActivityData: false,
 };
 
+const activityEditedTabProps = {
+  activeChild: TableTab.Edited,
+  activityData: mockData,
+  setActiveChild: mockSetActiveChild,
+  user: { userId: '1' },
+  isFetchingActivityData: false,
+};
+
 const activityViewedTabProps = {
   activeChild: TableTab.Viewed,
   activityData: mockData,
@@ -115,17 +124,16 @@ test('renders Viewed tab with ActivityCards', async () => {
   expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
 });
 test('calls the getEdited batch call when edited tab is clicked', async () => {
-  renderActivityTable(activityProps);
+  const { rerender } = renderActivityTable(activityProps);
   const editedButton = screen.getByText(/edited/i);
   expect(editedButton).toBeInTheDocument();
-  const dashboardCall = fetchMock.called(/dashboard\/\?q/);
-  const chartCall = fetchMock.called(/chart\/\?q/);
-  fireEvent.click(editedButton);
+  userEvent.click(editedButton);
   expect(mockSetActiveChild).toHaveBeenCalledWith(TableTab.Edited);
-  // `await waitFor()` does not work in this instance...
-  setTimeout(() => {
-    expect(chartCall).toBeTruthy();
-    expect(dashboardCall).toBeTruthy();
+  rerender(<ActivityTable {...activityEditedTabProps} />);
+  // simulate the render after getEditedObjects has been called
+  await waitFor(() => {
+    expect(screen.getByText(/chartychart/i)).toBeInTheDocument();
+    expect(screen.getByText(/dashboard_test/i)).toBeInTheDocument();
   });
 });
 test('show empty state if there is no data', () => {

@@ -17,14 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import {
-  render,
-  screen,
-  waitFor,
-  fireEvent,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
+import userEvent from '@testing-library/user-event';
 import ChartTable from './ChartTable';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -98,7 +94,7 @@ test('renders with EmptyState if no data present', async () => {
 
 test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
-  fireEvent.click(screen.getByText(/favorite/i));
+  userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
     expect(fetchMock.calls(chartFavoriteStatusEndpoint)).toHaveLength(1);
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
@@ -112,7 +108,7 @@ test('renders other tab by default', async () => {
 
 test('renders mine tab on click', async () => {
   await renderChartTable(mineTabProps);
-  fireEvent.click(screen.getByText(/mine/i));
+  userEvent.click(screen.getByText(/mine/i));
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
