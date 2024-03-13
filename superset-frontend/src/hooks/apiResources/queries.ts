@@ -27,7 +27,7 @@ export type QueryResult = {
 };
 
 export type EditorQueriesParams = {
-  editorId: number;
+  editorId: string;
   pageIndex?: number;
   pageSize?: number;
 };

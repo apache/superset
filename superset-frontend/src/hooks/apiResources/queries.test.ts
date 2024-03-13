@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 test('returns api response mapping camelCase keys', async () => {
-  const editorId = 23;
+  const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
   const { result, waitFor } = renderHook(
@@ -104,7 +104,7 @@ test('returns api response mapping camelCase keys', async () => {
         {
           col: 'sql_editor_id',
           opr: 'eq',
-          value: editorId,
+          value: expect.stringContaining(editorId),
         },
       ],
     }),
@@ -113,7 +113,7 @@ test('returns api response mapping camelCase keys', async () => {
 });
 
 test('merges paginated results', async () => {
-  const editorId = 23;
+  const editorId = '23';
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
   const { waitFor } = renderHook(() => useEditorQueriesQuery({ editorId }), {

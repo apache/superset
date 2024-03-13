@@ -71,7 +71,7 @@ const QueryHistory = ({
     shallowEqual,
   );
   const { data, isLoading, isFetching } = useEditorQueriesQuery(
-    { editorId: Number(queryEditorId), pageIndex },
+    { editorId: `${queryEditorId}`, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),
     },

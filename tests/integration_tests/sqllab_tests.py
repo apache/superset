@@ -508,7 +508,9 @@ class TestSqlLab(SupersetTestCase):
         )
 
         arguments = {
-            "filters": [{"col": "sql_editor_id", "opr": "eq", "value": tab_state_id}]
+            "filters": [
+                {"col": "sql_editor_id", "opr": "eq", "value": str(tab_state_id)}
+            ]
         }
         url = f"/api/v1/query/?q={prison.dumps(arguments)}"
         self.assertEqual(
