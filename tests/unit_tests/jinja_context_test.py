@@ -47,6 +47,15 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.core import Database
 
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch(
+        "superset.models.helpers.security_manager.get_rls_filters",
+        return_value=[],
+    )
+
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
         TableColumn(column_name="num_boys", type="INTEGER"),

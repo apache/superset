@@ -281,7 +281,10 @@ def extract_tables_from_statement(
         if not literal:
             return set()
 
-        pseudo_query = parse_one(f"SELECT {literal.this}", dialect=dialect)
+        try:
+            pseudo_query = parse_one(f"SELECT {literal.this}", dialect=dialect)
+        except ParseError:
+            return set()
         sources = pseudo_query.find_all(exp.Table)
     else:
         sources = [
