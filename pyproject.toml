@@ -210,4 +210,4 @@ development = [
 exclude = '^requirements/*.py'
 
 [mypy-click]
-ignore_missing_imports = True
+ignore_missing_imports = true
