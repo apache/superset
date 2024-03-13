@@ -143,6 +143,56 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
+def query_context_modified(query_context: "QueryContext") -> bool:
+    """
+    Check if a query context has been modified.
+
+    This is used to ensure guest users don't modify the payload and fetch data
+    different from what was shared with them in dashboards.
+    """
+    form_data = query_context.form_data
+    stored_chart = query_context.slice_
+
+    # sanity checks
+    if form_data is None or stored_chart is None:
+        return True
+
+    # cannot request a different chart
+    if form_data.get("slice_id") != stored_chart.id:
+        return True
+
+    # compare form_data
+    requested_metrics = {
+        frozenset(metric.items()) if isinstance(metric, dict) else metric
+        for metric in form_data.get("metrics") or []
+    }
+    stored_metrics = {
+        frozenset(metric.items()) if isinstance(metric, dict) else metric
+        for metric in stored_chart.params_dict.get("metrics") or []
+    }
+    if not requested_metrics.issubset(stored_metrics):
+        return True
+
+    # compare queries in query_context
+    queries_metrics = {
+        frozenset(metric.items()) if isinstance(metric, dict) else metric
+        for query in query_context.queries
+        for metric in query.metrics or []
+    }
+
+    if stored_chart.query_context:
+        stored_query_context = json.loads(cast(str, stored_chart.query_context))
+        for query in stored_query_context.get("queries") or []:
+            stored_metrics.update(
+                {
+                    frozenset(metric.items()) if isinstance(metric, dict) else metric
+                    for metric in query.get("metrics") or []
+                }
+            )
+
+    return not queries_metrics.issubset(stored_metrics)
+
+
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
@@ -1941,29 +1991,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_table_access_error_object(denied)
                 )
 
-        if self.is_guest_user() and query_context:
-            # Guest users MUST not modify the payload so it's requesting a different
-            # chart or different ad-hoc metrics from what's saved.
-            form_data = query_context.form_data
-            stored_chart = query_context.slice_
-
-            if (
-                form_data is None
-                or stored_chart is None
-                or form_data.get("slice_id") != stored_chart.id
-                or form_data.get("metrics", []) != stored_chart.params_dict["metrics"]
-                or any(
-                    query.metrics != stored_chart.params_dict["metrics"]
-                    for query in query_context.queries
+        # Guest users MUST not modify the payload so it's requesting a
+        # different chart or different ad-hoc metrics from what's saved.
+        if (
+            query_context
+            and self.is_guest_user()
+            and query_context_modified(query_context)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                    message=_("Guest user cannot modify chart payload"),
+                    level=ErrorLevel.ERROR,
                 )
-            ):
-                raise SupersetSecurityException(
-                    SupersetError(
-                        error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
-                        message=_("Guest user cannot modify chart payload"),
-                        level=ErrorLevel.ERROR,
-                    )
-                )
+            )
 
         if datasource or query_context or viz:
             form_data = None
