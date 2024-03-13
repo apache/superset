@@ -96,20 +96,12 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             .filter_by(user_id=user_id)
             .all()
         )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
             .filter_by(user_id=user_id)
             .order_by(TabState.active.desc())
             .first()
-        )
-        # return all user queries associated with existing SQL editors
-        user_queries = (
-            db.session.query(Query)
-            .filter_by(user_id=user_id)
-            .filter(Query.sql_editor_id.in_(tab_state_ids))
-            .all()
         )
 
     return {
