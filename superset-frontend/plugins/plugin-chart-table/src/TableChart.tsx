@@ -23,6 +23,7 @@ import React, {
   useMemo,
   useState,
   MouseEvent,
+  useEffect,
 } from 'react';
 import {
   ColumnInstance,
@@ -226,6 +227,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     alignPositiveNegative: defaultAlignPN = false,
     colorPositiveNegative: defaultColorPN = false,
     includeSearch = false,
+    exaforceFeature,
     pageSize = 0,
     serverPagination = false,
     serverPaginationData,
@@ -249,6 +251,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+
+  useEffect(() => {
+    console.log(exaforceFeature);
+  }, [])
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -669,6 +675,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     () => columnsMeta.map(getColumnConfigs),
     [columnsMeta, getColumnConfigs],
   );
+
+  console.log(columns);
 
   const handleServerPaginationChange = useCallback(
     (pageNumber: number, pageSize: number) => {

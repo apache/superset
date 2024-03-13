@@ -122,6 +122,7 @@ export default typedMemo(function DataTable<D extends object>({
     // understand pageSize = 0
     sortBy: sortByRef.current,
     pageSize: initialPageSize > 0 ? initialPageSize : resultsSize || 10,
+    //hiddenColumns: ["1"]
   };
   const defaultWrapperRef = useRef<HTMLDivElement>(null);
   const globalControlRef = useRef<HTMLDivElement>(null);
@@ -195,6 +196,7 @@ export default typedMemo(function DataTable<D extends object>({
     },
     ...tableHooks,
   );
+  console.log(allColumns);
   // make setPageSize accept 0
   const setPageSize = (size: number) => {
     if (serverPagination) {

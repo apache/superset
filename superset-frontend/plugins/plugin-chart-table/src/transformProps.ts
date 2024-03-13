@@ -231,6 +231,7 @@ const transformProps = (
     show_cell_bars: showCellBars = true,
     include_search: includeSearch = false,
     page_length: pageLength,
+    exaforce_feature: exaforceFeature = false,
     server_pagination: serverPagination = false,
     server_page_length: serverPageLength = 10,
     order_desc: sortDesc = false,
@@ -271,6 +272,7 @@ const transformProps = (
     columns,
     serverPagination,
     metrics,
+    exaforceFeature,
     percentMetrics,
     serverPaginationData: serverPagination
       ? serverPaginationData

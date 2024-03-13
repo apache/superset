@@ -49,6 +49,7 @@ export type TableColumnConfig = {
   colorPositiveNegative?: boolean;
   truncateLongCells?: boolean;
   currencyFormat?: Currency;
+  isHidden?: boolean;
 };
 
 export interface DataColumnMeta {
@@ -113,6 +114,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   isRawRecords?: boolean;
   data: D[];
   totals?: D;
+  exaforceFeature?: boolean;
   columns: DataColumnMeta[];
   metrics?: (keyof D)[];
   percentMetrics?: (keyof D)[];

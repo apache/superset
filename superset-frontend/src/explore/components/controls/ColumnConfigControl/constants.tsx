@@ -37,6 +37,7 @@ export type SharedColumnConfigProp =
   | 'd3SmallNumberFormat'
   | 'd3TimeFormat'
   | 'horizontalAlign'
+  | 'isHidden'
   | 'truncateLongCells'
   | 'showCellBars'
   | 'currencyFormat';
@@ -117,6 +118,14 @@ const showCellBars: ControlFormItemSpec<'Checkbox'> = {
   debounceDelay: 200,
 };
 
+const isHidden: ControlFormItemSpec<'Checkbox'> = {
+  controlType: 'Checkbox',
+  label: t('Hidden'),
+  description: t('Whether to display a column or not'),
+  defaultValue: false,
+  debounceDelay: 200,
+};
+
 const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   controlType: 'Checkbox',
   label: t('Align +/-'),
@@ -171,6 +180,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   columnWidth,
   truncateLongCells,
   horizontalAlign,
+  isHidden,
   showCellBars,
   alignPositiveNegative,
   colorPositiveNegative,
@@ -184,6 +194,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
     ['truncateLongCells'],
+    ['isHidden'],
   ],
   [GenericDataType.Numeric]: [
     {
@@ -196,6 +207,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
         ['showCellBars'],
         ['alignPositiveNegative'],
         ['colorPositiveNegative'],
+        ['isHidden'],
       ],
     },
     {
@@ -213,11 +225,13 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
     ['d3TimeFormat'],
+    ['isHidden'],
   ],
   [GenericDataType.Boolean]: [
     [
       'columnWidth',
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
+    ['isHidden'],
   ],
 };

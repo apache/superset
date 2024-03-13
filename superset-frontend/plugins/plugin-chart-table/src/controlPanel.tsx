@@ -349,6 +349,21 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'exaforce_feature',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Any exaforce checkbox'),
+              default: false,
+              description: t(
+                'Exaforce checkbox.',
+              ),
+              visibility: isAggMode,
+              resetOnHide: false,
+            },
+          },
+        ],
       ],
     },
     {
