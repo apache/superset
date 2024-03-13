@@ -110,24 +110,26 @@ def install_deps(dev: bool) -> None:
 @click.command()
 @click.argument("file1", type=click.Path(exists=True), default=BASE_REQS)
 @click.argument("file2", type=click.Path(exists=True), default=DEV_REQS)
-def compare_versions(file1: str, file2: str) -> None:
+@click.option("--verbose", is_flag=True, help="Enables verbose mode")
+def compare_versions(file1: str, file2: str, verbose: bool = False) -> None:
     """Load two requirements files, compare them, and print differences."""
     reqs1 = read_requirements(file1)
     reqs2 = read_requirements(file2)
     added, removed, version_changed = compare_requirements(reqs1, reqs2)
 
-    if added:
-        click.echo("Added:")
+    if added and verbose:
+        click.echo(f"Only in {file2}:")
         for lib, ver in added.items():
             click.echo(f"{lib}=={ver}")
-    if removed:
-        click.echo("\nRemoved:")
+    if removed and verbose:
+        click.echo(f"Only in {file1}:")
         for lib, ver in removed.items():
             click.echo(f"{lib}=={ver}")
     if version_changed:
-        click.echo("\nVersion Changed:")
+        click.secho("Common lib version mismatch:", fg="red")
         for lib, versions in version_changed.items():
-            click.echo(f"{lib}: from {versions[0]} to {versions[1]}")
+            click.secho(f"{lib}: from {versions[0]} to {versions[1]}", fg="red")
+        sys.exit(1)
 
 
 @click.command()

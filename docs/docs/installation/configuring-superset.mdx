@@ -363,3 +363,16 @@ FEATURE_FLAGS = {
 ```
 
 A current list of feature flags can be found in [RESOURCES/FEATURE_FLAGS.md](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md).
+
+
+### Extra python dependencies
+
+It's common for some environments to have specific python dependencies requirements. Maybe
+you need a set of extra libraries, or maybe you need to install specific versions for some
+libraries.
+
+First, we recommend you reuse the set of pinned dependencies we run CI and use throughout
+the ecosystem, located at `requirements/base.txt`. Now if you'd like expand on what's there
+the simple CLI located at `requirements/pip-compile-superset.py` can support you in doing so.
+See the `merge-compile` subcommand and `requirements/requirements-custom-example.in` for more
+details.

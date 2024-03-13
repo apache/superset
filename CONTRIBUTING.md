@@ -566,7 +566,7 @@ To bring all dependencies up to date as per the restrictions defined
 in `pyproject.toml`, simply run:
 
 ```bash
-$ ./requirements/pip-compile-superset.sh
+$ ./requirements/pip-compile-superset.py compile-deps
 ```
 
 #### Logging to the browser console
