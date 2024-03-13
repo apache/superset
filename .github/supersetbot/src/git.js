@@ -102,14 +102,15 @@ export default class Git {
     const prevRelease = await this.previousRelease(release);
     const releaseRange = new GitRelease(release, this.context, prevRelease);
     await releaseRange.load();
+    const prIds = releaseRange.prIdCommitMap.keys();
 
     const prs = [];
     const promises = [];
-    releaseRange.prCommitMap.forEach((value, prNumber) => {
+    [...prIds].forEach(prId => {
       promises.push(
-        this.getReleaseLabels(prNumber, verbose, excludeCherries)
+        this.getReleaseLabels(prId, verbose, excludeCherries)
           .then((labels) => {
-            prs.push({ prNumber, labels });
+            prs.push({ prId, labels });
           }),
       );
     });

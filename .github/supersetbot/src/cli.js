@@ -131,10 +131,14 @@ export default function getCLI(context) {
 
         const github = new Github({ context });
         // eslint-disable-next-line no-restricted-syntax
-        for (const { prNumber, labels } of prs) {
+        for (const { prId, labels } of prs) {
           // Running sequentially to avoid rate limiting
           // eslint-disable-next-line no-await-in-loop
-          await github.syncLabels(labels, prNumber, opts.actor, opts.verbose, opts.dryRun);
+          await github.syncLabels({
+            prId,
+            labels,
+            ...opts,
+          });
         }
       });
 
