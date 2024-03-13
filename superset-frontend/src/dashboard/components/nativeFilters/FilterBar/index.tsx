@@ -234,14 +234,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   useEffect(() => {
     window.parent.postMessage('iframe ready', '*');
-
     window.addEventListener('message', event => {
       if (event.data.raFilter) {
         const receivedFilterState = JSON.parse(event.data.raFilter);
-        console.log('microapp -> iframe:', receivedFilterState);
-
         const filterIds = Object.keys(receivedFilterState);
-
         filterIds.forEach(filterId => {
           setDataMaskSelected(draft => {
             draft[receivedFilterState[filterId].id] = {
