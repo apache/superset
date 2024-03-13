@@ -51,7 +51,7 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
-        uses: ./.github/actions/setup-python.yml
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -64,7 +64,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           bash .github/workflows/codecov.sh -c -F python -F mysql
-
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -103,10 +102,7 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
-        uses: ./.github/actions/setup-python.yml
-        if: steps.check.outcome == 'failure'
-      - name: Setup Python
-        uses: ./.github/actions/setup-python.yml
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -152,10 +148,7 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
-        uses: ./.github/actions/setup-python.yml
-        if: steps.check.outcome == 'failure'
-      - name: Setup Python
-        uses: ./.github/actions/setup-python.yml
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
       - name: Run celery
         if: steps.check.outcome == 'failure'
