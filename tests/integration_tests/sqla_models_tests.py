@@ -150,9 +150,10 @@ class TestDatabaseModel(SupersetTestCase):
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="""
-            SELECT  '{{ current_user_id() }}' as id,
-            SELECT  '{{ current_username() }}' as username,
-            SELECT  '{{ current_user_email() }}' as email,
+            SELECT
+              '{{ current_user_id() }}' as id,
+              '{{ current_username() }}' as username,
+              '{{ current_user_email() }}' as email
             """,
             database=get_example_database(),
         )
@@ -166,9 +167,10 @@ class TestDatabaseModel(SupersetTestCase):
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="""
-            SELECT  '{{ current_user_id(False) }}' as id,
-            SELECT  '{{ current_username(False) }}' as username,
-            SELECT  '{{ current_user_email(False) }}' as email,
+            SELECT
+              '{{ current_user_id(False) }}' as id,
+              '{{ current_username(False) }}' as username,
+              '{{ current_user_email(False) }}' as email,
             """,
             database=get_example_database(),
         )
