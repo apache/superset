@@ -84,6 +84,7 @@ export default function transformProps(chartProps: ChartProps) {
     currencyFormat,
     subheaderFontSize,
     comparisonColorEnabled,
+    percentDifferenceFormat,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const {
@@ -113,9 +114,7 @@ export default function transformProps(chartProps: ChartProps) {
     w: 'Week' as string,
   };
 
-  const formatPercentChange = getNumberFormatter(
-    NumberFormats.PERCENT_SIGNED_1_POINT,
-  );
+  const formatPercentChange = getNumberFormatter(percentDifferenceFormat);
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
