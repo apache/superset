@@ -405,4 +405,3 @@ zipp==3.15.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
--e .

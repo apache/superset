@@ -5,4 +5,4 @@
 cherrytree
 
 # pin an existing Superset reference to a specific version
-boto3==1.18.44
+boto3==1.29.7
