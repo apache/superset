@@ -1421,7 +1421,6 @@ class SqlaTable(
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
         if mutate:
             sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(

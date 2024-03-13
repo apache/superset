@@ -256,12 +256,8 @@ class ParsedQuery:
     def __init__(
         self,
         sql_statement: str,
-        strip_comments: bool = False,
         engine: Optional[str] = None,
     ):
-        if strip_comments:
-            sql_statement = sqlparse.format(sql_statement, strip_comments=True)
-
         self.sql: str = sql_statement
         self._dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
         self._tables: set[Table] = set()

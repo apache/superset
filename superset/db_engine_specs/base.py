@@ -915,8 +915,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         cte = None
         sql_remainder = None
-        sql = sql.strip(" \t\n;")
-        sql_statement = sqlparse.format(sql, strip_comments=True)
+        sql_statement = sql.strip(" \t\n;")
         query_limit: int | None = sql_parse.extract_top_from_query(
             sql_statement, cls.top_keywords
         )
