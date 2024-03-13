@@ -87,7 +87,6 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
         }
         databases[database.id]["backend"] = database.backend
-    queries: dict[str, Any] = {}
 
     # These are unnecessary if sqllab backend persistence is disabled
     if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
@@ -112,13 +111,9 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             .filter(Query.sql_editor_id.in_(tab_state_ids))
             .all()
         )
-        queries = {
-            query.client_id: dict(query.to_dict().items()) for query in user_queries
-        }
 
     return {
         "tab_state_ids": tabs_state,
         "active_tab": active_tab.to_dict() if active_tab else None,
         "databases": databases,
-        "queries": queries,
     }

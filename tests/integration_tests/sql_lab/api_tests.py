@@ -95,7 +95,7 @@ class TestSqlLabApi(SupersetTestCase):
         {"SQLLAB_BACKEND_PERSISTENCE": True},
         clear=True,
     )
-    def test_get_from_bootstrap_data_with_queries(self):
+    def test_get_from_bootstrap_data_with_latest_query(self):
         username = "admin"
         self.login(username)
 
@@ -115,27 +115,11 @@ class TestSqlLabApi(SupersetTestCase):
         resp = self.get_json_resp("/tabstateview/", data=data)
         tab_state_id = resp["id"]
 
-        # run a query in the created tab
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_1",
-            username=username,
-            raise_on_error=True,
-            sql_editor_id=str(tab_state_id),
-        )
-        # run an orphan query (no tab)
-        self.run_sql(
-            "SELECT name FROM birth_names",
-            "client_id_2",
-            username=username,
-            raise_on_error=True,
-        )
-
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
         resp = self.get_json_resp("/api/v1/sqllab/")
         result = resp["result"]
-        self.assertEqual(len(result["queries"]), 1)
+        self.assertEqual(result["active_tab"]["id"], tab_state_id)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
