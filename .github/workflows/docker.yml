@@ -60,9 +60,15 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          # Single platform builds in pull_request context to speed things up
+          if [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            PLATFORM_ARG="--platform linux/amd64"
+          fi
+
           supersetbot docker \
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
-            --platform "linux/arm64" \
-            --platform "linux/amd64"
+            $PLATFORM_ARG
