@@ -49,6 +49,8 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
+  // DODO added
+  isFixedColor?: boolean;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
