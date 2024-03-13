@@ -23,7 +23,7 @@ import pyarrow as pa
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import TabState
 
 DATABASE_KEYS = [
     "allow_file_upload",
