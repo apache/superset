@@ -74,7 +74,6 @@ from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -247,9 +246,9 @@ class BaseReportState:
         """
         screenshots = self._get_screenshots()
         pdf = build_pdf_from_screenshots(screenshots)
-            
-        return pdf.read()
-    
+
+        return pdf
+
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(

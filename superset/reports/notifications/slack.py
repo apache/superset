@@ -161,21 +161,24 @@ Error: %(text)s
 
         return self._message_template(table)
 
-    def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
+    def _get_inline_files(
+        self,
+    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
-            return [self._content.csv]
+            return ("csv", [self._content.csv])
         if self._content.screenshots:
-            return self._content.screenshots
-        return []
+            return ("png", self._content.screenshots)
+        if self._content.pdf:
+            return ("pdf", [self._content.pdf])
+        return (None, [])
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
-        files = self._get_inline_files()
+        file_type, files = self._get_inline_files()
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-        file_type = "csv" if self._content.csv else "png"
         global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
             token = app.config["SLACK_API_TOKEN"]

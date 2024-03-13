@@ -1505,7 +1505,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             )}
           </StyledInputContainer>
           <StyledInputContainer
-            css={['PDF', 'TEXT', 'CSV'].includes(reportFormat) && noMarginBottom}
+            css={
+              ['PDF', 'TEXT', 'CSV'].includes(reportFormat) && noMarginBottom
+            }
           >
             {formatOptionEnabled && (
               <>

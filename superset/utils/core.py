@@ -879,13 +879,15 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
                 body, Content_Disposition=f"attachment; filename='{name}'", Name=name
             )
         )
-        
-    for name, body in (pdf or {}).items():
+
+    for name, body_pdf in (pdf or {}).items():
         msg.attach(
             MIMEApplication(
-                body, Content_Disposition=f"attachment; filename='{name}'", Name=name
+                body_pdf,
+                Content_Disposition=f"attachment; filename='{name}'",
+                Name=name,
             )
-        )    
+        )
 
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
