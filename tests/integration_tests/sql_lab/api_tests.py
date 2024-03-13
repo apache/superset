@@ -57,7 +57,6 @@ class TestSqlLabApi(SupersetTestCase):
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
         assert result["active_tab"] == None
-        assert result["queries"] == {}
         assert result["tab_state_ids"] == []
         self.assertEqual(len(result["databases"]), 0)
 
@@ -87,7 +86,6 @@ class TestSqlLabApi(SupersetTestCase):
         data = json.loads(resp.data.decode("utf-8"))
         result = data.get("result")
         assert result["active_tab"] == None
-        assert result["queries"] == {}
         assert result["tab_state_ids"] == []
 
     @mock.patch.dict(

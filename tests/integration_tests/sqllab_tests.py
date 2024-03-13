@@ -511,11 +511,10 @@ class TestSqlLab(SupersetTestCase):
             "filters": [{"col": "sql_editor_id", "opr": "eq", "value": tab_state_id}]
         }
         url = f"/api/v1/query/?q={prison.dumps(arguments)}"
-        data = self.get_json_resp(url)
-        self.assertEqual(2, len(data["result"]))
-        user_queries = [result.get("sql") for result in data["result"]]
-        assert "SELECT 1" in user_queries
-        assert "SELECT 2" in user_queries
+        self.assertEqual(
+            {"SELECT 1", "SELECT 2"},
+            {r.get("sql") for r in self.get_json_resp(url)["result"]},
+        )
 
     def test_query_admin_can_access_all_queries(self) -> None:
         """
