@@ -53,6 +53,12 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+      - name: Setup MySQL
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            setup-mysql
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
@@ -104,6 +110,12 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+      - name: Setup Postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
