@@ -164,6 +164,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       filter: Pick<Filter, 'id'> & Partial<Filter>,
       dataMask: Partial<DataMask>,
     ) => {
+      // dispatch(updateDataMask(filter.id, dataMask));
+
       setDataMaskSelected(draft => {
         // force instant updating on initialization for filters with `requiredFirst` is true or instant filters
         if (
@@ -183,6 +185,23 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     },
     [dispatch, setDataMaskSelected],
   );
+
+  window.addEventListener('message', event => {
+    console.log('RECEIVED MESSAGE', event.data);
+    if (event.data.raFilter) {
+      const receivedFilterState = JSON.parse(event.data.raFilter);
+      console.log('microapp -> iframe:', receivedFilterState);
+
+      const filterIds = Object.keys(receivedFilterState);
+
+      setUpdateKey(1);
+      filterIds.forEach(filterId => {
+        if (dataMaskSelected[filterId]) {
+          dispatch(updateDataMask(filterId, dataMaskSelected[filterId]));
+        }
+      });
+    }
+  });
 
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
@@ -235,6 +254,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     const filterIds = Object.keys(dataMaskSelected);
+
+    window.parent.postMessage(
+      JSON.stringify(dataMaskSelected),
+      'http://localhost:5173',
+    );
+
     setUpdateKey(1);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
