@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# pylint: disable=invalid-name, unused-argument, redefined-outer-name
+
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
@@ -25,6 +27,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import SupersetSecurityManager
+from superset.superset_typing import AdhocMetric
 from superset.utils.core import override_user
 
 
@@ -36,12 +39,29 @@ def test_security_manager(app_context: None) -> None:
     assert sm
 
 
-def test_raise_for_access_guest_user(
+@pytest.fixture
+def stored_metrics() -> list[AdhocMetric]:
+    """
+    Return a list of metrics.
+    """
+    return [
+        {
+            "column": None,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 1",
+            "sqlExpression": "COUNT(*) + 1",
+        },
+    ]
+
+
+def test_raise_for_access_guest_user_ok(
     mocker: MockFixture,
     app_context: None,
+    stored_metrics: list[AdhocMetric],
 ) -> None:
     """
-    Test that guest user can't modify chart payload.
+    Test that guest user can submit an unmodified chart payload.
     """
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "is_guest_user", return_value=True)
@@ -49,23 +69,11 @@ def test_raise_for_access_guest_user(
 
     query_context = mocker.MagicMock()
     query_context.slice_.id = 42
-    stored_metrics = [
-        {
-            "aggregate": None,
-            "column": None,
-            "datasourceWarning": False,
-            "expressionType": "SQL",
-            "hasCustomLabel": False,
-            "label": "COUNT(*) + 1",
-            "optionName": "metric_ssa1gwimio_cxpyjc7vj3s",
-            "sqlExpression": "COUNT(*) + 1",
-        }
-    ]
+    query_context.slice_.query_context = None
     query_context.slice_.params_dict = {
         "metrics": stored_metrics,
     }
 
-    # normal request
     query_context.form_data = {
         "slice_id": 42,
         "metrics": stored_metrics,
@@ -73,7 +81,26 @@ def test_raise_for_access_guest_user(
     query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
     sm.raise_for_access(query_context=query_context)
 
-    # tampered requests
+
+def test_raise_for_access_guest_user_tampered_id(
+    mocker: MockFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that guest user cannot modify the chart ID.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
     query_context.form_data = {
         "slice_id": 43,
         "metrics": stored_metrics,
@@ -82,15 +109,32 @@ def test_raise_for_access_guest_user(
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query_context=query_context)
 
+
+def test_raise_for_access_guest_user_tampered_form_data(
+    mocker: MockFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that guest user cannot modify metrics in the form data.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
     tampered_metrics = [
         {
-            "aggregate": None,
             "column": None,
-            "datasourceWarning": False,
             "expressionType": "SQL",
             "hasCustomLabel": False,
             "label": "COUNT(*) + 2",
-            "optionName": "metric_ssa1gwimio_cxpyjc7vj3s",
             "sqlExpression": "COUNT(*) + 2",
         }
     ]
@@ -101,6 +145,36 @@ def test_raise_for_access_guest_user(
     }
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query_context=query_context)
+
+
+def test_raise_for_access_guest_user_tampered_queries(
+    mocker: MockFixture,
+    app_context: None,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test that guest user cannot modify metrics in the queries.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    tampered_metrics = [
+        {
+            "column": None,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 2",
+            "sqlExpression": "COUNT(*) + 2",
+        }
+    ]
 
     query_context.form_data = {
         "slice_id": 42,
