@@ -527,14 +527,12 @@ If you have made changes to the FAB-managed templates, which are not built the s
 #### Dependencies
 
 Python dependencies for Superset are managed in the `pyproject.toml` file along with resources
-under the `requirements/` folder. `./requirements/pip-compile-superset.sh` acts a wrapper
+under the `requirements/` folder. `./requirements/pip-compile-superset.py` acts a wrapper
 for `pip-compile` - a neat utility that takes dependencies and pins them to create
-deterministic set of dependency versions. `pip-compile-superset.sh` compiles two requirements
+deterministic set of dependency versions. `pip-compile-superset.py` compiles two requirements
 file: `requirements/base.txt` as the core, required dependencies for Superset, and
 `requirements/development.txt` which contains the same set plus everything that's needed
-for development, testing, docker and beyond. Note that passing arguments to
-`pip-compile-superset.sh` passes them down to `pip-compile` allowing for the operations defined
-bellow.
+for development, testing, docker and beyond.
 
 Note that we rely on [dependabot](https://github.com/dependabot)
 to auto-submit PRs upgrading our libraries periodically. This enables us to bump and
@@ -551,17 +549,17 @@ pip install -r requirements/development.txt
 # EDIT pyproject.toml, set the version range
 # usually something like `newlib>={current}<{next_major}`, as in `flask>=3.2.1,<4.0.0`
 
-# recompile/pin the dependencies
-./requirements/pip-compile-superset.sh --no-upgrade
+# recompile/pin the dependencies, telling pip-compile NOT to upgrade everything else
+./requirements/pip-compile-superset.py compile-deps --pip-flags "--no-upgrade"
 
-# AGAIN - make sure you're aligned with the pin deps
+# AGAIN - let's make sure your environment is aligned with the pin deps
 pip install -r requirements/development.txt
 ```
 
 To upgrade the version of a single package:
 
 ```bash
-$ ./requirements/pip-compile-superset.sh -P my-package
+./requirements/pip-compile-superset.py compile-deps --pip-flags "-P some_package"
 ```
 
 To bring all dependencies up to date as per the restrictions defined

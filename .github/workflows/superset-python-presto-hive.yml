@@ -69,9 +69,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-        if: steps.check.outcome == 'failure'
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
