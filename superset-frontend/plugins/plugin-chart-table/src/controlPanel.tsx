@@ -20,14 +20,18 @@
 import React from 'react';
 import {
   ChartDataResponseResult,
+  ComparisonTimeRangeType,
   ensureIsArray,
+  FeatureFlag,
   GenericDataType,
   isAdhocColumn,
+  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
   smartDateFormatter,
   t,
+  validateTimeComparisonRangeValues,
 } from '@superset-ui/core';
 import {
   ColumnOption,
@@ -90,7 +94,13 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
     [QueryMode.Raw, QueryModeLabel[QueryMode.Raw]],
   ],
   mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
-  rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
+  rerender: [
+    'all_columns',
+    'groupby',
+    'metrics',
+    'percent_metrics',
+    'enable_time_comparison',
+  ],
 };
 
 const allColumnsControl: typeof sharedControls.groupby = {
@@ -257,6 +267,77 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
+        [
+          {
+            name: 'enable_time_comparison',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable Time Comparison'),
+              description: t('Enable time comparison (experimental feature)'),
+              default: false,
+              visibility: ({ controls }) =>
+                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+                isAggMode({ controls }),
+            },
+          },
+        ],
+        [
+          {
+            name: 'time_comparison',
+            config: {
+              type: 'SelectControl',
+              label: t('Range for Comparison'),
+              default: 'r',
+              choices: [
+                ['r', 'Inherit range from time filters'],
+                ['y', 'Year'],
+                ['m', 'Month'],
+                ['w', 'Week'],
+                ['c', 'Custom'],
+              ],
+              rerender: ['adhoc_custom'],
+              description: t(
+                'Set the time range that will be used for the comparison metrics. ' +
+                  'For example, "Year" will compare to the same dates one year earlier. ' +
+                  'Use "Inherit range from time filters" to shift the comparison time range' +
+                  'by the same length as your time range and use "Custom" to set a custom comparison range.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.enable_time_comparison?.value) &&
+                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
+                isAggMode({ controls }),
+            },
+          },
+        ],
+        [
+          {
+            name: `adhoc_custom`,
+            config: {
+              ...sharedControls.adhoc_filters,
+              label: t('Filters for Comparison'),
+              description:
+                'This only applies when selecting the Range for Comparison Type: Custom',
+              visibility: ({ controls }) =>
+                Boolean(controls?.enable_time_comparison?.value) &&
+                controls?.time_comparison?.value ===
+                  ComparisonTimeRangeType.Custom &&
+                isAggMode({ controls }),
+              mapStateToProps: (
+                state: ControlPanelState,
+                controlState: ControlState,
+              ) => ({
+                ...(sharedControls.adhoc_filters.mapStateToProps?.(
+                  state,
+                  controlState,
+                ) || {}),
+                externalValidationErrors: validateTimeComparisonRangeValues(
+                  state.controls?.time_comparison?.value,
+                  controlState.value,
+                ),
+              }),
+            },
+          },
+        ],
         [
           {
             name: 'timeseries_limit_metric',
@@ -448,6 +529,9 @@ const config: ControlPanelConfig = {
               description: t(
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
+              visibility: ({ controls }) =>
+                !controls?.enable_time_comparison?.value ||
+                !isFeatureEnabled(FeatureFlag.ChartPluginsExperimental),
             },
           },
         ],

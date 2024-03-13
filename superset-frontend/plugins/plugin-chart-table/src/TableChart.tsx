@@ -48,8 +48,10 @@ import {
   css,
   t,
   tn,
+  useTheme,
 } from '@superset-ui/core';
 
+import { isEmpty } from 'lodash';
 import { DataColumnMeta, TableChartTransformedProps } from './types';
 import DataTable, {
   DataTableProps,
@@ -238,6 +240,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     allowRearrangeColumns = false,
     onContextMenu,
     emitCrossFilters,
+    enableTimeComparison,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -249,6 +252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
+  const theme = useTheme();
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
@@ -358,11 +362,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
     const { isNumeric, config = {} } = column;
-    const textAlign = config.horizontalAlign
-      ? config.horizontalAlign
-      : isNumeric
-        ? 'right'
-        : 'left';
+    const textAlign =
+      config.horizontalAlign ||
+      (isNumeric && !enableTimeComparison ? 'right' : 'left');
+
     return {
       textAlign,
     };
@@ -413,6 +416,93 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       : undefined;
 
+  const comparisonLabels = [t('Main'), '#', '△', '%'];
+
+  const getHeaderColumns = (
+    columnsMeta: DataColumnMeta[],
+    enableTimeComparison?: boolean,
+  ) => {
+    const resultMap: Record<string, number[]> = {};
+
+    if (!enableTimeComparison) {
+      return resultMap;
+    }
+
+    columnsMeta.forEach((element, index) => {
+      // Check if element's label is one of the comparison labels
+      if (comparisonLabels.includes(element.label)) {
+        // Extract the key portion after the space, assuming the format is always "label key"
+        const keyPortion = element.key.substring(element.label.length);
+
+        // If the key portion is not in the map, initialize it with the current index
+        if (!resultMap[keyPortion]) {
+          resultMap[keyPortion] = [index];
+        } else {
+          // Add the index to the existing array
+          resultMap[keyPortion].push(index);
+        }
+      }
+    });
+
+    return resultMap;
+  };
+
+  const renderGroupingHeaders = (): JSX.Element => {
+    // TODO: Make use of ColumnGroup to render the aditional headers
+    const headers: any = [];
+    let currentColumnIndex = 0;
+
+    Object.entries(groupHeaderColumns || {}).forEach(([key, value]) => {
+      // Calculate the number of placeholder columns needed before the current header
+      const startPosition = value[0];
+      const colSpan = value.length;
+
+      // Add placeholder <th> for columns before this header
+      for (let i = currentColumnIndex; i < startPosition; i += 1) {
+        headers.push(
+          <th
+            key={`placeholder-${i}`}
+            style={{ borderBottom: 0 }}
+            aria-label={`Header-${i}`}
+          />,
+        );
+      }
+
+      // Add the current header <th>
+      headers.push(
+        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
+          {key}
+        </th>,
+      );
+
+      // Update the current column index
+      currentColumnIndex = startPosition + colSpan;
+    });
+
+    return (
+      <tr
+        css={css`
+          th {
+            border-right: 2px solid ${theme.colors.grayscale.light2};
+          }
+          th:first-child {
+            border-left: none;
+          }
+          th:last-child {
+            border-right: none;
+          }
+        `}
+      >
+        {headers}
+      </tr>
+    );
+  };
+
+  const groupHeaderColumns = useMemo(
+    () => getHeaderColumns(columnsMeta, enableTimeComparison),
+    [columnsMeta, enableTimeComparison],
+  );
+
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
       const {
@@ -458,6 +548,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       let className = '';
       if (emitCrossFilters && !isMetric) {
         className += ' dt-is-filter';
+      }
+
+      if (enableTimeComparison) {
+        if (!isMetric && !isPercentMetric) {
+          className += ' right-border-only';
+        } else if (comparisonLabels.includes(label)) {
+          const groupinHeader = key.substring(label.length);
+          const columnsUnderHeader = groupHeaderColumns[groupinHeader] || [];
+          if (i === columnsUnderHeader[columnsUnderHeader.length - 1]) {
+            className += ' right-border-only';
+          }
+        }
       }
 
       return {
@@ -596,6 +698,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             style={{
               ...sharedStyle,
               ...style,
+              borderTop: 0,
             }}
             tabIndex={0}
             onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
@@ -734,6 +837,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
       />
     </Styles>
   );

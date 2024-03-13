@@ -91,6 +91,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  enable_time_comparison?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -135,6 +136,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  enableTimeComparison?: boolean;
 }
 
 export default {};

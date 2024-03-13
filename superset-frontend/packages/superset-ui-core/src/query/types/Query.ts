@@ -71,10 +71,18 @@ export type QueryObjectExtras = Partial<{
   where?: string;
   /** Instant Time Comparison */
   instant_time_comparison_range?: string;
+  instant_time_comparison_info?: QueryObjectInstantTimeComparisonInfo;
 }>;
 
 export type ResidualQueryObjectData = {
   [key: string]: unknown;
+};
+
+export type QueryObjectInstantTimeComparisonInfo = {
+  /** The range to use as comparison range */
+  range: string;
+  /** The custom filter value to use if range is Custom */
+  filter?: QueryObjectFilterClause;
 };
 
 /**

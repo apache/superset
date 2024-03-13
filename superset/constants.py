@@ -48,6 +48,7 @@ class InstantTimeComparison(StrEnum):
     YEAR = "y"
     MONTH = "m"
     WEEK = "w"
+    CUSTOM = "c"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods

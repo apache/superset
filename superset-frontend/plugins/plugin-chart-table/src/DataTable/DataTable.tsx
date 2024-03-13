@@ -67,6 +67,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
+  renderGroupingHeaders?: () => JSX.Element;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -99,6 +100,7 @@ export default typedMemo(function DataTable<D extends object>({
   serverPagination,
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
+  renderGroupingHeaders,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -251,11 +253,17 @@ export default typedMemo(function DataTable<D extends object>({
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
+        {/* Render dynamic headers based on resultMap */}
+        {renderGroupingHeaders ? renderGroupingHeaders() : null}
         {headerGroups.map(headerGroup => {
           const { key: headerGroupKey, ...headerGroupProps } =
             headerGroup.getHeaderGroupProps();
           return (
-            <tr key={headerGroupKey || headerGroup.id} {...headerGroupProps}>
+            <tr
+              key={headerGroupKey || headerGroup.id}
+              {...headerGroupProps}
+              style={{ borderTop: 0 }}
+            >
               {headerGroup.headers.map(column =>
                 column.render('Header', {
                   key: column.id,
