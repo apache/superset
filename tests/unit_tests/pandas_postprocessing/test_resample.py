@@ -24,7 +24,7 @@ from superset.utils import pandas_postprocessing as pp
 from tests.unit_tests.fixtures.dataframes import (
     categories_df,
     timeseries_df,
-    timeseries_with_gap_df2,
+    timeseries_with_gap_df,
 )
 
 
@@ -68,7 +68,7 @@ def test_resample():
 
 
 def test_resample_ffill_with_gaps():
-    post_df = pp.resample(df=timeseries_with_gap_df2, rule="1D", method="ffill")
+    post_df = pp.resample(df=timeseries_with_gap_df, rule="1D", method="ffill")
     assert post_df.equals(
         pd.DataFrame(
             index=pd.to_datetime(
@@ -83,9 +83,8 @@ def test_resample_ffill_with_gaps():
                 ]
             ),
             data={
-                "label": ["x", "x", "x", "x", "z", "z", "q"],
+                "label": ["x", "y", "y", "y", "z", "z", "q"],
                 "y": [1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0],
-                "z": [2.0, 2.0, 2.0, 2.0, 10.0, 10.0, 8.0],
             },
         )
     )
@@ -116,7 +115,7 @@ def test_resample_zero_fill():
 
 def test_resample_zero_fill_with_gaps():
     post_df = pp.resample(
-        df=timeseries_with_gap_df2, rule="1D", method="asfreq", fill_value=0
+        df=timeseries_with_gap_df, rule="1D", method="asfreq", fill_value=0
     )
     assert post_df.equals(
         pd.DataFrame(
@@ -132,9 +131,8 @@ def test_resample_zero_fill_with_gaps():
                 ]
             ),
             data={
-                "label": ["x", 0, 0, 0, "z", 0, "q"],
+                "label": ["x", "y", 0, 0, "z", 0, "q"],
                 "y": [1.0, 2.0, 0, 0, 0, 0, 4.0],
-                "z": [2.0, 0, 0, 0, 10.0, 0, 8.0],
             },
         )
     )
