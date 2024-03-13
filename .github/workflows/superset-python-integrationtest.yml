@@ -105,16 +105,9 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python.yml
         if: steps.check.outcome == 'failure'
-      - name: Install dependencies
+      - name: Setup Python
+        uses: ./.github/actions/setup-python.yml
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/development.txt
-            setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
@@ -161,16 +154,9 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python.yml
         if: steps.check.outcome == 'failure'
-      - name: Install dependencies
+      - name: Setup Python
+        uses: ./.github/actions/setup-python.yml
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/development.txt
-            mkdir ${{ github.workspace }}/.temp
       - name: Run celery
         if: steps.check.outcome == 'failure'
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
