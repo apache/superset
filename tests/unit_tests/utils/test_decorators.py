@@ -24,6 +24,8 @@ from typing import Any, Optional
 from unittest.mock import call, Mock, patch
 
 import pytest
+from flask import jsonify, Response
+from pytest_mock import MockerFixture
 
 from superset import app
 from superset.utils import decorators
@@ -294,3 +296,21 @@ def test_suppress_logging() -> None:
     decorated = decorators.suppress_logging("test-logger", logging.CRITICAL + 1)(func)
     decorated()
     assert len(handler.log_records) == 0
+
+
+def test_show_telemetry(mocker: MockerFixture) -> None:
+    """
+    Test the `show_telemetry` decorator.
+    """
+    g = mocker.patch("superset.utils.decorators.g")  # pylint: disable=invalid-name
+    g.telemetry.events = [{"name": "test", "start": 1, "end": 2, "children": []}]
+
+    @decorators.show_telemetry
+    def exposed() -> Response:
+        return jsonify({"hello": "world"})
+
+    response = exposed()
+    assert response.get_json() == {
+        "hello": "world",
+        "telemetry": [{"name": "test", "start": 1, "end": 2, "children": []}],
+    }
