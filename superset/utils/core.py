@@ -1362,6 +1362,7 @@ def get_username() -> str | None:
     """
 
     try:
+        print("=======user__dict username=======", g.user.__dict__)
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
