@@ -1410,10 +1410,11 @@ def get_user_sk() -> str | None:
 
     try:
         if username := get_username():
+            logger.info("=======user__dict============", username)
             if user_sk := redis_helper.get_user_sk(username):
                 return user_sk
             else:
-                logger.error("User {username} does not exist in Redis}")
+                logger.error(f"User {username} does not exist in Redis")
                 return None
         else:
             logger.error("User not found")
