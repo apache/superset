@@ -113,7 +113,7 @@ export function getDockerCommand({
   const tags = getDockerTags({
     preset, platforms, sha, buildContext, buildContextRef: ref, forceLatest,
   }).map((tag) => `-t ${tag}`).join(' \\\n        ');
-  const isAuthenticated = !!(process.env.DOCKERHUB_TOKEN && process.env.DOCKERHUB_USER);
+  const isAuthenticated = !!(process.env.DOCKERHUB_TOKEN);
 
   const dockerArgs = isAuthenticated ? '--push' : '--load';
   const targetArgument = buildTarget ? `--target ${buildTarget}` : '';
