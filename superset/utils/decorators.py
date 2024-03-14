@@ -220,7 +220,7 @@ def show_telemetry(f: Callable[..., Any]) -> Callable[..., Any]:
     This allows us to instrument the stack, but adding timestamps at different levels,
     eg:
 
-        with g.telemetry("Run query"):
+        with g.telemetry.add("Run query"):
             data = run_query(sql)
 
     And then we can display this information in the UI.
@@ -231,13 +231,13 @@ def show_telemetry(f: Callable[..., Any]) -> Callable[..., Any]:
         result = f(*args, **kwargs)
         if hasattr(result, "get_json"):
             try:
-                json_data = result.get_json()
+                payload = result.get_json()
             except Exception:  # pylint: disable=broad-exception-caught
                 return result
 
-            if isinstance(json_data, dict) and hasattr(g, "telemetry"):
-                json_data["telemetry"] = g.telemetry.events
-                return jsonify(json_data)
+            if isinstance(payload, dict) and hasattr(g, "telemetry"):
+                payload["telemetry"] = g.telemetry.events[:]
+                return jsonify(payload), result.status_code
 
         return result
 

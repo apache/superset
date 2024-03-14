@@ -309,8 +309,9 @@ def test_show_telemetry(mocker: MockerFixture) -> None:
     def exposed() -> Response:
         return jsonify({"hello": "world"})
 
-    response = exposed()
+    response, status_code = exposed()
     assert response.get_json() == {
         "hello": "world",
         "telemetry": [{"name": "test", "start": 1, "end": 2, "children": []}],
     }
+    assert status_code == 200

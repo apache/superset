@@ -24,7 +24,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import Flask, g, redirect
 from flask_appbuilder import expose, IndexView
 from flask_babel import gettext as __
 from flask_compress import Compress
@@ -51,6 +51,7 @@ from superset.extensions import (
     ssh_manager_factory,
     stats_logger_manager,
     talisman,
+    telemetry,
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
@@ -484,6 +485,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_wtf()
         self.configure_middlewares()
         self.configure_cache()
+        self.configure_telemetry()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -517,6 +519,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     def configure_cache(self) -> None:
         cache_manager.init_app(self.superset_app)
         results_backend_manager.init_app(self.superset_app)
+
+    def configure_telemetry(self) -> None:
+        @self.superset_app.before_request
+        def setup_telemetry() -> None:
+            g.telemetry = telemetry.TelemetryHandler()
 
     def configure_feature_flags(self) -> None:
         feature_flag_manager.init_app(self.superset_app)

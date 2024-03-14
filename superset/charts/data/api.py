@@ -359,7 +359,7 @@ class ChartDataRestApi(ChartRestApi):
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            with g.telemetry("Post processing data"):
+            with g.telemetry.add("Post processing data"):
                 result = apply_post_process(result, form_data, datasource)
 
         if result_format in ChartDataResultFormat.table_like():
@@ -398,7 +398,7 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            with g.telemetry("JSON encoding"):
+            with g.telemetry.add("JSON encoding"):
                 response_data = simplejson.dumps(
                     {"result": result["queries"]},
                     default=json_int_dttm_ser,
@@ -418,7 +418,7 @@ class ChartDataRestApi(ChartRestApi):
         datasource: BaseDatasource | Query | None = None,
     ) -> Response:
         try:
-            with g.telemetry("Running command"):
+            with g.telemetry.add("Running command"):
                 result = command.run(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=exc.message)

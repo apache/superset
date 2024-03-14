@@ -579,7 +579,7 @@ class Database(
                 )
 
         with self.get_raw_connection(schema=schema) as conn:
-            with g.telemetry("Executing query"):
+            with g.telemetry.add("Executing query"):
                 cursor = conn.cursor()
                 for sql_ in sqls[:-1]:
                     if mutate_after_split:
@@ -604,7 +604,7 @@ class Database(
                     _log_query(sqls[-1])
                     self.db_engine_spec.execute(cursor, sqls[-1])
 
-            with g.telemetry("Fetching data from cursor"):
+            with g.telemetry.add("Fetching data from cursor"):
                 data = self.db_engine_spec.fetch_data(cursor)
 
             result_set = SupersetResultSet(
@@ -612,7 +612,7 @@ class Database(
                 cursor.description,
                 self.db_engine_spec,
             )
-            with g.telemetry("Loading data into dataframe"):
+            with g.telemetry.add("Loading data into dataframe"):
                 df = result_set.to_pandas_df()
             if mutator:
                 df = mutator(df)

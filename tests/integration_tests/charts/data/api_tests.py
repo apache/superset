@@ -708,7 +708,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
         self.assertCountEqual(
-            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+            keys,
+            [
+                "channel_id",
+                "job_id",
+                "user_id",
+                "status",
+                "errors",
+                "result_url",
+                "telemetry",
+            ],
         )
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
@@ -740,7 +749,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             self.assertEqual(rv.status_code, 200)
             data = json.loads(rv.data.decode("utf-8"))
             patched_run.assert_called_once_with(force_cached=True)
-            self.assertEqual(data, {"result": [{"query": "select * from foo"}]})
+            self.assertEqual(data["result"], [{"query": "select * from foo"}])
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -795,15 +804,15 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         timegrain_data_keys = result[0]["data"][0].keys()
         column_data_keys = result[1]["data"][0].keys()
-        assert list(timegrain_data_keys) == [
-            "name",
-            "function",
+        assert sorted(timegrain_data_keys) == [
             "duration",
+            "function",
+            "name",
         ]
-        assert list(column_data_keys) == [
+        assert sorted(column_data_keys) == [
             "column_name",
-            "verbose_name",
             "dtype",
+            "verbose_name",
         ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -936,7 +945,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "gender" in result["colnames"]
         assert "name" in result["query"]
         assert "gender" in result["query"]
-        assert list(result["data"][0].keys()) == ["name", "gender"]
+        assert sorted(result["data"][0].keys()) == ["gender", "name"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_adhoc_column_without_metrics(self):

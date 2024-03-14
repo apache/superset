@@ -74,7 +74,6 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
-from superset.extensions.telemetry import TelemetryHandler
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -726,8 +725,3 @@ def apply_http_headers(response: Response) -> Response:
         if k not in response.headers:
             response.headers[k] = v
     return response
-
-
-@superset_app.before_request
-def start_telemetry() -> None:
-    g.telemetry = TelemetryHandler()
