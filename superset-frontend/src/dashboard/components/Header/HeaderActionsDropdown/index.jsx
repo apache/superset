@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -99,7 +99,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     super(props);
     this.state = {
       css: props.customCss,
-      cssTemplates: [],
       showReportSubMenu: null,
     };
 
@@ -107,23 +106,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
     this.handleMenuClick = this.handleMenuClick.bind(this);
     this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
-  }
-
-  UNSAFE_componentWillMount() {
-    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
-      .then(({ json }) => {
-        const cssTemplates = json.result.map(row => ({
-          value: row.template_name,
-          css: row.css,
-          label: row.template_name,
-        }));
-        this.setState({ cssTemplates });
-      })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
-        );
-      });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -257,8 +239,8 @@ class HeaderActionsDropdown extends React.PureComponent {
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
               initialCss={this.state.css}
-              templates={this.state.cssTemplates}
               onChange={this.changeCss}
+              addDangerToast={addDangerToast}
             />
           </Menu.Item>
         )}
