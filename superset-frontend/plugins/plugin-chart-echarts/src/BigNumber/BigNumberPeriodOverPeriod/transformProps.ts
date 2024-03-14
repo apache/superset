@@ -82,6 +82,7 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
   } = formData;
@@ -152,6 +153,7 @@ export default function transformProps(chartProps: ChartProps) {
     headerText,
     compType,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
     comparatorText,
   };
