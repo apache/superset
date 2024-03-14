@@ -171,7 +171,9 @@ describe('parseResponse()', () => {
     expect(Math.abs(responseBigNumber.json.floatValue.minus)).toEqual(
       responseBigNumber.json.floatValue.plus,
     );
-    expect(responseBigNumber.json['string.constructor']).toEqual('data.constructor');
+    expect(responseBigNumber.json['string.constructor']).toEqual(
+      'data.constructor',
+    );
     expect(responseBigNumber.json.constructor).toEqual('constructor');
   });
 
