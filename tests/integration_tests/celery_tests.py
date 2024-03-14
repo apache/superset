@@ -138,8 +138,8 @@ def get_select_star(table: str, limit: int, schema: Optional[str] = None):
         schema = quote_f(schema)
         table = quote_f(table)
     if schema:
-        return f"SELECT *\nFROM {schema}.{table}\nLIMIT {limit}"
-    return f"SELECT *\nFROM {table}\nLIMIT {limit}"
+        return f"SELECT\n  *\nFROM {schema}.{table}\nLIMIT {limit}"
+    return f"SELECT\n  *\nFROM {table}\nLIMIT {limit}"
 
 
 @pytest.mark.usefixtures("login_as_admin")
@@ -333,9 +333,9 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     query = wait_for_success(result)
     assert QueryStatus.SUCCESS == query.status
 
-    sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
+    sqlite_select_sql = f"SELECT\n  *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
     assert query.select_sql == (
-        sqllite_select_sql
+        sqlite_select_sql
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )

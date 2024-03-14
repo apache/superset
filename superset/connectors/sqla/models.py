@@ -33,7 +33,6 @@ import dateutil.parser
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-import sqlparse
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
@@ -104,7 +103,6 @@ from superset.models.helpers import (
     ExploreMixin,
     ImportExportMixin,
     QueryResult,
-    QueryStringExtended,
     validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
@@ -1099,7 +1097,9 @@ def _process_sql_expression(
 
 
 class SqlaTable(
-    Model, BaseDatasource, ExploreMixin
+    Model,
+    BaseDatasource,
+    ExploreMixin,
 ):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 
@@ -1413,26 +1413,6 @@ class SqlaTable(
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         return get_template_processor(table=self, database=self.database, **kwargs)
 
-    def get_query_str_extended(
-        self,
-        query_obj: QueryObjectDict,
-        mutate: bool = True,
-    ) -> QueryStringExtended:
-        sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
-        if mutate:
-            sql = self.mutate_query_from_config(sql)
-        return QueryStringExtended(
-            applied_template_filters=sqlaq.applied_template_filters,
-            applied_filter_columns=sqlaq.applied_filter_columns,
-            rejected_filter_columns=sqlaq.rejected_filter_columns,
-            labels_expected=sqlaq.labels_expected,
-            prequeries=sqlaq.prequeries,
-            sql=sql,
-        )
-
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         query_str_ext = self.get_query_str_extended(query_obj)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
@@ -1473,33 +1453,6 @@ class SqlaTable(
         )
 
         return from_clause, cte
-
-    def get_rendered_sql(
-        self, template_processor: BaseTemplateProcessor | None = None
-    ) -> str:
-        """
-        Render sql with template engine (Jinja).
-        """
-
-        sql = self.sql
-        if template_processor:
-            try:
-                sql = template_processor.process_template(sql)
-            except TemplateError as ex:
-                raise QueryObjectValidationError(
-                    _(
-                        "Error while rendering virtual dataset query: %(msg)s",
-                        msg=ex.message,
-                    )
-                ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
-            raise QueryObjectValidationError(
-                _("Virtual dataset query cannot consist of multiple statements")
-            )
-        return sql
 
     def adhoc_metric_to_sqla(
         self,
