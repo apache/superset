@@ -16,6 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getExtensionsRegistry } from "@superset-ui/core";
+import RaSyncDashboardState from "./raSyncDashboardState";
 
 // For individual deployments to add custom overrides
-export default function setupPluginsExtra() {}
+export default function setupPluginsExtra() {
+  console.log("setup plugins");
+  const extensionRegistry = getExtensionsRegistry();
+
+  extensionRegistry.set('root.context.provider', RaSyncDashboardState);
+}
