@@ -122,11 +122,11 @@ class RedisHelper:
         self.app = None
         self._redis = None
 
-    def init_app(self) -> None:
-        from superset import config
+    def init_app(self, app: Flask) -> None:
         logger.info("Initiating Redis Helper Connection")
+        config = app.config
         self._redis = redis.Redis(
-            config.USER_SK_REDIS_CONFIG
+            **config["USER_SK_REDIS_CONFIG"], decode_responses=True
         )
 
     def get_user_sk(self, username):
