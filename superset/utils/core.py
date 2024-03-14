@@ -88,7 +88,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.extensions import redis_helper
+
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -1406,6 +1406,8 @@ def get_business_id() -> str | None:
 
 
 def get_user_sk() -> str | None:
+    from superset.extensions import redis_helper
+
     try:
         if username := get_username():
             if user_sk := redis_helper.get_user_sk(username):
