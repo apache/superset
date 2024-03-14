@@ -29,6 +29,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
+from superset import config
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
@@ -122,11 +123,10 @@ class RedisHelper:
         self.app = None
         self._redis = None
 
-    def init_app(self, app: Flask) -> None:
+    def init_app(self) -> None:
         logger.info("Initiating Redis Helper Connection")
-        config = app.config
         self._redis = redis.Redis(
-            **config["USER_SK_REDIS_CONFIG"], decode_responses=True
+            config.USER_SK_REDIS_CONFIG
         )
 
     def get_user_sk(self, username):
