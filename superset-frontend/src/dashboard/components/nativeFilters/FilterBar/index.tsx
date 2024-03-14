@@ -232,9 +232,32 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
+  useEffect(() => {
+    window.parent.postMessage('iframe ready', '*');
+    window.addEventListener('message', event => {
+      if (event.data.raFilter) {
+        const receivedFilterState = JSON.parse(event.data.raFilter);
+        const filterIds = Object.keys(receivedFilterState);
+        filterIds.forEach(filterId => {
+          setDataMaskSelected(draft => {
+            draft[receivedFilterState[filterId].id] = {
+              ...(getInitialDataMask(
+                receivedFilterState[filterId].id,
+              ) as DataMaskWithId),
+              ...receivedFilterState[filterId],
+            };
+          });
+        });
+      }
+    });
+  }, [setDataMaskSelected]);
+
   const handleApply = useCallback(() => {
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     const filterIds = Object.keys(dataMaskSelected);
+
+    window.parent.postMessage(JSON.stringify(dataMaskSelected), '*');
+
     setUpdateKey(1);
     filterIds.forEach(filterId => {
       if (dataMaskSelected[filterId]) {
