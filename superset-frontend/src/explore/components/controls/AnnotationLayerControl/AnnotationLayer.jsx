@@ -194,6 +194,7 @@ class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
+      valueOptions: {},
       slice: null,
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
@@ -423,7 +424,6 @@ class AnnotationLayer extends React.PureComponent {
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       return this.fetchNativeAnnotations(search, page, pageSize);
     }
-
     return this.fetchCharts(search, page, pageSize);
   };
 
