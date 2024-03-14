@@ -118,6 +118,15 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['y_axis_format'],
+        [
+          {
+            name: 'percentDifferenceFormat',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('Percent Difference format'),
+            },
+          },
+        ],
         ['currency_format'],
         [
           {
