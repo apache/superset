@@ -1411,7 +1411,7 @@ def get_user_sk() -> str | None:
 
     try:
         if username := get_username():
-            logger.info("=======user__dict============", username)
+            logger.info("=======user__dict============ %s" % username)
             if user_sk := redis_helper.get_user_sk(username):
                 return user_sk
             else:
