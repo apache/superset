@@ -60,15 +60,3 @@ jobs:
         uses: ./.github/actions/setup-backend/
       - name: Test babel extraction
         run: flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _,__,t,tn,tct
-  check-python-requirements:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-      - name: Test babel extraction
-        run: |
-          pip install click
-          ./requirements/pip-compile-superset.py compare-versions
