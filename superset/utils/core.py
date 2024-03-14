@@ -57,6 +57,7 @@ import markdown as md
 import nh3
 import numpy as np
 import pandas as pd
+import redis
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
@@ -87,6 +88,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
+from superset.extensions import redis_helper
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -1396,11 +1398,27 @@ def get_business_id() -> str | None:
         if g.user.first_name.lower() == 'business':
             return g.user.email.split("@")[0]
         else:
-            logger.info("Non business id data called for get_business_id %s"%str(
+            logger.info("Non business id data called for get_business_id %s" % str(
                 g.user.first_name.lower()))
             return None
     except Exception:  # pylint: disable=broad-except
         return None
+
+
+def get_user_sk() -> str | None:
+    try:
+        if username := get_username():
+            if user_sk := redis_helper.get_user_sk(username):
+                return user_sk
+            else:
+                logger.error("User {username} does not exist in Redis}")
+                return None
+        else:
+            logger.error("User not found")
+            return None
+
+    except Exception as e:
+        logger.error(f"Exception {e} occurred while running get_user_sk")
 
 
 def get_user_id() -> int | None:

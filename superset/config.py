@@ -243,7 +243,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
     "superset.charts.data.api.data"
-    #"superset.security.api.add_user"
+    # "superset.security.api.add_user"
 ]
 
 # Whether to run the web server in debug mode or not
@@ -822,7 +822,6 @@ TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
 # ---------------------------------------------------
 
 VIZ_TYPE_DENYLIST: list[str] = []
-
 
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
@@ -1412,7 +1411,7 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-#TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
+# TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True))
 TALISMAN_ENABLED = False
 
 # If you want Talisman, how do you want it configured??
@@ -1563,6 +1562,15 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
+
+# Users surrogate keys option
+USER_SK_REDIS_CONFIG = {
+    "port": 6379,
+    "host": "127.0.0.1",
+    "password": "",
+    "db": 2,
+    "ssl": False,
+}
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"

@@ -51,6 +51,7 @@ from superset.extensions import (
     ssh_manager_factory,
     stats_logger_manager,
     talisman,
+    redis_helper
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
@@ -500,6 +501,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
+
+    def configure_redis_helper(self) -> None:
+        logger.info("Configuring redis connection")
+        redis_helper.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

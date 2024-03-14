@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Callable, Optional
 
 import celery
+import redis
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
 from flask_caching.backends.base import BaseCache
@@ -27,7 +29,6 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-import superset
 from superset.async_events.async_query_manager import AsyncQueryManager
 from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
@@ -37,6 +38,8 @@ from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
+
+logger = logging.getLogger(__name__)
 
 
 class ResultsBackendManager:
@@ -114,6 +117,35 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
         app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)
 
 
+class RedisHelper:
+    def __init__(self):
+        self.app = None
+        self._redis = None
+
+    def init_app(self, app: Flask) -> None:
+        logger.info("Initiating Redis Helper Connection")
+        config = app.config
+        self._redis = redis.Redis(
+            **config["USER_SK_REDIS_CONFIG"], decode_responses=True
+        )
+
+    def get_user_sk(self, username) -> str | None:
+        """
+            Get/print surrogate key (if exists) associated with the current user.
+            :returns: The user's surrogate key
+        """
+        try:
+            user_sk = self._redis.get(username)
+            if user_sk:
+                return user_sk
+            else:
+                logger.info(f"User {username} does not exist in Redis")
+                return None
+        except Exception as e:
+            logger.error(f"Exception {e} occurred while get_user_sk")
+            return None
+
+
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager_factory = AsyncQueryManagerFactory()
@@ -137,3 +169,4 @@ security_manager = LocalProxy(lambda: appbuilder.sm)
 ssh_manager_factory = SSHManagerFactory()
 stats_logger_manager = BaseStatsLoggerManager()
 talisman = Talisman()
+redis_helper = RedisHelper()
