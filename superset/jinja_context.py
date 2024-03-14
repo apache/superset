@@ -16,6 +16,7 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 import json
+import logging
 import re
 from datetime import datetime
 from functools import lru_cache, partial
@@ -157,8 +158,9 @@ class ExtraCache:
             Return the user static to print surrogate key of the user who is currently logged in.
 
             :param add_to_cache_keys: Whether the value should be included in the cache key
-            :returns: The user ID
+            :returns: The user's surrogate key
         """
+        logging.info("===============CURRENT USER SK=============")
         if user_sk := get_user_sk():
             if add_to_cache_keys:
                 self.cache_key_wrapper(user_sk)
