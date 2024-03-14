@@ -19,6 +19,7 @@
 import React from 'react';
 import { Tag as AntdTag } from 'antd';
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
+import { CloseOutlined } from '@ant-design/icons';
 import { Tooltip } from '../Tooltip';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
@@ -55,7 +56,7 @@ const Tag = (props: any) => {
  * Custom tag renderer
  */
 export const customTagRender = (props: CustomTagProps) => {
-  const { label, value } = props;
+  const { label, value, closable } = props;
 
   const onPreventMouseDown = (event: React.MouseEvent<HTMLElement>) => {
     // if close icon is clicked, stop propagation to avoid opening the dropdown
@@ -69,10 +70,17 @@ export const customTagRender = (props: CustomTagProps) => {
       event.stopPropagation();
     }
   };
+  const customCloseIcon = <CloseOutlined role="button" />;
 
   if (value !== SELECT_ALL_VALUE) {
+    const tagProps = closable ? customCloseIcon : false;
+
     return (
-      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+      <Tag
+        onMouseDown={onPreventMouseDown}
+        closeIcon={tagProps}
+        {...(props as object)}
+      >
         {label}
       </Tag>
     );
