@@ -5,7 +5,7 @@
 #
 #    pip-compile-multi
 #
--e file:///Users/max/code/superset
+-e file:.
     # via
     #   -c requirements/development.txt
     #   -r requirements/base.in
