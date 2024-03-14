@@ -60,6 +60,9 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          if [ -n "$DOCKERHUB_TOKEN" ]; then
+            docker login
+          fi
           # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then
             PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
