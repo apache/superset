@@ -129,7 +129,7 @@ class RedisHelper:
             **config["USER_SK_REDIS_CONFIG"], decode_responses=True
         )
 
-    def get_user_sk(self, username) -> str | None:
+    def get_user_sk(self, username):
         """
             Get/print surrogate key (if exists) associated with the current user.
             :returns: The user's surrogate key
