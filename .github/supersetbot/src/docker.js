@@ -79,7 +79,7 @@ export function getDockerTags({
 }
 
 export function getDockerCommand({
-  preset, platform, isAuthenticated, buildContext, buildContextRef, forceLatest = false,
+  preset, platform, buildContext, buildContextRef, forceLatest = false,
 }) {
   const platforms = platform;
 
@@ -113,6 +113,8 @@ export function getDockerCommand({
   const tags = getDockerTags({
     preset, platforms, sha, buildContext, buildContextRef: ref, forceLatest,
   }).map((tag) => `-t ${tag}`).join(' \\\n        ');
+  const isAuthenticated = !!(process.env.DOCKERHUB_TOKEN && process.env.DOCKERHUB_USER);
+
   const dockerArgs = isAuthenticated ? '--push' : '--load';
   const targetArgument = buildTarget ? `--target ${buildTarget}` : '';
   const cacheRef = `${CACHE_REPO}:${pyVer}`;
