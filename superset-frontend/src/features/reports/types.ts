@@ -23,7 +23,7 @@
 export type ReportScheduleType = 'Alert' | 'Report';
 export type ReportCreationMethod = 'charts' | 'dashboards' | 'alerts_reports';
 
-export type ReportRecipientType = 'Email' | 'Slack';
+export type ReportRecipientType = 'Email' | 'Slack' | 'S3';
 
 export enum ReportType {
   Dashboards = 'dashboards',
@@ -58,4 +58,7 @@ export interface ReportObject {
   force_screenshot: boolean;
   custom_width?: number | null;
   error?: string;
+  aws_key?: any;
+  aws_secretKey?: any;
+  aws_S3_types?: any;
 }

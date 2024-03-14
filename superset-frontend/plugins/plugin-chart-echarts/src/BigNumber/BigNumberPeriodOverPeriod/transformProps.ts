@@ -143,7 +143,6 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metric,
     metricName,
     bigNumber,
     prevNumber,

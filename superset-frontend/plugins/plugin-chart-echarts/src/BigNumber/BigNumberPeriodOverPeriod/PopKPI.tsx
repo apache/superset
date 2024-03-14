@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import {
@@ -24,24 +24,33 @@ import {
   PopKPIComparisonValueStyleProps,
   PopKPIProps,
 } from './types';
+import { useOverflowDetection } from './useOverflowDetection';
+
+const NumbersContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  overflow: auto;
+`;
 
 const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   ${({ theme, subheaderFontSize }) => `
     font-weight: ${theme.typography.weights.light};
-    width: 33%;
-    display: table-cell;
+    display: flex;
+    justify-content: center;
     font-size: ${subheaderFontSize || 20}px;
-    text-align: center;
+    flex: 1 1 0px;
   `}
 `;
 
-const SymbolWrapper = styled.div<PopKPIComparisonSymbolStyleProps>`
+const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
   ${({ theme, backgroundColor, textColor }) => `
     background-color: ${backgroundColor};
     color: ${textColor};
     padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
     border-radius: ${theme.gridUnit * 2}px;
-    display: inline-block;
     margin-right: ${theme.gridUnit}px;
   `}
 `;
@@ -61,25 +70,23 @@ export default function PopKPI(props: PopKPIProps) {
     comparatorText,
   } = props;
 
-  const rootElem = createRef<HTMLDivElement>();
   const theme = useTheme();
-
+  const flexGap = theme.gridUnit * 5;
   const wrapperDivStyles = css`
     font-family: ${theme.typography.families.sansSerif};
-    position: relative;
     display: flex;
-    flex-direction: column;
     justify-content: center;
-    padding: ${theme.gridUnit * 4}px;
-    border-radius: ${theme.gridUnit * 2}px;
+    align-items: center;
     height: ${height}px;
     width: ${width}px;
+    overflow: auto;
   `;
 
   const bigValueContainerStyles = css`
     font-size: ${headerFontSize || 60}px;
     font-weight: ${theme.typography.weights.normal};
     text-align: center;
+    margin-bottom: ${theme.gridUnit * 4}px;
   `;
 
   const getArrowIndicatorColor = () => {
@@ -135,29 +142,59 @@ export default function PopKPI(props: PopKPIProps) {
         tooltipText: t('Percentage difference between the time periods'),
       },
     ],
-    [prevNumber, valueDifference, percentDifferenceFormattedString],
+    [
+      comparatorText,
+      prevNumber,
+      valueDifference,
+      percentDifferenceFormattedString,
+    ],
   );
 
+  const { isOverflowing, symbolContainerRef, wrapperRef } =
+    useOverflowDetection(flexGap);
+
   return (
-    <div ref={rootElem} css={wrapperDivStyles}>
-      <div css={bigValueContainerStyles}>
-        {bigNumber}
-        {percentDifferenceNumber !== 0 && (
-          <span css={arrowIndicatorStyle}>
-            {percentDifferenceNumber > 0 ? '↑' : '↓'}
-          </span>
-        )}
-      </div>
-      <div
-        css={css`
-          width: 100%;
-          display: table;
-        `}
+    <div css={wrapperDivStyles} ref={wrapperRef}>
+      <NumbersContainer
+        css={
+          isOverflowing &&
+          css`
+            width: fit-content;
+            margin: auto;
+            align-items: flex-start;
+          `
+        }
       >
+        <div css={bigValueContainerStyles}>
+          {bigNumber}
+          {percentDifferenceNumber !== 0 && (
+            <span css={arrowIndicatorStyle}>
+              {percentDifferenceNumber > 0 ? '↑' : '↓'}
+            </span>
+          )}
+        </div>
+
         <div
-          css={css`
-            display: table-row;
-          `}
+          css={[
+            css`
+              display: flex;
+              justify-content: space-around;
+              gap: ${flexGap}px;
+              min-width: 0;
+              flex-shrink: 1;
+            `,
+            isOverflowing
+              ? css`
+                  flex-direction: column;
+                  align-items: flex-start;
+                  width: fit-content;
+                `
+              : css`
+                  align-items: center;
+                  width: 100%;
+                `,
+          ]}
+          ref={symbolContainerRef}
         >
           {SYMBOLS_WITH_VALUES.map((symbol_with_value, index) => (
             <ComparisonValue
@@ -182,7 +219,7 @@ export default function PopKPI(props: PopKPIProps) {
             </ComparisonValue>
           ))}
         </div>
-      </div>
+      </NumbersContainer>
     </div>
   );
 }

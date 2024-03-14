@@ -34,6 +34,7 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -101,6 +102,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       css: props.customCss,
       cssTemplates: [],
       showReportSubMenu: null,
+      repType: null,
     };
 
     this.changeCss = this.changeCss.bind(this);
@@ -134,9 +136,10 @@ class HeaderActionsDropdown extends React.PureComponent {
     }
   }
 
-  setShowReportSubMenu(show) {
+  setShowReportSubMenu(show, val) {
     this.setState({
       showReportSubMenu: show,
+      repType: val,
     });
   }
 
@@ -210,6 +213,9 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
+    const isS3Feature = isFeatureEnabled(FeatureFlag.ENABLE_AWS)
+      ? isFeatureEnabled(FeatureFlag.ENABLE_AWS)
+      : false;
 
     const isEmbedded = !dashboardInfo?.userId;
 
@@ -330,10 +336,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
         <Menu.Divider />
         {!editMode ? (
-          this.state.showReportSubMenu ? (
+          this.state.showReportSubMenu && this.state.repType === 'Email' ? (
             <>
               <Menu.SubMenu title={t('Manage email report')}>
                 <HeaderReportDropdown
+                  reportType="Email"
                   dashboardId={dashboardInfo.id}
                   setShowReportSubMenu={this.setShowReportSubMenu}
                   showReportSubMenu={this.state.showReportSubMenu}
@@ -347,6 +354,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           ) : (
             <Menu>
               <HeaderReportDropdown
+                reportType="Email"
                 dashboardId={dashboardInfo.id}
                 setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
@@ -356,6 +364,39 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu>
           )
         ) : null}
+
+        {!editMode && isS3Feature ? (
+          this.state.showReportSubMenu && this.state.repType === 'S3' ? (
+            <>
+              <Menu.SubMenu title={t('Manage S3 report')}>
+                <HeaderReportDropdown
+                  reportType="S3"
+                  dashboardId={dashboardInfo.id}
+                  setShowReportSubMenu={this.setShowReportSubMenu}
+                  showReportSubMenu={this.state.showReportSubMenu}
+                  setIsDropdownVisible={setIsDropdownVisible}
+                  isDropdownVisible={isDropdownVisible}
+                  useTextMenu
+                  useS3Options={isS3Feature}
+                />
+              </Menu.SubMenu>
+              {/* <Menu.Divider /> */}
+            </>
+          ) : (
+            <Menu>
+              <HeaderReportDropdown
+                reportType="S3"
+                dashboardId={dashboardInfo.id}
+                setShowReportSubMenu={this.setShowReportSubMenu}
+                setIsDropdownVisible={setIsDropdownVisible}
+                isDropdownVisible={isDropdownVisible}
+                useTextMenu
+                useS3Options={isS3Feature}
+              />
+            </Menu>
+          )
+        ) : null}
+
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
           <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
             <FilterScopeModal

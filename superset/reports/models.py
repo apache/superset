@@ -34,7 +34,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
 
-from superset.extensions import security_manager
+from superset.extensions import encrypted_field_factory, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
@@ -61,6 +61,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    S3 = "S3"
 
 
 class ReportState(StrEnum):
@@ -169,6 +170,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 
+    aws_key = Column(encrypted_field_factory.create(String(1024)))
+    aws_secretKey = Column(encrypted_field_factory.create(String(1024)))
+    aws_S3_types = Column(String(200))
     extra: ReportScheduleExtra  # type: ignore
 
     def __repr__(self) -> str:

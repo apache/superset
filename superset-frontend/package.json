@@ -176,7 +176,7 @@
     "react-js-cron": "^2.1.2",
     "react-json-tree": "^0.17.0",
     "react-jsonschema-form": "^1.8.1",
-    "react-lines-ellipsis": "^0.15.0",
+    "react-lines-ellipsis": "^0.15.4",
     "react-loadable": "^5.5.0",
     "react-redux": "^7.2.9",
     "react-resize-detector": "^7.1.2",

@@ -19,7 +19,13 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject } from './types';
@@ -619,4 +625,48 @@ test('removes notification method on clicking trash can', async () => {
   expect(
     screen.getAllByRole('combobox', { name: /delivery method/i }).length,
   ).toBe(1);
+});
+
+test('renders the appropriate dropdown in Notification Method section', async () => {
+  render(<AlertReportModal show />, { useRedux: true });
+
+  // Notification Method Button
+  const button = screen.getByTestId('notification_method');
+  userEvent.click(button);
+  // Delivery Select dropdown
+  userEvent.click(screen.getByTestId('select-delivery-method'));
+  const deliveryMethod = screen
+    .getByTestId('select-delivery-method')
+    .querySelector('.ant-select-selection-search-input') as HTMLInputElement;
+  fireEvent.select(deliveryMethod, { target: { value: 'S3' } });
+  expect(deliveryMethod).toHaveValue('S3');
+
+  waitFor(async () => {
+    // S3 Method Select dropdown
+    userEvent.click(screen.getByTestId('select-s3-method'));
+    const inputElement = screen
+      .getByTestId('select-s3-method')
+      .querySelector('.ant-select-selection-search-input') as HTMLInputElement;
+    fireEvent.select(inputElement, { target: { value: 'AWS_S3_credentials' } });
+    expect(inputElement).toHaveValue('AWS_S3_credentials');
+
+    // Checking for bucket name,acess key,secret key
+    waitFor(async () => {
+      const bucketInput = await screen.findByTestId('test-bucket');
+      const accessInput = await screen.findByTestId('test-access');
+      const secretInput = await screen.findByTestId('test-secret');
+      expect(bucketInput).toBeInTheDocument();
+      expect(accessInput).toBeInTheDocument();
+      expect(secretInput).toBeInTheDocument();
+
+      // checking for input value
+      userEvent.type(bucketInput, 'test-bucket-value');
+      userEvent.type(accessInput, 'test-access-value');
+      userEvent.type(secretInput, 'test-secret-value');
+
+      expect(bucketInput).toHaveValue('test-bucket-value');
+      expect(accessInput).toHaveValue('test-access-value');
+      expect(secretInput).toHaveValue('test-secret-value');
+    });
+  });
 });

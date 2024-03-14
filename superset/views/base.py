@@ -390,16 +390,21 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         k: (list(conf.get(k)) if isinstance(conf.get(k), set) else conf.get(k))
         for k in FRONTEND_CONF_KEYS
     }
+    isAwsConfigured = (
+        get_feature_flags()["ENABLE_AWS"]
+        if "ENABLE_AWS" in get_feature_flags()
+        else False
+    )
 
+    frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [ReportRecipientType.EMAIL]
     if conf.get("SLACK_API_TOKEN"):
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-            ReportRecipientType.SLACK,
-        ]
-    else:
-        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
-            ReportRecipientType.EMAIL,
-        ]
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+            ReportRecipientType.SLACK
+        )
+    if isAwsConfigured:
+        frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"].append(
+            ReportRecipientType.S3
+        )
 
     # verify client has google sheets installed
     available_specs = get_available_engine_specs()
