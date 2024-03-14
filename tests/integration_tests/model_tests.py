@@ -23,6 +23,7 @@ from unittest import mock
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
+from superset.extensions.telemetry import TelemetryHandler
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -458,7 +459,9 @@ class TestSqlaTableModel(SupersetTestCase):
         return qr.df
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_query_with_expr_groupby_timeseries(self):
+    @mock.patch("superset.models.core.g")
+    def test_query_with_expr_groupby_timeseries(self, mock_g):
+        mock_g.telemetry = TelemetryHandler()
         if get_example_database().backend == "presto":
             # TODO(bkyryliuk): make it work for presto.
             return
@@ -477,7 +480,9 @@ class TestSqlaTableModel(SupersetTestCase):
         assert name_list2 == name_list1
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_query_with_expr_groupby(self):
+    @mock.patch("superset.models.core.g")
+    def test_query_with_expr_groupby(self, mock_g):
+        mock_g.telemetry = TelemetryHandler()
         self.query_with_expr_helper(is_timeseries=False)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
