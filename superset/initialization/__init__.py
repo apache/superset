@@ -422,6 +422,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_redis_helper()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
