@@ -75,6 +75,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Setup Postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
       - name: Install cypress
         uses: ./.github/actions/cached-dependencies
         with:

@@ -54,6 +54,11 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+      - name: Setup Postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
       - name: superset init
         if: steps.check.outcome == 'failure'
         run: |
