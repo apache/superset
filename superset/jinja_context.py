@@ -43,7 +43,6 @@ from superset.utils.core import (
     get_doc_id,
     get_business_id
 )
-from superset.utils.core import RedisHelper
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
