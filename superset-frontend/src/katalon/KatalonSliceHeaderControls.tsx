@@ -92,6 +92,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       </Menu.Item>
 
       {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && (
+        // @ts-ignore
         <DrillDetailMenuItems chartId={props.sliceId} formData={formData} />
       )}
     </Menu>
@@ -106,6 +107,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         placement="bottomRight"
       >
         <span
+          // eslint-disable-next-line react/no-unknown-property
           css={css`
             display: flex;
             align-items: center;
