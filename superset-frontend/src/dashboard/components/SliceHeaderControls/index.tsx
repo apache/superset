@@ -494,7 +494,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.SubMenu>
       )}
 
-      {!isHideChartOptions && props.slice.viz_type !== 'filter_box' &&
+      {!isHideChartOptions &&
+        props.slice.viz_type !== 'filter_box' &&
         props.supersetCanCSV && (
           <Menu.SubMenu title={t('Download')}>
             <Menu.Item
