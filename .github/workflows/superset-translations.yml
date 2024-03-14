@@ -48,6 +48,8 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:

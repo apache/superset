@@ -53,6 +53,8 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Setup MySQL
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -110,6 +112,8 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
@@ -162,6 +166,8 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
