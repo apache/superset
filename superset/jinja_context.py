@@ -92,6 +92,7 @@ class ExtraCache:
         r"current_user_id\(.*\)|"
         r"current_doc_id\(.*\)|"
         r"current_business_id\(.*\)|"
+        r"current_user_sk\(.*\)|"
         r"current_username\(.*\)|"
         r"current_user_email\(.*\)|"
         r"cache_key_wrapper\(.*\)|"
@@ -598,6 +599,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "current_doc_id": partial(safe_proxy, extra_cache.current_doc_id),
                 "current_business_id": partial(safe_proxy,
                                                extra_cache.current_business_id),
+                "current_user_sk": partial(safe_proxy, extra_cache.current_user_sk),
                 "current_user_email": partial(
                     safe_proxy, extra_cache.current_user_email
                 ),
