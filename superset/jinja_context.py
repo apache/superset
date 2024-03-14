@@ -41,7 +41,8 @@ from superset.utils.core import (
     get_username,
     merge_extra_filters,
     get_doc_id,
-    get_business_id
+    get_business_id,
+    get_user_sk
 )
 
 if TYPE_CHECKING:
@@ -153,18 +154,15 @@ class ExtraCache:
 
     def current_user_sk(self, add_to_cache_keys: bool = True) -> Optional[int]:
         """
-            Return the user static to print ID of the user who is currently logged in.
+            Return the user static to print surrogate key of the user who is currently logged in.
 
             :param add_to_cache_keys: Whether the value should be included in the cache key
             :returns: The user ID
         """
-        surrogate_key = RedisHelper()
-
-        if user_name := get_username():
-            if user_sk := surrogate_key.get_user_sk(user_name):
-                if add_to_cache_keys:
-                    self.cache_key_wrapper(user_sk)
-                return user_sk
+        if user_sk := get_user_sk():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(user_sk)
+            return user_sk
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
