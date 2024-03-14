@@ -219,7 +219,8 @@ def test_select_star(mocker: MockFixture) -> None:
     )
     assert (
         sql
-        == """SELECT a
+        == """SELECT
+  a
 FROM my_table
 LIMIT ?
 OFFSET ?"""
@@ -238,6 +239,7 @@ OFFSET ?"""
     )
     assert (
         sql
-        == """SELECT a
+        == """SELECT
+  a
 FROM my_table"""
     )
