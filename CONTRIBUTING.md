@@ -526,52 +526,32 @@ If you have made changes to the FAB-managed templates, which are not built the s
 
 #### Dependencies
 
-Python dependencies for Superset are managed in the `pyproject.toml` file along with resources
-under the `requirements/` folder. `./requirements/pip-compile-superset.py` acts a wrapper
-for `pip-compile` - a neat utility that takes dependencies and pins them to create
-deterministic set of dependency versions. `pip-compile-superset.py` compiles two requirements
-file: `requirements/base.txt` as the core, required dependencies for Superset, and
-`requirements/development.txt` which contains the same set plus everything that's needed
-for development, testing, docker and beyond.
-
-Note that we rely on [dependabot](https://github.com/dependabot)
-to auto-submit PRs upgrading our libraries periodically. This enables us to bump and
-test each library upgrade in isolation.
-
-If you add a new requirement or update an existing requirement (in `pyproject.toml`) **you must
-recompile (freeze) the Python dependencies** to ensure that for CI, testing, etc. the build is
-deterministic. This can be achieved via,
+If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
 
 ```bash
-# make sure you're aligned with the pin deps
-pip install -r requirements/development.txt
-
-# EDIT pyproject.toml, set the version range
-# usually something like `newlib>={current}<{next_major}`, as in `flask>=3.2.1,<4.0.0`
-
-# recompile/pin the dependencies, telling pip-compile NOT to upgrade everything else
-./requirements/pip-compile-superset.py compile-deps --pip-flags "--no-upgrade"
-
-# AGAIN - let's make sure your environment is aligned with the pin deps
-pip install -r requirements/development.txt
+$ python3 -m venv venv
+$ source venv/bin/activate
+$ python3 -m pip install -r requirements/development.txt
+$ pip-compile-multi --no-upgrade
 ```
 
-To upgrade the version of a single package:
+When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
 
 ```bash
-./requirements/pip-compile-superset.py compile-deps --pip-flags "-P some_package"
+$ pip-compile-multi -P my-package
 ```
 
-To bring all dependencies up to date as per the restrictions defined
-in `pyproject.toml`, simply run:
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
 
 ```bash
-$ ./requirements/pip-compile-superset.py compile-deps
+$ pip-compile-multi
 ```
+
+This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
 
 #### Logging to the browser console
 
-When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
+This feature is only available on Python 3. When debugging your application, you can have the server logs sent directly to the browser console using the [ConsoleLog](https://github.com/betodealmeida/consolelog) package. You need to mutate the app, by adding the following to your `config.py` or `superset_config.py`:
 
 ```python
 from console_log import ConsoleLog
