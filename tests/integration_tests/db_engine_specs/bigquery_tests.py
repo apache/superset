@@ -381,4 +381,4 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             "orderby": [["gender_cc", True]],
         }
         sql = table.get_query_str(query_obj)
-        assert "ORDER BY `gender_cc` ASC" in sql
+        assert "ORDER BY\n  `gender_cc` ASC" in sql

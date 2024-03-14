@@ -47,6 +47,15 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.core import Database
 
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch(
+        "superset.models.helpers.security_manager.get_rls_filters",
+        return_value=[],
+    )
+
     columns = [
         TableColumn(column_name="ds", is_dttm=1, type="TIMESTAMP"),
         TableColumn(column_name="num_boys", type="INTEGER"),
@@ -94,11 +103,12 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     assert (
         dataset_macro(1)
         == """(
-SELECT ds AS ds,
-       num_boys AS num_boys,
-       revenue AS revenue,
-       expenses AS expenses,
-       revenue-expenses AS profit
+SELECT
+  ds AS ds,
+  num_boys AS num_boys,
+  revenue AS revenue,
+  expenses AS expenses,
+  revenue - expenses AS profit
 FROM my_schema.old_dataset
 ) AS dataset_1"""
     )
@@ -106,28 +116,32 @@ FROM my_schema.old_dataset
     assert (
         dataset_macro(1, include_metrics=True)
         == """(
-SELECT ds AS ds,
-       num_boys AS num_boys,
-       revenue AS revenue,
-       expenses AS expenses,
-       revenue-expenses AS profit,
-       COUNT(*) AS cnt
+SELECT
+  ds AS ds,
+  num_boys AS num_boys,
+  revenue AS revenue,
+  expenses AS expenses,
+  revenue - expenses AS profit,
+  COUNT(*) AS cnt
 FROM my_schema.old_dataset
-GROUP BY ds,
-         num_boys,
-         revenue,
-         expenses,
-         revenue-expenses
+GROUP BY
+  ds,
+  num_boys,
+  revenue,
+  expenses,
+  revenue - expenses
 ) AS dataset_1"""
     )
 
     assert (
         dataset_macro(1, include_metrics=True, columns=["ds"])
         == """(
-SELECT ds AS ds,
-       COUNT(*) AS cnt
+SELECT
+  ds AS ds,
+  COUNT(*) AS cnt
 FROM my_schema.old_dataset
-GROUP BY ds
+GROUP BY
+  ds
 ) AS dataset_1"""
     )
 
