@@ -179,7 +179,7 @@ describe.skip('Drill to detail modal', () => {
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         cy.get('.virtual-table-cell').should($rows => {
-          expect($rows).to.contain('Charles');
+          expect($rows).to.contain('Cheryl');
         });
 
         // verify scroll top on pagination
