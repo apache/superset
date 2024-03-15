@@ -129,7 +129,7 @@ class RedisHelper:
             **config["USER_SK_REDIS_CONFIG"], decode_responses=True
         )
 
-    def get_user_sk(self, username):
+    def get_key(self, username):
         """
             Get/print surrogate key (if exists) associated with the current user.
             :returns: The user's surrogate key
@@ -140,7 +140,7 @@ class RedisHelper:
             if user_sk:
                 return user_sk
             else:
-                logger.info(f"User {username} does not exist in Redis")
+                logger.info(f"No Key found for user {username} in Redis")
                 return None
         except Exception as e:
             logger.error(f"Exception {e} occurred while get_user_sk")
