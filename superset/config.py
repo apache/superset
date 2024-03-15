@@ -1566,7 +1566,7 @@ GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 # Users surrogate keys option
 USER_SK_REDIS_CONFIG = {
     "port": 6379,
-    "host": "127.0.0.1",
+    "host": "10.70.112.224",
     "password": "",
     "db": 2,
     "ssl": False,
