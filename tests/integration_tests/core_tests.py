@@ -1073,6 +1073,29 @@ class TestCore(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.disable_data_preview, False)
 
+    def test_disable_drill_to_detail(self):
+        # test that disable_drill_to_detail is False by default
+        database = utils.get_example_database()
+        self.assertEqual(database.disable_drill_to_detail, False)
+
+        # test that disable_drill_to_detail can be set to True
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, True)
+
+        # test that disable_drill_to_detail can be set to False
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, False)
+
+        # test that disable_drill_to_detail is not broken with bad values
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, False)
+
     def test_explore_database_id(self):
         database = superset.utils.database.get_example_database()
         explore_database = superset.utils.database.get_example_database()
