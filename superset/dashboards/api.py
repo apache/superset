@@ -293,8 +293,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self,
-        id_or_slug: DashboardDAO.get_dashboard_changed_on(
+        get_last_modified=lambda _self, id_or_slug:
+        DashboardDAO.get_dashboard_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
@@ -355,8 +355,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self,
-        id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
+        get_last_modified=lambda _self, id_or_slug:
+        DashboardDAO.get_dashboard_and_datasets_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
@@ -423,7 +423,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                                 column["verbose_name"] = column.get(
                                     "verbose_name_RU")
                                 if isinstance(verbose_map, dict) and \
-                                    verbose_map.get(column.get("column_name")):
+                                        verbose_map.get(column.get("column_name")):
                                     verbose_map[
                                         column.get("column_name")] = column.get(
                                         "verbose_name_RU")
@@ -454,8 +454,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self,
-        id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(
+        get_last_modified=lambda _self, id_or_slug:
+        DashboardDAO.get_dashboard_and_slices_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
@@ -1008,7 +1008,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".favorite_status",
+        f".favorite_status",
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -1394,8 +1394,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args,
-                      **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs:
+        f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
