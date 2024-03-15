@@ -79,18 +79,9 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { LiquidChartPlugin } from 'superset-plugin-chart-liquid';
-import { SupersetPluginsChartHeatmap } from 'superset-plugins-chart-heatmap';
-import { SupersetPluginsChartScatter } from 'superset-plugin-chart-scatter';
-import { SupersetPluginChartInfoPanel } from 'superset-plugin-chart-info-panel';
-import { SupersetPluginsChartBoxPlot } from 'superset-plugin-chart-box-plot';
 import { SupersetPluginsChartLineSlider } from 'superset-plugin-chart-line-slider';
 import { SupersetPluginsChartColumnSlider } from 'superset-plugin-chart-column-slider';
-import { SupersetPluginsChartTinyArea } from 'superset-plugin-chart-tiny-area';
-import { SupersetPluginsChartDendogram } from 'superset-plugin-chart-dendogram';
-import { SupersetPluginsChartRingProgress } from 'superset-plugin-chart-ring-progress';
 import { SupersetPluginsChartLiquidProgress } from 'superset-plugin-chart-liquid-progress';
-import { SupersetPluginsChartTimeline } from 'superset-plugin-chart-timeline';
-import { SupersetPluginsChartHeatTree } from 'superset-plugin-chart-heat-tree';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -180,26 +171,15 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         new LiquidChartPlugin().configure({ key: 'liquid' }),
-        new SupersetPluginsChartHeatmap().configure({ key: 'ext-heatmap' }),
-        new SupersetPluginsChartScatter().configure({ key: 'ext-scatter' }),
-        new SupersetPluginChartInfoPanel().configure({ key: 'ext-info-panel' }),
-        new SupersetPluginsChartBoxPlot().configure({ key: 'ext-box-plot' }),
         new SupersetPluginsChartLineSlider().configure({
           key: 'ext-line-slider',
         }),
         new SupersetPluginsChartColumnSlider().configure({
           key: 'ext-column-slider',
         }),
-        new SupersetPluginsChartTinyArea().configure({ key: 'ext-tiny-area' }),
-        new SupersetPluginsChartDendogram().configure({ key: 'ext-dendogram' }),
-        new SupersetPluginsChartRingProgress().configure({
-          key: 'ext-ring-progress',
-        }),
         new SupersetPluginsChartLiquidProgress().configure({
           key: 'ext-liquid-progress',
         }),
-        new SupersetPluginsChartTimeline().configure({ key: 'ext-timeline' }),
-        new SupersetPluginsChartHeatTree().configure({ key: 'ext-heat-tree' }),
         ...experimentalplugins,
       ],
     });

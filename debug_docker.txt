@@ -21,3 +21,12 @@ superset init
 
 # To start a development web server on port 8088, use -p to bind to another port
 superset run -p 8088 --with-threads --reload --debugger
+
+curl -X GET \
+ 'https://nsiitechdevadlsbronze.blob.core.windows.net/?comp=list' \
+ -H 'Authorization: Bearer $TOKEN'
+
+
+curl --oauth2-bearer "$TOKEN" -i \
+    -H 'x-ms-version: 2017-11-09' \
+    https://nsiitechdevadlsbronze.blob.core.windows.net/?comp=list
