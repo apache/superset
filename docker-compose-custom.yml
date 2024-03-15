@@ -31,6 +31,8 @@ services:
     restart: unless-stopped
     volumes:
       - redis:/data
+    ports:
+      - 6379:6379
 
         # db:
         #    env_file: docker/.env-non-dev
