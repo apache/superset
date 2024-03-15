@@ -165,7 +165,7 @@ class ExtraCache:
         if user_sk := get_user_sk():
             if add_to_cache_keys:
                 self.cache_key_wrapper(user_sk)
-            return user_sk
+            return int(user_sk)
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
