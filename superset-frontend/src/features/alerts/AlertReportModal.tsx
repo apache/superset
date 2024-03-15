@@ -36,7 +36,7 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
-import { Input } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
@@ -890,6 +890,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(name, parsedValue);
   };
 
+  const onCustomWidthChange = (value: number | null | undefined) => {
+    updateAlertState('custom_width', value);
+  };
+
   const onTimeoutVerifyChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
@@ -1504,14 +1508,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
                 </div>
                 <div className="input-container">
-                  <Input
+                  <InputNumber
                     type="number"
                     name="custom_width"
-                    value={currentAlert?.custom_width || ''}
+                    value={currentAlert?.custom_width || undefined}
+                    min={600}
+                    max={2400}
                     placeholder={
                       TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
                     }
-                    onChange={onInputChange}
+                    onChange={onCustomWidthChange}
                   />
                 </div>
               </StyledInputContainer>
