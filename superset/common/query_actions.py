@@ -20,6 +20,7 @@ import copy
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
+from sqlalchemy import func
 
 from superset import app
 from superset.common.chart_data import ChartDataResultType
@@ -168,7 +169,6 @@ def _get_drill_detail(
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
-    query_obj.orderby = []
     query_obj.metrics = None
     query_obj.post_processing = []
     qry_obj_cols = []
@@ -178,6 +178,7 @@ def _get_drill_detail(
         else:
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
+    query_obj.orderby = [(func.row_number().over(), True)]
     return _get_full(query_context, query_obj, force_cached)
 
 
