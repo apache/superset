@@ -221,7 +221,7 @@
     "superset-plugin-chart-ring-progress": "^1.0.0",
     "superset-plugin-chart-scatter": "^1.0.0",
     "superset-plugin-chart-timeline": "^1.0.0",
-    "superset-plugin-chart-tiny-area": "^1.0.0",
+    "superset-plugin-chart-tiny-area": "^1.0.1",
     "superset-plugins-chart-heatmap": "^1.0.0",
     "tinycolor2": "^1.4.2",
     "urijs": "^1.19.8",
