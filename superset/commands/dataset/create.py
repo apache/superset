@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, cast, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
@@ -75,7 +75,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         database = DatasetDAO.get_database_by_id(database_id)
         if not database:
             exceptions.append(DatabaseNotFoundValidationError())
-        database = cast(Database, database)
         self._properties["database"] = database
 
         # Validate table exists on dataset if sql is not provided
@@ -88,12 +87,10 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table_name))
 
         if sql:
-            processor = jinja_context.get_template_processor(database=database)
-            rendered_sql = processor.process_template(sql)
             try:
                 security_manager.raise_for_access(
                     database=database,
-                    sql=rendered_sql,
+                    sql=sql,
                     schema=schema,
                 )
             except SupersetSecurityException as ex:
