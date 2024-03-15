@@ -293,9 +293,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug:
-        DashboardDAO.get_dashboard_changed_on(
-            # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
@@ -452,9 +450,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug:
-        DashboardDAO.get_dashboard_and_slices_changed_on(
-            # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
@@ -1056,7 +1052,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".add_favorite",
+        f".add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
@@ -1100,7 +1096,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".remove_favorite",
+        f".remove_favorite",
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1392,8 +1388,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs:
-        f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
