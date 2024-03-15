@@ -172,7 +172,7 @@ const config: ControlPanelConfig = {
               visibility: ({ controls }) =>
                 controls?.comparison_color_enabled?.value === true,
               description: t(
-                ' Adds color to the chart symbols based on the positive or' +
+                'Adds color to the chart symbols based on the positive or ' +
                   'negative change from the comparison value.',
               ),
             },
