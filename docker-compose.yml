@@ -40,16 +40,16 @@ services:
       - redis:/data
 
   db:
-   platform: linux/amd64
-   env_file: docker/.env
-   image: postgres:14
-   container_name: superset_db
-   restart: unless-stopped
-   ports:
-     - "127.0.0.1:5432:5432"
-   volumes:
-     - db_home:/var/lib/postgresql/data
-     - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    platform: linux/amd64
+    env_file: docker/.env
+    image: postgres:14
+    container_name: superset_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_home:/var/lib/postgresql/data
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
     platform: linux/amd64
