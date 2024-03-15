@@ -294,7 +294,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @etag_cache(
         get_last_modified=lambda _self,
-                                 id_or_slug: DashboardDAO.get_dashboard_changed_on(
+        id_or_slug: DashboardDAO.get_dashboard_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
@@ -356,7 +356,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @etag_cache(
         get_last_modified=lambda _self,
-                                 id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
+        id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
@@ -419,7 +419,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     if columns:
                         for column in columns:
                             if isinstance(column, dict) and column.get(
-                                "verbose_name_RU"):
+                                    "verbose_name_RU"):
                                 column["verbose_name"] = column.get(
                                     "verbose_name_RU")
                                 if isinstance(verbose_map, dict) and \
@@ -431,11 +431,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     if metrics:
                         for metric in metrics:
                             if isinstance(metric, dict) and metric.get(
-                                "verbose_name_RU"):
+                                    "verbose_name_RU"):
                                 metric["verbose_name"] = metric.get(
                                     "verbose_name_RU")
                                 if isinstance(verbose_map, dict) and \
-                                    verbose_map.get(metric.get("metric_name")):
+                                        verbose_map.get(metric.get("metric_name")):
                                     verbose_map[
                                         metric.get("metric_name")] = metric.get(
                                         "verbose_name_RU")
@@ -455,7 +455,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @etag_cache(
         get_last_modified=lambda _self,
-                                 id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(
+        id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(
             # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),

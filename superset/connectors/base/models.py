@@ -640,7 +640,6 @@ class BaseColumn(AuditMixinNullable, ImportExportMixin):
     description = Column(MediumText())
     verbose_name_RU = Column(Text, nullable=True)
     verbose_name_EN = Column(Text, nullable=True, default=None)
-    description_EN = Column(Text, nullable=True, default=None)
     is_dttm = None
 
     # [optional] Set this to support import/export functionality
@@ -733,7 +732,6 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     description = Column(MediumText())
     verbose_name_RU = Column(Text, nullable=True)
     verbose_name_EN = Column(Text, nullable=True, default=None)
-    description_EN = Column(Text, nullable=True, default=None)
     d3format = Column(String(128))
     currency = Column(String(128))
     warning_text = Column(Text)
