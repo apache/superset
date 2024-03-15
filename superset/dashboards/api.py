@@ -355,8 +355,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
-            # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
