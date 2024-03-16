@@ -14,23 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import io
-from typing import Any
 
+from datetime import datetime, timezone
 import pandas as pd
+from superset.utils.excel import df_to_excel
 
 
-def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
-    output = io.BytesIO()
-
-    #Convert timezone aware datetime to naive datetime
-    for column in df.select_dtypes(include=["datetimetz"]).columns:
-        if pd.api.types.is_datetime64_any_dtype(df[column]):
-            if df[column].dt.tz is not None:
-                df[column] = df[column].dt.tz_convert(None)
-
-    # pylint: disable=abstract-class-instantiated
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, **kwargs)
-
-    return output.getvalue()
+def test_timezone_conversion() -> None:
+    """
+    Test that columns with timezones are converted to a string.
+    """
+    df = pd.DataFrame({'dt': pd.date_range('2023-01-01', periods=1, tz='UTC')})
+    contents = df_to_excel(df)
+    assert pd.read_excel(contents)['dt'][0] == '2023-01-01 00:00:00+00:00'
