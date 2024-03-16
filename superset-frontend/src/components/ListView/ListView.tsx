@@ -123,15 +123,33 @@ const BulkSelectWrapper = styled(Alert)`
 `;
 
 const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
-    <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
-  ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
+  Cell: ({ row }: any) => {
+    let props = { ...row.getToggleRowSelectedProps() };
+    props.onChange = (e: { target: { checked: any; }; }) => {
+        row.original['isChecked'] = e.target.checked;
+        row.toggleRowSelected(e.target.checked);
+    };
+    if (row.original['isChecked']){
+      row.toggleRowSelected(true);
+    }
+    return (
+      <IndeterminateCheckbox {...props} id={row.id} />
+    )
+  },
+  Header: ({ getToggleAllRowsSelectedProps, rows }: any) => {
+    const props = {...getToggleAllRowsSelectedProps()};
+    props.onChange = (e: any) => {
+      rows.map((row: { original: { [x: string]: any; }; toggleRowSelected: (arg0: any) => void; })=>{
+        row.original['isChecked'] = e.target.checked;
+        row.toggleRowSelected(e.target.checked);
+      });
+    }
+    return (
     <IndeterminateCheckbox
-      {...getToggleAllRowsSelectedProps()}
+      {...props}
       id="header-toggle-all"
     />
-  ),
+  )},
   id: 'selection',
   size: 'sm',
 };
@@ -384,7 +402,12 @@ function ListView<T extends object = any>({
                         role="button"
                         tabIndex={0}
                         className="deselect-all"
-                        onClick={() => toggleAllRowsSelected(false)}
+                        onClick={() => {
+                          rows.map((row: { original: { [x: string]: any; }; toggleRowSelected: (arg0: any) => void; })=>{
+                            row.original['isChecked'] = false;
+                            row.toggleRowSelected(false);
+                          });
+                        }}
                       >
                         {t('Deselect all')}
                       </span>

@@ -333,7 +333,7 @@ export function useListViewState({
 
     setQuery(queryParams, method);
 
-    fetchData({ pageIndex, pageSize, sortBy, filters });
+    fetchData({ pageIndex, pageSize, sortBy, filters, data });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   useEffect(() => {
