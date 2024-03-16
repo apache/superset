@@ -36,7 +36,7 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=
+load-plugins=superset.extensions.pylint
 
 # Use multiple processes to speed up Pylint.
 jobs=2
