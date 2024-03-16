@@ -47,10 +47,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         if slc.params:
             updated = False
 
@@ -95,8 +92,7 @@ def upgrade():
             except Exception:
                 logging.exception(f"Unable to parse query context for slice {slc.id}")
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

@@ -48,16 +48,13 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
     op.add_column("slices", sa.Column("perm", sa.String(length=2000), nullable=True))
-    session = db.Session(bind=bind)
 
     # Use Slice class defined here instead of models.Slice
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         if slc.datasource:
             slc.perm = slc.datasource.perm
-            session.commit()
-    db.session.close()
+            db.session.commit()
 
 
 def downgrade():

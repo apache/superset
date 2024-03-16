@@ -70,7 +70,6 @@ from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TypeEngine
 from typing_extensions import TypeGuard
@@ -635,10 +634,13 @@ def generic_find_constraint_name(
 
 
 def generic_find_fk_constraint_name(
-    table: str, columns: set[str], referenced: str, insp: Inspector
+    table: str, columns: set[str], referenced: str
 ) -> str | None:
     """Utility to find a foreign-key constraint name in alembic migrations"""
-    for fk in insp.get_foreign_keys(table):
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+
+    for fk in inspect(db.engine).get_foreign_keys(table):
         if (
             fk["referred_table"] == referenced
             and set(fk["referred_columns"]) == columns
@@ -649,12 +651,15 @@ def generic_find_fk_constraint_name(
 
 
 def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
-    table: str, columns: set[str], referenced: str, insp: Inspector
+    table: str, columns: set[str], referenced: str
 ) -> set[str]:
     """Utility to find foreign-key constraint names in alembic migrations"""
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+
     names = set()
 
-    for fk in insp.get_foreign_keys(table):
+    for fk in inspect(db.engine).get_foreign_keys(table):
         if (
             fk["referred_table"] == referenced
             and set(fk["referred_columns"]) == columns
@@ -664,12 +669,12 @@ def generic_find_fk_constraint_names(  # pylint: disable=invalid-name
     return names
 
 
-def generic_find_uq_constraint_name(
-    table: str, columns: set[str], insp: Inspector
-) -> str | None:
+def generic_find_uq_constraint_name(table: str, columns: set[str]) -> str | None:
     """Utility to find a unique constraint name in alembic migrations"""
+    # pylint: disable=import-outside-toplevel
+    from superset import db
 
-    for uq in insp.get_unique_constraints(table):
+    for uq in inspect(db.engine).get_unique_constraints(table):
         if columns == set(uq["column_names"]):
             return uq["name"]
 

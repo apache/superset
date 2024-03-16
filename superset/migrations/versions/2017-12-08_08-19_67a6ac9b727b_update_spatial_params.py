@@ -44,10 +44,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type.like("deck_%")):
+    for slc in db.session.query(Slice).filter(Slice.viz_type.like("deck_%")):
         params = json.loads(slc.params)
         if params.get("latitude"):
             params["spatial"] = {
@@ -58,8 +55,7 @@ def upgrade():
             del params["latitude"]
             del params["longitude"]
         slc.params = json.dumps(params)
-        session.commit()
-    session.close()
+        db.session.commit()
 
 
 def downgrade():

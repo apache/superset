@@ -46,10 +46,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type.like("directed_force")):
+    for slc in db.session.query(Slice).filter(Slice.viz_type.like("directed_force")):
         params = json.loads(slc.params)
         groupby = params.get("groupby", [])
         if groupby:
@@ -70,15 +67,11 @@ def upgrade():
 
         slc.params = json.dumps(params)
         slc.viz_type = "graph_chart"
-        session.commit()
-    session.close()
+        db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type.like("graph_chart")):
+    for slc in db.session.query(Slice).filter(Slice.viz_type.like("graph_chart")):
         params = json.loads(slc.params)
         source = params.get("source", None)
         target = params.get("target", None)
@@ -99,5 +92,4 @@ def downgrade():
 
         slc.params = json.dumps(params)
         slc.viz_type = "directed_force"
-        session.commit()
-    session.close()
+        db.session.commit()

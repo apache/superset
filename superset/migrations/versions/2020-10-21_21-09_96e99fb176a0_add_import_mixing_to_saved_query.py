@@ -55,9 +55,6 @@ default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # Add uuid column
     try:
         with op.batch_alter_table("saved_query") as batch_op:
@@ -73,7 +70,7 @@ def upgrade():
         # Ignore column update errors so that we can run upgrade multiple times
         pass
 
-    assign_uuids(SavedQuery, session)
+    assign_uuids(SavedQuery)
 
     try:
         # Add uniqueness constraint
@@ -85,9 +82,6 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # Remove uuid column
     with op.batch_alter_table("saved_query") as batch_op:
         batch_op.drop_constraint("uq_saved_query_uuid", type_="unique")

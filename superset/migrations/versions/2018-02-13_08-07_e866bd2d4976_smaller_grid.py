@@ -46,10 +46,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(f"Upgrading ({i}/{len(dashboards)}): {dashboard.id}")
         positions = json.loads(dashboard.position_json or "{}")
@@ -62,16 +59,11 @@ def upgrade():
                 pos["v"] = 1
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.commit()
-
-    session.close()
+        db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(f"Downgrading ({i}/{len(dashboards)}): {dashboard.id}")
         positions = json.loads(dashboard.position_json or "{}")
@@ -84,5 +76,4 @@ def downgrade():
                 pos["v"] = 0
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.commit()
-    pass
+        db.session.commit()

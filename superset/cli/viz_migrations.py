@@ -20,8 +20,6 @@ import click
 from click_option_group import optgroup, RequiredMutuallyExclusiveOptionGroup
 from flask.cli import with_appcontext
 
-from superset import db
-
 
 class VizType(str, Enum):
     AREA = "area"
@@ -95,6 +93,6 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.TREEMAP: MigrateTreeMap,
     }
     if is_downgrade:
-        migrations[viz_type].downgrade(db.session)
+        migrations[viz_type].downgrade()
     else:
-        migrations[viz_type].upgrade(db.session)
+        migrations[viz_type].upgrade()

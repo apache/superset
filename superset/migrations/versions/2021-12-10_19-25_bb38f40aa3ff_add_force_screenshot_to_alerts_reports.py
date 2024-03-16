@@ -48,16 +48,13 @@ def upgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.add_column(sa.Column("force_screenshot", sa.Boolean(), default=False))
 
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for report in session.query(ReportSchedule).all():
+    for report in db.session.query(ReportSchedule).all():
         # Update existing alerts that send chart screenshots so that the cache is
         # bypassed. We don't turn this one for dashboards because (1) it's currently
         # not supported but also because (2) it can be very expensive.
         report.force_screenshot = report.type == "Alert" and report.chart_id is not None
 
-    session.commit()
+    db.session.commit()
 
 
 def downgrade():

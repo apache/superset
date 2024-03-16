@@ -48,10 +48,8 @@ class Dashboard(Base):
 
 def upgrade():
     logger.info("[AddTypeToNativeFilter] Starting upgrade")
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
 
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in db.session.query(Dashboard).all():
         logger.info("[AddTypeToNativeFilter] Updating Dashboard<pk:%s> ", dashboard.id)
 
         if not dashboard.json_metadata:
@@ -79,17 +77,14 @@ def upgrade():
             native_filter["type"] = "NATIVE_FILTER"
         dashboard.json_metadata = json.dumps(json_meta)
 
-    session.commit()
-    session.close()
+    db.session.commit()
     logger.info("[AddTypeToNativeFilter] Done!")
 
 
 def downgrade():
     logger.info("[RemoveTypeToNativeFilter] Starting downgrade")
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
 
-    for dashboard in session.query(Dashboard).all():
+    for dashboard in db.session.query(Dashboard).all():
         logger.info(
             "[RemoveTypeToNativeFilter] Updating Dashboard<pk:%s>",
             dashboard.id,
@@ -117,6 +112,5 @@ def downgrade():
         for native_filter in json_meta["native_filter_configuration"]:
             native_filter.pop("type", None)
         dashboard.json_metadata = json.dumps(json_meta)
-    session.commit()
-    session.close()
+    db.session.commit()
     logger.info("[RemoveTypeToNativeFilter] Done!")

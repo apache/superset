@@ -33,12 +33,8 @@ from superset.migrations.shared.migrate_viz.processors import MigrateDualLine
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    MigrateDualLine.upgrade(session)
+    MigrateDualLine.upgrade()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    MigrateDualLine.downgrade(session)
+    MigrateDualLine.downgrade()

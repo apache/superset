@@ -26,6 +26,7 @@ from alembic import op
 from sqlalchemy import engine
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
+from superset import db
 from superset.utils.core import generic_find_uq_constraint_name
 
 # revision identifiers, used by Alembic.
@@ -36,12 +37,8 @@ conv = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = engine.reflection.Inspector.from_engine(bind)
-
     # Drop the uniqueness constraint if it exists.
-
-    if constraint := generic_find_uq_constraint_name("tables", {"table_name"}, insp):
+    if constraint := generic_find_uq_constraint_name("tables", {"table_name"}):
         with op.batch_alter_table("tables", naming_convention=conv) as batch_op:
             batch_op.drop_constraint(constraint, type_="unique")
 

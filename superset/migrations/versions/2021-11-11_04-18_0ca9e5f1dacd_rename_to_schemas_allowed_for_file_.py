@@ -45,10 +45,7 @@ class Database(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for database in session.query(Database).all():
+    for database in db.session.query(Database).all():
         try:
             extra = json.loads(database.extra)
         except json.decoder.JSONDecodeError as ex:
@@ -62,15 +59,11 @@ def upgrade():
 
             database.extra = json.dumps(extra)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for database in session.query(Database).all():
+    for database in db.session.query(Database).all():
         try:
             extra = json.loads(database.extra)
         except json.decoder.JSONDecodeError as ex:
@@ -84,5 +77,4 @@ def downgrade():
 
             database.extra = json.dumps(extra)
 
-    session.commit()
-    session.close()
+    db.session.commit()

@@ -58,26 +58,23 @@ class TableColumn(BaseColumnMixin, Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # Delete the orphaned columns records.
-    for record in session.query(DruidColumn).all():
+    for record in db.session.query(DruidColumn).all():
         if record.datasource_id is None:
-            session.delete(record)
+            db.session.delete(record)
 
-    session.commit()
+    db.session.commit()
 
     # Enforce that the columns.column_name column be non-nullable.
     with op.batch_alter_table("columns") as batch_op:
         batch_op.alter_column("column_name", existing_type=String(255), nullable=False)
 
     # Delete the orphaned table_columns records.
-    for record in session.query(TableColumn).all():
+    for record in db.session.query(TableColumn).all():
         if record.table_id is None:
             session.delete(record)
 
-    session.commit()
+    db.session.commit()
 
     # Reduce the size of the table_columns.column_name column for constraint
     # viability and enforce that it be non-nullable.
@@ -94,14 +91,11 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = engine.reflection.Inspector.from_engine(bind)
-
     # Remove the missing uniqueness constraint from the table_columns table.
     with op.batch_alter_table("table_columns", naming_convention=conv) as batch_op:
         batch_op.drop_constraint(
             generic_find_uq_constraint_name(
-                "table_columns", {"column_name", "table_id"}, insp
+                "table_columns", {"column_name", "table_id"}
             )
             or "uq_table_columns_column_name",
             type_="unique",

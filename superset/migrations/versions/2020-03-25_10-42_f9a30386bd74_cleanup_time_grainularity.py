@@ -56,9 +56,6 @@ def upgrade():
     :see: https://github.com/apache/superset/pull/8825
     """
 
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     # Visualization types which support time granularity (hence negate).
     viz_types = [
         "area",
@@ -77,7 +74,7 @@ def upgrade():
     # not support time granularity.
     erroneous = ["granularity", "time_grain_sqla"]
 
-    for slc in session.query(Slice).filter(Slice.viz_type.notin_(viz_types)).all():
+    for slc in db.session.query(Slice).filter(Slice.viz_type.notin_(viz_types)).all():
         try:
             params = json.loads(slc.params)
 
@@ -90,8 +87,7 @@ def upgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

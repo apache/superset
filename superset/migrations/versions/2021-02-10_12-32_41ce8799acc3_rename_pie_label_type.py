@@ -47,11 +47,8 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices = (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(and_(Slice.viz_type == "pie", Slice.params.like("%pie_label_type%")))
         .all()
     )
@@ -69,17 +66,13 @@ def upgrade():
             print(f"Parsing params for slice {slc.id} failed.")
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
     print(f"Updated {changes} pie chart labels.")
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     slices = (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(and_(Slice.viz_type == "pie", Slice.params.like("%label_type%")))
         .all()
     )
@@ -97,6 +90,5 @@ def downgrade():
             print(f"Parsing params for slice {slc.id} failed.")
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
     print(f"Updated {changes} pie chart labels.")

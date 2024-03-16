@@ -82,13 +82,10 @@ class SqlaTableUser(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    op.execute(
+    db.engine.execute(
         insert(DatasetUser).from_select(
             ["user_id", "dataset_id"],
-            session.query(Dataset.created_by_fk, Dataset.id)
+            db.session.query(Dataset.created_by_fk, Dataset.id)
             .outerjoin(
                 DatasetUser,
                 and_(
@@ -100,10 +97,10 @@ def upgrade():
         )
     )
 
-    op.execute(
+    db.engine.execute(
         insert(SliceUser).from_select(
             ["user_id", "slice_id"],
-            session.query(Slice.created_by_fk, Slice.id)
+            db.session.query(Slice.created_by_fk, Slice.id)
             .outerjoin(
                 SliceUser,
                 and_(
@@ -115,10 +112,10 @@ def upgrade():
         )
     )
 
-    op.execute(
+    db.engine.execute(
         insert(SqlaTableUser).from_select(
             ["user_id", "table_id"],
-            session.query(SqlaTable.created_by_fk, SqlaTable.id)
+            db.session.query(SqlaTable.created_by_fk, SqlaTable.id)
             .outerjoin(
                 SqlaTableUser,
                 and_(

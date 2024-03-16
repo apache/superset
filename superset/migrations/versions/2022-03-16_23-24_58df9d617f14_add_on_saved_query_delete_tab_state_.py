@@ -29,16 +29,14 @@ down_revision = "6766938c6065"
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     with op.batch_alter_table("tab_state") as batch_op:
         batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"id"}, "saved_query", insp),
+            generic_find_fk_constraint_name("tab_state", {"id"}, "saved_query"),
             type_="foreignkey",
         )
 
@@ -52,12 +50,9 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     with op.batch_alter_table("tab_state") as batch_op:
         batch_op.drop_constraint(
-            generic_find_fk_constraint_name("tab_state", {"id"}, "saved_query", insp),
+            generic_find_fk_constraint_name("tab_state", {"id"}, "saved_query"),
             type_="foreignkey",
         )
 

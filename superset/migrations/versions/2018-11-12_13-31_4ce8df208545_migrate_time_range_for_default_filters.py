@@ -46,10 +46,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         print(f"scanning dashboard ({i + 1}/{len(dashboards)}) >>>>")
         if dashboard.json_metadata:
@@ -108,8 +105,7 @@ def upgrade():
             if has_update:
                 dashboard.json_metadata = json.dumps(json_metadata)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

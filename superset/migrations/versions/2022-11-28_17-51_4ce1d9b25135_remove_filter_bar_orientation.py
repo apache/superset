@@ -48,11 +48,8 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     dashboards = (
-        session.query(Dashboard)
+        db.session.query(Dashboard)
         .filter(Dashboard.json_metadata.like('%"filter_bar_orientation"%'))
         .all()
     )
@@ -61,5 +58,4 @@ def downgrade():
         filter_bar_orientation = json_meta.pop("filter_bar_orientation", None)
         if filter_bar_orientation:
             dashboard.json_metadata = json.dumps(json_meta)
-    session.commit()
-    session.close()
+    db.session.commit()

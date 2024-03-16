@@ -49,10 +49,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    slices = session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
+    slices = db.session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
     for slc in slices:
         try:
             params = json.loads(slc.params)
@@ -70,15 +67,11 @@ def upgrade():
             )
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    slices = session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
+    slices = db.session.query(Slice).filter(Slice.viz_type == "big_number_total").all()
     for slc in slices:
         try:
             params = json.loads(slc.params)
@@ -96,5 +89,4 @@ def downgrade():
             )
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()

@@ -50,8 +50,6 @@ def redefine(
     :param onupdate: If set, emit ON UPDATE <value> when issuing DDL operations
     """
 
-    bind = op.get_bind()
-    insp = Inspector.from_engine(bind)
     conv = {"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s"}
 
     with op.batch_alter_table(foreign_key.table, naming_convention=conv) as batch_op:
@@ -59,7 +57,6 @@ def redefine(
             table=foreign_key.table,
             columns=set(foreign_key.remote_cols),
             referenced=foreign_key.referent_table,
-            insp=insp,
         ):
             batch_op.drop_constraint(constraint, type_="foreignkey")
 

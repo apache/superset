@@ -28,18 +28,17 @@ down_revision = "3fbbc6e8d654"
 
 from alembic import op
 from sqlalchemy.dialects.mysql.base import MySQLDialect
-from sqlalchemy.engine.reflection import Inspector
 
+from superset import db
 from superset.utils.core import generic_find_uq_constraint_name
 
 
 def upgrade():
-    bind = op.get_bind()
-
     # Uniqueness constraint if present only exists in MySQL.
-    if isinstance(bind.dialect, MySQLDialect):
+    if isinstance(db.engine.dialect, MySQLDialect):
         constraint_name = generic_find_uq_constraint_name(
-            "tables", {"table_name"}, Inspector.from_engine(bind)
+            "tables",
+            {"table_name"},
         )
 
         if constraint_name:

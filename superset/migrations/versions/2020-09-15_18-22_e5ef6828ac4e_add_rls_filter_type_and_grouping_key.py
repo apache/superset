@@ -29,6 +29,7 @@ down_revision = "ae19b4ee3692"
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils import core as utils
 
 
@@ -42,13 +43,12 @@ def upgrade():
             unique=False,
         )
 
-    bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData(bind=db.session.bind)
     filters = sa.Table("row_level_security_filters", metadata, autoload=True)
     statement = filters.update().values(
         filter_type=utils.RowLevelSecurityFilterType.REGULAR.value
     )
-    bind.execute(statement)
+    db.engine.execute(statement)
 
 
 def downgrade():

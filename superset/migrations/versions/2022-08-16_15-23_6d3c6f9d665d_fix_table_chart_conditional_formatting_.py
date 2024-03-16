@@ -44,10 +44,7 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type == "table"):
+    for slc in db.session.query(Slice).filter(Slice.viz_type == "table"):
         params = json.loads(slc.params)
         conditional_formatting = params.get("conditional_formatting", [])
         if conditional_formatting:
@@ -72,8 +69,7 @@ def upgrade():
                     new_conditional_formatting.append(formatter)
             params["conditional_formatting"] = new_conditional_formatting
             slc.params = json.dumps(params)
-            session.commit()
-    session.close()
+            db.session.commit()
 
 
 # it fixes a bug, downgrading isn't really needed here

@@ -54,9 +54,6 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     # Restore the size of the metric_name column.
     with op.batch_alter_table("metrics", naming_convention=conv) as batch_op:
         batch_op.alter_column(
@@ -70,7 +67,7 @@ def downgrade():
     for table, column in names.items():
         with op.batch_alter_table(table, naming_convention=conv) as batch_op:
             batch_op.drop_constraint(
-                generic_find_uq_constraint_name(table, {column, "datasource_id"}, insp)
+                generic_find_uq_constraint_name(table, {column, "datasource_id"})
                 or f"uq_{table}_{column}",
                 type_="unique",
             )

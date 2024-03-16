@@ -133,10 +133,7 @@ def compute_time_compare(granularity, periods):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for chart in session.query(Slice):
+    for chart in db.session.query(Slice):
         params = json.loads(chart.params or "{}")
 
         if not params.get("num_period_compare"):
@@ -157,15 +154,11 @@ def upgrade():
         params["comparison_type"] = comparison_type
         chart.params = json.dumps(params, sort_keys=True)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for chart in session.query(Slice):
+    for chart in db.session.query(Slice):
         params = json.loads(chart.params or "{}")
 
         if "time_compare" in params or "comparison_type" in params:
@@ -173,5 +166,4 @@ def downgrade():
             params.pop("comparison_type", None)
             chart.params = json.dumps(params, sort_keys=True)
 
-    session.commit()
-    session.close()
+    db.session.commit()

@@ -44,7 +44,6 @@ class Table(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
     op.add_column(
         "tables",
         sa.Column(
@@ -56,15 +55,12 @@ def upgrade():
         ),
     )
 
-    session = db.Session(bind=bind)
-
     # Use Slice class defined here instead of models.Slice
-    for tbl in session.query(Table).all():
+    for tbl in db.session.query(Table).all():
         if tbl.sql:
             tbl.is_sqllab_view = True
 
-    session.commit()
-    db.session.close()
+    db.session.commit()
 
 
 def downgrade():

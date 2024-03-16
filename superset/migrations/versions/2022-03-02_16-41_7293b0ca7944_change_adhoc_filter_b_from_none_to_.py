@@ -47,10 +47,9 @@ class Slice(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type == "mixed_timeseries").all():
+    for slc in (
+        db.session.query(Slice).filter(Slice.viz_type == "mixed_timeseries").all()
+    ):
         try:
             params = json.loads(slc.params)
 
@@ -61,15 +60,13 @@ def upgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).filter(Slice.viz_type == "mixed_timeseries").all():
+    for slc in (
+        db.session.query(Slice).filter(Slice.viz_type == "mixed_timeseries").all()
+    ):
         try:
             params = json.loads(slc.params)
 
@@ -80,5 +77,4 @@ def downgrade():
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()

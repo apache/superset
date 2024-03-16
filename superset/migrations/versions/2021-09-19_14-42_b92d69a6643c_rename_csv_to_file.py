@@ -28,7 +28,6 @@ down_revision = "aea15018d53b"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 
 
 def upgrade():
@@ -43,9 +42,7 @@ def upgrade():
         # In MySQL 8.0 renaming the column rename fails because it has
         # a constraint check; we can safely remove it in that case, see
         # https://github.com/sqlalchemy/alembic/issues/699
-        bind = op.get_bind()
-        inspector = Inspector.from_engine(bind)
-        check_constraints = inspector.get_check_constraints("dbs")
+        check_constraints = sa.inspect(db.engine).get_check_constraints("dbs")
         for check_constraint in check_constraints:
             if "allow_csv_upload" in check_constraint["sqltext"]:
                 name = check_constraint["name"]

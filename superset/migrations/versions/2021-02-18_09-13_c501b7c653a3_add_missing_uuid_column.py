@@ -32,7 +32,6 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm import load_only
 from sqlalchemy_utils import UUIDType
 
@@ -47,9 +46,10 @@ models = add_uuid_column_to_import_mixin.models
 update_dashboards = add_uuid_column_to_import_mixin.update_dashboards
 
 
-def has_uuid_column(table_name, bind):
-    inspector = Inspector.from_engine(bind)
-    columns = {column["name"] for column in inspector.get_columns(table_name)}
+def has_uuid_column(table_name):
+    columns = {
+        column["name"] for column in sa.inspect(db.engine).get_columns(table_name)
+    }
     has_uuid_column = "uuid" in columns
     if has_uuid_column:
         logging.info("Table %s already has uuid column, skipping...", table_name)
@@ -59,12 +59,9 @@ def has_uuid_column(table_name, bind):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
     for table_name, model in models.items():
         # this script adds missing uuid columns
-        if has_uuid_column(table_name, bind):
+        if has_uuid_column(table_name):
             continue
 
         with op.batch_alter_table(table_name) as batch_op:
@@ -76,7 +73,7 @@ def upgrade():
                     default=uuid4,
                 ),
             )
-        assign_uuids(model, session)
+        assign_uuids(model)
 
         # add uniqueness constraint
         with op.batch_alter_table(table_name) as batch_op:
@@ -87,11 +84,11 @@ def upgrade():
     # so we can call it for all objects
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
+        for slc in db.session.query(models["slices"])
         .options(load_only("id", "uuid"))
         .all()
     }
-    update_dashboards(session, slice_uuid_map)
+    update_dashboards(slice_uuid_map)
 
 
 def downgrade() -> None:

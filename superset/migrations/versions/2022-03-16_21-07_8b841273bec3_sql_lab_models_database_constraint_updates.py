@@ -29,16 +29,14 @@ down_revision = "2ed890b36b94"
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     with op.batch_alter_table("tab_state") as batch_op:
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "tab_state", {"id"}, "dbs", insp
+            "tab_state", {"id"}, "dbs"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(
@@ -47,7 +45,7 @@ def upgrade():
             )
 
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "tab_state", {"client_id"}, "query", insp
+            "tab_state", {"client_id"}, "query"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(
@@ -73,7 +71,7 @@ def upgrade():
 
     with op.batch_alter_table("table_schema") as batch_op:
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "table_schema", {"id"}, "dbs", insp
+            "table_schema", {"id"}, "dbs"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(
@@ -91,12 +89,9 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     with op.batch_alter_table("tab_state") as batch_op:
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "tab_state", {"id"}, "dbs", insp
+            "tab_state", {"id"}, "dbs"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(
@@ -105,7 +100,7 @@ def downgrade():
             )
 
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "tab_state", {"client_id"}, "query", insp
+            "tab_state", {"client_id"}, "query"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(
@@ -125,7 +120,7 @@ def downgrade():
 
     with op.batch_alter_table("table_schema") as batch_op:
         table_schema_id_constraint = generic_find_fk_constraint_name(
-            "table_schema", {"id"}, "dbs", insp
+            "table_schema", {"id"}, "dbs"
         )
         if table_schema_id_constraint:
             batch_op.drop_constraint(

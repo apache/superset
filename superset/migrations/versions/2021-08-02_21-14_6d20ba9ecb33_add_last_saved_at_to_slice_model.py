@@ -47,8 +47,7 @@ def upgrade():
         sa.Column("last_saved_at", sa.DateTime(), nullable=True),
         sa.Column("last_saved_by_fk", sa.Integer(), nullable=True),
     )
-    conn = op.get_bind()
-    conn.execute(
+    db.engine.execute(
         slices_table.update().values(
             last_saved_at=slices_table.c.changed_on,
             last_saved_by_fk=slices_table.c.changed_by_fk,

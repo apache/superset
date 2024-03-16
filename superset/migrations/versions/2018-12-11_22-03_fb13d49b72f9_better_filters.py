@@ -71,25 +71,18 @@ def upgrade_slice(slc):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    filter_box_slices = session.query(Slice).filter_by(viz_type="filter_box")
+    filter_box_slices = db.session.query(Slice).filter_by(viz_type="filter_box")
     for slc in filter_box_slices.all():
         try:
             upgrade_slice(slc)
         except Exception as ex:
             logging.exception(e)
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    filter_box_slices = session.query(Slice).filter_by(viz_type="filter_box")
+    filter_box_slices = db.session.query(Slice).filter_by(viz_type="filter_box")
     for slc in filter_box_slices.all():
         try:
             params = json.loads(slc.params)
@@ -103,5 +96,4 @@ def downgrade():
         except Exception as ex:
             logging.exception(ex)
 
-    session.commit()
-    session.close()
+    db.session.commit()

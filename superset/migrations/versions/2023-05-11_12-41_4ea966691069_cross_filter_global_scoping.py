@@ -49,9 +49,7 @@ class Dashboard(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-    for dashboard in paginated_update(session.query(Dashboard)):
+    for dashboard in paginated_update(db.session.query(Dashboard)):
         #
         # This is needed in order to work-around a potential issue
         # that some folks may have run into where their json_metadata's
@@ -94,15 +92,11 @@ def upgrade():
             logger.exception("Failed to run up migration")
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for dashboard in paginated_update(session.query(Dashboard)):
+    for dashboard in paginated_update(db.session.query(Dashboard)):
         try:
             json_metadata = json.loads(dashboard.json_metadata)
             new_chart_configuration = {}
@@ -131,5 +125,4 @@ def downgrade():
             logger.exception("Failed to run down migration")
             raise e
 
-    session.commit()
-    session.close()
+    db.session.commit()

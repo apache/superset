@@ -26,6 +26,8 @@ Create Date: 2018-03-30 14:00:44.929483
 revision = "d6ffdf31bdd4"
 down_revision = "b4a38aa87893"
 
+from superset import db
+
 import sqlalchemy as sa
 from alembic import op
 
@@ -33,7 +35,7 @@ from alembic import op
 def upgrade():
     with op.batch_alter_table("dashboards") as batch_op:
         batch_op.add_column(sa.Column("published", sa.Boolean(), nullable=True))
-    op.execute("UPDATE dashboards SET published='1'")
+    db.engine.execute("UPDATE dashboards SET published='1'")
 
 
 def downgrade():

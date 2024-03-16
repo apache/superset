@@ -45,10 +45,7 @@ class Slice(Base):
 
 
 def migrate(mapping: dict[str, str]) -> None:
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    for slc in session.query(Slice).all():
+    for slc in db.session.query(Slice).all():
         try:
             params = json.loads(slc.params)
             time_grain_sqla = params.get("time_grain_sqla")
@@ -59,8 +56,7 @@ def migrate(mapping: dict[str, str]) -> None:
         except Exception:
             pass
 
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def upgrade():

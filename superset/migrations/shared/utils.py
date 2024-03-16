@@ -30,6 +30,8 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
 
+from superset import db
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
@@ -58,13 +60,10 @@ uuid_by_dialect = {
 }
 
 
-def assign_uuids(
-    model: Any, session: Session, batch_size: int = DEFAULT_BATCH_SIZE
-) -> None:
+def assign_uuids(model: Any, batch_size: int = DEFAULT_BATCH_SIZE) -> None:
     """Generate new UUIDs for all rows in a table"""
-    bind = op.get_bind()
     table_name = model.__tablename__
-    count = session.query(model).count()
+    count = db.session.query(model).count()
     # silently skip if the table is empty (suitable for db initialization)
     if count == 0:
         return
@@ -73,15 +72,15 @@ def assign_uuids(
     print(f"\nAdding uuids for `{table_name}`...")
     # Use dialect specific native SQL queries if possible
     for dialect, sql in uuid_by_dialect.items():
-        if isinstance(bind.dialect, dialect):
-            op.execute(
+        if isinstance(db.engine.dialect, dialect):
+            db.engine.execute(
                 f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
 
     for obj in paginated_update(
-        session.query(model),
+        db.session.query(model),
         lambda current, total: print(
             f"  uuid assigned to {current} out of {total}", end="\r"
         ),
@@ -102,8 +101,7 @@ def paginated_update(
 
     total = query.count()
     processed = 0
-    session: Session = inspect(query).session
-    result = session.execute(query)
+    result = db.session.execute(query)
 
     if print_page_progress is None or print_page_progress is True:
         print_page_progress = lambda processed, total: print(
@@ -119,7 +117,7 @@ def paginated_update(
         for row in rows:
             yield row[0]
 
-        session.commit()
+        db.session.commit()
         processed += len(rows)
 
         if print_page_progress:

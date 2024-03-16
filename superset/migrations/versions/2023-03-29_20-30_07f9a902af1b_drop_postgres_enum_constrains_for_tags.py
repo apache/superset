@@ -27,18 +27,18 @@ revision = "07f9a902af1b"
 down_revision = "b5ea9d343307"
 
 from alembic import op
-from sqlalchemy.dialects import postgresql
+
+from superset import db
 
 
 def upgrade():
-    conn = op.get_bind()
-    if isinstance(conn.dialect, postgresql.dialect):
-        conn.execute(
+    if isinstance(db.engine.dialect, postgresql.dialect):
+        db.engine.execute(
             'ALTER TABLE "tagged_object" ALTER COLUMN "object_type" TYPE VARCHAR'
         )
-        conn.execute('ALTER TABLE "tag" ALTER COLUMN "type" TYPE VARCHAR')
-        conn.execute("DROP TYPE IF EXISTS objecttypes")
-        conn.execute("DROP TYPE IF EXISTS tagtypes")
+        db.engine.execute('ALTER TABLE "tag" ALTER COLUMN "type" TYPE VARCHAR')
+        db.engine.execute("DROP TYPE IF EXISTS objecttypes")
+        db.engine.execute("DROP TYPE IF EXISTS tagtypes")
 
 
 def downgrade():

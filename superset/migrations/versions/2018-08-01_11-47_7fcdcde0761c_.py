@@ -54,10 +54,7 @@ def is_v2_dash(positions):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    dashboards = session.query(Dashboard).all()
+    dashboards = db.session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):
         original_text = dashboard.position_json or ""
         position_json = json.loads(original_text or "{}")
@@ -76,7 +73,7 @@ def upgrade():
                     dashboard.id, len(original_text), len(text)
                 )
             )
-            session.commit()
+            db.session.commit()
 
 
 def downgrade():

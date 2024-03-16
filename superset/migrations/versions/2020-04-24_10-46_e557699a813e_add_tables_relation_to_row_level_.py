@@ -29,13 +29,12 @@ down_revision = "743a117f0d98"
 import sqlalchemy as sa
 from alembic import op
 
+from superset import db
 from superset.utils.core import generic_find_fk_constraint_name
 
 
 def upgrade():
-    bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
+    metadata = sa.MetaData(bind=db.session.bind)
 
     rls_filter_tables = op.create_table(
         "rls_filter_tables",
@@ -50,15 +49,15 @@ def upgrade():
     rlsf = sa.Table("row_level_security_filters", metadata, autoload=True)
     filter_ids = sa.select([rlsf.c.id, rlsf.c.table_id])
 
-    for row in bind.execute(filter_ids):
+    for row in db.engine.execute(filter_ids):
         move_table_id = rls_filter_tables.insert().values(
             rls_filter_id=row["id"], table_id=row["table_id"]
         )
-        bind.execute(move_table_id)
+        db.engine.execute(move_table_id)
 
     with op.batch_alter_table("row_level_security_filters") as batch_op:
         fk_constraint_name = generic_find_fk_constraint_name(
-            "row_level_security_filters", {"id"}, "tables", insp
+            "row_level_security_filters", {"id"}, "tables"
         )
         if fk_constraint_name:
             batch_op.drop_constraint(fk_constraint_name, type_="foreignkey")
@@ -66,8 +65,7 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData(bind=db.session.bind)
 
     op.add_column(
         "row_level_security_filters",
@@ -88,12 +86,12 @@ def downgrade():
         rls_filter_tables.c.rls_filter_id
     )
 
-    for row in bind.execute(filter_tables):
+    for row in db.engine.execute(filter_tables):
         filters_copy_ids = []
         filter_query = rlsf.select().where(rlsf.c.id == row["rls_filter_id"])
-        filter_params = dict(bind.execute(filter_query).fetchone())
+        filter_params = dict(db.engine.execute(filter_query).fetchone())
         origin_id = filter_params.pop("id", None)
-        table_ids = bind.execute(
+        table_ids = db.engine.execute(
             sa.select([rls_filter_tables.c.table_id]).where(
                 rls_filter_tables.c.rls_filter_id == row["rls_filter_id"]
             )
@@ -102,22 +100,22 @@ def downgrade():
         move_table_id = (
             rlsf.update().where(rlsf.c.id == origin_id).values(filter_params)
         )
-        bind.execute(move_table_id)
+        db.engine.execute(move_table_id)
         for table_id in table_ids:
             filter_params["table_id"] = table_id[0]
             copy_filter = rlsf.insert().values(filter_params)
-            copy_id = bind.execute(copy_filter).inserted_primary_key[0]
+            copy_id = db.engine.execute(copy_filter).inserted_primary_key[0]
             filters_copy_ids.append(copy_id)
 
         roles_query = rls_filter_roles.select().where(
             rls_filter_roles.c.rls_filter_id == origin_id
         )
-        for role in bind.execute(roles_query):
+        for role in engine.execute(roles_query):
             for copy_id in filters_copy_ids:
                 role_filter = rls_filter_roles.insert().values(
                     role_id=role["role_id"], rls_filter_id=copy_id
                 )
-                bind.execute(role_filter)
+                db.engine.execute(role_filter)
         filters_copy_ids.clear()
 
     op.alter_column("row_level_security_filters", "table_id", nullable=False)

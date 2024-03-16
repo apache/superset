@@ -49,10 +49,8 @@ class KeyValueEntry(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session: Session = db.Session(bind=bind)
     for entry in paginated_update(
-        session.query(KeyValueEntry).filter(
+        db.session.query(KeyValueEntry).filter(
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         )
     ):
@@ -69,10 +67,8 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    session: Session = db.Session(bind=bind)
     for entry in paginated_update(
-        session.query(KeyValueEntry).filter(
+        db.session.query(KeyValueEntry).filter(
             KeyValueEntry.resource == DASHBOARD_PERMALINK_RESOURCE_TYPE
         ),
     ):

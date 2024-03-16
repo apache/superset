@@ -63,11 +63,9 @@ def upgrade_slice(slc: Slice):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
     slices_updated = 0
     for slc in (
-        session.query(Slice)
+        db.session.query(Slice)
         .filter(Slice.query_context.like("%time_range_endpoints%"))
         .all()
     ):
@@ -76,8 +74,7 @@ def upgrade():
             slices_updated += 1
 
     print(f"slices updated with no time_range_endpoints: {slices_updated}")
-    session.commit()
-    session.close()
+    db.session.commit()
 
 
 def downgrade():

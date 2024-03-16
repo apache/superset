@@ -88,10 +88,7 @@ class Validator(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
-    if isinstance(bind.dialect, SQLiteDialect):
+    if isinstance(db.engine.dialect, SQLiteDialect):
         op.add_column(
             "alerts",
             sa.Column("validator_config", sa.Text(), server_default="", nullable=True),
@@ -129,8 +126,7 @@ def upgrade():
             ),
         )
     # Migrate data
-    session = db.Session(bind=bind)
-    alerts = session.query(Alert).all()
+    alerts = db.session.query(Alert).all()
     for a in alerts:
         if a.sql_observer:
             a.sql = a.sql_observer[0].sql
@@ -138,11 +134,11 @@ def upgrade():
         if a.validators:
             a.validator_type = a.validators[0].validator_type
             a.validator_config = a.validators[0].config
-    session.commit()
+    db.session.commit()
 
-    if not isinstance(bind.dialect, SQLiteDialect):
+    if not isinstance(db.engine.dialect, SQLiteDialect):
         constraint = generic_find_fk_constraint_name(
-            "sql_observations", {"id"}, "sql_observers", insp
+            "sql_observations", {"id"}, "sql_observers"
         )
         op.drop_constraint(constraint, "sql_observations", type_="foreignkey")
         op.drop_column("sql_observations", "observer_id")
@@ -151,7 +147,7 @@ def upgrade():
     op.drop_table("sql_observers")
 
     # sqlite does not support column and fk deletion
-    if isinstance(bind.dialect, SQLiteDialect):
+    if isinstance(db.engine.dialect, SQLiteDialect):
         op.drop_table("sql_observations")
         op.create_table(
             "sql_observations",
@@ -171,9 +167,6 @@ def upgrade():
 
 
 def downgrade():
-    bind = op.get_bind()
-    insp = sa.engine.reflection.Inspector.from_engine(bind)
-
     op.create_table(
         "sql_observers",
         sa.Column("created_on", sa.DateTime(), nullable=True),
@@ -218,13 +211,12 @@ def downgrade():
     )
 
     # Migrate data
-    session = db.Session(bind=bind)
-    alerts = session.query(Alert).all()
+    alerts = db.session.query(Alert).all()
     for a in alerts:
         if a.sql:
             ob = SQLObserver(sql=a.sql, database_id=a.database_id)
             a.sql_observer.append(ob)
-            session.add(ob)
+            db.session.add(ob)
         if a.validator_type:
             val = Validator(
                 validator_type=a.validator_type,
@@ -232,11 +224,11 @@ def downgrade():
                 alert_id=a.id,
             )
             a.validators.append(val)
-            session.add(val)
-    session.commit()
+            db.session.add(val)
+    db.session.commit()
 
     # sqlite does not support dropping columns
-    if isinstance(bind.dialect, SQLiteDialect):
+    if isinstance(db.engine.dialect, SQLiteDialect):
         op.add_column(
             "sql_observations",
             sa.Column(
@@ -298,7 +290,7 @@ def downgrade():
                 default=0,
             ),
         )
-        constraint = generic_find_fk_constraint_name("alerts", {"id"}, "dbs", insp)
+        constraint = generic_find_fk_constraint_name("alerts", {"id"}, "dbs")
         op.drop_constraint(constraint, "alerts", type_="foreignkey")
         op.drop_column("alerts", "validator_type")
         op.drop_column("alerts", "sql")

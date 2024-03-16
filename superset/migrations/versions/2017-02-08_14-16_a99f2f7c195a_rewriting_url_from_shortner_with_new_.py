@@ -61,10 +61,7 @@ class Url(Base):
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
-
-    urls = session.query(Url).all()
+    urls = db.session.query(Url).all()
     urls_len = len(urls)
     for i, url in enumerate(urls):
         if (
@@ -80,9 +77,8 @@ def upgrade():
                 "/".join(split[:-1]) + "/?form_data=" + parse.quote_plus(json.dumps(d))
             )
             url.url = newurl
-            session.commit()
+            db.session.commit()
         print(f"Updating url ({i}/{urls_len})")
-    session.close()
 
 
 def downgrade():
