@@ -134,3 +134,44 @@ server:
 ```bash
 npm run dev-server
 ```
+
+### Distribute Superset with your viz plugin
+
+You may want to share your improved take on Superset which includes you viz plugin with
+others, or distribute it as a package to easily reuse it somewhere else (e.g. deploy it
+in production).
+
+#### Distribute your plugin
+
+The first step is to distribute your plugin itself. You can either:
+
+- publish it on [npm](https://docs.npmjs.com/cli/v8/commands/npm-publish),
+- include its code in Superset codebase. We suggest adding it with the other plugins,
+  under `./superset-frontend/plugins`.
+
+If you include your plugin code in Superset codebase, make sure you compile the plugin
+itself in `./superset-frontend/plugins/<your_plugin_name>`:
+
+```bash
+cd superset-frontend/plugins/<your_plugin_name>
+npm ci
+npm run build
+```
+
+#### Update Superset's assets
+
+You then want to update the static assets served by Flask to include the JS code for
+your viz plugin.
+
+```bash
+cd superset-frontend
+npm run build
+```
+
+#### Build Superset's package
+
+Finally, you can build Superset as a Python package that includes your plugin as:
+
+```bash
+python setup.py sdist
+```
