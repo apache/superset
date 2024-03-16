@@ -89,7 +89,10 @@ Default security settings and passwords are included but you **SHOULD** override
 
 ```yaml
 postgresql:
-  postgresqlPassword: superset
+  auth:
+    postgresPassword: superset
+    password: superset
+supersetNode.connections.db_pass: superset
 ```
 
 Make sure, you set a unique strong complex alphanumeric string for your SECRET_KEY and use a tool to help you generate
