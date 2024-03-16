@@ -84,7 +84,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.supersetWorker.image.repository | default .Values.image.repository }}:{{ .Values.supersetWorker.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetWorker.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}

@@ -78,7 +78,7 @@ spec:
       {{- end }}
       containers:
         - name: "{{ .Chart.Name }}-celerybeat"
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.supersetCeleryBeat.image.repository | default .Values.image.repository }}:{{ .Values.supersetCeleryBeat.image.tag | default (.Values.image.tag | default .Chart.AppVersion) }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
           securityContext: {{- toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
