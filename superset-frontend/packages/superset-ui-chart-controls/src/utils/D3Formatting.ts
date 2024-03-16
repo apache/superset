@@ -57,6 +57,9 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   ...d3Formatted,
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
+  ['LENGTH', t('Length in m (12345m => 12.34km)')],
+  ['LENGTH_CM_KM', t('Length in cm (12345678cm => 123.45km)')],
+  ['LENGTH_CM_M', t('Length in cm (12345cm => 123.45m)')],
 ];
 
 export const D3_TIME_FORMAT_DOCS = t(

@@ -24,6 +24,7 @@ import {
   getTimeFormatterRegistry,
   smartDateFormatter,
   smartDateVerboseFormatter,
+  createLengthFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 
@@ -70,6 +71,15 @@ export default function setupFormatters(
     .registerValue(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
+    )
+    .registerValue('LENGTH', createLengthFormatter({ convertType: 'm => km' }))
+    .registerValue(
+      'LENGTH_CM_KM',
+      createLengthFormatter({ convertType: 'cm => km' }),
+    )
+    .registerValue(
+      'LENGTH_CM_M',
+      createLengthFormatter({ convertType: 'cm => m' }),
     );
 
   getTimeFormatterRegistry()
