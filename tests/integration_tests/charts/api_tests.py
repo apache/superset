@@ -1224,48 +1224,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 ).lower()
             )
 
-    @pytest.mark.usefixtures("create_certified_charts")
-    def test_gets_certified_charts_filter(self):
-        arguments = {
-            "filters": [
-                {
-                    "col": "id",
-                    "opr": "chart_is_certified",
-                    "value": True,
-                }
-            ],
-            "keys": ["none"],
-            "columns": ["slice_name"],
-        }
-        self.login(username="admin")
-
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
-        rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], CHARTS_FIXTURE_COUNT)
-
-    @pytest.mark.usefixtures("create_charts")
-    def test_gets_not_certified_charts_filter(self):
-        arguments = {
-            "filters": [
-                {
-                    "col": "id",
-                    "opr": "chart_is_certified",
-                    "value": False,
-                }
-            ],
-            "keys": ["none"],
-            "columns": ["slice_name"],
-        }
-        self.login(username="admin")
-
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
-        rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 17)
-
     @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
         # test filtering on datasource_name
@@ -1737,9 +1695,24 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             ]
         }
 
-    def test_gets_created_by_user_charts_filter(self):
+    @parameterized.expand(
+        [
+            # (filter_opr, filter_col, filter_value, expected_count)
+            ("chart_has_created_by", "id", True, 27),
+            ("chart_has_created_by", "id", False, 27),
+            ("chart_has_created_by", "id", "", 27),
+            ("chart_is_certified", "id", True, CHARTS_FIXTURE_COUNT),
+            ("chart_is_certified", "id", False, 17),
+            ("chart_is_certified", "id", "", 27),
+            ("chart_all_text", "slice_name", "", 27),
+        ]
+    )
+    @pytest.mark.usefixtures("create_charts", "create_certified_charts")
+    def test_gets_charts_filter(
+        self, filter_opr, filter_col, filter_value, expected_count
+    ):
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": True}],
+            "filters": [{"opr": filter_opr, "col": filter_col, "value": filter_value}],
             "keys": ["none"],
             "columns": ["slice_name"],
         }
@@ -1747,23 +1720,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 8)
-
-    def test_gets_not_created_by_user_charts_filter(self):
-        arguments = {
-            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": False}],
-            "keys": ["none"],
-            "columns": ["slice_name"],
-        }
-        self.login(username="admin")
-
-        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
-        rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 8)
+        assert data["count"] == expected_count
 
     @pytest.mark.usefixtures("create_charts")
     def test_gets_owned_created_favorited_by_me_filter(self):
