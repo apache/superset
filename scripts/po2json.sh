@@ -14,14 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+TRANSLATIONS_DIR="$SCRIPT_DIR/../superset/translations"
 
-for file in $( find superset/translations/** );
+for file in $( find "$TRANSLATIONS_DIR" -name "*.po" );
 do
   extension=${file##*.}
   filename="${file%.*}"
-  if [ $extension == "po" ]
+  if [ "$extension" = "po" ]
   then
-    po2json --domain superset --format jed1.x $file $filename.json
-    ./superset-frontend/node_modules/.bin/prettier --write $filename.json
+    po2json --domain superset --format jed1.x "$file" "$filename.json"
+    "$SCRIPT_DIR/../superset-frontend/node_modules/.bin/prettier" --write "$filename.json"
   fi
 done
