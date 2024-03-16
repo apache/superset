@@ -19,6 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
+import { render, screen } from 'spec/helpers/testing-library';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import { TextArea } from 'src/components/Input';
@@ -61,5 +62,12 @@ describe('TextArea', () => {
     wrapper = mount(<TextAreaControl {...props} />);
     wrapper.simulate('change', { target: { value: 'x' } });
     expect(defaultProps.onChange.calledWith('x')).toBe(true);
+  });
+
+  it('TextArea renders props.value', async () => {
+    const props = { ...defaultProps };
+    props.value = 'Sample value';
+    render(<TextAreaControl {...props} />);
+    expect(screen.getByDisplayValue('Sample value')).toBeInTheDocument();
   });
 });

@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { omit } from 'lodash';
 import { TextArea } from 'src/components/Input';
 import { t, withTheme } from '@superset-ui/core';
 
@@ -70,16 +71,38 @@ const defaultProps = {
 };
 
 class TextAreaControl extends React.Component {
+  constructor(props) {
+    super(props);
+    this.initialValue = props.initialValue;
+
+    this.state = {
+      value: this.initialValue,
+    };
+  }
+
   onControlChange(event) {
     const { value } = event.target;
+    this.setState({ value });
     this.props.onChange(value);
   }
 
   onAreaEditorChange(value) {
+    this.setState({ value });
     this.props.onChange(value);
   }
 
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (this.initialValue !== nextProps.value) {
+      this.initialValue = nextProps.value;
+      this.setState({
+        value: nextProps.value,
+      });
+    }
+  }
+
   renderEditor(inModal = false) {
+    const { value } = this.state;
+
     const minLines = inModal ? 40 : this.props.minLines || 12;
     if (this.props.language) {
       const style = {
@@ -103,6 +126,7 @@ class TextAreaControl extends React.Component {
           maxLines={inModal ? 1000 : this.props.maxLines}
           editorProps={{ $blockScrolling: true }}
           defaultValue={this.props.initialValue}
+          value={value}
           readOnly={this.props.readOnly}
           key={this.props.name}
           {...this.props}
@@ -110,13 +134,28 @@ class TextAreaControl extends React.Component {
         />
       );
     }
+
+    const textAreaProps = omit(this.props, [
+      'name',
+      'initialValue',
+      'height',
+      'minLines',
+      'maxLines',
+      'offerEditInModal',
+      'language',
+      'aboveEditorSection',
+      'readOnly',
+    ]);
+
     return (
       <TextArea
         placeholder={t('textarea')}
-        onChange={this.onControlChange.bind(this)}
         defaultValue={this.props.initialValue}
+        value={value}
         disabled={this.props.readOnly}
         style={{ height: this.props.height }}
+        {...textAreaProps}
+        onChange={this.onControlChange.bind(this)}
       />
     );
   }

@@ -94,12 +94,21 @@ export default class TextControl<
     });
   };
 
-  render() {
-    let { value } = this.state;
-    if (this.initialValue !== this.props.value) {
-      this.initialValue = this.props.value;
-      value = safeStringify(this.props.value);
+  UNSAFE_componentWillReceiveProps(nextProps: TextControlProps<T>) {
+    if (this.initialValue !== nextProps.value) {
+      this.initialValue = nextProps.value;
+      this.setState({
+        value: safeStringify(nextProps.value),
+      });
     }
+  }
+
+  render() {
+    const { value } = this.state;
+    // if (this.initialValue !== this.props.value) {
+    //   this.initialValue = this.props.value;
+    //   value = safeStringify(this.props.value);
+    // }
     return (
       <div>
         <ControlHeader {...this.props} />
