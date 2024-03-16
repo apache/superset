@@ -37,7 +37,7 @@
     "lodash": "^4.17.11"
   },
   "devDependencies": {
-    "@babel/types": "^7.23.9",
+    "@babel/types": "^7.24.0",
     "@types/jest": "^29.5.11",
     "jest": "^26.0.1"
   }
