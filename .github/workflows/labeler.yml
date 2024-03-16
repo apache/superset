@@ -1,6 +1,12 @@
 name: "Pull Request Labeler"
 on:
-- pull_request_target
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 
 jobs:
   labeler:
@@ -8,6 +14,7 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
+    if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' }}
     steps:
     - uses: actions/labeler@v5
       with:
@@ -19,3 +26,44 @@ jobs:
     #   run: |
     #     echo "Running translation scripts"
     #     # Generate .pot -> .po -> .json files
+
+  # This'll look at the PR body and add a label if it contains an issue-closing keyword
+  # it runs on every PR event, including "edited" since people tend to add "closes #123" in the PR body after opening it
+  label-auto-closing:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Log PR Edit
+      run: echo "PR was edited"
+    - name: Auto-label PRs
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const closingKeywords = /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s*:? ?(?:#([0-9]+)|https:\/\/github\.com\/apache\/superset\/pull\/([0-9]+))/gi;
+          const prBody = context.payload.pull_request.body;
+          const issueNumbers = [...prBody.matchAll(closingKeywords)].map(match => match[0]);
+          const labelName = 'closes-issue';
+          console.log('PR body:', prBody);
+          if (issueNumbers.length > 0) {
+            console.log('Found an issue link! Labeling this PR');
+            console.log('issues', issueNumbers);
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [labelName]
+            });
+          } else {
+            console.log("No issue link found! Attempting to remove label");
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: labelName
+              });
+            } catch {
+              console.log('No label was present to remove');
+            }
+          }
