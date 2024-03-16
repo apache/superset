@@ -32,6 +32,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -153,6 +154,27 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Add color for positive/negative change'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_scheme',
+            config: {
+              type: 'SelectControl',
+              label: t('color scheme for comparison'),
+              default: ColorSchemeEnum.Green,
+              renderTrigger: true,
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                controls?.comparison_color_enabled?.value === true,
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
             },
           },
         ],
