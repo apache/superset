@@ -113,7 +113,7 @@ class TestTagsDAO(SupersetTestCase):
                 tagged_objects.append(
                     self.insert_tagged_object(
                         object_id=dashboard_id,
-                        object_type=ObjectType.dashboard,
+                        object_type=ObjectType.DASHBOARD,
                         tag_id=tag.id,
                     )
                 )
@@ -126,21 +126,21 @@ class TestTagsDAO(SupersetTestCase):
     def test_create_tagged_objects(self):
         # test that a tag can be added if it has ':' in it
         TagDAO.create_custom_tagged_objects(
-            object_type=ObjectType.dashboard.name,
+            object_type=ObjectType.DASHBOARD,
             object_id=1,
             tag_names=["valid:example tag 1"],
         )
 
         # test that a tag can be added if it has ',' in it
         TagDAO.create_custom_tagged_objects(
-            object_type=ObjectType.dashboard.name,
+            object_type=ObjectType.DASHBOARD,
             object_id=1,
             tag_names=["example,tag,1"],
         )
 
         # test that a tag can be added if it has a valid name
         TagDAO.create_custom_tagged_objects(
-            object_type=ObjectType.dashboard.name,
+            object_type=ObjectType.DASHBOARD,
             object_id=1,
             tag_names=["example tag 1"],
         )
@@ -161,7 +161,7 @@ class TestTagsDAO(SupersetTestCase):
         dashboard_id = dashboard.id
         tag = db.session.query(Tag).filter_by(name="example_tag_1").one()
         self.insert_tagged_object(
-            object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag.id
+            object_id=dashboard_id, object_type=ObjectType.DASHBOARD, tag_id=tag.id
         )
         # get objects
         tagged_objects = TagDAO.get_tagged_objects_for_tags(
@@ -185,7 +185,7 @@ class TestTagsDAO(SupersetTestCase):
                 TaggedObject,
                 and_(
                     TaggedObject.object_id == Slice.id,
-                    TaggedObject.object_type == ObjectType.chart,
+                    TaggedObject.object_type == ObjectType.CHART,
                 ),
             )
             .distinct(Slice.id)
@@ -197,7 +197,7 @@ class TestTagsDAO(SupersetTestCase):
                 TaggedObject,
                 and_(
                     TaggedObject.object_id == Dashboard.id,
-                    TaggedObject.object_type == ObjectType.dashboard,
+                    TaggedObject.object_type == ObjectType.DASHBOARD,
                 ),
             )
             .distinct(Dashboard.id)
@@ -229,7 +229,7 @@ class TestTagsDAO(SupersetTestCase):
         tag_2 = db.session.query(Tag).filter_by(name="example_tag_2").one()
         tag_ids = [tag_1.id, tag_2.id]
         self.insert_tagged_object(
-            object_id=dashboard_id, object_type=ObjectType.dashboard, tag_id=tag_1.id
+            object_id=dashboard_id, object_type=ObjectType.DASHBOARD, tag_id=tag_1.id
         )
         # get objects
         tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids)
@@ -252,7 +252,7 @@ class TestTagsDAO(SupersetTestCase):
     def test_find_tagged_object(self):
         tag = db.session.query(Tag).filter(Tag.name == "example_tag_1").first()
         tagged_object = TagDAO.find_tagged_object(
-            object_id=1, object_type=ObjectType.dashboard.name, tag_id=tag.id
+            object_id=1, object_type=ObjectType.DASHBOARD, tag_id=tag.id
         )
         assert tagged_object is not None
 
@@ -308,20 +308,20 @@ class TestTagsDAO(SupersetTestCase):
             .filter(
                 TaggedObject.tag_id == tag.id,
                 TaggedObject.object_id == 1,
-                TaggedObject.object_type == ObjectType.dashboard.name,
+                TaggedObject.object_type == ObjectType.DASHBOARD.name,
             )
             .first()
         )
         assert tagged_object is not None
         TagDAO.delete_tagged_object(
-            object_type=ObjectType.dashboard.name, object_id=1, tag_name=tag.name
+            object_type=ObjectType.DASHBOARD, object_id=1, tag_name=tag.name
         )
         tagged_object = (
             db.session.query(TaggedObject)
             .filter(
                 TaggedObject.tag_id == tag.id,
                 TaggedObject.object_id == 1,
-                TaggedObject.object_type == ObjectType.dashboard.name,
+                TaggedObject.object_type == ObjectType.DASHBOARD.name,
             )
             .first()
         )

@@ -29,10 +29,10 @@ down_revision = "59a1450b3c10"
 
 class ObjectType(enum.Enum):
     # pylint: disable=invalid-name
-    query = 1
-    chart = 2
-    dashboard = 3
-    dataset = 4
+    QUERY = 1
+    CHART = 2
+    DASHBOARD = 3
+    DATASET = 4
 
 
 # Define the tagged_object table structure

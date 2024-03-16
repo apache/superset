@@ -76,7 +76,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
 
         try:
             tag_name = self._properties["name"]
-            tag = TagDAO.get_by_name(tag_name.strip(), TagType.custom)
+            tag = TagDAO.get_by_name(tag_name.strip(), TagType.CUSTOM)
             TagDAO.create_tag_relationship(
                 objects_to_tag=self._properties.get("objects_to_tag", []),
                 tag=tag,

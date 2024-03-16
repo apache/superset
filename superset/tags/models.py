@@ -68,22 +68,22 @@ class TagType(enum.Enum):
 
     # pylint: disable=invalid-name
     # explicit tags, added manually by the owner
-    custom = 1
+    CUSTOM = 1
 
     # implicit tags, generated automatically
-    type = 2
-    owner = 3
-    favorited_by = 4
+    TYPE = 2
+    OWNER = 3
+    FAVORITED_BY = 4
 
 
 class ObjectType(enum.Enum):
     """Object types."""
 
     # pylint: disable=invalid-name
-    query = 1
-    chart = 2
-    dashboard = 3
-    dataset = 4
+    QUERY = 1
+    CHART = 2
+    DASHBOARD = 3
+    DATASET = 4
 
 
 class Tag(Model, AuditMixinNullable):
@@ -145,10 +145,10 @@ def get_tag(
 
 def get_object_type(class_name: str) -> ObjectType:
     mapping = {
-        "slice": ObjectType.chart,
-        "dashboard": ObjectType.dashboard,
-        "query": ObjectType.query,
-        "dataset": ObjectType.dataset,
+        "slice": ObjectType.CHART,
+        "dashboard": ObjectType.DASHBOARD,
+        "query": ObjectType.QUERY,
+        "dataset": ObjectType.DATASET,
     }
     try:
         return mapping[class_name.lower()]
@@ -176,7 +176,7 @@ class ObjectUpdater:
         tag_ids = set()
         for owner_id in cls.get_owners_ids(target):
             name = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
+            tag = get_tag(name, session, TagType.OWNER)
             tag_ids.add(tag.id)
         return tag_ids
 
@@ -188,7 +188,7 @@ class ObjectUpdater:
     ) -> None:
         for owner_id in cls.get_owners_ids(target):
             name: str = f"owner:{owner_id}"
-            tag = get_tag(name, session, TagType.owner)
+            tag = get_tag(name, session, TagType.OWNER)
             cls.add_tag_object_if_not_tagged(
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
@@ -228,7 +228,7 @@ class ObjectUpdater:
             cls._add_owners(session, target)
 
             # add `type:` tags
-            tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
+            tag = get_tag(f"type:{cls.object_type}", session, TagType.TYPE)
             cls.add_tag_object_if_not_tagged(
                 session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
             )
@@ -249,7 +249,7 @@ class ObjectUpdater:
                 .filter(
                     TaggedObject.object_type == cls.object_type,
                     TaggedObject.object_id == target.id,
-                    Tag.type == TagType.owner,
+                    Tag.type == TagType.OWNER,
                 )
                 .all()
             )
@@ -329,7 +329,7 @@ class FavStarUpdater:
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
-            tag = get_tag(name, session, TagType.favorited_by)
+            tag = get_tag(name, session, TagType.FAVORITED_BY)
             tagged_object = TaggedObject(
                 tag_id=tag.id,
                 object_id=target.obj_id,
@@ -349,7 +349,7 @@ class FavStarUpdater:
                 .join(Tag)
                 .filter(
                     TaggedObject.object_id == target.obj_id,
-                    Tag.type == TagType.favorited_by,
+                    Tag.type == TagType.FAVORITED_BY,
                     Tag.name == name,
                 )
             )

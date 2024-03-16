@@ -56,7 +56,7 @@ class TagDAO(BaseDAO[Tag]):
         clean_tag_names: set[str] = {tag.strip() for tag in tag_names}
 
         for name in clean_tag_names:
-            type_ = TagType.custom
+            type_ = TagType.CUSTOM
             tag = TagDAO.get_by_name(name, type_)
             tagged_objects.append(
                 TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
@@ -131,7 +131,7 @@ class TagDAO(BaseDAO[Tag]):
                 raise DAODeleteFailedError(exception=ex) from ex
 
     @staticmethod
-    def get_by_name(name: str, type_: TagType = TagType.custom) -> Tag:
+    def get_by_name(name: str, type_: TagType = TagType.CUSTOM) -> Tag:
         """
         returns a tag if one exists by that name, none otherwise.
         important!: Creates a tag by that name if the tag is not found.
@@ -196,7 +196,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Dashboard.id,
-                        TaggedObject.object_type == ObjectType.dashboard,
+                        TaggedObject.object_type == ObjectType.DASHBOARD,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -206,7 +206,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.dashboard.name,
+                    "type": ObjectType.DASHBOARD.name,
                     "name": obj.dashboard_title,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
@@ -226,7 +226,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == Slice.id,
-                        TaggedObject.object_type == ObjectType.chart,
+                        TaggedObject.object_type == ObjectType.CHART,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -235,7 +235,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.chart.name,
+                    "type": ObjectType.CHART.name,
                     "name": obj.slice_name,
                     "url": obj.url,
                     "changed_on": obj.changed_on,
@@ -255,7 +255,7 @@ class TagDAO(BaseDAO[Tag]):
                     TaggedObject,
                     and_(
                         TaggedObject.object_id == SavedQuery.id,
-                        TaggedObject.object_type == ObjectType.query,
+                        TaggedObject.object_type == ObjectType.QUERY,
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
@@ -264,7 +264,7 @@ class TagDAO(BaseDAO[Tag]):
             results.extend(
                 {
                     "id": obj.id,
-                    "type": ObjectType.query.name,
+                    "type": ObjectType.QUERY.name,
                     "name": obj.label,
                     "url": obj.url(),
                     "changed_on": obj.changed_on,

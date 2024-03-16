@@ -157,9 +157,9 @@ def test_create_tag_relationship(mocker):
 
     # Define a list of objects to tag
     objects_to_tag = [
-        (ObjectType.query, 1),
-        (ObjectType.chart, 2),
-        (ObjectType.dashboard, 3),
+        (ObjectType.QUERY, 1),
+        (ObjectType.CHART, 2),
+        (ObjectType.DASHBOARD, 3),
     ]
 
     # Call the function

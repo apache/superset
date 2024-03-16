@@ -38,10 +38,10 @@ def to_object_type(object_type: Union[ObjectType, int, str]) -> Optional[ObjectT
 def to_object_model(
     object_type: ObjectType, object_id: int
 ) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
-    if ObjectType.dashboard == object_type:
+    if ObjectType.DASHBOARD == object_type:
         return DashboardDAO.find_by_id(object_id)
-    if ObjectType.query == object_type:
+    if ObjectType.QUERY == object_type:
         return SavedQueryDAO.find_by_id(object_id)
-    if ObjectType.chart == object_type:
+    if ObjectType.CHART == object_type:
         return ChartDAO.find_by_id(object_id)
     return None
