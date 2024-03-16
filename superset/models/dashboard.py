@@ -410,6 +410,9 @@ def is_int(value: str | int) -> bool:
         return True
     except ValueError:
         return False
+    
+def get_dashboard_list():
+    return db.session.query(Dashboard).all()
 
 
 def id_or_slug_filter(id_or_slug: int | str) -> BinaryExpression:
