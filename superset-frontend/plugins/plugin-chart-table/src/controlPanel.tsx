@@ -44,6 +44,7 @@ import {
   ColumnMeta,
   defineSavedMetrics,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 
 import { PAGE_SIZE_OPTIONS } from './consts';
@@ -145,6 +146,7 @@ const percentMetricsControl: typeof sharedControls.metrics = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.advancedAnalyticsControls,
     {
       label: t('Query'),
       expanded: true,

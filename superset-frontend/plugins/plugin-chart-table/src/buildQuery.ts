@@ -28,6 +28,10 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+import {
+  isTimeComparison,
+  timeCompareOperator,
+} from '@superset-ui/chart-controls';
 import { TableChartFormData } from './types';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 
@@ -130,12 +134,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
     }
 
+    postProcessing.push(timeCompareOperator(formData, baseQueryObject));
     let queryObject = {
       ...baseQueryObject,
       columns,
       orderby,
       metrics,
       post_processing: postProcessing,
+      time_offsets: isTimeComparison(formData, baseQueryObject)
+        ? formData.time_compare
+        : [],
       ...moreProps,
     };
 
