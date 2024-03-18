@@ -345,6 +345,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 "169389281870822",
             ]:
                 result["charts"].remove("Patient Proximity Distribution (from clinic)")
+                print("=============Chart Queries Data================", result)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
