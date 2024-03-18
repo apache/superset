@@ -202,6 +202,7 @@ def test_raise_for_access_query_default_schema(
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
     SqlaTable.query_datasources_by_name.return_value = []
 
