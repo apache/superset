@@ -332,7 +332,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         result = self.dashboard_get_response_schema.dump(dash)
         print("=============Dashboard Result================", result)
-        if dash in [15]:
+        if result.get('id', -1) in [15]:
             session_user_id = session.get("_user_id", "")
             session_user = db.session.query(User).filter(
                 User.id == session_user_id).one_or_none()
