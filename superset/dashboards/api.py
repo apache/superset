@@ -336,6 +336,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             session_user_id = session.get("_user_id", "")
             session_user = db.session.query(User).filter(
                 User.id == session_user_id).one_or_none()
+            print("=============Dashboard User", session_user)
             if session_user.username.split('@')[0] not in [
                 "169383155733447",
                 "169383078074023",
