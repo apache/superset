@@ -21,7 +21,6 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import jinja_context
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.dataset.exceptions import (
     DatabaseNotFoundValidationError,
@@ -35,7 +34,6 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
-from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
