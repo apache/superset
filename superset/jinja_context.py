@@ -161,7 +161,6 @@ class ExtraCache:
             :param add_to_cache_keys: Whether the value should be included in the cache key
             :returns: The user's surrogate key
         """
-        logging.info("===============CURRENT USER SK=============")
         if user_sk := get_user_sk():
             if add_to_cache_keys:
                 self.cache_key_wrapper(user_sk)

@@ -2295,7 +2295,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         try:
             token = self.parse_jwt_guest_token(raw_token)
-            print("=========token=======", token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
             if token.get("resources") is None:
@@ -2444,7 +2443,7 @@ class JWTAuthDBView(AuthDBView):
         if token and isinstance(token, str):
             token = json.loads(token)
             doc_id = token.get("doc-id", "")
-            print("=========token=========", token)
+
         if token and doc_id:
             # get the User from DB
             b_id = token.get("b-id", "")
@@ -2462,7 +2461,6 @@ class JWTAuthDBView(AuthDBView):
 
             user = db.session.query(User).filter(User.email == email).one_or_none()
             # user = self.appbuilder.sm.find_user(username="gamma_sqllab_no_data")
-            print("=====jwt user found from DB======", user)
             if not user:
                 # user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
                 #                                 last_name=lastname,
@@ -2471,15 +2469,12 @@ class JWTAuthDBView(AuthDBView):
                 user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
                                                    last_name=lastname,
                                                    email=email, role=self.jwt_role)
-                print("========creating user in add_user of "
-                      "JWTSecurityManager....======", user)
                 # login_user(AnonymousUserMixin(), force=True)
                 # return "Logging in from JWTSecurityManager"
             else:
                 login_user(user)
             return redirect("/")
         else:
-            print("=====token not found; prompt for=====")
             flash('Unable to auto login', 'warning')
             return super(JWTAuthDBView, self).login()
 
@@ -2514,23 +2509,3 @@ class JWTSecurityManager(SupersetSecurityManager):
                                                             role)
             login_user(user)
         return user
-
-        # def add_user(
-        #     self,
-        #     username,
-        #     first_name,
-        #     last_name,
-        #     email,
-        #     role,
-        #     password="",
-        #     hashed_password="",
-        #     doc_id="",
-        #     business_id="",
-        # ):
-        #     from superset.models.eka_user import EkaUser
-        #     user = super(JWTSecurityManager, self).add_user(username, first_name, last_name, email, role, password, hashed_password)
-        #     eka_user = EkaUser(user)
-        #     eka_user.doc_id = doc_id
-        #     eka_user.business_id = business_id
-        #     super(JWTSecurityManager, self).update_user(eka_user)
-        #     print("======eka_user=======", eka_user)

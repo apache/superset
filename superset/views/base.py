@@ -290,8 +290,6 @@ def check_sess_token():
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
         b_id = token.get("b-id", "")
-        print("=========Before Request Token=========", token)
-        print("=========Before Request Session=========", session)
 
         session_user_username = None
         if session:
@@ -299,23 +297,19 @@ def check_sess_token():
             if session_user_id:
                 session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
                 session_user_username = session_user.username
-                print("===============Before Request Session User=========",
-                      session_user_username)
+
         if b_id and b_id != "10000":
             token_user_username = b_id + '@dummyanalytics.com'
         else:
             token_user_username = doc_id+'@dummyanalytics.com'
         token_user = db.session.query(User).filter(User.username == token_user_username).one_or_none()
-        print("===============Before Request Token User=========", token_user_username)
         if token_user:
             if token_user_username != session_user_username:
                 # switch case
                 login_user(token_user)
-                print("=========Before Request Session After Login=========", session)
                 # session["_user_id"] = token_user.id
             else:
                 # same user
-                print("========Same User Found====================")
                 pass
     else:
         flash("Unable to login")

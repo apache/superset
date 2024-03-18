@@ -137,7 +137,6 @@ class WebDriverPlaywright(WebDriverProxy):
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
         with sync_playwright() as playwright:
-            print("====get_screenshot=====", user)
             browser_args = current_app.config["WEBDRIVER_OPTION_ARGS"]
             browser = playwright.chromium.launch(args=browser_args)
             pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
@@ -352,7 +351,6 @@ class WebDriverSelenium(WebDriverProxy):
         return error_messages
 
     def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
-        print("====get_screenshot=354====", user)
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)

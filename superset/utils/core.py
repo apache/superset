@@ -1362,7 +1362,6 @@ def get_username() -> str | None:
     """
 
     try:
-        print("=======user__dict username=======", g.user.__dict__)
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
@@ -1376,7 +1375,6 @@ def get_doc_id() -> str | None:
     """
 
     try:
-        print("=======user__dict doc_id=======", g.user.__dict__)
         if g.user.first_name.lower() == 'doctor':
             return g.user.email.split("@")[0]
         else:
@@ -1395,7 +1393,6 @@ def get_business_id() -> str | None:
     """
 
     try:
-        print("=======user__dict business_id=======", g.user.__dict__)
         if g.user.first_name.lower() == 'business':
             return g.user.email.split("@")[0]
         else:
@@ -1411,7 +1408,6 @@ def get_user_sk() -> str | None:
 
     try:
         if username := get_username():
-            logger.info("=======user__dict============ %s" % username)
             if user_sk := redis_helper.get_key(username.split("@")[0]):
                 return user_sk
             else:

@@ -8,7 +8,6 @@ def lambda_handler(event, context):
     if token and isinstance(token, str):
         token = json.loads(token)
         doc_id = token.get("doc-id", "")
-        print("=========token=========", token)
     if token and doc_id:
         # redirect forward to dr superset
 

@@ -135,7 +135,6 @@ class RedisHelper:
             :returns: The user's surrogate key
         """
         try:
-            print("================REDIS CONNECTION==================", self._redis)
             user_sk = self._redis.get(username)
             if user_sk:
                 return user_sk
