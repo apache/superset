@@ -99,6 +99,14 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     )
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = dataset
+    mocker.patch(
+        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch(
+        "superset.models.helpers.security_manager.get_guest_rls_filters",
+        return_value=[],
+    )
 
     assert (
         dataset_macro(1)
