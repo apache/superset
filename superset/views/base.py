@@ -296,10 +296,11 @@ def check_sess_token():
         session_user_username = None
         if session:
             session_user_id = session.get("_user_id", "")
-            session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
-            session_user_username = session_user.username
-            print("===============Before Request Session User=========", session_user_username)
-
+            if session_user_id:
+                session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+                session_user_username = session_user.username
+                print("===============Before Request Session User=========",
+                      session_user_username)
         if b_id and b_id != "10000":
             token_user_username = b_id + '@dummyanalytics.com'
         else:
