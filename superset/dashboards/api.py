@@ -339,7 +339,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             print("=============Dashboard User=========", session_user.__dict__)
             print("=============Dashboard Username=========",
                   session_user.__dict__.get('username', '').split('@')[0])
-            if session_user.__dict__.username.split('@')[0] not in [
+            if session_user.__dict__.get('username', '').split('@')[0] not in [
                 "169383155733447",
                 "169383078074023",
                 "169588745651758",
