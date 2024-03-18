@@ -36,7 +36,7 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
-import { Input, InputNumber } from 'src/components/Input';
+import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';

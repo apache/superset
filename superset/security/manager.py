@@ -59,6 +59,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     SupersetSecurityException,
 )
+from superset.jinja_context import get_template_processor
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -1956,11 +1957,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return
 
             if query:
+                # make sure the quuery is valid SQL by rendering any Jinja
+                processor = get_template_processor(database=query.database)
+                rendered_sql = processor.process_template(query.sql)
                 default_schema = database.get_default_schema_for_query(query)
                 tables = {
                     Table(table_.table, table_.schema or default_schema)
                     for table_ in sql_parse.ParsedQuery(
-                        query.sql,
+                        rendered_sql,
                         engine=database.db_engine_spec.engine,
                     ).tables
                 }
