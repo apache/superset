@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Any, cast, Optional
 
 import sqlparse
+from flask_babel import gettext as __
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
 from sqlglot.dialects import Dialects
@@ -55,7 +56,11 @@ from sqlparse.tokens import (
 )
 from sqlparse.utils import imt
 
-from superset.exceptions import QueryClauseValidationException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.utils.backports import StrEnum
 
 try:
@@ -287,9 +292,16 @@ class ParsedQuery:
         """
         try:
             statements = parse(self.stripped(), dialect=self._dialect)
-        except SqlglotError:
+        except SqlglotError as ex:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
-            return set()
+            dialect = self._dialect or "generic"
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=__(f"Unable to parse SQL ({dialect}): {self.sql}"),
+                    level=ErrorLevel.ERROR,
+                )
+            ) from ex
 
         return {
             table
