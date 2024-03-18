@@ -76,6 +76,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }
 
   const onMethodChange = (method: NotificationMethodOption) => {
+    if (method === setting.method) {
+      return;
+    }
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
     if (onUpdate) {
