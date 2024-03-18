@@ -106,18 +106,46 @@ export const LabelsContainer = styled.div`
 export const DndLabelsContainer = styled.div<{
   canDrop?: boolean;
   isOver?: boolean;
+  isDragging: boolean;
 }>`
+  position: relative;
   padding: ${({ theme }) => theme.gridUnit}px;
-  border: ${({ canDrop, isOver, theme }) => {
-    if (canDrop) {
-      return `dashed 1px ${theme.colors.info.dark1}`;
-    }
-    if (isOver && !canDrop) {
-      return `dashed 1px ${theme.colors.error.dark1}`;
+  border: ${({ canDrop, isDragging, theme }) => {
+    if (isDragging) {
+      return `dashed 1px ${
+        canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
+      }`;
     }
     return `solid 1px ${theme.colors.grayscale.light2}`;
   }};
   border-radius: ${({ theme }) => theme.gridUnit}px;
+  &:before,
+  &:after {
+    content: ' ';
+    position: absolute;
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+  }
+  &:before {
+    display: ${({ isDragging }) => (isDragging ? 'block' : 'none')};
+    background-color: ${({ theme, canDrop }) =>
+      canDrop ? theme.colors.primary.base : theme.colors.error.light1};
+    z-index: 10;
+    opacity: 0.2;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    left: 1px;
+  }
+  &:after {
+    display: ${({ isOver, canDrop }) => (canDrop && isOver ? 'block' : 'none')};
+    background-color: ${({ theme }) => theme.colors.primary.base};
+    z-index: 10;
+    opacity: 0.3;
+    top: -4px;
+    right: -4px;
+    bottom: -4px;
+    left: -4px;
+  }
 `;
 
 export const AddControlLabel = styled.div<{
