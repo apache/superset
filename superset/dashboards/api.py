@@ -330,6 +330,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        print("=============Dashboard Result================", result)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
