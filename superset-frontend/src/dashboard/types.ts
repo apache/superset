@@ -144,7 +144,7 @@ export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;
-  database: Database;
+  database?: Database;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;

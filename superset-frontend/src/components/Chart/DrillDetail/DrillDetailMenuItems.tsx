@@ -113,7 +113,7 @@ const DrillDetailMenuItems = ({
 }: DrillDetailMenuItemsProps) => {
   const drillToDetailDisabled = useSelector<RootState, boolean | undefined>(
     ({ datasources }) =>
-      datasources[formData.datasource]?.database.disable_drill_to_detail,
+      datasources[formData.datasource]?.database?.disable_drill_to_detail,
   );
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
