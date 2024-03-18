@@ -23,11 +23,12 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for
+from flask import redirect, request, Response, send_file, url_for, session
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -78,7 +79,7 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
-from superset.extensions import event_logger
+from superset.extensions import event_logger, db
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -331,6 +332,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         result = self.dashboard_get_response_schema.dump(dash)
         print("=============Dashboard Result================", result)
+        if dash in [15]:
+            session_user_id = session.get("_user_id", "")
+            session_user = db.session.query(User).filter(
+                User.id == session_user_id).one_or_none()
+            if session_user.username.split('@')[0] not in [
+                "169383155733447",
+                "169383078074023",
+                "169588745651758",
+                "169440920935387",
+                "169504601829472",
+                "169389281870822",
+            ]:
+                result["charts"].remove("Patient Proximity Distribution (from clinic)")
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -882,7 +896,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+                                             f".favorite_status",
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -931,7 +945,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".add_favorite",
+                                             f".add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
@@ -974,7 +988,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+                                             f".remove_favorite",
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1262,7 +1276,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args,
+                      **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
