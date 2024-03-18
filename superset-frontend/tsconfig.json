@@ -50,7 +50,7 @@
     "forceConsistentCasingInFileNames": true,
 
     /* Backwards Compatibility */
-    // "suppressImplicitAnyIndexErrors": true,
+    "suppressImplicitAnyIndexErrors": true,
 
     /* Language and Environment */
     "target": "esnext",
