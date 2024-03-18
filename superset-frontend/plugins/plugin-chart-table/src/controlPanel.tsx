@@ -479,44 +479,6 @@ const config: ControlPanelConfig = {
               description: t('Whether to include a client-side search box'),
             },
           },
-          {
-            name: 'show_cell_bars',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Cell bars'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to display a bar chart background in table columns',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'align_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Align +/-'),
-              renderTrigger: true,
-              default: false,
-              description: t(
-                'Whether to align background charts with both positive and negative values at 0',
-              ),
-            },
-          },
-          {
-            name: 'color_pn',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Color +/-'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'Whether to colorize numeric values by whether they are positive or negative',
-              ),
-            },
-          },
         ],
         [
           {
@@ -555,6 +517,54 @@ const config: ControlPanelConfig = {
                     | undefined,
                 };
               },
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'show_cell_bars',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Cell bars'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to display a bar chart background in table columns',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'align_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Align +/-'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Whether to align background charts with both positive and negative values at 0',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'color_pn',
+            config: {
+              type: 'CheckboxControl',
+              label: t('add colors to cell bars for +/-'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Whether to colorize numeric values by whether they are positive or negative',
+              ),
             },
           },
         ],
