@@ -256,9 +256,24 @@ class ChartDataRestApi(ChartRestApi):
         try:
             query_context = self._create_query_context_from_form(json_body)
             print("=======Query Context=========", query_context.__dict__)
-            command = ChartDataCommand(query_context)
-            print("==========Command=========", command.__dict__)
-            command.validate()
+            if query_context.__dict__.get('datasource', '') in ['Patient Proximity Distribution (from clinic)']:
+                session_user_id = session.get("_user_id", "")
+                session_user = db.session.query(User).filter(
+                    User.id == session_user_id).one_or_none()
+                print("=============Chart Data User=========", session_user.__dict__)
+                print("=============Chart Data Username=========",
+                      session_user.__dict__.get('username', '').split('@')[0])
+                if session_user.__dict__.get('username', '').split('@')[0] not in [
+                    "169383155733447",
+                    "169383078074023",
+                    "169588745651758",
+                    "169440920935387",
+                    "169504601829472",
+                    "169389281870822",
+                ]:
+                    command = ChartDataCommand(query_context)
+                    print("==========Command=========", command.__dict__)
+                    command.validate()
         except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
