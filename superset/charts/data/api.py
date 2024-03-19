@@ -274,6 +274,13 @@ class ChartDataRestApi(ChartRestApi):
                     command = ChartDataCommand(query_context)
                     print("==========Command=========", command.__dict__)
                     command.validate()
+                else:
+                    self.response_401()
+            else:
+                command = ChartDataCommand(query_context)
+                print("==========Command=========", command.__dict__)
+                command.validate()
+
         except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
