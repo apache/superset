@@ -161,8 +161,8 @@ image:
   # repository: apache/superset
   repository: naturalstate/superset
   # tag: 2.1.3 ok
-  tag: 3.1.1
-  # tag: 3.1.1-dev
+  # tag: 3.1.1
+  tag: 3.1.1-dev
   # latest is lean
   # tag: latest
   pullPolicy: Always
