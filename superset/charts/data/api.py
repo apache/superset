@@ -256,7 +256,8 @@ class ChartDataRestApi(ChartRestApi):
         try:
             query_context = self._create_query_context_from_form(json_body)
             print("=======Query Context=========", query_context.__dict__)
-            if query_context.__dict__.get('datasource', '') in ['Patient Proximity Distribution (from clinic)']:
+            print("=======Query Context Slice ID=========", query_context.__dict__.get('form_data', {}).get('slice_id', -1))
+            if query_context.__dict__.get('form_data', {}).get('slice_id', -1) in [286]:
                 session_user_id = session.get("_user_id", "")
                 session_user = db.session.query(User).filter(
                     User.id == session_user_id).one_or_none()
@@ -278,7 +279,6 @@ class ChartDataRestApi(ChartRestApi):
                     self.response_401()
             else:
                 command = ChartDataCommand(query_context)
-                print("==========Command=========", command.__dict__)
                 command.validate()
 
         except DatasourceNotFound:
