@@ -351,11 +351,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 json_metadata = json.loads(result["json_metadata"])
                 chart_configuration = json_metadata.get("chart_configuration", {})
                 # chartsInScope = global_chart_configuration.get("chartsInScope", [])
-                charts_to_del = ["286"]
+                charts_to_del = ["286", 286]
                 for key in charts_to_del:
+                    print("Deleting chart ", key)
                     del chart_configuration[key]
                 json_metadata["chart_configuration"] = chart_configuration
                 result["json_metadata"] = json.dumps(json_metadata)
+                print("============Chart Configuration", chart_configuration)
                 position_json = json.loads(result["position_json"])
                 print("===============Position json: ===============", position_json)
                 # position_json_keys = list(position_json.keys())
