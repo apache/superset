@@ -359,10 +359,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 result["json_metadata"] = json.dumps(json_metadata)
                 print("============Chart Configuration", chart_configuration)
                 position_json = json.loads(result["position_json"])
-                for k, v in position_json.items():
-                    if v.get("meta", {}).get("chartId", "") == 265:
-                        del position_json[k]
-                        break
+                for key in list(position_json.keys()):
+                    if 'meta' in position_json[key] and 'chartId' in position_json[key]['meta'] and position_json[key]['meta']['chartId'] == 286:
+                        print("===========Deleting this key============")
+                        del position_json[key]
                 print("===============Position json: ===============", position_json)
                 # position_json_keys = list(position_json.keys())
                 # chart_ids_to_del = ["CHART-c9X6C01dyw"]
