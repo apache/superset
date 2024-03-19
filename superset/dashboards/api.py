@@ -369,7 +369,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 # print("Proximity Chart:", position_json["CHART-c9X6C01dyw"])
                 # for key in chart_ids_to_del:
                 #     del position_json[key]
-                # result["position_json"] = json.dumps(position_json)
+                result["position_json"] = json.dumps(position_json)
                 print("=============Chart Queries Data================  ", result)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
