@@ -73,12 +73,12 @@ export const customTagRender = (props: CustomTagProps) => {
   const customCloseIcon = <CloseOutlined role="button" />;
 
   if (value !== SELECT_ALL_VALUE) {
-    const tagProps = closable ? customCloseIcon : false;
+    const closeIconProp = closable ? customCloseIcon : undefined;
 
     return (
       <Tag
         onMouseDown={onPreventMouseDown}
-        closeIcon={tagProps}
+        closeIcon={closeIconProp}
         {...(props as object)}
       >
         {label}
