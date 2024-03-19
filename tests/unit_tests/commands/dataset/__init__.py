@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,28 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
--r base.in
--e .[bigquery,cors,druid,gevent,gsheets,hive,mysql,playwright,postgres,presto,prophet,trino,thumbnails]
-
-docker
-flask-testing
-freezegun
-greenlet>=2.0.2
-grpcio>=1.55.3
-ipython
-openapi-spec-validator
-parameterized
-pip-compile-multi
-pre-commit
-progress>=1.5,<2
-pyfakefs
-pyinstrument>=4.0.2,<5
-pylint
-pytest
-pytest-cov
-pytest-mock
-python-ldap>=3.4.3
-sqloxide
-statsd
-tox

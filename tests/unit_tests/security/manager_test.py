@@ -27,6 +27,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import SupersetSecurityManager
+from superset.sql_parse import Table
 from superset.superset_typing import AdhocMetric
 from superset.utils.core import override_user
 
@@ -243,6 +244,40 @@ def test_raise_for_access_query_default_schema(
         == """You need access to the following tables: `public.ab_user`,
             `all_database_access` or `all_datasource_access` permission"""
     )
+
+
+def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> None:
+    """
+    Test that Jinja gets rendered to SQL.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    get_table_access_error_object = mocker.patch.object(
+        sm, "get_table_access_error_object"
+    )
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock()
+    query.database = database
+    query.sql = "SELECT * FROM {% if True %}ab_user{% endif %} WHERE 1=1"
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(
+            database=None,
+            datasource=None,
+            query=query,
+            query_context=None,
+            table=None,
+            viz=None,
+        )
+
+    get_table_access_error_object.assert_called_with({Table("ab_user", "public")})
 
 
 def test_raise_for_access_chart_for_datasource_permission(
