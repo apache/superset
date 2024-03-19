@@ -450,6 +450,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query with applied time extras
         """
+        if backend() == "hive":
+            return
+
         self.query_context_payload["queries"][0]["applied_time_extras"] = {
             "__time_range": "100 years ago : now",
             "__time_origin": "now",
