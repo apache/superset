@@ -446,9 +446,9 @@ class Chart extends React.Component {
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
     const initialValues = isFilterBox(id)
       ? getFilterValuesByFilterId({
-        activeFilters: filters,
-        filterId: id,
-      })
+          activeFilters: filters,
+          filterId: id,
+        })
       : {};
 
     return (
