@@ -129,8 +129,8 @@ export const DndLabelsContainer = styled.div<{
     display: ${({ isDragging }) => (isDragging ? 'block' : 'none')};
     background-color: ${({ theme, canDrop }) =>
       canDrop ? theme.colors.primary.base : theme.colors.error.light1};
-    z-index: 10;
-    opacity: 0.2;
+    z-index: ${({ theme }) => theme.zIndex.aboveDashboardCharts};
+    opacity: ${({ theme }) => theme.opacity.light};
     top: 1px;
     right: 1px;
     bottom: 1px;
@@ -139,12 +139,12 @@ export const DndLabelsContainer = styled.div<{
   &:after {
     display: ${({ isOver, canDrop }) => (canDrop && isOver ? 'block' : 'none')};
     background-color: ${({ theme }) => theme.colors.primary.base};
-    z-index: 10;
-    opacity: 0.3;
-    top: -4px;
-    right: -4px;
-    bottom: -4px;
-    left: -4px;
+    z-index: ${({ theme }) => theme.zIndex.dropdown};
+    opacity: ${({ theme }) => theme.opacity.mediumLight};
+    top: ${({ theme }) => -theme.gridUnit}px;
+    right: ${({ theme }) => -theme.gridUnit}px;
+    bottom: ${({ theme }) => -theme.gridUnit}px;
+    left: ${({ theme }) => -theme.gridUnit}px;
   }
 `;
 
