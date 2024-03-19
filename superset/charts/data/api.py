@@ -125,6 +125,7 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        print("=========Calling get_data=============")
         if pk in [286]:
             session_user_id = session.get("_user_id", "")
             session_user = db.session.query(User).filter(
@@ -241,6 +242,7 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        print("=========Calling data=============")
         json_body = None
         if request.is_json:
             json_body = request.json
