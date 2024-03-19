@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - "[0-9].[0-9]"
 
 jobs:
   config:
@@ -32,14 +33,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
+          
       - name: Install Dependencies
         run: npm install
         working-directory: ./superset-frontend
 
       - name: Run Script
         env:
-          SPREADSHEET_ID: '1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo'
+          SPREADSHEET_ID: "1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo"
           SERVICE_ACCOUNT_KEY: ${{ secrets.GSHEET_KEY }}
         run: npm run lint-stats
         continue-on-error: true

@@ -41,7 +41,7 @@
     "@storybook/addon-links": "^7.6.13",
     "@storybook/addons": "^7.6.13",
     "@storybook/react": "^7.6.13",
-    "@storybook/types": "^7.6.13",
+    "@storybook/types": "^7.6.17",
     "@types/react-loadable": "^5.5.3",
     "antd": "4.10.3",
     "bootstrap": "^3.4.1",
@@ -62,7 +62,6 @@
     "@babel/preset-typescript": "^7.23.3",
     "@storybook/react-webpack5": "^7.6.13",
     "babel-loader": "^8.1.0",
-    "chromatic": "^5.4.0",
     "fork-ts-checker-webpack-plugin": "^5.0.7",
     "ts-loader": "^7.0.4",
     "typescript": "^4.5.4"

@@ -3,7 +3,8 @@ name: Translations
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
@@ -46,7 +47,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
