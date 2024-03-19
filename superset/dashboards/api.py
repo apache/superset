@@ -360,7 +360,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 print("============Chart Configuration", chart_configuration)
                 position_json = json.loads(result["position_json"])
                 for k, v in position_json.items():
-                    if v.get("meta", {}).get("chartId", "") == "265":
+                    if v.get("meta", {}).get("chartId", "") == 265:
                         del position_json[k]
                         break
                 print("===============Position json: ===============", position_json)
