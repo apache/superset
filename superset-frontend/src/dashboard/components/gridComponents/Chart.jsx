@@ -43,7 +43,6 @@ import { slicePropShape, chartPropShape } from '../../util/propShapes';
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
 import watermarkImage from '../../../assets/images/ortege-logo-horiz.png';
-
 const propTypes = {
   id: PropTypes.number.isRequired,
   componentId: PropTypes.string.isRequired,
@@ -127,11 +126,11 @@ const ChartWaterMark = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
-  max-width: min(50%,20rem);
-  max-height: min(25%,20rem);
+  max-width: min(50%, 20rem);
+  max-height: min(25%, 20rem);
   margin: auto;
   pointer-events: none;
-  opacity: .2;
+  opacity: 0.2;
   display: flex;
   justify-content: center;
   align-items: center;
