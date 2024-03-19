@@ -36,6 +36,11 @@ const ExploreContainer: React.FC<{}> = ({ children }) => {
   useEffect(() => {
     const monitor = dragDropManager.getMonitor();
     const unsub = monitor.subscribeToStateChange(() => {
+      const item = monitor.getItem() || {};
+      // don't show dragging state for the sorting item
+      if ('dragIndex' in item) {
+        return;
+      }
       const isDragging = monitor.isDragging();
       setDragging(isDragging);
     });
