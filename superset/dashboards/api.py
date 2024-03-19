@@ -348,7 +348,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 "169389281870822",
             ]:
                 result["charts"].remove("Patient Proximity Distribution (from clinic)")
-                print("=============Chart Queries Data================", result)
+                # json_metadata = json.loads(result["json_metadata"])
+                # global_chart_configuration = json_metadata.get("global_chart-configuration", {})
+                # chartsInScope = global_chart_configuration.get("chartsInScope", [])
+                # charts_to_del = []
+                # for chart in charts_to_del:
+                #     chartsInScope.remove(chart)
+                position_json = json.loads(result["position_json"])
+                # position_json_keys = list(position_json.keys())
+                chart_ids_to_del = ["CHART-c9X6C01dyw"]
+                for key in chart_ids_to_del:
+                    del position_json[key]
+                result["position_json"] = json.dumps(position_json)
+                print("=============Chart Queries Data================  ", result)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
