@@ -106,7 +106,7 @@ export const LabelsContainer = styled.div`
 export const DndLabelsContainer = styled.div<{
   canDrop?: boolean;
   isOver?: boolean;
-  isDragging: boolean;
+  isDragging?: boolean;
 }>`
   position: relative;
   padding: ${({ theme }) => theme.gridUnit}px;
