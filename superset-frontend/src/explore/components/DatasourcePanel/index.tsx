@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   css,
   DatasourceType,
   Metric,
   QueryFormData,
+  SLOW_DEBOUNCE,
   styled,
   t,
 } from '@superset-ui/core';
 
 import { ControlConfig } from '@superset-ui/chart-controls';
-
-import { debounce, isArray } from 'lodash';
+import { isArray } from 'lodash';
+import { Checkbox } from 'antd';
 import { matchSorter, rankings } from 'match-sorter';
 import Collapse from 'src/components/Collapse';
 import Alert from 'src/components/Alert';
@@ -38,9 +39,11 @@ import { Input } from 'src/components/Input';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
+import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
 import { DndItemValue } from './types';
+import { DropzoneContext } from '../ExploreContainer';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: IDatasource;
@@ -202,6 +205,9 @@ const LabelContainer = (props: {
   );
 };
 
+const sortCertifiedFirst = (slice: DataSourcePanelColumn[]) =>
+  slice.sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
+
 export default function DataSourcePanel({
   datasource,
   formData,
@@ -209,11 +215,30 @@ export default function DataSourcePanel({
   actions,
   shouldForceUpdate,
 }: Props) {
+  const [dropzones] = useContext(DropzoneContext);
+  const [allowlistOnly, setAllowlistOnly] = useState(false);
+
   const { columns: _columns, metrics } = datasource;
+
+  const allowedColumns = useMemo(() => {
+    const validators = Object.values(dropzones);
+    if (!isArray(_columns)) return [];
+    return allowlistOnly
+      ? _columns.filter(column =>
+          validators.some(validator =>
+            validator({
+              value: column as DndItemValue,
+              type: DndItemType.Column,
+            }),
+          ),
+        )
+      : _columns;
+  }, [dropzones, _columns, allowlistOnly]);
+
   // display temporal column first
   const columns = useMemo(
     () =>
-      [...(isArray(_columns) ? _columns : [])].sort((col1, col2) => {
+      [...allowedColumns].sort((col1, col2) => {
         if (col1?.is_dttm && !col2?.is_dttm) {
           return -1;
         }
@@ -222,107 +247,105 @@ export default function DataSourcePanel({
         }
         return 0;
       }),
-    [_columns],
+    [allowedColumns],
   );
+
+  const allowedMetrics = useMemo(() => {
+    const validators = Object.values(dropzones);
+    return allowlistOnly
+      ? metrics.filter(metric =>
+          validators.some(validator =>
+            validator({ value: metric, type: DndItemType.Metric }),
+          ),
+        )
+      : metrics;
+  }, [dropzones, metrics, allowlistOnly]);
+
+  console.log('allowedMetrics', allowedMetrics);
 
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [lists, setList] = useState({
-    columns,
-    metrics,
-  });
   const [showAllMetrics, setShowAllMetrics] = useState(false);
   const [showAllColumns, setShowAllColumns] = useState(false);
+  const searchKeyword = useDebounceValue(inputValue, FAST_DEBOUNCE);
 
   const DEFAULT_MAX_COLUMNS_LENGTH = 50;
   const DEFAULT_MAX_METRICS_LENGTH = 50;
 
-  const search = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (value === '') {
-          setList({ columns, metrics });
-          return;
-        }
-        setList({
-          columns: matchSorter(columns, value, {
-            keys: [
-              {
-                key: 'verbose_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: 'column_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: item =>
-                  [item?.description ?? '', item?.expression ?? ''].map(
-                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                  ),
-                threshold: rankings.CONTAINS,
-                maxRanking: rankings.CONTAINS,
-              },
-            ],
-            keepDiacritics: true,
-          }),
-          metrics: matchSorter(metrics, value, {
-            keys: [
-              {
-                key: 'verbose_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: 'metric_name',
-                threshold: rankings.CONTAINS,
-              },
-              {
-                key: item =>
-                  [item?.description ?? '', item?.expression ?? ''].map(
-                    x => x?.replace(/[_\n\s]+/g, ' ') || '',
-                  ),
-                threshold: rankings.CONTAINS,
-                maxRanking: rankings.CONTAINS,
-              },
-            ],
-            keepDiacritics: true,
-            baseSort: (a, b) =>
-              Number(b?.item?.is_certified ?? 0) -
-                Number(a?.item?.is_certified ?? 0) ||
-              String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
-          }),
-        });
-      }, FAST_DEBOUNCE),
-    [columns, metrics],
-  );
-
-  useEffect(() => {
-    setList({
-      columns,
-      metrics,
+  const filteredColumns = useMemo(() => {
+    if (!searchKeyword) {
+      return columns ?? [];
+    }
+    return matchSorter(columns, searchKeyword, {
+      keys: [
+        {
+          key: 'verbose_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: 'column_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: item =>
+            [item?.description ?? '', item?.expression ?? ''].map(
+              x => x?.replace(/[_\n\s]+/g, ' ') || '',
+            ),
+          threshold: rankings.CONTAINS,
+          maxRanking: rankings.CONTAINS,
+        },
+      ],
+      keepDiacritics: true,
     });
-    setInputValue('');
-  }, [columns, datasource, metrics]);
+  }, [columns, searchKeyword]);
 
-  const sortCertifiedFirst = (slice: DataSourcePanelColumn[]) =>
-    slice.sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
+  const filteredMetrics = useMemo(() => {
+    if (!searchKeyword) {
+      return allowedMetrics ?? [];
+    }
+    return matchSorter(allowedMetrics, searchKeyword, {
+      keys: [
+        {
+          key: 'verbose_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: 'metric_name',
+          threshold: rankings.CONTAINS,
+        },
+        {
+          key: item =>
+            [item?.description ?? '', item?.expression ?? ''].map(
+              x => x?.replace(/[_\n\s]+/g, ' ') || '',
+            ),
+          threshold: rankings.CONTAINS,
+          maxRanking: rankings.CONTAINS,
+        },
+      ],
+      keepDiacritics: true,
+      baseSort: (a, b) =>
+        Number(b?.item?.is_certified ?? 0) -
+          Number(a?.item?.is_certified ?? 0) ||
+        String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
+    });
+  }, [allowedMetrics, searchKeyword]);
 
   const metricSlice = useMemo(
     () =>
       showAllMetrics
-        ? lists?.metrics
-        : lists?.metrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
-    [lists?.metrics, showAllMetrics],
+        ? filteredMetrics
+        : filteredMetrics?.slice?.(0, DEFAULT_MAX_METRICS_LENGTH),
+    [filteredMetrics, showAllMetrics],
   );
 
   const columnSlice = useMemo(
     () =>
       showAllColumns
-        ? sortCertifiedFirst(lists?.columns)
+        ? sortCertifiedFirst(filteredColumns)
         : sortCertifiedFirst(
-            lists?.columns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
+            filteredColumns?.slice?.(0, DEFAULT_MAX_COLUMNS_LENGTH),
           ),
-    [lists.columns, showAllColumns],
+    [filteredColumns, showAllColumns],
   );
 
   const showInfoboxCheck = () => {
@@ -349,12 +372,26 @@ export default function DataSourcePanel({
           allowClear
           onChange={evt => {
             setInputValue(evt.target.value);
-            search(evt.target.value);
           }}
           value={inputValue}
           className="form-control input-md"
           placeholder={t('Search Metrics & Columns')}
         />
+        <div
+          css={css`
+            display: flex;
+            margin: 0 16px;
+            column-gap: 4px;
+          `}
+        >
+          <Checkbox
+            id="allowlistOnly"
+            onChange={({ target }) => setAllowlistOnly(Boolean(target.checked))}
+            checked={allowlistOnly}
+          >
+            {t('Show only allowlist')}
+          </Checkbox>
+        </div>
         <div className="field-selections">
           {datasourceIsSaveable && showInfoboxCheck() && (
             <StyledInfoboxWrapper>
@@ -399,7 +436,7 @@ export default function DataSourcePanel({
                   {t(
                     `Showing %s of %s`,
                     metricSlice?.length,
-                    lists?.metrics.length,
+                    filteredMetrics.length,
                   )}
                 </div>
                 {metricSlice?.map?.((m: Metric) => (
@@ -413,7 +450,7 @@ export default function DataSourcePanel({
                     />
                   </LabelContainer>
                 ))}
-                {lists?.metrics?.length > DEFAULT_MAX_METRICS_LENGTH ? (
+                {filteredMetrics.length > DEFAULT_MAX_METRICS_LENGTH ? (
                   <ButtonContainer>
                     <Button onClick={() => setShowAllMetrics(!showAllMetrics)}>
                       {showAllMetrics ? t('Show less...') : t('Show all...')}
@@ -432,7 +469,7 @@ export default function DataSourcePanel({
                 {t(
                   `Showing %s of %s`,
                   columnSlice.length,
-                  lists.columns.length,
+                  filteredColumns.length,
                 )}
               </div>
               {columnSlice.map(col => (
@@ -446,7 +483,7 @@ export default function DataSourcePanel({
                   />
                 </LabelContainer>
               ))}
-              {lists.columns.length > DEFAULT_MAX_COLUMNS_LENGTH ? (
+              {filteredColumns.length > DEFAULT_MAX_COLUMNS_LENGTH ? (
                 <ButtonContainer>
                   <Button onClick={() => setShowAllColumns(!showAllColumns)}>
                     {showAllColumns ? t('Show Less...') : t('Show all...')}
@@ -464,14 +501,14 @@ export default function DataSourcePanel({
     [
       columnSlice,
       inputValue,
-      lists.columns.length,
-      lists?.metrics?.length,
+      filteredColumns.length,
+      filteredMetrics.length,
       metricSlice,
-      search,
       showAllColumns,
       showAllMetrics,
       datasourceIsSaveable,
       shouldForceUpdate,
+      allowlistOnly,
     ],
   );
 
