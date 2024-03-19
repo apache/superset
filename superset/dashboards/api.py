@@ -357,6 +357,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 position_json = json.loads(result["position_json"])
                 # position_json_keys = list(position_json.keys())
                 chart_ids_to_del = ["CHART-c9X6C01dyw"]
+                print("Proximity Chart:", position_json["CHART-c9X6C01dyw"])
                 for key in chart_ids_to_del:
                     del position_json[key]
                 result["position_json"] = json.dumps(position_json)
