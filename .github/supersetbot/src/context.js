@@ -37,7 +37,7 @@ class Context {
     const optionValue = options[optionName];
     if (optionValue === undefined || optionValue === null) {
       this.logError(`option [${optionName}] is required`);
-      // this.exit(1);
+      this.exit(1);
     }
   }
 

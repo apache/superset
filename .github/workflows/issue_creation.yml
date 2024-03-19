@@ -1,0 +1,24 @@
+name: supersetbot org label based on author
+
+on:
+  # Note that this includes both issues and PRs
+  issues:
+    types: [created]
+
+jobs:
+  supersetbot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute SupersetBot Command
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install supersetbot
+      - name: Execute custom Node.js script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # First, label the issue with the appropriate org
+          # - this requires for the author to be publicly associated with their org
+          # - and for the org to be listed in `supersetbot/src/metadata.js`
+          superset orglabel --issue ${{ github.event.issue.number }} --repo ${{ github.repository }}
