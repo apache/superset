@@ -1,8 +1,10 @@
 name: supersetbot org label based on author
 
 on:
-  # Note that this includes both issues and PRs
   issues:
+    types: [created]
+
+  pull_request:
     types: [created]
 
 jobs:
@@ -18,7 +20,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # First, label the issue with the appropriate org
+          # Labbel the issue with the appropriate org using supersetbot
           # - this requires for the author to be publicly associated with their org
           # - and for the org to be listed in `supersetbot/src/metadata.js`
           superset orglabel --issue ${{ github.event.issue.number }} --repo ${{ github.repository }}
