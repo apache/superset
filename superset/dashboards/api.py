@@ -353,12 +353,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 # chartsInScope = global_chart_configuration.get("chartsInScope", [])
                 charts_to_del = ["286"]
                 for key in charts_to_del:
-                    print("Deleting chart ", key)
+                    print(f"Deleting chart configuration for {key} and value {chart_configuration[key]}")
                     del chart_configuration[key]
                 json_metadata["chart_configuration"] = chart_configuration
                 result["json_metadata"] = json.dumps(json_metadata)
                 print("============Chart Configuration", chart_configuration)
                 position_json = json.loads(result["position_json"])
+                for k, v in position_json.items():
+                    if v.get("meta", {}).get("chartId", "") == "265":
+                        del position_json[k]
+                        break
                 print("===============Position json: ===============", position_json)
                 # position_json_keys = list(position_json.keys())
                 # chart_ids_to_del = ["CHART-c9X6C01dyw"]
