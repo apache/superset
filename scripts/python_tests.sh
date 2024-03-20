@@ -26,10 +26,13 @@ export LD_PRELOAD=/lib/x86_64-linux-gnu/libstdc++.so.6
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.integration_tests.superset_test_config}
 export SUPERSET_TESTENV=true
 echo "Superset config module: $SUPERSET_CONFIG"
-
-superset db upgrade
-superset init
-
 echo "Running tests"
 
-pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset ./tests/integration_tests "$@"
+if [[ $@ =~ "integration_tests" ]]; then
+    superset db upgrade
+    superset init
+    superset load-test-users
+    pytest --durations-min=2 --maxfail=1 --cov-report= --cov=superset "$@"
+else
+    pytest --durations-min=0.5 --cov-report= --cov=superset "$@"
+fi

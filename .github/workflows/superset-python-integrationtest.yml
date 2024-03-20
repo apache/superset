@@ -67,7 +67,7 @@ jobs:
       - name: Python integration tests (MySQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh tests/integration_tests
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
@@ -126,7 +126,7 @@ jobs:
       - name: Python integration tests (PostgreSQL)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh tests/integration_tests
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
@@ -181,7 +181,7 @@ jobs:
       - name: Python integration tests (SQLite)
         if: steps.check.outcome == 'failure'
         run: |
-          ./scripts/python_tests.sh
+          ./scripts/python_tests.sh tests/integration_tests
       - name: Upload code coverage
         if: steps.check.outcome == 'failure'
         run: |
