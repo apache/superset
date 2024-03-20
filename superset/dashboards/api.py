@@ -331,6 +331,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        print("===========Dash====================", dash)
         print("=============Dashboard Result================", result)
         if result.get('id', -1) in [15]:
             session_user_id = session.get("_user_id", "")

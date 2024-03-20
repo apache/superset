@@ -264,7 +264,7 @@ class ChartDataRestApi(ChartRestApi):
                 print("=============Chart Data User=========", session_user.__dict__)
                 print("=============Chart Data Username=========",
                       session_user.__dict__.get('username', '').split('@')[0])
-                if session_user.__dict__.get('username', '').split('@')[0] not in [
+                if session_user.__dict__.get('username', '').split('@')[0] in [
                     "169383155733447",
                     "169383078074023",
                     "169588745651758",
