@@ -393,6 +393,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         try:
+            if id_or_slug == "15":
+                session_user_id = session.get("_user_id", "")
+                session_user = db.session.query(User).filter(
+                    User.id == session_user_id).one_or_none()
+                if session_user.__dict__.get('username', '').split('@')[0] in [
+                    "169383155733447",
+                    "169383078074023",
+                    "169588745651758",
+                    "169440920935387",
+                    "169504601829472",
+                    "169389281870822",
+                ]:
+                    id_or_slug = "20"
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
@@ -449,6 +462,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         try:
+            if id_or_slug == "15":
+                session_user_id = session.get("_user_id", "")
+                session_user = db.session.query(User).filter(
+                    User.id == session_user_id).one_or_none()
+                if session_user.__dict__.get('username', '').split('@')[0] in [
+                    "169383155733447",
+                    "169383078074023",
+                    "169588745651758",
+                    "169440920935387",
+                    "169504601829472",
+                    "169389281870822",
+                ]:
+                    id_or_slug = "20"
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
             return self.response(200, result=result)
