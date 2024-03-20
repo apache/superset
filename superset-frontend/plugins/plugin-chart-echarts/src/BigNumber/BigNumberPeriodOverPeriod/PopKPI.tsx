@@ -20,6 +20,7 @@ import React, { useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import {
+  ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
   PopKPIProps,
@@ -66,6 +67,7 @@ export default function PopKPI(props: PopKPIProps) {
     headerFontSize,
     subheaderFontSize,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber,
     comparatorText,
   } = props;
@@ -90,8 +92,18 @@ export default function PopKPI(props: PopKPIProps) {
   `;
 
   const getArrowIndicatorColor = () => {
-    if (!comparisonColorEnabled) return theme.colors.grayscale.base;
-    return percentDifferenceNumber > 0
+    if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
+      return theme.colors.grayscale.base;
+    }
+
+    if (percentDifferenceNumber > 0) {
+      // Positive difference
+      return comparisonColorScheme === ColorSchemeEnum.Green
+        ? theme.colors.success.base
+        : theme.colors.error.base;
+    }
+    // Negative difference
+    return comparisonColorScheme === ColorSchemeEnum.Red
       ? theme.colors.success.base
       : theme.colors.error.base;
   };
@@ -106,23 +118,32 @@ export default function PopKPI(props: PopKPIProps) {
   const { backgroundColor, textColor } = useMemo(() => {
     let bgColor = defaultBackgroundColor;
     let txtColor = defaultTextColor;
-    if (percentDifferenceNumber > 0) {
-      if (comparisonColorEnabled) {
-        bgColor = theme.colors.success.light2;
-        txtColor = theme.colors.success.base;
-      }
-    } else if (percentDifferenceNumber < 0) {
-      if (comparisonColorEnabled) {
-        bgColor = theme.colors.error.light2;
-        txtColor = theme.colors.error.base;
-      }
+    if (comparisonColorEnabled && percentDifferenceNumber !== 0) {
+      const useSuccess =
+        (percentDifferenceNumber > 0 &&
+          comparisonColorScheme === ColorSchemeEnum.Green) ||
+        (percentDifferenceNumber < 0 &&
+          comparisonColorScheme === ColorSchemeEnum.Red);
+
+      // Set background and text colors based on the conditions
+      bgColor = useSuccess
+        ? theme.colors.success.light2
+        : theme.colors.error.light2;
+      txtColor = useSuccess
+        ? theme.colors.success.base
+        : theme.colors.error.base;
     }
 
     return {
       backgroundColor: bgColor,
       textColor: txtColor,
     };
-  }, [theme, comparisonColorEnabled, percentDifferenceNumber]);
+  }, [
+    theme,
+    comparisonColorScheme,
+    comparisonColorEnabled,
+    percentDifferenceNumber,
+  ]);
 
   const SYMBOLS_WITH_VALUES = useMemo(
     () => [

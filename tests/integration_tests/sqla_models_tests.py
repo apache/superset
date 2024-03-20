@@ -150,9 +150,10 @@ class TestDatabaseModel(SupersetTestCase):
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="""
-            SELECT  '{{ current_user_id() }}' as id,
-            SELECT  '{{ current_username() }}' as username,
-            SELECT  '{{ current_user_email() }}' as email,
+            SELECT
+              '{{ current_user_id() }}' as id,
+              '{{ current_username() }}' as username,
+              '{{ current_user_email() }}' as email
             """,
             database=get_example_database(),
         )
@@ -166,9 +167,10 @@ class TestDatabaseModel(SupersetTestCase):
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="""
-            SELECT  '{{ current_user_id(False) }}' as id,
-            SELECT  '{{ current_username(False) }}' as username,
-            SELECT  '{{ current_user_email(False) }}' as email,
+            SELECT
+              '{{ current_user_id(False) }}' as id,
+              '{{ current_username(False) }}' as username,
+              '{{ current_user_email(False) }}' as email,
             """,
             database=get_example_database(),
         )
@@ -250,10 +252,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
         # assert virtual dataset
-        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
         # assert dataset calculated column
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
         assert "'foo_P1D'" in query
         # assert dataset saved metric
@@ -746,7 +749,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "COL4 IS NOT NULL",
+            "sql_should_contain": "NOT COL4 IS NULL",
         },
     ]
     for expected in expected_results:

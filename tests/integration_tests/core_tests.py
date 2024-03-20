@@ -531,7 +531,7 @@ class TestCore(SupersetTestCase):
         )
 
     def test_comments_in_sqlatable_query(self):
-        clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
+        clean_query = "SELECT\n  '/* val 1 */' AS c1,\n  '-- val 2' AS c2\nFROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
         table = SqlaTable(
             table_name="test_comments_in_sqlatable_query_table",

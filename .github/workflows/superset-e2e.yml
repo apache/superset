@@ -69,21 +69,15 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh python frontend
       - name: Setup Python
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
+        uses: ./.github/actions/setup-backend/
       - name: OS dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: apt-get-install
-      - name: Install python dependencies
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            pip-upgrade
-            pip install -r requirements/testing.txt
       - name: Setup postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies

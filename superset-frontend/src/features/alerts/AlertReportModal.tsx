@@ -36,7 +36,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
-import { Input } from 'src/components/Input';
+import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -873,6 +873,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(name, parsedValue);
   };
 
+  const onCustomWidthChange = (value: number | null | undefined) => {
+    updateAlertState('custom_width', value);
+  };
+
   const onTimeoutVerifyChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
@@ -1542,12 +1546,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             >
               <div className="control-label">{t('Screenshot width')}</div>
               <div className="input-container">
-                <Input
+                <InputNumber
                   type="number"
                   name="custom_width"
-                  value={currentAlert?.custom_width || ''}
+                  value={currentAlert?.custom_width || undefined}
+                  min={600}
+                  max={2400}
                   placeholder={t('Input custom width in pixels')}
-                  onChange={onInputChange}
+                  onChange={onCustomWidthChange}
                 />
               </div>
             </StyledInputContainer>

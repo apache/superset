@@ -58,23 +58,7 @@ jobs:
           submodules: recursive
           ref: master
       - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - name: OS dependencies
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: apt-get-install
-      - name: Install python dependencies
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            pip-upgrade
-            pip install -r requirements/testing.txt
-      - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: setup-postgres
+        uses: ./.github/actions/setup-backend/
       - name: Import test data
         uses: ./.github/actions/cached-dependencies
         with:
@@ -91,6 +75,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Setup Postgres
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
       - name: Install cypress
         uses: ./.github/actions/cached-dependencies
         with:

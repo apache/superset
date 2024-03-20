@@ -45,21 +45,18 @@ jobs:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
       fail-fast: false
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          submodules: recursive
-          ref: ${{ github.ref }}
-          fetch-depth: 0
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker Image
+      - name: Setup Node Env
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g supersetbot
+      - name: Execute custom Node.js script
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -79,11 +76,10 @@ jobs:
             cp /tmp/build_docker.py scripts/
             EVENT="release"
           fi
-          pip install click
-          # Make a multi-platform image
-          ./scripts/build_docker.py \
-            ${{ matrix.build_preset }} \
-            "$EVENT" \
-            --build_context_ref "$RELEASE" $FORCE_LATEST \
+
+          supersetbot docker \
+            --preset ${{ matrix.build_preset }} \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
             --platform "linux/arm64" \
             --platform "linux/amd64"

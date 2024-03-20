@@ -295,3 +295,20 @@ class SupersetMarshmallowValidationError(SupersetErrorException):
             extra={"messages": exc.messages, "payload": payload},
         )
         super().__init__(error)
+
+
+class SupersetParseError(SupersetErrorException):
+    """
+    Exception to be raised when we fail to parse SQL.
+    """
+
+    status = 422
+
+    def __init__(self, sql: str, engine: Optional[str] = None):
+        error = SupersetError(
+            message=_("The SQL is invalid and cannot be parsed."),
+            error_type=SupersetErrorType.INVALID_SQL_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"sql": sql, "engine": engine},
+        )
+        super().__init__(error)

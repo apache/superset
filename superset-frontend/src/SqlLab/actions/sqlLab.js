@@ -921,6 +921,7 @@ export function formatQuery(queryEditor) {
     const { sql } = getUpToDateQuery(getState(), queryEditor);
     return SupersetClient.post({
       endpoint: `/api/v1/sqllab/format_sql/`,
+      // TODO (betodealmeida): pass engine as a parameter for better formatting
       body: JSON.stringify({ sql }),
       headers: { 'Content-Type': 'application/json' },
     }).then(({ json }) => {

@@ -85,6 +85,16 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     canDelete,
   } = props;
 
+  const extra = useMemo<{ disallow_adhoc_metrics?: boolean }>(() => {
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
+    return extra;
+  }, [datasource?.extra]);
+
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
     propsValues.map((filter: OptionValueType) =>
@@ -147,6 +157,17 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
   };
   const [options, setOptions] = useState(
     optionsForSelect(props.columns, props.formData),
+  );
+
+  const availableColumnSet = useMemo(
+    () =>
+      new Set(
+        options.map(
+          ({ column_name, filterOptionName }) =>
+            column_name ?? filterOptionName,
+        ),
+      ),
+    [options],
   );
 
   useEffect(() => {
@@ -384,14 +405,21 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
+      if (
+        extra.disallow_adhoc_metrics &&
+        (item.type !== DndItemType.Column ||
+          !availableColumnSet.has((item.value as ColumnMeta).column_name))
+      ) {
+        return false;
+      }
+
       if (item.type === DndItemType.Column) {
-        return props.columns.some(
-          col => col.column_name === (item.value as ColumnMeta).column_name,
-        );
+        const columnName = (item.value as ColumnMeta).column_name;
+        return availableColumnSet.has(columnName);
       }
       return true;
     },
-    [props.columns],
+    [availableColumnSet, extra],
   );
 
   const handleDrop = useCallback(

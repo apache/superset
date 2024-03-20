@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode, MouseEventHandler } from 'react';
 
 /**
  * A function which returns text (or marked-up text)
@@ -144,6 +144,26 @@ export interface DashboardEmbedModalExtensions {
   onHide: () => void;
 }
 
+export interface ButtonProps {
+  name: ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
+  'data-test'?: string;
+  buttonStyle:
+    | 'primary'
+    | 'secondary'
+    | 'dashed'
+    | 'link'
+    | 'warning'
+    | 'success'
+    | 'tertiary';
+}
+
+export interface SubMenuProps {
+  buttons?: Array<ButtonProps>;
+  name?: string | ReactNode;
+  activeChild?: string;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
@@ -151,6 +171,7 @@ export type Extensions = Partial<{
   'embedded.documentation.url': string;
   'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
   'dashboard.nav.right': React.ComponentType;
+  'home.submenu': React.ComponentType<SubMenuProps>;
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
   'report-modal.dropdown.item.icon': React.ComponentType;

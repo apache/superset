@@ -71,11 +71,19 @@ class QueryRestApi(BaseSupersetModelRestApi):
     list_columns = [
         "id",
         "changed_on",
+        "client_id",
+        "database.id",
         "database.database_name",
         "executed_sql",
+        "error_message",
+        "limit",
+        "limiting_factor",
+        "progress",
         "rows",
         "schema",
+        "select_as_cta",
         "sql",
+        "sql_editor_id",
         "sql_tables",
         "status",
         "tab_name",
@@ -86,6 +94,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "end_time",
         "tmp_table_name",
         "tracking_url",
+        "results_key",
     ]
     show_columns = [
         "id",
@@ -143,7 +152,15 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
-    search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
+    search_columns = [
+        "changed_on",
+        "database",
+        "sql",
+        "status",
+        "user",
+        "start_time",
+        "sql_editor_id",
+    ]
 
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
