@@ -332,14 +332,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         result = self.dashboard_get_response_schema.dump(dash)
         print("===========Dash Dictionary====================", dash.__dict__)
-        print("=============Dashboard Result================", result)
+        # print("=============Dashboard Result================", result)
         if result.get('id', -1) in [15]:
             session_user_id = session.get("_user_id", "")
             session_user = db.session.query(User).filter(
                 User.id == session_user_id).one_or_none()
-            print("=============Dashboard User=========", session_user.__dict__)
-            print("=============Dashboard Username=========",
-                  session_user.__dict__.get('username', '').split('@')[0])
+            # print("=============Dashboard User=========", session_user.__dict__)
+            # print("=============Dashboard Username=========",
+            #       session_user.__dict__.get('username', '').split('@')[0])
             if session_user.__dict__.get('username', '').split('@')[0] not in [
                 "169383155733447",
                 "169383078074023",
