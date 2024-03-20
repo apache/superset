@@ -21,7 +21,6 @@ import {
   ChartProps,
   getMetricLabel,
   getValueFormatter,
-  NumberFormats,
   getNumberFormatter,
   formatTimeRange,
 } from '@superset-ui/core';
@@ -83,7 +82,9 @@ export default function transformProps(chartProps: ChartProps) {
     yAxisFormat,
     currencyFormat,
     subheaderFontSize,
+    comparisonColorScheme,
     comparisonColorEnabled,
+    percentDifferenceFormat,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const {
@@ -113,9 +114,7 @@ export default function transformProps(chartProps: ChartProps) {
     w: 'Week' as string,
   };
 
-  const formatPercentChange = getNumberFormatter(
-    NumberFormats.PERCENT_SIGNED_1_POINT,
-  );
+  const formatPercentChange = getNumberFormatter(percentDifferenceFormat);
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
@@ -154,6 +153,7 @@ export default function transformProps(chartProps: ChartProps) {
     headerText,
     compType,
     comparisonColorEnabled,
+    comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
     comparatorText,
   };

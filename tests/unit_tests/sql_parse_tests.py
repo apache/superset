@@ -25,7 +25,10 @@ from sqlalchemy import text
 from sqlparse.sql import Identifier, Token, TokenList
 from sqlparse.tokens import Name
 
-from superset.exceptions import QueryClauseValidationException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.sql_parse import (
     add_table_name,
     extract_table_references,
@@ -35,6 +38,8 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
+    SQLScript,
+    SQLStatement,
     strip_comments_from_sql,
     Table,
 )
@@ -265,13 +270,34 @@ def test_extract_tables_illdefined() -> None:
     """
     Test that ill-defined tables return an empty set.
     """
-    assert extract_tables("SELECT * FROM schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname.schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname..") == set()
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM schemaname.")
+    assert (
+        str(excinfo.value) == "Unable to parse SQL (generic): SELECT * FROM schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname.schemaname.")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname..")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables('SELECT * FROM "tbname')
+    assert str(excinfo.value) == 'Unable to parse SQL (generic): SELECT * FROM "tbname'
+
+    # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
         Table(table="tbname", schema=None, catalog="catalogname")
     }
-    assert extract_tables('SELECT * FROM "tbname') == set()
 
 
 def test_extract_tables_show_tables_from() -> None:
@@ -1850,3 +1876,36 @@ WITH t AS (
 )
 SELECT * FROM t"""
     ).is_select()
+
+
+def test_sqlquery() -> None:
+    """
+    Test the `SQLScript` class.
+    """
+    script = SQLScript("SELECT 1; SELECT 2;")
+
+    assert len(script.statements) == 2
+    assert script.format() == "SELECT\n  1;\nSELECT\n  2"
+    assert script.statements[0].format() == "SELECT\n  1"
+
+    script = SQLScript("SET a=1; SET a=2; SELECT 3;")
+    assert script.get_settings() == {"a": "2"}
+
+
+def test_sqlstatement() -> None:
+    """
+    Test the `SQLStatement` class.
+    """
+    statement = SQLStatement("SELECT * FROM table1 UNION ALL SELECT * FROM table2")
+
+    assert statement.tables == {
+        Table(table="table1", schema=None, catalog=None),
+        Table(table="table2", schema=None, catalog=None),
+    }
+    assert (
+        statement.format()
+        == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
+    )
+
+    statement = SQLStatement("SET a=1")
+    assert statement.get_settings() == {"a": "1"}

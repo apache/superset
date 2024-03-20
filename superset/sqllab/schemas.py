@@ -44,6 +44,7 @@ class EstimateQueryCostSchema(Schema):
 
 class FormatQueryPayloadSchema(Schema):
     sql = fields.String(required=True)
+    engine = fields.String(required=False, allow_none=True)
 
 
 class ExecutePayloadSchema(Schema):

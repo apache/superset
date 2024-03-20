@@ -6,54 +6,92 @@
 #    pip-compile-multi
 #
 -e file:.
-    # via -r requirements/base.in
+    # via
+    #   -c requirements/development.txt
+    #   -r requirements/base.in
 alembic==1.6.5
-    # via flask-migrate
+    # via
+    #   -c requirements/development.txt
+    #   flask-migrate
 amqp==5.1.1
-    # via kombu
+    # via
+    #   -c requirements/development.txt
+    #   kombu
 apispec[yaml]==6.3.0
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 apsw==3.42.0.1
-    # via shillelagh
+    # via
+    #   -c requirements/development.txt
+    #   shillelagh
 async-timeout==4.0.2
-    # via redis
+    # via
+    #   -c requirements/development.txt
+    #   redis
 attrs==23.1.0
     # via
+    #   -c requirements/development.txt
     #   cattrs
     #   jsonschema
     #   requests-cache
 babel==2.9.1
-    # via flask-babel
+    # via
+    #   -c requirements/development.txt
+    #   flask-babel
 backoff==1.11.1
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 bcrypt==4.0.1
-    # via paramiko
+    # via
+    #   -c requirements/development.txt
+    #   paramiko
 billiard==4.2.0
-    # via celery
+    # via
+    #   -c requirements/development.txt
+    #   celery
 bottleneck==1.3.7
-    # via pandas
+    # via
+    #   -c requirements/development.txt
+    #   pandas
 brotli==1.0.9
-    # via flask-compress
+    # via
+    #   -c requirements/development.txt
+    #   flask-compress
 cachelib==0.9.0
     # via
+    #   -c requirements/development.txt
     #   flask-caching
     #   flask-session
 cachetools==5.3.2
-    # via google-auth
+    # via
+    #   -c requirements/development.txt
+    #   google-auth
 cattrs==23.2.1
-    # via requests-cache
+    # via
+    #   -c requirements/development.txt
+    #   requests-cache
 celery==5.3.6
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 certifi==2023.7.22
-    # via requests
+    # via
+    #   -c requirements/development.txt
+    #   requests
 cffi==1.15.1
     # via
+    #   -c requirements/development.txt
     #   cryptography
     #   pynacl
 charset-normalizer==3.2.0
-    # via requests
+    # via
+    #   -c requirements/development.txt
+    #   requests
 click==8.1.3
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   celery
     #   click-didyoumean
@@ -63,37 +101,62 @@ click==8.1.3
     #   flask
     #   flask-appbuilder
 click-didyoumean==0.3.0
-    # via celery
+    # via
+    #   -c requirements/development.txt
+    #   celery
 click-option-group==0.5.5
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 click-plugins==1.1.1
-    # via celery
+    # via
+    #   -c requirements/development.txt
+    #   celery
 click-repl==0.2.0
-    # via celery
+    # via
+    #   -c requirements/development.txt
+    #   celery
 colorama==0.4.6
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
 cron-descriptor==1.2.24
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 croniter==1.0.15
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 cryptography==42.0.4
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   paramiko
 deprecated==1.2.13
-    # via limits
+    # via
+    #   -c requirements/development.txt
+    #   limits
 deprecation==2.1.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 dnspython==2.1.0
-    # via email-validator
+    # via
+    #   -c requirements/development.txt
+    #   email-validator
 email-validator==1.1.3
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 exceptiongroup==1.2.0
-    # via cattrs
+    # via
+    #   -c requirements/development.txt
+    #   cattrs
 flask==2.2.5
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
     #   flask-babel
@@ -107,118 +170,194 @@ flask==2.2.5
     #   flask-sqlalchemy
     #   flask-wtf
 flask-appbuilder==4.4.1
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-babel==1.0.0
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 flask-caching==2.1.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-compress==1.13
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-jwt-extended==4.3.1
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 flask-limiter==3.3.1
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 flask-login==0.6.3
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
 flask-migrate==3.1.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-session==0.5.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-sqlalchemy==2.5.1
     # via
+    #   -c requirements/development.txt
     #   flask-appbuilder
     #   flask-migrate
 flask-talisman==1.0.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 flask-wtf==1.2.1
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
 func-timeout==4.3.5
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 geographiclib==1.52
-    # via geopy
+    # via
+    #   -c requirements/development.txt
+    #   geopy
 geopy==2.2.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 google-auth==2.27.0
-    # via shillelagh
+    # via
+    #   -c requirements/development.txt
+    #   shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   -c requirements/development.txt
+    #   shillelagh
 gunicorn==21.2.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 hashids==1.3.1
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 holidays==0.25
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 humanize==3.11.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 idna==3.2
     # via
+    #   -c requirements/development.txt
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask
     #   shillelagh
 importlib-resources==5.12.0
-    # via limits
+    # via
+    #   -c requirements/development.txt
+    #   limits
 isodate==0.6.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 itsdangerous==2.1.2
     # via
+    #   -c requirements/development.txt
     #   flask
     #   flask-wtf
 jinja2==3.1.3
     # via
+    #   -c requirements/development.txt
     #   flask
     #   flask-babel
 jsonschema==4.17.3
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 kombu==5.3.4
-    # via celery
+    # via
+    #   -c requirements/development.txt
+    #   celery
 korean-lunar-calendar==0.3.1
-    # via holidays
+    # via
+    #   -c requirements/development.txt
+    #   holidays
 limits==3.4.0
-    # via flask-limiter
+    # via
+    #   -c requirements/development.txt
+    #   flask-limiter
 llvmlite==0.40.1
-    # via numba
+    # via
+    #   -c requirements/development.txt
+    #   numba
 mako==1.2.4
     # via
+    #   -c requirements/development.txt
     #   alembic
     #   apache-superset
 markdown==3.3.4
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 markdown-it-py==2.2.0
-    # via rich
+    # via
+    #   -c requirements/development.txt
+    #   rich
 markupsafe==2.1.1
     # via
+    #   -c requirements/development.txt
     #   jinja2
     #   mako
     #   werkzeug
     #   wtforms
 marshmallow==3.19.0
     # via
+    #   -c requirements/development.txt
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==0.23.1
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 mdurl==0.1.2
-    # via markdown-it-py
+    # via
+    #   -c requirements/development.txt
+    #   markdown-it-py
 msgpack==1.0.2
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 nh3==0.2.11
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 numba==0.57.1
-    # via pandas
+    # via
+    #   -c requirements/development.txt
+    #   pandas
 numexpr==2.9.0
     # via
+    #   -c requirements/development.txt
     #   -r requirements/base.in
     #   pandas
 numpy==1.23.5
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   bottleneck
     #   numba
@@ -226,9 +365,12 @@ numpy==1.23.5
     #   pandas
     #   pyarrow
 ordered-set==4.1.0
-    # via flask-limiter
+    # via
+    #   -c requirements/development.txt
+    #   flask-limiter
 packaging==23.1
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   apispec
     #   deprecation
@@ -237,48 +379,80 @@ packaging==23.1
     #   marshmallow
     #   shillelagh
 pandas[performance]==2.0.3
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 paramiko==3.4.0
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   sshtunnel
 parsedatetime==2.6
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 pgsanity==0.2.9
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 platformdirs==3.8.1
-    # via requests-cache
+    # via
+    #   -c requirements/development.txt
+    #   requests-cache
 polyline==2.0.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 prison==0.2.1
-    # via flask-appbuilder
+    # via
+    #   -c requirements/development.txt
+    #   flask-appbuilder
 prompt-toolkit==3.0.38
-    # via click-repl
+    # via
+    #   -c requirements/development.txt
+    #   click-repl
 pyarrow==14.0.1
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 pyasn1==0.5.1
     # via
+    #   -c requirements/development.txt
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.3.0
-    # via google-auth
+    # via
+    #   -c requirements/development.txt
+    #   google-auth
 pycparser==2.20
-    # via cffi
+    # via
+    #   -c requirements/development.txt
+    #   cffi
 pygments==2.15.0
-    # via rich
+    # via
+    #   -c requirements/development.txt
+    #   rich
 pyjwt==2.4.0
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
     #   flask-jwt-extended
 pynacl==1.5.0
-    # via paramiko
+    # via
+    #   -c requirements/development.txt
+    #   paramiko
 pyparsing==3.0.6
-    # via apache-superset
-pyrsistent==0.19.3
-    # via jsonschema
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
+pyrsistent==0.20.0
+    # via
+    #   -c requirements/development.txt
+    #   jsonschema
 python-dateutil==2.8.2
     # via
+    #   -c requirements/development.txt
     #   alembic
     #   apache-superset
     #   celery
@@ -288,42 +462,68 @@ python-dateutil==2.8.2
     #   pandas
     #   shillelagh
 python-dotenv==0.19.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 python-editor==1.0.4
-    # via alembic
+    # via
+    #   -c requirements/development.txt
+    #   alembic
 python-geohash==0.8.5
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 pytz==2021.3
     # via
+    #   -c requirements/development.txt
     #   babel
     #   flask-babel
     #   pandas
 pyyaml==6.0.1
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   apispec
 redis==4.6.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 requests==2.31.0
     # via
+    #   -c requirements/development.txt
     #   requests-cache
     #   shillelagh
 requests-cache==1.1.1
-    # via shillelagh
+    # via
+    #   -c requirements/development.txt
+    #   shillelagh
 rich==13.3.4
-    # via flask-limiter
+    # via
+    #   -c requirements/development.txt
+    #   flask-limiter
 rsa==4.9
-    # via google-auth
+    # via
+    #   -c requirements/development.txt
+    #   google-auth
 selenium==3.141.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 shillelagh[gsheetsapi]==1.2.10
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 shortid==0.1.2
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 simplejson==3.17.3
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 six==1.16.0
     # via
+    #   -c requirements/development.txt
     #   click-repl
     #   isodate
     #   prison
@@ -331,9 +531,12 @@ six==1.16.0
     #   url-normalize
     #   wtforms-json
 slack-sdk==3.21.3
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 sqlalchemy==1.4.36
     # via
+    #   -c requirements/development.txt
     #   alembic
     #   apache-superset
     #   flask-appbuilder
@@ -343,18 +546,28 @@ sqlalchemy==1.4.36
     #   sqlalchemy-utils
 sqlalchemy-utils==0.38.3
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
 sqlglot==20.8.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 sqlparse==0.4.4
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 sshtunnel==0.4.0
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 tabulate==0.8.9
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 typing-extensions==4.4.0
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   cattrs
     #   flask-limiter
@@ -363,44 +576,60 @@ typing-extensions==4.4.0
     #   shillelagh
 tzdata==2023.3
     # via
+    #   -c requirements/development.txt
     #   celery
     #   pandas
 url-normalize==1.4.3
-    # via requests-cache
+    # via
+    #   -c requirements/development.txt
+    #   requests-cache
 urllib3==1.26.18
     # via
+    #   -c requirements/development.txt
     #   -r requirements/base.in
     #   requests
     #   requests-cache
     #   selenium
 vine==5.1.0
     # via
+    #   -c requirements/development.txt
     #   amqp
     #   celery
     #   kombu
 wcwidth==0.2.5
-    # via prompt-toolkit
+    # via
+    #   -c requirements/development.txt
+    #   prompt-toolkit
 werkzeug==3.0.1
     # via
+    #   -c requirements/development.txt
     #   -r requirements/base.in
     #   flask
     #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
 wrapt==1.15.0
-    # via deprecated
+    # via
+    #   -c requirements/development.txt
+    #   deprecated
 wtforms==2.3.3
     # via
+    #   -c requirements/development.txt
     #   apache-superset
     #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json
 wtforms-json==0.3.5
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 xlsxwriter==3.0.7
-    # via apache-superset
+    # via
+    #   -c requirements/development.txt
+    #   apache-superset
 zipp==3.15.0
     # via
+    #   -c requirements/development.txt
     #   importlib-metadata
     #   importlib-resources
 
