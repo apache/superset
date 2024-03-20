@@ -1,3 +1,4 @@
 FROM apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest}
+COPY --chown=superset superset-frontend/src/assets/images/superset-logo-horiz.png /app/superset/static/assets/images/superset-logo-horiz.png
 COPY --chown=superset superset/ /app/superset/
 
