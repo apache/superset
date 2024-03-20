@@ -1271,7 +1271,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor = conn.cursor()
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, database.id)
                 rows = cls.fetch_data(cursor, 1)
 
                 return rows[0][0]

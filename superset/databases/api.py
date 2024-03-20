@@ -17,19 +17,27 @@
 # pylint: disable=too-many-lines
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
+import jwt
 from deprecation import deprecated
-from flask import request, Response, send_file
+from flask import (
+    current_app,
+    make_response,
+    render_template,
+    request,
+    Response,
+    send_file,
+)
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, event_logger
+from superset import app, db, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -88,10 +96,11 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
+from superset.db_engine_specs.base import OAuth2State
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorsException, SupersetException
+from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
-from superset.models.core import Database
+from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.ssh_tunnel import mask_password_info
@@ -106,6 +115,7 @@ from superset.views.base_api import (
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-public-methods
 class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
@@ -127,7 +137,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
+        "oauth2",
     }
+
     resource_name = "database"
     class_permission_name = "Database"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1049,6 +1061,93 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=validator_errors)
         except DatabaseNotFoundError:
             return self.response_404()
+
+    @expose("/oauth2/", methods=["GET"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
+        log_to_statsd=True,
+    )
+    def oauth2(self) -> FlaskResponse:
+        """
+        ---
+        get:
+          summary: >-
+            Receive personal access tokens from OAuth2
+          description: ->
+            Receive and store personal access tokens from OAuth for user-level
+            authorization
+          parameters:
+          - in: query
+            name: state
+            schema:
+              type: string
+          - in: query
+            name: code
+            schema:
+              type: string
+          - in: query
+            name: scope
+            schema:
+              type: string
+          - in: query
+            name: error
+            schema:
+              type: string
+          responses:
+            200:
+              description: A dummy self-closing HTML page
+              content:
+                text/html:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        parameters = request.args.to_dict()
+        if "error" in parameters:
+            raise OAuth2Error(parameters["error"])
+
+        state = cast(
+            OAuth2State,
+            jwt.decode(
+                parameters["state"].replace("%2E", "."),
+                current_app.config["SECRET_KEY"],
+                algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
+            ),
+        )
+
+        # exchange code for access/refresh tokens
+        database = db.session.query(Database).filter_by(id=state["database_id"]).one()
+        token_response = database.db_engine_spec.get_oauth2_token(
+            parameters["code"],
+            state,
+        )
+
+        # delete old tokens
+        db.session.query(DatabaseUserOAuth2Tokens).filter(
+            DatabaseUserOAuth2Tokens.user_id == state["user_id"],
+            DatabaseUserOAuth2Tokens.database_id == database.id,
+        ).delete(synchronize_session="fetch")
+
+        # store tokens
+        token = DatabaseUserOAuth2Tokens(
+            user_id=state["user_id"],
+            database_id=database.id,
+            access_token=token_response["access_token"],
+            access_token_expiration=datetime.now()
+            + timedelta(seconds=token_response["expires_in"]),
+            refresh_token=token_response.get("refresh_token"),
+        )
+        db.session.add(token)
+        db.session.commit()
+
+        # return blank page that closes itself
+        return make_response(
+            render_template("superset/oauth2.html", tab_id=state["tab_id"]),
+            200,
+        )
 
     @expose("/export/", methods=("GET",))
     @protect()
