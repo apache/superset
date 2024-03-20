@@ -59,10 +59,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 .outerjoin(Dashboard.owners)
                 .outerjoin(Dashboard.roles)
             )
+            print("==========Query============", query.__dict__)
+            print("===========Query Statement============", query.statement)
+
             # Apply dashboard base filters
             query = cls.base_filter("id", SQLAInterface(Dashboard, db.session)).apply(
                 query, None
             )
+            print("===========Query Statement post filters============", query.statement)
             dashboard = query.one_or_none()
         if not dashboard:
             raise DashboardNotFoundError()
@@ -74,6 +78,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardAccessDeniedError() from ex
 
         print("========get id or slug dashboard response==========", dashboard.__dict__)
+        json_metadata = dashboard.json_metadata
+
         return dashboard
 
     @staticmethod
