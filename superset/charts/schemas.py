@@ -21,7 +21,7 @@ import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate,
+from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 from marshmallow_enum import EnumField
 

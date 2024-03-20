@@ -271,7 +271,7 @@ class ChartDataRestApi(ChartRestApi):
 
             if query_context.result_format == ChartDataResultFormat.XLSX:
                 bytes_stream = self._get_data_response(command, form_data=form_data,
-                                                        datasource=query_context.datasource
+                                                       datasource=query_context.datasource
                                                        )
 
                 for column in query_context.datasource.columns:

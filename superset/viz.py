@@ -676,17 +676,25 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return content
 
     @deprecated(deprecated_in="3.0")
-    def get_csv(self) -> Optional[str, BytesIO]:
+    def get_csv(self, mt_cl: dict = None) -> Optional[str, BytesIO]:
         df = self.get_df_payload()["df"]  # leverage caching logic
         list_of_data = csv.df_to_escaped_csv(df, **config["CSV_EXPORT"])
         if list_of_data:
             df = pd.DataFrame(list_of_data)
+            if mt_cl:
+                for column_df in df.columns:
+                    df.rename(columns={column_df: mt_cl.get(column_df) or column_df},
+                              inplace=True)
             config_csv = config["CSV_EXPORT"]
             return df.to_csv(**config_csv)
 
-    def get_xlsx(self) -> BytesIO:
+    def get_xlsx(self, mt_cl: dict = None) -> BytesIO:
         d = self.get_df_payload()
         df = delete_tz_from_df(d)
+        if mt_cl:
+            for column_df in df.columns:
+                df.rename(columns={column_df: mt_cl.get(column_df) or column_df},
+                          inplace=True)
         return csv.df_to_escaped_xlsx(df)
 
     @deprecated(deprecated_in="3.0")
