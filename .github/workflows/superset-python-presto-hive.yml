@@ -1,4 +1,29 @@
-# # Python Presto/Hive unit tests
+
+# Python Presto/Hive unit tests
+# for now, this does NOTHING.
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      # You can add any steps you need here
+      
+      # This step simply echoes a message indicating success
+      - name: Success message
+        run: echo "Workflow executed successfully."
+
+
 # name: Python Presto/Hive
 
 # on:
