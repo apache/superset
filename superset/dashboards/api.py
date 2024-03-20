@@ -358,7 +358,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 # chartsInScope = global_chart_configuration.get("chartsInScope", [])
                 charts_to_del = ["286"]
                 for key in charts_to_del:
-                    if chart_configuration[key]:
+                    if chart_configuration.get(key, 0):
                         print(
                             f"Deleting chart configuration for {key} and value {chart_configuration.get(key, -1)}")
                         del chart_configuration[key]
