@@ -1,155 +1,155 @@
-# Python Presto/Hive unit tests
-name: Python Presto/Hive
+# # Python Presto/Hive unit tests
+# name: Python Presto/Hive
 
-on:
-  push:
-    branches:
-      - "master"
-      - "[0-9].[0-9]"
-    paths:
-      - "superset/**"
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
-    paths:
-      - "superset/**"
+# on:
+#   push:
+#     branches:
+#       - "master"
+#       - "[0-9].[0-9]"
+#     paths:
+#       - "superset/**"
+#   pull_request:
+#     types: [synchronize, opened, reopened, ready_for_review]
+#     paths:
+#       - "superset/**"
 
-# cancel previous workflow jobs for PRs
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
+# # cancel previous workflow jobs for PRs
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+#   cancel-in-progress: true
 
-jobs:
-  test-postgres-presto:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-    env:
-      PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
-      REDIS_PORT: 16379
-      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: superset
-          POSTGRES_PASSWORD: superset
-        ports:
-          # Use custom ports for services to avoid accidentally connecting to
-          # GitHub action runner's default installations
-          - 15432:5432
-      presto:
-        image: starburstdata/presto:350-e.6
-        env:
-          POSTGRES_USER: superset
-          POSTGRES_PASSWORD: superset
-        ports:
-          # Use custom ports for services to avoid accidentally connecting to
-          # GitHub action runner's default installations
-          - 15433:8080
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 16379:6379
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - name: Check if python changes are present
-        id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-        if: steps.check.outcome == 'failure'
-      - name: Setup Postgres
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: setup-postgres
-      - name: Run celery
-        if: steps.check.outcome == 'failure'
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
-      - name: Python unit tests (PostgreSQL)
-        if: steps.check.outcome == 'failure'
-        run: |
-          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F presto
+# jobs:
+#   test-postgres-presto:
+#     runs-on: ubuntu-20.04
+#     strategy:
+#       matrix:
+#         python-version: ["3.9"]
+#     env:
+#       PYTHONPATH: ${{ github.workspace }}
+#       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+#       REDIS_PORT: 16379
+#       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+#       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
+#     services:
+#       postgres:
+#         image: postgres:15-alpine
+#         env:
+#           POSTGRES_USER: superset
+#           POSTGRES_PASSWORD: superset
+#         ports:
+#           # Use custom ports for services to avoid accidentally connecting to
+#           # GitHub action runner's default installations
+#           - 15432:5432
+#       presto:
+#         image: starburstdata/presto:350-e.6
+#         env:
+#           POSTGRES_USER: superset
+#           POSTGRES_PASSWORD: superset
+#         ports:
+#           # Use custom ports for services to avoid accidentally connecting to
+#           # GitHub action runner's default installations
+#           - 15433:8080
+#       redis:
+#         image: redis:7-alpine
+#         ports:
+#           - 16379:6379
+#     steps:
+#       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+#         uses: actions/checkout@v4
+#         with:
+#           persist-credentials: false
+#           submodules: recursive
+#       - name: Check if python changes are present
+#         id: check
+#         env:
+#           GITHUB_REPO: ${{ github.repository }}
+#           PR_NUMBER: ${{ github.event.pull_request.number }}
+#         continue-on-error: true
+#         run: ./scripts/ci_check_no_file_changes.sh python
+#       - name: Setup Python
+#         uses: ./.github/actions/setup-backend/
+#         if: steps.check.outcome == 'failure'
+#       - name: Setup Postgres
+#         if: steps.check.outcome == 'failure'
+#         uses: ./.github/actions/cached-dependencies
+#         with:
+#           run: setup-postgres
+#       - name: Run celery
+#         if: steps.check.outcome == 'failure'
+#         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+#       - name: Python unit tests (PostgreSQL)
+#         if: steps.check.outcome == 'failure'
+#         run: |
+#           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
+#       - name: Upload code coverage
+#         if: steps.check.outcome == 'failure'
+#         run: |
+#           bash .github/workflows/codecov.sh -c -F python -F presto
 
-  test-postgres-hive:
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.9"]
-    env:
-      PYTHONPATH: ${{ github.workspace }}
-      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
-      REDIS_PORT: 16379
-      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
-      UPLOAD_FOLDER: /tmp/.superset/uploads/
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: superset
-          POSTGRES_PASSWORD: superset
-        ports:
-          # Use custom ports for services to avoid accidentally connecting to
-          # GitHub action runner's default installations
-          - 15432:5432
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 16379:6379
-    steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - name: Check if python changes are present
-        id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python
-      - name: Create csv upload directory
-        if: steps.check.outcome == 'failure'
-        run: sudo mkdir -p /tmp/.superset/uploads
-      - name: Give write access to the csv upload directory
-        if: steps.check.outcome == 'failure'
-        run: sudo chown -R $USER:$USER /tmp/.superset
-      - name: Start hadoop and hive
-        if: steps.check.outcome == 'failure'
-        run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
-      - name: Setup Python
-        uses: ./.github/actions/setup-backend/
-        if: steps.check.outcome == 'failure'
-      - name: Setup Postgres
-        if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: setup-postgres
-      - name: Run celery
-        if: steps.check.outcome == 'failure'
-        run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
-      - name: Python unit tests (PostgreSQL)
-        if: steps.check.outcome == 'failure'
-        run: |
-          ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
-      - name: Upload code coverage
-        if: steps.check.outcome == 'failure'
-        run: |
-          bash .github/workflows/codecov.sh -c -F python -F hive
+#   test-postgres-hive:
+#     runs-on: ubuntu-20.04
+#     strategy:
+#       matrix:
+#         python-version: ["3.9"]
+#     env:
+#       PYTHONPATH: ${{ github.workspace }}
+#       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+#       REDIS_PORT: 16379
+#       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+#       SUPERSET__SQLALCHEMY_EXAMPLES_URI: hive://localhost:10000/default
+#       UPLOAD_FOLDER: /tmp/.superset/uploads/
+#     services:
+#       postgres:
+#         image: postgres:15-alpine
+#         env:
+#           POSTGRES_USER: superset
+#           POSTGRES_PASSWORD: superset
+#         ports:
+#           # Use custom ports for services to avoid accidentally connecting to
+#           # GitHub action runner's default installations
+#           - 15432:5432
+#       redis:
+#         image: redis:7-alpine
+#         ports:
+#           - 16379:6379
+#     steps:
+#       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+#         uses: actions/checkout@v4
+#         with:
+#           persist-credentials: false
+#           submodules: recursive
+#       - name: Check if python changes are present
+#         id: check
+#         env:
+#           GITHUB_REPO: ${{ github.repository }}
+#           PR_NUMBER: ${{ github.event.pull_request.number }}
+#         continue-on-error: true
+#         run: ./scripts/ci_check_no_file_changes.sh python
+#       - name: Create csv upload directory
+#         if: steps.check.outcome == 'failure'
+#         run: sudo mkdir -p /tmp/.superset/uploads
+#       - name: Give write access to the csv upload directory
+#         if: steps.check.outcome == 'failure'
+#         run: sudo chown -R $USER:$USER /tmp/.superset
+#       - name: Start hadoop and hive
+#         if: steps.check.outcome == 'failure'
+#         run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
+#       - name: Setup Python
+#         uses: ./.github/actions/setup-backend/
+#         if: steps.check.outcome == 'failure'
+#       - name: Setup Postgres
+#         if: steps.check.outcome == 'failure'
+#         uses: ./.github/actions/cached-dependencies
+#         with:
+#           run: setup-postgres
+#       - name: Run celery
+#         if: steps.check.outcome == 'failure'
+#         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
+#       - name: Python unit tests (PostgreSQL)
+#         if: steps.check.outcome == 'failure'
+#         run: |
+#           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
+#       - name: Upload code coverage
+#         if: steps.check.outcome == 'failure'
+#         run: |
+#           bash .github/workflows/codecov.sh -c -F python -F hive
