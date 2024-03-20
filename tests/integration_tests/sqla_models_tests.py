@@ -312,8 +312,12 @@ class TestDatabaseModel(SupersetTestCase):
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
-        assert 'count(*) AS "Metric using Jinja macro"' in query
-        assert 'count(*) AS "Same but different"' in query
+        database = table.database
+        with database.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
+
+        for metric_label in {"metric using jinja macro", "same but different"}:
+            assert f"count(*) as {quote(metric_label)}" in query.lower()
 
         db.session.delete(metric)
         db.session.commit()

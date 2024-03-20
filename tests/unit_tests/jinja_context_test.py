@@ -630,6 +630,30 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockFixture) -> None:
     DatasetDAO.find_by_id.assert_not_called()
 
 
+def test_metric_macro_no_dataset_id_with_context_missing_info(
+    mocker: MockFixture,
+) -> None:
+    """
+    Test the ``metric_macro`` when not specifying a dataset ID and request
+    has context but no dataset/chart ID.
+    """
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
+    mock_get_form_data.return_value = [
+        {
+            "url_params": {},
+        },
+        None,
+    ]
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        metric_macro("macro_key")
+    assert str(excinfo.value) == (
+        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
+    )
+    mock_get_form_data.assert_called_once()
+    DatasetDAO.find_by_id.assert_not_called()
+
+
 def test_metric_macro_no_dataset_id_with_context_datasource_id(
     mocker: MockFixture,
 ) -> None:
@@ -666,10 +690,10 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
     DatasetDAO.find_by_id.assert_called_once_with(1)
 
 
-def test_metric_macro_no_dataset_id_with_context_slice_id(mocker: MockFixture) -> None:
+def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -> None:
     """
-    Test the ``metric_macro`` when not specifying a dataset ID and it's
-    available in the context (url_params.datasource_id).
+    Test the ``metric_macro`` when not specifying a dataset ID and context
+    includes an existing chart ID (url_params.slice_id).
     """
 
     # pylint: disable=import-outside-toplevel
@@ -701,3 +725,36 @@ def test_metric_macro_no_dataset_id_with_context_slice_id(mocker: MockFixture) -
     assert metric_macro("macro_key") == "COUNT(*)"
     mock_get_form_data.assert_called_once()
     DatasetDAO.find_by_id.assert_called_once_with(1)
+
+
+def test_metric_macro_no_dataset_id_with_context_deleted_chart(
+    mocker: MockFixture,
+) -> None:
+    """
+    Test the ``metric_macro`` when not specifying a dataset ID and context
+    includes a deleted chart ID.
+    """
+
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+
+    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
+    ChartDAO.find_by_id.return_value = None
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
+    mock_get_form_data.return_value = [
+        {
+            "slice_id": 1,
+        },
+        None,
+    ]
+
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        metric_macro("macro_key")
+    assert str(excinfo.value) == (
+        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
+    )
+    mock_get_form_data.assert_called_once()
+    DatasetDAO.find_by_id.assert_not_called()
