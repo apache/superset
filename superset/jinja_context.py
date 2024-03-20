@@ -764,7 +764,7 @@ def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
     from the request context (if available).
 
     :param metric_key: the metric key.
-    :param dataset_id: the ID for the dataset the macro is associated with.
+    :param dataset_id: the ID for the dataset the metric is associated with.
     :returns: the macro SQL syntax.
     """
     # pylint: disable=import-outside-toplevel
