@@ -18,7 +18,7 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -103,10 +103,17 @@ export const LabelsContainer = styled.div`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const borderPulse = keyframes`
+  to {
+    background-size: 100% 0px
+  }
+`;
+
 export const DndLabelsContainer = styled.div<{
   canDrop?: boolean;
   isOver?: boolean;
   isDragging?: boolean;
+  isLoading?: boolean;
 }>`
   position: relative;
   padding: ${({ theme }) => theme.gridUnit}px;
@@ -137,7 +144,8 @@ export const DndLabelsContainer = styled.div<{
     left: 1px;
   }
   &:after {
-    display: ${({ isOver, canDrop }) => (canDrop && isOver ? 'block' : 'none')};
+    display: ${({ isOver, canDrop, isLoading }) =>
+      isLoading || (canDrop && isOver) ? 'block' : 'none'};
     background-color: ${({ theme }) => theme.colors.primary.base};
     z-index: ${({ theme }) => theme.zIndex.dropdown};
     opacity: ${({ theme }) => theme.opacity.mediumLight};
@@ -145,6 +153,18 @@ export const DndLabelsContainer = styled.div<{
     right: ${({ theme }) => -theme.gridUnit}px;
     bottom: ${({ theme }) => -theme.gridUnit}px;
     left: ${({ theme }) => -theme.gridUnit}px;
+
+    ${({ theme, isLoading }) =>
+      isLoading &&
+      css`
+        animation: ${borderPulse} 3s ease-out infinite;
+        background: linear-gradient(currentColor 0 0) 0 100%/0% 3px no-repeat;
+        top: auto;
+        right: ${theme.gridUnit}px;
+        left: ${theme.gridUnit}px;
+        bottom: -${theme.gridUnit / 2}px;
+        height: ${theme.gridUnit / 2}px;
+      `}
   }
 `;
 

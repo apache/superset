@@ -44,12 +44,14 @@ export type DndSelectLabelProps = {
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
   onClickGhostButton: () => void;
+  isLoading?: boolean;
 };
 
 export default function DndSelectLabel({
   displayGhostButton = true,
   accept,
   valuesRenderer,
+  isLoading,
   ...props
 }: DndSelectLabelProps) {
   const theme = useTheme();
@@ -97,6 +99,7 @@ export default function DndSelectLabel({
         canDrop={canDrop}
         isOver={isOver}
         isDragging={isDragging}
+        isLoading={isLoading}
       >
         {values}
         {displayGhostButton && renderGhostButton()}
