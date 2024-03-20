@@ -20,7 +20,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Labbel the issue with the appropriate org using supersetbot
+          # Label the issue with the appropriate org using supersetbot
           # - this requires for the author to be publicly associated with their org
           # - and for the org to be listed in `supersetbot/src/metadata.js`
           superset orglabel --issue ${{ github.event.issue.number }} --repo ${{ github.repository }}
