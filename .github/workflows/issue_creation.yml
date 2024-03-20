@@ -2,10 +2,10 @@ name: supersetbot org label based on author
 
 on:
   issues:
-    types: [created]
+    types: [created, edited]
 
   pull_request:
-    types: [created]
+    types: [created, edited]
 
 jobs:
   supersetbot:
