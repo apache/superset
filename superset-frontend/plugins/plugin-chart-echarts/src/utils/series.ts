@@ -627,7 +627,11 @@ export function getTimeCompareStackId(
   }
   // Each timeCompare is its own stack so it doesn't stack on top of original ones
   return (
-    timeCompare.find(value => name?.toString().includes(value.toString())) ||
-    defaultId
+    timeCompare.find(value => {
+      if (typeof name === 'string') {
+        return name.includes(`__${value}`);
+      }
+      return name?.toString().includes(value.toString());
+    }) || defaultId
   );
 }

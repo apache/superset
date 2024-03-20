@@ -1053,7 +1053,7 @@ describe('getTimeCompareStackId', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
-      'test_name',
+      'test__name',
     );
     expect(result).toEqual('default');
   });
@@ -1062,7 +1062,7 @@ describe('getTimeCompareStackId', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
-      'test_compare1',
+      'test__compare1',
     );
     expect(result).toEqual('compare1');
   });
