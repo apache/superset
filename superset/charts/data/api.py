@@ -22,9 +22,8 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 import simplejson
-from flask import current_app, g, make_response, request, Response, session
+from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
@@ -46,7 +45,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger, db
+from superset.extensions import event_logger
 from superset.models.sql_lab import Query
 from superset.utils.core import (
     create_zip,
@@ -125,22 +124,6 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        print("=========Calling get_data=============")
-        if pk in [286]:
-            session_user_id = session.get("_user_id", "")
-            session_user = db.session.query(User).filter(
-                User.id == session_user_id).one_or_none()
-            print("=============Chart Data User=========", session_user.__dict__)
-            print("=============Chart Data Username=========", session_user.__dict__.get('username', '').split('@')[0])
-            # if session_user.__dict__.get('username', '').split('@')[0] not in [
-            #     "169383155733447",
-            #     "169383078074023",
-            #     "169588745651758",
-            #     "169440920935387",
-            #     "169504601829472",
-            #     "169389281870822",
-            # ]:
-
         chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
             return self.response_404()
@@ -242,7 +225,6 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        print("=========Calling data=============")
         json_body = None
         if request.is_json:
             json_body = request.json
@@ -255,32 +237,8 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
-            print("=======Query Context=========", query_context.__dict__)
-            print("=======Query Context Slice ID=========", query_context.__dict__.get('form_data', {}).get('slice_id', -1))
-            if query_context.__dict__.get('form_data', {}).get('slice_id', -1) in [286]:
-                session_user_id = session.get("_user_id", "")
-                session_user = db.session.query(User).filter(
-                    User.id == session_user_id).one_or_none()
-                print("=============Chart Data User=========", session_user.__dict__)
-                print("=============Chart Data Username=========",
-                      session_user.__dict__.get('username', '').split('@')[0])
-                if session_user.__dict__.get('username', '').split('@')[0] in [
-                    "169383155733447",
-                    "169383078074023",
-                    "169588745651758",
-                    "169440920935387",
-                    "169504601829472",
-                    "169389281870822",
-                ]:
-                    command = ChartDataCommand(query_context)
-                    print("==========Command=========", command.__dict__)
-                    command.validate()
-                else:
-                    self.response_401()
-            else:
-                command = ChartDataCommand(query_context)
-                command.validate()
-
+            command = ChartDataCommand(query_context)
+            command.validate()
         except DatasourceNotFound:
             return self.response_404()
         except QueryObjectValidationError as error:
