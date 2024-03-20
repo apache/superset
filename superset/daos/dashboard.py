@@ -73,7 +73,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         except SupersetSecurityException as ex:
             raise DashboardAccessDeniedError() from ex
 
-        print("========get id or slug dashboard response==========", dashboard)
+        print("========get id or slug dashboard response==========", dashboard.__dict__)
         return dashboard
 
     @staticmethod

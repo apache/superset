@@ -114,7 +114,7 @@ def with_dashboard(
     def wraps(self: BaseSupersetModelRestApi, id_or_slug: str) -> Response:
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
-            print("=================Dash response from decorator============", dash)
+            print("=================Dash response from decorator============", dash.__dict__)
             return f(self, dash)
         except DashboardAccessDeniedError:
             return self.response_403()
