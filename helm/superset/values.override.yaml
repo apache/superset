@@ -1,8 +1,7 @@
 
 # Superset node configuration
 supersetNode:
-  strategy:
-    type: Recreate
+  strategy: Recreate
   connections:
     # -- Change in case of bringing your own redis and then also set redis.enabled:false
     redis_host: '{{ .Release.Name }}-redis-headless'
@@ -16,12 +15,10 @@ supersetNode:
     # db_pass: ""
 
 supersetWorker:
-  strategy:
-    type: Recreate
+  strategy: Recreate
 
 supersetWebsockets:
-  strategy:
-    type: Recreate
+  strategy: Recreate
 
 postgresql:
   ##
@@ -248,5 +245,4 @@ supersetCeleryBeat:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
-  strategy:
-    type: Recreate
+  strategy: Recreate
