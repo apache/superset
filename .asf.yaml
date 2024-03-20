@@ -72,8 +72,6 @@ github:
           - test-mysql (3.9)
           - test-postgres (3.9)
           - test-postgres (3.10)
-          - test-postgres-hive (3.9)
-          - test-postgres-presto (3.9)
           - test-sqlite (3.9)
           - unit-tests (3.9)
 
