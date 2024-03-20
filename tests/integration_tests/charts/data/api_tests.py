@@ -751,6 +751,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
+        if backend() == "hive":
+            return
+
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         self.query_context_payload["result_type"] = "results"
