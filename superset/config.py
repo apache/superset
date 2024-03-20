@@ -294,7 +294,7 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
 LOGO_TARGET_PATH = None
 
-COLOR_PRIMARY = {"purple": 1, "white": 2, "blue": 3}
+COLOR_PRIMARY = '#6567EC'
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 LOGO_TOOLTIP = ""
