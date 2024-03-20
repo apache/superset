@@ -21,8 +21,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from flask import g
+from flask import g, session
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.sqla.models import User
 
 from superset import is_feature_enabled, security_manager
 from superset.commands.dashboard.exceptions import (
@@ -81,7 +82,22 @@ class DashboardDAO(BaseDAO[Dashboard]):
         json_metadata = json.loads(dashboard.json_metadata)
         print("=============JSON metadata==========", json_metadata)
         print("=============JSON metadata type==========", type(json_metadata))
-        # chart_configuration = json_metadata
+        chart_configuration = json_metadata.get("chart_configuration", {})
+        if "286" in chart_configuration.keys():
+            session_user_id = session.get("_user_id", "")
+            session_user = db.session.query(User).filter(User.id == session_user_id).one_or_none()
+            if session_user.__dict__.get('username', '').split('@')[0] not in [
+                "169383155733447",
+                "169383078074023",
+                "169588745651758",
+                "169440920935387",
+                "169504601829472",
+                "169389281870822",
+            ]:
+                del chart_configuration["286"]
+        print("============Chart configuration after deletion==========", chart_configuration)
+        json_metadata["chart_configuration"] = chart_configuration
+        dashboard.json_metadata = json.dumps(json_metadata)
 
         return dashboard
 
