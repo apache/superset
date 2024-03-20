@@ -23,12 +23,11 @@ from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import redirect, request, Response, send_file, url_for, session
+from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -79,7 +78,7 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
-from superset.extensions import event_logger, db
+from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
@@ -114,7 +113,6 @@ def with_dashboard(
     def wraps(self: BaseSupersetModelRestApi, id_or_slug: str) -> Response:
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
-            print("=================Dash response from decorator============", dash.__dict__)
             return f(self, dash)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -331,57 +329,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        print("===========Dash Dictionary====================", dash.__dict__)
-        dashboard_dict = dash.__dict__
-
         result = self.dashboard_get_response_schema.dump(dash)
-
-        # print("=============Dashboard Result================", result)
-        if result.get('id', -1) in [15]:
-            session_user_id = session.get("_user_id", "")
-            session_user = db.session.query(User).filter(
-                User.id == session_user_id).one_or_none()
-            # print("=============Dashboard User=========", session_user.__dict__)
-            # print("=============Dashboard Username=========",
-            #       session_user.__dict__.get('username', '').split('@')[0])
-            if session_user.__dict__.get('username', '').split('@')[0] not in [
-                "169383155733447",
-                "169383078074023",
-                "169588745651758",
-                "169440920935387",
-                "169504601829472",
-                "169389281870822",
-            ]:
-                result["charts"].remove("Patient Proximity Distribution (from clinic)")
-                json_metadata = json.loads(result["json_metadata"])
-                chart_configuration = json_metadata.get("chart_configuration", {})
-                # chartsInScope = global_chart_configuration.get("chartsInScope", [])
-                charts_to_del = ["286"]
-                for key in charts_to_del:
-                    if chart_configuration.get(key, 0):
-                        print(
-                            f"Deleting chart configuration for {key} and value {chart_configuration.get(key, -1)}")
-                        del chart_configuration[key]
-                for k, v in chart_configuration.items():
-                    v.get('crossFilters', {}).get('chartsInScope', []).remove(286)
-                json_metadata["chart_configuration"] = chart_configuration
-                result["json_metadata"] = json.dumps(json_metadata)
-                print("============Chart Configuration", chart_configuration)
-                position_json = json.loads(result["position_json"])
-                for key in list(position_json.keys()):
-                    if ('meta' in position_json[key] and 'chartId' in
-                        position_json[key]['meta'] and position_json[key]['meta'][
-                            'chartId'] == 286):
-                        print("===========Deleting this key============")
-                        del position_json[key]
-                print("===============Position json: ===============", position_json)
-                # position_json_keys = list(position_json.keys())
-                # chart_ids_to_del = ["CHART-c9X6C01dyw"]
-                # print("Proximity Chart:", position_json["CHART-c9X6C01dyw"])
-                # for key in chart_ids_to_del:
-                #     del position_json[key]
-                result["position_json"] = json.dumps(position_json)
-                print("=============Chart Queries Data================  ", result)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -933,7 +881,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".favorite_status",
+        f".favorite_status",
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -982,7 +930,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".add_favorite",
+        f".add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
@@ -1025,7 +973,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-                                             f".remove_favorite",
+        f".remove_favorite",
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1313,8 +1261,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args,
-                      **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard
