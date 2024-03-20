@@ -98,7 +98,7 @@ test('Tags should be visible', () => {
 
 test('Tags should be closable', () => {
   setup(mockedProps);
-  expect(screen.getAllByRole('img', { name: 'close' })).toHaveLength(2);
+  expect(screen.getAllByRole('button', { name: 'close' })).toHaveLength(2);
 });
 
 test('Divider should be visible', () => {

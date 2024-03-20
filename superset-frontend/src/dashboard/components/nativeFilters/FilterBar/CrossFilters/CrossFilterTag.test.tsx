@@ -77,7 +77,7 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  const close = screen.getByRole('img', { name: 'close' });
+  const close = screen.getByRole('button', { name: 'close' });
   expect(close).toBeInTheDocument();
   userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
