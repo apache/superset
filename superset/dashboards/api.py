@@ -114,6 +114,7 @@ def with_dashboard(
     def wraps(self: BaseSupersetModelRestApi, id_or_slug: str) -> Response:
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
+            print("=================Dash response from decorator============", dash)
             return f(self, dash)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -330,8 +331,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        result = self.dashboard_get_response_schema.dump(dash)
         print("===========Dash Dictionary====================", dash.__dict__)
+        dashboard_dict = dash.__dict__
+
+        result = self.dashboard_get_response_schema.dump(dash)
+
         # print("=============Dashboard Result================", result)
         if result.get('id', -1) in [15]:
             session_user_id = session.get("_user_id", "")
