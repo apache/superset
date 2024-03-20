@@ -359,7 +359,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 charts_to_del = ["286"]
                 for key in charts_to_del:
                     print(
-                        f"Deleting chart configuration for {key} and value {chart_configuration[key]}")
+                        f"Deleting chart configuration for {key} and value {chart_configuration.get(key, -1)}")
                     del chart_configuration[key]
                 for k, v in chart_configuration.items():
                     v.get('crossFilters', {}).get('chartsInScope', []).remove(286)
