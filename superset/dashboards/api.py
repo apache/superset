@@ -125,7 +125,7 @@ def with_dashboard(
                     "169504601829472",
                     "169389281870822",
                 ]:
-                    id_or_slug = "19"
+                    id_or_slug = "20"
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             return f(self, dash)
         except DashboardAccessDeniedError:
