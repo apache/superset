@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install supersetbot
+      - run: npm install -g supersetbot
       - name: Execute custom Node.js script
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
