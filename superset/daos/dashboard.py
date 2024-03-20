@@ -78,7 +78,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             raise DashboardAccessDeniedError() from ex
 
         print("========get id or slug dashboard response==========", dashboard.__dict__)
-        json_metadata = dashboard.json_metadata
+        json_metadata = json.loads(dashboard.json_metadata)
         print("=============JSON metadata==========", json_metadata)
         print("=============JSON metadata type==========", type(json_metadata))
         # chart_configuration = json_metadata
