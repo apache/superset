@@ -23,6 +23,7 @@ import cx from 'classnames';
 interface HoverMenuProps {
   position: 'left' | 'top';
   innerRef: RefObject<HTMLDivElement>;
+  onHover?: () => void;
   children: React.ReactNode;
 }
 
@@ -71,7 +72,7 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   };
 
   render() {
-    const { innerRef, position, children } = this.props;
+    const { innerRef, position, onHover, children } = this.props;
     return (
       <HoverStyleOverrides className="hover-menu-container">
         <div
@@ -81,6 +82,8 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
             position === 'left' && 'hover-menu--left',
             position === 'top' && 'hover-menu--top',
           )}
+          onMouseEnter={onHover}
+          onMouseLeave={onHover}
         >
           {children}
         </div>
