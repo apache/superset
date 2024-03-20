@@ -125,7 +125,7 @@ def with_dashboard(
                     "169504601829472",
                     "169389281870822",
                 ]:
-                    id_or_slug = "20"
+                    id_or_slug = "19"
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             return f(self, dash)
         except DashboardAccessDeniedError:
@@ -405,7 +405,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     "169504601829472",
                     "169389281870822",
                 ]:
-                    id_or_slug = "20"
+                    id_or_slug = "19"
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
@@ -474,7 +474,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     "169504601829472",
                     "169389281870822",
                 ]:
-                    id_or_slug = "20"
+                    id_or_slug = "19"
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
             return self.response(200, result=result)
