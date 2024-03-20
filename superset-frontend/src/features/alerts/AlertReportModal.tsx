@@ -1240,13 +1240,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const updateEmailSubject = () => {
     if (contentType === 'chart') {
-      setEmailSubject(
-        `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
-      );
+      if (!currentAlert?.name && !currentAlert?.chart?.label) {
+        setEmailSubject('');
+      } else {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      }
     } else {
-      setEmailSubject(
-        `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
-      );
+      if (!currentAlert?.name && !currentAlert?.dashboard?.label) {
+        setEmailSubject('');
+      } else {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      }
     }
   };
 
