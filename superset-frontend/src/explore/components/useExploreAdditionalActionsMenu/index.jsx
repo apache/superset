@@ -135,9 +135,7 @@ export const useExploreAdditionalActionsMenu = (
   );
 
   const { datasource } = latestQueryFormData;
-  const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws)
-    ? isFeatureEnabled(FeatureFlag.EnableAws)
-    : false;
+  const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws);
 
   const settingShowReportSubMenu = (show, val) => {
     setShowReportSubMenu(show);

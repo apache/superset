@@ -194,10 +194,8 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
+    const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws);
 
-    const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws)
-      ? isFeatureEnabled(FeatureFlag.EnableAws)
-      : false;
     const isEmbedded = !dashboardInfo?.userId;
 
     const url = getDashboardUrl({
