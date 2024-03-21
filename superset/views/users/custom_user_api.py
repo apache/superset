@@ -21,7 +21,7 @@ class CustomUserAPI(BaseSupersetView):
             # is_active = body.get("active", True)
 
             # Ensure role exists and is valid
-            role = self.appbuilder.sm.find_role("Doctor")
+            role = self.appbuilder.sm.find_role("EkaUser")
             if not role:
                 return jsonify({"success": False, "message": "Role not found"}), 400
 

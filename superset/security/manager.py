@@ -2465,7 +2465,7 @@ class JWTAuthDBView(AuthDBView):
                 # user = SecurityManager(self.appbuilder).add_user(username=email, first_name=firstname,
                 #                                 last_name=lastname,
                 #                                 email=email, role="Gamma")
-                self.jwt_role = self.appbuilder.sm.find_role("Doctor")
+                self.jwt_role = self.appbuilder.sm.find_role("EkaUser")
                 user = self.appbuilder.sm.add_user(username=email, first_name=firstname,
                                                    last_name=lastname,
                                                    email=email, role=self.jwt_role)
