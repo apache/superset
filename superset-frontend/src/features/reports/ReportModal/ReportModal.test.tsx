@@ -176,7 +176,7 @@ describe('S3 ReportModal Component', () => {
           active: true,
           aws_S3_types: 'AWS_S3_credentials',
           aws_key: 'gg',
-          aws_secretKey: 'ggj',
+          aws_secret_key: 'ggj',
           chart: 164,
           creation_method: 'charts',
           crontab: '0 12 * * 1',

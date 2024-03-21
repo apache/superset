@@ -168,7 +168,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     force_screenshot = Column(Boolean, default=False)
 
     aws_key = Column(encrypted_field_factory.create(String(1024)))
-    aws_secretKey = Column(encrypted_field_factory.create(String(1024)))
+    aws_secret_key = Column(encrypted_field_factory.create(String(1024)))
     aws_S3_types = Column(String(200))
 
     custom_width = Column(Integer, nullable=True)

@@ -214,7 +214,7 @@ class ReportSchedulePostSchema(Schema):
     force_screenshot = fields.Boolean(dump_default=False)
 
     aws_key = fields.String(default=None, missing=None)
-    aws_secretKey = fields.String(default=None, missing=None)
+    aws_secret_key = fields.String(default=None, missing=None)
     aws_S3_types = fields.String(default=None, missing=None)
 
     custom_width = fields.Integer(
@@ -264,7 +264,7 @@ class ReportSchedulePostSchema(Schema):
             data["recipients"][0]["type"] == ReportRecipientType.S3
             and data["aws_S3_types"] == S3SubTypes.S3_CRED
         ):
-            if data["aws_key"] is None or data["aws_secretKey"] is None:
+            if data["aws_key"] is None or data["aws_secret_key"] is None:
                 raise ValidationError(
                     {
                         "aws credentials": [
@@ -363,7 +363,7 @@ class ReportSchedulePutSchema(Schema):
     force_screenshot = fields.Boolean(dump_default=False)
 
     aws_key = fields.String(default=None, missing=None)
-    aws_secretKey = fields.String(default=None, missing=None)
+    aws_secret_key = fields.String(default=None, missing=None)
     aws_S3_types = fields.String(default=None, missing=None)
 
     custom_width = fields.Integer(

@@ -59,6 +59,6 @@ export interface ReportObject {
   custom_width?: number | null;
   error?: string;
   aws_key?: any;
-  aws_secretKey?: any;
+  aws_secret_key?: any;
   aws_S3_types?: any;
 }

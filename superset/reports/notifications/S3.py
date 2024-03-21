@@ -91,7 +91,7 @@ class S3Notification(BaseNotification):
         try:
             if s3_Subtype == S3SubTypes.S3_CRED:
                 aws_access_key_id = self._aws_configuration.aws_key
-                aws_secret_access_key = self._aws_configuration.aws_secretKey
+                aws_secret_access_key = self._aws_configuration.aws_secret_key
 
                 self._execute_s3_upload(
                     file_body=files,

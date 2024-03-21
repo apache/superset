@@ -179,7 +179,7 @@ function ReportModal({
     if (currentReport.aws_S3_types) {
       setS3Method(currentReport.aws_S3_types);
       setAccessKey(currentReport ? currentReport?.aws_key : '');
-      setSecretKey(currentReport ? currentReport?.aws_secretKey : '');
+      setSecretKey(currentReport ? currentReport?.aws_secret_key : '');
     }
   }, [currentReport, isEditMode]);
 
@@ -233,7 +233,7 @@ function ReportModal({
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
       aws_key: accessKey,
-      aws_secretKey: secretKey,
+      aws_secret_key: secretKey,
       aws_S3_types: s3Method,
     };
 

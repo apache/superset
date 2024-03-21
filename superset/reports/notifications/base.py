@@ -38,7 +38,7 @@ class NotificationContent:
 @dataclass
 class AwsConfiguration:
     aws_key: Optional[str] = None
-    aws_secretKey: Optional[str] = None
+    aws_secret_key: Optional[str] = None
     aws_S3_types: Optional[str] = None
 
 

@@ -119,7 +119,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
-        "aws_secretKey",
+        "aws_secret_key",
         "aws_key",
         "aws_S3_types",
     ]
@@ -154,7 +154,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.type",
         "timezone",
         "type",
-        "aws_secretKey",
+        "aws_secret_key",
         "aws_key",
         "aws_S3_types",
         "recipients.recipient_config_json",

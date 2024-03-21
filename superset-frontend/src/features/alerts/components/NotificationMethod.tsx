@@ -64,7 +64,7 @@ interface NotificationMethodProps {
   currentAlert?: {
     aws_key: string;
     aws_S3_types: string;
-    aws_secretKey: string;
+    aws_secret_key: string;
   };
   isEditMode?: boolean;
 }
@@ -92,14 +92,14 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     currentAlert ? currentAlert?.aws_key : '',
   );
   const [secretKey, setSecretKey] = useState<string>(
-    currentAlert ? currentAlert?.aws_secretKey : '',
+    currentAlert ? currentAlert?.aws_secret_key : '',
   );
   useEffect(() => {
     if (setting) {
       if (onUpdateS3Setting && currentAlert) {
         const updatedS3Setting = {
           ...s3Setting,
-          aws_secretKey: secretKey,
+          aws_secret_key: secret_key,
           aws_S3_types: s3Method,
           aws_key: accessKey,
         };
@@ -173,7 +173,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     if (onUpdateS3Setting) {
       const updatedS3Setting = {
         ...s3Setting,
-        aws_secretKey: e.target.value,
+        aws_secret_key: e.target.value,
       };
 
       onUpdateS3Setting(updatedS3Setting);
