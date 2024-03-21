@@ -99,7 +99,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       if (onUpdateS3Setting && currentAlert) {
         const updatedS3Setting = {
           ...s3Setting,
-          aws_secret_key: secret_key,
+          aws_secret_key: secretKey,
           aws_s3_types: s3Method,
           aws_key: accessKey,
         };
