@@ -65,11 +65,11 @@ class BaseNotification:  # pylint: disable=too-few-public-methods
         self,
         recipient: ReportRecipients,
         content: NotificationContent,
-        awsConfiguration: Optional[AwsConfiguration] = None,
+        aws_configuration: Optional[AwsConfiguration] = None,
     ) -> None:
         self._recipient = recipient
         self._content = content
-        self._aws_configuration = awsConfiguration
+        self._aws_configuration = aws_configuration
 
     def send(self) -> None:
         raise NotImplementedError()

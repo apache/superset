@@ -419,9 +419,9 @@ class BaseReportState:
         notification_errors: list[SupersetError] = []
         for recipient in recipients:
             if recipient.type == ReportRecipientType.S3:
-                aws_Configuration = self._get_aws_configuration()
+                aws_configuration = self._get_aws_configuration()
                 notification = create_notification(
-                    recipient, notification_content, aws_Configuration
+                    recipient, notification_content, aws_configuration
                 )
             else:
                 notification = create_notification(recipient, notification_content)
