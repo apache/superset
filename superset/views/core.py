@@ -368,7 +368,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data=form_data,
                 force=force,
             )
-            if language == "ru":
+            if language == ChartDataResultLanguage.RU:
                 column_and_metric_names = dict()
                 for column in viz_obj.datasource.columns:
                     if column.verbose_name_RU:

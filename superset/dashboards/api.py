@@ -99,6 +99,7 @@ from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
 )
+from superset.common.chart_data import ChartDataResultLanguage
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +409,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
-            if language == "ru":
+            if language == ChartDataResultLanguage.RU:
                 for dataset in result:
                     verbose_map = dataset.get("verbose_map")
                     columns = dataset.get("columns")
@@ -508,7 +509,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 for chart in result:
                     form_data = chart.get("form_data")
                     form_data.pop("label_colors", None)
-            if language == "ru":
+            if language == ChartDataResultLanguage.RU:
                 for chart in result:
                     all_columns = chart.get("form_data").get("all_columns", [])
                     for column in all_columns:
