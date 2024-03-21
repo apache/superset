@@ -35,7 +35,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/components';
+import { RadioChangeEvent, Select } from 'src/components';
 import { Input } from 'src/components/Input';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
@@ -65,8 +65,6 @@ import {
   StyledRadio,
   StyledRadioGroup,
 } from './styles';
-import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
-import { Select } from 'src/components';
 
 interface ReportProps {
   onHide: () => {};
@@ -257,7 +255,7 @@ function ReportModal({
   };
 
   useEffect(() => {
-    if (currentReport.recipients && currentReport.recipients[0]?.type) {
+    if (currentReport.recipients?.[0]?.type) {
       setMethod(currentReport.recipients[0]?.type);
     }
   }, [method]);

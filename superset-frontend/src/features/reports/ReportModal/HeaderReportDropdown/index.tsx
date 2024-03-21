@@ -95,7 +95,7 @@ export enum CreationMethod {
   Dashboards = 'dashboards',
 }
 export interface HeaderReportProps {
-  reporttype: string;
+  reportType: string;
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
@@ -110,7 +110,7 @@ export interface HeaderReportProps {
 const EMPTY_OBJECT = {};
 
 export default function HeaderReportDropDown({
-  reporttype,
+  reportType,
   dashboardId,
   chart,
   useTextMenu = false,
@@ -246,7 +246,7 @@ export default function HeaderReportDropDown({
     ) : (
       <>
         <Menu selectable={false} css={onMenuHover}>
-          {report && s3Report === reporttype ? (
+          {report && s3Report === reportType ? (
             (isDropdownVisible || showS3Modal) && (
               <>
                 <Menu.Item

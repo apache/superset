@@ -20,10 +20,10 @@ import React, { FunctionComponent, useEffect, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
+import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+import { noBottomMargin } from 'src/features/reports/ReportModal/styles';
 import { NotificationMethodOption } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
-import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
-import { noBottomMargin } from 'src/components/ReportModal/styles';
 
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
@@ -94,6 +94,19 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [secretKey, setSecretKey] = useState<string>(
     currentAlert ? currentAlert?.aws_secretKey : '',
   );
+  useEffect(() => {
+    if (setting) {
+      if (onUpdateS3Setting && currentAlert) {
+        const updatedS3Setting = {
+          ...s3Setting,
+          aws_secretKey: secretKey,
+          aws_S3_types: s3Method,
+          aws_key: accessKey,
+        };
+        onUpdateS3Setting(updatedS3Setting);
+      }
+    }
+  }, []);
 
   if (!setting) {
     return null;
@@ -111,7 +124,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       onUpdate(index, updatedSetting);
     }
   };
-
   const onRecipientsChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
@@ -180,18 +192,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       onUpdate(index, updatedSetting);
     }
   };
-  useEffect(() => {
-    if (onUpdateS3Setting && currentAlert) {
-      const updatedS3Setting = {
-        ...s3Setting,
-        aws_secretKey: secretKey,
-        aws_S3_types: s3Method,
-        aws_key: accessKey,
-      };
-
-      onUpdateS3Setting(updatedS3Setting);
-    }
-  }, []);
 
   return (
     <StyledNotificationMethod>

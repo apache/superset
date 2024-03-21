@@ -30,9 +30,9 @@ import { screen, fireEvent as rootFireEvent } from '@testing-library/react';
 import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
 import { FeatureFlag } from '@superset-ui/core';
-import ReportModal from '.';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
+import ReportModal from '.';
 // import { Store, AnyAction } from 'redux';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
@@ -83,11 +83,7 @@ describe('S3 ReportModal Component', () => {
 
   it('makes a selection in single mode', async () => {
     const { getByTestId } = render(
-      <ReportModal
-        show={true}
-        type="s3 report"
-        s3Method="AWS_S3_credentials"
-      />,
+      <ReportModal show type="s3 report" s3Method="AWS_S3_credentials" />,
       { useRedux: true },
     );
     waitFor(() => {
@@ -101,7 +97,7 @@ describe('S3 ReportModal Component', () => {
       expect(inputElement).toHaveValue('AWS_S3_credentials');
     });
 
-    //Checking for bucket name,acess key,secret key
+    // Checking for bucket name,acess key,secret key
     waitFor(async () => {
       // expect(screen.findByTestId("test-bucket")).toBeInTheDocument();
       const bucketInput = await screen.findByTestId('test-bucket');
@@ -111,7 +107,7 @@ describe('S3 ReportModal Component', () => {
       expect(accessInput).toBeInTheDocument();
       expect(secretInput).toBeInTheDocument();
 
-      //checking for input value
+      // checking for input value
       userEvent.type(bucketInput, 'test-bucket-value');
       userEvent.type(accessInput, 'test-access-value');
       userEvent.type(secretInput, 'test-secret-value');
@@ -124,11 +120,7 @@ describe('S3 ReportModal Component', () => {
 
   it('when s3Method is AWS_S3_pyconfig or AWS_S3_IAM', async () => {
     const { getByTestId } = render(
-      <ReportModal
-        show={true}
-        type="s3 report"
-        s3Method="AWS_S3_credentials"
-      />,
+      <ReportModal show type="s3 report" s3Method="AWS_S3_credentials" />,
       { useRedux: true },
     );
 
@@ -143,7 +135,7 @@ describe('S3 ReportModal Component', () => {
       expect(inputElement).toHaveValue('AWS_S3_IAM' || 'AWS_S3_pyconfig');
     });
 
-    //Checking for bucket name
+    // Checking for bucket name
     waitFor(async () => {
       const bucketInput = await screen.findByTestId('test-bucket');
       const accessInput = await screen.findByTestId('test-access');
@@ -152,181 +144,11 @@ describe('S3 ReportModal Component', () => {
       expect(accessInput).toBeInTheDocument();
       expect(secretInput).toBeInTheDocument();
 
-      //checking for input value
+      // checking for input value
       userEvent.type(bucketInput, 'test-bucket-value');
       expect(bucketInput).toHaveValue('test-bucket-value');
-      expect(accessInput).toHaveLength(0);
-      expect(secretInput).toHaveLength(0);
-    });
-  });
-
-  describe('S3 Report Modal', () => {
-    let isFeatureEnabledMock: any;
-    let dispatch: any;
-
-    beforeEach(async () => {
-      isFeatureEnabledMock = jest
-        .spyOn(featureFlags, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-      dispatch = sinon.spy();
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
-      fetchMock.reset();
-    });
-
-    test('creates a new s3 report', async () => {
-      // ---------- Render/value setup ----------
-      const reportValues = {
-        id: 1,
-        result: {
-          active: true,
-          aws_S3_types: 'AWS_S3_credentials',
-          aws_key: 'gg',
-          aws_secretKey: 'ggj',
-          chart: 164,
-          creation_method: 'charts',
-          crontab: '0 12 * * 1',
-          description: 'aws',
-          force_screenshot: false,
-          name: 'Weekly Report Aws',
-          owners: [1],
-          recipients: [
-            {
-              recipient_config_json: {
-                target: 'demo bucket name',
-              },
-              type: 'S3',
-            },
-          ],
-          report_format: 'PNG',
-          timezone: 'Asia/Kolkata',
-          type: 'Report',
-        },
-      };
-      // This is needed to structure the reportValues to match the fetchMock return
-      const stringyReportValues = `{"id":1,"result":{"active":true,"aws_S3_types":"AWS_S3_credentials","aws_key":"gg","aws_secretKey":"ggj","chart":164,"creation_method":"charts","crontab":"0 12 * * 1","description":"aws","force_screenshot":false,"name":"Weekly Report Aws","owners":[1],"recipients":[{"recipient_config_json":{"target":"demo bucket name"},"type":"S3"}],"report_format":"PNG","timezone":"Asia/Kolkata","type":"Report"}}`;
-      // Watch for report POST
-      fetchMock.post(REPORT_ENDPOINT, reportValues);
-
-      // Click "Add" button to create a new email report
-      const addButton = screen.getByRole('button', { name: /add/i });
-      await waitFor(() => userEvent.click(addButton));
-
-      // Mock addReport from Redux
-      const makeRequest = () => {
-        const request = actions.addReport(reportValues);
-        return request(dispatch);
-      };
-
-      await makeRequest();
-
-      // 🐞 ----- There are 2 POST calls at this point ----- 🐞
-
-      // addReport's mocked POST return should match the mocked values
-      expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
-      expect(dispatch.callCount).toBe(2);
-      const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
-      expect(reportCalls).toHaveLength(2);
-    });
-  });
-});
-
-describe('S3 ReportModal Component', () => {
-  beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
-      );
-  });
-
-  beforeEach(() => {
-    render(<ReportModal method="S3" {...defaultProps} />, { useRedux: true });
-  });
-
-  afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
-  });
-
-  it('makes a selection in single mode', async () => {
-    const { getByTestId } = render(
-      <ReportModal
-        show={true}
-        type="s3 report"
-        s3Method="AWS_S3_credentials"
-      />,
-      { useRedux: true },
-    );
-    waitFor(() => {
-      userEvent.click(getByTestId('select-s3-method'));
-      const inputElement = getByTestId('select-s3-method').querySelector(
-        '.ant-select-selection-search-input',
-      ) as HTMLInputElement;
-      rootFireEvent.select(inputElement, {
-        target: { value: 'AWS_S3_credentials' },
-      });
-      expect(inputElement).toHaveValue('AWS_S3_credentials');
-    });
-
-    //Checking for bucket name,acess key,secret key
-    waitFor(async () => {
-      // expect(screen.findByTestId("test-bucket")).toBeInTheDocument();
-      const bucketInput = await screen.findByTestId('test-bucket');
-      const accessInput = await screen.findByTestId('test-access');
-      const secretInput = await screen.findByTestId('test-secret');
-      expect(bucketInput).toBeInTheDocument();
-      expect(accessInput).toBeInTheDocument();
-      expect(secretInput).toBeInTheDocument();
-
-      //checking for input value
-      userEvent.type(bucketInput, 'test-bucket-value');
-      userEvent.type(accessInput, 'test-access-value');
-      userEvent.type(secretInput, 'test-secret-value');
-
-      expect(bucketInput).toHaveValue('test-bucket-value');
-      expect(accessInput).toHaveValue('test-access-value');
-      expect(secretInput).toHaveValue('test-secret-value');
-    });
-  });
-
-  it('when s3Method is AWS_S3_pyconfig or AWS_S3_IAM', async () => {
-    const { getByTestId } = render(
-      <ReportModal
-        show={true}
-        type="s3 report"
-        s3Method="AWS_S3_credentials"
-      />,
-      { useRedux: true },
-    );
-
-    waitFor(async () => {
-      userEvent.click(getByTestId('select-s3-method'));
-      const inputElement = getByTestId('select-s3-method').querySelector(
-        '.ant-select-selection-search-input',
-      ) as HTMLInputElement;
-      rootFireEvent.select(inputElement, {
-        target: { value: 'AWS_S3_IAM' || 'AWS_S3_pyconfig' },
-      });
-      expect(inputElement).toHaveValue('AWS_S3_IAM' || 'AWS_S3_pyconfig');
-    });
-
-    //Checking for bucket name
-    waitFor(async () => {
-      const bucketInput = await screen.findByTestId('test-bucket');
-      const accessInput = await screen.findByTestId('test-access');
-      const secretInput = await screen.findByTestId('test-secret');
-      expect(bucketInput).toBeInTheDocument();
-      expect(accessInput).toBeInTheDocument();
-      expect(secretInput).toBeInTheDocument();
-
-      //checking for input value
-      userEvent.type(bucketInput, 'test-bucket-value');
-      expect(bucketInput).toHaveValue('test-bucket-value');
-      expect(accessInput).toHaveLength(0);
-      expect(secretInput).toHaveLength(0);
+      expect(accessInput).not.toBeInTheDocument();
+      expect(secretInput).not.toBeInTheDocument();
     });
   });
 

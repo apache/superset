@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-import { t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -34,9 +34,6 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
-import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -103,7 +100,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.state = {
       css: props.customCss,
       showReportSubMenu: null,
-      reptype: null,
+      repType: null,
     };
 
     this.changeCss = this.changeCss.bind(this);
@@ -123,7 +120,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   setShowReportSubMenu(show, val) {
     this.setState({
       showReportSubMenu: show,
-      reptype: val,
+      repType: val,
     });
   }
 
@@ -198,8 +195,8 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
-    const isS3Feature = isFeatureEnabled(FeatureFlag.ENABLE_AWS)
-      ? isFeatureEnabled(FeatureFlag.ENABLE_AWS)
+    const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws)
+      ? isFeatureEnabled(FeatureFlag.EnableAws)
       : false;
     const isEmbedded = !dashboardInfo?.userId;
 
@@ -338,7 +335,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           ) : (
             <Menu>
               <HeaderReportDropdown
-                reporttype="Email"
+                reportType="Email"
                 dashboardId={dashboardInfo.id}
                 setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
@@ -350,11 +347,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         ) : null}
 
         {!editMode && isS3Feature ? (
-          this.state.showReportSubMenu && this.state.reptype === 'S3' ? (
+          this.state.showReportSubMenu && this.state.repType === 'S3' ? (
             <>
               <Menu.SubMenu title={t('Manage S3 report')}>
                 <HeaderReportDropdown
-                  reporttype="S3"
+                  reportType="S3"
                   dashboardId={dashboardInfo.id}
                   setShowReportSubMenu={this.setShowReportSubMenu}
                   showReportSubMenu={this.state.showReportSubMenu}
@@ -369,7 +366,7 @@ class HeaderActionsDropdown extends React.PureComponent {
           ) : (
             <Menu>
               <HeaderReportDropdown
-                reporttype="S3"
+                reportType="S3"
                 dashboardId={dashboardInfo.id}
                 setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}

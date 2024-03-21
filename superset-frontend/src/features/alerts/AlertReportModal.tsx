@@ -576,7 +576,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  //for s3 update
+  // for s3 update
   const handleS3SettingUpdate = (updatedS3Setting: any) => {
     setS3NotificationSettings(updatedS3Setting);
   };
