@@ -29,7 +29,7 @@ export enum EmptyStateSize {
 }
 
 export interface EmptyStateSmallProps {
-  title: ReactNode;
+  title?: ReactNode;
   description?: ReactNode;
   image?: ReactNode;
 }

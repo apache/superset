@@ -492,3 +492,17 @@ At this point, a GitHub action will run that will check whether this release's v
 Now that we have a final Apache release we need to open a pull request on Superset with the changes on [CHANGELOG/\<version\>.md](../CHANGELOG) and [UPDATING.md](../UPDATING.md).
 
 We also need to update the Environment section of [ISSUE_TEMPLATE/bug-report.yml](../.github/ISSUE_TEMPLATE//bug-report.yml) to reflect the new release changes. This includes removing versions that are not supported anymore and adding new ones.
+
+### Docker Releases
+
+Docker release with proper tags should happen automatically as version
+tags get pushed to the `apache/superset` GitHub repository through this
+[GitHub action](https://github.com/apache/superset/blob/master/.github/workflows/docker-release.yml)
+
+Note that this GH action implements a `workflow_dispatch` trigger,
+meaning that it can be triggered manually from the GitHub UI. If anything
+was to go wrong in the automated process, it's possible to re-generate
+and re-push the proper images and tags through this interface. The action
+takes the version (ie `3.1.1`), the git reference (any SHA, tag or branch
+reference), and whether to force the `latest` Docker tag on the
+generated images.

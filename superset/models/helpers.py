@@ -1340,7 +1340,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return and_(*l)
 
     def values_for_column(
-        self, column_name: str, limit: int = 10000, denormalize_column: bool = False
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -1378,6 +1381,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
+            # replace NaN with None to ensure it can be serialized to JSON
+            df = df.replace({np.nan: None})
             return df["column_values"].to_list()
 
     def get_timestamp_expression(

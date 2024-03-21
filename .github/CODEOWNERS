@@ -25,3 +25,10 @@
 # Notify PMC members of changes to required Github Actions
 
 /.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
+
+# Maps are a finnicky contribution process we care about
+**/*.geojson @villebro @rusackas
+/superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
+
+# Translations are a finnicky contribution that we care about
+/superset/translations/ @villebro @rusackas @michael-s-molina

@@ -112,9 +112,15 @@ export default function transformProps(chartProps: ChartProps) {
 
   let valueDifference: number | string = bigNumber - prevNumber;
 
-  const percentDifferenceNum = prevNumber
-    ? (bigNumber - prevNumber) / Math.abs(prevNumber)
-    : 0;
+  let percentDifferenceNum;
+
+  if (!bigNumber && !prevNumber) {
+    percentDifferenceNum = 0;
+  } else if (!bigNumber || !prevNumber) {
+    percentDifferenceNum = bigNumber ? 1 : -1;
+  } else {
+    percentDifferenceNum = (bigNumber - prevNumber) / Math.abs(prevNumber);
+  }
 
   const compType = compTitles[formData.timeComparison];
   bigNumber = numberFormatter(bigNumber);

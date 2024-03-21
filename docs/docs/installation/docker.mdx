@@ -50,6 +50,17 @@ GitHub action.
 
 To accelerate builds, we follow Docker best practices and use `apache/superset-cache`.
 
+## About database drivers
+
+Our docker images come with little to zero database driver support since
+each envrionment requires different drivers, and mataining a build with
+wide database support would be both challenging (dozens of databases,
+python drivers, and os dependencies) and inefficient (longer
+build times, larger images, lower layer cache hit rate, ...).
+
+For production use cases, we recommend that you derive our `lean` image(s) and
+add database support for the database you need.
+
 ## On ARM builds and working with Apple silicon
 
 Apple's current generation of computers uses ARM-based CPUs, and Docker

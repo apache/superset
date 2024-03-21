@@ -217,7 +217,11 @@ function calculatePrev(
 }
 
 export default function buildQuery(formData: QueryFormData) {
-  const { cols: groupby, time_comparison: timeComparison } = formData;
+  const {
+    cols: groupby,
+    time_comparison: timeComparison,
+    extra_form_data: extraFormData,
+  } = formData;
 
   const queryContextA = buildQueryContext(formData, baseQueryObject => [
     {
@@ -244,9 +248,11 @@ export default function buildQuery(formData: QueryFormData) {
     'comparator' in timeFilter &&
     typeof timeFilter.comparator === 'string'
   ) {
-    [testSince, testUntil] = getSinceUntil(
-      timeFilter.comparator.toLocaleLowerCase(),
-    );
+    let timeRange = timeFilter.comparator.toLocaleLowerCase();
+    if (extraFormData?.time_range) {
+      timeRange = extraFormData.time_range;
+    }
+    [testSince, testUntil] = getSinceUntil(timeRange);
   }
 
   let formDataB: QueryFormData;
@@ -277,11 +283,13 @@ export default function buildQuery(formData: QueryFormData) {
     formDataB = {
       ...formData,
       adhoc_filters: queryBFilters,
+      extra_form_data: {},
     };
   } else {
     formDataB = {
       ...formData,
       adhoc_filters: formData.adhoc_custom,
+      extra_form_data: {},
     };
   }
 

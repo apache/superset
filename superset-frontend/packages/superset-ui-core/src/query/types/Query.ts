@@ -328,6 +328,7 @@ export type Query = {
   actions: Record<string, any>;
   type: DatasourceType;
   columns: QueryColumn[];
+  runAsync?: boolean;
 };
 
 export type QueryResults = {

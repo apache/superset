@@ -24,10 +24,10 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
-import { Table } from 'src/SqlLab/types';
+import { SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
   addTable,
@@ -55,16 +55,11 @@ import {
 } from 'src/utils/localStorageHelpers';
 import TableElement from '../TableElement';
 
-export interface ExtendedTable extends Table {
-  expanded: boolean;
-}
-
-interface SqlEditorLeftBarProps {
+export interface SqlEditorLeftBarProps {
   queryEditorId: string;
   height?: number;
-  tables?: ExtendedTable[];
   database?: DatabaseObject;
-  setEmptyState: Dispatch<SetStateAction<boolean>>;
+  setEmptyState?: Dispatch<SetStateAction<boolean>>;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -111,10 +106,14 @@ const LeftBarStyles = styled.div`
 const SqlEditorLeftBar = ({
   database,
   queryEditorId,
-  tables = [],
   height = 500,
   setEmptyState,
 }: SqlEditorLeftBarProps) => {
+  const tables = useSelector<SqlLabRootState, Table[]>(
+    ({ sqlLab }) =>
+      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
+    shallowEqual,
+  );
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
 
@@ -144,7 +143,7 @@ const SqlEditorLeftBar = ({
   };
 
   const onDbChange = ({ id: dbId }: { id: number }) => {
-    setEmptyState(false);
+    setEmptyState?.(false);
     dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 
@@ -177,7 +176,7 @@ const SqlEditorLeftBar = ({
   };
 
   const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach((table: ExtendedTable) => {
+    tables.forEach(table => {
       if (!updatedTables.includes(table.id.toString()) && table.expanded) {
         dispatch(collapseTable(table));
       } else if (

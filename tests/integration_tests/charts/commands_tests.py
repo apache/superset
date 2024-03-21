@@ -171,7 +171,7 @@ class TestExportChartsCommand(SupersetTestCase):
 
 
 class TestImportChartsCommand(SupersetTestCase):
-    @patch("superset.commands.chart.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     def test_import_v1_chart(self, sm_g, utils_g):
         """Test that we can import a chart"""
