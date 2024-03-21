@@ -56,7 +56,6 @@ jobs:
         if: steps.check.outcome == 'failure'
       - name: Setup Postgres
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: superset init

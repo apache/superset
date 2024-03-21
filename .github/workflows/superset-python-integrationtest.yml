@@ -57,7 +57,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Setup MySQL
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             setup-mysql
@@ -116,7 +115,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             setup-postgres
@@ -170,7 +168,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             # sqlite needs this working directory

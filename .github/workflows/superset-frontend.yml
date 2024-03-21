@@ -42,7 +42,6 @@ jobs:
           node-version: "16"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: eslint

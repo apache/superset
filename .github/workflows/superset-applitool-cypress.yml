@@ -60,7 +60,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
@@ -68,24 +67,19 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Setup Postgres
         if: steps.check.outcome == 'failure'
-        uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Install cypress
-        uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
         with:

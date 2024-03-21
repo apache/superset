@@ -43,11 +43,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Install eyes-storybook dependencies
-        uses: ./.github/actions/cached-dependencies
         with:
           run: eyes-storybook-dependencies
       - name: Install NPM dependencies
-        uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Run Applitools Eyes-Storybook
