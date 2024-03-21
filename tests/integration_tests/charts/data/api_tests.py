@@ -62,6 +62,8 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from tests.common.query_context_generator import ANNOTATION_LAYERS
 from tests.integration_tests.fixtures.query_context import get_query_context
 
+from tests.integration_tests.test_app import app
+
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -77,6 +79,13 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
     "label": "exciting_or_boring",
     "sqlExpression": "case when genre = 'Action' then 'Exciting' else 'Boring' end",
 }
+
+
+@pytest.fixture(autouse=True)
+def skip_by_backend():
+    with app.app_context():
+        if backend() == "hive":
+            pytest.skip("Skipping tests for Hive backend")
 
 
 class BaseTestChartDataApi(SupersetTestCase):
