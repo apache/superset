@@ -582,8 +582,7 @@ const ExtraOptions = ({
             />
             <InfoTooltip
               tooltip={t(
-                `Disables the drill to detail feature for this database. This might be useful if
-                the database does not support atomic-level queries or contains large amounts of data.`,
+                'Disables the drill to detail feature for this database.',
               )}
             />
           </div>
