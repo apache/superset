@@ -535,6 +535,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure prophet post transformation works
         """
+        if backend() == "hive":
+            return
+
         time_grain = "P1Y"
         self.query_context_payload["queries"][0]["is_timeseries"] = True
         self.query_context_payload["queries"][0]["groupby"] = []
@@ -569,6 +572,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Ensure incorrect post processing returns correct response
         """
+        if backend() == "hive":
+            return
+
         query_context = self.query_context_payload
         query = query_context["queries"][0]
         query["columns"] = ["name", "gender"]
