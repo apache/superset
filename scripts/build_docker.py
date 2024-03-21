@@ -25,7 +25,7 @@ import click
 
 REPO = "apache/superset"
 CACHE_REPO = f"{REPO}-cache"
-BASE_PY_IMAGE = "3.10-slim"
+BASE_PY_IMAGE = "3.10-slim-bookworm"
 
 
 def run_cmd(command: str, raise_on_failure: bool = True) -> str:
