@@ -629,9 +629,14 @@ export function getTimeCompareStackId(
   return (
     timeCompare.find(value => {
       if (typeof name === 'string') {
-        return name.includes(`__${value}`);
+        // offset is represented as <offset>, group by list
+        return (
+          name.includes(`${value},`) ||
+          // offset is represented as <metric>__<offset>
+          name.includes(`__${value}`)
+        );
       }
-      return name?.toString().includes(value.toString());
+      return name?.toString().includes(value);
     }) || defaultId
   );
 }
