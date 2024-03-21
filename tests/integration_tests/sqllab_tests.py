@@ -434,8 +434,6 @@ class TestSqlLab(SupersetTestCase):
         Test query api with can_access_all_queries perm added to
         gamma and make sure all queries show up.
         """
-        session = db.session
-
         # Add all_query_access perm to Gamma user
         all_queries_view = security_manager.find_permission_view_menu(
             "all_query_access", "all_query_access"
@@ -444,7 +442,7 @@ class TestSqlLab(SupersetTestCase):
         security_manager.add_permission_role(
             security_manager.find_role("gamma_sqllab"), all_queries_view
         )
-        session.commit()
+        db.session.commit()
 
         # Test search_queries for Admin user
         self.run_some_queries()
@@ -461,7 +459,64 @@ class TestSqlLab(SupersetTestCase):
             security_manager.find_role("gamma_sqllab"), all_queries_view
         )
 
-        session.commit()
+        db.session.commit()
+
+    def test_query_api_can_access_sql_editor_id_associated_queries(self) -> None:
+        """
+        Test query api with sql_editor_id filter to
+        gamma and make sure sql editor associated queries show up.
+        """
+        username = "gamma_sqllab"
+        self.login("gamma_sqllab")
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        # run a query in the created tab
+        self.run_sql(
+            "SELECT 1",
+            "client_id_1",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        self.run_sql(
+            "SELECT 2",
+            "client_id_2",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        # run an orphan query (no tab)
+        self.run_sql(
+            "SELECT 3",
+            "client_id_3",
+            username=username,
+            raise_on_error=True,
+        )
+
+        arguments = {
+            "filters": [
+                {"col": "sql_editor_id", "opr": "eq", "value": str(tab_state_id)}
+            ]
+        }
+        url = f"/api/v1/query/?q={prison.dumps(arguments)}"
+        self.assertEqual(
+            {"SELECT 1", "SELECT 2"},
+            {r.get("sql") for r in self.get_json_resp(url)["result"]},
+        )
 
     def test_query_admin_can_access_all_queries(self) -> None:
         """

@@ -3,7 +3,11 @@
   "locale_data": {
     "superset": {
       "22": ["22"],
-      "": { "domain": "superset", "lang": "uk" },
+      "": {
+        "domain": "superset",
+        "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)",
+        "lang": "uk"
+      },
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
         "\n                Цей фільтр був успадкований із контексту панелі приладної панелі.\n                Це не буде збережено під час збереження діаграми.\n              "
       ],
@@ -63,13 +67,6 @@
       "%(subtitle)s\nThis may be triggered by:\n %(issue)s": [
         "%(subtitle)s\nЦе може бути спровоковано:\n %(issue)s"
       ],
-      "%(suggestion)s instead of \"%(undefinedParameter)s?\"": [
-        "%(suggestion)s замість “%(undefinedParameter)s?\""
-      ],
-      "%(user)s was granted the role %(role)s that gives access to the %(datasource)s": [
-        "%(user)s було надано роль %(role)s, яка надає доступ до %(datasource)s"
-      ],
-      "%(user)s's profile": ["%(user)s профіль"],
       "%(validator)s was unable to check your query.\nPlease recheck your query.\nException: %(ex)s": [
         "%(validator)s не зміг перевірити ваш запит.\nБудь ласка, перегляньте свій запит.\nВиняток: %(ex)s"
       ],
@@ -86,10 +83,11 @@
       "%s Selected (Virtual)": ["%s вибраний (віртуальний)"],
       "%s aggregates(s)": ["%s агреговані"],
       "%s column(s)": ["%s стовпці"],
+      "%s items could not be tagged because you don’t have edit permissions to all selected objects.": [
+        ""
+      ],
       "%s operator(s)": ["%s Оператор(и)"],
-      "%s option": ["%s варіант"],
       "%s option(s)": ["%s варіант(и)"],
-      "%s row": ["%s рядок"],
       "%s saved metric(s)": ["%s збережені метрики"],
       "%s updated": ["%s оновлено"],
       "%s%s": ["%s%s"],
@@ -98,9 +96,6 @@
       "(deleted or invalid type)": ["(видалений або недійсний тип)"],
       "(no description, click to see stack trace)": [
         "(Немає опису, натисніть, щоб побачити Trace Stack)"
-      ],
-      "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
-        "(Необов’язково) Значення за замовчуванням для фільтра при використанні декількох опцій ви можете використовувати список параметрів, що обмежується комою."
       ],
       "), and they become available in your SQL (example:": [
         "), і вони стають доступними у вашому SQL (приклад:"
@@ -273,6 +268,9 @@
         "Під час зняття скріншота стався таймаут."
       ],
       "A valid color scheme is required": ["Потрібна дійсна кольорова гама"],
+      "A waterfall chart is a form of data visualization that helps in understanding\n          the cumulative effect of sequentially introduced positive or negative values.\n          These intermediate values can either be time based or category based.": [
+        ""
+      ],
       "APPLY": ["Застосовувати"],
       "APR": ["Квітня"],
       "AQE": ["AQE"],
@@ -281,12 +279,7 @@
       "AXIS TITLE POSITION": ["Позиція заголовка вісь"],
       "About": ["Про"],
       "Access": ["Доступ"],
-      "Access requests": ["Запити доступу"],
-      "Access to user activity data is restricted": [
-        "Доступ до даних про активність користувача обмежений"
-      ],
       "Access token": ["Маркер доступу"],
-      "Access was requested": ["Доступ вимагав"],
       "Action": ["Дія"],
       "Action Log": ["Журнал дій"],
       "Actions": ["Дії"],
@@ -308,7 +301,6 @@
       "Add Metric": ["Додати показник"],
       "Add Report": ["Додайте звіт"],
       "Add Rule": ["Додайте правило"],
-      "Add Saved Query": ["Додайте збережений запит"],
       "Add a Plugin": ["Додайте плагін"],
       "Add a dataset": ["Додайте набір даних"],
       "Add a new tab": ["Додайте нову вкладку"],
@@ -329,6 +321,7 @@
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         "Додайте обчислені тимчасові стовпці до набору даних у модалі \"редагувати дані\""
       ],
+      "Add color for positive/negative change": [""],
       "Add cross-filter": ["Додати перехресний фільтр"],
       "Add custom scoping": ["Додайте власні сфери застосування"],
       "Add delivery method": ["Додайте метод доставки"],
@@ -355,12 +348,12 @@
         "Додайте необхідні контрольні значення для збереження діаграми"
       ],
       "Add sheet": ["Додати аркуш"],
+      "Add tag to entities": [""],
       "Add the name of the chart": ["Додайте назву діаграми"],
       "Add the name of the dashboard": ["Додайте назву інформаційної панелі"],
       "Add to dashboard": ["Додайте до інформаційної панелі"],
       "Add/Edit Filters": ["Додати/редагувати фільтри"],
       "Added": ["Доданий"],
-      "Added to 1 dashboard": ["Додано до 1 інформаційної панелі"],
       "Additional Parameters": ["Додаткові параметри"],
       "Additional fields may be required": [
         "Можуть знадобитися додаткові поля"
@@ -428,14 +421,8 @@
       "Alert query returned more than one column.": [
         "Попередній запит повернув більше одного стовпця."
       ],
-      "Alert query returned more than one column. %s columns returned": [
-        "Попередній запит повернув більше одного стовпця. повернуті стовпці %s"
-      ],
       "Alert query returned more than one row.": [
         "Попередній запит повернув більше одного ряду."
-      ],
-      "Alert query returned more than one row. %s rows returned": [
-        "Попередній запит повернув більше одного ряду. %s Рядки повернулися"
       ],
       "Alert running": ["Попередження"],
       "Alert triggered, notification sent": [
@@ -447,12 +434,10 @@
       "Alerts & reports": ["Попередження та звіти"],
       "Align +/-": ["Вирівняти +/-"],
       "All": ["Всі"],
-      "All Entities": ["Всі сутності"],
       "All Text": ["Весь текст"],
       "All charts": ["Усі діаграми"],
       "All charts/global scoping": ["Усі діаграми/глобальні обсяги"],
       "All filters": ["Всі фільтри"],
-      "All filters (%(filterCount)d)": ["Усі фільтри (%(Filtercount) D)"],
       "All panels": ["Всі панелі"],
       "All panels with this column will be affected by this filter": [
         "На всі панелі з цим стовпцем впливатимуть цей фільтр"
@@ -467,6 +452,9 @@
       ],
       "Allow Csv Upload": ["Дозволити завантаження CSV"],
       "Allow DML": ["Дозволити DML"],
+      "Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).": [
+        ""
+      ],
       "Allow columns to be rearranged": ["Дозволити перестановку стовпців"],
       "Allow creation of new tables based on queries": [
         "Дозволити створення нових таблиць на основі запитів"
@@ -486,7 +474,6 @@
       "Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.": [
         "Дозволити маніпулювання базою даних за допомогою операторів, що не вибирають, такі як оновлення, видалення, створення тощо."
       ],
-      "Allow multiple selections": ["Дозвольте кілька виборів"],
       "Allow node selections": ["Дозволити вибір вузлів"],
       "Allow sending multiple polygons as a filter event": [
         "Дозволити надсилання декількох багатокутників як події фільтра"
@@ -553,17 +540,8 @@
       "An error occurred while fetching available CSS templates": [
         "Помилка сталася під час отримання доступних шаблонів CSS"
       ],
-      "An error occurred while fetching chart created by values: %s": [
-        "Помилка сталася під час отримання діаграми, створеної значеннями: %s"
-      ],
       "An error occurred while fetching chart owners values: %s": [
         "Помилка сталася під час отримання цінностей власників діаграм: %s"
-      ],
-      "An error occurred while fetching created by values: %s": [
-        "Помилка сталася під час отримання, створеного за значеннями: %s"
-      ],
-      "An error occurred while fetching dashboard created by values: %s": [
-        "Помилка сталася під час отримання інформаційної панелі, створеного за значеннями: %s"
       ],
       "An error occurred while fetching dashboard owner values: %s": [
         "Помилка сталася під час отримання значення власника інформаційної панелі: %s"
@@ -613,14 +591,8 @@
       "An error occurred while fetching table metadata. Please contact your administrator.": [
         "Помилка сталася під час отримання метаданих таблиці. Зверніться до свого адміністратора."
       ],
-      "An error occurred while fetching tag created by values: %s": [
-        "Помилка сталася під час отримання тегу, створеного значеннями: %s"
-      ],
       "An error occurred while fetching user values: %s": [
         "Помилка сталася під час отримання значень користувачів: %s"
-      ],
-      "An error occurred while hiding the left bar. Please contact your administrator.": [
-        "Помилка сталася під час приховування лівої смуги. Зверніться до свого адміністратора."
       ],
       "An error occurred while importing %s: %s": [
         "Помилка сталася під час імпорту %s: %s"
@@ -655,26 +627,8 @@
       "An error occurred while setting the active tab. Please contact your administrator.": [
         "Під час встановлення вкладки Active сталася помилка. Зверніться до свого адміністратора."
       ],
-      "An error occurred while setting the tab autorun. Please contact your administrator.": [
-        "Під час встановлення вкладки Autorun сталася помилка. Зверніться до свого адміністратора."
-      ],
-      "An error occurred while setting the tab database ID. Please contact your administrator.": [
-        "Під час встановлення ідентифікатора бази даних вкладки сталася помилка. Зверніться до свого адміністратора."
-      ],
-      "An error occurred while setting the tab name. Please contact your administrator.": [
-        "Під час встановлення назви вкладки сталася помилка. Зверніться до свого адміністратора."
-      ],
-      "An error occurred while setting the tab schema. Please contact your administrator.": [
-        "Під час встановлення схеми вкладки сталася помилка. Зверніться до свого адміністратора."
-      ],
-      "An error occurred while setting the tab template parameters. Please contact your administrator.": [
-        "Під час встановлення параметрів шаблону вкладки сталася помилка. Зверніться до свого адміністратора."
-      ],
       "An error occurred while starring this chart": [
         "Під час головної частини цього діаграми сталася помилка"
-      ],
-      "An error occurred while storing the latest query id in the backend. Please contact your administrator if this problem persists.": [
-        "Помилка сталася під час зберігання останнього ідентифікатора запиту в бекенді. Зверніться до свого адміністратора, якщо ця проблема зберігається."
       ],
       "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button.": [
         "Під час зберігання вашого запиту сталася помилка. Щоб уникнути втрати змін, збережіть свій запит за допомогою кнопки \"Зберегти запит\"."
@@ -686,9 +640,6 @@
         "Помилка сталася під час збільшення значення."
       ],
       "An unexpected error occurred": ["Сталася несподівана помилка"],
-      "An unknown error occurred. Please contact your Superset administrator": [
-        "Сталася невідома помилка. Зверніться до свого адміністратора Superset"
-      ],
       "Anchor to": ["Прив’язати до"],
       "Angle at which to end progress axis": [
         "Кут, з яким слід закінчити вісь прогресу"
@@ -703,19 +654,12 @@
       "Annotation Slice Configuration": ["Конфігурація анотаційних шматочків"],
       "Annotation could not be created.": ["Анотація не вдалося створити."],
       "Annotation could not be updated.": ["Анотацію не вдалося оновити."],
-      "Annotation delete failed.": ["Анотація Видалення не вдалося."],
       "Annotation layer": ["Анотаційний шар"],
       "Annotation layer could not be created.": [
         "Анотаційний шар не вдалося створити."
       ],
-      "Annotation layer could not be deleted.": [
-        "Анотаційний шар не міг бути видалений."
-      ],
       "Annotation layer could not be updated.": [
         "Анотаційний шар не вдалося оновити."
-      ],
-      "Annotation layer delete failed.": [
-        "Видалення шару анотації не вдалося."
       ],
       "Annotation layer description columns": ["Анотація Шар Опис Стовпці"],
       "Annotation layer has associated annotations.": [
@@ -737,7 +681,6 @@
       "Annotation layers are still loading.": [
         "Анотаційні шари все ще завантажуються."
       ],
-      "Annotation name": ["Назва анотації"],
       "Annotation not found.": ["Анотація не знайдена."],
       "Annotation parameters are invalid.": ["Параметри анотації недійсні."],
       "Annotation source": ["Джерело анотації"],
@@ -874,7 +817,7 @@
       "Bar Values": ["Значення планки"],
       "Bar orientation": ["Орієнтація"],
       "Base": ["Базовий"],
-      "Base layer map style": ["Стиль карти базового шару"],
+      "Base layer map style. See Mapbox documentation: %s": [""],
       "Based on a metric": ["На основі метрики"],
       "Based on granularity, number of time periods to compare against": [
         "На основі деталізації, кількість часових періодів для порівняння"
@@ -890,6 +833,7 @@
       "Before": ["До"],
       "Big Number": ["Велике число"],
       "Big Number Font Size": ["Розмір шрифту великого числа"],
+      "Big Number with Time Period Comparison": [""],
       "Big Number with Trendline": ["Велика кількість з Trendline"],
       "Bottom": ["Дно"],
       "Bottom Margin": ["Нижня маржа"],
@@ -913,6 +857,9 @@
       ],
       "Box Plot": ["Ділянка коробки"],
       "Breakdowns": ["Розбиття"],
+      "Breaks down the series by the category specified in this control.\n      This can help viewers understand how each category affects the overall value.": [
+        ""
+      ],
       "Bubble Chart": ["Міхурна діаграма"],
       "Bubble Color": ["Бульбашковий колір"],
       "Bubble Size": ["Розмір міхура"],
@@ -920,6 +867,7 @@
       "Bucket break points": ["Точки розриву відра"],
       "Build": ["Побудувати"],
       "Bulk select": ["Виберіть декілька"],
+      "Bulk tag": [""],
       "Bullet Chart": ["Куляна діаграма"],
       "Business": ["Бізнес"],
       "Business Data Type": ["Тип даних бізнесу"],
@@ -947,10 +895,6 @@
       "CSS Templates": ["Шаблони CSS"],
       "CSS applied to the chart": ["CSS, застосований до діаграми"],
       "CSS template": ["Шаблон CSS"],
-      "CSS template could not be deleted.": [
-        "Шаблон CSS не можна було видалити."
-      ],
-      "CSS template name": ["Назва шаблону CSS"],
       "CSS template not found.": ["Шаблон CSS не знайдено."],
       "CSS templates": ["Шаблони CSS"],
       "CSV Upload": ["Завантаження CSV"],
@@ -982,6 +926,8 @@
       "Calculate contribution per series or row": [
         "Обчисліть внесок на серію або ряд"
       ],
+      "Calculate from first step": [""],
+      "Calculate from previous step": [""],
       "Calculated column [%s] requires an expression": [
         "Обчислений стовпчик [%s] вимагає виразу"
       ],
@@ -1006,9 +952,6 @@
       "Cannot have multiple credentials for the SSH Tunnel": [
         "Не може бути декількох облікових даних для тунелю SSH"
       ],
-      "Cannot import dashboard: %(db_error)s.\nMake sure to create the database before importing the dashboard.": [
-        "Не вдається імпортувати інформаційну панель: %(db_error)s.\nПереконайтеся, що створили базу даних перед імпортом інформаційної панелі."
-      ],
       "Cannot load filter": ["Не вдається завантажувати фільтр"],
       "Cannot parse time string [%(human_readable)s]": [
         "Не вдається розбирати часовий рядок [%(human_readable)s]"
@@ -1031,7 +974,6 @@
       "Cell bars": ["Клітинні смуги"],
       "Cell content": ["Вміст клітин"],
       "Cell limit": ["Обмеження клітин"],
-      "Center": ["Центр"],
       "Centroid (Longitude and Latitude): ": ["Центроїд (довгота та широта): "],
       "Certification": ["Сертифікація"],
       "Certification details": ["Деталі сертифікації"],
@@ -1042,7 +984,6 @@
       "Change order of columns.": ["Змінити порядок стовпців."],
       "Change order of rows.": ["Змінити порядок рядків."],
       "Changed By": ["Змінений"],
-      "Changed on": ["Змінюватися"],
       "Changes saved.": ["Збережені зміни."],
       "Changing the dataset may break the chart if the chart relies on columns or metadata that does not exist in the target dataset": [
         "Зміна набору даних може зламати діаграму, якщо діаграма покладається на стовпці або метадані, які не існують у цільовому наборі даних"
@@ -1080,7 +1021,6 @@
       "Chart ID": ["Ідентифікатор діаграми"],
       "Chart Options": ["Параметри діаграми"],
       "Chart Orientation": ["Орієнтація діаграми"],
-      "Chart Owner: %s": ["Власник діаграми: %s"],
       "Chart Source": ["Джерело діаграми"],
       "Chart Title": ["Назва діаграми"],
       "Chart [%s] has been overwritten": ["Діаграма [%s] була перезаписана"],
@@ -1095,11 +1035,7 @@
       ],
       "Chart cache timeout": ["ЧАС КАХ ЧАСУВАННЯ"],
       "Chart changes": ["Зміни діаграми"],
-      "Chart component that lets you add a custom filter UI in your dashboard. When added to dashboard, a filter box lets users specify specific values or ranges to filter charts by. The charts that each filter box is applied to can be fine tuned as well in the dashboard view.\n\n    Note that this plugin is being replaced with the new Filters feature that lives in the dashboard view itself. It's easier to use and has more capabilities!": [
-        "Компонент діаграми, який дозволяє додавати користувальницький фільтр інтерфейс на інформаційній панелі. При додаванні на інформаційну панель, поле фільтру дозволяє користувачам вказувати конкретні значення або діапазони для фільтра діаграм. Діаграми, до яких застосовується кожне поле фільтру, можна також налаштувати на панелі.\n\n    Зауважте, що цей плагін замінюється новою функцією фільтрів, яка живе на самому поданні приладової панелі. Це простіше використовувати і має більше можливостей!"
-      ],
       "Chart could not be created.": ["Діаграма не вдалося створити."],
-      "Chart could not be deleted.": ["Діаграму не можна було видалити."],
       "Chart could not be updated.": ["Діаграма не вдалося оновити."],
       "Chart does not exist": ["Діаграма не існує"],
       "Chart has no query context saved. Please save the chart again.": [
@@ -1115,12 +1051,10 @@
       "Chart parameters are invalid.": ["Параметри діаграми недійсні."],
       "Chart properties updated": ["Властивості діаграми оновлені"],
       "Chart title": ["Назва діаграми"],
-      "Chart type": ["Тип діаграми"],
       "Chart type requires a dataset": ["Тип діаграми вимагає набору даних"],
       "Chart width": ["Ширина діаграми"],
       "Charts": ["Діаграми"],
       "Charts could not be deleted.": ["Діаграми не можна було видалити."],
-      "Check configuration": ["Перевірте конфігурацію"],
       "Check for sorting ascending": [
         "Перевірте наявність сортування висхідного"
       ],
@@ -1132,17 +1066,8 @@
       ],
       "Check out this chart: ": ["Перегляньте цю діаграму: "],
       "Check out this dashboard: ": ["Перегляньте цю інформаційну панель: "],
-      "Check to apply filters instantly as they change instead of displaying [Apply] button": [
-        "Перевірте, щоб застосувати фільтри миттєво, коли вони змінюються, а не відображати кнопку [Застосувати]"
-      ],
       "Check to force date partitions to have the same height": [
         "Перевірте, щоб змусити датні розділи мати однакову висоту"
-      ],
-      "Check to include time column dropdown": [
-        "Перевірте, щоб включити спадне падіння стовпчика часу"
-      ],
-      "Check to include time grain dropdown": [
-        "Перевірте, щоб включити спадне падіння зерна"
       ],
       "Child label position": ["Позиція дочірньої етикетки"],
       "Choice of [Label] must be present in [Group By]": [
@@ -1211,6 +1136,7 @@
       "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
         "Клацніть на це посилання, щоб перейти на альтернативну форму, яка розкриває лише необхідні поля, необхідні для підключення цієї бази даних."
       ],
+      "Click to add a contour": [""],
       "Click to cancel sorting": ["Клацніть, щоб скасувати сортування"],
       "Click to edit": ["Клацніть, щоб редагувати"],
       "Click to edit %s.": ["Клацніть на редагування %s."],
@@ -1308,7 +1234,6 @@
       "Columns to group by": ["Стовпці до групи"],
       "Columns to group by on the columns": ["Стовпці до групи на стовпцях"],
       "Columns to group by on the rows": ["Стовпці до групи на рядках"],
-      "Columns to show": ["Колонки для показу"],
       "Combine metrics": ["Поєднати показники"],
       "Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.": [
         "Вибір кольору, розділених комою для інтервалів, наприклад 1,2,4. Цілі числа позначають кольори з обраної кольорової гами і є 1-індексованими. Довжина повинна відповідати межі інтервалу."
@@ -1419,9 +1344,6 @@
       "Copy query link to your clipboard": [
         "Скопіюйте посилання на запит у свій буфер обміну"
       ],
-      "Copy the account name of that database you are trying to connect to.": [
-        "Скопіюйте назву облікового запису тієї бази даних, до якої ви намагаєтесь підключитися."
-      ],
       "Copy the name of the HTTP Path of your cluster.": [
         "Скопіюйте назву HTTP -шляху кластера."
       ],
@@ -1442,9 +1364,6 @@
       "Could not find viz object": ["Не вдалося знайти об'єкт Viz"],
       "Could not load database driver": [
         "Не вдалося завантажити драйвер бази даних"
-      ],
-      "Could not load database driver: %(driver_name)s": [
-        "Не вдалося завантажити драйвер бази даних: %(driver_name)s"
       ],
       "Could not load database driver: {}": [
         "Не вдалося завантажити драйвер бази даних: {}"
@@ -1478,13 +1397,10 @@
         "Створити набір даних та створити діаграму"
       ],
       "Create new chart": ["Створіть нову діаграму"],
-      "Create new filter set": ["Створіть новий набір фільтра"],
       "Create or select schema...": ["Створити або вибрати схему ..."],
       "Created": ["Створений"],
-      "Created On": ["Створений на"],
       "Created by": ["Створений"],
       "Created by me": ["Створений мною"],
-      "Created content": ["Створений вміст"],
       "Created on": ["Створений на"],
       "Creating SSH Tunnel failed for an unknown reason": [
         "Створення тунелю SSH не вдалося з незрозумілої причини"
@@ -1506,6 +1422,9 @@
       "Cross-filtering scoping": ["Перехресне фільтрування"],
       "Cross-filters": ["Перехресні фільтри"],
       "Cumulative": ["Кумулятивний"],
+      "Currency": [""],
+      "Currency prefix or suffix": [""],
+      "Currency symbol": [""],
       "Currently rendered: %s": ["В даний час надано: %s"],
       "Custom": ["Звичайний"],
       "Custom Plugin": ["Спеціальний плагін"],
@@ -1518,8 +1437,12 @@
         "Спеціальні поля SQL не можуть містити підзапити."
       ],
       "Custom time filter plugin": ["Спеціальний плагін фільтра часу"],
+      "Custom width of the screenshot in pixels": [""],
       "Customize": ["Налаштувати"],
       "Customize Metrics": ["Налаштуйте показники"],
+      "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
+        ""
+      ],
       "Customize columns": ["Налаштуйте стовпці"],
       "Cyclic dependency detected": ["Виявлена ​​циклічна залежність"],
       "D3 Format": ["Формат D3"],
@@ -1540,6 +1463,7 @@
       "DB column %(col_name)s has unknown type: %(value_type)s": [
         "Стовпчик DB %(col_name)s має невідомий тип: %(value_type)s"
       ],
+      "DD/MM format dates, international and European format": [""],
       "DEC": ["Ухвала"],
       "DELETE": ["Видаляти"],
       "DML": ["DML"],
@@ -1553,9 +1477,6 @@
       ],
       "Dashboard [{}] just got created and chart [{}] was added to it": [
         "Дашборд [{}] був щойно створений, і діаграма [{}] була додана до нього"
-      ],
-      "Dashboard could not be created.": [
-        "Не вдалося створити інформаційну панель."
       ],
       "Dashboard could not be deleted.": [
         "Не вдалося видалити інформаційну панель."
@@ -1580,7 +1501,6 @@
       "Dashboard usage": ["Використання інформаційної панелі"],
       "Dashboards": ["Дашборди"],
       "Dashboards added to": ["Дашборди були додані до"],
-      "Dashboards could not be deleted.": ["Дашборди не можливо видалити."],
       "Dashboards do not exist": ["Дашбордів не існує"],
       "Dashed": ["Бридкий"],
       "Data": ["Дані"],
@@ -1593,7 +1513,6 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "Дані не можна було отримати з результатів результатів. Потрібно повторно запустити оригінальний запит."
       ],
-      "Data has no time steps": ["Дані не мають часу"],
       "Data preview": ["Попередній перегляд даних"],
       "Data refreshed": ["Дані оновлені"],
       "Data type": ["Тип даних"],
@@ -1615,7 +1534,6 @@
       ],
       "Database Connections": ["З'єднання бази даних"],
       "Database Creation Error": ["Помилка створення бази даних"],
-      "Database URL": ["URL -адреса бази даних"],
       "Database connected": ["База даних підключена"],
       "Database could not be created.": ["База даних не вдалося створити."],
       "Database could not be deleted.": ["База даних не вдалося видалити."],
@@ -1638,7 +1556,6 @@
         "База даних не дозволяється змінювати"
       ],
       "Database not found.": ["База даних не знайдена."],
-      "Database not found: %(id)s": ["База даних не знайдена: %(id)s"],
       "Database parameters are invalid.": ["Параметри бази даних недійсні."],
       "Database passwords": ["Паролі бази даних"],
       "Database port": ["Порт бази даних"],
@@ -1653,7 +1570,6 @@
       ],
       "Dataset column not found.": ["Стовпчик набору даних не знайдено."],
       "Dataset could not be created.": ["Не вдалося створити набір даних."],
-      "Dataset could not be deleted.": ["Набір даних не можна було видалити."],
       "Dataset could not be duplicated.": [
         "Набір даних не можна було дублювати."
       ],
@@ -1670,12 +1586,12 @@
       "Dataset schema is invalid, caused by: %(error)s": [
         "Схема набору даних недійсна, викликана: %(error)s"
       ],
-      "Dataset(s) could not be bulk deleted.": [
-        "Набір даних (ів) не міг бути вилучений масовим."
-      ],
       "Datasets": ["Набори даних"],
       "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
         "Набори даних можна створити з таблиць баз даних або запитів SQL. Виберіть таблицю бази даних зліва або "
+      ],
+      "Datasets can have a main temporal column (main_dttm_col), but can also have secondary time columns. When this attribute is true, whenever the secondary columns are filtered, the same filter is applied to the main datetime column.": [
+        ""
       ],
       "Datasets do not contain a temporal column": [
         "Набори даних не містять тимчасового стовпця"
@@ -1688,7 +1604,6 @@
         "Тип даних потрібен, коли задається DataSource_ID"
       ],
       "Date Time Format": ["Формат часу дати"],
-      "Date filter": ["Фільтр дати"],
       "Date format": ["Формат дати"],
       "Date format string": ["Рядок формату дати"],
       "Date/Time": ["Дата, час"],
@@ -1699,6 +1614,7 @@
       "Datetime format": ["Формат DateTime"],
       "Day": ["День"],
       "Day (freq=D)": ["День (Freq = D)"],
+      "Day First": [""],
       "Days %s": ["Дні %s"],
       "Db engine did not return all queried columns": [
         "БД двигун не повернув усі запити стовпчики"
@@ -1722,7 +1638,6 @@
       "Deck.gl - Polygon": ["Палуба.gl - багатокутник"],
       "Deck.gl - Scatter plot": ["Колода.gl - сюжет розсіювання"],
       "Deck.gl - Screen Grid": ["Deck.gl - сітка екрана"],
-      "Default": ["За замовчуванням"],
       "Default Endpoint": ["Кінцева точка за замовчуванням"],
       "Default URL": ["URL -адреса за замовчуванням"],
       "Default URL to redirect to when accessing from the dataset list page": [
@@ -1754,6 +1669,9 @@
       "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array.": [
         "Визначте функцію JavaScript, яка отримує масив даних, що використовується у візуалізації, і, як очікується, поверне модифіковану версію цього масиву. Це може бути використане для зміни властивостей даних, фільтра або збагачення масиву."
       ],
+      "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         "Визначає функцію котячого вікна для застосування, працює разом із текстовим полем [періоди]"
       ],
@@ -1766,6 +1684,9 @@
       ],
       "Defines the size of the rolling window function, relative to the time granularity selected": [
         "Визначає розмір функції котячого вікна, відносно вибитої деталізації часу"
+      ],
+      "Defines the value that determines the boundary between different regions or levels in the data ": [
+        ""
       ],
       "Defines whether the step should appear at the beginning, middle or end between two data points": [
         "Визначає, чи повинен крок з’являтися на початку, середній або кінець між двома точками даних"
@@ -1790,15 +1711,6 @@
         "Видаліть цей контейнер і збережіть, щоб видалити це повідомлення."
       ],
       "Deleted": ["Видалений"],
-      "Deleted %(num)d annotation": ["Видалено %(число) d анотація"],
-      "Deleted %(num)d annotation layer": ["Видалений %(число) D шар анотації"],
-      "Deleted %(num)d chart": ["Видалено %(число) D діаграми"],
-      "Deleted %(num)d css template": ["Видалений %(num) d шаблон CSS"],
-      "Deleted %(num)d dashboard": ["Видалено %(num)d інформаційних панелей"],
-      "Deleted %(num)d dataset": ["Видалено %(число) D набору даних"],
-      "Deleted %(num)d report schedule": ["Видалений %(число) d Розклад звіту"],
-      "Deleted %(num)d rules": ["Видалено %(число) D Правила"],
-      "Deleted %(num)d saved query": ["Видалений %(число) d Зберегти запит"],
       "Deleted %s": ["Видалено %s"],
       "Deleted: %s": ["Видалено: %s"],
       "Deleting a tab will remove all content within it. You may still reverse this action with the": [
@@ -1837,6 +1749,9 @@
       "Dimension to use on x-axis.": ["Розмір використання на осі x."],
       "Dimension to use on y-axis.": ["Розмір використання в осі Y."],
       "Dimensions": ["Розміри"],
+      "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.": [
+        ""
+      ],
       "Directed Force Layout": ["Спрямований макет сили"],
       "Directional": ["Спрямований"],
       "Disable SQL Lab data preview queries": [
@@ -1854,6 +1769,9 @@
       "Display configuration": ["Конфігурація відображення"],
       "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric.": [
         "Показники дисплея поруч у кожному стовпці, на відміну від кожного стовпця, що відображається поруч для кожної метрики."
+      ],
+      "Display percents in the label and tooltip as the percent of the total value, from the first step of the funnel, or from the previous step in the funnel.": [
+        ""
       ],
       "Display row level total": ["Відображення рівня рядка загалом"],
       "Display settings": ["Налаштування дисплею"],
@@ -1911,17 +1829,12 @@
         "Дріль до деталей вимкнено, оскільки ця діаграма не групує дані за значенням розмірності."
       ],
       "Drill to detail: %s": ["Свердло до деталей: %s"],
-      "Drop a column here or click": ["Зайдіть сюди або натисніть кнопку"],
-      "Drop a column/metric here or click": [
-        "Спустіть сюди стовпець/метрику або натисніть"
-      ],
       "Drop a temporal column here or click": [
         "Спустіть тимчасовий стовпець або натисніть"
       ],
       "Drop columns/metrics here or click": [
         "Спустіть тут стовпці/метрики або натисніть"
       ],
-      "Dual Line Chart": ["Діаграма подвійної лінії"],
       "Duplicate": ["Дублікат"],
       "Duplicate column name(s): %(columns)s": [
         "Дублікат назви стовпців: %(columns)s"
@@ -1960,7 +1873,6 @@
         "Тривалість у MS (100,40008 => 100 мс 400 мкс 80ns)"
       ],
       "Duration in ms (66000 => 1m 6s)": ["Тривалість у MS (66000 => 1 м 6с)"],
-      "Duration: %s": ["Тривалість: %s"],
       "Dynamic Aggregation Function": ["Функція динамічної агрегації"],
       "Dynamically search all filter values": [
         "Динамічно шукайте всі значення фільтра"
@@ -1990,7 +1902,6 @@
       "Edit Plugin": ["Редагувати плагін"],
       "Edit Report": ["Редагувати звіт"],
       "Edit Rule": ["Правило редагування"],
-      "Edit Saved Query": ["Редагувати збережений запит"],
       "Edit Table": ["Редагувати таблицю"],
       "Edit annotation": ["Редагувати анотацію"],
       "Edit annotation layer": ["Редагувати шар анотації"],
@@ -2012,7 +1923,6 @@
       "Edit time range": ["Редагувати часовий діапазон"],
       "Edited": ["Редаговані"],
       "Editing 1 filter:": ["Редагування 1 фільтр:"],
-      "Editing filter set:": ["Набір фільтрів редагування:"],
       "Either the database is spelled incorrectly or does not exist.": [
         "Або база даних написана неправильно, або не існує."
       ],
@@ -2054,6 +1964,7 @@
       "Enable graph roaming": ["Увімкнути роумінг графів"],
       "Enable node dragging": ["Увімкнути перетягування вузла"],
       "Enable query cost estimation": ["Увімкнути оцінку витрат на запит"],
+      "Enable row expansion in schemas": [""],
       "Enable server side pagination of results (experimental feature)": [
         "Увімкнути серверну пагінування результатів (експериментальна функція)"
       ],
@@ -2063,7 +1974,6 @@
       "End": ["Кінець"],
       "End (Longitude, Latitude): ": ["Кінець (довгота, широта): "],
       "End Longitude & Latitude": ["Кінцева довгота та широта"],
-      "End Time": ["Закінчити час"],
       "End angle": ["Кінцевий кут"],
       "End date": ["Дата закінчення"],
       "End date excluded from time range": [
@@ -2233,7 +2143,6 @@
         "Не вдалося перевірити вибрати параметри: %s"
       ],
       "Favorite": ["Улюблені"],
-      "Favorites": ["Улюблені"],
       "February": ["Лютий"],
       "Fetch Values Predicate": ["Значення отримання предикатів"],
       "Fetch data preview": ["Попередній перегляд даних"],
@@ -2247,6 +2156,7 @@
       ],
       "Field is required": ["Потрібне поле"],
       "File": ["Файл"],
+      "File size must be less than or equal to %(max_size)s bytes": [""],
       "Fill Color": ["Заповнити колір"],
       "Fill all required fields to enable \"Default Value\"": [
         "Заповніть усі необхідні поля, щоб увімкнути \"значення за замовчуванням\""
@@ -2258,29 +2168,14 @@
       "Filter List": ["Список фільтрів"],
       "Filter Settings": ["Налаштування фільтра"],
       "Filter Type": ["Тип фільтру"],
-      "Filter box (deprecated)": ["Поле фільтру (застаріло)"],
       "Filter charts": ["Фільтр -діаграми"],
-      "Filter configuration": ["Конфігурація фільтра"],
-      "Filter configuration for the filter box": [
-        "Конфігурація фільтра для поля фільтра"
-      ],
       "Filter has default value": ["Фільтр має значення за замовчуванням"],
       "Filter menu": ["Меню фільтра"],
-      "Filter metadata changed in dashboard. It will not be applied.": [
-        "Метадані фільтра змінюються на інформаційній панелі. Це не буде застосовуватися."
-      ],
       "Filter name": ["Назва фільтра"],
       "Filter only displays values relevant to selections made in other filters.": [
         "Фільтр відображає лише значення, що стосуються вибору, зроблених в інших фільтрах."
       ],
       "Filter results": ["Результати фільтрів"],
-      "Filter set already exists": ["Набір фільтра вже існує"],
-      "Filter set with this name already exists": [
-        "Набір фільтра з цим іменем вже існує"
-      ],
-      "Filter sets (%(filterSetCount)d)": [
-        "Набори фільтрів (%(filtersetcount) d)"
-      ],
       "Filter type": ["Тип фільтру"],
       "Filter value (case sensitive)": [
         "Значення фільтра (чутливе до випадку)"
@@ -2292,10 +2187,9 @@
       "Filter your charts": ["Відфільтруйте свої діаграми"],
       "Filterable": ["Фільтруваний"],
       "Filters": ["Фільтри"],
-      "Filters (%d)": ["Фільтри (%d)"],
       "Filters by columns": ["Фільтри за колонками"],
       "Filters by metrics": ["Фільтри за метриками"],
-      "Filters configuration": ["Конфігурація фільтрів"],
+      "Filters for comparison must have a value": [""],
       "Filters out of scope (%d)": ["Фільтри поза обсягом (%d)"],
       "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').": [
         "Фільтри з тим самим груповим ключем будуть розглянуті разом у групі, тоді як різні групи фільтрів будуть та разом. Невизначені групові ключі трактуються як унікальні групи, тобто не згруповані разом. Наприклад, якщо в таблиці є три фільтри, з яких два - для відділів фінансування та маркетинг (груповий ключ = 'відділ'), а один відноситься до регіону Європи (груповий ключ = 'регіон'), застереження про фільтр застосовуватиметься фільтр (відділ = \"фінанси\" або відділ = \"маркетинг\") та (регіон = \"Європа\")."
@@ -2324,6 +2218,9 @@
       "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Для BigQuery, Presto та Postgres показує кнопку для обчислення вартості перед запуском запиту."
       ],
+      "For Trino, describe full schemas of nested ROW types, expanding them with dotted paths": [
+        ""
+      ],
       "For further instructions, consult the": [
         "Для отримання додаткових інструкцій проконсультуйтеся"
       ],
@@ -2350,7 +2247,6 @@
       "Form data not found in cache, reverting to dataset metadata.": [
         "Дані форми, які не знайдені в кеші, повертаючись до метаданих набору даних."
       ],
-      "Formattable": ["Формальний"],
       "Formatted CSV attached in email": [
         "Відформатовано CSV, доданий електронною поштою"
       ],
@@ -2409,13 +2305,13 @@
       "Grid": ["Сітка"],
       "Grid Size": ["Розмір сітки"],
       "Group By": ["Група"],
-      "Group By filter plugin": ["Група плагіна фільтрів"],
       "Group By, Metrics or Percentage Metrics must have a value": [
         "Група за, показники або відсоткові показники повинні мати значення"
       ],
       "Group Key": ["Груповий ключ"],
       "Group by": ["Група"],
       "Groupable": ["Груповий"],
+      "Guest user cannot modify chart payload": [""],
       "Handlebars": ["Ручка"],
       "Handlebars Template": ["Шаблон ручки"],
       "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
@@ -2479,14 +2375,14 @@
       "If duplicate columns are not overridden, they will be presented as \"X.1, X.2 ...X.x\"": [
         "Якщо дублікат стовпців не перекриваються, вони будуть представлені як \"x.1, x.2 ... x.x\""
       ],
+      "If enabled, this control sorts the results/values descending, otherwise it sorts the results ascending.": [
+        ""
+      ],
       "If selected, please set the schemas allowed for csv upload in Extra.": [
         "Якщо вибрано, встановіть схеми, дозволені для завантаження CSV додатково."
       ],
       "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
         "Якщо таблиця існує одне з наступних: не вдасться (нічого не робіть), замініть (падайте та відтворіть таблицю) або додайте (вставте дані)."
-      ],
-      "Ignore cache when generating screenshot": [
-        "Ігноруйте кеш при генеруванні скріншоту"
       ],
       "Ignore null locations": ["Ігноруйте нульові місця"],
       "Ignore time": ["Ігноруйте час"],
@@ -2505,7 +2401,6 @@
       "Import": ["Імпорт"],
       "Import %s": ["Імпорт %s"],
       "Import Dashboard(s)": ["Імпортувати Дашборд(и)"],
-      "Import Dashboards": ["Імпортувати Дашборди"],
       "Import a table definition": ["Імпортувати визначення таблиці"],
       "Import chart failed for an unknown reason": [
         "Діаграма імпорту не вдалася з невідомих причин"
@@ -2542,10 +2437,10 @@
       "Info": ["Інформація"],
       "Inner Radius": ["Внутрішній радіус"],
       "Inner radius of donut hole": ["Внутрішній радіус пончиків"],
+      "Input custom width in pixels": [""],
       "Input field supports custom rotation. e.g. 30 for 30°": [
         "Поле введення підтримує власне обертання. напр. 30 на 30 °"
       ],
-      "Instant filtering": ["Миттєва фільтрація"],
       "Intensity": ["Інтенсивність"],
       "Intensity Radius": ["Радіус інтенсивності"],
       "Intensity Radius is the radius at which the weight is distributed": [
@@ -2553,12 +2448,6 @@
       ],
       "Intensity is the value multiplied by the weight to obtain the final weight": [
         "Інтенсивність - це значення, помножене на вагу, щоб отримати кінцеву вагу"
-      ],
-      "Interpret Datetime Format Automatically": [
-        "Інтерпретувати формат DateTime автоматично"
-      ],
-      "Interpret the datetime format automatically": [
-        "Інтерпретувати формат DateTime автоматично"
       ],
       "Interval": ["Інтервал"],
       "Interval End column": ["Інтервальний кінцевий стовпчик"],
@@ -2575,9 +2464,6 @@
         "Недійсний тип даних про розширені дані: %(advanced_data_type)s"
       ],
       "Invalid certificate": ["Недійсний сертифікат"],
-      "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
-        "Недійсний рядок підключення, зазвичай випливає дійсна рядок:\n'Драйвер: // користувач: пароль@db-host/database-name'"
-      ],
       "Invalid connection string, a valid string usually follows: backend+driver://user:password@database-host/database-name": [
         "Недійсний рядок підключення, дійсне рядок зазвичай випливає: Backend+драйвер: // користувач: пароль@база даних-розміщення/ім'я бази даних-name"
       ],
@@ -2588,11 +2474,9 @@
       "Invalid cumulative operator: %(operator)s": [
         "Недійсний кумулятивний оператор: %(operator)s"
       ],
+      "Invalid currency code in saved metrics": [""],
       "Invalid date/timestamp format": [
         "Недійсна дата/формат часової позначки"
-      ],
-      "Invalid filter configuration, please select a column": [
-        "Недійсна конфігурація фільтра, будь ласка, виберіть стовпець"
       ],
       "Invalid filter operation type: %(op)s": [
         "Недійсний тип функції фільтра: %(op)s"
@@ -2619,9 +2503,6 @@
         "Недійсний тип результату: %(result_type)s"
       ],
       "Invalid rolling_type: %(type)s": ["Недійсне Rolling_Type: %(type)s"],
-      "Invalid spatial point encountered: %s": [
-        "Недійсна просторова точка, що зустрічається: %s"
-      ],
       "Invalid state.": ["Недійсна держава."],
       "Invalid tab ids: %s(tab_ids)": [
         "Недійсні ідентифікатори вкладки: %s (tab_ids)"
@@ -2680,6 +2561,7 @@
       "Keep control settings?": ["Продовжувати налаштування контролю?"],
       "Keep editing": ["Продовжуйте редагувати"],
       "Key": ["Ключ"],
+      "Keyboard shortcuts": [""],
       "Keys for table": ["Ключі для столу"],
       "Kilometers": ["Кілометри"],
       "LIMIT": ["Обмежувати"],
@@ -2705,7 +2587,6 @@
         "Остання доступна вартість, що спостерігається на %s"
       ],
       "Last modified": ["Останнє змінено"],
-      "Last modified by %s": ["Останнє змінено на %s"],
       "Last run": ["Останній пробіг"],
       "Latitude": ["Широта"],
       "Latitude of default viewport": ["Широта перегляду за замовчуванням"],
@@ -2719,8 +2600,6 @@
       ],
       "Least recently modified": ["Найменше нещодавно модифіковано"],
       "Left": ["Лівий"],
-      "Left Axis Format": ["Формат лівої осі"],
-      "Left Axis chart(s)": ["Діаграма лівої осі"],
       "Left Margin": ["Залишив націнку"],
       "Left margin, in pixels, allowing for more room for axis labels": [
         "Лівий запас у пікселях, що дозволяє отримати більше місця для етикетки Axis"
@@ -2741,7 +2620,6 @@
       "Like": ["Люблю"],
       "Like (case insensitive)": ["Як (нечутливий до випадків)"],
       "Limit reached": ["Обмеження досягнуто"],
-      "Limit selector values": ["Обмежте значення селектора"],
       "Limit type": ["Тип обмеження"],
       "Limiting rows may result in incomplete data and misleading charts. Consider filtering or grouping source/target names instead.": [
         "Обмеження рядків може призвести до неповних даних та оманливих діаграм. Подумайте про фільтрацію або групування джерел/цільових імен."
@@ -2754,6 +2632,9 @@
       ],
       "Limits the number of series that get displayed. A joined subquery (or an extra phase where subqueries are not supported) is applied to limit the number of series that get fetched and rendered. This feature is useful when grouping by high cardinality column(s) though does increase the query complexity and cost.": [
         "Обмежує кількість серій, які відображаються. Приєднаний підзапит (або додаткова фаза, де підтримуються підрозділи) застосовується для обмеження кількості серій, які отримують та надаються. Ця функція корисна при групуванні за допомогою стовпців (ів) високої кардинальності, хоча збільшує складність та вартість запитів."
+      ],
+      "Limits the number of the rows that are computed in the query that is the source of the data used for this chart.": [
+        ""
       ],
       "Line": ["Лінія"],
       "Line Chart": ["Лінійна діаграма"],
@@ -2772,7 +2653,6 @@
       "Lines column": ["Стовпчик рядків"],
       "Lines encoding": ["Лінії кодування"],
       "Link Copied!": ["Посилання скопійовано!"],
-      "List Saved Query": ["Список збережених запитів"],
       "List Unique Values": ["Перелічіть унікальні значення"],
       "List of extra columns made available in JavaScript functions": [
         "Список додаткових стовпців, доступних у функціях JavaScript"
@@ -2815,6 +2695,7 @@
       "Longitude & Latitude columns": ["Стовпці довготи та широти"],
       "Longitude and Latitude": ["Довгота і широта"],
       "Longitude of default viewport": ["Довгота перегляду за замовчуванням"],
+      "Lower threshold must be lower than upper threshold": [""],
       "MAR": ["Марнотратство"],
       "MAY": ["МОЖЕ"],
       "MON": ["Мн"],
@@ -2822,6 +2703,7 @@
       "Make sure that the controls are configured properly and the datasource contains data for the selected time range": [
         "Переконайтесь, що елементи керування налаштовано належним чином, а DataSource містить дані для вибраного часового діапазону"
       ],
+      "Make the x-axis categorical": [""],
       "Malformed request. slice_id or table_name and db_name arguments are expected": [
         "Неправильно сформований запит. Очікуються аргументи slice_id або table_name та db_name"
       ],
@@ -2829,7 +2711,6 @@
       "Manage email report": ["Керуйте звітом електронної пошти"],
       "Manage your databases": ["Керуйте своїми базами даних"],
       "Mandatory": ["Обов'язковий"],
-      "Mangle Duplicate Columns": ["Mangle Duply Colums"],
       "Manually set min/max values for the y-axis.": [
         "Вручну встановити значення min/max для осі y."
       ],
@@ -2891,6 +2772,7 @@
       "Metric change in value from `since` to `until`": [
         "Метрична зміна значення від `з` `` до '"
       ],
+      "Metric currency": [""],
       "Metric descending": ["Метричний спуск"],
       "Metric factor change from `since` to `until`": [
         "Зміна метричного фактора від `з` `до` до '"
@@ -2906,9 +2788,6 @@
       ],
       "Metric to display bottom title": [
         "Метрика для відображення нижньої назви"
-      ],
-      "Metric to sort the results by": [
-        "Метрика для сортування результатів за"
       ],
       "Metric used as a weight for the grid's coloring": [
         "Метрика, що використовується як вага для забарвлення сітки"
@@ -2929,9 +2808,6 @@
         "Метрика, яка використовується для замовлення ліміту, якщо присутній ліміт серії. Якщо невизначений повернення до першої метрики (де це доречно)."
       ],
       "Metrics": ["Показники"],
-      "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
-        "Показники, на які слід відображати відсоток від загальної кількості. Обчислюється лише з даних в межах рядка."
-      ],
       "Middle": ["Середина"],
       "Midnight": ["Опівночі"],
       "Miles": ["Милі"],
@@ -2964,7 +2840,6 @@
       "Missing URL parameters": ["Відсутні параметри URL -адреси"],
       "Missing dataset": ["Відсутній набір даних"],
       "Mixed Chart": ["Змішана діаграма"],
-      "Mixed Time-Series": ["Змішані часові серії"],
       "Modified": ["Змінений"],
       "Modified %s": ["Модифіковані %s"],
       "Modified by": ["Змінений"],
@@ -2983,16 +2858,12 @@
       "Multi-Levels": ["Багаторівневі"],
       "Multi-Variables": ["Багаторазові"],
       "Multiple": ["Багаторазовий"],
-      "Multiple Line Charts": ["Кілька рядків рядків"],
       "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
         "Для завантаження стовпців заборонено кілька розширень файлу. Будь ласка, переконайтеся, що всі файли мають однакове розширення."
       ],
       "Multiple filtering": ["Багаторазова фільтрація"],
       "Multiple formats accepted, look the geopy.points Python library for more details": [
         "Прийняті кілька форматів, подивіться на бібліотеку Python Geopy.points для отримання детальної інформації"
-      ],
-      "Multiple selections allowed, otherwise filter is limited to a single value": [
-        "Дозволено декілька вибору, інакше фільтр обмежується одним значенням"
       ],
       "Multiplier": ["Множник"],
       "Must be unique": ["Має бути унікальним"],
@@ -3053,7 +2924,6 @@
       "New columns added: %s": ["Додано нові стовпці: %s"],
       "New dataset": ["Новий набір даних"],
       "New dataset name": ["Нове ім'я набору даних"],
-      "New filter set": ["Новий набір фільтра"],
       "New header": ["Новий заголовок"],
       "New tab": ["Нова вкладка"],
       "New tab (Ctrl + q)": ["Нова вкладка (Ctrl + Q)"],
@@ -3062,7 +2932,6 @@
       "Nightingale Rose Chart": ["Sowingale Rose Chart"],
       "No": ["Немає"],
       "No %s yet": ["Ще немає %s"],
-      "No Access!": ["Немає доступу!"],
       "No Data": ["Немає даних"],
       "No Results": ["Немає результатів"],
       "No Rules yet": ["Ще немає правил"],
@@ -3073,29 +2942,21 @@
       "No available filters.": ["Немає доступних фільтрів."],
       "No charts": ["Немає діаграм"],
       "No charts yet": ["Ще немає діаграм"],
-      "No columns": ["Немає стовпців"],
       "No columns found": ["Не знайдено стовпців"],
       "No compatible columns found": ["Не знайдено сумісних стовпців"],
       "No compatible datasets found": ["Не знайдено сумісних наборів даних"],
       "No compatible schema found": ["Не знайдено сумісної схеми"],
-      "No dashboards": ["Немає інформаційних панелей"],
       "No dashboards yet": ["Ще немає інформаційних панелей"],
       "No data": ["Немає даних"],
       "No data after filtering or data is NULL for the latest time record": [
         "Ніякі дані після фільтрації або даних є нульовими для останнього запису часу"
       ],
       "No data in file": ["Немає даних у файлі"],
-      "No database tables found": ["Таблиць баз даних не знайдено"],
       "No databases match your search": [
         "Жодне бази даних не відповідає вашому пошуку"
       ],
       "No description available.": ["Опис не доступний."],
-      "No favorite charts yet, go click on stars!": [
-        "Ще немає улюблених діаграм, перейдіть на зірки!"
-      ],
-      "No favorite dashboards yet, go click on stars!": [
-        "Ще немає улюблених інформаційних панелей, натисніть на зірку!"
-      ],
+      "No entities have this tag currently assigned": [""],
       "No filter": ["Без фільтра"],
       "No filter is selected.": ["Фільтр не вибирається."],
       "No filters": ["Немає фільтрів"],
@@ -3142,9 +3003,6 @@
       "No validator found (configured for the engine)": [
         "Жодного валідатора не знайдено (налаштовано для двигуна)"
       ],
-      "No validator named {} found (configured for the {} engine)": [
-        "Немає валідатора названого {} знайдено (налаштовано для двигуна {})"
-      ],
       "Node label position": ["Положення мітки вузлів"],
       "Node select mode": ["Режим вибору вузла"],
       "Node size": ["Розмір вузла"],
@@ -3190,8 +3048,8 @@
       "Number of decimal places with which to display p-values": [
         "Кількість десяткових місць, з якими можна відобразити p-значення"
       ],
-      "Number of periods to compare against": [
-        "Кількість періодів порівняння з"
+      "Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.": [
+        ""
       ],
       "Number of periods to ratio against": [
         "Кількість періодів до співвідношення проти"
@@ -3226,12 +3084,6 @@
       "One or many columns to group by. High cardinality groupings should include a series limit to limit the number of fetched and rendered series.": [
         "Один або багато стовпців до групи за. Високі угруповання кардинальності повинні включати ліміт серії для обмеження кількості витягнутих та наданих рядів."
       ],
-      "One or many columns to group by. High cardinality groupings should include a sort by metric and series limit to limit the number of fetched and rendered series.": [
-        "Один або багато стовпців до групи за. Високі угруповання кардинальності повинні включати сорт за метрикою та лімітом серії, щоб обмежити кількість вилучених та наданих рядів."
-      ],
-      "One or many columns to pivot as columns": [
-        "Один або багато стовпців, що скручуються як стовпці"
-      ],
       "One or many controls to group by. If grouping, latitude and longitude columns must be present.": [
         "Один або багато елементів керування групами за. Якщо групування, широта та довгота повинні бути присутніми."
       ],
@@ -3262,14 +3114,8 @@
       "One or more parameters needed to configure a database are missing.": [
         "Не вистачає одного або декількох параметрів, необхідних для налаштування бази даних."
       ],
-      "One or more parameters specified in the query are malformatted.": [
-        "Один або кілька параметрів, зазначених у запиті, є неправильними."
-      ],
       "One or more parameters specified in the query are missing.": [
         "Один або кілька параметрів, зазначених у запиті, відсутні."
-      ],
-      "One or more required fields are missing in the request. Please try again, and if the problem persists contact your administrator.": [
-        "У запиті відсутні один або кілька необхідних полів. Будь ласка, спробуйте ще раз, і якщо проблема наполегливо звертається до вашого адміністратора."
       ],
       "One ore more annotation layers failed loading.": [
         "Один руду більше анотаційних шарів не вдалося завантажити."
@@ -3304,6 +3150,9 @@
         "Прозоість усіх кластерів, балів та мітків. Між 0 і 1."
       ],
       "Opacity of area chart.": ["Прозоість діаграми області."],
+      "Opacity of bubbles, 0 means completely transparent, 1 means opaque": [
+        ""
+      ],
       "Opacity, expects values between 0 and 100": [
         "Непрозорість, очікує значення від 0 до 100"
       ],
@@ -3436,16 +3285,10 @@
       "Pick a dimension from which categorical colors are defined": [
         "Виберіть вимір, з якого визначені категоричні кольори"
       ],
-      "Pick a granularity in the Time section or uncheck 'Include Time'": [
-        "Виберіть деталізацію в розділі часу або зняти прапорець \"Включити час\""
-      ],
-      "Pick a metric for left axis!": ["Виберіть метрику для лівої осі!"],
-      "Pick a metric for right axis!": ["Виберіть метрику для правої осі!"],
       "Pick a metric for x, y and size": [
         "Виберіть показник для X, Y та розміру"
       ],
       "Pick a metric to display": ["Виберіть показник для відображення"],
-      "Pick a metric!": ["Виберіть показник!"],
       "Pick a name to help you identify this database.": [
         "Виберіть ім’я, яке допоможе вам визначити цю базу даних."
       ],
@@ -3454,9 +3297,6 @@
       ],
       "Pick a set of deck.gl charts to layer on top of one another": [
         "Виберіть набір діаграм палуби"
-      ],
-      "Pick a time granularity for your time series": [
-        "Виберіть деталізацію часу для своїх часових рядів"
       ],
       "Pick a title for you annotation.": [
         "Виберіть заголовок для вас анотацію."
@@ -3489,7 +3329,6 @@
       "Please DO NOT overwrite the \"filter_scopes\" key.": [
         "Будь ласка, не перезапишіть клавішу \"filter_scopes\"."
       ],
-      "Please apply filter changes": ["Будь ласка, застосуйте зміни фільтра"],
       "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again.": [
         "Будь ласка, перевірте свій запит і підтвердьте, що всі параметри шаблону оточують подвійні брекети, наприклад, \"{{ds}}\". Потім спробуйте знову запустити свій запит."
       ],
@@ -3505,9 +3344,6 @@
       "Please choose at least one groupby": [
         "Будь ласка, виберіть хоча б одну групу"
       ],
-      "Please choose different metrics on left and right axis": [
-        "Будь ласка, виберіть різні показники зліва та права вісь"
-      ],
       "Please confirm": ["Будь-ласка підтвердіть"],
       "Please confirm the overwrite values.": [
         "Будь ласка, підтвердьте значення перезапису."
@@ -3515,13 +3351,9 @@
       "Please enter a SQLAlchemy URI to test": [
         "Будь ласка, введіть URI SQLALCHEMY для тестування"
       ],
-      "Please filter set name": ["Будь ласка, відфільтруйте ім'я набору"],
       "Please re-enter the password.": ["Будь ласка, повторно введіть пароль."],
       "Please re-export your file and try importing again": [
         "Будь ласка, повторно експортуйте файл і спробуйте знову імпортувати"
-      ],
-      "Please reach out to the Chart Owner for assistance.": [
-        "Будь ласка, зверніться до власника діаграми за допомогою."
       ],
       "Please save the query to enable sharing": [
         "Збережіть запит, щоб увімкнути обмін"
@@ -3560,7 +3392,6 @@
       "Polygon Encoding": ["Кодування багатокутника"],
       "Polygon Settings": ["Налаштування багатокутників"],
       "Polyline": ["Полілінія"],
-      "Pop Tab Link": ["Посилання на поп -вкладку"],
       "Popular": ["Популярний"],
       "Populate \"Default value\" to enable this control": [
         "Населення \"значення за замовчуванням\", щоб увімкнути цей контроль"
@@ -3591,6 +3422,8 @@
       ],
       "Predictive": ["Прогнозний"],
       "Predictive Analytics": ["Прогнозування аналітики"],
+      "Prefix": [""],
+      "Prefix or suffix": [""],
       "Preview": ["Попередній перегляд"],
       "Preview: `%s`": ["Попередній перегляд: `%S`"],
       "Previous": ["Попередній"],
@@ -3605,10 +3438,6 @@
       "Private Key & Password": ["Приватний ключ та пароль"],
       "Private Key Password": ["Пароль приватного ключа"],
       "Proceed": ["Тривати"],
-      "Profile": ["Профіль"],
-      "Profile picture provided by Gravatar": [
-        "Зображення профілю, надане Gravatar"
-      ],
       "Progress": ["Прогресувати"],
       "Progressive": ["Прогресивний"],
       "Propagate": ["Розповсюджувати"],
@@ -3649,7 +3478,6 @@
       "Query was stopped.": ["Запит зупинився."],
       "RANGE TYPE": ["Тип дальності"],
       "RGB Color": ["RGB Колір"],
-      "RLS Rule could not be deleted.": ["Правило RLS не можна було видалити."],
       "RLS Rule not found.": ["Правило RLS не знайдено."],
       "Radar": ["Радар"],
       "Radar Chart": ["Радарна діаграма"],
@@ -3674,11 +3502,6 @@
       "Ranking": ["Рейтинг"],
       "Ratio": ["Співвідношення"],
       "Raw records": ["RAW Records"],
-      "Ready to review filters in this dashboard?": [
-        "Готові переглянути фільтри на цій інформаційній панелі?"
-      ],
-      "Rebuild": ["Відновлювати"],
-      "Recent activity": ["Остання активність"],
       "Recently created charts, dashboards, and saved queries will appear here": [
         "Нещодавно створені діаграми, інформаційні панелі та збережені запити з’являться тут"
       ],
@@ -3714,12 +3537,9 @@
       "Refresh frequency": ["Частота оновлення"],
       "Refresh interval": ["Інтервал оновлення"],
       "Refresh interval saved": ["Оновити інтервал збережено"],
-      "Refresh table list": ["Список оновлення таблиці"],
-      "Refresh tables": ["Оновити столи"],
       "Refresh the default values": ["Оновити значення за замовчуванням"],
       "Refreshing charts": ["Освіжаючі діаграми"],
       "Refreshing columns": ["Освіжаючі стовпці"],
-      "Regex": ["Регекс"],
       "Regular": ["Регулярний"],
       "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.": [
         "Регулярні фільтри додають, де до запитів, якщо користувач належить до ролі, що посилається у фільтрі, базові фільтри застосовують фільтри до всіх запитів, крім ролей, визначених у фільтрі, і можуть бути використані для визначення того, що користувачі можуть побачити, чи немає фільтрів RLS у межах a Група фільтрів застосовується до них."
@@ -3732,10 +3552,8 @@
       "Relative period": ["Відносний період"],
       "Relative quantity": ["Відносна кількість"],
       "Reload": ["Перезавантажувати"],
-      "Remind me in 24 hours": ["Нагадайте мені через 24 години"],
       "Remove": ["Видалити"],
       "Remove cross-filter": ["Видаліть перехресний фільтр"],
-      "Remove invalid filters": ["Видаліть недійсні фільтри"],
       "Remove item": ["Видаліть елемент"],
       "Remove query from log": ["Видаліть запит з журналу"],
       "Remove table preview": ["Видалити попередній перегляд таблиці"],
@@ -3747,9 +3565,6 @@
       "Report Name": ["Назва звіту"],
       "Report Schedule could not be created.": [
         "Графік звітів не вдалося створити."
-      ],
-      "Report Schedule could not be deleted.": [
-        "Графік звітів не можна було видалити."
       ],
       "Report Schedule could not be updated.": [
         "Графік звіту не можна було оновити."
@@ -3798,7 +3613,6 @@
       "Reports": ["Звіти"],
       "Repulsion": ["Відштовхування"],
       "Repulsion strength between nodes": ["Сила відштовхування між вузлами"],
-      "Request Permissions": ["Попросити дозволи"],
       "Request is incorrect: %(error)s": ["Запит невірний: %(error)s"],
       "Request is not JSON": ["Запит - це не json"],
       "Request missing data field.": ["Запит пропущеного поля даних."],
@@ -3842,9 +3656,6 @@
         "Клацніть правою кнопкою миші на значення виміру, щоб до деталей за цим значенням."
       ],
       "Role": ["Роль"],
-      "Role %(r)s was extended to provide the access to the datasource %(ds)s": [
-        "Роль %(r)s була розширена для забезпечення доступу до даних %(ds)s"
-      ],
       "Roles": ["Ролі"],
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks. If no roles are defined, regular access permissions apply.": [
         "Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо не визначено ролей, застосовуються регулярні дозволи на доступ."
@@ -3852,14 +3663,12 @@
       "Roles is a list which defines access to the dashboard. Granting a role access to a dashboard will bypass dataset level checks.If no roles are defined, regular access permissions apply.": [
         "Ролі - це список, який визначає доступ до інформаційної панелі. Надання ролі доступу до інформаційної панелі буде обходити перевірки рівня набору даних. Якщо визначаються жодні ролі, застосовуються регулярні дозволи на доступ."
       ],
-      "Roles to grant": ["Ролі для надання"],
       "Rolling Function": ["Функція прокатки"],
       "Rolling Window": ["Коктейльне вікно"],
       "Rolling function": ["Функція прокатки"],
       "Rolling window": ["Коктейльне вікно"],
       "Root certificate": ["Кореневий сертифікат"],
       "Root node id": ["Ідентифікатор кореневого вузла"],
-      "Rotate axis label": ["Обертати мітку осі"],
       "Rotate x axis label": ["Обертати мітку осі X"],
       "Rotation to apply to words in the cloud": [
         "Обертання, щоб застосувати до слів у хмарі"
@@ -3953,15 +3762,11 @@
       "Save & go to dashboard": [
         "Збережіть та перейдіть на інформаційну панель"
       ],
-      "Save & go to new dashboard": [
-        "Збережіть та перейдіть на нову інформаційну панель"
-      ],
       "Save (Overwrite)": ["Зберегти (перезапис)"],
       "Save as": ["Зберегти як"],
       "Save as Dataset": ["Збережіть як набір даних"],
       "Save as dataset": ["Збережіть як набір даних"],
       "Save as new": ["Зберегти як нове"],
-      "Save as new chart": ["Збережіть як нову діаграму"],
       "Save as...": ["Зберегти як..."],
       "Save as:": ["Зберегти як:"],
       "Save changes": ["Зберегти зміни"],
@@ -3977,7 +3782,6 @@
       "Save this query as a virtual dataset to continue exploring": [
         "Збережіть цей запит як віртуальний набір даних для продовження вивчення"
       ],
-      "Save to new dashboard": ["Збережіть на новій інформаційній панелі"],
       "Saved": ["Врятований"],
       "Saved Queries": ["Збережені запити"],
       "Saved expressions": ["Збережені вирази"],
@@ -4012,7 +3816,6 @@
       ],
       "Schema": ["Схема"],
       "Schema cache timeout": ["Час очікування кешу схеми"],
-      "Schema undefined": ["Схема невизначена"],
       "Schema, as used only in some databases like Postgres, Redshift and DB2": [
         "Схема, як використовується лише в деяких базах даних, таких як Postgres, Redshift та DB2"
       ],
@@ -4021,6 +3824,8 @@
       ],
       "Scope": ["Область"],
       "Scoping": ["Виділення області"],
+      "Screenshot width": [""],
+      "Screenshot width must be between %(min)spx and %(max)spx": [""],
       "Scroll": ["Прокрутити"],
       "Scroll down to the bottom to enable overwriting changes. ": [
         "Прокрутіть донизу, щоб увімкнути перезапис змін. "
@@ -4029,12 +3834,10 @@
       "Search / Filter": ["Пошук / фільтр"],
       "Search Metrics & Columns": ["Пошук показників та стовпців"],
       "Search all charts": ["Шукайте всі діаграми"],
-      "Search all filter options": ["Шукайте всі параметри фільтра"],
       "Search box": ["Поле пошуку"],
       "Search by query text": ["Пошук за текстом запитів"],
       "Search columns": ["Пошук стовпців"],
       "Search in filters": ["Пошук у фільтрах"],
-      "Search tables": ["Пошукові таблиці"],
       "Search...": ["Пошук ..."],
       "Second": ["Другий"],
       "Secondary": ["Вторинний"],
@@ -4046,7 +3849,6 @@
       "Secure Extra": ["Забезпечити додаткове"],
       "Secure extra": ["Забезпечити додаткове"],
       "Security": ["Безпека"],
-      "Security & Access": ["Безпека та доступ"],
       "See all %(tableName)s": ["Див. All %(tableName)s"],
       "See less": ["Див. Менше"],
       "See more": ["Побачити більше"],
@@ -4079,8 +3881,14 @@
       "Select a file to be uploaded to the database": [
         "Виберіть файл, який потрібно завантажити в базу даних"
       ],
+      "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select a schema if the database supports this": [
         "Виберіть схему, якщо база даних підтримує це"
+      ],
+      "Select a time grain for the visualization. The grain is the time interval represented by a single point on the chart.": [
+        ""
       ],
       "Select a visualization type": ["Виберіть тип візуалізації"],
       "Select aggregate options": ["Виберіть параметри сукупності"],
@@ -4094,11 +3902,9 @@
       "Select color scheme": ["Виберіть кольорову гаму"],
       "Select column": ["Виберіть стовпець"],
       "Select current page": ["Виберіть Поточну сторінку"],
-      "Select database & schema": ["Виберіть базу даних та схеми"],
       "Select database or type to search databases": [
         "Виберіть базу даних або введіть у пошукові бази даних"
       ],
-      "Select database table": ["Виберіть таблицю баз даних"],
       "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
         "Виберіть бази даних потребують додаткових полів для завершення на вкладці «Додаткові» для успішного підключення бази даних. Дізнайтеся, які вимоги мають ваші бази даних "
       ],
@@ -4111,6 +3917,12 @@
       "Select first filter value by default": [
         "Виберіть за замовчуванням значення First Filter"
       ],
+      "Select one or many metrics to display, that will be displayed in the percentages of total. Percentage metrics will be calculated only from data within the row limit. You can use an aggregation function on a column or write custom SQL to create a percentage metric.": [
+        ""
+      ],
+      "Select one or many metrics to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
+        ""
+      ],
       "Select operator": ["Виберіть оператор"],
       "Select or type a value": ["Виберіть або введіть значення"],
       "Select or type dataset name": ["Виберіть або введіть ім'я набору даних"],
@@ -4120,7 +3932,6 @@
         "Виберіть схему або введіть для схем пошуку"
       ],
       "Select scheme": ["Виберіть схему"],
-      "Select start and end date": ["Виберіть дату початку та закінчення"],
       "Select subject": ["Виберіть тему"],
       "Select table or type to search tables": [
         "Виберіть таблицю або введіть для пошукових таблиць"
@@ -4214,7 +4025,6 @@
       "Show Metric": ["Показати показник"],
       "Show Metric Names": ["Показати метричні назви"],
       "Show Range Filter": ["Показати фільтр діапазону"],
-      "Show Saved Query": ["Показати збережений запит"],
       "Show Table": ["Показати таблицю"],
       "Show Timestamp": ["Показати часову позначку"],
       "Show Total": ["Показати загалом"],
@@ -4258,8 +4068,6 @@
       ],
       "Show split lines": ["Показати розділені лінії"],
       "Show the value on top of the bar": ["Покажіть значення на вершині бару"],
-      "Show time column": ["Показати стовпчик Time"],
-      "Show time grain dropdown": ["Показати випадання часу зерна"],
       "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
         "Показати загальну сукупність вибраних показників. Зауважте, що обмеження рядка не застосовується до результату."
       ],
@@ -4384,17 +4192,11 @@
       "Specify a schema (if database flavor supports this).": [
         "Вкажіть схему (якщо аромат бази даних підтримує це)."
       ],
-      "Specify duplicate columns as \"X.0, X.1\".": [
-        "Вкажіть дублікат стовпців як \"x.0, x.1\"."
-      ],
       "Specify name to CREATE TABLE AS schema in: public": [
         "Вкажіть ім'я, щоб створити таблицю як схему в: Public"
       ],
       "Specify name to CREATE VIEW AS schema in: public": [
         "Вкажіть ім'я, щоб створити перегляд як схему в: public"
-      ],
-      "Specify the database version. This should be used with Presto in order to enable query cost estimation.": [
-        "Вкажіть версію бази даних. Це слід використовувати з Presto для того, щоб забезпечити оцінку витрат на запит."
       ],
       "Split number": ["Розділений номер"],
       "Square kilometers": ["Квадратні кілометри"],
@@ -4412,7 +4214,6 @@
       "Start": ["Почати"],
       "Start (Longitude, Latitude): ": ["Початок (довгота, широта): "],
       "Start Longitude & Latitude": ["Почніть довготу та широту"],
-      "Start Review": ["Почніть огляд"],
       "Start angle": ["Почати кут"],
       "Start at (UTC)": ["Почніть з (UTC)"],
       "Start date": ["Дата початку"],
@@ -4469,6 +4270,7 @@
       "Subtotal": ["Суттєвий"],
       "Success": ["Успіх"],
       "Successfully changed dataset!": ["Успішно змінили набір даних!"],
+      "Suffix": [""],
       "Suffix to apply after the percentage display": [
         "Суфікс подати заявку після відсоткового дисплея"
       ],
@@ -4480,9 +4282,7 @@
         "Сума значень протягом визначеного періоду"
       ],
       "Sum values": ["Значення суми"],
-      "Sunburst": ["Сонячний вибух"],
       "Sunburst Chart": ["Діаграма Sunburst"],
-      "Sunburst Chart v2": ["Sunburst Chart V2"],
       "Sunday": ["Неділя"],
       "Superset Chart": ["Суперсетна діаграма"],
       "Superset Embedded SDK documentation.": [
@@ -4502,9 +4302,6 @@
       "Swap rows and columns": ["Поміняйте ряди та стовпці"],
       "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
         "Швейцарський армійський ніж для візуалізації даних. Виберіть між крок, рядками, розсіюванням та штрихами. Цей тип Viz також має багато варіантів налаштування."
-      ],
-      "Swiss army knife for visualizing time series data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well.": [
-        "Швейцарський армійський ніж для візуалізації даних часових рядів. Виберіть між крок, рядками, розсіюванням та штрихами. Цей тип Viz також має багато варіантів налаштування."
       ],
       "Symbol": ["Символ"],
       "Symbol of two ends of edge line": ["Символ двох кінців лінії краю"],
@@ -4527,16 +4324,11 @@
       ],
       "Table Exists": ["Таблиця існує"],
       "Table Name": ["Назва таблиці"],
-      "Table View": ["Перегляд таблиці"],
       "Table [%(table_name)s] could not be found, please double check your database connection, schema, and table name": [
         "Таблиця [%(table_name)s] Не вдалося знайти, будь ласка, перевірте підключення до бази даних, схеми та назву таблиці"
       ],
-      "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
-        "Таблиця [%{table} s] не вдалося знайти, будь ласка, перевірте з'єднання з базою даних, схему та назву таблиці, помилка: {}"
-      ],
       "Table cache timeout": ["Тайм -аут кешу таблиці"],
       "Table columns": ["Стовпці таблиці"],
-      "Table loading": ["Завантаження таблиці"],
       "Table name cannot contain a schema": [
         "Назва таблиці не може містити схему"
       ],
@@ -4556,6 +4348,7 @@
         "Назва тегу недійсна (не може містити ':')"
       ],
       "Tag parameters are invalid.": ["Параметри тегів недійсні."],
+      "Tagged %s %ss": [""],
       "Tagged Object could not be deleted.": [
         "Позначений об’єкт не можна було видалити."
       ],
@@ -4600,9 +4393,6 @@
       ],
       "The X-axis is not on the filters list which will prevent it from being used in\n            time range filters in dashboards. Would you like to add it to the filters list?": [
         "Осі x не знаходиться в списку фільтрів, які заважають його використати в\n            Фільтри часового діапазону на інформаційних панелях. Ви хотіли б додати його до списку фільтрів?"
-      ],
-      "The access requests seem to have been deleted": [
-        "Запити на доступ, здається, були видалені"
       ],
       "The annotation has been saved": ["Анотація врятована"],
       "The annotation has been updated": ["Анотація оновлена"],
@@ -4664,6 +4454,12 @@
       "The dataset associated with this chart no longer exists": [
         "Набір даних, пов'язаний з цією діаграмою, більше не існує"
       ],
+      "The dataset column/metric that returns the values on your chart's x-axis.": [
+        ""
+      ],
+      "The dataset column/metric that returns the values on your chart's y-axis.": [
+        ""
+      ],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         "Конфігурація набору даних, викрита тут\n                впливає на всі діаграми за допомогою цього набору даних.\n                Пам’ятайте, що зміна налаштувань\n                Тут може вплинути на інші діаграми\n                небажаними способами."
       ],
@@ -4713,6 +4509,7 @@
       "The list of charts associated with this table. By altering this datasource, you may change how these associated charts behave. Also note that charts need to point to a datasource, so this form will fail at saving if removing charts from a datasource. If you want to change the datasource for a chart, overwrite the chart from the 'explore view'": [
         "Список діаграм, пов’язаних з цією таблицею. Змінюючи цю дані, ви можете змінити, як поводяться ці пов'язані діаграми. Також зауважте, що діаграми повинні вказати на даний момент, тому ця форма не зможе зберегти, якщо видалити діаграми з даних. Якщо ви хочете змінити дані для діаграми, перезапишіть діаграму з \"Вивчення перегляду\""
       ],
+      "The lower limit of the threshold range of the Isoband": [""],
       "The maximum number of events to return, equivalent to the number of rows": [
         "Максимальна кількість подій, що повертаються, еквівалентні кількості рядків"
       ],
@@ -4738,9 +4535,6 @@
       "The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.": [
         "Кількість годин, негативна чи позитивна, щоб змістити стовпчик часу. Це можна використовувати для переміщення часу UTC до місцевого часу."
       ],
-      "The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROWS. Please add additional limits/filters or download to csv to see more rows up to the %(limit)d limit.": [
-        "Кількість відображених результатів обмежена %(рядами) d за допомогою конфігурації Display_max_Rows. Будь ласка, додайте додаткові обмеження/фільтри або завантажте в CSV, щоб побачити більше рядків до обмеження %(ліміт) D."
-      ],
       "The number of results displayed is limited to %(rows)d. Please add additional limits/filters, download to csv, or contact an admin to see more rows up to the %(limit)d limit.": [
         "Кількість відображених результатів обмежена %(рядки) d. Будь ласка, додайте додаткові ліміти/фільтри, завантажте в CSV або зв’яжіться з адміністратором, щоб побачити більше рядків до обмеження (ліміт) D."
       ],
@@ -4761,9 +4555,6 @@
       ],
       "The object does not exist in the given database.": [
         "Об'єкт не існує в даній базі даних."
-      ],
-      "The parameter %(parameters)s in your query is undefined.": [
-        "Параметр %(parameters)s у вашому запиті не визначений."
       ],
       "The password provided for username \"%(username)s\" is incorrect.": [
         "Пароль, що надається для імені користувача \"%(ім'я користувача)s\", є неправильним."
@@ -4801,9 +4592,6 @@
       "The primary metric is used to define the arc segment sizes": [
         "Первинний показник використовується для визначення розмірів сегмента дуги"
       ],
-      "The provided `rows` argument is not a valid integer.": [
-        "Забезпечений аргумент `Rows` не є дійсним цілим числом."
-      ],
       "The query associated with the results was deleted.": [
         "Запит, пов’язаний з результатами, було видалено."
       ],
@@ -4829,6 +4617,7 @@
         "Радіус окремих точок (тих, які не в кластері). Або чисельна колонка, або `auto`, що масштабує точку на основі найбільшого кластера"
       ],
       "The report has been created": ["Звіт створений"],
+      "The result of this query should be a numeric-esque value": [""],
       "The results backend no longer has the data from the query.": [
         "Результати, що бекрономиться, більше не мають даних із запиту."
       ],
@@ -4844,14 +4633,12 @@
       "The schema \"%(schema_name)s\" does not exist. A valid schema must be used to run this query.": [
         "Схема \"%(schema_name)s\" не існує. Для запуску цього запиту необхідно використовувати дійсну схему."
       ],
+      "The schema of the submitted payload is invalid.": [""],
       "The schema was deleted or renamed in the database.": [
         "Схема була видалена або перейменована в базу даних."
       ],
       "The size of the square cell, in pixels": [
         "Розмір квадратної клітини, пікселів"
-      ],
-      "The submitted URL is not considered safe, only use URLs with the same domain as Superset.": [
-        "Подана URL -адреса не вважається безпечною, використовуйте лише URL -адреси з тим самим доменом, що і суперсет."
       ],
       "The submitted payload has the incorrect format.": [
         "Надістоване корисне навантаження має неправильний формат."
@@ -4898,6 +4685,7 @@
       "The unit of measure for the specified point radius": [
         "Одиниця виміру для заданого радіуса точки"
       ],
+      "The upper limit of the threshold range of the Isoband": [""],
       "The user seems to have been deleted": ["Здається, користувач видалив"],
       "The user/password combination is not valid (Incorrect password for user).": [
         "Комбінація користувача/пароля не є дійсною (неправильний пароль для користувача)."
@@ -4914,9 +4702,6 @@
       "The width of the lines": ["Ширина ліній"],
       "There are associated alerts or reports": [
         "Є пов'язані сповіщення або звіти"
-      ],
-      "There are associated alerts or reports: %s,": [
-        "Існують пов'язані сповіщення або звіти: %s,"
       ],
       "There are no charts added to this dashboard": [
         "На цю інформаційну панель не додано діаграм"
@@ -4941,9 +4726,6 @@
       "There was an error fetching dataset": ["Був набір даних про помилку"],
       "There was an error fetching dataset's related objects": [
         "Були помилкові об'єкти, пов’язані з набором даних"
-      ],
-      "There was an error fetching tables": [
-        "Були таблиці для отримання помилок"
       ],
       "There was an error fetching the favorite status: %s": [
         "Була помилка, яка отримала улюблений статус: %s"
@@ -5034,12 +4816,6 @@
       "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
         "У вашому Санкі є петля, будь ласка, надайте дерево. Ось несправне посилання: {}"
       ],
-      "These are the tables this filter will be applied to.": [
-        "Це таблиці, до яких цей фільтр буде застосований."
-      ],
-      "These filters apply to the values available in the dropdowns": [
-        "Ці фільтри застосовуються до значень, наявних у спадних випадках"
-      ],
       "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
         "Ці параметри генеруються динамічно при натисканні кнопки збереження або перезапис у перегляді. Цей об’єкт JSON викривають тут для довідок та для користувачів живлення, які можуть захотіти змінити конкретні параметри."
       ],
@@ -5085,6 +4861,9 @@
       "This column must contain date/time information.": [
         "Цей стовпець повинен містити інформацію про дату/час."
       ],
+      "This control filters the whole chart based on the selected time range. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
+        ""
+      ],
       "This controls whether the \"time_range\" field from the current\n                  view should be passed down to the chart containing the annotation data.": [
         "Це контролює, чи поле \"time_range\" з струму\n                  Переглянути слід передати на діаграму, що містить дані анотації."
       ],
@@ -5115,9 +4894,6 @@
       "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
         "Ця інформаційна панель готова до вбудовування. У своїй заявці передайте наступний ідентифікатор SDK:"
       ],
-      "This dashboard was changed recently. Please reload dashboard to get latest version.": [
-        "Ця інформаційна панель була змінена нещодавно. Будь ласка, перезавантажте інформаційну панель, щоб отримати останню версію."
-      ],
       "This dashboard was saved successfully.": [
         "Ця інформаційна панель була успішно збережена."
       ],
@@ -5136,20 +4912,17 @@
       "This defines the element to be plotted on the chart": [
         "Це визначає елемент, який потрібно побудувати на діаграмі"
       ],
-      "This defines the level of the hierarchy": [
-        "Це визначає рівень ієрархії"
+      "This field is used as a unique identifier to attach the calculated dimension to charts. It is also used as the alias in the SQL query.": [
+        ""
+      ],
+      "This field is used as a unique identifier to attach the metric to charts. It is also used as the alias in the SQL query.": [
+        ""
       ],
       "This fields acts a Superset view, meaning that Superset will run a query against this string as a subquery.": [
         "Ця поля діє на суперсетний вигляд, що означає, що Superset буде виконувати запит проти цього рядка як підзапит."
       ],
-      "This filter doesn't exist in dashboard. It will not be applied.": [
-        "Цей фільтр не існує на інформаційній панелі. Це не буде застосовуватися."
-      ],
       "This filter might be incompatible with current dataset": [
         "Цей фільтр може бути несумісним із поточним набором даних"
-      ],
-      "This filter set is identical to: \"%s\"": [
-        "Цей набір фільтра ідентичний: \"%s\""
       ],
       "This functionality is disabled in your environment for security reasons.": [
         "Ця функціональність відключена у вашому середовищі з міркувань безпеки."
@@ -5198,15 +4971,11 @@
       "This visualization type is not supported.": [
         "Цей тип візуалізації не підтримується."
       ],
-      "This was triggered by:": ["Це викликало:"],
       "This will remove your current embed configuration.": [
         "Це видалить вашу поточну вбудовану конфігурацію."
       ],
       "Threshold alpha level for determining significance": [
         "Пороговий рівень альфа для визначення значущості"
-      ],
-      "Threshold value should be double precision number": [
-        "Порогове значення повинно бути подвійним точним номером"
       ],
       "Thumbnails": ["Мініатюри"],
       "Thursday": ["Четвер"],
@@ -5221,13 +4990,7 @@
       "Time Ratio": ["Співвідношення часу"],
       "Time Series": ["Часовий ряд"],
       "Time Series - Bar Chart": ["Часові серії - Барна діаграма"],
-      "Time Series - Dual Axis Line Chart": [
-        "Часовий ряд - діаграма подвійної осі"
-      ],
       "Time Series - Line Chart": ["Часовий ряд - Лінійна діаграма"],
-      "Time Series - Multiple Line Charts": [
-        "Часові серії - кілька рядків рядків"
-      ],
       "Time Series - Nightingale Rose Chart": [
         "Часові серії - Соловейна діаграма троянд"
       ],
@@ -5273,35 +5036,10 @@
       "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
         "Рядок часу неоднозначний. Будь ласка, вкажіть [%(human_readable)s тому] або [%(human_readable)s пізніше]."
       ],
-      "Time-series Area Chart": ["Діаграма району часових рядів"],
-      "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
-        "Діаграма області часових рядів схожа на лінійну діаграму тим, що вони представляють змінні з однаковою шкалою, але діаграми області складають показники один до одного. Діаграма області в суперсеті може бути потоком, стеком або розширенням."
-      ],
-      "Time-series Bar Chart": ["Діаграма штрих часу"],
       "Time-series Bar Chart (legacy)": ["Діаграма штрих часу (Legacy)"],
-      "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
-        "Діаграми часових рядів використовуються для показу змін у метриці з часом як серія барів."
-      ],
-      "Time-series Chart": ["Діаграма часових рядів"],
-      "Time-series Line Chart": ["Лінійна діаграма часових рядів"],
       "Time-series Percent Change": ["Зміна відсотків часових рядів"],
       "Time-series Period Pivot": ["Часові періоди періоду повороту"],
-      "Time-series Scatter Plot": ["Сорія розкидання сюжету"],
-      "Time-series Scatter Plot has time on the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.": [
-        "Ділянка розсіювання часових рядів має час на горизонтальній осі в лінійних одиницях, а точки з'єднані в порядку. Він показує статистичну залежність між двома змінними."
-      ],
-      "Time-series Smooth Line": ["Гладка лінія часових рядів"],
-      "Time-series Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
-        "Гладка лінія часових рядів-це варіація лінійної діаграми. Без кутів і жорстких країв, гладка лінія іноді виглядає розумнішими та професійнішими."
-      ],
-      "Time-series Stepped Line": ["Серія часу ступінчаста лінія"],
-      "Time-series Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.": [
-        "Поступається графік часових рядів (також називається крок діаграми)-це варіація лінійної діаграми, але з лінією, що утворює ряд кроків між точками даних. Крок діаграми може бути корисною, коли ви хочете показати зміни, які відбуваються з нерегулярними інтервалами."
-      ],
       "Time-series Table": ["Таблиця часових рядів"],
-      "Time-series line chart is used to visualize repeated measurements taken over regular time intervals. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
-        "Лінійна діаграма часових рядів використовується для візуалізації повторних вимірювань, здійснених через регулярні інтервали часу. Лінійна діаграма - це тип діаграми, яка відображає інформацію як ряд точок даних, підключених за допомогою прямих сегментів. Це основний тип діаграми, поширений у багатьох полях."
-      ],
       "Timeout error": ["Помилка тайм -ауту"],
       "Timestamp format": ["Формат часової позначки"],
       "Timezone": ["Часовий пояс"],
@@ -5320,7 +5058,6 @@
       "To get a readable URL for your dashboard": [
         "Щоб отримати читабельну URL адресу для вашої інформаційної панелі"
       ],
-      "Tools": ["Інструменти"],
       "Tooltip": ["Підказка"],
       "Tooltip sort by metric": ["Сортування підказок за метрикою"],
       "Tooltip time format": ["Формат часу підказки"],
@@ -5338,6 +5075,7 @@
       "Transformable": ["Перетворений"],
       "Transparent": ["Прозорий"],
       "Transpose pivot": ["Перекладіть поворот"],
+      "Treat values as categorical.": [""],
       "Tree Chart": ["Деревна діаграма"],
       "Tree layout": ["Макет дерева"],
       "Tree orientation": ["Орієнтація на дерева"],
@@ -5364,7 +5102,6 @@
       "Try different criteria to display results.": [
         "Спробуйте різні критерії для відображення результатів."
       ],
-      "Try selecting a different schema": ["Спробуйте вибрати іншу схему"],
       "Tuesday": ["У вівторок"],
       "Tukey": ["Тюкі"],
       "Type": ["Тип"],
@@ -5376,7 +5113,6 @@
       "Type of comparison, value difference or percentage": [
         "Тип порівняння, різниця у цінності або відсоток"
       ],
-      "Type or Select [%s]": ["Введіть або виберіть [%s]"],
       "UI Configuration": ["Конфігурація інтерфейсу"],
       "URL": ["URL"],
       "URL Parameters": ["Параметри URL -адреси"],
@@ -5437,7 +5173,6 @@
         "Сталася несподівана помилка, будь ласка, перевірте свої журнали на детальну інформацію"
       ],
       "Unexpected error: ": ["Неочікувана помилка: "],
-      "Unexpected time range: %s": ["Несподіваний часовий діапазон: %s"],
       "Unknown": ["Невідомий"],
       "Unknown MySQL server host \"%(hostname)s\".": [
         "Невідомий хост MySQL Server “%(hostname)s”."
@@ -5548,15 +5283,11 @@
         "Використовується для узагальнення набору даних шляхом групування кількох статистичних даних уздовж двох осей. Приклади: Номери продажів за регіоном та місяцем, завдання за статусом та правонаступником, активними користувачами за віком та місцезнаходженням. Не найбільш візуально приголомшлива візуалізація, але дуже інформативна та універсальна."
       ],
       "User": ["Користувач"],
-      "User Roles": ["Ролі користувача"],
       "User doesn't have the proper permissions.": [
         "Користувач не має належних дозволів."
       ],
       "User must select a value before applying the filter": [
         "Користувач повинен вибрати значення перед застосуванням фільтра"
-      ],
-      "User must select a value for this filter": [
-        "Користувач повинен вибрати значення для цього фільтра"
       ],
       "User query": ["Запит користувача"],
       "Username": ["Ім'я користувача"],
@@ -5573,6 +5304,7 @@
       "Value Domain": ["Домен значення"],
       "Value Format": ["Формат значення"],
       "Value bounds": ["Значення цінності"],
+      "Value cannot exceed %s": [""],
       "Value format": ["Формат значення"],
       "Value is required": ["Значення потрібно"],
       "Value must be greater than 0": ["Значення повинно бути більше 0"],
@@ -5615,7 +5347,6 @@
       ],
       "Visual Tweaks": ["Візуальні зміни"],
       "Visualization Type": ["Тип візуалізації"],
-      "Visualization type": ["Тип візуалізації"],
       "Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.": [
         "Візуалізуйте паралельний набір показників у різних групах. Кожна група візуалізується за допомогою власної лінії точок, і кожна метрика представлена ​​як край на діаграмі."
       ],
@@ -5633,9 +5364,6 @@
       ],
       "Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).": [
         "Візуалізуйте дві різні серії, використовуючи одну і ту ж осі x. Зауважте, що обидві серії можна візуалізувати за допомогою іншого типу діаграми (наприклад, 1 за допомогою смуг та 1 за допомогою рядка)."
-      ],
-      "Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).": [
-        "Візуалізуйте два різні часові ряди, використовуючи одну і ту ж осі x. Зауважте, що кожен часовий ряд може бути візуалізований по -різному (наприклад, 1 за допомогою смуг та 1 за допомогою рядка)."
       ],
       "Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.": [
         "Візуалізує метрику в трьох вимірах даних в одній діаграмі (x вісь, осі y та розміру міхура). Бульбашки з однієї групи можна демонструвати за допомогою кольору бульбашок."
@@ -5700,18 +5428,11 @@
       "Week ending Saturday": ["Тиждень, що закінчується в суботу"],
       "Week starting Monday": ["Тиждень, починаючи з понеділка"],
       "Week starting Sunday": ["Тиждень, починаючи з неділі"],
-      "Week_ending Sunday": ["Week_endnd Sunday"],
       "Weekly Report": ["Тижневий звіт"],
       "Weekly Report for %s": ["Щотижневий звіт за %s"],
       "Weekly seasonality": ["Щотижнева сезонність"],
       "Weeks %s": ["Тиждень %s"],
       "Weight": ["Вага"],
-      "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
-        "У нас виникають проблеми з завантаженням цих результатів. Запити встановлюються на таймаут після %s секунди."
-      ],
-      "We’re having trouble loading this visualization. Queries are set to timeout after %s second.": [
-        "У нас виникають проблеми з завантаженням цієї візуалізації. Запити встановлюються на таймаут після %s секунди."
-      ],
       "What should be shown on the label?": ["Що слід показати на етикетці?"],
       "What should happen if the table already exists": [
         "Що має статися, якщо стіл вже існує"
@@ -5736,6 +5457,9 @@
       ],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
         "При вказівці SQL, DataSource виступає як погляд. Superset використовуватиме це твердження як підрозділ під час групування та фільтрації на створених батьківських запитах."
+      ],
+      "When the secondary temporal columns are filtered, apply the same filter to the main datetime column.": [
+        ""
       ],
       "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
         "При використанні \"автозаповнених фільтрів\" це може бути використане для підвищення продуктивності запиту отримання значень. Використовуйте цю опцію, щоб застосувати предикат (де пункт) до запиту, що вибирає різні значення з таблиці. Зазвичай наміром було б обмежити сканування, застосовуючи відносний часовий фільтр на розділеному або індексованому поле, пов’язаному з часом."
@@ -5832,7 +5556,6 @@
       "Whether to include a client-side search box": [
         "Чи включати вікно пошуку на стороні клієнта"
       ],
-      "Whether to include a time filter": ["Чи включати часовий фільтр"],
       "Whether to include the percentage in the tooltip": [
         "Чи включати відсоток у підказку"
       ],
@@ -5913,6 +5636,7 @@
         "Запишіть індекс даних даних як стовпець."
       ],
       "X AXIS TITLE BOTTOM MARGIN": ["X Осі Назва Нижня краю"],
+      "X AXIS TITLE MARGIN": [""],
       "X Axis": ["X Вісь"],
       "X Axis Format": ["Формат X Axis"],
       "X Axis Label": ["X мітка вісь"],
@@ -5926,13 +5650,13 @@
       "XScale Interval": ["Xscale Interval"],
       "Y 2 bounds": ["Y 2 межі"],
       "Y AXIS TITLE MARGIN": ["Y Exis title Margin"],
-      "Y AXIS TITLE POSITION": ["Y Позиція на осі"],
       "Y Axis": ["Y Вісь"],
       "Y Axis 2 Bounds": ["Y Axis 2 Межі"],
       "Y Axis Bounds": ["Y межі осі"],
       "Y Axis Format": ["Формат y Axis"],
       "Y Axis Label": ["Y мітка вісь"],
       "Y Axis Title": ["Y Назва вісь"],
+      "Y Axis Title Margin": [""],
       "Y Log Scale": ["Y Шкала журналу"],
       "Y bounds": ["Y межі"],
       "Y-Axis Sort Ascending": ["Y-осі сорт піднімається"],
@@ -5947,6 +5671,7 @@
       "Yes": ["Так"],
       "Yes, cancel": ["Так, скасувати"],
       "Yes, overwrite changes": ["Так, переписати зміни"],
+      "You are adding tags to %s %ss": [""],
       "You are importing one or more charts that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         "Ви імпортуєте один або кілька діаграм, які вже існують. Перезавантаження може призвести до втрати частини своєї роботи. Ви впевнені, що хочете перезаписати?"
       ],
@@ -5961,9 +5686,6 @@
       ],
       "You are importing one or more saved queries that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         "Ви імпортуєте один або кілька збережених запитів, які вже існують. Перезавантаження може призвести до втрати частини своєї роботи. Ви впевнені, що хочете перезаписати?"
-      ],
-      "You are not authorized to see this query. If you think this is an error, please reach out to your administrator.": [
-        "Ви не уповноважені бачити цей запит. Якщо ви вважаєте, що це помилка, будь ласка, зверніться до свого адміністратора."
       ],
       "You can": ["Ти можеш"],
       "You can add the components in the": ["Ви можете додати компоненти в"],
@@ -5991,9 +5713,6 @@
       "You cannot use 45° tick layout along with the time range filter": [
         "Ви не можете використовувати макет кліщів 45 ° разом із фільтром часу часу"
       ],
-      "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
-        "Ви не можете використовувати [Columns] у поєднанні з [Group By]/[Metrics]/[Percentage Metrics]. Будь ласка, виберіть той чи інший."
-      ],
       "You do not have permission to edit this %s": [
         "Ви не маєте дозволу на редагування цього %s"
       ],
@@ -6002,9 +5721,6 @@
       ],
       "You do not have permission to edit this dashboard": [
         "У вас немає дозволу на редагування цієї інформаційної панелі"
-      ],
-      "You do not have permissions to access the datasource(s): %(name)s.": [
-        "У вас немає дозволів на доступ до даних: %(ім'я)s."
       ],
       "You do not have permissions to edit this dashboard.": [
         "У вас немає дозволів на редагування цієї інформаційної панелі."
@@ -6045,9 +5761,6 @@
       ],
       "You don't have the rights to download as csv": [
         "Ви не маєте прав на завантаження як CSV"
-      ],
-      "You have no permission to approve this request": [
-        "Ви не маєте дозволу на затвердження цього запиту"
       ],
       "You have removed this filter.": ["Ви видалили цей фільтр."],
       "You have unsaved changes.": ["У вас були незберечені зміни."],
@@ -6102,12 +5815,8 @@
         "[Longitude] та [Latitude] повинні бути встановлені"
       ],
       "[Missing Dataset]": ["[Відсутній набір даних]"],
-      "[Superset] Access to the datasource %(name)s was granted": [
-        "[Superset] Доступ до даних %(ім'я)s був наданий"
-      ],
       "[Untitled]": ["[Без назви]"],
       "[asc]": ["[asc]"],
-      "[copy]": ["[копія]"],
       "[dashboard name]": ["[Назва приладної панелі]"],
       "[desc]": ["[desc]"],
       "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
@@ -6253,9 +5962,6 @@
       "failed": ["провалився"],
       "fetching": ["приплив"],
       "ffill": ["ффіл"],
-      "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components.": [
-        "filter_box буде застарілий у майбутній версії Superset. Будь ласка, замініть filter_box компонентою фільтра інформаційної панелі."
-      ],
       "flat": ["рівномірний"],
       "for more information on how to structure your URI.": [
         "для отримання додаткової інформації про те, як структурувати свій URI."
@@ -6268,7 +5974,6 @@
       ],
       "here": ["ось"],
       "hour": ["година"],
-      "id": ["ідентифікатор"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
         "CSS атрибут об'єкта canvas, який визначає, як браузер збільшує зображення"
       ],
@@ -6276,16 +5981,10 @@
       "in modal": ["у модальному"],
       "is expected to be a number": ["очікується, що буде числом"],
       "is expected to be an integer": ["очікується, що буде цілим числом"],
-      "joined": ["об'єднаний"],
       "json isn't valid": ["json не є дійсним"],
       "key a-z": ["літера A-Z"],
       "key z-a": ["літера Z-A"],
       "label": ["мітка"],
-      "last day": ["останній день"],
-      "last month": ["минулого місяця"],
-      "last quarter": ["останній чверть"],
-      "last week": ["минулого тижня"],
-      "last year": ["минулого року"],
       "latest partition:": ["останній розділ:"],
       "left": ["лівий"],
       "less than {min} {name}": ["менше {min} {name}"],
@@ -6307,13 +6006,8 @@
       "must have a value": ["повинен мати значення"],
       "name": ["назва"],
       "no SQL validator is configured": ["жоден SQL валідатор не налаштований"],
-      "no SQL validator is configured for {}": [
-        "жоден SQL валідатор не налаштований для {}"
-      ],
       "numeric type icon": ["значок числового типу"],
       "nvd3": ["nvd3"],
-      "of parent": ["батьків"],
-      "of total": ["загалом"],
       "offline": ["офлайн"],
       "on": ["на"],
       "or": ["або"],
@@ -6357,7 +6051,6 @@
       "rowlevelsecurity": ["rowlevelsecurity"],
       "running": ["біг"],
       "saved queries": ["збережені запити"],
-      "search by tags": ["пошук за тегами"],
       "seconds": ["секунди"],
       "series": ["серія"],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
@@ -6409,11 +6102,7 @@
         "y: Значення нормалізуються в кожному рядку"
       ],
       "year": ["рік"],
-      "zoom area": ["масштаб"],
-      "10 seconds": ["10 секунд"],
-      "6 hours": ["6 годин"],
-      "12 hours": ["12 годин"],
-      "24 hours": ["24 години"]
+      "zoom area": ["масштаб"]
     }
   }
 }

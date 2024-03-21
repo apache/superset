@@ -362,7 +362,7 @@ function SavedQueryList({
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
       },
       {
         Cell: ({
@@ -433,7 +433,7 @@ function SavedQueryList({
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -447,14 +447,14 @@ function SavedQueryList({
         id: 'label',
         key: 'search',
         input: 'search',
-        operator: FilterOperator.allText,
+        operator: FilterOperator.AllText,
       },
       {
         Header: t('Database'),
         key: 'database',
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'saved_query',
@@ -475,7 +475,7 @@ function SavedQueryList({
         id: 'schema',
         key: 'schema',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'saved_query',
@@ -488,14 +488,14 @@ function SavedQueryList({
         ),
         paginate: true,
       },
-      ...((isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...((isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
             {
               Header: t('Tag'),
               id: 'tags',
               key: 'tags',
               input: 'select',
-              operator: FilterOperator.savedQueryTags,
+              operator: FilterOperator.SavedQueryTags,
               fetchSelects: loadTags,
             },
           ]
@@ -505,7 +505,7 @@ function SavedQueryList({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'saved_query',

@@ -109,7 +109,7 @@ const ActionButtons = ({
   dataMaskApplied,
   dataMaskSelected,
   isApplyDisabled,
-  filterBarOrientation = FilterBarOrientation.VERTICAL,
+  filterBarOrientation = FilterBarOrientation.Vertical,
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(
     () =>
@@ -121,7 +121,7 @@ const ActionButtons = ({
       ),
     [dataMaskApplied, dataMaskSelected],
   );
-  const isVertical = filterBarOrientation === FilterBarOrientation.VERTICAL;
+  const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
   return (
     <div

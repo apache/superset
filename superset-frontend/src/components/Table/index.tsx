@@ -31,17 +31,17 @@ import VirtualTable from './VirtualTable';
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 
 export enum SelectionType {
-  'DISABLED' = 'disabled',
-  'SINGLE' = 'single',
-  'MULTI' = 'multi',
+  Disabled = 'disabled',
+  Single = 'single',
+  Multi = 'multi',
 }
 
 export type SortOrder = 'descend' | 'ascend' | null;
 
 export enum ETableAction {
-  PAGINATE = 'paginate',
-  SORT = 'sort',
-  FILTER = 'filter',
+  Paginate = 'paginate',
+  Sort = 'sort',
+  Filter = 'filter',
 }
 
 export type { ColumnsType };
@@ -49,8 +49,8 @@ export type OnChangeFunction<RecordType> =
   AntTableProps<RecordType>['onChange'];
 
 export enum TableSize {
-  SMALL = 'small',
-  MIDDLE = 'middle',
+  Small = 'small',
+  Middle = 'middle',
 }
 
 export interface TableProps<RecordType> {
@@ -234,9 +234,9 @@ const defaultLocale = {
 
 const selectionMap = {};
 const noop = () => {};
-selectionMap[SelectionType.MULTI] = 'checkbox';
-selectionMap[SelectionType.SINGLE] = 'radio';
-selectionMap[SelectionType.DISABLED] = null;
+selectionMap[SelectionType.Multi] = 'checkbox';
+selectionMap[SelectionType.Single] = 'radio';
+selectionMap[SelectionType.Disabled] = null;
 
 export function Table<RecordType extends object>(
   props: TableProps<RecordType>,
@@ -247,8 +247,8 @@ export function Table<RecordType extends object>(
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
-    size = TableSize.SMALL,
-    selectionType = SelectionType.DISABLED,
+    size = TableSize.Small,
+    selectionType = SelectionType.Disabled,
     sticky = true,
     loading = false,
     resizable = false,

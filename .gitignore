@@ -71,6 +71,7 @@ superset/static/version_info.json
 superset-frontend/**/esm/*
 superset-frontend/**/lib/*
 superset-frontend/**/storybook-static/*
+superset-frontend/migration-storybook.log
 yarn-error.log
 *.map
 *.min.js

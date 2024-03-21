@@ -506,7 +506,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -520,14 +520,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'search',
         id: 'table_name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Type'),
         key: 'sql',
         id: 'sql',
         input: 'select',
-        operator: FilterOperator.datasetIsNullOrEmpty,
+        operator: FilterOperator.DatasetIsNullOrEmpty,
         unfilteredLabel: 'All',
         selects: [
           { label: t('Virtual'), value: false },
@@ -539,7 +539,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'database',
         id: 'database',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
@@ -555,7 +555,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'schema',
         id: 'schema',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: 'All',
         fetchSelects: createFetchDistinct(
           'dataset',
@@ -571,7 +571,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
         fetchSelects: createFetchRelated(
           'dataset',
@@ -592,7 +592,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.datasetIsCertified,
+        operator: FilterOperator.DatasetIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
@@ -604,7 +604,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'dataset',

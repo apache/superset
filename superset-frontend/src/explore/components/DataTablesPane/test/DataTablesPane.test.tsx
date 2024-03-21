@@ -149,10 +149,10 @@ describe('DataTablesPane', () => {
   test('Displaying the data pane is under featureflag', () => {
     // @ts-ignore
     global.featureFlags = {
-      [FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT]: true,
+      [FeatureFlag.DatapanelClosedByDefault]: true,
     };
     const props = createDataTablesPaneProps(0);
-    setItem(LocalStorageKeys.is_datapanel_open, true);
+    setItem(LocalStorageKeys.IsDatapanelOpen, true);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });

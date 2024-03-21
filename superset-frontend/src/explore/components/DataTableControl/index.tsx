@@ -248,8 +248,8 @@ export const useFilteredTableData = (
       return [];
     }
     return data.filter((_, index: number) =>
-      rowsAsStrings[index].some(value =>
-        value?.includes(filterText.toLowerCase()),
+      rowsAsStrings[index].some(
+        value => value?.includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText, rowsAsStrings]);
@@ -310,7 +310,7 @@ export const useTableColumns = (
               const colType = coltypes?.[index];
               const firstValue = data[0][key];
               const originalFormattedTimeColumnIndex =
-                colType === GenericDataType.TEMPORAL
+                colType === GenericDataType.Temporal
                   ? originalFormattedTimeColumns.indexOf(key)
                   : -1;
               const isOriginalTimeColumn =
@@ -320,7 +320,7 @@ export const useTableColumns = (
                 id: key || index,
                 accessor: row => row[key],
                 Header:
-                  colType === GenericDataType.TEMPORAL &&
+                  colType === GenericDataType.Temporal &&
                   typeof firstValue !== 'string' ? (
                     <DataTableTemporalHeaderCell
                       columnName={key}
@@ -342,7 +342,7 @@ export const useTableColumns = (
                     return <CellNull>{NULL_DISPLAY}</CellNull>;
                   }
                   if (
-                    colType === GenericDataType.TEMPORAL &&
+                    colType === GenericDataType.Temporal &&
                     originalFormattedTimeColumnIndex === -1 &&
                     typeof value === 'number'
                   ) {

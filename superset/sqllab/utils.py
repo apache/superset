@@ -23,7 +23,7 @@ import pyarrow as pa
 from superset import db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.daos.database import DatabaseDAO
-from superset.models.sql_lab import Query, TabState
+from superset.models.sql_lab import TabState
 
 DATABASE_KEYS = [
     "allow_file_upload",
@@ -87,7 +87,6 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
         }
         databases[database.id]["backend"] = database.backend
-    queries: dict[str, Any] = {}
 
     # These are unnecessary if sqllab backend persistence is disabled
     if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
@@ -97,7 +96,6 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             .filter_by(user_id=user_id)
             .all()
         )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
         # return first active tab, or fallback to another one if no tab is active
         active_tab = (
             db.session.query(TabState)
@@ -105,20 +103,9 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
             .order_by(TabState.active.desc())
             .first()
         )
-        # return all user queries associated with existing SQL editors
-        user_queries = (
-            db.session.query(Query)
-            .filter_by(user_id=user_id)
-            .filter(Query.sql_editor_id.in_(tab_state_ids))
-            .all()
-        )
-        queries = {
-            query.client_id: dict(query.to_dict().items()) for query in user_queries
-        }
 
     return {
         "tab_state_ids": tabs_state,
         "active_tab": active_tab.to_dict() if active_tab else None,
         "databases": databases,
-        "queries": queries,
     }

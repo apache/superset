@@ -6,23 +6,28 @@ on:
     paths:
       - "helm/**"
 
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   lint-test:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v1
+        uses: azure/setup-helm@v3
         with:
           version: v3.5.4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
 
@@ -34,7 +39,7 @@ jobs:
         run: |
           changed=$(ct list-changed  --print-config)
           if [[ -n "$changed" ]]; then
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
         env:
           CT_CHART_DIRS: helm

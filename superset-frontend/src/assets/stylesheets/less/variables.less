@@ -172,11 +172,15 @@
 .set-otf-options(@use-ligatures);
 
 .set-otf-options(true) {
-  @font-feature-settings: 'liga' on, 'calt' on;
+  @font-feature-settings:
+    'liga' on,
+    'calt' on;
 }
 
 .set-otf-options(false) {
-  @font-feature-settings: 'liga' off, 'calt' off;
+  @font-feature-settings:
+    'liga' off,
+    'calt' off;
 }
 
 // ****************************** Families ******************************

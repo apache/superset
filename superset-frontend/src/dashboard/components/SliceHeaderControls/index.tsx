@@ -269,16 +269,20 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
     ) &&
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
-      ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
-  const canViewDrill = useSelector((state: RootState) =>
-    findPermission('can_view_and_drill', 'Dashboard', state.user?.roles),
-  );
-  const canExploreOrView = props.supersetCanExplore || canViewDrill;
+      ?.behaviors?.includes(Behavior.InteractiveChart);
+  const canExplore = props.supersetCanExplore;
   const canDatasourceSamples = useSelector((state: RootState) =>
     findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
+  const canDrillToDetail = canExplore && canDatasourceSamples;
+  const canViewQuery = useSelector((state: RootState) =>
+    findPermission('can_view_query', 'Dashboard', state.user?.roles),
+  );
+  const canViewTable = useSelector((state: RootState) =>
+    findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
   const refreshChart = () => {
     if (props.updatedDttm) {
@@ -429,7 +433,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {canExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
           <Link to={props.exploreUrl}>
             <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
@@ -448,7 +452,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {canExploreOrView && (
+      {(canExplore || canViewQuery) && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -463,7 +467,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {canExploreOrView && (
+      {(canExplore || canViewTable) && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
             canExplore={props.supersetCanExplore}
@@ -485,16 +489,14 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-        canExploreOrView &&
-        canDatasourceSamples && (
-          <DrillDetailMenuItems
-            chartId={slice.slice_id}
-            formData={props.formData}
-          />
-        )}
+      {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
+        <DrillDetailMenuItems
+          chartId={slice.slice_id}
+          formData={props.formData}
+        />
+      )}
 
-      {(slice.description || canExploreOrView) && <Menu.Divider />}
+      {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
         <Menu.SubMenu title={t('Share')}>
@@ -526,7 +528,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             {t('Export to Excel')}
           </Menu.Item>
 
-          {isFeatureEnabled(FeatureFlag.ALLOW_FULL_CSV_EXPORT) &&
+          {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
             isTable && (
               <>

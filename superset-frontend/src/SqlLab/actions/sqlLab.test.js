@@ -937,12 +937,17 @@ describe('async actions', () => {
           { ...query, id: 'previewTwo' },
         ];
         const store = mockStore({});
+        const oldQueryEditor = { ...queryEditor, inLocalStorage: true };
         const expectedActions = [
           {
             type: actions.MIGRATE_QUERY_EDITOR,
-            oldQueryEditor: queryEditor,
+            oldQueryEditor,
             // new qe has a different id
-            newQueryEditor: { ...queryEditor, id: '1' },
+            newQueryEditor: {
+              ...oldQueryEditor,
+              id: '1',
+              inLocalStorage: false,
+            },
           },
           {
             type: actions.MIGRATE_TAB_HISTORY,
@@ -975,7 +980,7 @@ describe('async actions', () => {
         return store
           .dispatch(
             actions.migrateQueryEditorFromLocalStorage(
-              queryEditor,
+              oldQueryEditor,
               tables,
               queries,
             ),

@@ -1,5 +1,11 @@
 version: 2
 updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
   - package-ecosystem: "npm"
     ignore:
       # not until  node >= 18.12.0
@@ -64,7 +70,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -75,7 +80,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -86,7 +90,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -97,7 +100,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -108,7 +110,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -119,7 +120,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -130,7 +130,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -141,7 +140,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -152,7 +150,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -163,7 +160,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -174,7 +170,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -185,7 +180,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -196,7 +190,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -207,7 +200,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -218,7 +210,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -229,7 +220,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -240,7 +230,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -251,7 +240,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -262,7 +250,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -273,7 +260,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -284,7 +270,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -295,7 +280,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -306,7 +290,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -317,7 +300,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -328,7 +310,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -339,7 +320,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -350,7 +330,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -361,7 +340,6 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase
 
@@ -372,6 +350,5 @@ updates:
     labels:
       - npm
       - dependabot
-      - plugins
     open-pull-requests-limit: 5
     versioning-strategy: increase

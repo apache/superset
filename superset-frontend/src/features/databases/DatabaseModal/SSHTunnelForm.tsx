@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { EventHandler, ChangeEvent, useState } from 'react';
+import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
@@ -24,7 +24,7 @@ import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
 import { Input as AntdInput, Tooltip } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { DatabaseObject } from '../types';
+import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
 const StyledDiv = styled.div`
@@ -54,12 +54,10 @@ const SSHTunnelForm = ({
   setSSHTunnelLoginMethod,
 }: {
   db: DatabaseObject | null;
-  onSSHTunnelParametersChange: EventHandler<
-    ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  >;
+  onSSHTunnelParametersChange: FieldPropTypes['changeMethods']['onSSHTunnelParametersChange'];
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
-  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.password);
+  const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
 
   return (
     <Form>
@@ -86,9 +84,9 @@ const SSHTunnelForm = ({
             </FormLabel>
             <Input
               name="server_port"
-              type="text"
               placeholder={t('22')}
-              value={db?.ssh_tunnel?.server_port || ''}
+              type="number"
+              value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
               data-test="ssh-tunnel-server_port-input"
             />
@@ -126,13 +124,13 @@ const SSHTunnelForm = ({
                 }}
               >
                 <Radio
-                  value={AuthType.password}
+                  value={AuthType.Password}
                   data-test="ssh-tunnel-use_password-radio"
                 >
                   {t('Password')}
                 </Radio>
                 <Radio
-                  value={AuthType.privateKey}
+                  value={AuthType.PrivateKey}
                   data-test="ssh-tunnel-use_private_key-radio"
                 >
                   {t('Private Key & Password')}
@@ -142,7 +140,7 @@ const SSHTunnelForm = ({
           </StyledDiv>
         </Col>
       </StyledRow>
-      {usePassword === AuthType.password && (
+      {usePassword === AuthType.Password && (
         <StyledRow gutter={16}>
           <Col xs={24}>
             <StyledDiv>
@@ -172,7 +170,7 @@ const SSHTunnelForm = ({
           </Col>
         </StyledRow>
       )}
-      {usePassword === AuthType.privateKey && (
+      {usePassword === AuthType.PrivateKey && (
         <>
           <StyledRow gutter={16}>
             <Col xs={24}>

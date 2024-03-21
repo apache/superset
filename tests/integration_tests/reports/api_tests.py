@@ -1459,6 +1459,93 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_preserve_ownership(self):
+        """
+        ReportSchedule API: Test update report preserves owner list (if un-changed)
+        """
+        self.login(username="admin")
+        existing_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        current_owners = existing_report.owners
+        report_schedule_data = {
+            "description": "Updated description",
+        }
+        uri = f"api/v1/report/{existing_report.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        updated_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert updated_report.owners == current_owners
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_clear_owner_list(self):
+        """
+        ReportSchedule API: Test update report admin can clear ownership config
+        """
+        self.login(username="admin")
+        existing_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        report_schedule_data = {
+            "owners": [],
+        }
+        uri = f"api/v1/report/{existing_report.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        updated_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert updated_report.owners == []
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_populate_owner(self):
+        """
+        ReportSchedule API: Test update admin can update report with
+        no owners to a different owner
+        """
+        gamma = self.get_user("gamma")
+        self.login(username="admin")
+
+        # Modify an existing report to make remove all owners
+        existing_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        report_update_data = {
+            "owners": [],
+        }
+        uri = f"api/v1/report/{existing_report.id}"
+        rv = self.put_assert_metric(uri, report_update_data, "put")
+        updated_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert updated_report.owners == []
+
+        # Populate the field
+        report_update_data = {
+            "owners": [gamma.id],
+        }
+        uri = f"api/v1/report/{updated_report.id}"
+        rv = self.put_assert_metric(uri, report_update_data, "put")
+        updated_report = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        assert updated_report.owners == [gamma]
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_delete_report_schedule(self):
         """
         ReportSchedule Api: Test update report schedule

@@ -51,6 +51,10 @@ export default defineConfig({
 
             return arg;
           });
+
+          launchOptions.args.push(
+            ...['--disable-dev-shm-usage', '--disable-gpu'],
+          );
         }
         return launchOptions;
       });

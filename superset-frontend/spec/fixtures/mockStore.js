@@ -127,7 +127,7 @@ export const stateWithNativeFilters = {
     },
   },
   dashboardInfo: {
-    filterBarOrientation: FilterBarOrientation.VERTICAL,
+    filterBarOrientation: FilterBarOrientation.Vertical,
   },
 };
 
@@ -160,7 +160,7 @@ export const stateWithoutNativeFilters = {
   },
   dashboardInfo: {
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.VERTICAL,
+    filterBarOrientation: FilterBarOrientation.Vertical,
     metadata: {
       native_filter_configuration: [],
     },

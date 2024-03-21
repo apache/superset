@@ -51,9 +51,9 @@ export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],

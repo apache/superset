@@ -95,6 +95,7 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
@@ -204,7 +205,7 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
-  const isHorizontal = orientation === OrientationType.horizontal;
+  const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -218,7 +219,7 @@ export default function transformProps(
     getMetricLabel,
   );
 
-  const isMultiSeries = groupby.length || metrics.length > 1;
+  const isMultiSeries = groupby?.length || metrics?.length > 1;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -253,7 +254,7 @@ export default function transformProps(
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
-  const percentFormatter = getNumberFormatter(',.0%');
+  const percentFormatter = getPercentFormatter(yAxisFormat);
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
@@ -296,7 +297,7 @@ export default function transformProps(
           : getCustomFormatter(
               customFormatters,
               metrics,
-              labelMap[seriesName]?.[0],
+              labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter,
         showValue,
         onlyTotal,
@@ -410,11 +411,11 @@ export default function transformProps(
   }
 
   const tooltipFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
   const xAxisFormatter =
-    xAxisDataType === GenericDataType.TEMPORAL
+    xAxisDataType === GenericDataType.Temporal
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
@@ -461,7 +462,7 @@ export default function transformProps(
     },
     minorTick: { show: minorTicks },
     minInterval:
-      xAxisType === AxisType.time && timeGrainSqla
+      xAxisType === AxisType.Time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
     ...getMinAndMaxFromBounds(
@@ -475,7 +476,7 @@ export default function transformProps(
 
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? AxisType.log : AxisType.value,
+    type: logAxis ? AxisType.Log : AxisType.Value,
     min: yAxisMin,
     max: yAxisMax,
     minorTick: { show: minorTicks },
@@ -486,6 +487,7 @@ export default function transformProps(
         forcePercentFormatter,
         customFormatters,
         defaultFormatter,
+        yAxisFormat,
       ),
     },
     scale: truncateYAxis,
@@ -573,7 +575,6 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
-          yAxisIndex: false,
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -588,6 +589,7 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            yAxisIndex: isHorizontal ? 0 : undefined,
           },
         ]
       : [],

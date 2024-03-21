@@ -295,7 +295,7 @@ export const selectChartCrossFilters = (
   filterEmitter = false,
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     crossFilterIndicators = Object.values(chartConfiguration)
       .filter(chartConfig => {
         const inScope =
@@ -363,7 +363,7 @@ export const selectNativeIndicatorsForChart = (
     Object.values(nativeFilters)
       .filter(
         nativeFilter =>
-          nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
+          nativeFilter.type === NativeFilterType.NativeFilter &&
           nativeFilter.chartsInScope?.includes(chartId),
       )
       .map(nativeFilter => {
@@ -385,7 +385,7 @@ export const selectNativeIndicatorsForChart = (
       });
 
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     crossFilterIndicators = selectChartCrossFilters(
       dataMask,
       chartId,

@@ -401,7 +401,7 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       // update tags
       try {
         fetchTags(
@@ -422,7 +422,7 @@ const PropertiesModal = ({
 
     const moreOnSubmitProps: { roles?: Roles } = {};
     const morePutProps: { roles?: number[] } = {};
-    if (isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)) {
+    if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
@@ -603,7 +603,7 @@ const PropertiesModal = ({
   }, [dashboardInfo, dashboardTitle, form]);
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
     try {
       fetchTags(
         {
@@ -698,7 +698,7 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+        {isFeatureEnabled(FeatureFlag.DashboardRbac)
           ? getRowsWithRoles()
           : getRowsWithoutRoles()}
         <Row>
@@ -727,14 +727,14 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
-        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
             </Col>
           </Row>
         ) : null}
-        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+        {isFeatureEnabled(FeatureFlag.TaggingSystem) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <StyledFormItem>

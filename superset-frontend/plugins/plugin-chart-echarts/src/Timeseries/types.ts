@@ -38,8 +38,8 @@ import {
 } from '../types';
 
 export enum OrientationType {
-  vertical = 'vertical',
-  horizontal = 'horizontal',
+  Vertical = 'vertical',
+  Horizontal = 'horizontal',
 }
 
 export enum EchartsTimeseriesSeriesType {

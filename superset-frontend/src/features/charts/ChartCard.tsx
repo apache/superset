@@ -146,7 +146,7 @@ export default function ChartCard({
         certifiedBy={chart.certified_by}
         certificationDetails={chart.certification_details}
         cover={
-          !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
+          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
           ) : null
         }

@@ -85,8 +85,8 @@ export default function transformProps(
   );
 
   const headerFormatter =
-    coltypes[0] === GenericDataType.TEMPORAL ||
-    coltypes[0] === GenericDataType.STRING ||
+    coltypes[0] === GenericDataType.Temporal ||
+    coltypes[0] === GenericDataType.String ||
     forceTimestampFormatting
       ? formatTime
       : numberFormatter;

@@ -160,7 +160,7 @@ describe('FilterBar', () => {
   const renderWrapper = (props = closedBarProps, state?: object) =>
     render(
       <FilterBar
-        orientation={FilterBarOrientation.VERTICAL}
+        orientation={FilterBarOrientation.Vertical}
         verticalConfig={{
           width: 280,
           height: 400,

@@ -190,7 +190,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
 
   const crossFilters = useMemo(
     () =>
-      isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ? (
+      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
         <CrossFiltersVertical />
       ) : null,
     [],

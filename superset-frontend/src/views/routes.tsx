@@ -227,7 +227,7 @@ export const routes: Routes = [
   },
 ];
 
-if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({
     path: '/superset/all_entities/',
     Component: AllEntities,

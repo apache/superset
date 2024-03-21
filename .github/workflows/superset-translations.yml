@@ -3,23 +3,29 @@ name: Translations
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   frontend-check:
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version:  '16'
+          node-version: "16"
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -36,12 +42,12 @@ jobs:
         python-version: ["3.9"]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies

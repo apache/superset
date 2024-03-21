@@ -290,7 +290,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}
@@ -303,7 +303,7 @@ const DatasetPanel = ({
               <TableScrollContainer>
                 <Table
                   loading={loading}
-                  size={TableSize.SMALL}
+                  size={TableSize.Small}
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}

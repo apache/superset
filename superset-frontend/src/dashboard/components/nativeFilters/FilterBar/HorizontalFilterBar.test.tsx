@@ -53,7 +53,7 @@ test('should not render the empty message', async () => {
     filterValues: [
       {
         id: 'test',
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
       },
     ],
   });

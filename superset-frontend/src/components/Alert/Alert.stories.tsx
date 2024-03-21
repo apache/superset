@@ -60,17 +60,12 @@ export const AlertGallery = () => (
   </>
 );
 
-AlertGallery.story = {
-  parameters: {
-    actions: {
-      disable: true,
-    },
-    controls: {
-      disable: true,
-    },
-    knobs: {
-      disable: true,
-    },
+AlertGallery.parameters = {
+  actions: {
+    disable: true,
+  },
+  controls: {
+    disable: true,
   },
 };
 
@@ -94,13 +89,5 @@ InteractiveAlert.argTypes = {
   onClose: { action: 'onClose' },
   type: {
     control: { type: 'select', options: types },
-  },
-};
-
-InteractiveAlert.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
   },
 };

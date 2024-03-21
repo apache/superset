@@ -191,7 +191,7 @@ function DatabaseList({
         }
 
         // Delete user-selected db from local storage
-        setItem(LocalStorageKeys.db, null);
+        setItem(LocalStorageKeys.Database, null);
 
         // Close delete modal
         setDatabaseCurrentlyDeleting(null);
@@ -474,7 +474,7 @@ function DatabaseList({
         disableSortBy: true,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -488,14 +488,14 @@ function DatabaseList({
         key: 'search',
         id: 'database_name',
         input: 'search',
-        operator: FilterOperator.contains,
+        operator: FilterOperator.Contains,
       },
       {
         Header: t('Expose in SQL Lab'),
         key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -515,7 +515,7 @@ function DatabaseList({
         key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
           { label: t('Yes'), value: true },
@@ -527,7 +527,7 @@ function DatabaseList({
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'database',

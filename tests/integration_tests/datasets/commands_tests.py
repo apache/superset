@@ -82,7 +82,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -216,7 +216,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
@@ -339,7 +339,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.commands.dataset.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_v1_dataset(self, sm_g, utils_g):

@@ -154,10 +154,6 @@ FILTER_SELECT_ROW_LIMIT = 10000
 # values may be "Last day", "Last week", "<ISO date> : now", etc.
 DEFAULT_TIME_FILTER = NO_TIME_RANGE
 
-SUPERSET_WEBSERVER_PROTOCOL = "http"
-SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
-SUPERSET_WEBSERVER_PORT = 8088
-
 # This is an important setting, and should be lower than your
 # [load balancer / proxy / envoy / kong / ...] timeout settings.
 # You should also make sure to configure your WSGI server
@@ -485,6 +481,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Unlike Selenium, Playwright reports support deck.gl visualizations
     # Enabling this feature flag requires installing "playwright" pip package
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
+    # Set to True to enable experimental chart plugins
+    "CHART_PLUGINS_EXPERIMENTAL": False,
 }
 
 # ------------------------------
@@ -1295,7 +1293,7 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # Default values that user using when creating alert
 ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = 3600
 ALERT_REPORTS_DEFAULT_RETENTION = 90
-ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 * * * *"  # every hour
+ALERT_REPORTS_DEFAULT_CRON_VALUE = "0 0 * * *"  # every day
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False

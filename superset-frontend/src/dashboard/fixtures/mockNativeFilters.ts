@@ -61,7 +61,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
         allowsMultipleValues: true,
         isRequired: false,
       },
-      type: NativeFilterType.NATIVE_FILTER,
+      type: NativeFilterType.NativeFilter,
       description: 'test description',
     },
   },

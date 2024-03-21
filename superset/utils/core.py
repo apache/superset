@@ -1344,6 +1344,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
         form_data["filters"] = simple_where_filters
 
 
+def get_user() -> User | None:
+    """
+    Get the current user (if defined).
+
+    :returns: The current user
+    """
+    return g.user if hasattr(g, "user") else None
+
+
 def get_username() -> str | None:
     """
     Get username (if defined) associated with the current user.
@@ -1371,6 +1380,19 @@ def get_user_id() -> int | None:
 
     try:
         return g.user.id
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+def get_user_email() -> str | None:
+    """
+    Get the email (if defined) associated with the current user.
+
+    :returns: The email
+    """
+
+    try:
+        return g.user.email
     except Exception:  # pylint: disable=broad-except
         return None
 

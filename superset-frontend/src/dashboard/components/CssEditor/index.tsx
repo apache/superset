@@ -20,7 +20,7 @@ import React from 'react';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
@@ -28,14 +28,15 @@ export interface CssEditorProps {
   initialCss: string;
   triggerNode: React.ReactNode;
   onChange: (css: string) => void;
-  templates?: Array<{
-    css: string;
-    label: string;
-  }>;
+  addDangerToast: (msg: string) => void;
 }
 
 export type CssEditorState = {
   css: string;
+  templates?: Array<{
+    css: string;
+    label: string;
+  }>;
 };
 const StyledWrapper = styled.div`
   ${({ theme }) => `
@@ -72,6 +73,24 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
 
   componentDidMount() {
     AceCssEditor.preload();
+
+    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+      .then(({ json }) => {
+        const templates = json.result.map(
+          (row: { template_name: string; css: string }) => ({
+            value: row.template_name,
+            css: row.css,
+            label: row.template_name,
+          }),
+        );
+
+        this.setState({ templates });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      });
   }
 
   changeCss(css: string) {
@@ -85,10 +104,10 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
   }
 
   renderTemplateSelector() {
-    if (this.props.templates) {
+    if (this.state.templates) {
       const menu = (
         <Menu onClick={this.changeCssTemplate}>
-          {this.props.templates.map(template => (
+          {this.state.templates.map(template => (
             <Menu.Item key={template.css}>{template.label}</Menu.Item>
           ))}
         </Menu>

@@ -255,7 +255,7 @@ export function saveDashboardRequest(data, id, saveType) {
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
-      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
@@ -295,7 +295,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         const { chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration();
         dispatch(
@@ -372,7 +372,7 @@ export function saveDashboardRequest(data, id, saveType) {
     ) {
       let chartConfiguration = {};
       let globalChartConfiguration = {};
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         ({ chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration());
       }
@@ -406,7 +406,7 @@ export function saveDashboardRequest(data, id, saveType) {
           .catch(response => onError(response));
       return new Promise((resolve, reject) => {
         if (
-          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
           saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
         ) {
           // skip overwrite precheck

@@ -1,0 +1,57 @@
+name: SupersetBot Workflow
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+  # Making the workflow testable since `issue_comment` only triggers on
+  # the default branch
+  workflow_dispatch:
+    inputs:
+      comment_body:
+        description: 'Comment Body'
+        required: true
+        type: string
+
+jobs:
+  supersetbot:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))
+    steps:
+      - name: Quickly add thumbs up!
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/')
+            await github.rest.reactions.createForIssueComment({
+              owner,
+              repo,
+              comment_id: ${{ github.event.comment.id }},
+              content: '+1'
+            });
+      - name: Execute SupersetBot Command
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install supersetbot
+      - name: Execute custom Node.js script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          INPUT_COMMENT_BODY: ${{ github.event.inputs.comment_body }}
+        run: |
+          cat <<EOF > script.js
+          const run = async () => {
+            const { runCommandFromGithubAction } = await import('supersetbot');
+            const cmd = process.env.COMMENT_BODY || process.env.INPUT_COMMENT_BODY;
+            console.log("Executing: ", cmd);
+            await runCommandFromGithubAction(cmd);
+          };
+          run().catch(console.error);
+          EOF
+          node script.js

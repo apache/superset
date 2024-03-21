@@ -121,7 +121,7 @@ const DrillDetailMenuItems = ({
     () =>
       getChartMetadataRegistry()
         .get(formData.viz_type)
-        ?.behaviors.find(behavior => behavior === Behavior.DRILL_TO_DETAIL),
+        ?.behaviors.find(behavior => behavior === Behavior.DrillToDetail),
     [formData.viz_type],
   );
 

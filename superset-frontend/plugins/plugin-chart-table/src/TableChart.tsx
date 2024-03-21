@@ -81,10 +81,10 @@ const ACTION_KEYS = {
  * Return sortType based on data type
  */
 function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
-  if (dataType === GenericDataType.TEMPORAL) {
+  if (dataType === GenericDataType.Temporal) {
     return 'datetime';
   }
-  if (dataType === GenericDataType.STRING) {
+  if (dataType === GenericDataType.String) {
     return 'alphanumeric';
   }
   return 'basic';
@@ -361,8 +361,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const textAlign = config.horizontalAlign
       ? config.horizontalAlign
       : isNumeric
-      ? 'right'
-      : 'left';
+        ? 'right'
+        : 'left';
     return {
       textAlign,
     };

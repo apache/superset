@@ -56,8 +56,10 @@ export default function ResizablePanel({
       }
       {...props}
     >
-      {heading ? <div className="panel-heading">{heading}</div> : null}
-      <div className="panel-body">{children}</div>
+      <>
+        {heading ? <div className="panel-heading">{heading}</div> : null}
+        <div className="panel-body">{children}</div>
+      </>
     </ResizableBox>
   );
 }

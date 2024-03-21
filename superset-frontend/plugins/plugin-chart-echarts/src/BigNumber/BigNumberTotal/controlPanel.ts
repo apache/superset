@@ -113,7 +113,7 @@ export default {
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.NUMERIC,
+                            coltypes[index] === GenericDataType.Numeric,
                         )
                         .map(colname => ({
                           value: colname,

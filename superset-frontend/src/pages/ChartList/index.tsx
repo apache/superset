@@ -272,7 +272,7 @@ function ChartList(props: ChartListProps) {
           filters: [
             {
               col: 'dashboard_title',
-              opr: FilterOperator.startsWith,
+              opr: FilterOperator.StartsWith,
               value: filterValue,
             },
           ],
@@ -425,7 +425,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Tags'),
         accessor: 'tags',
         disableSortBy: true,
-        hidden: !isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM),
+        hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
       },
       {
         Cell: ({
@@ -539,7 +539,7 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
       {
-        accessor: QueryObjectColumns.changed_by,
+        accessor: QueryObjectColumns.ChangedBy,
         hidden: true,
       },
     ],
@@ -563,7 +563,7 @@ function ChartList(props: ChartListProps) {
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
-      operator: FilterOperator.chartIsFav,
+      operator: FilterOperator.ChartIsFav,
       unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
@@ -580,14 +580,14 @@ function ChartList(props: ChartListProps) {
         key: 'search',
         id: 'slice_name',
         input: 'search',
-        operator: FilterOperator.chartAllText,
+        operator: FilterOperator.ChartAllText,
       },
       {
         Header: t('Type'),
         key: 'viz_type',
         id: 'viz_type',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: registry
           .keys()
@@ -613,19 +613,19 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.equals,
+        operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      ...(isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && canReadTag
+      ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
             {
               Header: t('Tag'),
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.chartTags,
+              operator: FilterOperator.ChartTags,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },
@@ -636,7 +636,7 @@ function ChartList(props: ChartListProps) {
         key: 'owner',
         id: 'owners',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'chart',
@@ -658,7 +658,7 @@ function ChartList(props: ChartListProps) {
         key: 'dashboards',
         id: 'dashboards',
         input: 'select',
-        operator: FilterOperator.relationManyMany,
+        operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
@@ -670,7 +670,7 @@ function ChartList(props: ChartListProps) {
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
-        operator: FilterOperator.chartIsCertified,
+        operator: FilterOperator.ChartIsCertified,
         unfilteredLabel: t('Any'),
         selects: [
           { label: t('Yes'), value: true },
@@ -682,7 +682,7 @@ function ChartList(props: ChartListProps) {
         key: 'changed_by',
         id: 'changed_by',
         input: 'select',
-        operator: FilterOperator.relationOneMany,
+        operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'chart',
@@ -729,7 +729,7 @@ function ChartList(props: ChartListProps) {
         showThumbnails={
           userSettings
             ? userSettings.thumbnails
-            : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+            : isFeatureEnabled(FeatureFlag.Thumbnails)
         }
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
@@ -849,10 +849,10 @@ function ChartList(props: ChartListProps) {
               showThumbnails={
                 userSettings
                   ? userSettings.thumbnails
-                  : isFeatureEnabled(FeatureFlag.THUMBNAILS)
+                  : isFeatureEnabled(FeatureFlag.Thumbnails)
               }
               defaultViewMode={
-                isFeatureEnabled(FeatureFlag.LISTVIEWS_DEFAULT_CARD_VIEW)
+                isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
                   ? 'card'
                   : 'table'
               }

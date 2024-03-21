@@ -209,11 +209,11 @@ export function Menu({
     return () => window.removeEventListener('resize', windowResize);
   }, []);
 
-  enum paths {
-    EXPLORE = '/explore',
-    DASHBOARD = '/dashboard',
-    CHART = '/chart',
-    DATASETS = '/tablemodelview',
+  enum Paths {
+    Explore = '/explore',
+    Dashboard = '/dashboard',
+    Chart = '/chart',
+    Datasets = '/tablemodelview',
   }
 
   const defaultTabSelection: string[] = [];
@@ -222,13 +222,13 @@ export function Menu({
   useEffect(() => {
     const path = location.pathname;
     switch (true) {
-      case path.startsWith(paths.DASHBOARD):
+      case path.startsWith(Paths.Dashboard):
         setActiveTabs(['Dashboards']);
         break;
-      case path.startsWith(paths.CHART) || path.startsWith(paths.EXPLORE):
+      case path.startsWith(Paths.Chart) || path.startsWith(Paths.Explore):
         setActiveTabs(['Charts']);
         break;
-      case path.startsWith(paths.DATASETS):
+      case path.startsWith(Paths.Datasets):
         setActiveTabs(['Datasets']);
         break;
       default:

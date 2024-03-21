@@ -60,7 +60,7 @@ function isForcedCategorical(controls: ControlStateMapping): boolean {
     checkColumnType(
       getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
       controls?.datasource?.datasource,
-      [GenericDataType.NUMERIC],
+      [GenericDataType.Numeric],
     ) && !!controls?.xAxisForceCategorical?.value
   );
 }
@@ -71,7 +71,7 @@ function isSortable(controls: ControlStateMapping): boolean {
     checkColumnType(
       getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
       controls?.datasource?.datasource,
-      [GenericDataType.STRING, GenericDataType.BOOLEAN],
+      [GenericDataType.String, GenericDataType.Boolean],
     )
   );
 }
@@ -173,7 +173,7 @@ export const xAxisForceCategoricalControl = {
       checkColumnType(
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         controls?.datasource?.datasource,
-        [GenericDataType.NUMERIC],
+        [GenericDataType.Numeric],
       ),
     shouldMapStateToProps: () => true,
   },

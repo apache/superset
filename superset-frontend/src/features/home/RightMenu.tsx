@@ -172,18 +172,18 @@ const RightMenu = ({
       childs: [
         {
           label: t('Connect database'),
-          name: GlobalMenuDataOptions.DB_CONNECTION,
+          name: GlobalMenuDataOptions.DbConnection,
           perm: canDatabase && !nonExamplesDBConnected,
         },
         {
           label: t('Create dataset'),
-          name: GlobalMenuDataOptions.DATASET_CREATION,
+          name: GlobalMenuDataOptions.DatasetCreation,
           url: '/dataset/add/',
           perm: canDataset && nonExamplesDBConnected,
         },
         {
           label: t('Connect Google Sheet'),
-          name: GlobalMenuDataOptions.GOOGLE_SHEETS,
+          name: GlobalMenuDataOptions.GoogleSheets,
           perm: canDatabase && HAS_GSHEETS_INSTALLED,
         },
         {
@@ -284,9 +284,9 @@ const RightMenu = ({
   );
 
   const handleMenuSelection = (itemChose: any) => {
-    if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
+    if (itemChose.key === GlobalMenuDataOptions.DbConnection) {
       setShowDatabaseModal(true);
-    } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
+    } else if (itemChose.key === GlobalMenuDataOptions.GoogleSheets) {
       setShowDatabaseModal(true);
       setEngine('Google Sheets');
     }

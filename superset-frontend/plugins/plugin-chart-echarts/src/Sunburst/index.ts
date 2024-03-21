@@ -33,9 +33,9 @@ export default class EchartsSunburstChartPlugin extends EchartsChartPlugin {
       loadChart: () => import('./EchartsSunburst'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],

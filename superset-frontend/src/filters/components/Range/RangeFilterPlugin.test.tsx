@@ -37,7 +37,7 @@ const rangeProps = {
         column: {
           column_name: 'SP_POP_TOTL',
           id: 1,
-          type_generic: GenericDataType.NUMERIC,
+          type_generic: GenericDataType.Numeric,
         },
         expressionType: 'SIMPLE',
         hasCustomLabel: true,
@@ -48,7 +48,7 @@ const rangeProps = {
         column: {
           column_name: 'SP_POP_TOTL',
           id: 2,
-          type_generic: GenericDataType.NUMERIC,
+          type_generic: GenericDataType.Numeric,
         },
         expressionType: 'SIMPLE',
         hasCustomLabel: true,
@@ -70,7 +70,7 @@ const rangeProps = {
     {
       rowcount: 1,
       colnames: ['min', 'max'],
-      coltypes: [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
       data: [{ min: 10, max: 100 }],
       applied_filters: [],
       rejected_filters: [],
@@ -79,7 +79,7 @@ const rangeProps = {
   width: 220,
   behaviors: ['NATIVE_FILTER'],
   isRefreshing: false,
-  appSection: AppSection.DASHBOARD,
+  appSection: AppSection.Dashboard,
 };
 
 describe('RangeFilterPlugin', () => {

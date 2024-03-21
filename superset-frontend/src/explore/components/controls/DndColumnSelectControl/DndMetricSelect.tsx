@@ -105,7 +105,27 @@ const getOptionsForSavedMetrics = (
 type ValueType = Metric | AdhocMetric | QueryFormMetric;
 
 const DndMetricSelect = (props: any) => {
-  const { onChange, multi } = props;
+  const { onChange, multi, datasource, savedMetrics } = props;
+
+  const extra = useMemo<{ disallow_adhoc_metrics?: boolean }>(() => {
+    let extra = {};
+    if (datasource?.extra) {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    }
+    return extra;
+  }, [datasource?.extra]);
+
+  const savedMetricSet = useMemo(
+    () =>
+      new Set(
+        (savedMetrics as savedMetricType[]).map(
+          ({ metric_name }) => metric_name,
+        ),
+      ),
+    [savedMetrics],
+  );
 
   const handleChange = useCallback(
     opts => {
@@ -148,11 +168,19 @@ const DndMetricSelect = (props: any) => {
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
+      if (
+        extra.disallow_adhoc_metrics &&
+        (item.type !== DndItemType.Metric ||
+          !savedMetricSet.has(item.value.metric_name))
+      ) {
+        return false;
+      }
+
       const isMetricAlreadyInValues =
         item.type === 'metric' ? value.includes(item.value.metric_name) : false;
       return !isMetricAlreadyInValues;
     },
-    [value],
+    [value, extra, savedMetricSet],
   );
 
   const onNewMetric = useCallback(
@@ -312,12 +340,12 @@ const DndMetricSelect = (props: any) => {
       const config: Partial<AdhocMetric> = {
         column: itemValue,
       };
-      if (itemValue.type_generic === GenericDataType.NUMERIC) {
+      if (itemValue.type_generic === GenericDataType.Numeric) {
         config.aggregate = AGGREGATES.SUM;
       } else if (
-        itemValue.type_generic === GenericDataType.STRING ||
-        itemValue.type_generic === GenericDataType.BOOLEAN ||
-        itemValue.type_generic === GenericDataType.TEMPORAL
+        itemValue.type_generic === GenericDataType.String ||
+        itemValue.type_generic === GenericDataType.Boolean ||
+        itemValue.type_generic === GenericDataType.Temporal
       ) {
         config.aggregate = AGGREGATES.COUNT_DISTINCT;
       }

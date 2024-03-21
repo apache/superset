@@ -22,6 +22,7 @@ from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
+from superset import db
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.temporary_cache.entry import Entry
 from superset.extensions import cache_manager
@@ -40,15 +41,13 @@ UPDATED_VALUE = json.dumps({"test": "updated value"})
 
 @pytest.fixture
 def dashboard_id(app_context: AppContext, load_world_bank_dashboard_with_slices) -> int:
-    session: Session = app_context.app.appbuilder.get_session
-    dashboard = session.query(Dashboard).filter_by(slug="world_health").one()
+    dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
     return dashboard.id
 
 
 @pytest.fixture
 def admin_id(app_context: AppContext) -> int:
-    session: Session = app_context.app.appbuilder.get_session
-    admin = session.query(User).filter_by(username="admin").one_or_none()
+    admin = db.session.query(User).filter_by(username="admin").one_or_none()
     return admin.id
 
 

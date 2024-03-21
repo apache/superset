@@ -43,7 +43,7 @@ export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
   verbose_name: COLUMN_NAME_ALIASES[DTTM_ALIAS],
   column_name: DTTM_ALIAS,
   type: 'TIMESTAMP',
-  type_generic: GenericDataType.TEMPORAL,
+  type_generic: GenericDataType.Temporal,
   description: t(
     'A reference to the [Time] configuration, taking granularity into account',
   ),
@@ -53,12 +53,12 @@ export const QUERY_TIME_COLUMN_OPTION: QueryColumn = {
   column_name: DTTM_ALIAS,
   is_dttm: true,
   type: 'TIMESTAMP',
-  type_generic: GenericDataType.TEMPORAL,
+  type_generic: GenericDataType.Temporal,
 };
 
 export const QueryModeLabel = {
-  [QueryMode.aggregate]: t('Aggregate'),
-  [QueryMode.raw]: t('Raw records'),
+  [QueryMode.Aggregate]: t('Aggregate'),
+  [QueryMode.Raw]: t('Raw records'),
 };
 
 export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {

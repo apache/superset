@@ -56,8 +56,8 @@ export type GetTableSize = () => Partial<StickyState> | undefined;
 export type SetStickyState = (size?: Partial<StickyState>) => void;
 
 export enum ReducerActions {
-  init = 'init', // this is from global reducer
-  setStickyState = 'setStickyState',
+  Init = 'init', // this is from global reducer
+  SetStickyState = 'setStickyState',
 }
 
 export type ReducerAction<
@@ -110,7 +110,6 @@ const fixedTableLayout: CSSProperties = { tableLayout: 'fixed' };
 /**
  * An HOC for generating sticky header and fixed-height scrollable area
  */
-
 function StickyWrap({
   sticky = {},
   width: maxWidth,
@@ -216,8 +215,7 @@ function StickyWrap({
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
-  let fullTable: ReactElement | undefined;
-
+  let bodyTable: ReactElement | undefined;
   if (needSizer) {
     const theadWithRef = React.cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
@@ -228,6 +226,7 @@ function StickyWrap({
           height: maxHeight,
           overflow: 'auto',
           visibility: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(table, {}, theadWithRef, tbody, tfootWithRef)}
@@ -254,8 +253,8 @@ function StickyWrap({
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
-        aria-hidden="true"
       >
         {React.cloneElement(
           table,
@@ -273,6 +272,7 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
+          scrollbarGutter: 'stable',
         }}
       >
         {React.cloneElement(
@@ -293,18 +293,21 @@ function StickyWrap({
         scrollFooterRef.current.scrollLeft = e.currentTarget.scrollLeft;
       }
     };
-
-    fullTable = (
+    bodyTable = (
       <div
-        key="full-table"
+        key="body"
         ref={scrollBodyRef}
+        style={{
+          height: bodyHeight,
+          overflow: 'auto',
+          scrollbarGutter: 'stable',
+        }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
       >
         {React.cloneElement(
           table,
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
-          thead,
           tbody,
         )}
       </div>
@@ -316,11 +319,11 @@ function StickyWrap({
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
-        overflow: 'auto',
-        padding: '0',
+        overflow: 'hidden',
       }}
     >
-      {fullTable}
+      {headerTable}
+      {bodyTable}
       {footerTable}
       {sizerTable}
     </div>
@@ -341,7 +344,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   const setStickyState = useCallback(
     (size?: Partial<StickyState>) => {
       dispatch({
-        type: ReducerActions.setStickyState,
+        type: ReducerActions.SetStickyState,
         size,
       });
     },
@@ -351,8 +354,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   );
 
   const useStickyWrap = (renderer: TableRenderer) => {
-    // @ts-ignore
-    const { width, height } =
+    const { width, height }: { width?: number; height?: number } =
       useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -395,7 +397,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
       ReducerActions,
       { size: StickyState }
     >;
-    if (action.type === ReducerActions.init) {
+    if (action.type === ReducerActions.Init) {
       return {
         ...newState,
         sticky: {
@@ -403,7 +405,7 @@ export default function useSticky<D extends object>(hooks: Hooks<D>) {
         },
       };
     }
-    if (action.type === ReducerActions.setStickyState) {
+    if (action.type === ReducerActions.SetStickyState) {
       const { size } = action;
       if (!size) {
         return { ...newState };

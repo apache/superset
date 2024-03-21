@@ -187,9 +187,9 @@ export default function transformProps(
     currencyFormat,
     granularitySqla = '',
     groupby,
-    increaseColor,
-    decreaseColor,
-    totalColor,
+    increaseColor = { r: 90, g: 193, b: 137 },
+    decreaseColor = { r: 224, g: 67, b: 85 },
+    totalColor = { r: 102, g: 102, b: 102 },
     metric = '',
     xAxis,
     xTicksLayout,
@@ -339,7 +339,7 @@ export default function transformProps(
     if (value === TOTAL_MARK) {
       return TOTAL_MARK;
     }
-    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.TEMPORAL) {
+    if (coltypeMapping[xAxisColumns[index]] === GenericDataType.Temporal) {
       if (typeof value === 'string') {
         return getTimeFormatter(xAxisTimeFormat)(Number.parseInt(value, 10));
       }

@@ -33,7 +33,7 @@
     "d3-scale": "^3.0.0",
     "deck.gl": "8.8.27",
     "lodash": "^4.17.15",
-    "moment": "^2.20.1",
+    "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
     "prop-types": "^15.6.0",
     "react-bootstrap-slider": "2.1.5",

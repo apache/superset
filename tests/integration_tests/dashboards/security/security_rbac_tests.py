@@ -404,22 +404,28 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, "Public")
 
-    def test_get_draft_dashboard_without_roles_by_uuid(self):
+    def test_cannot_get_draft_dashboard_without_roles_by_uuid(self):
         """
         Dashboard API: Test get draft dashboard without roles by uuid
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
-        assert not dashboard.published
-        assert dashboard.roles == []
+
+        database = create_database_to_db(name="test_db_rbac")
+        table = create_datasource_table_to_db(
+            name="test_datasource_rbac", db_id=database.id, owners=[admin]
+        )
+        dashboard_to_access = create_dashboard_to_db(
+            dashboard_title="test_dashboard_rbac",
+            owners=[admin],
+            slices=[create_slice_to_db(datasource_id=table.id)],
+        )
+        assert not dashboard_to_access.published
+        assert dashboard_to_access.roles == []
 
         self.login(username="gamma")
-        uri = f"api/v1/dashboard/{dashboard.uuid}"
+        uri = f"api/v1/dashboard/{dashboard_to_access.uuid}"
         rv = self.client.get(uri)
-        assert rv.status_code == 200
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
+        assert rv.status_code == 403
 
     def test_cannot_get_draft_dashboard_with_roles_by_uuid(self):
         """
