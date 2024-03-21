@@ -130,7 +130,8 @@ export default function HeaderReportDropDown({
       EMPTY_OBJECT
     );
   });
-  var s3Report =
+
+  const s3Report =
     report?.recipients !== undefined ? report?.recipients[0].type : null;
   const isReportActive: boolean = report?.active || false;
   const user: UserWithPermissionsAndRoles = useSelector<
