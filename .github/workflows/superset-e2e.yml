@@ -60,6 +60,8 @@ jobs:
           ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
           submodules: recursive
+      - name: Source bashlib.sh
+        run: source .github/workflows/bashlib.sh
       - name: Check if python or frontend changes are present
         id: check
         env:
