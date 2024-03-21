@@ -69,42 +69,35 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh python frontend
       - name: OS dependencies
         if: steps.check.outcome == 'failure'
-        with:
-          run: apt-get-install
+        run: apt-get-install
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
       - name: Setup postgres
         if: steps.check.outcome == 'failure'
-        with:
-          run: setup-postgres
+        run: setup-postgres
       - name: Import test data
         if: steps.check.outcome == 'failure'
-        with:
-          run: testdata
+        run: testdata
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "16"
       - name: Install npm dependencies
         if: steps.check.outcome == 'failure'
-        with:
-          run: npm-install
+        run: npm-install
       - name: Build javascript packages
         if: steps.check.outcome == 'failure'
-        with:
-          run: build-instrumented-assets
+        run: build-instrumented-assets
       - name: Install cypress
         if: steps.check.outcome == 'failure'
-        with:
-          run: cypress-install
+        run: cypress-install
       - name: Run Cypress
         if: steps.check.outcome == 'failure'
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
-        with:
-          run: cypress-run-all
+        run: cypress-run-all
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         if: failure()

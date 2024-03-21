@@ -43,11 +43,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Install eyes-storybook dependencies
-        with:
-          run: eyes-storybook-dependencies
+        run: eyes-storybook-dependencies
       - name: Install NPM dependencies
-        with:
-          run: npm-install
+        run: npm-install
       - name: Run Applitools Eyes-Storybook
         working-directory: ./superset-frontend
         run: npx eyes-storybook -u https://superset-storybook.netlify.app/

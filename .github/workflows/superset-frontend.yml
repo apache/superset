@@ -42,8 +42,7 @@ jobs:
           node-version: "16"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
-        with:
-          run: npm-install
+        run: npm-install
       - name: eslint
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend

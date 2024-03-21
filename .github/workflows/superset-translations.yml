@@ -27,8 +27,7 @@ jobs:
         with:
           node-version: "16"
       - name: Install dependencies
-        with:
-          run: npm-install
+        run: npm-install
       - name: lint
         working-directory: ./superset-frontend
         run: |
@@ -49,11 +48,5 @@ jobs:
         uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install -r requirements/base.txt
       - name: Test babel extraction
         run: ./scripts/babel_update.sh
