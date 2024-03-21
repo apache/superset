@@ -126,13 +126,17 @@ export const DndLabelsContainer = styled.div<{
 }>`
   position: relative;
   padding: ${({ theme }) => theme.gridUnit}px;
-  border: ${({ canDrop, isDragging, theme }) => {
-    if (isDragging) {
+  border: ${({ canDrop, isDragging, isLoading, theme }) => {
+    if (!isLoading && isDragging) {
       return `dashed 1px ${
         canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
       }`;
     }
-    return `solid 1px ${theme.colors.grayscale.light2}`;
+    return `solid 1px ${
+      isLoading && isDragging
+        ? theme.colors.warning.light1
+        : theme.colors.grayscale.light2
+    }`;
   }};
   border-radius: ${({ theme }) => theme.gridUnit}px;
   &:before,
@@ -142,7 +146,8 @@ export const DndLabelsContainer = styled.div<{
     border-radius: ${({ theme }) => theme.gridUnit}px;
   }
   &:before {
-    display: ${({ isDragging }) => (isDragging ? 'block' : 'none')};
+    display: ${({ isDragging, isLoading }) =>
+      isDragging || isLoading ? 'block' : 'none'};
     background-color: ${({ theme, canDrop }) =>
       canDrop ? theme.colors.primary.base : theme.colors.error.light1};
     z-index: ${({ theme }) => theme.zIndex.aboveDashboardCharts};
@@ -151,17 +156,6 @@ export const DndLabelsContainer = styled.div<{
     right: 1px;
     bottom: 1px;
     left: 1px;
-  }
-  &:after {
-    display: ${({ isOver, canDrop, isLoading }) =>
-      isLoading || (canDrop && isOver) ? 'block' : 'none'};
-    background-color: ${({ theme }) => theme.colors.primary.base};
-    z-index: ${({ theme }) => theme.zIndex.dropdown};
-    opacity: ${({ theme }) => theme.opacity.mediumLight};
-    top: ${({ theme }) => -theme.gridUnit}px;
-    right: ${({ theme }) => -theme.gridUnit}px;
-    bottom: ${({ theme }) => -theme.gridUnit}px;
-    left: ${({ theme }) => -theme.gridUnit}px;
 
     ${({ theme, isLoading }) =>
       isLoading &&
@@ -175,6 +169,19 @@ export const DndLabelsContainer = styled.div<{
         bottom: -${theme.gridUnit / 2}px;
         height: ${theme.gridUnit / 2}px;
       `}
+  }
+  &:after {
+    display: ${({ isOver, canDrop, isLoading }) =>
+      isLoading || (canDrop && isOver) ? 'block' : 'none'};
+    background-color: ${({ theme, isLoading }) =>
+      isLoading ? theme.colors.grayscale.light3 : theme.colors.primary.base};
+    z-index: ${({ theme }) => theme.zIndex.dropdown};
+    opacity: ${({ theme }) => theme.opacity.mediumLight};
+    top: ${({ theme }) => -theme.gridUnit}px;
+    right: ${({ theme }) => -theme.gridUnit}px;
+    bottom: ${({ theme }) => -theme.gridUnit}px;
+    left: ${({ theme }) => -theme.gridUnit}px;
+    cursor: ${({ isLoading }) => (isLoading ? 'wait' : 'auto')};
   }
 `;
 
