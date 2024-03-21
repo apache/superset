@@ -85,7 +85,7 @@ type SelectValue = {
 interface S3NotificationSettings {
   aws_secret_key: string;
   aws_key: string;
-  aws_S3_types: string;
+  aws_s3_types: string;
 }
 
 export interface AlertReportModalProps {
@@ -503,7 +503,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const initialSettings: S3NotificationSettings = {
     aws_secret_key: '',
     aws_key: '',
-    aws_S3_types: '',
+    aws_s3_types: '',
   };
 
   const [s3NotificationSettings, setS3NotificationSettings] =

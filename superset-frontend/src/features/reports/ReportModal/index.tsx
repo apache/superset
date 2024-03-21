@@ -169,22 +169,22 @@ function ReportModal({
   });
   const isEditMode = report && Object.keys(report).length;
   const [s3Method, setS3Method] = useState(
-    currentReport ? currentReport?.aws_S3_types : null,
+    currentReport ? currentReport?.aws_s3_types : null,
   );
   const [bucketName, setBucketName] = useState<string>('');
   const [accessKey, setAccessKey] = useState<string>('');
   const [secretKey, setSecretKey] = useState<string>('');
 
   useEffect(() => {
-    if (currentReport.aws_S3_types) {
-      setS3Method(currentReport.aws_S3_types);
+    if (currentReport.aws_s3_types) {
+      setS3Method(currentReport.aws_s3_types);
       setAccessKey(currentReport ? currentReport?.aws_key : '');
       setSecretKey(currentReport ? currentReport?.aws_secret_key : '');
     }
   }, [currentReport, isEditMode]);
 
   useEffect(() => {
-    if (currentReport.aws_S3_types === s3Method) {
+    if (currentReport.aws_s3_types === s3Method) {
       const nonEmptySettings = (currentReport.recipients || [])
         .map(setting => {
           const config =
@@ -234,7 +234,7 @@ function ReportModal({
       timezone: currentReport.timezone,
       aws_key: accessKey,
       aws_secret_key: secretKey,
-      aws_S3_types: s3Method,
+      aws_s3_types: s3Method,
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -346,7 +346,7 @@ function ReportModal({
 
   const handleS3Method = (e: any) => {
     setS3Method(e);
-    if (e !== currentReport.aws_S3_types) {
+    if (e !== currentReport.aws_s3_types) {
       setBucketName('');
     }
   };

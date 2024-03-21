@@ -174,7 +174,7 @@ describe('S3 ReportModal Component', () => {
         id: 1,
         result: {
           active: true,
-          aws_S3_types: 'AWS_S3_credentials',
+          aws_s3_types: 'AWS_S3_credentials',
           aws_key: 'gg',
           aws_secret_key: 'ggj',
           chart: 164,

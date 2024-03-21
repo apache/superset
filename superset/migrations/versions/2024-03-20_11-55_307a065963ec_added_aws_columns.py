@@ -16,19 +16,18 @@
 # under the License.
 """Added aws columns
 
-Revision ID: 13c1c218756f
+Revision ID: 307a065963ec
 Revises: be1b217cd8cd
-Create Date: 2024-03-20 10:09:57.059455
+Create Date: 2024-03-20 11:55:35.734823
 
 """
 
 # revision identifiers, used by Alembic.
-revision = "13c1c218756f"
+revision = "307a065963ec"
 down_revision = "be1b217cd8cd"
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
 
 
 def upgrade():

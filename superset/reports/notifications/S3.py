@@ -17,6 +17,7 @@
 import datetime
 import json
 import logging
+from enum import Enum
 from io import BytesIO
 from typing import Optional
 from uuid import uuid4
@@ -33,7 +34,7 @@ from superset.reports.notifications.exceptions import NotificationError
 logger = logging.getLogger(__name__)
 
 
-class S3SubTypes:
+class S3SubTypes(Enum):
     """
     Defines different types of AWS S3 configurations.
     """
@@ -43,7 +44,7 @@ class S3SubTypes:
     S3_ROLE = "AWS_S3_IAM"
 
 
-class S3Notification(BaseNotification):
+class S3Notification(BaseNotification):  # pylint: disable=too-few-public-methods
     type = ReportRecipientType.S3
 
     def _get_inline_files(self) -> dict[str, bytes]:
@@ -65,6 +66,7 @@ class S3Notification(BaseNotification):
             return images
         return {}
 
+    # pylint: disable=too-many-arguments
     def _execute_s3_upload(
         self,
         file_body: dict[str, bytes],
@@ -102,7 +104,7 @@ class S3Notification(BaseNotification):
         files = self._get_inline_files()
         file_type = "csv" if self._content.csv else "png"
         bucket_name = json.loads(self._recipient.recipient_config_json)["target"]
-        s3_subtype = self._aws_configuration.aws_S3_types
+        s3_subtype = self._aws_configuration.aws_s3_types
 
         try:
             if s3_subtype == S3SubTypes.S3_CRED:
@@ -135,7 +137,10 @@ class S3Notification(BaseNotification):
                 )
             else:
                 logger.error(
-                    f"Unsupported AWS S3 method, Must be {S3SubTypes.S3_CONFIG} | {S3SubTypes.S3_CRED} | {S3SubTypes.S3_ROLE}"
+                    "Unsupported AWS S3 method, Must be %s | %s |%s",
+                    {S3SubTypes.S3_CONFIG},
+                    {S3SubTypes.S3_CRED},
+                    {S3SubTypes.S3_ROLE},
                 )
 
         except SupersetErrorsException as ex:

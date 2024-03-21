@@ -60,5 +60,5 @@ export interface ReportObject {
   error?: string;
   aws_key?: any;
   aws_secret_key?: any;
-  aws_S3_types?: any;
+  aws_s3_types?: any;
 }

@@ -215,7 +215,7 @@ class ReportSchedulePostSchema(Schema):
 
     aws_key = fields.String(default=None, missing=None)
     aws_secret_key = fields.String(default=None, missing=None)
-    aws_S3_types = fields.String(default=None, missing=None)
+    aws_s3_types = fields.String(default=None, missing=None)
 
     custom_width = fields.Integer(
         metadata={
@@ -259,10 +259,12 @@ class ReportSchedulePostSchema(Schema):
                 )
 
     @validates_schema
-    def validate_aws_fields(self, data: dict[str, Any], **kwargs: Any) -> None:
+    def validate_aws_fields(  # pylint: disable=unused-argument
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
         if (
             data["recipients"][0]["type"] == ReportRecipientType.S3
-            and data["aws_S3_types"] == S3SubTypes.S3_CRED
+            and data["aws_s3_types"] == S3SubTypes.S3_CRED
         ):
             if data["aws_key"] is None or data["aws_secret_key"] is None:
                 raise ValidationError(
@@ -364,7 +366,7 @@ class ReportSchedulePutSchema(Schema):
 
     aws_key = fields.String(default=None, missing=None)
     aws_secret_key = fields.String(default=None, missing=None)
-    aws_S3_types = fields.String(default=None, missing=None)
+    aws_s3_types = fields.String(default=None, missing=None)
 
     custom_width = fields.Integer(
         metadata={

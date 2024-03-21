@@ -63,7 +63,7 @@ interface NotificationMethodProps {
   onUpdateS3Setting?: (updatedS3Setting: any) => void;
   currentAlert?: {
     aws_key: string;
-    aws_S3_types: string;
+    aws_s3_types: string;
     aws_secret_key: string;
   };
   isEditMode?: boolean;
@@ -86,7 +86,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const s3SubTypes = ['AWS_S3_credentials', 'AWS_S3_pyconfig', 'AWS_S3_IAM'];
 
   const [s3Method, setS3Method] = useState<string | null>(
-    currentAlert ? currentAlert?.aws_S3_types : null,
+    currentAlert ? currentAlert?.aws_s3_types : null,
   );
   const [accessKey, setAccessKey] = useState<string>(
     currentAlert ? currentAlert?.aws_key : '',
@@ -100,7 +100,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         const updatedS3Setting = {
           ...s3Setting,
           aws_secret_key: secret_key,
-          aws_S3_types: s3Method,
+          aws_s3_types: s3Method,
           aws_key: accessKey,
         };
         onUpdateS3Setting(updatedS3Setting);
@@ -150,7 +150,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     if (onUpdateS3Setting) {
       const updatedS3Setting = {
         ...s3Setting,
-        aws_S3_types: e,
+        aws_s3_types: e,
       };
 
       onUpdateS3Setting(updatedS3Setting);
@@ -238,7 +238,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   label: option,
                   value: option,
                 }))}
-                value={currentAlert ? currentAlert?.aws_S3_types : s3Method}
+                value={currentAlert ? currentAlert?.aws_s3_types : s3Method}
               />
             </div>
           </StyledInputContainer>
@@ -246,7 +246,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       )}
       {s3Method ===
         ('AWS_S3_credentials' ||
-          currentAlert?.aws_S3_types === 'AWS_S3_credentials') &&
+          currentAlert?.aws_s3_types === 'AWS_S3_credentials') &&
         method !== 'Email' && (
           <div>
             <div className="control-label">{t('Bucket Name')}</div>

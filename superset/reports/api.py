@@ -121,7 +121,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "working_timeout",
         "aws_secret_key",
         "aws_key",
-        "aws_S3_types",
+        "aws_s3_types",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -156,7 +156,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "type",
         "aws_secret_key",
         "aws_key",
-        "aws_S3_types",
+        "aws_s3_types",
         "recipients.recipient_config_json",
     ]
     add_columns = [
