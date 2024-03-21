@@ -26,6 +26,7 @@ from sqlalchemy.dialects.postgresql import dialect
 
 from superset import app
 from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import (
     dataset_macro,
@@ -34,6 +35,8 @@ from superset.jinja_context import (
     safe_proxy,
     WhereInMacro,
 )
+from superset.models.core import Database
+from superset.models.slice import Slice
 
 
 def test_filter_values_adhoc_filters() -> None:
@@ -411,10 +414,6 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     """
     Test the ``dataset_macro`` macro.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.models.core import Database
-
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         return_value=[],
@@ -554,11 +553,6 @@ def test_metric_macro_with_dataset_id(mocker: MockFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID.
     """
-
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.models.core import Database
-
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = SqlaTable(
@@ -578,11 +572,6 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID and an invalid key.
     """
-
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.models.core import Database
-
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = SqlaTable(
@@ -661,11 +650,6 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     available in the context (url_params.datasource_id).
     """
-
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric
-    from superset.models.core import Database
-
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
     DatasetDAO.find_by_id.return_value = SqlaTable(
         table_name="test_dataset",
@@ -695,12 +679,6 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart ID (url_params.slice_id).
     """
-
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-
     ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
     ChartDAO.find_by_id.return_value = Slice(
         datasource_id=1,
@@ -727,6 +705,35 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(mocker: MockFixture) -
     DatasetDAO.find_by_id.assert_called_once_with(1)
 
 
+def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockFixture) -> None:
+    """
+    Test the ``metric_macro`` when not specifying a dataset ID and context
+    includes an existing chart (get_form_data()[1]).
+    """
+    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="macro_key", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
+    mock_get_form_data.return_value = [
+        {
+            "slice_id": 1,
+        },
+        Slice(datasource_id=1),
+    ]
+    assert metric_macro("macro_key") == "COUNT(*)"
+    mock_get_form_data.assert_called_once()
+    DatasetDAO.find_by_id.assert_called_once_with(1)
+    ChartDAO.find_by_id.assert_not_called()
+
+
 def test_metric_macro_no_dataset_id_with_context_deleted_chart(
     mocker: MockFixture,
 ) -> None:
@@ -734,12 +741,6 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes a deleted chart ID.
     """
-
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.sqla.models import SqlaTable, SqlMetric
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-
     ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
     ChartDAO.find_by_id.return_value = None
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")

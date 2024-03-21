@@ -740,20 +740,23 @@ def get_dataset_id_from_context(metric_key: str) -> int:
         "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.",
         name=metric_key,
     )
-    if form_data := get_form_data()[0]:
-        if not (dataset_id := form_data.get("url_params", {}).get("datasource_id")):
-            if not (
-                slice_id := form_data.get("slice_id")
-                or form_data.get("url_params", {}).get("slice_id")
-            ):
-                raise SupersetTemplateException(exc_message)
-            chart_data = ChartDAO.find_by_id(slice_id)
-            if not chart_data:
-                raise SupersetTemplateException(exc_message)
-            dataset_id = chart_data.datasource_id
-    else:
+
+    form_data, chart = get_form_data()
+    if not (form_data or chart):
         raise SupersetTemplateException(exc_message)
-    return dataset_id
+
+    if chart:
+        return chart.datasource_id
+    if dataset_id := form_data.get("url_params", {}).get("datasource_id"):
+        return dataset_id
+    if chart_id := (
+        form_data.get("slice_id") or form_data.get("url_params", {}).get("slice_id")
+    ):
+        chart_data = ChartDAO.find_by_id(chart_id)
+        if not chart_data:
+            raise SupersetTemplateException(exc_message)
+        return chart_data.datasource_id
+    raise SupersetTemplateException(exc_message)
 
 
 def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
