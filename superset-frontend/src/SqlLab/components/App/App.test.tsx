@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { AnyAction, combineReducers } from 'redux';
+import Mousetrap from 'mousetrap';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
@@ -37,6 +38,9 @@ jest.mock('src/SqlLab/components/TabbedSqlEditors', () => () => (
 jest.mock('src/SqlLab/components/QueryAutoRefresh', () => () => (
   <div data-test="mock-query-auto-refresh" />
 ));
+jest.mock('mousetrap', () => ({
+  reset: jest.fn(),
+}));
 
 const sqlLabReducer = combineReducers({
   localStorageUsageInKilobytes: reducers.localStorageUsageInKilobytes,
@@ -48,6 +52,14 @@ describe('SqlLab App', () => {
   const mockStore = configureStore(middlewares);
   const store = mockStore(sqlLabReducer(undefined, mockAction));
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('is valid', () => {
     expect(React.isValidElement(<App />)).toBe(true);
   });
@@ -58,7 +70,13 @@ describe('SqlLab App', () => {
     expect(getByTestId('mock-tabbed-sql-editors')).toBeInTheDocument();
   });
 
-  it('logs current usage warning', async () => {
+  it('reset hotkey events on unmount', () => {
+    const { unmount } = render(<App />, { useRedux: true, store });
+    unmount();
+    expect(Mousetrap.reset).toHaveBeenCalled();
+  });
+
+  it('logs current usage warning', () => {
     const localStorageUsageInKilobytes = LOCALSTORAGE_MAX_USAGE_KB + 10;
     const initialState = {
       localStorageUsageInKilobytes,

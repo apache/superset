@@ -360,9 +360,8 @@ describe('Additional actions tests', () => {
       expect(spy).toBeCalledTimes(0);
 
       userEvent.hover(screen.getByText('Download'));
-      const downloadAsImageElement = await screen.findByText(
-        'Download as image',
-      );
+      const downloadAsImageElement =
+        await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
       expect(spy).toBeCalledTimes(1);

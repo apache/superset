@@ -128,21 +128,21 @@
 
 "plugins":
 - changed-files:
-- any-glob-to-any-file:
+  - any-glob-to-any-file:
     - 'superset-frontend/plugins/**'
 
 "packages":
 - changed-files:
-- any-glob-to-any-file:
+  - any-glob-to-any-file:
     - 'superset-frontend/packages/**'
 
 "embedded":
 - changed-files:
-- any-glob-to-any-file:
+  - any-glob-to-any-file:
     - 'superset-embedded-sdk/**'
 
 "github_actions":
 - changed-files:
-- any-glob-to-any-file:
+  - any-glob-to-any-file:
     - '.github/actions/**'
     - '.github/workflows/**'

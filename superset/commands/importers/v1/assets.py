@@ -18,7 +18,6 @@ from typing import Any, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import delete, insert
 
 from superset import db
@@ -80,26 +79,26 @@ class ImportAssetsCommand(BaseCommand):
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(session: Session, configs: dict[str, Any]) -> None:
+    def _import(configs: dict[str, Any]) -> None:
         # import databases first
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=True)
+                database = import_database(config, overwrite=True)
                 database_ids[str(database.uuid)] = database.id
 
         # import saved queries
         for file_name, config in configs.items():
             if file_name.startswith("queries/"):
                 config["db_id"] = database_ids[config["database_uuid"]]
-                import_saved_query(session, config, overwrite=True)
+                import_saved_query(config, overwrite=True)
 
         # import datasets
         dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=True)
+                dataset = import_dataset(config, overwrite=True)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -118,7 +117,7 @@ class ImportAssetsCommand(BaseCommand):
                 config["params"].update({"datasource": dataset_uid})
                 if "query_context" in config:
                     config["query_context"] = None
-                chart = import_chart(session, config, overwrite=True)
+                chart = import_chart(config, overwrite=True)
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -126,7 +125,7 @@ class ImportAssetsCommand(BaseCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(session, config, overwrite=True)
+                dashboard = import_dashboard(config, overwrite=True)
 
                 # set ref in the dashboard_slices table
                 dashboard_chart_ids: list[dict[str, int]] = []
@@ -140,12 +139,12 @@ class ImportAssetsCommand(BaseCommand):
                     }
                     dashboard_chart_ids.append(dashboard_chart_id)
 
-                session.execute(
+                db.session.execute(
                     delete(dashboard_slices).where(
                         dashboard_slices.c.dashboard_id == dashboard.id
                     )
                 )
-                session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
+                db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
 
                 # Migrate any filter-box charts to native dashboard filters.
                 migrate_dashboard(dashboard)
@@ -153,14 +152,14 @@ class ImportAssetsCommand(BaseCommand):
         # Remove all obsolete filter-box charts.
         for chart in charts:
             if chart.viz_type == "filter_box":
-                session.delete(chart)
+                db.session.delete(chart)
 
     def run(self) -> None:
         self.validate()
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs)
+            self._import(self._configs)
             db.session.commit()
         except Exception as ex:
             db.session.rollback()

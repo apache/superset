@@ -28,12 +28,13 @@ import Modal from 'src/components/Modal';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
+import { TextArea } from 'src/components/Input';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-import { FilterOptions } from './constants';
+import { FILTER_OPTIONS } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const noMargins = css`
@@ -48,13 +49,11 @@ const StyledModal = styled(Modal)`
   max-width: 1200px;
   min-width: min-content;
   width: 100%;
-  .ant-modal-body {
-    overflow: initial;
-  }
   .ant-modal-footer {
     white-space: nowrap;
   }
 `;
+
 const StyledIcon = (theme: SupersetTheme) => css`
   margin: auto ${theme.gridUnit * 2}px auto 0;
   color: ${theme.colors.grayscale.base};
@@ -106,11 +105,9 @@ const StyledInputContainer = styled.div`
   }
 `;
 
-const StyledTextArea = styled.textarea`
-  height: 100px;
+const StyledTextArea = styled(TextArea)`
   resize: none;
   margin-top: ${({ theme }) => theme.gridUnit}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
 `;
 
 export interface RowLevelSecurityModalProps {
@@ -155,23 +152,25 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     addDangerToast,
   );
 
-  // initialize
-  useEffect(() => {
-    if (!isEditMode) {
-      setCurrentRule({ ...DEAFULT_RULE });
-    } else if (rule?.id !== null && !loading && !fetchError) {
-      fetchResource(rule.id as number);
-    }
-  }, [rule]);
+  const updateRuleState = (name: string, value: any) => {
+    setCurrentRule(currentRuleData => ({
+      ...currentRuleData,
+      [name]: value,
+    }));
+  };
 
-  useEffect(() => {
-    if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+  // * state validators *
+  const validate = () => {
+    if (
+      currentRule?.name &&
+      currentRule?.clause &&
+      currentRule.tables?.length
+    ) {
+      setDisableSave(false);
+    } else {
+      setDisableSave(true);
     }
-  }, [resource]);
+  };
 
   // find selected tables and roles
   const getSelectedData = useCallback(() => {
@@ -202,6 +201,24 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     return { tables, roles };
   }, [resource?.tables, resource?.roles]);
 
+  // initialize
+  useEffect(() => {
+    if (!isEditMode) {
+      setCurrentRule({ ...DEAFULT_RULE });
+    } else if (rule?.id !== null && !loading && !fetchError) {
+      fetchResource(rule.id as number);
+    }
+  }, [rule]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentRule({ ...resource, id: rule?.id });
+      const selectedTableAndRoles = getSelectedData();
+      updateRuleState('tables', selectedTableAndRoles?.tables || []);
+      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+    }
+  }, [resource]);
+
   // validate
   const currentRuleSafe = currentRule || {};
   useEffect(() => {
@@ -212,13 +229,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   type SelectValue = {
     value: string;
     label: string;
-  };
-
-  const updateRuleState = (name: string, value: any) => {
-    setCurrentRule(currentRuleData => ({
-      ...currentRuleData,
-      [name]: value,
-    }));
   };
 
   const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
@@ -318,19 +328,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     [],
   );
 
-  // * state validators *
-  const validate = () => {
-    if (
-      currentRule?.name &&
-      currentRule?.clause &&
-      currentRule.tables?.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   return (
     <StyledModal
       className="no-content-padding"
@@ -373,7 +370,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               hasTooltip
             />
           </StyledInputContainer>
-
           <StyledInputContainer>
             <div className="control-label">
               {t('Filter Type')}{' '}
@@ -390,12 +386,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 placeholder={t('Filter Type')}
                 onChange={onFilterChange}
                 value={currentRule?.filter_type}
-                options={FilterOptions}
+                options={FILTER_OPTIONS}
                 data-test="rule-filter-type-test"
               />
             </div>
           </StyledInputContainer>
-
           <StyledInputContainer>
             <div className="control-label">
               {t('Datasets')} <span className="required">*</span>
@@ -455,7 +450,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               data-test="group-key-test"
             />
           </StyledInputContainer>
-
           <StyledInputContainer>
             <div className="control-label">
               <LabeledErrorBoundInput
@@ -477,11 +471,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               />
             </div>
           </StyledInputContainer>
-
           <StyledInputContainer>
             <div className="control-label">{t('Description')}</div>
             <div className="input-container">
               <StyledTextArea
+                rows={4}
                 name="description"
                 value={currentRule ? currentRule.description : ''}
                 onChange={event => onTextChange(event.target)}

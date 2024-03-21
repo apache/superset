@@ -453,7 +453,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         Chart API: Test create chart
         """
-        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        dashboards_ids = get_dashboards_ids(["world_health", "births"])
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -736,9 +736,58 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_preserve_ownership(self):
+        """
+        Chart API: Test update chart preserves owner list (if un-changed)
+        """
+        chart_data = {
+            "slice_name": "title1_changed",
+        }
+        admin = self.get_user("admin")
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual([admin], self.chart.owners)
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_clear_owner_list(self):
+        """
+        Chart API: Test update chart admin can clear owner list
+        """
+        chart_data = {"slice_name": "title1_changed", "owners": []}
+        admin = self.get_user("admin")
+        self.login(username="admin")
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual([], self.chart.owners)
+
+    def test_update_chart_populate_owner(self):
+        """
+        Chart API: Test update admin can update chart with
+        no owners to a different owner
+        """
+        gamma = self.get_user("gamma")
+        admin = self.get_user("admin")
+        chart_id = self.insert_chart("title", [], 1).id
+        model = db.session.query(Slice).get(chart_id)
+        self.assertEqual(model.owners, [])
+        chart_data = {"owners": [gamma.id]}
+        self.login(username="admin")
+        uri = f"api/v1/chart/{chart_id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        self.assertEqual(rv.status_code, 200)
+        model_updated = db.session.query(Slice).get(chart_id)
+        self.assertNotIn(admin, model_updated.owners)
+        self.assertIn(gamma, model_updated.owners)
+        db.session.delete(model_updated)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_update_chart_new_dashboards(self):
         """
-        Chart API: Test update set new owner to current user
+        Chart API: Test update chart associating it with new dashboard
         """
         chart_data = {
             "slice_name": "title1_changed",
@@ -754,7 +803,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_not_update_chart_none_dashboards(self):
         """
-        Chart API: Test update set new owner to current user
+        Chart API: Test update chart without changing dashboards configuration
         """
         chart_data = {"slice_name": "title1_changed_again"}
         self.login(username="admin")
@@ -1421,7 +1470,22 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
-        self.assertEqual(len(data["result"]), 3)
+        assert "since" in data["result"][0]
+        assert "until" in data["result"][0]
+        assert "timeRange" in data["result"][0]
+
+        humanize_time_range = [
+            {"timeRange": "2021-01-01 : 2022-02-01"},
+            {"timeRange": "2022-01-01 : 2023-02-01"},
+        ]
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(data["result"]) == 2
+        assert "since" in data["result"][0]
+        assert "until" in data["result"][0]
+        assert "timeRange" in data["result"][0]
 
     def test_query_form_data(self):
         """
@@ -1736,7 +1800,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache(self, slice_name):
         self.login()
-        slc = self.get_slice(slice_name, db.session)
+        slc = self.get_slice(slice_name)
         rv = self.client.put("/api/v1/chart/warm_up_cache", json={"chart_id": slc.id})
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
@@ -1815,7 +1879,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(ChartDataCommand, "run") as mock_run:
             mock_run.side_effect = ChartDataQueryFailedError(
@@ -1843,7 +1907,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_query_context(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
             mock_get_query_context.return_value = None
@@ -1866,7 +1930,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
 
         with mock.patch.object(
             Slice,

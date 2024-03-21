@@ -42,6 +42,14 @@ QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 LRU_CACHE_MAX_SIZE = 256
 
 
+# Used when calculating the time shift for time comparison
+class InstantTimeComparison(StrEnum):
+    INHERITED = "r"
+    YEAR = "y"
+    MONTH = "m"
+    WEEK = "w"
+
+
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
     Route methods are a FAB concept around ModelView and RestModelView

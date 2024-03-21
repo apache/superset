@@ -40,11 +40,3 @@ InteractiveRunQueryButtonProps.argTypes = {
   onQuery: { action: 'onQuery' },
   onStop: { action: 'onStop' },
 };
-
-InteractiveRunQueryButtonProps.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

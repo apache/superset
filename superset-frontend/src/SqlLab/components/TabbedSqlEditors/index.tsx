@@ -281,7 +281,6 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
 
     return (
       <StyledEditableTabs
-        destroyInactiveTabPane
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         id="a11y-query-editor-tabs"
         className="SqlEditorTabs"

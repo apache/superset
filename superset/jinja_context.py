@@ -22,7 +22,7 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
-from flask import current_app, g, has_request_context, request
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
@@ -36,7 +36,9 @@ from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
-    get_user,
+    get_user_email,
+    get_user_id,
+    get_username,
     merge_extra_filters,
 )
 
@@ -85,6 +87,7 @@ class ExtraCache:
         r"\{\{.*("
         r"current_user_id\(.*\)|"
         r"current_username\(.*\)|"
+        r"current_user_email\(.*\)|"
         r"cache_key_wrapper\(.*\)|"
         r"url_param\(.*\)"
         r").*\}\}"
@@ -110,10 +113,10 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if user := get_user():
+        if user_id := get_user_id():
             if add_to_cache_keys:
-                self.cache_key_wrapper(user.id)
-            return user.id
+                self.cache_key_wrapper(user_id)
+            return user_id
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -124,10 +127,24 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user and hasattr(g.user, "username"):
+        if username := get_username():
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.username)
-            return g.user.username
+                self.cache_key_wrapper(username)
+            return username
+        return None
+
+    def current_user_email(self, add_to_cache_keys: bool = True) -> Optional[str]:
+        """
+        Return the email address of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user email address
+        """
+
+        if email_address := get_user_email():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(email_address)
+            return email_address
         return None
 
     def cache_key_wrapper(self, key: Any) -> Any:
@@ -530,6 +547,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "current_user_email": partial(
+                    safe_proxy, extra_cache.current_user_email
+                ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),

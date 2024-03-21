@@ -229,6 +229,32 @@ test('Should database select display options', async () => {
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
 });
 
+test('Should fetch the search keyword when total count exceeds initial options', async () => {
+  fetchMock.get(
+    databaseApiRoute,
+    {
+      ...fakeDatabaseApiResult,
+      count: fakeDatabaseApiResult.result.length + 1,
+    },
+    { overwriteRoutes: true },
+  );
+
+  const props = createProps();
+  render(<DatabaseSelector {...props} />, { useRedux: true, store });
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type to search databases',
+  });
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
+  );
+  expect(select).toBeInTheDocument();
+  userEvent.type(select, 'keywordtest');
+  await waitFor(() =>
+    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
+  );
+  expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain('keywordtest');
+});
+
 test('should show empty state if there are no options', async () => {
   fetchMock.reset();
   fetchMock.get(databaseApiRoute, { result: [] });

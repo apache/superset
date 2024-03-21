@@ -39,7 +39,7 @@ PYTHON=$(get_python_command)
 PIP=$(get_pip_command)
 
 # Get the release directory's path. If you unzip an Apache release and just run the npm script to validate the release, this will be a file name like `apache-superset-x.x.xrcx-source.tar.gz`
-RELEASE_DIR_NAME="../../$(basename "$(dirname "$(pwd)")").tar.gz"
+RELEASE_ZIP_PATH="../../$(basename "$(dirname "$(pwd)")")-source.tar.gz"
 
 # Install dependencies from requirements.txt if the file exists
 if [ -f "path/to/requirements.txt" ]; then
@@ -47,8 +47,5 @@ if [ -f "path/to/requirements.txt" ]; then
     $PYTHON -m $PIP install -r path/to/requirements.txt
 fi
 
-# echo $PYTHON
-# echo $RELEASE_DIR_NAME
-
 # Run the Python script with the parent directory name as an argument
-$PYTHON ../RELEASING/verify_release.py "$RELEASE_DIR_NAME"
+$PYTHON ../RELEASING/verify_release.py "$RELEASE_ZIP_PATH"

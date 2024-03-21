@@ -370,6 +370,29 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
+export function handleChartDataResponse(response, json, useLegacyApi) {
+  if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+    // deal with getChartDataRequest transforming the response data
+    const result = 'result' in json ? json.result : json;
+    switch (response.status) {
+      case 200:
+        // Query results returned synchronously, meaning query was already cached.
+        return Promise.resolve(result);
+      case 202:
+        // Query is running asynchronously and we must await the results
+        if (useLegacyApi) {
+          return waitForAsyncData(result[0]);
+        }
+        return waitForAsyncData(result);
+      default:
+        throw new Error(
+          `Received unexpected response status (${response.status}) while fetching chart data`,
+        );
+    }
+  }
+  return json.result;
+}
+
 export function exploreJSON(
   formData,
   force = false,
@@ -404,31 +427,11 @@ export function exploreJSON(
 
     dispatch(chartUpdateStarted(controller, formData, key));
 
+    const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
-      .then(({ response, json }) => {
-        if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-          // deal with getChartDataRequest transforming the response data
-          const result = 'result' in json ? json.result : json;
-          const [useLegacyApi] = getQuerySettings(formData);
-          switch (response.status) {
-            case 200:
-              // Query results returned synchronously, meaning query was already cached.
-              return Promise.resolve(result);
-            case 202:
-              // Query is running asynchronously and we must await the results
-              if (useLegacyApi) {
-                return waitForAsyncData(result[0]);
-              }
-              return waitForAsyncData(result);
-            default:
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-          }
-        }
-
-        return json.result;
-      })
+      .then(({ response, json }) =>
+        handleChartDataResponse(response, json, useLegacyApi),
+      )
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
           dispatch(
@@ -487,7 +490,6 @@ export function exploreJSON(
       });
 
     // only retrieve annotations when calling the legacy API
-    const [useLegacyApi] = getQuerySettings(formData);
     const annotationLayers = useLegacyApi
       ? formData.annotation_layers || []
       : [];

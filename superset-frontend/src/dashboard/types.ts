@@ -117,7 +117,6 @@ export type DashboardState = {
 export type DashboardInfo = {
   id: number;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
   };
   userId: string;
@@ -171,7 +170,7 @@ export type Layout = { [key: string]: LayoutItem };
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {

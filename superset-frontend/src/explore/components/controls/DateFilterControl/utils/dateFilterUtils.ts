@@ -72,8 +72,8 @@ export const fetchTimeRange = async (
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
+      response?.json?.result[0]?.since || '',
+      response?.json?.result[0]?.until || '',
     );
     return {
       value: formatTimeRange(timeRangeString, columnPlaceholder),

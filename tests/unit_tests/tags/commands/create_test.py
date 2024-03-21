@@ -18,6 +18,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
+from superset import db
 from superset.utils.core import DatasourceType
 
 
@@ -40,13 +41,15 @@ def session_with_data(session: Session):
         slice_name="slice_name",
     )
 
-    db = Database(database_name="my_database", sqlalchemy_uri="postgresql://")
+    database = Database(database_name="my_database", sqlalchemy_uri="postgresql://")
 
     columns = [
         TableColumn(column_name="a", type="INTEGER"),
     ]
 
-    saved_query = SavedQuery(label="test_query", database=db, sql="select * from foo")
+    saved_query = SavedQuery(
+        label="test_query", database=database, sql="select * from foo"
+    )
 
     dashboard_obj = Dashboard(
         id=100,
@@ -57,7 +60,7 @@ def session_with_data(session: Session):
     )
 
     session.add(slice_obj)
-    session.add(db)
+    session.add(database)
     session.add(saved_query)
     session.add(dashboard_obj)
     session.commit()
@@ -74,9 +77,9 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
     from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag
-    query = session_with_data.query(SavedQuery).first()
-    chart = session_with_data.query(Slice).first()
-    dashboard = session_with_data.query(Dashboard).first()
+    query = db.session.query(SavedQuery).first()
+    chart = db.session.query(Slice).first()
+    dashboard = db.session.query(Dashboard).first()
 
     mocker.patch(
         "superset.security.SupersetSecurityManager.is_admin", return_value=True
@@ -94,10 +97,10 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
         data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
 
-    assert len(session_with_data.query(TaggedObject).all()) == len(objects_to_tag)
+    assert len(db.session.query(TaggedObject).all()) == len(objects_to_tag)
     for object_type, object_id in objects_to_tag:
         assert (
-            session_with_data.query(TaggedObject)
+            db.session.query(TaggedObject)
             .filter(
                 TaggedObject.object_type == object_type,
                 TaggedObject.object_id == object_id,
@@ -117,9 +120,9 @@ def test_create_command_success_clear(session_with_data: Session, mocker: MockFi
     from superset.tags.models import ObjectType, TaggedObject
 
     # Define a list of objects to tag
-    query = session_with_data.query(SavedQuery).first()
-    chart = session_with_data.query(Slice).first()
-    dashboard = session_with_data.query(Dashboard).first()
+    query = db.session.query(SavedQuery).first()
+    chart = db.session.query(Slice).first()
+    dashboard = db.session.query(Dashboard).first()
 
     mocker.patch(
         "superset.security.SupersetSecurityManager.is_admin", return_value=True
@@ -136,10 +139,10 @@ def test_create_command_success_clear(session_with_data: Session, mocker: MockFi
     CreateCustomTagWithRelationshipsCommand(
         data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
-    assert len(session_with_data.query(TaggedObject).all()) == len(objects_to_tag)
+    assert len(db.session.query(TaggedObject).all()) == len(objects_to_tag)
 
     CreateCustomTagWithRelationshipsCommand(
         data={"name": "test_tag", "objects_to_tag": []}
     ).run()
 
-    assert len(session_with_data.query(TaggedObject).all()) == 0
+    assert len(db.session.query(TaggedObject).all()) == 0

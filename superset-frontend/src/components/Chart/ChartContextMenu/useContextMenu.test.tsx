@@ -64,6 +64,7 @@ const setup = ({
           Admin: [
             ['can_explore', 'Superset'],
             ['can_samples', 'Datasource'],
+            ['can_write', 'ExploreFormDataRestApi'],
           ],
         },
       },
@@ -92,27 +93,48 @@ test('Context menu contains all displayed items only', () => {
   expect(screen.getByText('Drill by')).toBeInTheDocument();
 });
 
-test('Context menu shows all items tied to can_view_and_drill permission', () => {
+test('Context menu shows "Drill by"', () => {
   const result = setup({
     roles: {
       Admin: [
-        ['can_view_and_drill', 'Dashboard'],
+        ['can_write', 'ExploreFormDataRestApi'],
+        ['can_explore', 'Superset'],
+      ],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.getByText('Drill by')).toBeInTheDocument();
+});
+
+test('Context menu does not show "Drill by"', () => {
+  const result = setup({
+    roles: {
+      Admin: [['invalid_permission', 'Dashboard']],
+    },
+  });
+  result.current.onContextMenu(0, 0, {});
+  expect(screen.queryByText('Drill by')).not.toBeInTheDocument();
+});
+
+test('Context menu shows "Drill to detail"', () => {
+  const result = setup({
+    roles: {
+      Admin: [
         ['can_samples', 'Datasource'],
+        ['can_explore', 'Superset'],
       ],
     },
   });
   result.current.onContextMenu(0, 0, {});
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
-  expect(screen.getByText('Drill by')).toBeInTheDocument();
-  expect(screen.getByText('Add cross-filter')).toBeInTheDocument();
 });
 
-test('Context menu does not show "Drill to detail" without proper permissions', () => {
+test('Context menu does not show "Drill to detail"', () => {
   const result = setup({
-    roles: { Admin: [['can_view_and_drill', 'Dashboard']] },
+    roles: {
+      Admin: [['can_explore', 'Superset']],
+    },
   });
   result.current.onContextMenu(0, 0, {});
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
-  expect(screen.getByText('Drill by')).toBeInTheDocument();
-  expect(screen.getByText('Add cross-filter')).toBeInTheDocument();
 });

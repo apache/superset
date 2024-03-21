@@ -1337,7 +1337,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_explore_json", "Superset"), perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), perm_set)
         self.assert_can_menu("Databases", perm_set)
         self.assert_can_menu("Datasets", perm_set)
         self.assert_can_menu("Data", perm_set)
@@ -1469,15 +1470,34 @@ class TestRolePermission(SupersetTestCase):
 
     def test_sql_lab_permissions(self):
         sql_lab_set = get_perm_tuples("sql_lab")
-        self.assertIn(("can_csv", "Superset"), sql_lab_set)
-        self.assertIn(("can_read", "Database"), sql_lab_set)
-        self.assertIn(("can_read", "SavedQuery"), sql_lab_set)
-        self.assertIn(("can_sqllab", "Superset"), sql_lab_set)
-
-        self.assertIn(("menu_access", "SQL Lab"), sql_lab_set)
-        self.assertIn(("menu_access", "SQL Editor"), sql_lab_set)
-        self.assertIn(("menu_access", "Saved Queries"), sql_lab_set)
-        self.assertIn(("menu_access", "Query Search"), sql_lab_set)
+        self.assertEqual(
+            sql_lab_set,
+            {
+                ("can_activate", "TabStateView"),
+                ("can_csv", "Superset"),
+                ("can_delete_query", "TabStateView"),
+                ("can_delete", "TabStateView"),
+                ("can_execute_sql_query", "SQLLab"),
+                ("can_export", "SavedQuery"),
+                ("can_export_csv", "SQLLab"),
+                ("can_get", "TabStateView"),
+                ("can_get_results", "SQLLab"),
+                ("can_migrate_query", "TabStateView"),
+                ("can_sqllab", "Superset"),
+                ("can_sqllab_history", "Superset"),
+                ("can_put", "TabStateView"),
+                ("can_post", "TabStateView"),
+                ("can_write", "SavedQuery"),
+                ("can_read", "Query"),
+                ("can_read", "Database"),
+                ("can_read", "SQLLab"),
+                ("can_read", "SavedQuery"),
+                ("menu_access", "Query Search"),
+                ("menu_access", "Saved Queries"),
+                ("menu_access", "SQL Editor"),
+                ("menu_access", "SQL Lab"),
+            },
+        )
 
         self.assert_cannot_alpha(sql_lab_set)
 
@@ -1505,7 +1525,8 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_share_dashboard", "Superset"), gamma_perm_set)
         self.assertIn(("can_explore_json", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
-        self.assertIn(("can_view_and_drill", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_chart_as_table", "Dashboard"), gamma_perm_set)
+        self.assertIn(("can_view_query", "Dashboard"), gamma_perm_set)
 
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
@@ -1702,11 +1723,11 @@ class TestSecurityManager(SupersetTestCase):
         mock_is_owner,
     ):
         births = self.get_dash_by_slug("births")
-        girls = self.get_slice("Girls", db.session, expunge_from_session=False)
+        girls = self.get_slice("Girls")
         birth_names = girls.datasource
 
         world_health = self.get_dash_by_slug("world_health")
-        treemap = self.get_slice("Treemap", db.session, expunge_from_session=False)
+        treemap = self.get_slice("Treemap")
 
         births.json_metadata = json.dumps(
             {
@@ -1851,8 +1872,6 @@ class TestSecurityManager(SupersetTestCase):
                         )
                     }
                 )
-
-            db.session.expunge_all()
 
     def test_get_user_roles(self):
         admin = security_manager.find_user("admin")

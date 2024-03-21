@@ -73,7 +73,7 @@ export default function ControlForm({
       ({
         0: onChange,
         [FAST_DEBOUNCE]: debounce(onChange, FAST_DEBOUNCE),
-      } as Record<number, typeof onChange>),
+      }) as Record<number, typeof onChange>,
     [onChange],
   );
 

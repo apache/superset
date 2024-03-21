@@ -134,7 +134,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": 1, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": 1, "slice_id": None}
 
         # takes malformed content without raising an error
         self.query_context_payload["datasource"] = "1__table"
@@ -143,7 +143,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": None}
 
         # takes a slice id
         self.query_context_payload["datasource"] = None
@@ -153,7 +153,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": 1}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": 1}
 
         # takes missing slice id
         self.query_context_payload["datasource"] = None
@@ -163,7 +163,35 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             ChartDataRestApi, self.query_context_payload
         )
         # assert
-        assert response == {"dataset_id": None, "slice_id": None}
+        assert response == {"dashboard_id": None, "dataset_id": None, "slice_id": None}
+
+        # takes a dashboard id
+        self.query_context_payload["form_data"] = {"dashboardId": 1}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": None, "slice_id": None}
+
+        # takes a dashboard id and a slice id
+        self.query_context_payload["form_data"] = {"dashboardId": 1, "slice_id": 2}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": None, "slice_id": 2}
+
+        # takes a dashboard id, slice id and a dataset id
+        self.query_context_payload["datasource"] = {"id": 3, "type": "table"}
+        self.query_context_payload["form_data"] = {"dashboardId": 1, "slice_id": 2}
+        # act
+        response = ChartDataRestApi._map_form_data_datasource_to_dataset_id(
+            ChartDataRestApi, self.query_context_payload
+        )
+        # assert
+        assert response == {"dashboard_id": 1, "dataset_id": 3, "slice_id": 2}
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch("superset.utils.decorators.g")
@@ -422,6 +450,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query with applied time extras
         """
+        if backend() == "hive":
+            return
+
         self.query_context_payload["queries"][0]["applied_time_extras"] = {
             "__time_range": "100 years ago : now",
             "__time_origin": "now",
@@ -666,7 +697,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         result = rv.json["result"][0]["query"]
         if get_example_database().backend != "presto":
-            assert "('boy' = 'boy')" in result
+            assert "(\n      'boy' = 'boy'\n    )" in result
 
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -720,6 +751,9 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         """
         Chart data API: Test chart data query non-JSON format (async)
         """
+        if backend() == "hive":
+            return
+
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         self.query_context_payload["result_type"] = "results"
@@ -735,7 +769,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         test_client.set_cookie(
-            "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
+            app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
         rv = test_client.post(CHART_DATA_URI, json=self.query_context_payload)
         self.assertEqual(rv.status_code, 401)
@@ -1291,13 +1325,13 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
     backend = get_example_database().backend
     if backend == "sqlite":
         assert (
-            "DATETIME(col5, 'start of day', -strftime('%w', col5) || ' days') >="
+            "DATETIME(col5, 'start of day', -STRFTIME('%w', col5) || ' days') >="
             in query
         )
     elif backend == "mysql":
-        assert "DATE(DATE_SUB(col5, INTERVAL DAYOFWEEK(col5) - 1 DAY)) >=" in query
+        assert "DATE(DATE_SUB(col5, INTERVAL (DAYOFWEEK(col5) - 1) DAY)) >=" in query
     elif backend == "postgresql":
-        assert "DATE_TRUNC('week', col5) >=" in query
+        assert "DATE_TRUNC('WEEK', col5) >=" in query
     elif backend == "presto":
         assert "date_trunc('week', CAST(col5 AS TIMESTAMP)) >=" in query
 

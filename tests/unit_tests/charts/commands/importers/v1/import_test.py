@@ -24,7 +24,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import Database, SqlaTable
@@ -82,7 +82,7 @@ def test_import_chart(mocker: MockFixture, session_with_schema: Session) -> None
     config["datasource_id"] = 1
     config["datasource_type"] = "table"
 
-    chart = import_chart(session_with_schema, config)
+    chart = import_chart(config)
     assert chart.slice_name == "Deck Path"
     assert chart.viz_type == "deck_path"
     assert chart.is_managed_externally is False
@@ -106,7 +106,7 @@ def test_import_chart_managed_externally(
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_chart"
 
-    chart = import_chart(session_with_schema, config)
+    chart = import_chart(config)
     assert chart.is_managed_externally is True
     assert chart.external_url == "https://example.org/my_chart"
 
@@ -128,7 +128,7 @@ def test_import_chart_without_permission(
     config["datasource_type"] = "table"
 
     with pytest.raises(ImportFailedError) as excinfo:
-        import_chart(session_with_schema, config)
+        import_chart(config)
     assert (
         str(excinfo.value)
         == "Chart doesn't exist and user doesn't have permission to create charts"
@@ -173,7 +173,7 @@ def test_import_existing_chart_without_permission(
 
     with override_user("admin"):
         with pytest.raises(ImportFailedError) as excinfo:
-            import_chart(session_with_data, chart_config, overwrite=True)
+            import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
             == "A chart already exists and user doesn't have permissions to overwrite it"
@@ -213,7 +213,7 @@ def test_import_existing_chart_with_permission(
     )
 
     with override_user(admin):
-        import_chart(session_with_data, config, overwrite=True)
+        import_chart(config, overwrite=True)
     # Assert that the can write to chart was checked
     security_manager.can_access.assert_called_once_with("can_write", "Chart")
     security_manager.can_access_chart.assert_called_once_with(slice)

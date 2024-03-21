@@ -53,17 +53,16 @@ from .base_tests import SupersetTestCase
 def delete_imports():
     with app.app_context():
         # Imported data clean up
-        session = db.session
-        for slc in session.query(Slice):
+        for slc in db.session.query(Slice):
             if "remote_id" in slc.params_dict:
-                session.delete(slc)
-        for dash in session.query(Dashboard):
+                db.session.delete(slc)
+        for dash in db.session.query(Dashboard):
             if "remote_id" in dash.params_dict:
-                session.delete(dash)
-        for table in session.query(SqlaTable):
+                db.session.delete(dash)
+        for table in db.session.query(SqlaTable):
             if "remote_id" in table.params_dict:
-                session.delete(table)
-        session.commit()
+                db.session.delete(table)
+        db.session.commit()
 
 
 @pytest.fixture(autouse=True, scope="module")

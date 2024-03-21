@@ -25,7 +25,6 @@ const apiData = {
   common: DEFAULT_COMMON_BOOTSTRAP_DATA,
   tab_state_ids: [],
   databases: [],
-  queries: {},
   user: {
     userId: 1,
     username: 'some name',
@@ -220,18 +219,20 @@ describe('getInitialState', () => {
         }),
       );
 
+      const latestQuery = {
+        ...runningQuery,
+        id: 'latestPersisted',
+        startDttm: Number(startDttmInStr),
+        endDttm: Number(endDttmInStr),
+      };
       const initializedQueries = getInitialState({
-        ...apiData,
-        queries: {
-          backendPersisted: {
-            ...runningQuery,
-            id: 'backendPersisted',
-            startDttm: startDttmInStr,
-            endDttm: endDttmInStr,
-          },
+        ...apiDataWithTabState,
+        active_tab: {
+          ...apiDataWithTabState.active_tab,
+          latest_query: latestQuery,
         },
       }).sqlLab.queries;
-      expect(initializedQueries.backendPersisted).toEqual(
+      expect(initializedQueries.latestPersisted).toEqual(
         expect.objectContaining({
           startDttm: Number(startDttmInStr),
           endDttm: Number(endDttmInStr),

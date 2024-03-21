@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
@@ -47,7 +47,7 @@ const propTypes = {
   initialCss: PropTypes.string,
   triggerNode: PropTypes.node.isRequired,
   onChange: PropTypes.func,
-  templates: PropTypes.array,
+  addDangerToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -60,6 +60,7 @@ class CssEditor extends React.PureComponent {
     super(props);
     this.state = {
       css: props.initialCss,
+      templates: [],
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);
@@ -67,6 +68,22 @@ class CssEditor extends React.PureComponent {
 
   componentDidMount() {
     AceCssEditor.preload();
+
+    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+      .then(({ json }) => {
+        const templates = json.result.map(row => ({
+          value: row.template_name,
+          css: row.css,
+          label: row.template_name,
+        }));
+
+        this.setState({ templates });
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      });
   }
 
   changeCss(css) {
@@ -80,10 +97,10 @@ class CssEditor extends React.PureComponent {
   }
 
   renderTemplateSelector() {
-    if (this.props.templates) {
+    if (this.state.templates) {
       const menu = (
         <Menu onClick={this.changeCssTemplate}>
-          {this.props.templates.map(template => (
+          {this.state.templates.map(template => (
             <Menu.Item key={template.css}>{template.label}</Menu.Item>
           ))}
         </Menu>

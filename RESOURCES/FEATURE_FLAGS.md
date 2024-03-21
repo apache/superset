@@ -45,6 +45,7 @@ These features are **finished** but currently being tested. They are usable, but
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
+- ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/databases/meta-database/)
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR

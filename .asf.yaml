@@ -72,15 +72,10 @@ github:
           - test-mysql (3.9)
           - test-postgres (3.9)
           - test-postgres (3.10)
+          - test-postgres-hive (3.9)
+          - test-postgres-presto (3.9)
           - test-sqlite (3.9)
-          - docker-build (dev, linux/amd64)
-          - docker-build (lean, linux/amd64)
-          - docker-build (py311, linux/arm64)
-          - docker-build (py311, linux/amd64)
-          - docker-build (websocket, linux/arm64)
-          - docker-build (websocket, linux/amd64)
-          - docker-build (dockerize, linux/arm64)
-          - docker-build (dockerize, linux/amd64)
+          - unit-tests (3.9)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

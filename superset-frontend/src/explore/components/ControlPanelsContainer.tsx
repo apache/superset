@@ -539,8 +539,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           typeof item === 'string'
             ? item
             : item && 'name' in item
-            ? item.name
-            : null;
+              ? item.name
+              : null;
         return (
           controlName &&
           controlName in controls &&

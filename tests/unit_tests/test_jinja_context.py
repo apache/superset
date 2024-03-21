@@ -16,6 +16,7 @@
 # under the License.
 import json
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.dialects.postgresql import dialect
@@ -265,3 +266,40 @@ def test_safe_proxy_nested_lambda() -> None:
 
     with pytest.raises(SupersetTemplateException):
         safe_proxy(func, {"foo": lambda: "bar"})
+
+
+@patch("superset.jinja_context.ExtraCache.cache_key_wrapper")
+@patch("superset.utils.core.g")
+def test_user_macros(mock_flask_user, mock_cache_key_wrapper):
+    mock_flask_user.user.id = 1
+    mock_flask_user.user.username = "my_username"
+    mock_flask_user.user.email = "my_email@test.com"
+    cache = ExtraCache()
+    assert cache.current_user_id() == 1
+    assert cache.current_username() == "my_username"
+    assert cache.current_user_email() == "my_email@test.com"
+    assert mock_cache_key_wrapper.call_count == 3
+
+
+@patch("superset.jinja_context.ExtraCache.cache_key_wrapper")
+@patch("superset.utils.core.g")
+def test_user_macros_without_cache_key_inclusion(
+    mock_flask_user, mock_cache_key_wrapper
+):
+    mock_flask_user.user.id = 1
+    mock_flask_user.user.username = "my_username"
+    mock_flask_user.user.email = "my_email@test.com"
+    cache = ExtraCache()
+    assert cache.current_user_id(False) == 1
+    assert cache.current_username(False) == "my_username"
+    assert cache.current_user_email(False) == "my_email@test.com"
+    assert mock_cache_key_wrapper.call_count == 0
+
+
+@patch("superset.utils.core.g")
+def test_user_macros_without_user_info(mock_flask_user):
+    mock_flask_user.user = None
+    cache = ExtraCache()
+    assert cache.current_user_id() == None
+    assert cache.current_username() == None
+    assert cache.current_user_email() == None

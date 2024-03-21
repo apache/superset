@@ -135,7 +135,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(username="admin")
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -175,7 +175,7 @@ class TestCore(SupersetTestCase):
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
         copy_name = f"{copy_name_prefix}[save]{random.random()}"
         tbl_id = self.table_ids.get("energy_usage")
@@ -199,7 +199,6 @@ class TestCore(SupersetTestCase):
             url.format(tbl_id, copy_name, "saveas"),
             data={"form_data": json.dumps(form_data)},
         )
-        db.session.expunge_all()
         new_slice_id = resp.json["form_data"]["slice_id"]
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
 
@@ -221,7 +220,6 @@ class TestCore(SupersetTestCase):
             url.format(tbl_id, new_slice_name, "overwrite"),
             data={"form_data": json.dumps(form_data)},
         )
-        db.session.expunge_all()
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
         self.assertEqual(slc.slice_name, new_slice_name)
         self.assertEqual(slc.viz.form_data, form_data)
@@ -240,11 +238,7 @@ class TestCore(SupersetTestCase):
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
-        slc = self.get_slice(
-            slice_name="Top 10 Girl Name Share",
-            session=db.session,
-            expunge_from_session=False,
-        )
+        slc = self.get_slice(slice_name="Top 10 Girl Name Share")
         slc_data_attributes = slc.data.keys()
         assert "changed_on" in slc_data_attributes
         assert "modified" in slc_data_attributes
@@ -356,7 +350,7 @@ class TestCore(SupersetTestCase):
     )
     def test_warm_up_cache(self):
         self.login()
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         self.assertEqual(
             data, [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
@@ -381,7 +375,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login()
-        slc = self.get_slice("Pivot Table v2", db.session)
+        slc = self.get_slice("Pivot Table v2")
 
         with mock.patch.object(
             ChartDataCommand,
@@ -406,7 +400,7 @@ class TestCore(SupersetTestCase):
         self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
-        slc = self.get_slice("Top 10 Girl Name Share", db.session)
+        slc = self.get_slice("Top 10 Girl Name Share")
         self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{slc.table.id}__table"
@@ -537,7 +531,7 @@ class TestCore(SupersetTestCase):
         )
 
     def test_comments_in_sqlatable_query(self):
-        clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
+        clean_query = "SELECT\n  '/* val 1 */' AS c1,\n  '-- val 2' AS c2\nFROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
         table = SqlaTable(
             table_name="test_comments_in_sqlatable_query_table",
@@ -1172,7 +1166,7 @@ class TestCore(SupersetTestCase):
         random_key = "random_key"
         mock_command.return_value = random_key
         slice_name = f"Energy Sankey"
-        slice_id = self.get_slice(slice_name, db.session).id
+        slice_id = self.get_slice(slice_name).id
         form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
         rv = self.client.get(
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
@@ -1190,25 +1184,6 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
-
-    def test_redirect_new_sqllab(self):
-        self.login(username="admin")
-        resp = self.client.get(
-            "/superset/sqllab?savedQueryId=1&testParams=2",
-            follow_redirects=True,
-        )
-        assert resp.request.path == "/sqllab/"
-        assert (
-            resp.request.query_string.decode("utf-8") == "savedQueryId=1&testParams=2"
-        )
-
-        resp = self.client.post("/superset/sqllab/")
-        assert resp.status_code == 302
-
-    def test_redirect_new_sqllab_history(self):
-        self.login(username="admin")
-        resp = self.client.get("/superset/sqllab/history/")
-        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

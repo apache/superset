@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from '../dnd/DragDroppable';
+import { Draggable } from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
 import DeleteComponentButton from '../DeleteComponentButton';
 import { componentShape } from '../../util/propShapes';
@@ -84,7 +84,7 @@ class Divider extends React.PureComponent {
     } = this.props;
 
     return (
-      <DragDroppable
+      <Draggable
         component={component}
         parentComponent={parentComponent}
         orientation="row"
@@ -93,20 +93,17 @@ class Divider extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
+        {({ dragSourceRef }) => (
           <div ref={dragSourceRef}>
             {editMode && (
               <HoverMenu position="left">
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
               </HoverMenu>
             )}
-
             <DividerLine className="dashboard-component dashboard-component-divider" />
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>
         )}
-      </DragDroppable>
+      </Draggable>
     );
   }
 }
