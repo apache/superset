@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useEffect, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
+import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
+import { noBottomMargin } from 'src/components/ReportModal/styles';
 
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
@@ -54,27 +56,48 @@ type NotificationSetting = {
 
 interface NotificationMethodProps {
   setting?: NotificationSetting | null;
+  s3Setting: any;
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
+  onUpdateS3Setting?: (updatedS3Setting: any) => void;
+  currentAlert?: {
+    aws_key: string;
+    aws_S3_types: string;
+    aws_secretKey: string;
+  };
+  isEditMode?: boolean;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
+  s3Setting,
   index,
   onUpdate,
   onRemove,
+  onUpdateS3Setting,
+  currentAlert,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
   const theme = useTheme();
+  const s3SubTypes = ['AWS_S3_credentials', 'AWS_S3_pyconfig', 'AWS_S3_IAM'];
+
+  const [s3Method, setS3Method] = useState<string | null>(
+    currentAlert ? currentAlert?.aws_S3_types : null,
+  );
+  const [accessKey, setAccessKey] = useState<string>(
+    currentAlert ? currentAlert?.aws_key : '',
+  );
+  const [secretKey, setSecretKey] = useState<string>(
+    currentAlert ? currentAlert?.aws_secretKey : '',
+  );
 
   if (!setting) {
     return null;
   }
-
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
     setRecipientValue('');
@@ -110,6 +133,65 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   if (!!recipients && recipientValue !== recipients) {
     setRecipientValue(recipients);
   }
+  const handleS3Method = (e: any) => {
+    setS3Method(e);
+    if (onUpdateS3Setting) {
+      const updatedS3Setting = {
+        ...s3Setting,
+        aws_S3_types: e,
+      };
+
+      onUpdateS3Setting(updatedS3Setting);
+    }
+  };
+  const handleAccesskey = (e: any) => {
+    setAccessKey(e.target.value);
+    if (onUpdateS3Setting) {
+      const updatedS3Setting = {
+        ...s3Setting,
+        aws_key: e.target.value,
+      };
+
+      onUpdateS3Setting(updatedS3Setting);
+    }
+  };
+
+  const handleSecretkey = (e: any) => {
+    setSecretKey(e.target.value);
+    if (onUpdateS3Setting) {
+      const updatedS3Setting = {
+        ...s3Setting,
+        aws_secretKey: e.target.value,
+      };
+
+      onUpdateS3Setting(updatedS3Setting);
+    }
+  };
+
+  const handleBucketName = (e: any) => {
+    const newBucketName = e.target.value;
+    setRecipientValue(newBucketName);
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        recipients: newBucketName,
+      };
+
+      onUpdate(index, updatedSetting);
+    }
+  };
+  useEffect(() => {
+    if (onUpdateS3Setting && currentAlert) {
+      const updatedS3Setting = {
+        ...s3Setting,
+        aws_secretKey: secretKey,
+        aws_S3_types: s3Method,
+        aws_key: accessKey,
+      };
+
+      onUpdateS3Setting(updatedS3Setting);
+    }
+  }, []);
 
   return (
     <StyledNotificationMethod>
@@ -143,7 +225,84 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
         </StyledInputContainer>
       </div>
-      {method !== undefined ? (
+      {method === 'S3' && (
+        <div className="inline-container">
+          <StyledInputContainer>
+            <div className="input-container">
+              <Select
+                ariaLabel={t('S3 methods')}
+                data-test="select-delivery-method"
+                onChange={handleS3Method}
+                placeholder={t('Select S3 Method')}
+                options={s3SubTypes.map((option: string) => ({
+                  label: option,
+                  value: option,
+                }))}
+                value={currentAlert ? currentAlert?.aws_S3_types : s3Method}
+              />
+            </div>
+          </StyledInputContainer>
+        </div>
+      )}
+      {s3Method ===
+        ('AWS_S3_credentials' ||
+          currentAlert?.aws_S3_types === 'AWS_S3_credentials') &&
+        method !== 'Email' && (
+          <div>
+            <div className="control-label">{t('Bucket Name')}</div>
+            <LabeledErrorBoundInput
+              type="text"
+              placeholder={t('Type[Bucket Name]')}
+              name="bucketName"
+              value={recipientValue}
+              validationMethods={{
+                onChange: handleBucketName,
+              }}
+              css={noBottomMargin}
+            />
+
+            <div className="control-label">{t('Access Key')}</div>
+            <LabeledErrorBoundInput
+              type="password"
+              placeholder={t('Type[Access Key]')}
+              name="accessKey"
+              value={accessKey}
+              validationMethods={{
+                onChange: handleAccesskey,
+              }}
+              css={noBottomMargin}
+            />
+            <div className="control-label">{t('Secret Key')}</div>
+            <LabeledErrorBoundInput
+              type="password"
+              placeholder={t('Type[Secret Key]')}
+              name="secretKey"
+              value={secretKey}
+              validationMethods={{
+                onChange: handleSecretkey,
+              }}
+              css={noBottomMargin}
+            />
+          </div>
+        )}
+
+      {(s3Method === 'AWS_S3_pyconfig' || s3Method === 'AWS_S3_IAM') &&
+        method !== 'Email' && (
+          <>
+            <div className="control-label">{t('Bucket Name')}</div>
+            <LabeledErrorBoundInput
+              type="text"
+              placeholder="Type[Bucket Name]"
+              name="bucketName"
+              value={recipientValue}
+              validationMethods={{
+                onChange: handleBucketName,
+              }}
+              css={noBottomMargin}
+            />
+          </>
+        )}
+      {(method !== undefined && method === 'Email') || method === 'Slack' ? (
         <StyledInputContainer>
           <div className="control-label">
             {t('%s recipients', method)}

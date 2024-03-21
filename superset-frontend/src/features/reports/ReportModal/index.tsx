@@ -65,6 +65,8 @@ import {
   StyledRadio,
   StyledRadioGroup,
 } from './styles';
+import { StyledInputContainer } from 'src/views/CRUD/alert/AlertReportModal';
+import { Select } from 'src/components';
 
 interface ReportProps {
   onHide: () => {};
@@ -78,6 +80,7 @@ interface ReportProps {
   dashboardName?: string;
   creationMethod: ReportCreationMethod;
   props: any;
+  type: string;
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -111,6 +114,7 @@ function ReportModal({
   creationMethod,
   dashboardName,
   chartName,
+  type,
 }: ReportProps) {
   const vizType = chart?.sliceFormData?.viz_type;
   const isChart = !!chart;
@@ -129,7 +133,6 @@ function ReportModal({
     }),
     [entityName],
   );
-
   const reportReducer = useCallback(
     (state: ReportObjectState | null, action: 'reset' | ReportObjectState) => {
       if (action === 'reset') {
@@ -148,6 +151,12 @@ function ReportModal({
     initialState,
   );
   const [cronError, setCronError] = useState<CronError>();
+  const [method, setMethod] = useState<string>(
+    currentReport.recipients && type !== 'email report'
+      ? currentReport.recipients[0]?.type
+      : 'S3',
+  );
+  const s3SubTypes = ['AWS_S3_credentials', 'AWS_S3_pyconfig', 'AWS_S3_IAM'];
 
   const dispatch = useDispatch();
   // Report fetch logic
@@ -161,6 +170,37 @@ function ReportModal({
     );
   });
   const isEditMode = report && Object.keys(report).length;
+  const [s3Method, setS3Method] = useState(
+    currentReport ? currentReport?.aws_S3_types : null,
+  );
+  const [bucketName, setBucketName] = useState<string>('');
+  const [accessKey, setAccessKey] = useState<string>('');
+  const [secretKey, setSecretKey] = useState<string>('');
+
+  useEffect(() => {
+    if (currentReport.aws_S3_types) {
+      setS3Method(currentReport.aws_S3_types);
+      setAccessKey(currentReport ? currentReport?.aws_key : '');
+      setSecretKey(currentReport ? currentReport?.aws_secretKey : '');
+    }
+  }, [currentReport, isEditMode]);
+
+  useEffect(() => {
+    if (currentReport.aws_S3_types === s3Method) {
+      const nonEmptySettings = (currentReport.recipients || [])
+        .map(setting => {
+          const config =
+            typeof setting.recipient_config_json === 'string'
+              ? JSON.parse(setting.recipient_config_json)
+              : {};
+          return config.target || '';
+        })
+        .filter(target => target !== '' && target !== undefined);
+      if (nonEmptySettings.length > 0) {
+        setBucketName(nonEmptySettings[0]);
+      }
+    }
+  }, [currentReport, s3Method]);
 
   useEffect(() => {
     if (isEditMode) {
@@ -183,8 +223,10 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail },
-          type: 'Email',
+          recipient_config_json: {
+            target: `${type === 'email report' ? userEmail : bucketName}`,
+          },
+          type: `${type === 's3 report' ? 'S3' : 'Email'}`,
         },
       ],
       name: currentReport.name,
@@ -192,6 +234,9 @@ function ReportModal({
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
+      aws_key: accessKey,
+      aws_secretKey: secretKey,
+      aws_S3_types: s3Method,
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -211,12 +256,28 @@ function ReportModal({
     setCurrentReport({ isSubmitting: false });
   };
 
+  useEffect(() => {
+    if (currentReport.recipients && currentReport.recipients[0]?.type) {
+      setMethod(currentReport.recipients[0]?.type);
+    }
+  }, [method]);
+
   const wrappedTitle = (
     <StyledIconWrapper>
       <Icons.Calendar />
-      <span className="text">
-        {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
-      </span>
+      {type === 's3 report' ? (
+        <span className="text">
+          {isEditMode
+            ? t('Edit AWS S3 report')
+            : t('Schedule a new AWS S3 report')}
+        </span>
+      ) : (
+        <span className="text">
+          {isEditMode
+            ? t('Edit email report')
+            : t('Schedule a new email report')}
+        </span>
+      )}
     </StyledIconWrapper>
   );
 
@@ -284,6 +345,114 @@ function ReportModal({
       </div>
     </StyledInputContainer>
   );
+
+  const handleS3Method = (e: any) => {
+    setS3Method(e);
+    if (e !== currentReport.aws_S3_types) {
+      setBucketName('');
+    }
+  };
+
+  const handleAccesskey = (e: any) => {
+    setAccessKey(e.target.value);
+  };
+
+  const handleSecretkey = (e: any) => {
+    setSecretKey(e.target.value);
+  };
+
+  const handleBucketName = (e: any) => {
+    const newBucketName = e.target.value;
+    setBucketName(newBucketName);
+  };
+
+  const renderS3MethodInputs = () => {
+    if (method !== 'S3') {
+      return null;
+    }
+
+    return (
+      <>
+        {method === 'S3' && (
+          <div
+            style={{ marginTop: '10px', marginBottom: '6px' }}
+            className="inline-container"
+          >
+            <div className="input-container">
+              <Select
+                name="select-s3"
+                ariaLabel={t('S3 methods')}
+                data-test="select-s3-method"
+                onChange={handleS3Method}
+                placeholder="Select S3 Method"
+                options={s3SubTypes.map((option: string) => ({
+                  label: option,
+                  value: option,
+                }))}
+                value={s3Method}
+              />
+            </div>
+          </div>
+        )}
+        {s3Method === 'AWS_S3_credentials' && (
+          <div>
+            <div className="control-label">{t('Bucket Name')}</div>
+            <LabeledErrorBoundInput
+              data-test="test-bucket"
+              type="text"
+              placeholder={t('Type[Bucket Name]')}
+              name="bucketName"
+              value={bucketName}
+              validationMethods={{
+                onChange: handleBucketName,
+              }}
+              css={noBottomMargin}
+            />
+
+            <div className="control-label">{t('Access Key')}</div>
+            <LabeledErrorBoundInput
+              data-test="test-access"
+              type="password"
+              placeholder={t('Type[Access Key]')}
+              name="accessKey"
+              value={accessKey}
+              validationMethods={{
+                onChange: handleAccesskey,
+              }}
+              css={noBottomMargin}
+            />
+            <div className="control-label">{t('Secret Key')}</div>
+            <LabeledErrorBoundInput
+              data-test="test-secret"
+              type="password"
+              placeholder={t('Type[Secret Key]')}
+              name="secretKey"
+              value={secretKey}
+              validationMethods={{
+                onChange: handleSecretkey,
+              }}
+              css={noBottomMargin}
+            />
+          </div>
+        )}
+        {(s3Method === 'AWS_S3_IAM' || s3Method === 'AWS_S3_pyconfig') && (
+          <>
+            <div className="control-label">{t('Bucket Name')}</div>
+            <LabeledErrorBoundInput
+              type="text"
+              placeholder="Type[Bucket Name]"
+              name="bucketName"
+              value={bucketName}
+              validationMethods={{
+                onChange: handleBucketName,
+              }}
+              css={noBottomMargin}
+            />
+          </>
+        )}
+      </>
+    );
+  };
 
   return (
     <StyledModal
@@ -359,6 +528,8 @@ function ReportModal({
         />
         {isChart && renderMessageContentSection}
         {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
+        {/* Adding S3 fields */}
+        {type === 's3 report' && renderS3MethodInputs()}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert
