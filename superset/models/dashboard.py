@@ -320,9 +320,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     )
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[
-            tuple[type[BaseDatasource], int], set[Slice]
-        ] = defaultdict(set)
+        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
+            defaultdict(set)
+        )
 
         for slc in self.slices:
             slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
@@ -443,8 +443,11 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
+        datasource_id_list = list(datasource_ids)
+        datasource_id_list.sort()
+
         eager_datasources = []
-        for datasource_id, _ in datasource_ids:
+        for datasource_id, _ in datasource_id_list:
             eager_datasource = SqlaTable.get_eager_sqlatable_datasource(
                 db.session, datasource_id
             )
