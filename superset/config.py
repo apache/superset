@@ -285,7 +285,7 @@ AUTH_RATE_LIMIT = "5 per second"
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Eka Analytics"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
@@ -293,8 +293,6 @@ APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
 LOGO_TARGET_PATH = None
-
-COLOR_PRIMARY = '#6567EC'
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
 LOGO_TOOLTIP = ""
