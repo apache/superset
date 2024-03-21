@@ -28,6 +28,7 @@ down_revision = "be1b217cd8cd"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy_utils import EncryptedType
 
 
 def upgrade():
