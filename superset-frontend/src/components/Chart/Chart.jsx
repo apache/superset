@@ -105,6 +105,7 @@ const defaultProps = {
 const Styles = styled.div`
   min-height: ${p => p.height}px;
   position: relative;
+  text-align: center;
 
   .chart-tooltip {
     opacity: 0.75;
