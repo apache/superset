@@ -42,6 +42,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - name: Source bashlib.sh
+        run: source .github/workflows/bashlib.sh
       - name: Install eyes-storybook dependencies
         run: eyes-storybook-dependencies
       - name: Install NPM dependencies

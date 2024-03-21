@@ -44,6 +44,8 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Source bashlib.sh
+        run: source .github/workflows/bashlib.sh
       - name: Check if python changes are present
         id: check
         env:

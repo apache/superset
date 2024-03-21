@@ -59,6 +59,8 @@ jobs:
           ref: master
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+      - name: Source bashlib.sh
+        run: source .github/workflows/bashlib.sh
       - name: Import test data
         with:
           run: testdata
