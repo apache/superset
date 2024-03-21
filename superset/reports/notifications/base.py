@@ -35,6 +35,13 @@ class NotificationContent:
     embedded_data: Optional[pd.DataFrame] = None
 
 
+@dataclass
+class AwsConfiguration:
+    aws_key: Optional[str] = None
+    aws_secretKey: Optional[str] = None
+    aws_S3_types: Optional[str] = None
+
+
 class BaseNotification:  # pylint: disable=too-few-public-methods
     """
     Serves has base for all notifications and creates a simple plugin system
@@ -55,10 +62,14 @@ class BaseNotification:  # pylint: disable=too-few-public-methods
         cls.plugins.append(cls)
 
     def __init__(
-        self, recipient: ReportRecipients, content: NotificationContent
+        self,
+        recipient: ReportRecipients,
+        content: NotificationContent,
+        awsConfiguration: Optional[AwsConfiguration] = None,
     ) -> None:
         self._recipient = recipient
         self._content = content
+        self._aws_configuration = awsConfiguration
 
     def send(self) -> None:
         raise NotImplementedError()

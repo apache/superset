@@ -30,6 +30,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportScheduleValidatorType,
 )
+from superset.reports.notifications.S3 import S3SubTypes
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a report schedule"}},
@@ -211,6 +212,11 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+
+    aws_key = fields.String(default=None, missing=None)
+    aws_secretKey = fields.String(default=None, missing=None)
+    aws_S3_types = fields.String(default=None, missing=None)
+
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),
@@ -250,6 +256,21 @@ class ReportSchedulePostSchema(Schema):
             if "database" in data:
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
+                )
+
+    @validates_schema
+    def validate_aws_fields(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if (
+            data["recipients"][0]["type"] == ReportRecipientType.S3
+            and data["aws_S3_types"] == S3SubTypes.S3_CRED
+        ):
+            if data["aws_key"] is None or data["aws_secretKey"] is None:
+                raise ValidationError(
+                    {
+                        "aws credentials": [
+                            "Both AWS keys and Aws secret keys are required"
+                        ]
+                    }
                 )
 
 
@@ -340,6 +361,10 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
+
+    aws_key = fields.String(default=None, missing=None)
+    aws_secretKey = fields.String(default=None, missing=None)
+    aws_S3_types = fields.String(default=None, missing=None)
 
     custom_width = fields.Integer(
         metadata={
