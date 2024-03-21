@@ -397,6 +397,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Can the catalog be changed on a per-query basis?
     supports_dynamic_catalog = False
 
+     # Use column alias instead of aggregate function in GROUP BY
+    use_column_alias_in_groupby = False
+
     @classmethod
     def get_allows_alias_in_select(
         cls, database: Database  # pylint: disable=unused-argument
