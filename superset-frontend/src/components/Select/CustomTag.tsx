@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Tag as AntdTag } from 'antd';
+import { Tag as AntdTag } from 'antd-next';
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { CustomTagProps } from './types';
