@@ -104,8 +104,17 @@ export const LabelsContainer = styled.div`
 `;
 
 const borderPulse = keyframes`
-  to {
-    background-size: 100% 0px
+  0% {
+    right: 100%;
+  }
+  50% {
+    left: 4px;
+  }
+  90% {
+    right: 4px;
+  }
+  100% {
+    left: 100%;
   }
 `;
 
@@ -157,8 +166,9 @@ export const DndLabelsContainer = styled.div<{
     ${({ theme, isLoading }) =>
       isLoading &&
       css`
-        animation: ${borderPulse} 3s ease-out infinite;
+        animation: ${borderPulse} 2s ease-in infinite;
         background: linear-gradient(currentColor 0 0) 0 100%/0% 3px no-repeat;
+        background-size: 100% ${theme.gridUnit / 2}px;
         top: auto;
         right: ${theme.gridUnit}px;
         left: ${theme.gridUnit}px;
