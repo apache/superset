@@ -39,25 +39,25 @@ The Alerts and Reports modal has been [redesigned](https://github.com/apache/sup
 
 ### Tags
 
-TODO @rusackas
+Tags are available using the `TAGGING_SYSTEM` feature flag. They address many of the [requests made by the community](https://github.com/apache/superset/discussions/19194) and aim to make it easier to organize and curate charts, dashboards, and saved queries, allowing for effortless data discovery and collaboration within an organization. Users can create flexible and customizable tags for each piece of content, enabling different ways of organizing assets. Tags are also available in the API, allowing for programmatic access to tag-related operations.
+
+<div>
+    <img src="media/tags-1.png" alt="Image" width="100%">
+    <img src="media/tags-2.png" alt="Image" width="100%">
+</div>
 
 ### New CHANGELOG format
 
-We changed the structure of the `CHANGELOG.md` file to better organize the contents of each release and also to deal with GitHub size limitations when displaying the file. Now every release will have its own file at `CHANGELOG/<version>.md`. The main `CHANGELOG.md` file is now an index with links to all releases.
-
-- https://github.com/apache/superset/pull/26800
+We changed the structure of the `CHANGELOG.md` file in [#26800](https://github.com/apache/superset/pull/26800) to better organize the contents of each release and also to deal with GitHub size limitations when displaying the file. Now every release will have its own file at `CHANGELOG/<version>.md`. The main `CHANGELOG.md` file is now an index with links to all releases.
 
 ### Improved drag and drop experience when editing a dashboard
 
-When a component was being dragged towards the edge of the tab container or the row/column containers, multiple drop indicators were often displayed. This created confusion about the exact insertion point of the element. To fix this, we built a distinct, non-conflicting area for the drop zone, which is highlighted during the dragging process to clearly indicate where the element will be placed. We also improved the forbidden drop zones to prevent users from dropping elements in invalid locations.
+When a component was being dragged towards the edge of the tab container or the row/column containers, multiple drop indicators were often displayed. This created confusion about the exact insertion point of the element. To fix this, we built in [#26699](https://github.com/apache/superset/pull/26699) and [#26313](https://github.com/apache/superset/pull/26313) a distinct, non-conflicting area for the drop zone, which is highlighted during the dragging process to clearly indicate where the element will be placed. We also improved the forbidden drop zones to prevent users from dropping elements in invalid locations.
 
 <div>
-    <img src="media/dashboard-dnd-1.png" alt="Image" width="45%">
-    <img src="media/dashboard-dnd-2.png" alt="Image" width="48%">
+    <img src="media/dashboard-dnd-1.png" alt="Image" width="100%">
+    <img src="media/dashboard-dnd-2.png" alt="Image" width="100%">
 </div>
-
-- https://github.com/apache/superset/pull/26699
-- https://github.com/apache/superset/pull/26313
 
 ### Dropping support for 3.0.X versions
 
@@ -107,11 +107,9 @@ As part of the 4.0 approved initiatives, the following features were removed fro
 
 As part of [[SIP-99] Proposal for correctly handling business logic](https://github.com/apache/superset/issues/25048) (specifically [SIP-99A](https://github.com/apache/superset/issues/25107) and [SIP-99B](https://github.com/apache/superset/issues/25108)), this release contains many improvements to the handling of business logic in Superset, specifically related to SQLAlchemy sessions and transactions. The goal of these efforts is to simplify the code, improve code quality, ensure a consistent "unit of work" approach, and provide clear guidance and examples of accepted code standards. These changes aim to improve developer experience by making the code simpler, improving testing, and ensuring a more streamlined and reliable system. We still have a long way to go to fully implement the SIP-99 proposal, but we are making progress and we are excited about the improvements that have been made so far.
 
-### All country maps are now managed via the Jupyter notebook
+### All country maps are now managed via Jupyter notebook
 
-TODO @rusackas
-
-- https://github.com/apache/superset/pull/26300
+In this release we made updates to the Jupyter notebook to ensure reliable execution by removing deprecated methods, adding new countries, including missing maps and fixing filename inconsistencies. This will make it easier to add more countries, dynamically add them to the country map plugin, and update map regions periodically. You can check [#26300](https://github.com/apache/superset/pull/26300) for more details.
 
 ### Sunburst chart migrated to ECharts
 
@@ -126,3 +124,22 @@ The ECharts version of the Sunburst chart was introduced by [#22833](https://git
   - 3.1: 90 vulnerabilities (42 moderate, 34 high, 14 critical)
   - 4.0: 25 vulnerabilities (16 moderate, 8 high, 1 critical)
 - 40+ dependency changes (upgrades, additions, and removals)
+
+### How to upgrade
+
+As with any Superset version upgrade, the process is simple in the broadest strokes, as outlined in the documentation. However, as with any upgrade, we expect to see numerous speed bumps along that path depending on your configuration, your infrastructure, your databases in use, and other customizations/configurations. To make a safe leap to this version, we'd suggest the following steps:
+
+- Back up your databases
+- Carefully read `CHANGELOG.md` for all the incremental changes in this version (and prior versions, between your current installation and 4.0.0).
+- Similarly, review `UPDATING.md` to keep an eye out for all changes that have been explicitly marked as breaking changes.
+- Adjust your feature flags and configurations to meet your feature requirements and preferences.
+- Execute the migrations
+- If you have third-party apps interacting with Superset, check for relevant dependency updates or API endpoint changes that may affect compatibility.
+
+Your mileage may vary depending on
+
+- How you install and deploy Superset (e.g. docker vs. pip vs. helm)
+- How you’ve configured Superset
+- What integrations, databases, etc. you’re using
+
+Reach out in `#deploying-superset` on Slack in case you find any problems, and if you find a reproducible bug, please file a new issue on GitHub.
