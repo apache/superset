@@ -119,7 +119,7 @@ export default function HeaderReportDropDown({
   ...rest
 }: HeaderReportProps) {
   const dispatch = useDispatch();
-  const report = useSelector(state => {
+  const report = useSelector<any, AlertObject>(state => {
     const resourceType = dashboardId
       ? CreationMethod.Dashboards
       : CreationMethod.Charts;
@@ -138,7 +138,7 @@ export default function HeaderReportDropDown({
   const isMissingReportType = (report: any) => {
     const reportTypes =
       report?.recipients !== undefined
-        ? report?.recipients.map((record: { type: string }) => record.type)
+        ? report?.recipients.map((record: AlertObject) => record.type)
         : [];
     const foundMatch = reportTypes.includes(reportType);
     return isEmpty(report) || !foundMatch;
@@ -173,7 +173,6 @@ export default function HeaderReportDropDown({
   const theme = useTheme();
   const prevDashboard = usePrevious(dashboardId);
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [type, setType] = useState('');
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       dispatch(toggleActive(data, checked));
@@ -219,8 +218,6 @@ export default function HeaderReportDropDown({
   }, [report]);
 
   const handleShowMenu = () => {
-    const subMenuType = reportType === 'S3' ? 's3 report' : 'email report';
-    setType(subMenuType);
     if (setIsDropdownVisible) {
       setIsDropdownVisible(false);
       setShowModal(true);
@@ -262,7 +259,7 @@ export default function HeaderReportDropDown({
       </Menu>
     ) : (
       isDropdownVisible && (
-        <Menu selectable={false} css={onMenuHover}>
+        <Menu selectable={false} css={{ border: 'none' }}>
           <Menu.Item
             css={onMenuItemHover}
             onClick={() => toggleActiveKey(report, !isReportActive)}
@@ -343,7 +340,7 @@ export default function HeaderReportDropDown({
       {canAddReports() && (
         <>
           <ReportModal
-            type={type}
+            type={reportType === 'S3' ? 's3 report' : 'email report'}
             userId={user.userId}
             show={showModal}
             onHide={() => setShowModal(false)}
