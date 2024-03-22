@@ -32,7 +32,10 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
-import { AlertObject } from 'src/features/alerts/types';
+import {
+  AlertObject,
+  NotificationMethodOption,
+} from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
@@ -95,7 +98,7 @@ export enum CreationMethod {
   Dashboards = 'dashboards',
 }
 export interface HeaderReportProps {
-  reportType: string;
+  reportType: NotificationMethodOption;
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
@@ -135,10 +138,10 @@ export default function HeaderReportDropDown({
     UserWithPermissionsAndRoles
   >(state => state.user);
 
-  const isMissingReportType = (report: any) => {
+  const isMissingReportType = (report: AlertObject) => {
     const reportTypes =
       report?.recipients !== undefined
-        ? report?.recipients.map((record: AlertObject) => record.type)
+        ? report?.recipients.map(record => record.type)
         : [];
     const foundMatch = reportTypes.includes(reportType);
     return isEmpty(report) || !foundMatch;
