@@ -40,6 +40,7 @@ from superset.sql_parse import (
     KustoKQLStatement,
     ParsedQuery,
     sanitize_clause,
+    split_kql,
     SQLScript,
     SQLStatement,
     strip_comments_from_sql,
@@ -1962,6 +1963,7 @@ def test_extract_tables_from_jinja_sql(
         == expected
     )
 
+
 def test_kustokqlstatement_split_query() -> None:
     """
     Test the `KustoKQLStatement` split method.
@@ -2039,3 +2041,58 @@ Events | take 100
 )
 def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
     assert len(KustoKQLStatement.split_query(kql, "kustokql")) == statements
+
+
+def test_split_kql() -> None:
+    """
+    Test the `split_kql` function.
+    """
+    kql = """
+let totalPagesPerDay = PageViews
+| summarize by Page, Day = startofday(Timestamp)
+| summarize count() by Day;
+let materializedScope = PageViews
+| summarize by Page, Day = startofday(Timestamp);
+let cachedResult = materialize(materializedScope);
+cachedResult
+| project Page, Day1 = Day
+| join kind = inner
+(
+    cachedResult
+    | project Page, Day2 = Day
+)
+on Page
+| where Day2 > Day1
+| summarize count() by Day1, Day2
+| join kind = inner
+    totalPagesPerDay
+on $left.Day1 == $right.Day
+| project Day1, Day2, Percentage = count_*100.0/count_1
+    """
+    assert split_kql(kql) == [
+        """
+let totalPagesPerDay = PageViews
+| summarize by Page, Day = startofday(Timestamp)
+| summarize count() by Day""",
+        """
+let materializedScope = PageViews
+| summarize by Page, Day = startofday(Timestamp)""",
+        """
+let cachedResult = materialize(materializedScope)""",
+        """
+cachedResult
+| project Page, Day1 = Day
+| join kind = inner
+(
+    cachedResult
+    | project Page, Day2 = Day
+)
+on Page
+| where Day2 > Day1
+| summarize count() by Day1, Day2
+| join kind = inner
+    totalPagesPerDay
+on $left.Day1 == $right.Day
+| project Day1, Day2, Percentage = count_*100.0/count_1
+    """,
+    ]
