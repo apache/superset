@@ -23,6 +23,7 @@ runs:
         python-version: ${{ inputs.python-version }}
         cache: ${{ inputs.cache }}
     - name: apt-get deps
+      shell: bash
       run: sudo apt-get install -y libldap2-dev libsasl2-dev
     - name: Install dependencies
       run: |
