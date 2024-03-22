@@ -18,10 +18,14 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { IndicatorStatus } from '../../selectors';
+import { CrossFilterIndicator, IndicatorStatus } from '../../selectors';
 import VerticalCollapse from './VerticalCollapse';
 
-const mockedProps = {
+type MockedProps = {
+  crossFilters: CrossFilterIndicator[];
+};
+
+const mockedProps: MockedProps = {
   crossFilters: [
     {
       name: 'test',
@@ -30,6 +34,9 @@ const mockedProps = {
       value: 'Italy',
       status: IndicatorStatus.CrossFilterApplied,
       path: ['test-path'],
+      selectedFilters: {
+        country_name: 'Italy',
+      },
     },
     {
       name: 'test-b',
@@ -38,6 +45,9 @@ const mockedProps = {
       value: 'IT',
       status: IndicatorStatus.CrossFilterApplied,
       path: ['test-path-2'],
+      selectedFilters: {
+        country_code: 'IT',
+      },
     },
   ],
 };

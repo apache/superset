@@ -71,7 +71,7 @@ export const extractLabel = (filter?: FilterState): string | null => {
     return filter.label;
   }
   if (filter?.value) {
-    return ensureIsArray(filter?.value).join(', ');
+    return ensureIsArray(filter?.value).flat().join(', ');
   }
   return null;
 };
@@ -165,7 +165,12 @@ export type Indicator = {
   path?: string[];
 };
 
-export type CrossFilterIndicator = Indicator & { emitterId: number };
+export type CrossFilterIndicator = Indicator & {
+  emitterId: number;
+  selectedFilters: {
+    [key: string]: string;
+  };
+};
 
 export const getCrossFilterIndicator = (
   chartId: number,
