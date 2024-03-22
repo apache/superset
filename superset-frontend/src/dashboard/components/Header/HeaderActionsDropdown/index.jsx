@@ -315,7 +315,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
         <Menu.Divider />
         {!editMode ? (
-          this.state.showReportSubMenu && this.state.reptype === 'Email' ? (
+          this.state.showReportSubMenu && this.state.repType === 'Email' ? (
             <>
               <Menu.SubMenu title={t('Manage email report')}>
                 <HeaderReportDropdown
@@ -356,7 +356,6 @@ class HeaderActionsDropdown extends React.PureComponent {
                   setIsDropdownVisible={setIsDropdownVisible}
                   isDropdownVisible={isDropdownVisible}
                   useTextMenu
-                  useS3Options={isS3Feature}
                 />
               </Menu.SubMenu>
               {/* <Menu.Divider /> */}
@@ -370,7 +369,6 @@ class HeaderActionsDropdown extends React.PureComponent {
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
-                useS3Options={isS3Feature}
               />
             </Menu>
           )

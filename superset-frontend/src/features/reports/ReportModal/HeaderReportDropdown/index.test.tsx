@@ -31,7 +31,7 @@ const createProps = () => ({
   isDropdownVisible: false,
   setIsDropdownVisible: jest.fn,
   setShowReportSubMenu: jest.fn,
-  useS3Options: false,
+  useS3Options: false, //TODO: This should be triggered with a feature, not a variable
 });
 
 const stateWithOnlyUser = {
@@ -310,7 +310,7 @@ describe('Header S3 Report Dropdown', () => {
     mockedProps = {
       ...mockedProps,
       reportType: 'S3',
-      useS3Options: true,
+      useS3Options: true, //TODO: This should be triggered with a feature, not a variable
     };
     act(() => {
       setup(mockedProps, stateWithUserAndS3Report);
@@ -325,7 +325,7 @@ describe('Header S3 Report Dropdown', () => {
       reportType: 'S3',
       useTextMenu: true,
       isDropdownVisible: true,
-      useS3Options: true,
+      useS3Options: true, //TODO: This should be triggered with a feature, not a variable
     };
     act(() => {
       setup(mockedProps, stateWithUserAndS3Report);
@@ -342,7 +342,7 @@ describe('Header S3 Report Dropdown', () => {
       reportType: 'S3',
       useTextMenu: true,
       isDropdownVisible: true,
-      useS3Options: true,
+      useS3Options: true, //TODO: This should be triggered with a feature, not a variable
     };
     act(() => {
       setup(mockedProps, stateWithNonAdminUser);

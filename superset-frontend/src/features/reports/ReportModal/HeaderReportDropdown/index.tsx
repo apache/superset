@@ -103,7 +103,6 @@ export interface HeaderReportProps {
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
   showReportSubMenu?: boolean;
-  useS3Options?: boolean;
 }
 
 // Same instance to be used in useEffects
@@ -117,7 +116,6 @@ export default function HeaderReportDropDown({
   setShowReportSubMenu,
   setIsDropdownVisible,
   isDropdownVisible,
-  useS3Options = false,
   ...rest
 }: HeaderReportProps) {
   const dispatch = useDispatch();
@@ -131,13 +129,21 @@ export default function HeaderReportDropDown({
     );
   });
 
-  const s3Report =
-    report?.recipients !== undefined ? report?.recipients[0].type : null;
   const isReportActive: boolean = report?.active || false;
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
   >(state => state.user);
+
+  const isMissingReportType = (report: any) => {
+    const reportTypes =
+      report?.recipients !== undefined
+        ? report?.recipients.map((record: { type: string }) => record.type)
+        : [];
+    const foundMatch = reportTypes.includes(reportType);
+    return isEmpty(report) || !foundMatch;
+  };
+
   const canAddReports = () => {
     if (!isFeatureEnabled(FeatureFlag.AlertReports)) {
       return false;
@@ -167,7 +173,6 @@ export default function HeaderReportDropDown({
   const theme = useTheme();
   const prevDashboard = usePrevious(dashboardId);
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [showS3Modal, setShowS3Modal] = useState<boolean>(false);
   const [type, setType] = useState('');
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
@@ -207,14 +212,15 @@ export default function HeaderReportDropDown({
 
   useEffect(() => {
     if (showReportSubMenu) {
-      setShowReportSubMenu(true, s3Report);
+      // setShowReportSubMenu(true, reportType);
     } else if (!report && setShowReportSubMenu) {
-      setShowReportSubMenu(false, s3Report);
+      setShowReportSubMenu(false, reportType);
     }
   }, [report]);
 
-  const handleShowMenu = (type: string) => {
-    setType(type);
+  const handleShowMenu = () => {
+    const subMenuType = reportType === 'S3' ? 's3 report' : 'email report';
+    setType(subMenuType);
     if (setIsDropdownVisible) {
       setIsDropdownVisible(false);
       setShowModal(true);
@@ -228,84 +234,52 @@ export default function HeaderReportDropDown({
     }
   };
 
+  // Default text to email report, even if this is an unknown reportType
+  // to be backwards compatable with previous default
+  const newReportText =
+    reportType === 'S3' ? t('Set up S3 report') : t('Set up an email report');
+  const activeReportText =
+    reportType === 'S3' ? t('S3 reports active') : t('Email reports active');
+  const editReportText =
+    reportType === 'S3' ? t('Edit S3 report') : t('Edit Email report');
+  const deleteReportText =
+    reportType === 'S3' ? t('Delete S3 report') : t('Delete Email report');
+
   const textMenu = () =>
-    isEmpty(report) ? (
+    isMissingReportType(report) ? (
       <Menu selectable={false} {...rest} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
-              <div>{t('Set up an email report')}</div>
+              <div>{newReportText}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
-            t('Set up an email report')
+            newReportText
           )}
         </Menu.Item>
         <Menu.Divider />
       </Menu>
     ) : (
-      <>
+      isDropdownVisible && (
         <Menu selectable={false} css={onMenuHover}>
-          {report && s3Report === reportType ? (
-            (isDropdownVisible || showS3Modal) && (
-              <>
-                <Menu.Item
-                  css={onMenuItemHover}
-                  onClick={() => toggleActiveKey(report, !isReportActive)}
-                >
-                  <MenuItemWithCheckboxContainer>
-                    <Checkbox checked={isReportActive} onChange={noOp} />
-                    {useS3Options && s3Report === 'S3'
-                      ? t('S3 reports active')
-                      : t('Email reports active')}
-                  </MenuItemWithCheckboxContainer>
-                </Menu.Item>
-                <Menu.Item
-                  css={onMenuItemHover}
-                  onClick={() =>
-                    handleShowMenu(useS3Options ? 's3 report' : 'email report')
-                  }
-                >
-                  {useS3Options && s3Report === 'S3'
-                    ? t('Edit S3 report')
-                    : t('Edit Email report')}
-                </Menu.Item>
-                <Menu.Item
-                  css={onMenuItemHover}
-                  onClick={handleDeleteMenuClick}
-                >
-                  {useS3Options && s3Report === 'S3'
-                    ? t('Delete S3 report')
-                    : t('Delete Email report')}
-                </Menu.Item>
-              </>
-            )
-          ) : (
-            <>
-              <Menu.Item
-                onClick={() =>
-                  handleShowMenu(useS3Options ? 's3 report' : 'email report')
-                }
-              >
-                {DropdownItemExtension ? (
-                  <StyledDropdownItemWithIcon>
-                    <div>
-                      {useS3Options && s3Report !== 'S3'
-                        ? t('Set up S3 report')
-                        : t('Set up an email report')}
-                    </div>
-                    <DropdownItemExtension />
-                  </StyledDropdownItemWithIcon>
-                ) : useS3Options ? (
-                  t('Set up S3 report')
-                ) : (
-                  t('Set up an email report')
-                )}
-              </Menu.Item>
-            </>
-          )}
+          <Menu.Item
+            css={onMenuItemHover}
+            onClick={() => toggleActiveKey(report, !isReportActive)}
+          >
+            <MenuItemWithCheckboxContainer>
+              <Checkbox checked={isReportActive} onChange={noOp} />
+              {activeReportText}
+            </MenuItemWithCheckboxContainer>
+          </Menu.Item>
+          <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
+            {editReportText}
+          </Menu.Item>
+          <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
+            {deleteReportText}
+          </Menu.Item>
         </Menu>
-      </>
+      )
     );
 
   const menu = () => (
@@ -333,7 +307,7 @@ export default function HeaderReportDropDown({
   );
 
   const iconMenu = () =>
-    isEmpty(report) ? (
+    isMissingReportType(report) ? (
       <span
         role="button"
         title={t('Schedule email report')}

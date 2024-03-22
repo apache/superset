@@ -441,7 +441,6 @@ export const useExploreAdditionalActionsMenu = (
                   setIsDropdownVisible={setIsDropdownVisible}
                   isDropdownVisible={isDropdownVisible}
                   useTextMenu
-                  useS3Options={isS3Feature}
                 />
               </Menu.SubMenu>
               <Menu.Divider />
@@ -455,7 +454,6 @@ export const useExploreAdditionalActionsMenu = (
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
-                useS3Options={isS3Feature}
               />
             </Menu>
           )
