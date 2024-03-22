@@ -56,9 +56,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: install supersetbot
-        run: |
-          npm install -g supersetbot
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
