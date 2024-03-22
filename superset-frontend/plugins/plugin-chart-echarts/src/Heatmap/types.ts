@@ -32,7 +32,7 @@ export interface HeatmapFormData extends QueryFormData {
   legendType: 'continuous' | 'piecewise';
   linearColorScheme?: string;
   metric: QueryFormMetric;
-  normalizeAcross: string;
+  normalizeAcross: 'heatmap' | 'x' | 'y';
   normalized?: boolean;
   showLegend?: boolean;
   showPercentage?: boolean;

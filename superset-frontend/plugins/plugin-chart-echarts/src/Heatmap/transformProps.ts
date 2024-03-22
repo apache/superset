@@ -186,6 +186,8 @@ export default function transformProps(
   ];
 
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
+  const dimension = normalized ? 3 : 2;
+  const colorColumn = normalized ? 'rank' : metricLabel;
 
   const echartOptions: EChartsOption = {
     grid: {
@@ -237,8 +239,8 @@ export default function transformProps(
     },
     visualMap: {
       type: legendType,
-      min: minBy(sortedData, row => row[metricLabel])?.[metricLabel] as number,
-      max: maxBy(sortedData, row => row[metricLabel])?.[metricLabel] as number,
+      min: minBy(sortedData, row => row[colorColumn])?.[colorColumn] as number,
+      max: maxBy(sortedData, row => row[colorColumn])?.[colorColumn] as number,
       calculable: true,
       orient: 'horizontal',
       right: 0,
@@ -250,6 +252,7 @@ export default function transformProps(
         color: colors,
       },
       show: showLegend,
+      dimension,
     },
     xAxis: {
       type: 'category',

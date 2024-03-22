@@ -17,22 +17,41 @@
  * under the License.
  */
 import {
+  QueryFormColumn,
+  QueryFormOrderBy,
   buildQueryContext,
   ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
   getXAxisColumn,
 } from '@superset-ui/core';
+import { rankOperator } from '@superset-ui/chart-controls';
 import { HeatmapFormData } from './types';
 
 export default function buildQuery(formData: HeatmapFormData) {
+  const { groupby, metric, normalize_across, x_axis } = formData;
   const columns = [
     ...ensureIsArray(getXAxisColumn(formData)),
-    ...ensureIsArray(formData.groupby),
+    ...ensureIsArray(groupby),
   ];
+  const orderby: QueryFormOrderBy[] = columns?.map(column => [column, true]);
+  const group_by =
+    normalize_across === 'x'
+      ? getColumnLabel(x_axis)
+      : normalize_across === 'y'
+        ? getColumnLabel(groupby as unknown as QueryFormColumn)
+        : undefined;
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
       columns,
-      orderby: columns?.map(column => [column, true]),
+      orderby,
+      post_processing: [
+        rankOperator(formData, baseQueryObject, {
+          metric: getMetricLabel(metric),
+          group_by,
+        }),
+      ],
     },
   ]);
 }

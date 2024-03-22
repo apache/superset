@@ -31,6 +31,7 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
+// TODO: Have a Customize tab
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -129,7 +130,7 @@ const config: ControlPanelConfig = {
                 ['y', t('y')],
               ],
               default: 'heatmap',
-              renderTrigger: true,
+              renderTrigger: false,
               description: (
                 <>
                   <div>
