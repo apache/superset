@@ -611,6 +611,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
