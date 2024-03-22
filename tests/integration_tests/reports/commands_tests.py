@@ -205,7 +205,7 @@ def create_report_email_chart_with_csv():
         report_schedule = create_report_notification(
             email_target="target@email.com",
             chart=chart,
-            report_format=ReportDataFormat.DATA,
+            report_format=ReportDataFormat.CSV,
         )
         yield report_schedule
         cleanup_report_schedule(report_schedule)
@@ -233,7 +233,7 @@ def create_report_email_chart_with_csv_no_query_context():
         report_schedule = create_report_notification(
             email_target="target@email.com",
             chart=chart,
-            report_format=ReportDataFormat.DATA,
+            report_format=ReportDataFormat.CSV,
             name="report_csv_no_query_context",
         )
         yield report_schedule
@@ -284,7 +284,7 @@ def create_report_slack_chart_with_csv():
         report_schedule = create_report_notification(
             slack_channel="slack_channel",
             chart=chart,
-            report_format=ReportDataFormat.DATA,
+            report_format=ReportDataFormat.CSV,
         )
         yield report_schedule
 
