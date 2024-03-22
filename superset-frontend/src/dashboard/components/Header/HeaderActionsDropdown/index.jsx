@@ -319,7 +319,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             <>
               <Menu.SubMenu title={t('Manage email report')}>
                 <HeaderReportDropdown
-                  reporttype="Email"
+                  reportType="Email"
                   dashboardId={dashboardInfo.id}
                   setShowReportSubMenu={this.setShowReportSubMenu}
                   showReportSubMenu={this.state.showReportSubMenu}
