@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 

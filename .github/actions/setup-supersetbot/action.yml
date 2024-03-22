@@ -3,8 +3,6 @@ description: 'Sets up supersetbot npm lib from the repo'
 runs:
   using: 'composite'
   steps:
-    - name: checkout repo
-      uses: actions/checkout@v4
     - name: Install dependencies
       shell: bash
       run: |

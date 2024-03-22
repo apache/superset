@@ -57,13 +57,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
 
       - name: Build Docker Image
         shell: bash
