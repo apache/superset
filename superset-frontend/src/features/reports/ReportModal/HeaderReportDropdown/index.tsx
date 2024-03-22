@@ -102,7 +102,7 @@ export interface HeaderReportProps {
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
-  setShowReportSubMenu?: (show: boolean, val: string) => void;
+  setShowReportSubMenu?: (show: boolean, val: NotificationMethodOption) => void;
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
   showReportSubMenu?: boolean;
