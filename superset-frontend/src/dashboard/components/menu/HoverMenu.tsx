@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unused-state */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,7 +24,6 @@ import cx from 'classnames';
 interface HoverMenuProps {
   position: 'left' | 'top';
   innerRef: RefObject<HTMLDivElement>;
-  onHover?: () => void;
   children: React.ReactNode;
 }
 
@@ -71,8 +71,25 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
     children: null,
   };
 
+  constructor(props: HoverMenuProps) {
+    super(props);
+    // Disabling unused state rule as it is used in Row.jsx by hoverRef
+    // eslint-disable-next-line
+    this.state = {
+      hovered: false,
+    };
+  }
+
+  handleMouseEnter = () => {
+    this.setState({ hovered: true });
+  };
+
+  handleMouseLeave = () => {
+    this.setState({ hovered: false });
+  };
+
   render() {
-    const { innerRef, position, onHover, children } = this.props;
+    const { innerRef, position, children } = this.props;
     return (
       <HoverStyleOverrides className="hover-menu-container">
         <div
@@ -82,8 +99,8 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
             position === 'left' && 'hover-menu--left',
             position === 'top' && 'hover-menu--top',
           )}
-          onMouseEnter={onHover}
-          onMouseLeave={onHover}
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={this.handleMouseLeave}
         >
           {children}
         </div>

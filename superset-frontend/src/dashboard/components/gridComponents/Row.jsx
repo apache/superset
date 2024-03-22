@@ -144,13 +144,13 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
-    this.handleMenuHover = this.handleMenuHover.bind(this);
     this.setVerticalEmptyContainerHeight = debounce(
       this.setVerticalEmptyContainerHeight.bind(this),
       FAST_DEBOUNCE,
     );
 
     this.containerRef = React.createRef();
+    this.hoverRef = React.createRef();
     this.observerEnabler = null;
     this.observerDisabler = null;
   }
@@ -193,6 +193,13 @@ class Row extends React.PureComponent {
 
   componentDidUpdate() {
     this.setVerticalEmptyContainerHeight();
+    console.log('old State', this.state.hoverMenuHovered);
+    console.log('old Ref', this.hoverRef.current?.hoveredState);
+    if (this.hoverRef.current) {
+      this.setState({ hoverMenuHovered: this.hoverRef.current.hovered });
+      console.log('State', this.state.hoverMenuHovered);
+      console.log('Ref', this.hoverRef.current?.hovered);
+    }
   }
 
   setVerticalEmptyContainerHeight() {
@@ -235,12 +242,6 @@ class Row extends React.PureComponent {
   handleDeleteComponent() {
     const { deleteComponent, component, parentId } = this.props;
     deleteComponent(component.id, parentId);
-  }
-
-  handleMenuHover() {
-    this.setState(prevState => ({
-      hoverMenuHovered: !prevState.hoverMenuHovered,
-    }));
   }
 
   render() {
@@ -297,8 +298,8 @@ class Row extends React.PureComponent {
             {editMode && (
               <HoverMenu
                 innerRef={dragSourceRef}
+                hoverRef={this.hoverRef}
                 position="left"
-                onHover={this.handleMenuHover}
               >
                 <DragHandle position="left" />
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
