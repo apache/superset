@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import JSONbig from 'json-bigint';
+import _JSONbig from 'json-bigint';
 import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
+
+const JSONbig = _JSONbig({
+  constructorAction: 'preserve',
+});
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
