@@ -31,6 +31,7 @@ import {
   smartDateFormatter,
   TimeFormats,
   TimeFormatter,
+  t,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -44,6 +45,7 @@ import {
   TableChartProps,
   TableChartTransformedProps,
 } from './types';
+import { MAX_SERVER_PAGE_LENGTH } from './consts';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
@@ -225,29 +227,13 @@ const transformProps = (
     emitCrossFilters,
   } = chartProps;
 
-  const {
-    align_pn: alignPositiveNegative = true,
-    color_pn: colorPositiveNegative = true,
-    show_cell_bars: showCellBars = true,
-    include_search: includeSearch = false,
-    page_length: pageLength,
-    server_pagination: serverPagination = false,
-    server_page_length: serverPageLength = 10,
-    order_desc: sortDesc = false,
-    query_mode: queryMode,
-    show_totals: showTotals,
-    conditional_formatting: conditionalFormatting,
-    allow_rearrange_columns: allowRearrangeColumns,
-  } = formData;
-  const timeGrain = extractTimegrain(formData);
-
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
 
   let baseQuery;
   let countQuery;
   let totalQuery;
   let rowCount;
-  if (serverPagination) {
+  if (formData.server_pagination) {
     [baseQuery, countQuery, totalQuery] = queriesData;
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
@@ -255,6 +241,50 @@ const transformProps = (
     rowCount = baseQuery?.rowcount ?? 0;
   }
   const data = processDataRecords(baseQuery?.data, columns);
+
+  if (Number(formData.server_page_length) > MAX_SERVER_PAGE_LENGTH) {
+    formData.server_page_length = MAX_SERVER_PAGE_LENGTH;
+  }
+
+  const serverPageLengthNum = Number(formData.server_page_length);
+
+  const isValidPageLength =
+    !Number.isNaN(serverPageLengthNum) && serverPageLengthNum <= data.length;
+
+  const pageLengthExists = formData.server_page_length_options?.some(
+    (option: [number, string]) => option[0] === serverPageLengthNum,
+  );
+
+  if (formData.server_pagination && isValidPageLength && !pageLengthExists) {
+    const pageLengthLabel =
+      serverPageLengthNum === 0 ? t('All') : String(serverPageLengthNum);
+
+    formData.server_page_length_options?.push([
+      serverPageLengthNum,
+      pageLengthLabel,
+    ]);
+    formData.server_page_length_options?.sort(
+      (a: [number, string], b: [number, string]) => a[0] - b[0],
+    );
+  }
+
+  const {
+    align_pn: alignPositiveNegative = true,
+    color_pn: colorPositiveNegative = true,
+    show_cell_bars: showCellBars = true,
+    include_search: includeSearch = false,
+    page_length: pageLength,
+    order_desc: sortDesc = false,
+    query_mode: queryMode,
+    show_totals: showTotals,
+    conditional_formatting: conditionalFormatting,
+    allow_rearrange_columns: allowRearrangeColumns,
+    server_pagination: serverPagination = false,
+    server_page_length: serverPageLength = 10,
+    server_page_length_options: serverPageLengthOptions = [],
+  } = formData;
+  const timeGrain = extractTimegrain(formData);
+
   const totals =
     showTotals && queryMode === QueryMode.Aggregate
       ? totalQuery?.data[0]
@@ -285,6 +315,7 @@ const transformProps = (
     pageSize: serverPagination
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
+    serverPageLengthOptions,
     filters: filterState.filters,
     emitCrossFilters,
     onChangeFilter,

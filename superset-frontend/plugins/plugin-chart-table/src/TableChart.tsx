@@ -60,7 +60,6 @@ import DataTable, {
 
 import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
@@ -229,6 +228,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     pageSize = 0,
     serverPagination = false,
     serverPaginationData,
+    serverPageLengthOptions = [],
     setDataMask,
     showCellBars = true,
     sortDesc = false,
@@ -253,7 +253,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return PAGE_SIZE_OPTIONS.filter(([n]) =>
+    return serverPageLengthOptions.filter(([n]) =>
       serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);

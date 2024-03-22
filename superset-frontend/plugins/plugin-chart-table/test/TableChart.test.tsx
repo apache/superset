@@ -33,15 +33,120 @@ describe('plugin-chart-table', () => {
       expect(
         transformProps({
           ...testData.basic,
-          rawFormData: { ...testData.basic.rawFormData, page_length: '20' },
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: false,
+            page_length: '20',
+          },
         }).pageSize,
       ).toBe(20);
       expect(
         transformProps({
           ...testData.basic,
-          rawFormData: { ...testData.basic.rawFormData, page_length: '' },
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: false,
+            page_length: '',
+          },
         }).pageSize,
       ).toBe(0);
+    });
+
+    it('should parse serverPageLength to pageSize', () => {
+      expect(
+        transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: true,
+            server_page_length: 20,
+          },
+        }).pageSize,
+      ).toBe(20);
+      expect(
+        transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: true,
+            server_page_length: 50,
+          },
+        }).pageSize,
+      ).toBe(50);
+    });
+
+    it('should be added server_page_length to serverPageLengthOptions many times', () => {
+      let transformedProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          server_page_length: 2,
+        },
+      });
+      expect(transformedProps.serverPageLengthOptions).toContainEqual([2, '2']);
+
+      transformedProps = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          server_page_length: 3,
+        },
+      });
+      expect(transformedProps.serverPageLengthOptions).toContainEqual([2, '2']);
+      expect(transformedProps.serverPageLengthOptions).toContainEqual([3, '3']);
+    });
+
+    it('should not contain duplicates serverPageLength in serverPageLengthOptions', () => {
+      const propsWithServerPageLength = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          server_page_length: 1,
+        },
+      };
+
+      let transformedProps = transformProps(propsWithServerPageLength);
+      expect(transformedProps.serverPageLengthOptions).toContainEqual([1, '1']);
+
+      transformedProps = transformProps(propsWithServerPageLength);
+      expect(transformedProps.serverPageLengthOptions).toContainEqual([1, '1']);
+
+      const duplicates = transformedProps.serverPageLengthOptions.filter(
+        (option1, index1) =>
+          transformedProps.serverPageLengthOptions.find(
+            (option2, index2) => option1[0] === option2[0] && index1 !== index2,
+          ),
+      );
+      expect(duplicates.length).toEqual(0);
+    });
+
+    it('should limit server page length to not over 10000', () => {
+      expect(
+        transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: true,
+            server_page_length: 25000,
+          },
+        }).pageSize,
+      ).toBe(10000);
+    });
+
+    it('should not add serverPageLength greater than data length to serverPageLengthOptions', () => {
+      expect(
+        transformProps({
+          ...testData.basic,
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            server_pagination: true,
+            server_page_length: 5, // because there are only 3 data in total
+          },
+        }).serverPageLengthOptions,
+      ).not.toContainEqual([5, '5']);
     });
 
     it('should memoize data records', () => {
