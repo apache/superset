@@ -100,7 +100,7 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.state = {
       css: props.customCss,
       showReportSubMenu: null,
-      repType: null,
+      reportType: null,
     };
 
     this.changeCss = this.changeCss.bind(this);
@@ -120,7 +120,7 @@ class HeaderActionsDropdown extends React.PureComponent {
   setShowReportSubMenu(show, val) {
     this.setState({
       showReportSubMenu: show,
-      repType: val,
+      reportType: val,
     });
   }
 
@@ -315,7 +315,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         )}
         <Menu.Divider />
         {!editMode ? (
-          this.state.showReportSubMenu && this.state.repType === 'Email' ? (
+          this.state.showReportSubMenu && this.state.reportType === 'Email' ? (
             <>
               <Menu.SubMenu title={t('Manage email report')}>
                 <HeaderReportDropdown
@@ -345,7 +345,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         ) : null}
 
         {!editMode && isS3Feature ? (
-          this.state.showReportSubMenu && this.state.repType === 'S3' ? (
+          this.state.showReportSubMenu && this.state.reportType === 'S3' ? (
             <>
               <Menu.SubMenu title={t('Manage S3 report')}>
                 <HeaderReportDropdown
