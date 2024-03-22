@@ -99,8 +99,9 @@ class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
     });
   }
 
-  changeCssTemplate({ key }: { key: string }) {
-    this.changeCss(key);
+  changeCssTemplate(info: { key: React.Key }) {
+    const keyAsString = String(info.key);
+    this.changeCss(keyAsString);
   }
 
   renderTemplateSelector() {
