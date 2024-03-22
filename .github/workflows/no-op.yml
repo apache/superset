@@ -52,3 +52,33 @@ jobs:
         run: |
           echo "This is a no-op step for python-lint to ensure a successful status."
           exit 0
+  test-postgres-hive:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: |
+          echo "This is a no-op step for test-postgres-postgres to ensure a successful status when skipped."
+          exit 0
+  test-postgres-presto:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: |
+          echo "This is a no-op step for test-postgres-postgres to ensure a successful status when skipped."
+          exit 0
+  unit-tests:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: |
+          echo "This is a no-op step for unit-tests to ensure a successful status when skipped."
+          exit 0

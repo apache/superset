@@ -154,16 +154,16 @@ export default function getCLI(context) {
 
     program.command('docker')
       .description('Generates/run docker build commands use in CI')
-      .option('-t, --preset', 'Build preset', /^(lean|dev|dockerize|websocket|py310|ci)$/i, 'lean')
+      .option('-t, --preset <preset>', 'Build preset', /^(lean|dev|dockerize|websocket|py310|ci)$/i, 'lean')
       .option('-c, --context <context>', 'Build context', /^(push|pull_request|release)$/i, 'local')
       .option('-r, --context-ref <ref>', 'Reference to the PR, release, or branch')
       .option('-p, --platform <platform...>', 'Platforms (multiple values allowed)')
       .option('-f, --force-latest', 'Force the "latest" tag on the release')
       .option('-v, --verbose', 'Print more info')
-      .action(function (preset) {
-        const opts = context.processOptions(this);
+      .action(function () {
+        const opts = context.processOptions(this, ['preset']);
         opts.platform = opts.platform || ['linux/arm64'];
-        const cmd = docker.getDockerCommand({ preset, ...opts });
+        const cmd = docker.getDockerCommand({ ...opts });
         context.log(cmd);
         if (!opts.dryRun) {
           utils.runShellCommand(cmd, false);

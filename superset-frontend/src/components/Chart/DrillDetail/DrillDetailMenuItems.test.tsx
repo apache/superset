@@ -285,11 +285,11 @@ test('context menu for supported chart, no dimensions, no filters', async () => 
     isContextMenu: true,
   });
 
-  await expectDrillToDetailDisabled(
-    'Drill to detail is disabled because this chart does not group data by dimension value.',
-  );
+  const message =
+    'Drill to detail is disabled because this chart does not group data by dimension value.';
 
-  await expectDrillToDetailByDisabled();
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });
 
 test('context menu for supported chart, no dimensions, 1 filter', async () => {
@@ -299,11 +299,11 @@ test('context menu for supported chart, no dimensions, 1 filter', async () => {
     filters: [filterA],
   });
 
-  await expectDrillToDetailDisabled(
-    'Drill to detail is disabled because this chart does not group data by dimension value.',
-  );
+  const message =
+    'Drill to detail is disabled because this chart does not group data by dimension value.';
 
-  await expectDrillToDetailByDisabled();
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });
 
 test('dropdown menu for supported chart, dimensions', async () => {

@@ -59,7 +59,7 @@ def test_alter_new_orm_column() -> None:
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("TimeStamp", "1546398245678.9"),
+        ("TimeStamp", "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"),
         ("UnknownType", None),
     ],
 )

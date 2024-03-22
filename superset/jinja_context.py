@@ -24,7 +24,7 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Unio
 import dateutil
 from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined
+from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -479,11 +479,11 @@ class BaseTemplateProcessor:
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: dict[str, Any] = {}
-        self._env = SandboxedEnvironment(undefined=DebugUndefined)
+        self.env: Environment = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
         # custom filters
-        self._env.filters["where_in"] = WhereInMacro(database.get_dialect())
+        self.env.filters["where_in"] = WhereInMacro(database.get_dialect())
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
@@ -496,7 +496,7 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self._env.from_string(sql)
+        template = self.env.from_string(sql)
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
@@ -643,7 +643,7 @@ class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self._env.from_string(sql)
+        template = self.env.from_string(sql)
         kwargs.update(self._context)
 
         # Backwards compatibility if migrating from Presto.
