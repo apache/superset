@@ -37,6 +37,16 @@ const RefreshWarningContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
+const StyledDiv = styled.div`
+  display: flex;
+  margin-top: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
+const InnerStyledDiv = styled.div`
+  width: 30%;
+  margin: auto;
+`;
+
 type RefreshIntervalModalProps = {
   addSuccessToast: (msg: string) => void;
   triggerNode: JSX.Element;
@@ -141,6 +151,46 @@ class RefreshIntervalModal extends React.PureComponent<
     }));
   }
 
+  refresh_custom_val(
+    custom_block: boolean,
+    custom_hour: number,
+    custom_min: number,
+    custom_sec: number,
+  ) {
+    if (custom_block === true) {
+      // Get hour value
+      const hour_value = custom_hour;
+
+      // Get minutes value
+      const minute_value = custom_min;
+
+      // Get seconds value
+      const second_value = custom_sec;
+
+      if (
+        hour_value < 0 ||
+        minute_value < 0 ||
+        second_value < 0 ||
+        minute_value >= 60 ||
+        second_value >= 60
+      ) {
+        this.props.addSuccessToast(
+          t(
+            'Put positive values and valid minute and second value less than 60',
+          ),
+        );
+      }
+      // Convert given input to seconds
+      const value = hour_value * 60 * 60 + minute_value * 60 + second_value;
+      if (value === 0) {
+        this.props.addSuccessToast(t('Put some positive value greater than 0'));
+        return;
+      }
+      this.handleFrequencyChange(value);
+      this.onSaveValue(value);
+    } else this.onSave();
+  }
+
   render() {
     const {
       refreshLimit = 0,
@@ -178,13 +228,8 @@ class RefreshIntervalModal extends React.PureComponent<
               />
             </div>
             {custom_block && (
-              <div
-                style={{
-                  display: 'flex',
-                  marginTop: '15px',
-                }}
-              >
-                <div style={{ width: '30%', margin: 'auto' }}>
+              <StyledDiv>
+                <InnerStyledDiv>
                   <FormLabel>
                     <b>{t('HOUR')}</b>
                   </FormLabel>{' '}
@@ -201,8 +246,8 @@ class RefreshIntervalModal extends React.PureComponent<
                     }}
                     value={custom_hour}
                   />
-                </div>
-                <div style={{ width: '30%', margin: 'auto' }}>
+                </InnerStyledDiv>
+                <InnerStyledDiv>
                   <FormLabel>
                     <b>{t('MINUTE')}</b>
                   </FormLabel>{' '}
@@ -218,8 +263,8 @@ class RefreshIntervalModal extends React.PureComponent<
                     }}
                     sortComparator={propertyComparator('value')}
                   />
-                </div>
-                <div style={{ width: '30%', margin: 'auto' }}>
+                </InnerStyledDiv>
+                <InnerStyledDiv>
                   <FormLabel>
                     <b>{t('SECOND')}</b>
                   </FormLabel>{' '}
@@ -235,8 +280,8 @@ class RefreshIntervalModal extends React.PureComponent<
                     }}
                     sortComparator={propertyComparator('value')}
                   />
-                </div>
-              </div>
+                </InnerStyledDiv>
+              </StyledDiv>
             )}
             {showRefreshWarning && (
               <RefreshWarningContainer>
@@ -262,43 +307,14 @@ class RefreshIntervalModal extends React.PureComponent<
             <Button
               buttonStyle="primary"
               buttonSize="small"
-              onClick={() => {
-                if (custom_block === true) {
-                  // Get hour value
-                  const hour_value = custom_hour;
-
-                  // Get minutes value
-                  const minute_value = custom_min;
-
-                  // Get seconds value
-                  const second_value = custom_sec;
-
-                  if (
-                    hour_value < 0 ||
-                    minute_value < 0 ||
-                    second_value < 0 ||
-                    minute_value >= 60 ||
-                    second_value >= 60
-                  ) {
-                    this.props.addSuccessToast(
-                      t(
-                        'Put positive values and valid minute and second value less than 60',
-                      ),
-                    );
-                  }
-                  // Convert given input to seconds
-                  const value =
-                    hour_value * 60 * 60 + minute_value * 60 + second_value;
-                  if (value === 0) {
-                    this.props.addSuccessToast(
-                      t('Put some positive value greater than 0'),
-                    );
-                    return;
-                  }
-                  this.handleFrequencyChange(value);
-                  this.onSaveValue(value);
-                } else this.onSave();
-              }}
+              onClick={() =>
+                this.refresh_custom_val(
+                  custom_block,
+                  custom_hour,
+                  custom_min,
+                  custom_sec,
+                )
+              }
             >
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
