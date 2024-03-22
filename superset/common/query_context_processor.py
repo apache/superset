@@ -184,7 +184,6 @@ class QueryContextProcessor:
             "cached_dttm": cache.cache_dttm,
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
-            "initial_order": cache.initial_order,
             "applied_template_filters": cache.applied_template_filters,
             "applied_filter_columns": cache.applied_filter_columns,
             "rejected_filter_columns": cache.rejected_filter_columns,
@@ -251,25 +250,33 @@ class QueryContextProcessor:
 
                 query += ";\n\n".join(queries)
                 query += ";\n\n"
-            
             timeseries_limit_metric = None
+            x_axis_index = None
+            sort_order = None
+            # Here we extract the x axis as its being used as index
+            # in the pivot operation
             if self._query_context and self._query_context.form_data:
-                req_data = {}
                 x_axis_index = self._query_context.form_data.get('x_axis')
                 if isinstance(x_axis_index,dict):
                     x_axis_index = x_axis_index.get('label')
                 timeseries_limit_metric = self._query_context.form_data.get('timeseries_limit_metric')
+            # The timeseries limit metric is sort by option from the chart control panel
+            # if the time series limit metric is applied we extract the order from 
+            # initial dataframe and we store that order in a variable
                 if timeseries_limit_metric and x_axis_index is not None:
-                    sort_order = None
                     sort_order = df[x_axis_index].unique().tolist()
-                    req_data["sort_order"] = sort_order
-                result.initial_order = req_data
+                    sort_order = [item for item in sort_order if item is not None]
             # Re-raising QueryObjectValidationError
             try:
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
-
+            if timeseries_limit_metric and x_axis_index is not None and sort_order is not None:
+                df[x_axis_index] = pd.Categorical(df[x_axis_index], categories=sort_order, ordered=True)
+                # we sort the dataframe again after post processing is applied
+                # by doing this we restore the initial sorting order applied by timeseries limit metric
+                df = df.sort_values(x_axis_index)
+                df = df.reset_index(drop=True)
         result.df = df
         result.query = query
         result.from_dttm = query_object.from_dttm

@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert, isEmpty } from 'lodash';
+import { invert } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
@@ -65,7 +65,6 @@ import {
   getColtypesMapping,
   getLegendProps,
   getMinAndMaxFromBounds,
-  orderDataWithInitialOrder,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -126,24 +125,7 @@ export default function transformProps(
     columnFormats = {},
     currencyFormats = {},
   } = datasource;
-  let [queryData] = queriesData;
-  if (
-    formData?.timeseriesLimitMetric &&
-    !isEmpty(queryData?.initial_order || {})
-  ) {
-    const { orderData = [] } = orderDataWithInitialOrder({
-      initialOrderData: queryData?.initial_order || {},
-      dataFromQueryData: queryData?.data,
-      xAxis: formData?.xAxis || '',
-    });
-
-    if (Array.isArray(orderData) && orderData.length > 0) {
-      queryData = {
-        ...queryData,
-        data: orderData,
-      };
-    }
-  }
+  const [queryData] = queriesData;
   const { data = [], label_map = {} } =
     queryData as TimeseriesChartDataResponseResult;
 

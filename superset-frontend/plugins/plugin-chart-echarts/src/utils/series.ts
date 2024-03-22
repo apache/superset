@@ -25,7 +25,6 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
-  InitialOrder,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -608,32 +607,4 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
-}
-
-export function orderDataWithInitialOrder({
-  initialOrderData = {
-    sort_order: [],
-  },
-  dataFromQueryData = [],
-  xAxis,
-}: {
-  initialOrderData: InitialOrder;
-  dataFromQueryData: DataRecord[];
-  xAxis: string;
-}) {
-  let { sort_order = [] } = initialOrderData;
-  sort_order = sort_order.filter((item: string | null) => item !== null);
-  sort_order = sort_order.filter((item: string) => item !== '');
-  const orderData: DataRecord[] = [];
-  if (Array.isArray(sort_order) && sort_order.length > 0) {
-    sort_order.forEach(orderItem => {
-      const dataItem = dataFromQueryData.find(
-        item => item[xAxis] === orderItem,
-      );
-      if (dataItem) {
-        orderData.push(dataItem);
-      }
-    });
-  }
-  return { orderData };
 }

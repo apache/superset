@@ -39,10 +39,6 @@ export interface DataRecord {
   [key: string]: DataRecordValue;
 }
 
-export interface InitialOrder {
-  sort_order: string[];
-}
-
 /**
  * Queried data for charts. The `queries` field from `POST /chart/data`.
  * See superset/charts/schemas.py for the class of the same name.
@@ -82,11 +78,6 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
-  /**
-   * Initial Order of the pandas dataframe for query which is used to re order the data
-   * when time series limit metric is present
-   */
-  initial_order: InitialOrder;
 }
 
 export interface TimeseriesChartDataResponseResult

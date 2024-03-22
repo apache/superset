@@ -571,7 +571,6 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
-        initial_order: Optional[dict[str,Any]] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -584,7 +583,6 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
-        self.initial_order = initial_order
 
 
 class ExtraJSONMixin:
