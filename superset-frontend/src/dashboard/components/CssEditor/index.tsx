@@ -59,7 +59,7 @@ const StyledWrapper = styled.div`
 class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
   static defaultProps: Partial<CssEditorProps> = {
     initialCss: '',
-    onChange: () => { },
+    onChange: () => {},
   };
 
   constructor(props: CssEditorProps) {
