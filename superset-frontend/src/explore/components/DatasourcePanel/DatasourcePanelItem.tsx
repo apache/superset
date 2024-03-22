@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { css, Metric, styled, t } from '@superset-ui/core';
+import { css, Metric, styled, t, useTheme } from '@superset-ui/core';
 
 import Icons from 'src/components/Icons';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
@@ -164,12 +164,13 @@ const DatasourcePanelItem: React.FC<Props> = ({ index, style, data }) => {
   const setCollapse = isColumnSection ? setCollapseColumns : setCollapseMetrics;
   const showAll = isColumnSection ? showAllColumns : showAllMetrics;
   const setShowAll = isColumnSection ? setShowAllColumns : setShowAllMetrics;
+  const theme = useTheme();
 
   return (
     <div
       style={style}
       css={css`
-        padding: 0 16px;
+        padding: 0 ${theme.gridUnit * 4}px;
       `}
     >
       {index === HEADER_LINE && (
