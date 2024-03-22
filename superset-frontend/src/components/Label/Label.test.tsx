@@ -31,6 +31,17 @@ describe('Label', () => {
     expect(React.isValidElement(<Label />)).toBe(true);
   });
 
+  it('renders with role=undefined when onClick is not present', () => {
+    wrapper = mount(<Label />);
+    expect(wrapper.find('span').prop('role')).toBeUndefined();
+  });
+
+  it('renders with role="button" when onClick is present', () => {
+    const mockAction = jest.fn();
+    wrapper = mount(<Label onClick={mockAction} />);
+    expect(wrapper.find('span').prop('role')).toBe('button');
+  });
+
   it('works with an onClick handler', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Label onClick={mockAction} />);

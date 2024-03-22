@@ -19,7 +19,7 @@
 
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
-import AntdTag, { TagProps } from 'antd/lib/tag';
+import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 
@@ -47,36 +47,22 @@ const Tag = ({
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
-  const StyledTagCustom = ({ onClick, children, ...props }: TagProps) => {
-    const whatRole = onClick ? 'button' : undefined;
-    return (
-      <StyledTag role={whatRole} {...props}>
-        {children}
-      </StyledTag>
-    );
-  };
-
   const tagElem = (
     <>
       {editable ? (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTagCustom
+          <StyledTag
             key={id}
             closable={editable}
             onClose={handleClose}
             color="blue"
           >
             {tagDisplay}
-          </StyledTagCustom>
+          </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTagCustom
-            data-test="tag"
-            role="link"
-            key={id}
-            onClick={onClick}
-          >
+          <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
@@ -88,7 +74,7 @@ const Tag = ({
             ) : (
               tagDisplay
             )}
-          </StyledTagCustom>
+          </StyledTag>
         </Tooltip>
       )}
     </>
