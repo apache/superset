@@ -102,7 +102,7 @@ export interface HeaderReportProps {
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
-  setShowReportSubMenu?: (show: boolean, val: NotificationMethodOption) => void;
+  setShowReportSubMenu?: (show: boolean) => void;
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
   showReportSubMenu?: boolean;
@@ -138,13 +138,13 @@ export default function HeaderReportDropDown({
     UserWithPermissionsAndRoles
   >(state => state.user);
 
-  const isMissingReportType = (report: AlertObject) => {
+  const hasReportType = (report: AlertObject) => {
     const reportTypes =
       report?.recipients !== undefined
         ? report?.recipients.map(record => record.type)
         : [];
     const foundMatch = reportTypes.includes(reportType);
-    return isEmpty(report) || !foundMatch;
+    return !isEmpty(report) && foundMatch;
   };
 
   const canAddReports = () => {
@@ -204,7 +204,9 @@ export default function HeaderReportDropDown({
     }
   }, []);
 
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
+  const reportTypeExists = hasReportType(report);
+  const showReportSubMenu =
+    reportTypeExists && setShowReportSubMenu && canAddReports();
 
   // @z-index-below-dashboard-header (100) - 1 = 99
   const dropdownOverlayStyle = {
@@ -214,11 +216,11 @@ export default function HeaderReportDropDown({
 
   useEffect(() => {
     if (showReportSubMenu) {
-      // setShowReportSubMenu(true, reportType);
-    } else if (!report && setShowReportSubMenu) {
-      setShowReportSubMenu(false, reportType);
+      setShowReportSubMenu(true);
+    } else if (!reportTypeExists && setShowReportSubMenu) {
+      setShowReportSubMenu(false);
     }
-  }, [report]);
+  }, [reportTypeExists, showReportSubMenu]);
 
   const handleShowMenu = () => {
     if (setIsDropdownVisible) {
@@ -246,7 +248,7 @@ export default function HeaderReportDropDown({
     reportType === 'S3' ? t('Delete S3 report') : t('Delete Email report');
 
   const textMenu = () =>
-    isMissingReportType(report) ? (
+    !hasReportType(report) ? (
       <Menu selectable={false} {...rest} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
@@ -307,7 +309,7 @@ export default function HeaderReportDropDown({
   );
 
   const iconMenu = () =>
-    isMissingReportType(report) ? (
+    !hasReportType(report) ? (
       <span
         role="button"
         title={t('Schedule email report')}
