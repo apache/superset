@@ -151,7 +151,7 @@ def get_docker_command(
         build_target = "lean"
     elif build_preset == "py311":
         build_target = "lean"
-        py_ver = "3.11-slim"
+        py_ver = "3.11-slim-bookworm"
     elif build_preset == "websocket":
         build_target = ""
         docker_context = "superset-websocket"
