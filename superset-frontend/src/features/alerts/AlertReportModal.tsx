@@ -1711,7 +1711,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 defaultSubject={emailSubject || ''}
               />
             </StyledNotificationMethodWrapper>
-          ))} 
+          ))}
           {
             // Prohibit 'add notification method' button if only one present
             allowedNotificationMethods.length > notificationSettings.length && (
