@@ -843,6 +843,8 @@ class Superset(BaseSupersetView):
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
+        if original_params := request.query_string.decode():
+            url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)
