@@ -32,6 +32,7 @@ from superset.exceptions import (
 from superset.sql_parse import (
     add_table_name,
     extract_table_references,
+    extract_tables_from_jinja_sql,
     get_rls_for_table,
     has_table_query,
     insert_rls_as_subquery,
@@ -1909,3 +1910,43 @@ def test_sqlstatement() -> None:
 
     statement = SQLStatement("SET a=1")
     assert statement.get_settings() == {"a": "1"}
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro",
+    [
+        "latest_partition('foo.bar')",
+        "latest_sub_partition('foo.bar', baz='qux')",
+    ],
+)
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        (
+            "SELECT '{{{{ {engine}.{macro} }}}}'",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "SELECT * FROM foo.baz WHERE quux = '{{{{ {engine}.{macro} }}}}'",
+            {Table(table="bar", schema="foo"), Table(table="baz", schema="foo")},
+        ),
+    ],
+)
+def test_extract_tables_from_jinja_sql(
+    engine: str,
+    macro: str,
+    sql: str,
+    expected: set[Table],
+) -> None:
+    assert (
+        extract_tables_from_jinja_sql(sql.format(engine=engine, macro=macro), engine)
+        == expected
+    )
