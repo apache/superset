@@ -745,7 +745,7 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     if not (form_data or chart):
         raise SupersetTemplateException(exc_message)
 
-    if chart:
+    if chart and chart.datasource_id:
         return chart.datasource_id
     if dataset_id := form_data.get("url_params", {}).get("datasource_id"):
         return dataset_id
