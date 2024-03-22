@@ -79,6 +79,7 @@ class QueryCacheManager:
         self.is_cached = is_cached
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
+        self.initial_order = None
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -103,6 +104,7 @@ class QueryCacheManager:
             self.error_message = query_result.error_message
             self.df = query_result.df
             self.annotation_data = {} if annotation_data is None else annotation_data
+            self.initial_order = None if query_result.initial_order is None else query_result.initial_order
 
             if self.status != QueryStatus.FAILED:
                 stats_logger.incr("loaded_from_source")
@@ -118,6 +120,8 @@ class QueryCacheManager:
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
             }
+            if self.initial_order:
+                value["initial_order"] = self.initial_order
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
                     key=key,

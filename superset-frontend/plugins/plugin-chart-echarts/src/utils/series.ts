@@ -25,6 +25,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   GenericDataType,
+  InitialOrder,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -264,6 +265,7 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
+    timeseriesLimitMetric?: any;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -278,6 +280,7 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
+    timeseriesLimitMetric,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
@@ -292,7 +295,9 @@ export function extractSeries(
     sortSeriesAscending,
   );
   const sortedRows =
-    isDefined(xAxisSortSeries) && isDefined(xAxisSortSeriesAscending)
+    isDefined(xAxisSortSeries) &&
+    isDefined(xAxisSortSeriesAscending) &&
+    !timeseriesLimitMetric
       ? sortRows(
           rows,
           totalStackedValues,
@@ -603,4 +608,32 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+export function orderDataWithInitialOrder({
+  initialOrderData = {
+    sort_order: [],
+  },
+  dataFromQueryData = [],
+  xAxis,
+}: {
+  initialOrderData: InitialOrder;
+  dataFromQueryData: DataRecord[];
+  xAxis: string;
+}) {
+  let { sort_order = [] } = initialOrderData;
+  sort_order = sort_order.filter((item: string | null) => item !== null);
+  sort_order = sort_order.filter((item: string) => item !== '');
+  const orderData: DataRecord[] = [];
+  if (Array.isArray(sort_order) && sort_order.length > 0) {
+    sort_order.forEach(orderItem => {
+      const dataItem = dataFromQueryData.find(
+        item => item[xAxis] === orderItem,
+      );
+      if (dataItem) {
+        orderData.push(dataItem);
+      }
+    });
+  }
+  return { orderData };
 }

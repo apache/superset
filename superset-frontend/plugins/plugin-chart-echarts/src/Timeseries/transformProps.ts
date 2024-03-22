@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash';
+import { invert, isEmpty } from 'lodash';
 import {
   AnnotationLayer,
   AxisType,
@@ -65,6 +65,7 @@ import {
   getColtypesMapping,
   getLegendProps,
   getMinAndMaxFromBounds,
+  orderDataWithInitialOrder,
 } from '../utils/series';
 import {
   extractAnnotationLabels,
@@ -125,7 +126,24 @@ export default function transformProps(
     columnFormats = {},
     currencyFormats = {},
   } = datasource;
-  const [queryData] = queriesData;
+  let [queryData] = queriesData;
+  if (
+    formData?.timeseriesLimitMetric &&
+    !isEmpty(queryData?.initial_order || {})
+  ) {
+    const { orderData = [] } = orderDataWithInitialOrder({
+      initialOrderData: queryData?.initial_order || {},
+      dataFromQueryData: queryData?.data,
+      xAxis: formData?.xAxis || '',
+    });
+
+    if (Array.isArray(orderData) && orderData.length > 0) {
+      queryData = {
+        ...queryData,
+        data: orderData,
+      };
+    }
+  }
   const { data = [], label_map = {} } =
     queryData as TimeseriesChartDataResponseResult;
 
@@ -220,6 +238,7 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupby?.length || metrics?.length > 1;
+  const { timeseriesLimitMetric = '' } = formData;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -236,6 +255,7 @@ export default function transformProps(
       xAxisSortSeriesAscending: isMultiSeries
         ? xAxisSortSeriesAscending
         : undefined,
+      timeseriesLimitMetric,
     },
   );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
