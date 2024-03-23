@@ -194,7 +194,6 @@ class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
-      valueOptions: {},
       slice: null,
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
@@ -467,9 +466,8 @@ class AnnotationLayer extends React.PureComponent {
       const canBeAnnotationType =
         metadata && metadata.canBeAnnotationType(annotationType);
       if (canBeAnnotationType) {
-        this.setState(prevState => ({
+        this.setState({
           valueOptions: {
-            ...prevState.valueOptions,
             [id]: {
               value: id,
               label: sliceName,
@@ -481,7 +479,7 @@ class AnnotationLayer extends React.PureComponent {
               groupby: formData.groupby?.map(column => getColumnLabel(column)),
             },
           },
-        }));
+        });
       }
     });
   }
@@ -492,15 +490,14 @@ class AnnotationLayer extends React.PureComponent {
     }).then(({ json }) => {
       const { result } = json;
       const layer = result;
-      this.setState(prevState => ({
+      this.setState({
         valueOptions: {
-          ...prevState.valueOptions,
           [layer.id]: {
             value: layer.id,
             label: layer.name,
           },
         },
-      }));
+      });
     });
   }
 
