@@ -25,6 +25,7 @@ interface HoverMenuProps {
   position: 'left' | 'top';
   innerRef: RefObject<HTMLDivElement>;
   children: React.ReactNode;
+  onHover?: (isHovered: boolean) => void;
 }
 
 const HoverStyleOverrides = styled.div`
@@ -71,21 +72,16 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
     children: null,
   };
 
-  constructor(props: HoverMenuProps) {
-    super(props);
-    // Disabling unused state rule as it is used in Row.jsx by hoverRef
-    // eslint-disable-next-line
-    this.state = {
-      hovered: false,
-    };
-  }
-
   handleMouseEnter = () => {
-    this.setState({ hovered: true });
+    if (this.props.onHover) {
+      this.props.onHover(true);
+    }
   };
 
   handleMouseLeave = () => {
-    this.setState({ hovered: false });
+    if (this.props.onHover) {
+      this.props.onHover(false);
+    }
   };
 
   render() {
