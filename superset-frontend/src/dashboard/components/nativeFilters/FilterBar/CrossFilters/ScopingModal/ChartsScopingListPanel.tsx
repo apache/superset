@@ -69,7 +69,6 @@ const ScopingTitle = ({
     <FilterTitle
       className={isActive ? 'active' : ''}
       onClick={() => onClick(id)}
-      role="button"
     >
       {label}
       <Icons.Trash
