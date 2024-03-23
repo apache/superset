@@ -27,6 +27,7 @@ const mockedProps: {
   filter: CrossFilterIndicator;
   orientation: FilterBarOrientation;
   removeCrossFilter: (filterId: number) => void;
+  onClick?: () => void;
 } = {
   filter: {
     name: 'test',
@@ -81,4 +82,13 @@ test('Tag should be closable', () => {
   expect(close).toBeInTheDocument();
   userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
+});
+
+test('Close icon should have role="button"', () => {
+  setup({
+    ...mockedProps,
+    onClick: jest.fn(),
+  });
+  const button = screen.getByRole('button');
+  expect(button).toBeInTheDocument();
 });
