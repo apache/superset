@@ -429,20 +429,14 @@ class AnnotationLayer extends React.PureComponent {
 
   fetchSliceData = id => {
     const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'id',
-          opr: 'eq',
-          value: id,
-        },
-      ],
-      columns: ['form_data'],
+      columns: ['query_context'],
     });
     SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${queryParams}`,
+      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
     }).then(({ json }) => {
       const { result } = json;
-      const formData = result[0].form_data;
+      const queryContext = result.query_context;
+      const formData = JSON.parse(queryContext).form_data;
       const dataObject = {
         data: {
           ...formData,
@@ -455,30 +449,40 @@ class AnnotationLayer extends React.PureComponent {
     });
   };
 
-  fetchAppliedChart(queryParams) {
+  fetchAppliedChart(id) {
+    const { annotationType } = this.state;
+    const registry = getChartMetadataRegistry();
+    const queryParams = rison.encode({
+      columns: ['slice_name', 'query_context', 'viz_type'],
+    });
     SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${queryParams}`,
+      endpoint: `/api/v1/chart/${id}?q=${queryParams}`,
     }).then(({ json }) => {
       const { result } = json;
-      const chart = result[0];
-      this.setState(prevState => ({
-        valueOptions: {
-          ...prevState.valueOptions,
-          [chart.id]: {
-            value: chart.id,
-            label: chart.slice_name,
+      const sliceName = result.slice_name;
+      const queryContext = result.query_context;
+      const vizType = result.viz_type;
+      const formData = JSON.parse(queryContext).form_data;
+      const metadata = registry.get(vizType);
+      const canBeAnnotationType =
+        metadata && metadata.canBeAnnotationType(annotationType);
+      if (canBeAnnotationType) {
+        this.setState(prevState => ({
+          valueOptions: {
+            ...prevState.valueOptions,
+            [id]: {
+              value: id,
+              label: sliceName,
+            },
           },
-        },
-        slice: {
-          ...chart,
-          data: {
-            ...chart.form_data,
-            groupby: chart.form_data.groupby?.map(column =>
-              getColumnLabel(column),
-            ),
+          slice: {
+            data: {
+              ...formData,
+              groupby: formData.groupby?.map(column => getColumnLabel(column)),
+            },
           },
-        },
-      }));
+        }));
+      }
     });
   }
 
@@ -502,20 +506,11 @@ class AnnotationLayer extends React.PureComponent {
 
   fetchAppliedAnnotation(id) {
     const { sourceType } = this.state;
-    const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'id',
-          opr: 'eq',
-          value: id,
-        },
-      ],
-      columns: ['id', 'slice_name', 'form_data', 'viz_type'],
-    });
+
     if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
       return this.fetchAppliedNativeAnnotation(id);
     }
-    return this.fetchAppliedChart(queryParams);
+    return this.fetchAppliedChart(id);
   }
 
   deleteAnnotation() {
