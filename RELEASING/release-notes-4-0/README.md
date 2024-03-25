@@ -39,7 +39,7 @@ The Alerts and Reports modal has been [redesigned](https://github.com/apache/sup
 
 ### Tags
 
-Tags are available using the `TAGGING_SYSTEM` feature flag. They address many of the [requests made by the community](https://github.com/apache/superset/discussions/19194) and aim to make it easier to organize and curate charts, dashboards, and saved queries, allowing for effortless data discovery and collaboration within an organization. Users can create flexible and customizable tags for each piece of content, enabling different ways of organizing assets. Tags are also available in the API, allowing for programmatic access to tag-related operations.
+Tags are available using the `TAGGING_SYSTEM` feature flag. They address many of the [requests made by the community](https://github.com/apache/superset/discussions/19194) and aim to make it easier to organize and curate charts, dashboards, and saved queries, allowing for effortless data discovery and collaboration within an organization. Users can create flexible and customizable tags for each piece of content, enabling different ways of organizing assets. Programmatic access to tag-related operations are supported via the RESTful API.
 
 <div>
     <img src="media/tags-1.png" alt="Image" width="100%">
@@ -95,11 +95,11 @@ The following feature flags were enabled by default:
 
 As part of the 4.0 approved initiatives, the following features were removed from Superset:
 
-- Filter Box: [#26328](https://github.com/apache/superset/pull/26328) removed the Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removed the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native filters.
+- Filter Box: [#26328](https://github.com/apache/superset/pull/26328) removed the Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removed the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native dashboard filters.
 
 - Filter Sets: [#26369](https://github.com/apache/superset/pull/26369) removed the Filters Set feature including the deprecated `DASHBOARD_NATIVE_FILTERS_SET` feature flag and all related API endpoints. The feature is permanently removed as it was not being actively maintained, it was not widely used, and it was full of bugs. We also considered that if we were to provide a similar feature, it would be better to re-implement it from scratch given the amount of technical debt that the implementation had.
 
-- Profile: [#26462](https://github.com/apache/superset/pull/26462) removed the Profile feature given that it was not actively maintained and not widely used.
+- Profile: [#26462](https://github.com/apache/superset/pull/26462) removed the Profile feature given that it was not actively maintained nor widely used.
 
 - Redirect API: [#26377](https://github.com/apache/superset/pull/26377) removed the deprecated Redirect API that supported short URLs (`/r`) and the `url` metadata table used to store them that was used before the permalink feature. Users lost the ability to generate R links ~1.5 years ago which seems sufficient time to remove the API.
 
@@ -107,9 +107,9 @@ As part of the 4.0 approved initiatives, the following features were removed fro
 
 As part of [[SIP-99] Proposal for correctly handling business logic](https://github.com/apache/superset/issues/25048) (specifically [SIP-99A](https://github.com/apache/superset/issues/25107) and [SIP-99B](https://github.com/apache/superset/issues/25108)), this release contains many improvements to the handling of business logic in Superset, specifically related to SQLAlchemy sessions and transactions. The goal of these efforts is to simplify the code, improve code quality, ensure a consistent "unit of work" approach, and provide clear guidance and examples of accepted code standards. These changes aim to improve developer experience by making the code simpler, improving testing, and ensuring a more streamlined and reliable system. We still have a long way to go to fully implement the SIP-99 proposal, but we are making progress and we are excited about the improvements that have been made so far.
 
-### All country maps are now managed via Jupyter notebook
+### All country maps are now managed via Jupyter Notebook
 
-In this release we made updates to the Jupyter notebook to ensure reliable execution by removing deprecated methods, adding new countries, including missing maps and fixing filename inconsistencies. This will make it easier to add more countries, dynamically add them to the country map plugin, and update map regions periodically. You can check [#26300](https://github.com/apache/superset/pull/26300) for more details.
+In this release we made updates to the Jupyter Notebook to ensure reliable execution by removing deprecated methods, adding new countries, including missing maps and fixing filename inconsistencies. This will make it easier to add more countries, dynamically add them to the country map plugin, and update map regions periodically. You can check [#26300](https://github.com/apache/superset/pull/26300) for more details.
 
 ### Sunburst chart migrated to ECharts
 
@@ -136,7 +136,7 @@ As with any Superset version upgrade, the process is simple in the broadest stro
 - Execute the migrations
 - If you have third-party apps interacting with Superset, check for relevant dependency updates or API endpoint changes that may affect compatibility.
 
-Your mileage may vary depending on
+Your mileage may vary depending on:
 
 - How you install and deploy Superset (e.g. docker vs. pip vs. helm)
 - How you’ve configured Superset
