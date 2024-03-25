@@ -239,7 +239,7 @@ pytest-cov==4.0.0
     # via -r requirements/development.in
 pytest-mock==3.10.0
     # via -r requirements/development.in
-python-ldap==3.4.3
+python-ldap==3.4.4
     # via -r requirements/development.in
 pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
