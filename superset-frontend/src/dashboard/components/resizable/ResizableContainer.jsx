@@ -179,6 +179,7 @@ class ResizableContainer extends React.PureComponent {
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
   }
 
   handleResizeStart(event, direction, ref) {
@@ -189,6 +190,9 @@ class ResizableContainer extends React.PureComponent {
     }
 
     this.setState(() => ({ isResizing: true }));
+
+    document.addEventListener('mousemove', this.handleMouseMove);
+    document.addEventListener('scroll', this.handleScroll);
   }
 
   handleResize(event, direction, ref) {
@@ -224,8 +228,35 @@ class ResizableContainer extends React.PureComponent {
       });
 
       this.setState(() => ({ isResizing: false }));
+
+      document.removeEventListener('mousemove', this.handleMouseMove);
+      document.removeEventListener('scroll', this.handleScroll);
     }
   }
+
+  handleMouseMove = e => {
+    if (this.state.isResizing) {
+      const windowHeight = window.innerHeight;
+      const bottomThreshold = windowHeight - 100;
+      if (e.clientY > bottomThreshold) {
+        window.scrollBy(0, 1);
+        console.log('scrolling down', {
+          windowHeight,
+          bottomThreshold,
+          clientY: e.clientY,
+        });
+      }
+    }
+  };
+
+  handleScroll = () => {
+    const { isResizing } = this.state;
+    if (isResizing) {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+        window.scrollBy(0, 1); // Scroll down by 1 pixel
+      }
+    }
+  };
 
   render() {
     const {
@@ -274,6 +305,10 @@ class ResizableContainer extends React.PureComponent {
     const { isResizing } = this.state;
 
     return (
+      // <div
+      //   onMouseMove={this.handleMouseMove}
+      //   className="window-scroll-detector"
+      // >
       <StyledResizable
         enable={enableConfig}
         grid={SNAP_TO_GRID}
@@ -317,6 +352,7 @@ class ResizableContainer extends React.PureComponent {
       >
         {children}
       </StyledResizable>
+      // </div>
     );
   }
 }
