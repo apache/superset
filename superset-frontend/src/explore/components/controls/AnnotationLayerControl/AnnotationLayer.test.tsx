@@ -32,7 +32,20 @@ const defaultProps = {
 };
 
 const nativeLayerApiRoute = 'glob:*/api/v1/annotation_layer/*';
-const chartApiRoute = 'glob:*/api/v1/chart/*';
+const chartApiRoute = /\/api\/v1\/chart\/\?q=.+/;
+const chartApiWithIdRoute = /\/api\/v1\/chart\/\w+\?q=.+/;
+
+const withIdResult = {
+  result: {
+    slice_name: 'Mocked Slice',
+    query_context: JSON.stringify({
+      form_data: {
+        groupby: ['country'],
+      },
+    }),
+    viz_type: 'line',
+  },
+};
 
 beforeAll(() => {
   const supportedAnnotationTypes = Object.values(ANNOTATION_TYPES_METADATA).map(
@@ -44,10 +57,10 @@ beforeAll(() => {
   });
 
   fetchMock.get(chartApiRoute, {
-    result: [
-      { id: 'a', slice_name: 'Chart A', viz_type: 'table', form_data: {} },
-    ],
+    result: [{ id: 'a', slice_name: 'Chart A', viz_type: 'table' }],
   });
+
+  fetchMock.get(chartApiWithIdRoute, withIdResult);
 
   setupColors();
 
@@ -186,7 +199,7 @@ test('fetches chart on mount if value present', async () => {
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     sourceType: 'Table',
   });
-  expect(fetchMock.calls(chartApiRoute).length).toBe(2);
+  expect(fetchMock.calls(chartApiWithIdRoute).length).toBe(1);
 });
 
 test('keeps apply disabled when missing required fields', async () => {

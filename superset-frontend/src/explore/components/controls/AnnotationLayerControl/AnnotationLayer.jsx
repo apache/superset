@@ -194,6 +194,7 @@ class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
+      valueOptions: {},
       slice: null,
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
