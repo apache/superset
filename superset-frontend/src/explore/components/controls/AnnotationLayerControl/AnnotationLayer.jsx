@@ -194,7 +194,6 @@ class AnnotationLayer extends React.PureComponent {
       hideLine,
       // refData
       isNew: !name,
-      valueOptions: {},
       slice: null,
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
@@ -254,8 +253,8 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   shouldFetchAppliedAnnotation() {
-    const { value, valueOptions, sourceType } = this.state;
-    return value && !valueOptions[value] && requiresQuery(sourceType);
+    const { value, sourceType } = this.state;
+    return value && requiresQuery(sourceType);
   }
 
   shouldFetchSliceData(prevState) {
@@ -571,6 +570,7 @@ class AnnotationLayer extends React.PureComponent {
 
   renderValueConfiguration() {
     const { annotationType, sourceType, value, valueOptions } = this.state;
+    const validValue = valueOptions?.[value] ?? null;
     let label = '';
     let description = '';
     if (requiresQuery(sourceType)) {
@@ -602,7 +602,7 @@ class AnnotationLayer extends React.PureComponent {
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
           options={this.fetchOptions}
-          value={valueOptions[value] || null}
+          value={validValue}
           onChange={this.handleSelectValue}
           notFoundContent={<NotFoundContent />}
         />
