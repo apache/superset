@@ -1525,6 +1525,7 @@ def extract_tables_from_jinja_sql(sql: str, engine: str | None = None) -> set[Ta
     :param engine: The associated database engine
     :returns: The set of tables referenced in the SQL statement
     :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
+    :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
     """
 
     from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
