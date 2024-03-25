@@ -230,7 +230,7 @@ class AnnotationLayer extends React.PureComponent {
   componentDidUpdate(prevProps, prevState) {
     if (this.shouldFetchSliceData(prevState)) {
       const { value } = this.state;
-      this.fetchSliceData(value);
+      this.fetchSliceData(value.value);
     }
   }
 
@@ -305,7 +305,6 @@ class AnnotationLayer extends React.PureComponent {
       annotationType,
       sourceType: null,
       value: null,
-      valueOptions: {},
       slice: null,
     });
   }
@@ -317,25 +316,20 @@ class AnnotationLayer extends React.PureComponent {
       this.setState({
         sourceType,
         value: null,
-        valueOptions: {},
         slice: null,
       });
     }
   }
 
   handleSelectValue(selectedValueObject) {
-    this.setState(prevState => ({
-      value: selectedValueObject.value,
-      valueOptions: {
-        ...prevState.valueOptions,
-        [selectedValueObject.value]: selectedValueObject,
-      },
+    this.setState({
+      value: selectedValueObject,
       descriptionColumns: [],
       intervalEndColumn: null,
       timeColumn: null,
       titleColumn: null,
       overrides: { time_range: null },
-    }));
+    });
   }
 
   handleTextValue(inputValue) {
@@ -467,11 +461,9 @@ class AnnotationLayer extends React.PureComponent {
         metadata && metadata.canBeAnnotationType(annotationType);
       if (canBeAnnotationType) {
         this.setState({
-          valueOptions: {
-            [id]: {
-              value: id,
-              label: sliceName,
-            },
+          value: {
+            value: id,
+            label: sliceName,
           },
           slice: {
             data: {
@@ -491,11 +483,9 @@ class AnnotationLayer extends React.PureComponent {
       const { result } = json;
       const layer = result;
       this.setState({
-        valueOptions: {
-          [layer.id]: {
-            value: layer.id,
-            label: layer.name,
-          },
+        value: {
+          value: layer.id,
+          label: layer.name,
         },
       });
     });
@@ -516,6 +506,7 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   applyAnnotation() {
+    const { value } = this.state;
     if (this.isValidForm()) {
       const annotationFields = [
         'name',
@@ -527,7 +518,6 @@ class AnnotationLayer extends React.PureComponent {
         'width',
         'showMarkers',
         'hideLine',
-        'value',
         'overrides',
         'show',
         'showLabel',
@@ -542,6 +532,9 @@ class AnnotationLayer extends React.PureComponent {
           newAnnotation[field] = this.state[field];
         }
       });
+
+      // Set value to id of annotation for use in runAnnotationQuery()
+      newAnnotation.value = value.value;
 
       if (newAnnotation.color === AUTOMATIC_COLOR) {
         newAnnotation.color = null;
@@ -569,8 +562,7 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   renderValueConfiguration() {
-    const { annotationType, sourceType, value, valueOptions } = this.state;
-    const validValue = valueOptions?.[value] ?? null;
+    const { annotationType, sourceType, value } = this.state;
     let label = '';
     let description = '';
     if (requiresQuery(sourceType)) {
@@ -602,7 +594,7 @@ class AnnotationLayer extends React.PureComponent {
           name="annotation-layer-value"
           header={this.renderChartHeader(label, description, value)}
           options={this.fetchOptions}
-          value={validValue}
+          value={value || null}
           onChange={this.handleSelectValue}
           notFoundContent={<NotFoundContent />}
         />
