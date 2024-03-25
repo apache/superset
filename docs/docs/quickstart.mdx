@@ -22,19 +22,23 @@ page.
 ### 1. Get Superset
 
 ```bash
-$ git clone git@github.com:apache/superset.git
+$ git clone https://github.com/apache/superset
 ```
 
 ### 2. Start the latest official release of Superset
 
 ```
+# Enter the repository you just clone
+$ cd superset
+
+# Fire up Superset using docker-compose
 $ docker-compose -f docker-compose-image-tag.yml up
 ```
 This may take a moment as docker-compose will fetch the underlying
 docker images and will load up some examples. Once all containers
 are downloaded and the output settles, you're ready to log in.
 
-### 3. Start using Superset
+### 3. Log into Superset
 Now head over to [http://localhost:8080](http://localhost:8080) and log in with the default created account:
 ```
 username: admin
