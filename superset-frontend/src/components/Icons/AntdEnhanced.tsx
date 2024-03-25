@@ -26,11 +26,7 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
   .filter(k => !k.includes('TwoTone'))
   .map(k => ({
     [k]: (props: IconType) => (
-      <StyledIcon
-        component={AntdIcons[k]}
-        role={props.onClick ? 'button' : undefined}
-        {...props}
-      />
+      <StyledIcon component={AntdIcons[k]} {...props} />
     ),
   }))
   .reduce((l, r) => ({ ...l, ...r }));
