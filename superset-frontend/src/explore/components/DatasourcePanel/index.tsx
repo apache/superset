@@ -353,6 +353,7 @@ export default function DataSourcePanel({
           }}
           value={inputValue}
           className="form-control input-md"
+          data-test="Search Metrics & Columns"
           placeholder={t('Search Metrics & Columns')}
         />
         <div className="field-selections">

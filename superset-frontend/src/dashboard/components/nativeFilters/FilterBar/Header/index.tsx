@@ -77,6 +77,9 @@ const AddFiltersButtonContainer = styled.div`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit * 2}px;
 
+    & button {
+      padding: 15px 10px 15px 5px;
+    }
     & button > [role='img']:first-of-type {
       margin-right: ${theme.gridUnit}px;
       line-height: 0;
@@ -112,6 +115,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"
           buttonSize="xsmall"
+          className="btn-link"
           onClick={() => toggleFiltersBar(false)}
         >
           <Icons.Expand iconColor={theme.colors.grayscale.base} />

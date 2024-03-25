@@ -324,6 +324,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           buttonStyle="secondary"
           cta
           key="cancel"
+          className="btn-secondary"
           onClick={onHide}
           data-test={DateFilterTestKey.CancelButton}
         >
@@ -333,6 +334,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           buttonStyle="primary"
           cta
           disabled={!validTimeRange}
+          className="btn-primary"
           key="apply"
           onClick={onSave}
           data-test={DateFilterTestKey.ApplyButton}

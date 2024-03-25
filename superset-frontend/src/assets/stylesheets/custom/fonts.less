@@ -1,0 +1,61 @@
+@font-family-list: sans Inter, mono monospace, icon 'Font Awesome 6 Pro',
+  glyph 'Font Awesome 6 Duotone';
+
+@font-size-list: xs 0.6875rem, sm 0.875rem, base 1rem, lg 1rem, 2xl 1.5rem,
+  3xl 1.875rem, 4xl 2.25rem, 5xl 3rem;
+
+@font-weight-list: light 300, normal 400, bold 600, 2xbold 600;
+
+.setFontFamily(@name: 'sans', @value: 'Inter') {
+  .font-@{name} {
+    font-family: @value !important;
+  }
+}
+
+.loopFontFamily(@index) when (@index > 0) {
+  @font-family: extract(@font-family-list, @index);
+  @name: extract(@font-family, 1);
+  @value: extract(@font-family, 2);
+  .setFontFamily(@name, @value);
+  .loopFontFamily(@index - 1);
+}
+.loopFontFamily(length(@font-family-list));
+
+.setFontSize(@name: 'base', @value: '1rem') {
+  .text-@{name} {
+    font-size: @value !important;
+  }
+}
+
+.loopFontSize(@index) when (@index > 0) {
+  @font-size: extract(@font-size-list, @index);
+  @name: extract(@font-size, 1);
+  @value: extract(@font-size, 2);
+  .setFontSize(@name, @value);
+  .loopFontSize(@index - 1);
+}
+.loopFontSize(length(@font-size-list));
+
+.setFontWeight(@name: 'normal', @value: '400') {
+  .font-@{name} {
+    font-weight: @value !important;
+  }
+}
+
+.loopFontWeight(@index) when (@index > 0) {
+  @font-weight: extract(@font-weight-list, @index);
+  @name: extract(@font-weight, 1);
+  @value: extract(@font-weight, 2);
+  .setFontWeight(@name, @value);
+  .loopFontWeight(@index - 1);
+}
+.loopFontWeight(length(@font-weight-list));
+
+@font-face {
+  font-display: block;
+  font-family: 'Font Awesome 6 Pro';
+  font-style: normal;
+  font-weight: 900;
+  src: url(fa-solid-900.woff2) format('woff2'),
+    url(fa-solid-900.ttf) format('truetype');
+}

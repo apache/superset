@@ -59,6 +59,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
 
     this.selectProps = {
       ariaLabel: t('Select column'),
+      className: 'select-column',
     };
   }
 
@@ -127,6 +128,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             options={selectOptions}
             {...this.selectProps}
             {...clauseSelectProps}
+            className="select-column"
           />
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('Filters by columns')}

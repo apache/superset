@@ -218,6 +218,7 @@ function AnnotationLayersList({
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => {
         handleAnnotationLayerEdit(null);
       },
@@ -229,6 +230,7 @@ function AnnotationLayersList({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
+      className: 'btn-secondary',
     });
   }
 

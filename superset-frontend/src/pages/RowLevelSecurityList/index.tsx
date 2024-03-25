@@ -316,6 +316,7 @@ function RowLevelSecurityList(props: RLSProps) {
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => handleRuleEdit(null),
     });
     subMenuButtons.push({
@@ -323,6 +324,7 @@ function RowLevelSecurityList(props: RLSProps) {
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
+      className: 'btn-secondary',
     });
   }
 

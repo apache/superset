@@ -144,6 +144,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             role="button"
             tabIndex={0}
             onClick={onClick}
+            className="btn-link"
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}

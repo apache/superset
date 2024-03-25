@@ -138,7 +138,9 @@ export const DraggableFilter: React.FC<FilterTabTitleProps> = ({
         className="dragIcon"
         viewBox="4 4 16 16"
       />
-      <div css={{ flex: 1 }}>{children}</div>
+      <div className="addEditFilterDrag" css={{ flex: 1 }}>
+        {children}
+      </div>
     </Container>
   );
 };

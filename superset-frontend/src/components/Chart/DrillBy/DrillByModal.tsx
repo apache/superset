@@ -138,6 +138,7 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
       <Button
         buttonStyle="primary"
+        className="btn-secondary"
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drill-by-modal"

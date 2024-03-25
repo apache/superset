@@ -242,7 +242,12 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Tabs.TabPane>
         </Tabs>
         <FilterActionsContainer>
-          <Button buttonSize="small" onClick={this.props.onClose} cta>
+          <Button
+            buttonSize="small"
+            onClick={this.props.onClose}
+            cta
+            className="btn-secondary"
+          >
             {t('Close')}
           </Button>
           <Button
@@ -254,7 +259,7 @@ export default class AdhocFilterEditPopover extends React.Component {
             }
             buttonStyle="primary"
             buttonSize="small"
-            className="m-r-5"
+            className="m-r-5 btn-primary"
             onClick={this.onSave}
             cta
           >

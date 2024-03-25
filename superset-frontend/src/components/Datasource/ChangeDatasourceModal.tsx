@@ -262,9 +262,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           {confirmChange && (
             <ConfirmModalStyled>
               <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>{t('Cancel')}</Button>
                 <Button
-                  className="proceed-btn"
+                  className="btn-secondary"
+                  onClick={handlerCancelConfirm}
+                >
+                  {t('Cancel')}
+                </Button>
+                <Button
+                  className="proceed-btn btn-primary"
                   buttonStyle="primary"
                   onClick={handleChangeConfirm}
                 >

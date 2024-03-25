@@ -57,6 +57,7 @@ const Footer: FC<FooterProps> = ({
         key="cancel"
         buttonStyle="secondary"
         data-test="native-filter-modal-cancel-button"
+        className="btn-secondary"
         onClick={onCancel}
       >
         {t('Cancel')}
@@ -65,6 +66,7 @@ const Footer: FC<FooterProps> = ({
         disabled={!canSave}
         key="submit"
         buttonStyle="primary"
+        className="btn-primary"
         onClick={handleSave}
         data-test="native-filter-modal-save-button"
       >

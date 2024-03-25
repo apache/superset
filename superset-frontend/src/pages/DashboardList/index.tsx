@@ -643,6 +643,7 @@ function DashboardList(props: DashboardListProps) {
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
+      className: 'btn-secondary',
     });
   }
   if (canCreate) {
@@ -653,6 +654,7 @@ function DashboardList(props: DashboardListProps) {
         </>
       ),
       buttonStyle: 'primary',
+      className: 'btn-primary',
       onClick: () => {
         window.location.assign('/dashboard/new');
       },
@@ -669,6 +671,7 @@ function DashboardList(props: DashboardListProps) {
         </Tooltip>
       ),
       buttonStyle: 'link',
+        className: 'btn-link',
       onClick: openDashboardImportModal,
     });
   }

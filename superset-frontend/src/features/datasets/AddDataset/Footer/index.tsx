@@ -114,9 +114,12 @@ function Footer({
 
   return (
     <>
-      <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
+      <Button className="btn-secondary" onClick={cancelButtonOnClick}>
+        {t('Cancel')}
+      </Button>
       <Button
         buttonStyle="primary"
+        className="btn-primary"
         disabled={disabledCheck}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}

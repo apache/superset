@@ -175,6 +175,7 @@ const ColorSchemeControl = ({
         />
       }
       ariaLabel={t('Select color scheme')}
+      data-test="select-color-scheme"
       allowClear={clearable}
       disabled={!!dashboardId}
       name={`select-${name}`}

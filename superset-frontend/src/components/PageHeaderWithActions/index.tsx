@@ -164,6 +164,7 @@ export const PageHeaderWithActions = ({
                 tooltip={tooltipProps?.text}
                 placement={tooltipProps?.placement}
                 data-test="actions-trigger"
+                className="btn-secondary"
               >
                 <Icons.MoreHoriz
                   iconColor={theme.colors.primary.dark2}

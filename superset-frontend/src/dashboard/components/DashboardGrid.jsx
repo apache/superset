@@ -216,7 +216,7 @@ class DashboardGrid extends React.PureComponent {
         buttonAction={() => {
           window.open(
             `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
+            '_self',
             'noopener noreferrer',
           );
         }}
@@ -239,7 +239,7 @@ class DashboardGrid extends React.PureComponent {
         buttonAction={() => {
           window.open(
             `/chart/add?dashboard_id=${dashboardId}`,
-            '_blank',
+            '_self',
             'noopener noreferrer',
           );
         }}

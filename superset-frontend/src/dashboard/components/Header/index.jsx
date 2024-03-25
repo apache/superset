@@ -552,6 +552,7 @@ class Header extends React.PureComponent {
                         >
                           <StyledUndoRedoButton
                             type="text"
+                            className="btn-link"
                             disabled={undoLength < 1}
                           >
                             <Icons.Undo
@@ -572,6 +573,7 @@ class Header extends React.PureComponent {
                         >
                           <StyledUndoRedoButton
                             type="text"
+                            className="btn-link"
                             disabled={redoLength < 1}
                           >
                             <Icons.Redo
@@ -593,6 +595,7 @@ class Header extends React.PureComponent {
                         onClick={this.constructor.discardChanges}
                         buttonStyle="default"
                         data-test="discard-changes-button"
+                        className="btn-secondary"
                         aria-label={t('Discard')}
                       >
                         {t('Discard')}
@@ -605,6 +608,7 @@ class Header extends React.PureComponent {
                         onClick={this.overwriteDashboard}
                         data-test="header-save-button"
                         aria-label={t('Save')}
+                        className="btn-primary"
                       >
                         {t('Save')}
                       </Button>
@@ -625,7 +629,7 @@ class Header extends React.PureComponent {
                       buttonStyle="secondary"
                       onClick={this.toggleEditMode}
                       data-test="edit-dashboard-button"
-                      className="action-button"
+                      className="action-button btn-primary"
                       css={editButtonStyle}
                       aria-label={t('Edit dashboard')}
                     >

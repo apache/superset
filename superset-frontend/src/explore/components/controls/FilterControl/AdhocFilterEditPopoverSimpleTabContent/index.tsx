@@ -503,6 +503,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           <SelectWithLabel
             labelText={labelText}
             options={suggestions}
+            data-test="comparator-option"
             {...comparatorSelectProps}
           />
         </Tooltip>

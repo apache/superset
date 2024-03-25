@@ -32,6 +32,7 @@ export function Item({ active, children, onClick }: PaginationItemButton) {
       <span
         role="button"
         tabIndex={active ? -1 : 0}
+        className="pagination-item"
         onClick={e => {
           e.preventDefault();
           if (!active) onClick(e);

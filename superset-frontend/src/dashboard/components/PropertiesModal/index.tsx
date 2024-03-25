@@ -642,6 +642,7 @@ const PropertiesModal = ({
             onClick={onHide}
             data-test="properties-modal-cancel-button"
             cta
+            className="btn-secondary"
           >
             {t('Cancel')}
           </Button>
@@ -650,7 +651,7 @@ const PropertiesModal = ({
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"
-            className="m-r-5"
+            className="m-r-5 btn-primary"
             cta
             disabled={dashboardInfo?.isManagedExternally}
             tooltip={

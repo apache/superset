@@ -401,6 +401,7 @@ const ColumnSelectPopover = ({
             <FormItem label={simpleColumnsLabel}>
               <Select
                 ariaLabel={simpleColumnsLabel}
+                className="select-column"
                 value={selectedSimpleColumn?.column_name}
                 onChange={onSimpleColumnChange}
                 allowClear
@@ -441,7 +442,12 @@ const ColumnSelectPopover = ({
         </Tabs.TabPane>
       </Tabs>
       <div>
-        <Button buttonSize="small" onClick={onResetStateAndClose} cta>
+        <Button
+          buttonSize="small"
+          onClick={onResetStateAndClose}
+          cta
+          className="btn-secondary"
+        >
           {t('Close')}
         </Button>
         <Button
@@ -449,6 +455,7 @@ const ColumnSelectPopover = ({
           buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
+          className="btn-primary"
           data-test="ColumnEdit#save"
           cta
         >

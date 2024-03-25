@@ -50,6 +50,7 @@ export const RunQueryButton = ({
       buttonStyle={chartIsStale ? 'primary' : 'secondary'}
       disabled={!!errorMessage}
       data-test="run-query-button"
+      className="btn-primary"
     >
       {isNewChart ? t('Create chart') : t('Update chart')}
     </Button>

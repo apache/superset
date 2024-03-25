@@ -71,8 +71,10 @@ function SearchFilter(
       <FormLabel>{Header}</FormLabel>
       <StyledInput
         allowClear
+        className="dashboard-search"
         data-test="filters-search"
         placeholder={t('Type a value')}
+        aria-label="filters-search-input"
         name={name}
         value={value}
         onChange={handleChange}

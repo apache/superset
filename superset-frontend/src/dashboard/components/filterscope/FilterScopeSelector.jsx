@@ -775,7 +775,11 @@ export default class FilterScopeSelector extends React.PureComponent {
         </ScopeBody>
 
         <ActionsContainer>
-          <Button buttonSize="small" onClick={this.onClose}>
+          <Button
+            buttonSize="small"
+            onClick={this.onClose}
+            className="btn-secondary"
+          >
             {t('Close')}
           </Button>
           {showSelector && (

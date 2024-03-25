@@ -206,13 +206,18 @@ const SaveQuery = ({
         title={<h4>{t('Save query')}</h4>}
         footer={
           <>
-            <Button onClick={close} data-test="cancel-query" cta>
+            <Button
+              onClick={close}
+              className="btn-secondary"
+              data-test="cancel-query"
+              cta
+            >
               {t('Cancel')}
             </Button>
             <Button
               buttonStyle={isSaved ? undefined : 'primary'}
               onClick={onSaveWrapper}
-              className="m-r-3"
+              className="m-r-3 btn-primary"
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}

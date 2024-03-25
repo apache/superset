@@ -195,6 +195,7 @@ function DashboardTable({
               </>
             ),
             buttonStyle: 'tertiary',
+            className: 'btn-primary',
             onClick: () => {
               window.location.assign('/dashboard/new');
             },
@@ -202,6 +203,7 @@ function DashboardTable({
           {
             name: t('View All »'),
             buttonStyle: 'link',
+            className: 'btn-secondary',
             onClick: () => {
               const target =
                 activeTab === TableTab.Favorite

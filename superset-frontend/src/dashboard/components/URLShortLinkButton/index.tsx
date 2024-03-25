@@ -97,7 +97,7 @@ export default function URLShortLinkButton({
       }
     >
       <span
-        className="short-link-trigger btn btn-default btn-sm"
+        className="short-link-trigger btn-link btn-sm"
         tabIndex={0}
         role="button"
         onClick={e => {

@@ -205,6 +205,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
           <div>
             <Button
               data-test="modal-save-dashboard-button"
+              className="btn-primary"
               buttonStyle="primary"
               onClick={this.saveDashboard}
             >

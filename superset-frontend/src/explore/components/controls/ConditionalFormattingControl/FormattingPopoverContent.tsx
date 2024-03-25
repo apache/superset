@@ -208,7 +208,11 @@ export const FormattingPopoverContent = ({
             rules={rulesRequired}
             initialValue={columns[0]?.value}
           >
-            <Select ariaLabel={t('Select column')} options={columns} />
+            <Select
+              data-test="select-column"
+              ariaLabel={t('Select column')}
+              options={columns}
+            />
           </FormItem>
         </Col>
         <Col span={12}>
@@ -227,7 +231,11 @@ export const FormattingPopoverContent = ({
       </FormItem>
       <FormItem>
         <JustifyEnd>
-          <Button htmlType="submit" buttonStyle="primary">
+          <Button
+            htmlType="submit"
+            buttonStyle="primary"
+            className="btn-primary"
+          >
             {t('Apply')}
           </Button>
         </JustifyEnd>

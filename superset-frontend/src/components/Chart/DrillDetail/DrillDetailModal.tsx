@@ -51,6 +51,7 @@ const ModalFooter = ({
   return (
     <>
       <Button
+        className="btn-primary"
         buttonStyle="secondary"
         buttonSize="small"
         onClick={exploreChart}
@@ -65,6 +66,7 @@ const ModalFooter = ({
       </Button>
       <Button
         buttonStyle="primary"
+        className="btn-secondary"
         buttonSize="small"
         onClick={closeModal}
         data-test="close-drilltodetail-modal"
