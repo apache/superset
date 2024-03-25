@@ -25,7 +25,8 @@ from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
-from superset.constants import TimeGrain
+from superset.config import VERSION_STRING
+from superset.constants import TimeGrain, USER_AGENT
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 
@@ -87,3 +88,18 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine_name = "MotherDuck"
 
     sqlalchemy_uri_placeholder = "duckdb:///md:{SERVICE_TOKEN}@{database_name}"
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> dict[str, Any]:
+        """
+        Add a user agent to be used in the requests.
+        """
+        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
+        config: dict[str, Any] = connect_args.setdefault("config", {})
+        custom_user_agent = config.pop("custom_user_agent", "")
+        delim = " " if custom_user_agent else ""
+        config.setdefault("custom_user_agent", f"{USER_AGENT}/{VERSION_STRING}{delim}{custom_user_agent}")
+
+        return extra

@@ -19,6 +19,11 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+import json
+
+from pytest_mock import MockerFixture
+
+from superset.config import VERSION_STRING
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
@@ -38,3 +43,25 @@ def test_convert_dttm(
     from superset.db_engine_specs.duckdb import DuckDBEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+def test_get_extra_params_motherduck(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_extra_params`` method.
+    """
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    database.extra = {}
+    assert MotherDuckEngineSpec.get_extra_params(database) == {
+        "engine_params": {"connect_args": {"config": {"custom_user_agent": f"Apache Superset/{VERSION_STRING}"}}}
+    }
+
+    database.extra = json.dumps(
+        {
+            "engine_params": {"connect_args": {"config": {"custom_user_agent": "My app"}}}
+        }
+    )
+    assert MotherDuckEngineSpec.get_extra_params(database) == {
+        "engine_params": {"connect_args": {"config": {"custom_user_agent": f"Apache Superset/{VERSION_STRING} My app"}}}
+    }
