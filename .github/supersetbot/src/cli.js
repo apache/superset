@@ -156,7 +156,7 @@ export default function getCLI(context) {
       .action(async function (pythonLib) {
         const opts = context.processOptions(this, ['repo']);
         const github = new Github({ context });
-        github.createBumpLibPullRequest(pythonLib, opts.verbose, opts.dryRun);
+        await github.createBumpLibPullRequest(pythonLib, opts.verbose, opts.dryRun);
       });
 
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { spawnSync } from 'child_process';
+import { spawn} from 'child_process';
 
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -41,29 +41,51 @@ export async function currentPackageVersion() {
   return data.version;
 }
 
+
 export function runShellCommand({ command, raiseOnError = true, exitOnError = true, cwd = null, verbose = false }) {
-  const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
-  const spawnOptions = { stdio: 'inherit', shell: true };
-  if (verbose) {
-    console.log(`RUN: ${command}`);
-  }
-  if (cwd) {
-    spawnOptions.cwd = cwd;
-  }
+  return new Promise((resolve, reject) => {
+    const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
+    const spawnOptions = {
+      shell: true,
+      cwd,
+    };
 
-  const result = spawnSync(args.shift(), args, spawnOptions);
-
-  if (result.status !== 0) {
-    const msg = `Command failed with exit code ${result.status}: ${result.stderr?.toString()}`;
-    console.error(msg);
-
-    if (raiseOnError) {
-      throw new Error(msg);
+    if (verbose) {
+      console.log(`RUN: ${command}`);
     }
-    if (exitOnError) {
-      process.exit(1);
-    }
-  }
 
-  return result.stdout?.toString();
+    const child = spawn(args.shift(), args, spawnOptions);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      console.log(data.toString());
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      console.log(data.toString());
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        const msg = `Command failed with exit code ${code}: ${stderr}`;
+        console.error(msg);
+
+        if (raiseOnError) {
+          reject(new Error(msg));
+        }
+        if (exitOnError) {
+          process.exit(1);
+        }
+      }
+
+      resolve({ stdout, stderr });
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+  });
 }

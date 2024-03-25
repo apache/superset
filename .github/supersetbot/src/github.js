@@ -253,33 +253,42 @@ class Github {
     return PROTECTED_LABEL_PATTERNS.some((pattern) => new RegExp(pattern).test(label));
   }
 
-  createBumpLibPullRequest(lib, verbose = false, dryRun = false) {
+  async createBumpLibPullRequest(lib, verbose = false, dryRun = false) {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'update-'));
     console.log("CWD:", cwd);
 
     // Clone the repo
-    runShellCommand({ command: `git clone --depth 1 git@github.com:${this.context.repo} .`, cwd, verbose });
+    await runShellCommand({ command: `git clone --depth 1 git@github.com:${this.context.repo} .`, cwd, verbose });
 
     // Run pip-compile-multi
-    runShellCommand({ command: `pip-compile-multi -P ${lib}`, cwd });
+    await runShellCommand({ command: `pip-compile-multi -P ${lib}`, cwd });
 
-    // Check for changes
-    const status = runShellCommand({ command: 'git status --porcelain', cwd, raiseOnError: false, verbose });
-    if (!!status) {
+    // Diffing
+    const diffResults = await runShellCommand({ command: 'git diff --color=never --unified=0', cwd, raiseOnError: false, verbose, exitOnError: false });
+
+    const changed = diffResults.stdout.trim()
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('+' + lib))
+      .map((line) => line.substring(1));
+
+    if (changed.length === 0) {
       console.log('No changes detected... skipping.');
     } else {
 
+      console.log("LIB:", changed[0]);
+
       // Create branch
-      const branchName = `bump-${lib}-${Date.now()}`;
-      runShellCommand({ command: `git checkout -b ${branchName}`, cwd, verbose });
+      const branchName = `supersetbot-bump-${changed[0]}`;
+      await runShellCommand({ command: `git checkout -b ${branchName}`, cwd, verbose });
 
       // Commit changes
-      runShellCommand({ command: `git add .`, cwd });
-      const commitMessage = `chore(supersetbot): bump python library "${lib}"`;
-      runShellCommand({ command: `git commit -m "${commitMessage}"`, cwd, verbose });
+      await runShellCommand({ command: `git add .`, cwd });
+      const commitMessage = `chore(🤖): bump python "${changed[0]}"`;
+      await runShellCommand({ command: `git commit -m "${commitMessage}"`, cwd, verbose });
 
       // Push changes
-      runShellCommand({ command: `git push origin ${branchName}`, cwd, verbose });
+      await runShellCommand({ command: `git push origin ${branchName}`, cwd, verbose });
 
       if (!dryRun) {
         // Create a PR
