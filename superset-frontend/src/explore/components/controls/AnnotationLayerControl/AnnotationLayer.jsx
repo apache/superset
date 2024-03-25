@@ -509,7 +509,7 @@ class AnnotationLayer extends React.PureComponent {
   }
 
   applyAnnotation() {
-    const { value } = this.state;
+    const { value, sourceType } = this.state;
     if (this.isValidForm()) {
       const annotationFields = [
         'name',
@@ -536,8 +536,9 @@ class AnnotationLayer extends React.PureComponent {
         }
       });
 
-      // Set value to id of annotation for use in runAnnotationQuery()
-      newAnnotation.value = value.value;
+      // Prepare newAnnotation.value for use in runAnnotationQuery()
+      const applicableValue = requiresQuery(sourceType) ? value.value : value;
+      newAnnotation.value = applicableValue;
 
       if (newAnnotation.color === AUTOMATIC_COLOR) {
         newAnnotation.color = null;
