@@ -24,6 +24,7 @@ export const ORG_LIST = [
   'Turing',
   'Superset-Community-Partners',
   'CybercentreCanada',
+  'TechAuditBI',
 ];
 export const PROTECTED_LABEL_PATTERNS = [
   'protected.*',
