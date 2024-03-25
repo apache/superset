@@ -42,6 +42,7 @@ apt-get-install() {
   sudo apt-get update && sudo apt-get install --yes \
     libsasl2-dev \
     libldap2-dev \
+    libffi-dev \
     libssl-dev
   say "::endgroup::"
 }
