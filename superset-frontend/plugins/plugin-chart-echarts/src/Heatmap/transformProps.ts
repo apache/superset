@@ -125,7 +125,6 @@ export default function transformProps(
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
-  const dimension = normalized ? 3 : 2;
   const sortedData = sortData(
     data,
     xAxisLabel,
@@ -204,18 +203,21 @@ export default function transformProps(
           yAxisLabel,
           metricLabel,
         );
-        const x = xAxisFormatter(params.value[0]);
+        const x = params.value[0];
         const y = params.value[1];
         const value = params.value[2];
+        const formattedX = xAxisFormatter(x);
+        const formattedY = yAxisFormatter(y);
+        const formattedValue = valueFormatter(value);
         let percentage = 0;
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
             percentage = (value / totals.x[x]) * 100;
-            suffix = x;
+            suffix = formattedX;
           } else if (normalizeAcross === 'y') {
             percentage = (value / totals.y[y]) * 100;
-            suffix = y;
+            suffix = formattedY;
           } else {
             percentage = (value / totals.total) * 100;
             suffix = 'heatmap';
@@ -223,9 +225,9 @@ export default function transformProps(
         }
         return `
           <div>
-            <div>${colnames[0]}: <b>${x}</b></div>
-            <div>${colnames[1]}: <b>${y}</b></div>
-            <div>${colnames[2]}: <b>${valueFormatter(value)}</b></div>
+            <div>${colnames[0]}: <b>${formattedX}</b></div>
+            <div>${colnames[1]}: <b>${formattedY}</b></div>
+            <div>${colnames[2]}: <b>${formattedValue}</b></div>
             ${
               showPercentage
                 ? `<div>% (${suffix}): <b>${valueFormatter(
@@ -251,7 +253,8 @@ export default function transformProps(
         color: colors,
       },
       show: showLegend,
-      dimension,
+      // By default, ECharts uses the last dimension which is rank
+      dimension: normalized ? 3 : 2,
     },
     xAxis: {
       type: 'category',
