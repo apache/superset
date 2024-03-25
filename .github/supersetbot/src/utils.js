@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { spawn } from 'child_process';
+import { spawnSync } from 'child_process';
+
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -40,39 +41,29 @@ export async function currentPackageVersion() {
   return data.version;
 }
 
-export function runShellCommand(command, raiseOnError = true) {
-  return new Promise((resolve, reject) => {
-    // Split the command string into an array of arguments
-    const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
-    const childProcess = spawn(args.shift(), args);
-    let stdoutData = '';
-    let stderrData = '';
+export function runShellCommand({ command, raiseOnError = true, exitOnError = true, cwd = null, verbose = false }) {
+  const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
+  const spawnOptions = { stdio: 'inherit', shell: true };
+  if (verbose) {
+    console.log(`RUN: ${command}`);
+  }
+  if (cwd) {
+    spawnOptions.cwd = cwd;
+  }
 
-    // Capture stdout data
-    childProcess.stdout.on('data', (data) => {
-      stdoutData += data;
-      console.log(`stdout: ${data}`);
-    });
+  const result = spawnSync(args.shift(), args, spawnOptions);
 
-    // Capture stderr data
-    childProcess.stderr.on('data', (data) => {
-      stderrData += data;
-      console.error(`stderr: ${data}`);
-    });
+  if (result.status !== 0) {
+    const msg = `Command failed with exit code ${result.status}: ${result.stderr?.toString()}`;
+    console.error(msg);
 
-    // Handle process exit
-    childProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdoutData);
-      } else {
-        const msg = `Command failed with code ${code}: ${stderrData}`;
-        if (raiseOnError) {
-          reject(new Error(msg));
-        } else {
-          console.error(msg);
-          process.exit(1);
-        }
-      }
-    });
-  });
+    if (raiseOnError) {
+      throw new Error(msg);
+    }
+    if (exitOnError) {
+      process.exit(1);
+    }
+  }
+
+  return result.stdout?.toString();
 }

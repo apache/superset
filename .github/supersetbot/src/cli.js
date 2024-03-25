@@ -151,6 +151,14 @@ export default function getCLI(context) {
         await github.assignOrgLabel(opts.issue, opts.verbose, opts.dryRun);
       });
 
+    program.command('auto-bump <python-lib>')
+      .description('Submit a PR to bump the version of a package')
+      .action(async function (pythonLib) {
+        const opts = context.processOptions(this, ['repo']);
+        const github = new Github({ context });
+        github.createBumpLibPullRequest(pythonLib, opts.verbose, opts.dryRun);
+      });
+
 
     program.command('docker')
       .description('Generates/run docker build commands use in CI')
@@ -166,7 +174,7 @@ export default function getCLI(context) {
         const cmd = docker.getDockerCommand({ ...opts });
         context.log(cmd);
         if (!opts.dryRun) {
-          utils.runShellCommand(cmd, false);
+          utils.runShellCommand({ cmd, raiseOnError: false });
         }
       });
   }

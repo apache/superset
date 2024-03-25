@@ -51,6 +51,7 @@ jobs:
           COMMENT_BODY: ${{ github.event.comment.body }}
           INPUT_COMMENT_BODY: ${{ github.event.inputs.comment_body }}
         run: |
+          npm install -g supersetbot
           cat <<EOF > script.js
           const run = async () => {
             const { runCommandFromGithubAction } = await import('supersetbot');
