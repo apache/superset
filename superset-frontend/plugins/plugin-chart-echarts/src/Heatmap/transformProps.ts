@@ -17,17 +17,13 @@
  * under the License.
  */
 import {
-  CategoricalColorNamespace,
-  ColorSchemeRegistry,
   GenericDataType,
   QueryFormColumn,
-  SequentialScheme,
   getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
-  t,
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
@@ -101,7 +97,6 @@ export default function transformProps(
   const { width, height, formData, queriesData, datasource } = chartProps;
   const {
     bottomMargin,
-    canvasImageRendering,
     xAxis,
     groupby,
     linearColorScheme,
@@ -117,7 +112,7 @@ export default function transformProps(
     sortYAxis,
     xscaleInterval,
     yscaleInterval,
-    yAxisBounds,
+    valueBounds,
     yAxisFormat,
     xAxisTimeFormat,
     currencyFormat,
@@ -128,7 +123,9 @@ export default function transformProps(
   const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
   const { data, colnames, coltypes } = queriesData[0];
   const { columnFormats = {}, currencyFormats = {} } = datasource;
-
+  const colorColumn = normalized ? 'rank' : metricLabel;
+  const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
+  const dimension = normalized ? 3 : 2;
   const sortedData = sortData(
     data,
     xAxisLabel,
@@ -158,8 +155,14 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
   );
-  // yAxisBounds need to be parsed to replace incompatible values with undefined
-  const [min, max] = (yAxisBounds || []).map(parseAxisBound);
+
+  let [min, max] = (valueBounds || []).map(parseAxisBound);
+  if (min === undefined) {
+    min = minBy(sortedData, row => row[colorColumn])?.[colorColumn] as number;
+  }
+  if (max === undefined) {
+    max = maxBy(sortedData, row => row[colorColumn])?.[colorColumn] as number;
+  }
 
   const series: HeatmapSeriesOption[] = [
     {
@@ -184,10 +187,6 @@ export default function transformProps(
       },
     },
   ];
-
-  const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
-  const dimension = normalized ? 3 : 2;
-  const colorColumn = normalized ? 'rank' : metricLabel;
 
   const echartOptions: EChartsOption = {
     grid: {
@@ -239,8 +238,8 @@ export default function transformProps(
     },
     visualMap: {
       type: legendType,
-      min: minBy(sortedData, row => row[colorColumn])?.[colorColumn] as number,
-      max: maxBy(sortedData, row => row[colorColumn])?.[colorColumn] as number,
+      min,
+      max,
       calculable: true,
       orient: 'horizontal',
       right: 0,
@@ -258,14 +257,14 @@ export default function transformProps(
       type: 'category',
       axisLabel: {
         formatter: xAxisFormatter,
+        interval: xscaleInterval === -1 ? 'auto' : xscaleInterval - 1,
       },
     },
     yAxis: {
       type: 'category',
-      min,
-      max,
       axisLabel: {
         formatter: yAxisFormatter,
+        interval: yscaleInterval === -1 ? 'auto' : yscaleInterval - 1,
       },
     },
   };

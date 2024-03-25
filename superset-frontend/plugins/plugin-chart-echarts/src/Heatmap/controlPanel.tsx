@@ -31,7 +31,6 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
-// TODO: Have a Customize tab
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -44,80 +43,6 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['adhoc_filters'],
         ['row_limit'],
-      ],
-    },
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'legend_type',
-            config: {
-              type: 'SelectControl',
-              label: t('Legend Type'),
-              renderTrigger: true,
-              choices: [
-                ['continuous', t('Continuous')],
-                ['piecewise', t('Piecewise')],
-              ],
-              default: 'continuous',
-              clearable: false,
-            },
-          },
-        ],
-        ['linear_color_scheme'],
-        [
-          {
-            name: 'xscale_interval',
-            config: {
-              type: 'SelectControl',
-              label: t('XScale Interval'),
-              renderTrigger: true,
-              choices: formatSelectOptionsForRange(1, 50),
-              default: 1,
-              clearable: false,
-              description: t(
-                'Number of steps to take between ticks when displaying the X scale',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'yscale_interval',
-            config: {
-              type: 'SelectControl',
-              label: t('YScale Interval'),
-              choices: formatSelectOptionsForRange(1, 50),
-              default: 1,
-              clearable: false,
-              renderTrigger: true,
-              description: t(
-                'Number of steps to take between ticks when displaying the Y scale',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'canvas_image_rendering',
-            config: {
-              type: 'SelectControl',
-              label: t('Rendering'),
-              renderTrigger: true,
-              choices: [
-                ['pixelated', t('pixelated (Sharp)')],
-                ['auto', t('auto (Smooth)')],
-              ],
-              default: 'pixelated',
-              description: t(
-                'image-rendering CSS attribute of the canvas object that ' +
-                  'defines how the browser scales up the image',
-              ),
-            },
-          },
-        ],
         [
           {
             name: 'normalize_across',
@@ -148,6 +73,65 @@ const config: ControlPanelConfig = {
                     </li>
                   </ul>
                 </>
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'legend_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Legend Type'),
+              renderTrigger: true,
+              choices: [
+                ['continuous', t('Continuous')],
+                ['piecewise', t('Piecewise')],
+              ],
+              default: 'continuous',
+              clearable: false,
+            },
+          },
+        ],
+        ['linear_color_scheme'],
+        [
+          {
+            name: 'xscale_interval',
+            config: {
+              type: 'SelectControl',
+              label: t('XScale Interval'),
+              renderTrigger: true,
+              choices: [[-1, t('Auto')]].concat(
+                formatSelectOptionsForRange(1, 50),
+              ),
+              default: 1,
+              clearable: false,
+              description: t(
+                'Number of steps to take between ticks when displaying the X scale',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'yscale_interval',
+            config: {
+              type: 'SelectControl',
+              label: t('YScale Interval'),
+              choices: [[-1, t('Auto')]].concat(
+                formatSelectOptionsForRange(1, 50),
+              ),
+              default: 1,
+              clearable: false,
+              renderTrigger: true,
+              description: t(
+                'Number of steps to take between ticks when displaying the Y scale',
               ),
             },
           },
@@ -204,16 +188,13 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'y_axis_bounds',
+            name: 'value_bounds',
             config: {
               type: 'BoundsControl',
               label: t('Value bounds'),
               renderTrigger: true,
               default: [null, null],
-              description: t(
-                'Hard value bounds applied for color coding. Is only relevant ' +
-                  'and applied when the normalization is applied against the whole heatmap.',
-              ),
+              description: t('Hard value bounds applied for color coding.'),
             },
           },
         ],

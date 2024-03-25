@@ -26,7 +26,6 @@ import { BaseChartProps, BaseTransformedProps } from '../types';
 
 export interface HeatmapFormData extends QueryFormData {
   bottomMargin: string;
-  canvasImageRendering?: string;
   currencyFormat?: Currency;
   leftMargin: string;
   legendType: 'continuous' | 'piecewise';
@@ -41,10 +40,10 @@ export interface HeatmapFormData extends QueryFormData {
   sortYAxis: string;
   timeFormat?: string;
   xAxis: QueryFormColumn;
-  xscaleInterval: string;
-  yAxisBounds: [number | undefined | null, number | undefined | null];
+  xscaleInterval: number;
+  valueBounds: [number | undefined | null, number | undefined | null];
   yAxisFormat?: string;
-  yscaleInterval: string;
+  yscaleInterval: number;
 }
 
 export interface HeatmapChartProps extends BaseChartProps<HeatmapFormData> {
