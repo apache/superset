@@ -31,16 +31,12 @@ jobs:
               comment_id: ${{ github.event.comment.id }},
               content: '+1'
             });
-      - name: Execute SupersetBot Command
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
+        with:
+          from-npm: 'true'
+
 
       - name: Execute custom Node.js script
         env:

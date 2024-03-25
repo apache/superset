@@ -16,13 +16,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
-
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
-      - name: Execute custom Node.js script
+      - name: Execute supersetbot orglabel command
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
