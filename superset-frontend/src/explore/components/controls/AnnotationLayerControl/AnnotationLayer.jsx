@@ -223,6 +223,9 @@ class AnnotationLayer extends React.PureComponent {
   componentDidMount() {
     if (this.shouldFetchAppliedAnnotation()) {
       const { value } = this.state;
+      /* The value prop is the id of the chart/native. This function will set
+      value in state to an object with the id as value.value to be used by
+      AsyncSelect */
       this.fetchAppliedAnnotation(value);
     }
   }
