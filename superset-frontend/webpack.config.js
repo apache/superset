@@ -483,7 +483,7 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
 });
-console.log(''); // pure cosmetic new line
+
 
 let proxyConfig = getProxyConfig();
 
