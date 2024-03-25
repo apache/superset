@@ -287,10 +287,11 @@ class Github {
       const commitMessage = `chore(🤖): bump python "${changed[0]}"`;
       await runShellCommand({ command: `git commit -m "${commitMessage}"`, cwd, verbose });
 
-      // Push changes
-      await runShellCommand({ command: `git push origin ${branchName}`, cwd, verbose });
-
       if (!dryRun) {
+
+        // Push changes
+        await runShellCommand({ command: `git push origin ${branchName}`, cwd, verbose });
+
         // Create a PR
         this.octokit.pulls.create({
             ...this.unPackRepo(),
@@ -303,6 +304,7 @@ class Github {
             console.log(`Pull request created: ${data.html_url}`);
         })
         .catch(console.error);
+
       }
     }
     // Cleaning up
