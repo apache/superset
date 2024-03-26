@@ -37,6 +37,7 @@
     "xss": "^1.0.15"
   },
   "peerDependencies": {
+    "@ant-design/icons": "^5.0.1",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@testing-library/dom": "^7.29.4",
