@@ -134,7 +134,6 @@ export default function ChartCard({
   );
   return (
     <CardStyles
-      role="button"
       onClick={() => {
         if (!bulkSelectEnabled && chart.url) {
           history.push(chart.url);

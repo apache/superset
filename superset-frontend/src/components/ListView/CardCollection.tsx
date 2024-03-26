@@ -93,6 +93,7 @@ export default function CardCollection({
               })}
               key={row.id}
               onClick={e => handleClick(e, row.toggleRowSelected)}
+              role="none"
             >
               {renderCard({ ...row.original, loading })}
             </CardWrapper>

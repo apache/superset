@@ -141,7 +141,6 @@ class CollectionControl extends React.Component {
                 label="remove-item"
                 tooltip={t('Remove item')}
                 bsStyle="primary"
-                role="button"
                 onClick={this.removeItem.bind(this, i)}
               />
             </SortableListItem>
