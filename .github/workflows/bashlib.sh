@@ -31,20 +31,6 @@ say() {
   fi
 }
 
-# default command to run when the `run` input is empty
-default-setup-command() {
-  apt-get-install
-  pip-upgrade
-}
-
-apt-get-install() {
-  say "::group::apt-get install dependencies"
-  sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev \
-    libldap2-dev
-  say "::endgroup::"
-}
-
 pip-upgrade() {
   say "::group::Upgrade pip"
   pip install --upgrade pip
