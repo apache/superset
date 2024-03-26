@@ -21,12 +21,20 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: ${{ inputs.cache }}
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
+      - name: Execute custom Node.js script
+        run: pip install pip-compile-multi
       - name: Execute custom Node.js script
         env:
           GITHUB_TOKEN: ${{ github.token }}
