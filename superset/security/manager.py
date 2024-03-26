@@ -1963,9 +1963,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 default_schema = database.get_default_schema_for_query(query)
                 tables = {
                     Table(table_.table, table_.schema or default_schema)
-                    for table_ in extract_tables_from_jinja_sql(
-                        query.sql, database.db_engine_spec.engine
-                    )
+                    for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
                 tables = {table}
