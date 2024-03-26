@@ -253,7 +253,7 @@ pgsanity==0.2.9
     # via apache-superset
 platformdirs==3.8.1
     # via requests-cache
-polyline==2.0.0
+polyline==2.0.2
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
