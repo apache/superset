@@ -1,9 +1,6 @@
 name: Bump Python Package
 
 on:
-  push: {}
-  pull_request: {}
-
   # Can be triggered manually
   workflow_dispatch:
     inputs:
@@ -40,5 +37,6 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          git config --global http.extraHeader "AUTHORIZATION: bearer ${GITHUB_TOKEN}"
+          git config --global http.https://github.com/.extraheader "AUTHORIZATION: bearer ${{ secrets.GITHUB_TOKEN }}"
+
           supersetbot bump-python --package "${{ github.event.inputs.package }}" --verbose
