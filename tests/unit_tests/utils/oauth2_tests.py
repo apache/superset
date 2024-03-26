@@ -18,16 +18,11 @@
 # pylint: disable=invalid-name, disallowed-name
 
 from datetime import datetime
-from uuid import UUID
 
-import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
-from superset.exceptions import CreateAuthLockFailedException
-from superset.key_value.exceptions import KeyValueCreateFailedError
-from superset.key_value.types import KeyValueResource
-from superset.utils.oauth2 import AuthLock, get_oauth2_access_token, integers_to_uuid
+from superset.utils.oauth2 import get_oauth2_access_token
 
 
 def test_get_oauth2_access_token_base_no_token(mocker: MockerFixture) -> None:
@@ -98,71 +93,3 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
 
     # check that token was deleted
     db.session.delete.assert_called_with(token)
-
-
-def test_integers_to_uuid() -> None:
-    """
-    Test `integers_to_uuid`.
-    """
-    assert integers_to_uuid(1, 1) == UUID("4a426d86-eae0-53be-8f9a-8113ffc5a445")
-    assert integers_to_uuid(2, 1) == UUID("0a81e791-1685-5239-bc04-4cdd6aacc18d")
-    assert integers_to_uuid(1, 2) == UUID("83b19a49-b4f2-5ac5-9b52-5a63907dd160")
-
-
-def test_AuthLock_happy_path(mocker: MockerFixture) -> None:
-    """
-    Test successfully acquiring the global auth lock.
-    """
-    CreateKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand"
-    )
-    DeleteKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete.DeleteKeyValueCommand"
-    )
-    DeleteExpiredKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete_expired.DeleteExpiredKeyValueCommand"
-    )
-    PickleKeyValueCodec = mocker.patch("superset.utils.oauth2.PickleKeyValueCodec")
-
-    with freeze_time("2024-01-01"):
-        with AuthLock(1, 1):
-            DeleteExpiredKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.OAUTH2,
-            )
-            CreateKeyValueCommand.assert_called_with(
-                resource=KeyValueResource.OAUTH2,
-                codec=PickleKeyValueCodec(),
-                key=integers_to_uuid(1, 1),
-                value=True,
-                expires_on=datetime(2024, 1, 1, 0, 0, 30),
-            )
-            DeleteKeyValueCommand.assert_not_called()
-
-        DeleteKeyValueCommand.assert_called_with(
-            resource=KeyValueResource.OAUTH2,
-            key=integers_to_uuid(1, 1),
-        )
-
-
-def test_AuthLock_no_lock(mocker: MockerFixture) -> None:
-    """
-    Test unsuccessfully acquiring the global auth lock.
-    """
-    mocker.patch(
-        "superset.commands.key_value.create.CreateKeyValueCommand",
-        side_effect=KeyValueCreateFailedError(),
-    )
-    DeleteKeyValueCommand = mocker.patch(
-        "superset.commands.key_value.delete.DeleteKeyValueCommand"
-    )
-
-    with pytest.raises(CreateAuthLockFailedException) as excinfo:
-        with AuthLock(1, 1):
-            pass
-    assert str(excinfo.value) == "Error acquiring lock"
-
-    # confirm that key was deleted
-    DeleteKeyValueCommand.assert_called_with(
-        resource=KeyValueResource.OAUTH2,
-        key=integers_to_uuid(1, 1),
-    )

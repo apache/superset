@@ -358,7 +358,7 @@ class OAuth2Error(SupersetErrorException):
         )
 
 
-class CreateAuthLockFailedException(Exception):
+class CreateKeyValueDistributedLockFailedException(Exception):
     """
-    Exception to signalize failure to acquire lock when refreshing token.
+    Exception to signalize failure to acquire lock.
     """
