@@ -282,7 +282,7 @@ class Github {
     const shellOptions = { cwd, verbose, dryRun, raiseOnError:true, exitOnError: false };
 
     if (!useCurrentRepo) {
-      const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'update-'));
+      cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'update-'));
       console.log("CWD:", cwd);
 
       // Clone the repo
