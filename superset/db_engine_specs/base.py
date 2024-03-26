@@ -59,7 +59,7 @@ from superset import security_manager, sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import ParsedQuery, SQLScript, Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -1448,7 +1448,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 qry = partition_query
         sql = database.compile_sqla_query(qry)
         if indent:
-            sql = sqlparse.format(sql, reindent=True)
+            sql = SQLScript(sql, engine=cls.engine).format()
         return sql
 
     @classmethod

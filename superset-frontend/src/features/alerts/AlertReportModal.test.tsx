@@ -541,8 +541,8 @@ test('defaults to day when CRON is not selected', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  const days = screen.getAllByTitle(/day/i, { exact: true });
-  expect(days.length).toBe(2);
+  const day = screen.getByText('day');
+  expect(day).toBeInTheDocument();
 });
 
 // Notification Method Section

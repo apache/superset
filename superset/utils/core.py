@@ -822,6 +822,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     config: dict[str, Any],
     files: list[str] | None = None,
     data: dict[str, str] | None = None,
+    pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
     cc: str | None = None,
@@ -876,6 +877,15 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         msg.attach(
             MIMEApplication(
                 body, Content_Disposition=f"attachment; filename='{name}'", Name=name
+            )
+        )
+
+    for name, body_pdf in (pdf or {}).items():
+        msg.attach(
+            MIMEApplication(
+                body_pdf,
+                Content_Disposition=f"attachment; filename='{name}'",
+                Name=name,
             )
         )
 

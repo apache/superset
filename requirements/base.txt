@@ -7,7 +7,7 @@
 #
 -e file:.
     # via -r requirements/base.in
-alembic==1.6.5
+alembic==1.13.1
     # via flask-migrate
 amqp==5.1.1
     # via kombu
@@ -161,7 +161,11 @@ idna==3.2
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   flask
+    #   markdown
+    #   shillelagh
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.0
@@ -188,7 +192,7 @@ mako==1.2.4
     # via
     #   alembic
     #   apache-superset
-markdown==3.3.4
+markdown==3.6
     # via apache-superset
 markdown-it-py==2.2.0
     # via rich
@@ -274,11 +278,10 @@ pynacl==1.5.0
     # via paramiko
 pyparsing==3.0.6
     # via apache-superset
-pyrsistent==0.19.3
+pyrsistent==0.20.0
     # via jsonschema
 python-dateutil==2.8.2
     # via
-    #   alembic
     #   apache-superset
     #   celery
     #   croniter
@@ -288,8 +291,6 @@ python-dateutil==2.8.2
     #   shillelagh
 python-dotenv==0.19.0
     # via apache-superset
-python-editor==1.0.4
-    # via alembic
 python-geohash==0.8.5
     # via apache-superset
 pytz==2021.3
@@ -344,7 +345,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset
     #   flask-appbuilder
-sqlglot==20.8.0
+sqlglot==23.0.2
     # via apache-superset
 sqlparse==0.4.4
     # via apache-superset
@@ -354,9 +355,11 @@ tabulate==0.8.9
     # via apache-superset
 typing-extensions==4.4.0
     # via
+    #   alembic
     #   apache-superset
     #   cattrs
     #   flask-limiter
+    #   kombu
     #   limits
     #   shillelagh
 tzdata==2023.3
@@ -398,7 +401,9 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.7
     # via apache-superset
 zipp==3.15.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

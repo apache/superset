@@ -51,21 +51,15 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
-      - name: Install dependencies
+      - name: Setup MySQL
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
             setup-mysql
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -78,7 +72,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           bash .github/workflows/codecov.sh -c -F python -F mysql
-
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -117,21 +110,15 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
-      - name: Install dependencies
+      - name: Setup Postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -177,21 +164,16 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirements/testing.txt"
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
+            # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
       - name: Run celery
         if: steps.check.outcome == 'failure'

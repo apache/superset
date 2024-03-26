@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
@@ -25,6 +24,20 @@ import { t, styled, SupersetClient } from '@superset-ui/core';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { CssEditor as AceCssEditor } from 'src/components/AsyncAceEditor';
 
+export interface CssEditorProps {
+  initialCss: string;
+  triggerNode: React.ReactNode;
+  onChange: (css: string) => void;
+  addDangerToast: (msg: string) => void;
+}
+
+export type CssEditorState = {
+  css: string;
+  templates?: Array<{
+    css: string;
+    label: string;
+  }>;
+};
 const StyledWrapper = styled.div`
   ${({ theme }) => `
     .css-editor-header {
@@ -43,24 +56,16 @@ const StyledWrapper = styled.div`
   `}
 `;
 
-const propTypes = {
-  initialCss: PropTypes.string,
-  triggerNode: PropTypes.node.isRequired,
-  onChange: PropTypes.func,
-  addDangerToast: PropTypes.func.isRequired,
-};
+class CssEditor extends React.PureComponent<CssEditorProps, CssEditorState> {
+  static defaultProps: Partial<CssEditorProps> = {
+    initialCss: '',
+    onChange: () => {},
+  };
 
-const defaultProps = {
-  initialCss: '',
-  onChange: () => {},
-};
-
-class CssEditor extends React.PureComponent {
-  constructor(props) {
+  constructor(props: CssEditorProps) {
     super(props);
     this.state = {
       css: props.initialCss,
-      templates: [],
     };
     this.changeCss = this.changeCss.bind(this);
     this.changeCssTemplate = this.changeCssTemplate.bind(this);
@@ -71,11 +76,13 @@ class CssEditor extends React.PureComponent {
 
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
       .then(({ json }) => {
-        const templates = json.result.map(row => ({
-          value: row.template_name,
-          css: row.css,
-          label: row.template_name,
-        }));
+        const templates = json.result.map(
+          (row: { template_name: string; css: string }) => ({
+            value: row.template_name,
+            css: row.css,
+            label: row.template_name,
+          }),
+        );
 
         this.setState({ templates });
       })
@@ -86,14 +93,15 @@ class CssEditor extends React.PureComponent {
       });
   }
 
-  changeCss(css) {
+  changeCss(css: string) {
     this.setState({ css }, () => {
       this.props.onChange(css);
     });
   }
 
-  changeCssTemplate({ key }) {
-    this.changeCss(key);
+  changeCssTemplate(info: { key: React.Key }) {
+    const keyAsString = String(info.key);
+    this.changeCss(keyAsString);
   }
 
   renderTemplateSelector() {
@@ -105,7 +113,6 @@ class CssEditor extends React.PureComponent {
           ))}
         </Menu>
       );
-
       return (
         <AntdDropdown overlay={menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
@@ -143,8 +150,5 @@ class CssEditor extends React.PureComponent {
     );
   }
 }
-
-CssEditor.propTypes = propTypes;
-CssEditor.defaultProps = defaultProps;
 
 export default CssEditor;

@@ -273,7 +273,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-            "WHERE ((name like 'A%'\n        or name like 'B%')\n       OR (name like 'Q%'))\n  AND (gender = 'boy');"
+            "WHERE\n  (\n    (\n      name LIKE 'A%' OR name LIKE 'B%'\n    ) OR (\n      name LIKE 'Q%'\n    )\n  )\n  AND (\n    gender = 'boy'\n  )"
             in sql
         )
 
@@ -619,7 +619,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
-RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
+RLS_GENDER_REGEX = re.compile(r"AND \([\s\n]*gender = 'girl'[\s\n]*\)")
 
 
 @mock.patch.dict(

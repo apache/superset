@@ -37,7 +37,7 @@ export const supersetClientQuery: BaseQueryFn<
     endpoint: string;
     parseMethod?: ParseMethod;
     transformResponse?: (response: SupersetClientResponse) => JsonValue;
-    urlParams?: Record<string, number | string | undefined | boolean>;
+    urlParams?: Record<string, number | string | undefined | boolean | object>;
   },
   JsonValue,
   ClientErrorObject
@@ -80,6 +80,7 @@ export const api = createApi({
     'QueryValidations',
     'TableMetadatas',
     'SqlLabInitialState',
+    'EditorQueries',
   ],
   endpoints: () => ({}),
   baseQuery: supersetClientQuery,
