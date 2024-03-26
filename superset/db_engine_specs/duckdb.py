@@ -96,7 +96,8 @@ class DuckDBEngineSpec(BaseEngineSpec):
         config: dict[str, Any] = connect_args.setdefault("config", {})
         custom_user_agent = config.pop("custom_user_agent", "")
         delim = " " if custom_user_agent else ""
-        user_agent = f"{USER_AGENT.lower().replace(" ", "-")}/{VERSION_STRING}{delim}{custom_user_agent}"
+        user_agent = USER_AGENT.replace(" ", "-").lower()
+        user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
