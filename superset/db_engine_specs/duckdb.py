@@ -22,6 +22,7 @@ from re import Pattern
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from pytz import VERSION
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
@@ -82,13 +83,6 @@ class DuckDBEngineSpec(BaseEngineSpec):
     ) -> set[str]:
         return set(inspector.get_table_names(schema))
 
-
-class MotherDuckEngineSpec(DuckDBEngineSpec):
-    engine = "duckdb"
-    engine_name = "MotherDuck"
-
-    sqlalchemy_uri_placeholder = "duckdb:///md:{SERVICE_TOKEN}@{database_name}"
-
     @staticmethod
     def get_extra_params(database: "Database") -> dict[str, Any]:
         """
@@ -100,6 +94,14 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         config: dict[str, Any] = connect_args.setdefault("config", {})
         custom_user_agent = config.pop("custom_user_agent", "")
         delim = " " if custom_user_agent else ""
-        config.setdefault("custom_user_agent", f"{USER_AGENT}/{VERSION_STRING}{delim}{custom_user_agent}")
+        user_agent = f"{USER_AGENT}/{VERSION_STRING}{delim}{custom_user_agent}"
+        config.setdefault("custom_user_agent", user_agent)
 
         return extra
+
+
+class MotherDuckEngineSpec(DuckDBEngineSpec):
+    engine = "duckdb"
+    engine_name = "MotherDuck"
+
+    sqlalchemy_uri_placeholder = "duckdb:///md:{SERVICE_TOKEN}@{database_name}"
