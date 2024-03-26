@@ -43,16 +43,16 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
-def test_get_extra_params_motherduck(mocker: MockerFixture) -> None:
+def test_get_extra_params(mocker: MockerFixture) -> None:
     """
     Test the ``get_extra_params`` method.
     """
-    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
 
     database = mocker.MagicMock()
 
     database.extra = {}
-    assert MotherDuckEngineSpec.get_extra_params(database) == {
+    assert DuckDBEngineSpec.get_extra_params(database) == {
         "engine_params": {
             "connect_args": {
                 "config": {"custom_user_agent": f"apache-superset/{VERSION_STRING}"}
@@ -63,7 +63,7 @@ def test_get_extra_params_motherduck(mocker: MockerFixture) -> None:
     database.extra = json.dumps(
         {"engine_params": {"connect_args": {"config": {"custom_user_agent": "My app"}}}}
     )
-    assert MotherDuckEngineSpec.get_extra_params(database) == {
+    assert DuckDBEngineSpec.get_extra_params(database) == {
         "engine_params": {
             "connect_args": {
                 "config": {
