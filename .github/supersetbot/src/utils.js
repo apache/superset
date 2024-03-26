@@ -42,7 +42,7 @@ export async function currentPackageVersion() {
 }
 
 
-export function runShellCommand({ command, raiseOnError = true, exitOnError = true, cwd = null, verbose = false }) {
+export function runShellCommand({ command, raiseOnError = true, exitOnError = true, cwd = null, verbose = false, dryRun = false }) {
   return new Promise((resolve, reject) => {
     const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
     const spawnOptions = {
@@ -55,17 +55,26 @@ export function runShellCommand({ command, raiseOnError = true, exitOnError = tr
       console.log(`RUN: ${command}`);
     }
 
+    if (dryRun) {
+      resolve({ stdout: '', stderr: '' });
+      return;
+    }
+
     const child = spawn(args.shift(), args, spawnOptions);
     let stdout = '';
     let stderr = '';
 
     child.stdout.on('data', (data) => {
-      console.log(data.toString());
+      if (verbose) {
+        console.log(data.toString());
+      }
       stdout += data.toString();
     });
 
     child.stderr.on('data', (data) => {
-      console.log(data.toString());
+      if (verbose) {
+        console.log(data.toString());
+      }
       stderr += data.toString();
     });
 

@@ -153,15 +153,16 @@ export default function getCLI(context) {
 
     program.command('bump-python')
       .description('Submit PR(s) to bump python dependencies')
-      .option('-p, --package <package>', 'name of the package to bump')
+      .option('-p, --python-package <pythonPackage>', 'name of the package to bump')
+      .option('-u, --use-current-repo', 'Uses the current repo instead of a temporary one')
       .action(async function (pythonLib) {
         const opts = context.processOptions(this, ['repo']);
         const github = new Github({ context });
-        if (!opts.package) {
-          await github.createAllBumpPRs(opts.verbose, opts.dryRun);
+        if (!opts.pythonPackage) {
+          await github.createAllBumpPRs({ ...opts });
         }
         else {
-          await github.createBumpLibPullRequest(opts.package, opts.verbose, opts.dryRun);
+          await github.createBumpLibPullRequest({ ...opts });
         }
 
       });
