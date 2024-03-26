@@ -55,7 +55,7 @@ def test_get_extra_params_motherduck(mocker: MockerFixture) -> None:
     assert MotherDuckEngineSpec.get_extra_params(database) == {
         "engine_params": {
             "connect_args": {
-                "config": {"custom_user_agent": f"Apache Superset/{VERSION_STRING}"}
+                "config": {"custom_user_agent": f"apache-superset/{VERSION_STRING}"}
             }
         }
     }
@@ -67,7 +67,7 @@ def test_get_extra_params_motherduck(mocker: MockerFixture) -> None:
         "engine_params": {
             "connect_args": {
                 "config": {
-                    "custom_user_agent": f"Apache Superset/{VERSION_STRING} My app"
+                    "custom_user_agent": f"apache-superset/{VERSION_STRING} My app"
                 }
             }
         }
