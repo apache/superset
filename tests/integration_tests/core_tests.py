@@ -1073,6 +1073,29 @@ class TestCore(SupersetTestCase):
         database.extra = json.dumps(extra)
         self.assertEqual(database.disable_data_preview, False)
 
+    def test_disable_drill_to_detail(self):
+        # test that disable_drill_to_detail is False by default
+        database = utils.get_example_database()
+        self.assertEqual(database.disable_drill_to_detail, False)
+
+        # test that disable_drill_to_detail can be set to True
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = True
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, True)
+
+        # test that disable_drill_to_detail can be set to False
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = False
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, False)
+
+        # test that disable_drill_to_detail is not broken with bad values
+        extra = database.get_extra()
+        extra["disable_drill_to_detail"] = "trash value"
+        database.extra = json.dumps(extra)
+        self.assertEqual(database.disable_drill_to_detail, False)
+
     def test_explore_database_id(self):
         database = superset.utils.database.get_example_database()
         explore_database = superset.utils.database.get_example_database()
@@ -1184,6 +1207,21 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
+
+    @mock.patch("superset.views.core.request")
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink(self, get_dashboard_permalink_mock, request_mock):
+        request_mock.query_string = b"standalone=3"
+        get_dashboard_permalink_mock.return_value = {"dashboardId": 1}
+        self.login()
+        resp = self.client.get("superset/dashboard/p/123/")
+
+        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+
+        self.assertEqual(resp.headers["Location"], expected_url)
+        assert resp.status_code == 302
 
 
 if __name__ == "__main__":

@@ -1,18 +1,26 @@
 ---
 title: Installing on Kubernetes
 hide_title: true
-sidebar_position: 3
+sidebar_position: 1
 version: 1
 ---
 
 ## Installing on Kubernetes
 
-Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
+Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
+found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
 ### Prerequisites
 
 - A Kubernetes cluster
 - Helm installed
+
+:::note
+For simpler, single host environments, we recommend using
+[minikube](https://minikube.sigs.k8s.io/docs/start/) which is easy to setup on many platforms
+and works fantastically well with the Helm chart referenced here.
+:::
+
 
 ### Running
 

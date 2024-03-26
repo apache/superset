@@ -571,6 +571,22 @@ const ExtraOptions = ({
             )}
           </div>
         </StyledInputContainer>
+        <StyledInputContainer css={no_margin_bottom}>
+          <div className="input-container">
+            <IndeterminateCheckbox
+              id="disable_drill_to_detail"
+              indeterminate={false}
+              checked={!!extraJson?.disable_drill_to_detail}
+              onChange={onExtraInputChange}
+              labelText={t('Disable drill to detail')}
+            />
+            <InfoTooltip
+              tooltip={t(
+                'Disables the drill to detail feature for this database.',
+              )}
+            />
+          </div>
+        </StyledInputContainer>
       </Collapse.Panel>
     </Collapse>
   );

@@ -176,6 +176,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "id",
         "uuid",
         "disable_data_preview",
+        "disable_drill_to_detail",
         "engine_information",
     ]
     add_columns = [

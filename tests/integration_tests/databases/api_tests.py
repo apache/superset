@@ -204,6 +204,7 @@ class TestDatabaseApi(SupersetTestCase):
             "created_by",
             "database_name",
             "disable_data_preview",
+            "disable_drill_to_detail",
             "engine_information",
             "explore_database_id",
             "expose_in_sqllab",

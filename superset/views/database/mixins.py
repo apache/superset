@@ -147,7 +147,9 @@ class DatabaseMixin:
             "whether or not the Explore button in SQL Lab results is shown<br/>"
             "6. The ``disable_data_preview`` field is a boolean specifying whether or"
             "not data preview queries will be run when fetching table metadata in"
-            "SQL Lab.",
+            "SQL Lab."
+            "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or"
+            "not drill to detail is disabled for the database.",
             True,
         ),
         "encrypted_extra": utils.markdown(

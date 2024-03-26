@@ -28,4 +28,5 @@ export default interface Database {
   sqlalchemy_uri: string;
   catalog: object;
   parameters: any;
+  disable_drill_to_detail?: boolean;
 }

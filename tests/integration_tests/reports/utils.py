@@ -158,7 +158,7 @@ def create_report_notification(
         validator_type=validator_type,
         validator_config_json=validator_config_json,
         grace_period=grace_period,
-        report_format=report_format or ReportDataFormat.VISUALIZATION,
+        report_format=report_format or ReportDataFormat.PNG,
         extra=extra,
         force_screenshot=force_screenshot,
     )

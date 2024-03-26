@@ -1,0 +1,11 @@
+name: 'Setup supersetbot'
+description: 'Sets up supersetbot npm lib from the repo'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd .github/supersetbot
+        npm install
+        npm link

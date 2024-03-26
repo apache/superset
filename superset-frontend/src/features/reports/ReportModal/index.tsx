@@ -331,9 +331,7 @@ function ReportModal({
           <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
             {t('Schedule')}
           </h4>
-          <p>
-            {t('A screenshot of the dashboard will be sent to your email at')}
-          </p>
+          <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 
         <StyledCronPicker

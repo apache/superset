@@ -35,7 +35,7 @@ import {
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
 import { format, LegendComponentOption, SeriesOption } from 'echarts';
-import { maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -603,4 +603,40 @@ export function getMinAndMaxFromBounds(
     return ret;
   }
   return {};
+}
+
+/**
+ * Returns the stackId used in stacked series.
+ * It will return the defaultId if the chart is not using time comparison.
+ * If time comparison is used, it will return the time comparison value as the stackId
+ * if the name includes the time comparison value.
+ *
+ * @param {string} defaultId The default stackId.
+ * @param {string[]} timeCompare The time comparison values.
+ * @param {string | number} name The name of the serie.
+ *
+ * @returns {string} The stackId.
+ */
+export function getTimeCompareStackId(
+  defaultId: string,
+  timeCompare: string[],
+  name?: string | number,
+): string {
+  if (isEmpty(timeCompare)) {
+    return defaultId;
+  }
+  // Each timeCompare is its own stack so it doesn't stack on top of original ones
+  return (
+    timeCompare.find(value => {
+      if (typeof name === 'string') {
+        // offset is represented as <offset>, group by list
+        return (
+          name.includes(`${value},`) ||
+          // offset is represented as <metric>__<offset>
+          name.includes(`__${value}`)
+        );
+      }
+      return name?.toString().includes(value);
+    }) || defaultId
+  );
 }

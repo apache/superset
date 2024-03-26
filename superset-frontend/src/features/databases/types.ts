@@ -222,6 +222,7 @@ export interface ExtraJson {
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
+  disable_drill_to_detail?: boolean;
   engine_params?: {
     catalog?: Record<string, string>;
     connect_args?: {

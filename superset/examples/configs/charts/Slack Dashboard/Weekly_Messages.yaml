@@ -1,0 +1,48 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Weekly Messages
+viz_type: big_number
+params:
+  adhoc_filters: []
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  compare_lag: 1
+  compare_suffix: WoW
+  datasource: 34__table
+  granularity_sqla: ts
+  header_font_size: 0.4
+  metric: count
+  queryFields:
+    metric: metrics
+  rolling_type: None
+  show_trend_line: true
+  slice_id: 1905
+  start_y_axis_at_zero: true
+  subheader_font_size: 0.15
+  time_grain_sqla: P1W
+  time_range: No filter
+  time_range_fixed: false
+  url_params: {}
+  viz_type: big_number
+  y_axis_format: SMART_NUMBER
+cache_timeout: null
+uuid: abe2c022-ceee-a60a-e601-ab93f7ee52b1
+version: 1.0.0
+dataset_uuid: e032c69e-716e-d700-eff7-07800d0f9989

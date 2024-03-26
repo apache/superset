@@ -365,8 +365,11 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
+        datasource_id_list = list(datasource_ids)
+        datasource_id_list.sort()
+
         eager_datasources = []
-        for datasource_id, _ in datasource_ids:
+        for datasource_id, _ in datasource_id_list:
             eager_datasource = SqlaTable.get_eager_sqlatable_datasource(datasource_id)
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(

@@ -69,6 +69,7 @@ class EmailContent:
     body: str
     header_data: Optional[HeaderDataType] = None
     data: Optional[dict[str, Any]] = None
+    pdf: Optional[dict[str, bytes]] = None
     images: Optional[dict[str, bytes]] = None
 
 
@@ -97,7 +98,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             return EmailContent(body=self._error_template(self._content.text))
         # Get the domain from the 'From' address ..
         # and make a message id without the < > in the end
-        csv_data = None
+
         domain = self._get_smtp_domain()
         images = {}
 
@@ -165,12 +166,18 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-
+        csv_data = None
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
+
+        pdf_data = None
+        if self._content.pdf:
+            pdf_data = {__("%(name)s.pdf", name=self._content.name): self._content.pdf}
+
         return EmailContent(
             body=body,
             images=images,
+            pdf=pdf_data,
             data=csv_data,
             header_data=self._content.header_data,
         )
@@ -198,6 +205,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 app.config,
                 files=[],
                 data=content.data,
+                pdf=content.pdf,
                 images=content.images,
                 bcc="",
                 mime_subtype="related",
