@@ -252,7 +252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     enableTimeComparison,
-    basicColorFormatter,
+    basicColorFormatters,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -697,11 +697,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
-      const hasBasicColorFormatter =
-        Array.isArray(basicColorFormatter) && basicColorFormatter.length > 0;
+      const hasBasicColorFormatters =
+        Array.isArray(basicColorFormatters) && basicColorFormatters.length > 0;
 
       const valueRange =
-        !hasBasicColorFormatter &&
+        !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
@@ -739,12 +739,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let backgroundColor;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
-          if (!hasColumnColorFormatters && hasBasicColorFormatter) {
+          if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
-              basicColorFormatter[row.index][originKey]?.backgroundColor;
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorFormatter[row.index][originKey]?.mainArrow
+                ? basicColorFormatters[row.index][originKey]?.mainArrow
                 : '';
           }
 
@@ -794,8 +794,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           `;
 
           const arrowStyles = css`
-            color: ${basicColorFormatter &&
-            basicColorFormatter[row.index][originKey]?.arrowColor ===
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
               ? theme.colors.success.base
               : theme.colors.error.base};

@@ -665,9 +665,8 @@ const config: ControlPanelConfig = {
                         }))
                     : [];
 
-                const columnOptions = Boolean(
-                  explore?.controls?.enable_time_comparison?.value,
-                )
+                const columnOptions = explore?.controls?.enable_time_comparison
+                  ?.value
                   ? processComparisonColumns(numericColumns || [])
                   : numericColumns;
 
