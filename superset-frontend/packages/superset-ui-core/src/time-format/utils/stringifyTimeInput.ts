@@ -18,12 +18,18 @@
  */
 
 export default function stringifyTimeInput(
-  value: Date | number | undefined | null,
+  value: Date | number | object | undefined | null,
   fn: (time: Date) => string,
 ) {
   if (value === null || value === undefined) {
     return `${value}`;
   }
 
-  return fn(value instanceof Date ? value : new Date(value));
+  return fn(
+    value instanceof Date
+      ? value
+      : typeof value === 'number'
+      ? new Date(value)
+      : new Date(parseInt(String(value?.toString()), 10)),
+  );
 }

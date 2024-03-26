@@ -344,7 +344,7 @@ export const useTableColumns = (
                   if (
                     colType === GenericDataType.Temporal &&
                     originalFormattedTimeColumnIndex === -1 &&
-                    typeof value === 'number'
+                    (typeof value === 'number' || typeof value === 'object')
                   ) {
                     return timeFormatter(value);
                   }
