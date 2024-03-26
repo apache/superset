@@ -475,25 +475,24 @@ def test_create_table_as():
 def test_in_app_context():
     @celery_app.task(bind=True)
     def my_task(self):
-        # Trying to access current_app to see if we're in an app context
-        try:
-            assert current_app
+        # Directly check if an app context is present
+        if has_app_context():
             return True
-        except RuntimeError:
+        else:
             return False
 
-    # Run task within an app context, expecting True because current_app should be accessible
+    # Expect True within an app context
     with app.app_context():
         result = my_task.apply().get()
         assert result, "Task should have access to current_app within app context"
 
-    # Run task outside of an app context, expecting False because accessing current_app should fail
+    # Expect False outside of an app context
     result = my_task.apply().get()
     assert (
         not result
     ), "Task should not have access to current_app outside of app context"
 
-    # Again, ensure task can run within app context after previously running outside of one
+    # Expect True within an app context again
     with app.app_context():
         result = my_task.apply().get()
         assert result, "Task should have access to current_app within app context"
