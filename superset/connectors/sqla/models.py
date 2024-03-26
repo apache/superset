@@ -1752,6 +1752,9 @@ class SqlaTable(
             # errors. This is particularly important for database OAuth2, see SIP-85.
             raise ex
         except Exception as ex:  # pylint: disable=broad-except
+            # TODO (betodealmeida): review exception handling while querying the external
+            # database. Ideally we'd expect and handle external database error, but
+            # everything else / the default should be to let things bubble up.
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(

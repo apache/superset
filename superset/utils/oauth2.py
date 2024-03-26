@@ -45,7 +45,7 @@ def get_oauth2_access_token(
     if token is None:
         return None
 
-    if token.access_token and token.access_token_expiration < datetime.now():
+    if token.access_token and datetime.now() < token.access_token_expiration:
         return token.access_token
 
     if token.refresh_token:

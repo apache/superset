@@ -995,6 +995,7 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
 
     __tablename__ = "database_user_oauth2_tokens"
+    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
 
     id = Column(Integer, primary_key=True)
 
