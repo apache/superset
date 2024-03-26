@@ -22,7 +22,6 @@ from re import Pattern
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from pytz import VERSION
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
