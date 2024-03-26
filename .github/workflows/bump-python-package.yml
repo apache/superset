@@ -33,7 +33,7 @@ jobs:
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
-      - name: Execute custom Node.js script
+      - name: Install pip-compile-multi
         run: pip install pip-compile-multi
       - name: Execute custom Node.js script
         env:

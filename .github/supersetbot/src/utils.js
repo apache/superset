@@ -48,6 +48,7 @@ export function runShellCommand({ command, raiseOnError = true, exitOnError = tr
     const spawnOptions = {
       shell: true,
       cwd,
+      env: { ...process.env },
     };
 
     if (verbose) {
