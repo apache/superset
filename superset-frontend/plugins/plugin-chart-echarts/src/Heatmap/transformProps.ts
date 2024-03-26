@@ -63,33 +63,6 @@ const calculateTotals = memoizeOne(
     ),
 );
 
-const sortData = memoizeOne(
-  (
-    data: Record<string, any>[],
-    x: string,
-    y: string,
-    metric: string,
-    xAxisSorting: string,
-    yAxisSorting: string,
-  ) => {
-    const xAscending = xAxisSorting.includes('asc');
-    const yAscending = yAxisSorting.includes('asc');
-    const xField = xAxisSorting.includes('value') ? metric : x;
-    const yField = yAxisSorting.includes('value') ? metric : y;
-
-    // return data sorted by xField and yField at the same time
-    return data.sort((a, b) => {
-      let result = 0;
-      if (a[xField] === b[xField]) {
-        result = a[yField] > b[yField] ? 1 : -1;
-        return yAscending ? result : -result;
-      }
-      result = a[xField] > b[xField] ? 1 : -1;
-      return xAscending ? result : -result;
-    });
-  },
-);
-
 export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
@@ -108,8 +81,6 @@ export default function transformProps(
     showLegend,
     showPercentage,
     showValues,
-    sortXAxis,
-    sortYAxis,
     xscaleInterval,
     yscaleInterval,
     valueBounds,
@@ -125,15 +96,6 @@ export default function transformProps(
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const colorColumn = normalized ? 'rank' : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
-  const sortedData = sortData(
-    data,
-    xAxisLabel,
-    yAxisLabel,
-    metricLabel,
-    sortXAxis,
-    sortYAxis,
-  );
-
   const getAxisFormatter =
     (colType: GenericDataType) => (value: number | string) => {
       if (colType === GenericDataType.Temporal) {
@@ -157,17 +119,17 @@ export default function transformProps(
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);
   if (min === undefined) {
-    min = minBy(sortedData, row => row[colorColumn])?.[colorColumn] as number;
+    min = minBy(data, row => row[colorColumn])?.[colorColumn] as number;
   }
   if (max === undefined) {
-    max = maxBy(sortedData, row => row[colorColumn])?.[colorColumn] as number;
+    max = maxBy(data, row => row[colorColumn])?.[colorColumn] as number;
   }
 
   const series: HeatmapSeriesOption[] = [
     {
       name: metricLabel,
       type: 'heatmap',
-      data: sortedData.map(row =>
+      data: data.map(row =>
         colnames.map(col => {
           const value = row[col];
           if (!value) {
@@ -198,7 +160,7 @@ export default function transformProps(
       ...getDefaultTooltip(refs),
       formatter: (params: CallbackDataParams) => {
         const totals = calculateTotals(
-          sortedData,
+          data,
           xAxisLabel,
           yAxisLabel,
           metricLabel,

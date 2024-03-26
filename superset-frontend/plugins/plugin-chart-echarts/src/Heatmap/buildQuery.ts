@@ -29,12 +29,23 @@ import { rankOperator } from '@superset-ui/chart-controls';
 import { HeatmapFormData } from './types';
 
 export default function buildQuery(formData: HeatmapFormData) {
-  const { groupby, metric, normalize_across, x_axis } = formData;
+  const { groupby, normalize_across, sort_x_axis, sort_y_axis, x_axis } =
+    formData;
+  const metric = getMetricLabel(formData.metric);
   const columns = [
     ...ensureIsArray(getXAxisColumn(formData)),
     ...ensureIsArray(groupby),
   ];
-  const orderby: QueryFormOrderBy[] = columns?.map(column => [column, true]);
+  const orderby: QueryFormOrderBy[] = [
+    [
+      sort_x_axis.includes('value') ? metric : columns[0],
+      sort_x_axis.includes('asc'),
+    ],
+    [
+      sort_y_axis.includes('value') ? metric : columns[1],
+      sort_y_axis.includes('asc'),
+    ],
+  ];
   const group_by =
     normalize_across === 'x'
       ? getColumnLabel(x_axis)
@@ -48,7 +59,7 @@ export default function buildQuery(formData: HeatmapFormData) {
       orderby,
       post_processing: [
         rankOperator(formData, baseQueryObject, {
-          metric: getMetricLabel(metric),
+          metric,
           group_by,
         }),
       ],

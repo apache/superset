@@ -45,6 +45,32 @@ const config: ControlPanelConfig = {
         ['row_limit'],
         [
           {
+            name: 'sort_x_axis',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort X Axis'),
+              choices: sortAxisChoices,
+              renderTrigger: false,
+              clearable: false,
+              default: 'alpha_asc',
+            },
+          },
+        ],
+        [
+          {
+            name: 'sort_y_axis',
+            config: {
+              type: 'SelectControl',
+              label: t('Sort Y Axis'),
+              choices: sortAxisChoices,
+              renderTrigger: false,
+              clearable: false,
+              default: 'alpha_asc',
+            },
+          },
+        ],
+        [
+          {
             name: 'normalize_across',
             config: {
               type: 'SelectControl',
@@ -145,7 +171,7 @@ const config: ControlPanelConfig = {
               clearable: false,
               label: t('Left Margin'),
               choices: [
-                ['auto', t('auto')],
+                ['auto', t('Auto')],
                 [50, '50'],
                 [75, '75'],
                 [100, '100'],
@@ -170,7 +196,7 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Bottom Margin'),
               choices: [
-                ['auto', t('auto')],
+                ['auto', t('Auto')],
                 [50, '50'],
                 [75, '75'],
                 [100, '100'],
@@ -201,32 +227,6 @@ const config: ControlPanelConfig = {
         ['y_axis_format'],
         ['x_axis_time_format'],
         ['currency_format'],
-        [
-          {
-            name: 'sort_x_axis',
-            config: {
-              type: 'SelectControl',
-              label: t('Sort X Axis'),
-              choices: sortAxisChoices,
-              renderTrigger: true,
-              clearable: false,
-              default: 'alpha_asc',
-            },
-          },
-        ],
-        [
-          {
-            name: 'sort_y_axis',
-            config: {
-              type: 'SelectControl',
-              label: t('Sort Y Axis'),
-              choices: sortAxisChoices,
-              renderTrigger: true,
-              clearable: false,
-              default: 'alpha_asc',
-            },
-          },
-        ],
         [
           {
             name: 'show_legend',
