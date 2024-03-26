@@ -30,6 +30,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
 from humanize import naturaltime
+from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -76,7 +77,7 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                     self.database,  # type: ignore
                 )
             )
-        except SupersetSecurityException:
+        except (SupersetSecurityException, TemplateError):
             return []
 
 
