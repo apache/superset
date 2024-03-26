@@ -164,6 +164,7 @@ importlib-metadata==6.6.0
     # via
     #   apache-superset
     #   flask
+    #   markdown
     #   shillelagh
 importlib-resources==5.12.0
     # via limits
@@ -191,7 +192,7 @@ mako==1.2.4
     # via
     #   alembic
     #   apache-superset
-markdown==3.3.4
+markdown==3.6
     # via apache-superset
 markdown-it-py==2.2.0
     # via rich
