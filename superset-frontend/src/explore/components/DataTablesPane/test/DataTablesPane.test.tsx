@@ -93,6 +93,8 @@ describe('DataTablesPane', () => {
             data: [{ __timestamp: 1230768000000, genre: 'Action' }],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
           },
         ],
       },
@@ -103,7 +105,9 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('1 row')).toBeVisible();
+    expect(
+      screen.container.querySelector('.row-count-label'),
+    ).toHaveTextContent('1 row');
 
     userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
@@ -125,6 +129,8 @@ describe('DataTablesPane', () => {
             ],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 2,
+            sql_rowcount: 2,
           },
         ],
       },
@@ -134,7 +140,10 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('2 rows')).toBeVisible();
+    expect(
+      screen.container.querySelector('.row-count-label'),
+    ).toHaveTextContent('2 rows');
+
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
 

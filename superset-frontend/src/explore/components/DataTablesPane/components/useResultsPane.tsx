@@ -119,6 +119,7 @@ export const useResultsPane = ({
           data={[]}
           columnNames={[]}
           columnTypes={[]}
+          rowcount={0}
           datasourceId={queryFormData.datasource}
           onInputChange={() => {}}
           isLoading={false}
@@ -135,7 +136,6 @@ export const useResultsPane = ({
       <EmptyStateMedium image="document.svg" title={title} />,
     );
   }
-
   return resultResp
     .slice(0, queryCount)
     .map((result, idx) => (
@@ -143,6 +143,7 @@ export const useResultsPane = ({
         data={result.data}
         colnames={result.colnames}
         coltypes={result.coltypes}
+        rowcount={result.rowcount}
         dataSize={dataSize}
         datasourceId={queryFormData.datasource}
         key={idx}

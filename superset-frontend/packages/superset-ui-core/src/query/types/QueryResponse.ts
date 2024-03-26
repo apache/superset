@@ -67,6 +67,7 @@ export interface ChartDataResponseResult {
   is_cached: boolean;
   query: string;
   rowcount: number;
+  sql_rowcount: number;
   stacktrace: string | null;
   status:
     | 'stopped'

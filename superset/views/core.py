@@ -167,6 +167,8 @@ class Superset(BaseSupersetView):
                 "data": payload["df"].to_dict("records"),
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
+                "rowcount": payload.get("rowcount"),
+                "sql_rowcount": payload.get("sql_rowcount"),
             },
         )
 
