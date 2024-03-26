@@ -73,7 +73,7 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
             return list(
                 extract_tables_from_jinja_sql(
                     self.sql,  # type: ignore
-                    self.database.db_engine_spec.engine,  # type: ignore
+                    self.database,  # type: ignore
                 )
             )
         except SupersetSecurityException:
