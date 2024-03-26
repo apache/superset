@@ -43,6 +43,8 @@ class DuckDBEngineSpec(BaseEngineSpec):
     engine = "duckdb"
     engine_name = "DuckDB"
 
+    sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
@@ -104,4 +106,4 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine = "duckdb"
     engine_name = "MotherDuck"
 
-    sqlalchemy_uri_placeholder = "duckdb:///md:{SERVICE_TOKEN}@{database_name}"
+    sqlalchemy_uri_placeholder = "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
