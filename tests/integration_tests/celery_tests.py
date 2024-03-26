@@ -30,7 +30,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 import pytest
 
 import flask
-from flask import current_app
+from flask import current_app, has_app_context
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
