@@ -147,9 +147,7 @@ geopy==2.2.0
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -269,7 +267,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.20
     # via cffi
-pygments==2.15.0
+pygments==2.17.2
     # via rich
 pyjwt==2.4.0
     # via
