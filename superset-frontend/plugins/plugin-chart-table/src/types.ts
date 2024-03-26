@@ -137,6 +137,12 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     filters?: ContextMenuFilters,
   ) => void;
   enableTimeComparison?: boolean;
+  basicColorFormatter?: any;
+}
+
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
 }
 
 export default {};

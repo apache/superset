@@ -43,6 +43,7 @@ import {
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
+  ColorSchemeEnum,
   DataColumnMeta,
   TableChartProps,
   TableChartTransformedProps,
@@ -374,7 +375,74 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
     enable_time_comparison: enableTimeComparison = false,
+    comparison_color_enabled: comparisonColorEnabled = false,
+    comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
   } = formData;
+
+  const calculateColorAndArrow = (percentDifferenceNum: number) => {
+    if (percentDifferenceNum === 0) {
+      return {
+        arrow: '',
+        arrowColor: '',
+        basicBackgroundColor: 'rgba(255, 191, 161, 0.2)',
+      };
+    }
+    const isPositive = percentDifferenceNum > 0;
+    const arrow = isPositive ? '↑' : '↓';
+    const arrowColor =
+      comparisonColorScheme === ColorSchemeEnum.Green
+        ? isPositive
+          ? ColorSchemeEnum.Green
+          : ColorSchemeEnum.Red
+        : isPositive
+          ? ColorSchemeEnum.Red
+          : ColorSchemeEnum.Green;
+    const basicBackgroundColor =
+      comparisonColorScheme === ColorSchemeEnum.Green
+        ? `rgba(${isPositive ? '0,150,0' : '150,0,0'},0.2)`
+        : `rgba(${isPositive ? '150,0,0' : '0,150,0'},0.2)`;
+
+    return { arrow, arrowColor, basicBackgroundColor };
+  };
+
+  const getBasicColorFormatter = memoizeOne(
+    function processComparisonDataRecords(
+      originalData: DataRecord[] | undefined,
+      originalColumns: DataColumnMeta[],
+    ) {
+      // Transform data
+      return originalData?.map(originalItem => {
+        const item: any = {};
+        originalColumns.forEach(origCol => {
+          if (
+            (origCol.isMetric || origCol.isPercentMetric) &&
+            !origCol.key.includes(COMPARISON_PREFIX) &&
+            origCol.isNumeric
+          ) {
+            const originalValue = originalItem[origCol.key] || 0;
+            const comparisonValue = origCol.isMetric
+              ? originalItem?.[`${COMPARISON_PREFIX}${origCol.key}`] || 0
+              : originalItem[`%${COMPARISON_PREFIX}${origCol.key.slice(1)}`] ||
+                0;
+            const { percentDifferenceNum } = calculateDifferences(
+              originalValue as number,
+              comparisonValue as number,
+            );
+
+            const { arrow, arrowColor, basicBackgroundColor } =
+              calculateColorAndArrow(percentDifferenceNum);
+
+            item[`${origCol.key}`] = {};
+            item[`${origCol.key}`].mainArrow = arrow;
+            item[`${origCol.key}`].arrowColor = arrowColor;
+            item[`${origCol.key}`].backgroundColor = basicBackgroundColor;
+          }
+        });
+        return item;
+      });
+    },
+  );
+
   const canUseTimeComparison =
     enableTimeComparison &&
     isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
@@ -407,14 +475,17 @@ const transformProps = (
     showTotals && queryMode === QueryMode.Aggregate
       ? totalQuery?.data[0]
       : undefined;
-  const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, data) ?? defaultColorFormatters;
 
   const comparisonTotals = processComparisonTotals(totals);
-
   const passedData = canUseTimeComparison ? comparisonData || [] : data;
   const passedTotals = canUseTimeComparison ? comparisonTotals : totals;
   const passedColumns = canUseTimeComparison ? comparisonColumns : columns;
+
+  const basicColorFormatter =
+    comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
+  const columnColorFormatters =
+    getColorFormatters(conditionalFormatting, passedData) ??
+    defaultColorFormatters;
 
   return {
     height,
@@ -447,6 +518,7 @@ const transformProps = (
     allowRearrangeColumns,
     onContextMenu,
     enableTimeComparison: canUseTimeComparison,
+    basicColorFormatter,
   };
 };
 

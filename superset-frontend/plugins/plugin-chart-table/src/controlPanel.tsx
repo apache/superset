@@ -50,7 +50,8 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { COMPARISON_PREFIX, PAGE_SIZE_OPTIONS } from './consts';
+import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -152,6 +153,33 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   default: [],
   validators: [],
 };
+
+const processComparisonColumns = (columns: any[]) =>
+  columns
+    .map(col => {
+      if (!col.label.includes(COMPARISON_PREFIX)) {
+        return [
+          {
+            label: `${t('Main')} ${col.label}`,
+            value: `${t('Main')} ${col.value}`,
+          },
+          {
+            label: `# ${col.label}`,
+            value: `# ${col.value}`,
+          },
+          {
+            label: `△ ${col.label}`,
+            value: `△ ${col.value}`,
+          },
+          {
+            label: `% ${col.label}`,
+            value: `% ${col.value}`,
+          },
+        ];
+      }
+      return [];
+    })
+    .flat();
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -570,11 +598,45 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'comparison_color_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('basic conditional formatting for comparison '),
+              renderTrigger: true,
+              default: false,
+              description: t('Add color for positive/negative change'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_scheme',
+            config: {
+              type: 'SelectControl',
+              label: t('color scheme for comparison'),
+              default: ColorSchemeEnum.Green,
+              renderTrigger: true,
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                controls?.comparison_color_enabled?.value === true,
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'conditional_formatting',
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Conditional formatting'),
+              label: t('Custom Conditional Formatting'),
+              multi: true,
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -602,9 +664,16 @@ const config: ControlPanelConfig = {
                           label: verboseMap[colname] ?? colname,
                         }))
                     : [];
+
+                const columnOptions = Boolean(
+                  explore?.controls?.enable_time_comparison?.value,
+                )
+                  ? processComparisonColumns(numericColumns || [])
+                  : numericColumns;
+
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
-                  columnOptions: numericColumns,
+                  columnOptions,
                   verboseMap,
                 };
               },

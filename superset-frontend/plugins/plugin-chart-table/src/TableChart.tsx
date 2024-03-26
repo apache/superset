@@ -59,7 +59,11 @@ import {
 } from '@ant-design/icons';
 
 import { isEmpty } from 'lodash';
-import { DataColumnMeta, TableChartTransformedProps } from './types';
+import {
+  ColorSchemeEnum,
+  DataColumnMeta,
+  TableChartTransformedProps,
+} from './types';
 import DataTable, {
   DataTableProps,
   SearchInputProps,
@@ -248,6 +252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     enableTimeComparison,
+    basicColorFormatter,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -692,7 +697,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
+      const hasBasicColorFormatter =
+        Array.isArray(basicColorFormatter) && basicColorFormatter.length > 0;
+
       const valueRange =
+        !hasBasicColorFormatter &&
         !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
@@ -728,6 +737,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const html = isHtml ? { __html: text } : undefined;
 
           let backgroundColor;
+          let arrow = '';
+          const originKey = column.key.substring(column.label.length).trim();
+          if (!hasColumnColorFormatters && hasBasicColorFormatter) {
+            backgroundColor =
+              basicColorFormatter[row.index][originKey]?.backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorFormatter[row.index][originKey]?.mainArrow
+                : '';
+          }
+
           if (hasColumnColorFormatters) {
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
@@ -771,6 +791,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   colorPositiveNegative,
                 })};
               `}
+          `;
+
+          const arrowStyles = css`
+            color: ${basicColorFormatter &&
+            basicColorFormatter[row.index][originKey]?.arrowColor ===
+              ColorSchemeEnum.Green
+              ? theme.colors.success.base
+              : theme.colors.error.base};
+            margin-right: ${theme.gridUnit}px;
           `;
 
           const cellProps = {
@@ -838,10 +867,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
-                text
+                <>
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {text}
+                </>
               )}
             </StyledCell>
           );
