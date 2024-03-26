@@ -356,3 +356,9 @@ class OAuth2Error(SupersetErrorException):
                 extra={"error": error},
             )
         )
+
+
+class CreateAuthLockFailedException(Exception):
+    """
+    Exception to signalize failure to acquire lock when refreshing token.
+    """
