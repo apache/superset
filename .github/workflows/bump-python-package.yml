@@ -38,4 +38,4 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-          supersetbot bump-python --package "${{ github.event.inputs.package }}" --verbose --use-current-repo
+          supersetbot bump-python -p "${{ github.event.inputs.package }}" --verbose --use-current-repo
