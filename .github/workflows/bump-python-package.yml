@@ -1,0 +1,33 @@
+name: Docker Publish Release
+
+on:
+  release:
+    types: [published, edited]
+
+  # Can be triggered manually
+  workflow_dispatch:
+    inputs:
+      package:
+        required: true
+        description: The python package to bump
+jobs:
+  bump-python-package:
+    needs: config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Setup Node Env
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Execute custom Node.js script
+        run: |
+          supersetbot bump-python --package "${{ github.event.inputs.package }}" --verbose
