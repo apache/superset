@@ -110,7 +110,7 @@ const config: ControlPanelConfig = {
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
               ),
-              default: 1,
+              default: -1,
               clearable: false,
               description: t(
                 'Number of steps to take between ticks when displaying the X scale',
@@ -127,7 +127,7 @@ const config: ControlPanelConfig = {
               choices: [[-1, t('Auto')]].concat(
                 formatSelectOptionsForRange(1, 50),
               ),
-              default: 1,
+              default: -1,
               clearable: false,
               renderTrigger: true,
               description: t(
