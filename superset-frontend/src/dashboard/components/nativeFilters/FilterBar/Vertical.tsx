@@ -210,10 +210,12 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
           offset={offset}
         >
           <StyledCollapseIcon
+            role="button"
             {...getFilterBarTestId('expand-button')}
             iconSize="l"
           />
           <StyledFilterIcon
+            role="button"
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />
