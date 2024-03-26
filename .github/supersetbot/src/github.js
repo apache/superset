@@ -319,7 +319,7 @@ class Github {
       if (!dryRun) {
 
         // Push changes
-        await runShellCommand({ command: `git push origin ${branchName}`, ...shellOptions });
+        await runShellCommand({ command: `git push -f origin ${branchName}`, ...shellOptions });
 
         // Create a PR
         this.octokit.pulls.create({
