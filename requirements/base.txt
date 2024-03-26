@@ -78,7 +78,7 @@ cron-descriptor==1.2.24
     # via apache-superset
 croniter==1.0.15
     # via apache-superset
-cryptography==42.0.4
+cryptography==42.0.5
     # via
     #   apache-superset
     #   paramiko
@@ -145,9 +145,7 @@ geopy==2.2.0
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
