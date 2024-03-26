@@ -37,9 +37,18 @@ import {
   styled,
   t,
   useTheme,
+  ensureIsArray,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import { Menu } from 'src/components/Menu';
+import {
+  MenuItemKeyEnum,
+  Menu,
+  MenuItemChildType,
+  isAntdMenuItem,
+  isAntdMenuItemRef,
+  isSubMenuOrItemType,
+  isAntdMenuSubmenu,
+} from 'src/components/Menu';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -53,27 +62,9 @@ import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import { RootState } from 'src/dashboard/types';
+import { MenuKeys, RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-
-const MENU_KEYS = {
-  DOWNLOAD_AS_IMAGE: 'download_as_image',
-  EXPLORE_CHART: 'explore_chart',
-  EXPORT_CSV: 'export_csv',
-  EXPORT_FULL_CSV: 'export_full_csv',
-  EXPORT_XLSX: 'export_xlsx',
-  EXPORT_FULL_XLSX: 'export_full_xlsx',
-  FORCE_REFRESH: 'force_refresh',
-  FULLSCREEN: 'fullscreen',
-  TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
-  VIEW_QUERY: 'view_query',
-  VIEW_RESULTS: 'view_results',
-  DRILL_TO_DETAIL: 'drill_to_detail',
-  CROSS_FILTER_SCOPING: 'cross_filter_scoping',
-  SHARE: 'share',
-  DOWNLOAD: 'download',
-};
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -182,30 +173,191 @@ const dropdownIconsStyles = css`
   }
 `;
 
+/**
+ * A MenuItem can be recognized in the tree by the presence of a ref
+ *
+ * @param children
+ * @param currentKeys
+ * @returns an array of keys
+ */
+const extractMenuItemRefs = (child: MenuItemChildType): RefObject<any>[] => {
+  // check that child has props
+  const childProps: Record<string, any> = child?.props;
+  // loop through each prop
+  if (childProps) {
+    const arrayProps = Object.values(childProps);
+    // check if any is of type ref MenuItem
+    const refs = arrayProps.filter(ref => isAntdMenuItemRef(ref));
+    return refs;
+  }
+  return [];
+};
+/**
+ * Recursively extracts keys from menu items
+ *
+ * @param children
+ * @param currentKeys
+ * @returns an array of keys and their refs
+ *
+ */
+const extractMenuItemsKeys = (
+  children: MenuItemChildType[],
+  currentKeys?: { key: string; ref?: RefObject<any> }[],
+): { key: string; ref?: RefObject<any> }[] => {
+  const allKeys = currentKeys || [];
+  const arrayChildren = ensureIsArray(children);
+
+  arrayChildren.forEach((child: MenuItemChildType) => {
+    const isMenuItem = isAntdMenuItem(child);
+    const refs = extractMenuItemRefs(child);
+    // key is immediately available in a standard MenuItem
+    if (isMenuItem) {
+      const { key } = child;
+      if (key) {
+        allKeys.push({
+          key,
+        });
+      }
+    }
+    // one or more menu items refs are available
+    if (refs.length) {
+      allKeys.push(
+        ...refs.map(ref => ({ key: ref.current.props.eventKey, ref })),
+      );
+    }
+
+    // continue to extract keys from nested children
+    if (child?.props?.children) {
+      const childKeys = extractMenuItemsKeys(child.props.children, allKeys);
+      allKeys.push(...childKeys);
+    }
+  });
+
+  return allKeys;
+};
+
+/**
+ * Generates a map of keys and their types for a MenuItem
+ * Individual refs can be given to extract keys from nested items
+ * Refs can be used to control the event handlers of the menu items
+ *
+ * @param itemChildren
+ * @param type
+ * @returns a map of keys and their types
+ */
+const extractMenuItemsKeyMap = (
+  children: MenuItemChildType,
+): Record<string, any> => {
+  const keysMap: Record<string, any> = {};
+  const childrenArray = ensureIsArray(children);
+
+  childrenArray.forEach((child: MenuItemChildType) => {
+    const isMenuItem = isAntdMenuItem(child);
+    const isSubmenu = isAntdMenuSubmenu(child);
+    const menuItemsRefs = extractMenuItemRefs(child);
+
+    // key is immediately available in MenuItem or SubMenu
+    if (isMenuItem || isSubmenu) {
+      const directKey = child?.key;
+      if (directKey) {
+        keysMap[directKey] = {};
+        keysMap[directKey].type = isSubmenu
+          ? MenuItemKeyEnum.SubMenu
+          : MenuItemKeyEnum.MenuItem;
+      }
+    }
+
+    // one or more menu items refs are available
+    if (menuItemsRefs.length) {
+      menuItemsRefs.forEach(ref => {
+        const key = ref.current.props.eventKey;
+        keysMap[key] = {};
+        keysMap[key].type = isSubmenu
+          ? MenuItemKeyEnum.SubMenu
+          : MenuItemKeyEnum.MenuItem;
+        keysMap[key].parent = child.key;
+        keysMap[key].ref = ref;
+      });
+    }
+
+    // if it has children must check for the presence of menu items
+    if (child?.props?.children) {
+      const theChildren = child?.props?.children;
+      const childKeys = extractMenuItemsKeys(theChildren);
+      childKeys.forEach(keyMap => {
+        const k = keyMap.key;
+        keysMap[k] = {};
+        keysMap[k].type = MenuItemKeyEnum.SubMenuItem;
+        keysMap[k].parent = child.key;
+        if (keyMap.ref) {
+          keysMap[k].ref = keyMap.ref;
+        }
+      });
+    }
+  });
+
+  return keysMap;
+};
+
+/**
+ *
+ * Determines the next key to select based on the current key and direction
+ *
+ * @param keys
+ * @param keysMap
+ * @param currentKeyIndex
+ * @param direction
+ * @returns the selected key and the open key
+ */
+const getNavigationKeys = (
+  keys: string[],
+  keysMap: Record<string, any>,
+  currentKeyIndex: number,
+  direction = 'up',
+) => {
+  const step = direction === 'up' ? -1 : 1;
+  const skipStep = direction === 'up' ? -2 : 2;
+  const keysLen = direction === 'up' ? 0 : keys.length;
+  const mathFn = direction === 'up' ? Math.max : Math.min;
+  let openKey: string | undefined;
+  let selectedKey = keys[mathFn(currentKeyIndex + step, keysLen)];
+
+  // go to first key if current key is the last
+  if (!selectedKey) {
+    return { selectedKey: keys[0], openKey: undefined };
+  }
+
+  const isSubMenu = keysMap[selectedKey]?.type === MenuItemKeyEnum.SubMenu;
+  if (isSubMenu) {
+    // this is a submenu, skip to first submenu item
+    selectedKey = keys[mathFn(currentKeyIndex + skipStep, keysLen)];
+  }
+  // re-evaulate if current selected key is a submenu or submenu item
+  if (!isSubMenuOrItemType(keysMap[selectedKey].type)) {
+    openKey = undefined;
+  } else {
+    const parentKey = keysMap[selectedKey].parent;
+    if (parentKey) {
+      openKey = parentKey;
+    }
+  }
+  return { selectedKey, openKey };
+};
+
 export const handleDropdownNavigation = (
   e: React.KeyboardEvent<HTMLElement>,
   dropdownIsOpen: boolean,
   menu: React.ReactElement,
   toggleDropdown: () => void,
   setSelectedKeys: (keys: string[]) => void,
+  setOpenKeys: (keys: string[]) => void,
 ) => {
   if (e.key === NAV_KEYS.tab && !dropdownIsOpen) {
     return; // if tab, continue with system tab navigation
   }
   const menuProps = menu.props || {};
-  // for accessibility using keyboard navigation
-  const keys = (
-    Array.isArray(menuProps.children)
-      ? menuProps.children
-      : [menuProps.children]
-  )
-    .map(
-      (item: any) =>
-        item?.key ||
-        item?.props?.children?.find((child: React.ReactElement) => child?.key)
-          ?.key,
-    )
-    .filter((item: any) => !!item);
+  const keysMap = extractMenuItemsKeyMap(menuProps.children);
+  const keys = Object.keys(keysMap);
   const { selectedKeys = [] } = menuProps;
   const currentKeyIndex = keys.indexOf(selectedKeys[0]);
 
@@ -215,11 +367,23 @@ export const handleDropdownNavigation = (
     case ACTION_KEYS.spacebar:
     case ACTION_KEYS.space:
       if (selectedKeys.length) {
+        const currentKey = selectedKeys[0];
+        const currentKeyConf = keysMap[selectedKeys];
         // when a menu item is selected, then trigger
         // the menu item's onClick handler
-        menuProps.onClick?.({ key: selectedKeys[0], domEvent: e });
+        menuProps.onClick?.({ key: currentKey, domEvent: e });
+        // trigger click handle on ref
+        if (currentKeyConf?.ref) {
+          const refMenuItemProps = currentKeyConf.ref.current.props;
+          refMenuItemProps.onClick?.({
+            key: currentKey,
+            domEvent: e,
+          });
+        }
         // clear out/deselect keys
         setSelectedKeys([]);
+        // close submenus
+        setOpenKeys([]);
         // put focus back on menu trigger
         e.currentTarget.focus();
       }
@@ -228,14 +392,30 @@ export const handleDropdownNavigation = (
       break;
     // select the menu items going down
     case NAV_KEYS.down:
-    case NAV_KEYS.tab && !e.shiftKey:
-      setSelectedKeys([keys[Math.min(currentKeyIndex + 1, keys.length)]]);
+    case NAV_KEYS.tab && !e.shiftKey: {
+      const { selectedKey, openKey } = getNavigationKeys(
+        keys,
+        keysMap,
+        currentKeyIndex,
+        'down',
+      );
+      setSelectedKeys([selectedKey]);
+      setOpenKeys(openKey ? [openKey] : []);
       break;
+    }
     // select the menu items going up
     case NAV_KEYS.up:
-    case NAV_KEYS.tab && e.shiftKey:
-      setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
+    case NAV_KEYS.tab && e.shiftKey: {
+      const { selectedKey, openKey } = getNavigationKeys(
+        keys,
+        keysMap,
+        currentKeyIndex,
+        'up',
+      );
+      setSelectedKeys([selectedKey]);
+      setOpenKeys(openKey ? [openKey] : []);
       break;
+    }
     case NAV_KEYS.escape:
       // close dropdown menu
       toggleDropdown();
@@ -344,17 +524,24 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const [tableModalIsOpen, setTableModalIsOpen] = useState(false);
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  // setting openKeys undefined falls back to uncontrolled behaviour
+  const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
 
   const queryMenuRef: RefObject<any> = useRef(null);
   const menuRef: RefObject<any> = useRef(null);
+  const copyLinkMenuRef: RefObject<any> = useRef(null);
+  const shareByEmailMenuRef: RefObject<any> = useRef(null);
+  const drillToDetailMenuRef: RefObject<any> = useRef(null);
 
   const toggleDropdown = ({ close }: { close?: boolean } = {}) => {
     setDropdownIsOpen(!(close || dropdownIsOpen));
     // clear selected keys
     setSelectedKeys([]);
+    // clear out/deselect submenus
+    // setOpenKeys([]);
   };
 
   const canEditCrossFilters =
@@ -392,73 +579,77 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     // close menu
     toggleDropdown({ close: true });
     switch (key) {
-      case MENU_KEYS.FORCE_REFRESH:
+      case MenuKeys.ForceRefresh:
         refreshChart();
         props.addSuccessToast(t('Data refreshed'));
         break;
-      case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
+      case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
         props.toggleExpandSlice?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.EXPLORE_CHART:
+      case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
         props.logExploreChart?.(props.slice.slice_id);
         window.open(props.exploreUrl);
         break;
-      case MENU_KEYS.EXPORT_CSV:
+      case MenuKeys.ExportCsv:
         // eslint-disable-next-line no-unused-expressions
         props.exportCSV?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.FULLSCREEN:
+      case MenuKeys.Fullscreen:
         props.handleToggleFullSize();
         break;
-      case MENU_KEYS.EXPORT_FULL_CSV:
+      case MenuKeys.ExportFullCsv:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.EXPORT_FULL_XLSX:
+      case MenuKeys.ExportFullXlsx:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullXLSX?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.EXPORT_XLSX:
+      case MenuKeys.ExportXlsx:
         // eslint-disable-next-line no-unused-expressions
         props.exportXLSX?.(props.slice.slice_id);
         break;
-      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+      case MenuKeys.DownloadAsImage: {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
           '.ant-dropdown:not(.ant-dropdown-hidden)',
         ) as HTMLElement;
-        menu.style.visibility = 'hidden';
+        if (menu) {
+          menu.style.visibility = 'hidden';
+        }
         downloadAsImage(
           getScreenshotNodeSelector(props.slice.slice_id),
           props.slice.slice_name,
           true,
           // @ts-ignore
         )(domEvent).then(() => {
-          menu.style.visibility = 'visible';
+          if (menu) {
+            menu.style.visibility = 'visible';
+          }
         });
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
           chartId: props.slice.slice_id,
         });
         break;
       }
-      case MENU_KEYS.CROSS_FILTER_SCOPING: {
+      case MenuKeys.CrossFilterScoping: {
         openScopingModal();
         break;
       }
-      case MENU_KEYS.VIEW_RESULTS: {
+      case MenuKeys.ViewResults: {
         if (!tableModalIsOpen) {
           setTableModalIsOpen(true);
         }
         break;
       }
-      case MENU_KEYS.DRILL_TO_DETAIL: {
+      case MenuKeys.DrillToDetail: {
         setDrillModalIsOpen(!drillModalIsOpen);
         break;
       }
-      case MENU_KEYS.VIEW_QUERY: {
+      case MenuKeys.ViewQuery: {
         if (queryMenuRef.current && !queryMenuRef.current.showModal) {
           queryMenuRef.current.open(domEvent);
         }
@@ -514,6 +705,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     animationDuration: '0s',
   };
 
+  // controlled/uncontrolled behaviour for submenus
+  const openKeysProps: Record<string, string[]> = {};
+  if (openKeys) {
+    openKeysProps.openKeys = openKeys;
+  }
+
   const menu = (
     <Menu
       onClick={handleMenuClick}
@@ -522,9 +719,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       selectedKeys={selectedKeys}
       id={`slice_${slice.slice_id}-menu`}
       ref={menuRef}
+      // submenus must be rendered for handleDropdownNavigation
+      forceSubMenuRender
+      {...openKeysProps}
     >
       <Menu.Item
-        key={MENU_KEYS.FORCE_REFRESH}
+        key={MenuKeys.ForceRefresh}
         disabled={props.chartStatus === 'loading'}
         style={{ height: 'auto', lineHeight: 'initial' }}
         data-test="refresh-chart-menu-item"
@@ -535,12 +735,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </RefreshTooltip>
       </Menu.Item>
 
-      <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
+      <Menu.Item key={MenuKeys.Fullscreen}>{fullscreenLabel}</Menu.Item>
 
       <Menu.Divider />
 
       {slice.description && (
-        <Menu.Item key={MENU_KEYS.TOGGLE_CHART_DESCRIPTION}>
+        <Menu.Item key={MenuKeys.ToggleChartDescription}>
           {props.isDescriptionExpanded
             ? t('Hide chart description')
             : t('Show chart description')}
@@ -548,7 +748,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {canExplore && (
-        <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
+        <Menu.Item key={MenuKeys.ExploreChart}>
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
             {t('Edit chart')}
           </Tooltip>
@@ -556,16 +756,15 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {canEditCrossFilters && (
-        <>
-          <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
-            {t('Cross-filtering scoping')}
-          </Menu.Item>
-          <Menu.Divider />
-        </>
+        <Menu.Item key={MenuKeys.CrossFilterScoping}>
+          {t('Cross-filtering scoping')}
+        </Menu.Item>
       )}
 
+      {(canExplore || canEditCrossFilters) && <Menu.Divider />}
+
       {(canExplore || canViewQuery) && (
-        <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
+        <Menu.Item key={MenuKeys.ViewQuery}>
           <ModalTrigger
             triggerNode={
               <span data-test="view-query-menu-item">{t('View query')}</span>
@@ -581,7 +780,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {(canExplore || canViewTable) && (
-        <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
+        <Menu.Item key={MenuKeys.ViewResults}>
           <ViewResultsModalTrigger
             canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
@@ -608,16 +807,22 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         <DrillDetailMenuItems
           chartId={slice.slice_id}
           formData={props.formData}
-          key={MENU_KEYS.DRILL_TO_DETAIL}
+          key={MenuKeys.DrillToDetail}
           showModal={drillModalIsOpen}
           setShowModal={setDrillModalIsOpen}
+          drillToDetailMenuRef={drillToDetailMenuRef}
         />
       )}
 
       {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
-        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE}>
+        <Menu.SubMenu
+          title={t('Share')}
+          key={MenuKeys.Share}
+          // reset to uncontrolled behaviour
+          onTitleMouseEnter={() => setOpenKeys(undefined)}
+        >
           <ShareMenuItems
             dashboardId={dashboardId}
             dashboardComponentId={componentId}
@@ -627,20 +832,29 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             emailBody={t('Check out this chart: ')}
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
+            copyMenuItemRef={copyLinkMenuRef}
+            shareByEmailMenuItemRef={shareByEmailMenuRef}
+            selectedKeys={selectedKeys.filter(
+              key => key === MenuKeys.CopyLink || key === MenuKeys.ShareByEmail,
+            )}
           />
         </Menu.SubMenu>
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD}>
+        <Menu.SubMenu
+          title={t('Download')}
+          key={MenuKeys.Download}
+          onTitleMouseEnter={() => setOpenKeys(undefined)}
+        >
           <Menu.Item
-            key={MENU_KEYS.EXPORT_CSV}
+            key={MenuKeys.ExportCsv}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
             {t('Export to .CSV')}
           </Menu.Item>
           <Menu.Item
-            key={MENU_KEYS.EXPORT_XLSX}
+            key={MenuKeys.ExportXlsx}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
           >
             {t('Export to Excel')}
@@ -651,13 +865,13 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             isTable && (
               <>
                 <Menu.Item
-                  key={MENU_KEYS.EXPORT_FULL_CSV}
+                  key={MenuKeys.ExportFullCsv}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
                   {t('Export to full .CSV')}
                 </Menu.Item>
                 <Menu.Item
-                  key={MENU_KEYS.EXPORT_FULL_XLSX}
+                  key={MenuKeys.ExportFullXlsx}
                   icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
                 >
                   {t('Export to full Excel')}
@@ -666,7 +880,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             )}
 
           <Menu.Item
-            key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
+            key={MenuKeys.DownloadAsImage}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
             {t('Download as image')}
@@ -710,6 +924,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             menu,
             toggleDropdown,
             setSelectedKeys,
+            setOpenKeys,
           )
         }
       >

@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import React, { ReactNode, useCallback, useMemo, useState } from 'react';
+import React, {
+  ReactNode,
+  RefObject,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import { isEmpty } from 'lodash';
 import {
   Behavior,
@@ -83,6 +89,7 @@ export type DrillDetailMenuItemsProps = {
   submenuIndex?: number;
   showModal: boolean;
   setShowModal: (show: boolean) => void;
+  drillToDetailMenuRef?: RefObject<any>;
 };
 
 const DrillDetailMenuItems = ({
@@ -96,6 +103,7 @@ const DrillDetailMenuItems = ({
   submenuIndex = 0,
   showModal,
   setShowModal,
+  drillToDetailMenuRef,
   ...props
 }: DrillDetailMenuItemsProps) => {
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
@@ -153,6 +161,7 @@ const DrillDetailMenuItems = ({
         {...props}
         key="drill-detail-no-filters"
         onClick={openModal.bind(null, [])}
+        ref={drillToDetailMenuRef}
       >
         {t('Drill to detail')}
       </Menu.Item>

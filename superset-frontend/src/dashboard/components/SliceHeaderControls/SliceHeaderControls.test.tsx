@@ -26,6 +26,7 @@ import SliceHeaderControls, {
   SliceHeaderControlsProps,
   handleDropdownNavigation,
 } from '.';
+import { Menu } from 'src/components/Menu';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -398,13 +399,14 @@ test('Should not show the "Edit chart" button', () => {
 describe('handleDropdownNavigation', () => {
   const mockToggleDropdown = jest.fn();
   const mockSetSelectedKeys = jest.fn();
+  const mockSetOpenKeys = jest.fn();
 
-  const menu = React.createElement(
-    'div',
-    { selectedKeys: ['item1'] },
-    React.createElement('div', { key: 'item1' }),
-    React.createElement('div', { key: 'item2' }),
-    React.createElement('div', { key: 'item3' }),
+  const menu = (
+    <Menu selectedKeys={['item1']}>
+      <Menu.Item key="item1">Item 1</Menu.Item>
+      <Menu.Item key="item2">Item 2</Menu.Item>
+      <Menu.Item key="item3">Item 3</Menu.Item>
+    </Menu>
   );
 
   beforeEach(() => {
@@ -423,6 +425,7 @@ describe('handleDropdownNavigation', () => {
       <div />,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockToggleDropdown).not.toHaveBeenCalled();
     expect(mockSetSelectedKeys).not.toHaveBeenCalled();
@@ -441,6 +444,7 @@ describe('handleDropdownNavigation', () => {
       <div />,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockToggleDropdown).toHaveBeenCalled();
     expect(mockSetSelectedKeys).not.toHaveBeenCalled();
@@ -461,6 +465,7 @@ describe('handleDropdownNavigation', () => {
       menu,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockToggleDropdown).toHaveBeenCalled();
     expect(mockSetSelectedKeys).toHaveBeenCalledWith([]);
@@ -479,6 +484,7 @@ describe('handleDropdownNavigation', () => {
       menu,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item2']);
   });
@@ -495,6 +501,7 @@ describe('handleDropdownNavigation', () => {
       menu,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockSetSelectedKeys).toHaveBeenCalledWith(['item1']);
   });
@@ -511,6 +518,7 @@ describe('handleDropdownNavigation', () => {
       <div />,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockToggleDropdown).toHaveBeenCalled();
     expect(mockSetSelectedKeys).not.toHaveBeenCalled();
@@ -528,6 +536,7 @@ describe('handleDropdownNavigation', () => {
       <div />,
       mockToggleDropdown,
       mockSetSelectedKeys,
+      mockSetOpenKeys,
     );
     expect(mockToggleDropdown).not.toHaveBeenCalled();
     expect(mockSetSelectedKeys).not.toHaveBeenCalled();
