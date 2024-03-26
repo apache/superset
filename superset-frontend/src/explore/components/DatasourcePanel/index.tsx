@@ -324,13 +324,13 @@ export default function DataSourcePanel({
                   totalMetrics: lists?.metrics.length,
                   totalColumns: lists?.columns.length,
                   showAllMetrics,
-                  setShowAllMetrics,
+                  onShowAllMetricsChange: setShowAllMetrics,
                   showAllColumns,
-                  setShowAllColumns,
+                  onShowAllColumnsChange: setShowAllColumns,
                   collapseMetrics,
-                  setCollapseMetrics,
+                  onCollapseMetricsChange: setCollapseMetrics,
                   collapseColumns,
-                  setCollapseColumns,
+                  onCollapseColumnsChange: setCollapseColumns,
                 }}
                 overscanCount={5}
               >

@@ -44,13 +44,13 @@ type Props = {
     totalColumns: number;
     width: number;
     showAllMetrics: boolean;
-    setShowAllMetrics: (showAll: boolean) => void;
+    onShowAllMetricsChange: (showAll: boolean) => void;
     showAllColumns: boolean;
-    setShowAllColumns: (showAll: boolean) => void;
+    onShowAllColumnsChange: (showAll: boolean) => void;
     collapseMetrics: boolean;
-    setCollapseMetrics: (collapse: boolean) => void;
+    onCollapseMetricsChange: (collapse: boolean) => void;
     collapseColumns: boolean;
-    setCollapseColumns: (collapse: boolean) => void;
+    onCollapseColumnsChange: (collapse: boolean) => void;
   };
 };
 
@@ -138,13 +138,13 @@ const DatasourcePanelItem: React.FC<Props> = ({ index, style, data }) => {
     totalColumns,
     width,
     showAllMetrics,
-    setShowAllMetrics,
+    onShowAllMetricsChange,
     showAllColumns,
-    setShowAllColumns,
+    onShowAllColumnsChange,
     collapseMetrics,
-    setCollapseMetrics,
+    onCollapseMetricsChange,
     collapseColumns,
-    setCollapseColumns,
+    onCollapseColumnsChange,
   } = data;
   const metricSlice = collapseMetrics ? [] : _metricSlice;
 
@@ -161,9 +161,13 @@ const DatasourcePanelItem: React.FC<Props> = ({ index, style, data }) => {
     (collapseMetrics ? HEADER_LINE : SUBTITLE_LINE) +
     1;
   const collapsed = isColumnSection ? collapseColumns : collapseMetrics;
-  const setCollapse = isColumnSection ? setCollapseColumns : setCollapseMetrics;
+  const setCollapse = isColumnSection
+    ? onCollapseColumnsChange
+    : onCollapseMetricsChange;
   const showAll = isColumnSection ? showAllColumns : showAllMetrics;
-  const setShowAll = isColumnSection ? setShowAllColumns : setShowAllMetrics;
+  const setShowAll = isColumnSection
+    ? onShowAllColumnsChange
+    : onShowAllMetricsChange;
   const theme = useTheme();
 
   return (

@@ -32,13 +32,13 @@ const mockData = {
   totalColumns: Math.max(columns.length, 13),
   width: 300,
   showAllMetrics: false,
-  setShowAllMetrics: jest.fn(),
+  onShowAllMetricsChange: jest.fn(),
   showAllColumns: false,
-  setShowAllColumns: jest.fn(),
+  onShowAllColumnsChange: jest.fn(),
   collapseMetrics: false,
-  setCollapseMetrics: jest.fn(),
+  onCollapseMetricsChange: jest.fn(),
   collapseColumns: false,
-  setCollapseColumns: jest.fn(),
+  onCollapseColumnsChange: jest.fn(),
 };
 
 test('renders each item accordingly', () => {
@@ -117,15 +117,15 @@ test('renders each item accordingly', () => {
 });
 
 test('can collapse metrics and columns', () => {
-  mockData.setCollapseMetrics.mockClear();
-  mockData.setCollapseColumns.mockClear();
+  mockData.onCollapseMetricsChange.mockClear();
+  mockData.onCollapseColumnsChange.mockClear();
   const { queryByText, getByRole, rerender } = render(
     <DatasourcePanelItem index={0} data={mockData} style={{}} />,
     { useDnd: true },
   );
   fireEvent.click(getByRole('button'));
-  expect(mockData.setCollapseMetrics).toBeCalled();
-  expect(mockData.setCollapseColumns).not.toBeCalled();
+  expect(mockData.onCollapseMetricsChange).toBeCalled();
+  expect(mockData.onCollapseColumnsChange).not.toBeCalled();
 
   const startIndexOfColumnSection = mockData.metricSlice.length + 3;
   rerender(
@@ -136,7 +136,7 @@ test('can collapse metrics and columns', () => {
     />,
   );
   fireEvent.click(getByRole('button'));
-  expect(mockData.setCollapseColumns).toBeCalled();
+  expect(mockData.onCollapseColumnsChange).toBeCalled();
 
   rerender(
     <DatasourcePanelItem
