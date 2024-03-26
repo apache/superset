@@ -57,7 +57,7 @@ export default function DndSelectLabel({
   const theme = useTheme();
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept,
+    accept: isLoading ? [] : accept,
 
     drop: (item: DatasourcePanelDndItem) => {
       props.onDrop(item);

@@ -124,39 +124,55 @@ export const DndLabelsContainer = styled.div<{
   isDragging?: boolean;
   isLoading?: boolean;
 }>`
+  ${({ theme, isLoading, canDrop, isDragging, isOver }) => `
   position: relative;
-  padding: ${({ theme }) => theme.gridUnit}px;
-  border: ${({ canDrop, isDragging, isLoading, theme }) => {
-    if (!isLoading && isDragging) {
-      return `dashed 1px ${
-        canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
-      }`;
-    }
-    return `solid 1px ${
-      isLoading && isDragging
-        ? theme.colors.warning.light1
-        : theme.colors.grayscale.light2
-    }`;
-  }};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  padding: ${theme.gridUnit}px;
+  border: ${
+    !isLoading && isDragging
+      ? `dashed 1px ${
+          canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
+        }`
+      : `solid 1px ${
+          isLoading && isDragging
+            ? theme.colors.warning.light1
+            : theme.colors.grayscale.light2
+        }`
+  };
+  border-radius: ${theme.gridUnit}px;
   &:before,
   &:after {
     content: ' ';
     position: absolute;
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${theme.gridUnit}px;
   }
   &:before {
-    display: ${({ isDragging, isLoading }) =>
-      isDragging || isLoading ? 'block' : 'none'};
-    background-color: ${({ theme, canDrop }) =>
-      canDrop ? theme.colors.primary.base : theme.colors.error.light1};
-    z-index: ${({ theme }) => theme.zIndex.aboveDashboardCharts};
-    opacity: ${({ theme }) => theme.opacity.light};
+    display: ${isDragging || isLoading ? 'block' : 'none'};
+    background-color: ${
+      canDrop ? theme.colors.primary.base : theme.colors.error.light1
+    };
+    z-index: ${theme.zIndex.aboveDashboardCharts};
+    opacity: ${theme.opacity.light};
     top: 1px;
     right: 1px;
     bottom: 1px;
     left: 1px;
+  }
+  &:after {
+    display: ${isLoading || (canDrop && isOver) ? 'block' : 'none'};
+    background-color: ${
+      isLoading ? theme.colors.grayscale.light3 : theme.colors.primary.base
+    };
+    z-index: ${theme.zIndex.dropdown};
+    opacity: ${theme.opacity.mediumLight};
+    top: ${-theme.gridUnit}px;
+    right: ${-theme.gridUnit}px;
+    bottom: ${-theme.gridUnit}px;
+    left: ${-theme.gridUnit}px;
+    cursor: ${isLoading ? 'wait' : 'auto'};
+  }
+  `}
 
+  &:before {
     ${({ theme, isLoading }) =>
       isLoading &&
       css`
@@ -168,20 +184,7 @@ export const DndLabelsContainer = styled.div<{
         left: ${theme.gridUnit}px;
         bottom: -${theme.gridUnit / 2}px;
         height: ${theme.gridUnit / 2}px;
-      `}
-  }
-  &:after {
-    display: ${({ isOver, canDrop, isLoading }) =>
-      isLoading || (canDrop && isOver) ? 'block' : 'none'};
-    background-color: ${({ theme, isLoading }) =>
-      isLoading ? theme.colors.grayscale.light3 : theme.colors.primary.base};
-    z-index: ${({ theme }) => theme.zIndex.dropdown};
-    opacity: ${({ theme }) => theme.opacity.mediumLight};
-    top: ${({ theme }) => -theme.gridUnit}px;
-    right: ${({ theme }) => -theme.gridUnit}px;
-    bottom: ${({ theme }) => -theme.gridUnit}px;
-    left: ${({ theme }) => -theme.gridUnit}px;
-    cursor: ${({ isLoading }) => (isLoading ? 'wait' : 'auto')};
+      `};
   }
 `;
 
