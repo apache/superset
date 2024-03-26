@@ -1,7 +1,9 @@
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import os from 'os';
 import path from 'path';
 
+import toml from 'toml';
 import { Octokit } from '@octokit/rest';
 import { throttling } from '@octokit/plugin-throttling';
 
@@ -251,6 +253,28 @@ class Github {
 
   static isLabelProtected(label) {
     return PROTECTED_LABEL_PATTERNS.some((pattern) => new RegExp(pattern).test(label));
+  }
+
+  async createAllBumpPRs(verbose = false, dryRun = false) {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const tomlFilePath = path.join(__dirname, '../../..', 'pyproject.toml');
+
+    try {
+      const data = await fs.promises.readFile(tomlFilePath, 'utf8');
+      // Parse the TOML data
+      const parsedData = toml.parse(data);
+
+      // Assuming dependencies is an array; if it's an object, you'll need to adjust this.
+      console.log("YOYOYO", parsedData.project.dependencies);
+      for (const libRange of parsedData.project.dependencies) {
+        const lib = libRange.match(/^[^>=<;\[\s]+/)[0];
+        console.log(`Processing library: ${lib}`);
+        await this.createBumpLibPullRequest(lib, verbose, dryRun);
+      }
+    } catch (err) {
+      console.error('Error reading or parsing the TOML file:', err);
+    }
   }
 
   async createBumpLibPullRequest(lib, verbose = false, dryRun = false) {

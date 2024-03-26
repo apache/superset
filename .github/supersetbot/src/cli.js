@@ -151,12 +151,19 @@ export default function getCLI(context) {
         await github.assignOrgLabel(opts.issue, opts.verbose, opts.dryRun);
       });
 
-    program.command('auto-bump <python-lib>')
-      .description('Submit a PR to bump the version of a package')
+    program.command('bump-python')
+      .description('Submit PR(s) to bump python dependencies')
+      .option('-p, --package <package>', 'name of the package to bump')
       .action(async function (pythonLib) {
         const opts = context.processOptions(this, ['repo']);
         const github = new Github({ context });
-        await github.createBumpLibPullRequest(pythonLib, opts.verbose, opts.dryRun);
+        if (!opts.package) {
+          await github.createAllBumpPRs(opts.verbose, opts.dryRun);
+        }
+        else {
+          await github.createBumpLibPullRequest(opts.package, opts.verbose, opts.dryRun);
+        }
+
       });
 
 
