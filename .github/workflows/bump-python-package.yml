@@ -39,4 +39,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           supersetbot bump-python --package "${{ github.event.inputs.package }}" --verbose
