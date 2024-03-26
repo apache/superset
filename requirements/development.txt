@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-6aKGRs
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
@@ -24,7 +24,7 @@ botocore==1.29.130
     # via
     #   boto3
     #   s3transfer
-build==0.10.0
+build==1.1.1
     # via pip-tools
 cached-property==1.5.2
     # via tableschema
@@ -176,7 +176,7 @@ pillow==10.2.0
     #   matplotlib
 pip-compile-multi==2.6.3
     # via -r requirements/development.in
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via pip-compile-multi
 playwright==1.41.2
     # via apache-superset
@@ -208,10 +208,6 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.5
@@ -220,7 +216,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/development.in
-pyhive[hive_pure_sasl]==0.7.0
+pyhive[presto]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -229,7 +225,9 @@ pylint==2.17.7
 pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
-    # via build
+    # via
+    #   build
+    #   pip-tools
 pytest==7.3.1
     # via
     #   -r requirements/development.in
@@ -264,12 +262,7 @@ tableschema==1.20.2
 tabulator==1.53.5
     # via tableschema
 thrift==0.16.0
-    # via
-    #   apache-superset
-    #   pyhive
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via pyhive
+    # via apache-superset
 tomli==2.0.1
     # via
     #   build
