@@ -473,19 +473,27 @@ def test_create_table_as():
 
 
 def test_in_app_context():
-    @celery_app.task()
-    def my_task():
+    @celery_app.task(bind=True)
+    def my_task(self):
+        # Ensuring that current_app can be accessed
         assert current_app
 
     # Make sure we can call tasks with an app already setup
-    my_task()
+    with app.app_context():
+        my_task.apply_async()
 
-    # Make sure the app gets pushed onto the stack properly
+    # Outside of an app context, current_app should raise a RuntimeError
     try:
-        popped_app = flask._app_ctx_stack.pop()
-        my_task()
-    finally:
-        flask._app_ctx_stack.push(popped_app)
+        my_task.apply_async()
+        assert (
+            False
+        ), "Expected RuntimeError when accessing current_app outside of application context"
+    except RuntimeError:
+        pass
+
+    # Make sure the app gets pushed onto the stack properly and task can be called
+    with app.app_context():
+        my_task.apply_async()
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
