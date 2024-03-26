@@ -1125,9 +1125,11 @@ export function removeTables(tables) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? Promise.all(
           tablesToRemove.map(table =>
-            SupersetClient.delete({
-              endpoint: encodeURI(`/tableschemaview/${table.id}`),
-            }),
+            table.initialized
+              ? SupersetClient.delete({
+                  endpoint: encodeURI(`/tableschemaview/${table.id}`),
+                })
+              : Promise.resolve(),
           ),
         )
       : Promise.resolve();
