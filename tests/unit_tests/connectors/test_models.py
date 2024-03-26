@@ -384,3 +384,85 @@ class TestInstantTimeComparisonQueryGeneration:
         simplified_query2 = " ".join(expected_str.split()).lower()
         assert table.id == 1
         assert simplified_query1 == simplified_query2
+
+    @with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+    def test_creates_time_comparison_query_case_sensitivity(session: Session):
+        table = TestInstantTimeComparisonQueryGeneration.base_setup(session)
+        query_obj = TestInstantTimeComparisonQueryGeneration.generate_base_query_obj()
+        query_obj["columns"] = ["Name"]  # Changed case
+        query_obj["metrics"] = [
+            {
+                "aggregate": "SUM",
+                "column": {
+                    "column_name": "num_boys",
+                    "type": "BIGINT",
+                    "filterable": True,
+                    "groupby": True,
+                    "id": 334,
+                    "is_certified": False,
+                    "is_dttm": False,
+                    "type_generic": 0,
+                },
+                "datasourceWarning": False,
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "label": "SUM(Num_Boys)",
+                "optionName": "metric_gzp6eq9g1lc_d8o0mj0mhq4",
+                "sqlExpression": None,
+            },
+            {
+                "aggregate": "SUM",
+                "column": {
+                    "column_name": "num_girls",
+                    "type": "BIGINT",
+                    "filterable": True,
+                    "groupby": True,  # Note: This will need adjustment in some cases
+                    "id": 335,
+                    "is_certified": False,
+                    "is_dttm": False,
+                    "type_generic": 0,
+                },
+                "datasourceWarning": False,
+                "expressionType": "SIMPLE",
+                "hasCustomLabel": False,
+                "label": "SUM(Num_Girls)",
+                "optionName": "metric_5gyhtmyfw1t_d42py86jpco",
+                "sqlExpression": None,
+            },
+        ]
+        query_obj["orderby"] = [("SUM(Num_Boys)", False)]  # Changed case
+        str = table.get_query_str_extended(query_obj)
+        expected_str = """
+            WITH query_a_results AS
+            (SELECT (Name) AS "Name",
+                    sum(num_boys) AS "SUM(Num_Boys)",
+                    sum(num_girls) AS "SUM(Num_Girls)"
+            FROM my_schema.my_table
+            WHERE ds >= '1984-01-01 00:00:00'
+                AND ds < '2024-02-14 00:00:00'
+            GROUP BY (Name)
+            ORDER BY "SUM(Num_Boys)" DESC
+            LIMIT 10
+            OFFSET 0)
+            SELECT query_a_results."Name" AS "Name",
+                query_a_results."SUM(Num_Boys)" AS "SUM(Num_Boys)",
+                query_a_results."SUM(Num_Girls)" AS "SUM(Num_Girls)",
+                anon_1."SUM(Num_Boys)" AS "prev_SUM(Num_Boys)",
+                anon_1."SUM(Num_Girls)" AS "prev_SUM(Num_Girls)"
+            FROM query_a_results
+            LEFT OUTER JOIN
+            (SELECT (Name) AS "Name",
+                    sum(num_boys) AS "SUM(Num_Boys)",
+                    sum(num_girls) AS "SUM(Num_Girls)"
+            FROM my_schema.my_table
+            WHERE ds >= '1983-01-01 00:00:00'
+                AND ds < '2023-02-14 00:00:00'
+            GROUP BY (Name)
+            ORDER BY "SUM(Num_Boys)" DESC) AS anon_1 ON anon_1."Name" = query_a_results."Name"
+        """
+        simplified_query1 = " ".join(str.sql.split()).lower()
+        simplified_query2 = " ".join(expected_str.split()).lower()
+
+        # Assertions
+        assert table.id == 1
+        assert simplified_query1 == simplified_query2

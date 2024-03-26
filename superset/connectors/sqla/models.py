@@ -1431,6 +1431,14 @@ class SqlaTable(
                 column_names.append(column_name)
         return column_names
 
+    def find_column_by_insensitive_name(
+        self, col_list: list[TableColumn], target_name: str
+    ) -> TableColumn | None:
+        for col in col_list:
+            if col.name.lower() == target_name.lower():
+                return col
+        return None
+
     def process_time_compare_join(  # pylint: disable=too-many-locals
         self,
         query_obj: QueryObjectDict,
@@ -1492,7 +1500,23 @@ class SqlaTable(
         column_names_a = [column.key for column in original_query_a.c]
         exclude_columns_b = set(query_obj_clone.get("columns") or [])
         # Let's prepare the columns set to be used in query A and B
-        selected_columns_a = [query_a_cte.c[col].label(col) for col in column_names_a]
+        # We need to use the label form the CTE in order to guarantee that
+        # the columns are correctly selected by the UI later on
+        original_case_mapping = {col.lower(): col for col in query_a_cte.c.keys()}
+        selected_columns_a = []
+        for col_name in column_names_a:
+            matched_column = self.find_column_by_insensitive_name(
+                query_a_cte.columns, col_name
+            )
+            if matched_column is not None:
+                original_case_name = original_case_mapping.get(
+                    matched_column.name.lower()
+                )
+                if original_case_name:
+                    selected_columns_a.append(matched_column.label(original_case_name))
+                else:
+                    # Just as fallback
+                    selected_columns_a.append(matched_column.label(matched_column.name))
         # Renamed columns from Query B (with "prev_" prefix)
         selected_columns_b = [
             shifted_query_b_subquery.c[col].label(f"prev_{col}")
