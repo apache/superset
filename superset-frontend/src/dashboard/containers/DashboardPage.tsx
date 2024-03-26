@@ -225,6 +225,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // TODO: DODO -- add russian title
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;

@@ -221,6 +221,7 @@ export const createSlice =
   };
 
 //  Create new dashboard
+// TODO: DODO russian title
 export const createDashboard = dashboardName => async dispatch => {
   try {
     const response = await SupersetClient.post({

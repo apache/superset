@@ -165,6 +165,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const { addDangerToast } = useToasts();
 
   const finalDashboardLanguage = 'en';
+  // TODO: DODO
   // let finalDashboardLanguage = 'en';
 
   // if (process.env.type === undefined) {
@@ -196,7 +197,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const {
+    dashboard_title,
+    dashboard_title_RU,
+    css,
+    metadata,
+    id = 0,
+  } = dashboard || {};
 
   // Filter sets depend on native filters
   const filterSetEnabled =
@@ -273,9 +280,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // TODO: russian title
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
+      console.log('dashboard_title_RU', dashboard_title_RU);
     }
     return () => {
       document.title = originalDocumentTitle;

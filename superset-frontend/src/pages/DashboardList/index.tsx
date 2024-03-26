@@ -73,8 +73,8 @@ interface Dashboard {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
-  dashboard_title: string;
   // DODO added
+  dashboard_title: string;
   dashboard_title_RU: string;
   id: number;
   published: boolean;
@@ -185,9 +185,9 @@ function DashboardList(props: DashboardListProps) {
               const {
                 changed_by_name,
                 changed_by,
-                dashboard_title = '',
                 // DODO added
                 dashboard_title_RU = '',
+                dashboard_title = '',
                 slug = '',
                 json_metadata = '',
                 changed_on_delta_humanized,
@@ -201,9 +201,9 @@ function DashboardList(props: DashboardListProps) {
                 ...dashboard,
                 changed_by_name,
                 changed_by,
-                dashboard_title,
                 // DODO added
                 dashboard_title_RU,
+                dashboard_title,
                 slug,
                 json_metadata,
                 changed_on_delta_humanized,

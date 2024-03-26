@@ -93,6 +93,7 @@ const getLocaleForSuperset = () => {
   return 'en';
 };
 
+// DODO added
 let userLanguage = 'en';
 
 if (process.env.type === undefined) {
@@ -626,9 +627,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               index={0}
               renderTabContent={false}
               renderHoverMenu={false}
-              onChangeTab={handleChangeTab}
-              // DODO changed
+              // DODO added
               userLanguage={userLanguage}
+              onChangeTab={handleChangeTab}
             />
           </WithPopoverMenu>
         )}

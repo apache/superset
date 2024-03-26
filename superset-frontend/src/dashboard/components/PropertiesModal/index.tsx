@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
@@ -64,6 +47,8 @@ const StyledJsonEditor = styled(JsonEditor)`
 type PropertiesModalProps = {
   dashboardId: number;
   dashboardTitle?: string;
+  // DODO added
+  dashboardTitleRU?: string;
   dashboardInfo?: Record<string, any>;
   show?: boolean;
   onHide?: () => void;
@@ -84,6 +69,8 @@ type Owners = {
 type DashboardInfo = {
   id: number;
   title: string;
+  // DODO added
+  titleRU: string;
   slug: string;
   certifiedBy: string;
   certificationDetails: string;
@@ -97,6 +84,8 @@ const PropertiesModal = ({
   dashboardId,
   dashboardInfo: currentDashboardInfo,
   dashboardTitle,
+  // DODO added
+  dashboardTitleRU,
   onHide = () => {},
   onlyApply = false,
   onSubmit = () => {},
@@ -172,6 +161,8 @@ const PropertiesModal = ({
       const {
         id,
         dashboard_title,
+        // DODO added
+        dashboard_title_RU,
         slug,
         certified_by,
         certification_details,
@@ -183,6 +174,8 @@ const PropertiesModal = ({
       const dashboardInfo = {
         id,
         title: dashboard_title,
+        // DODO added
+        titleRU: dashboard_title_RU || '[ Безымянный Дашборд ]',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
@@ -206,6 +199,7 @@ const PropertiesModal = ({
     [form],
   );
 
+  // Используется при открытии модалки из списка дашбордов
   const fetchDashboardDetails = useCallback(() => {
     setIsLoading(true);
     // We fetch the dashboard details because not all code
@@ -345,7 +339,8 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
+    // DODO added
+    const { title, titleRU, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
@@ -429,6 +424,8 @@ const PropertiesModal = ({
     const onSubmitProps = {
       id: dashboardId,
       title,
+      // DODO added
+      titleRU,
       slug,
       jsonMetadata: currentJsonMetadata,
       owners,
@@ -443,11 +440,14 @@ const PropertiesModal = ({
       onHide();
       addSuccessToast(t('Dashboard properties updated'));
     } else {
+      // Используется при сохранении через модалку в списке дашбордов
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dashboard_title: title,
+          // DODO added
+          dashboard_title_RU: titleRU,
           slug: slug || null,
           json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
@@ -595,6 +595,7 @@ const PropertiesModal = ({
       dashboardInfo &&
       dashboardInfo.title !== dashboardTitle
     ) {
+      console.log('call here 2', dashboardInfo);
       form.setFieldsValue({
         ...dashboardInfo,
         title: dashboardTitle,
@@ -689,6 +690,17 @@ const PropertiesModal = ({
               />
             </FormItem>
           </Col>
+          <Col xs={24} md={12}>
+            <FormItem label={t('Title RU')} name="titleRU">
+              <Input
+                data-test="dashboard-title-ru-input"
+                type="text"
+                disabled={isLoading}
+              />
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('URL slug')} name="slug">
               <Input type="text" disabled={isLoading} />

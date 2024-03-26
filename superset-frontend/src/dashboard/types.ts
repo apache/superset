@@ -167,11 +167,11 @@ export type LayoutItem = {
     defaultText?: string;
     height: number;
     placeholder?: string;
-    sliceName?: string;
     // DODO added
     sliceNameRU?: string;
-    sliceNameOverrideRU?: string;
+    sliceName?: string;
     sliceNameOverride?: string;
+    sliceNameOverrideRU?: string;
     text?: string;
     uuid: string;
     width: number;

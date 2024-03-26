@@ -241,8 +241,9 @@ export function saveDashboardRequest(data, id, saveType) {
       certification_details:
         certified_by && certification_details ? certification_details : '',
       css: css || '',
-      dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
-      dashboard_title_RU: dashboard_title_RU || t('[ безымянный дашборд ]'),
+      dashboard_title: dashboard_title || '[ untitled dashboard ]',
+      // DODO added
+      dashboard_title_RU: dashboard_title_RU || '[ безымянный дашборд ]',
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
       roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
         ? undefined
@@ -373,6 +374,7 @@ export function saveDashboardRequest(data, id, saveType) {
               certification_details: cleanedData.certification_details,
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
+              // DODO added
               dashboard_title_RU: cleanedData.dashboard_title_RU,
               slug: cleanedData.slug,
               owners: cleanedData.owners,
@@ -448,6 +450,8 @@ export function saveDashboardRequest(data, id, saveType) {
     cleanedData.metadata.filter_scopes = serializedFilterScopes;
     const copyPayload = {
       dashboard_title: cleanedData.dashboard_title,
+      // DODO added
+      dashboard_title_RU: cleanedData.dashboard_title_RU,
       css: cleanedData.css,
       duplicate_slices: cleanedData.duplicate_slices,
       json_metadata: JSON.stringify(cleanedData.metadata),
