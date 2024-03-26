@@ -680,8 +680,8 @@ def test_oauth2_happy_path(
         "database_id": 1,
         "tab_id": 42,
     }
-    jwt = mocker.patch("superset.databases.api.jwt")
-    jwt.decode.return_value = state
+    decode_oauth2_state = mocker.patch("superset.databases.api.decode_oauth2_state")
+    decode_oauth2_state.return_value = state
 
     mocker.patch("superset.databases.api.render_template", return_value="OK")
 
@@ -695,11 +695,7 @@ def test_oauth2_happy_path(
         )
 
     assert response.status_code == 200
-    jwt.decode.assert_called_with(
-        "some.state",
-        "not-a-secret",
-        algorithms=["HS256"],
-    )
+    decode_oauth2_state.assert_called_with("some%2Estate")
     get_oauth2_token.assert_called_with("XXX", state)
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
@@ -754,8 +750,8 @@ def test_oauth2_multiple_tokens(
         "database_id": 1,
         "tab_id": 42,
     }
-    jwt = mocker.patch("superset.databases.api.jwt")
-    jwt.decode.return_value = state
+    decode_oauth2_state = mocker.patch("superset.databases.api.decode_oauth2_state")
+    decode_oauth2_state.return_value = state
 
     mocker.patch("superset.databases.api.render_template", return_value="OK")
 

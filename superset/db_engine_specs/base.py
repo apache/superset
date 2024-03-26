@@ -73,6 +73,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
+
 ColumnTypeMapping = tuple[
     Pattern[str],
     Union[TypeEngine, Callable[[Match[str]], TypeEngine]],

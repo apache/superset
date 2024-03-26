@@ -17,18 +17,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from datetime import datetime, timedelta, timezone
+from typing import Any, TYPE_CHECKING
 
 import backoff
+import jwt
+from flask import current_app
+from marshmallow import EXCLUDE, fields, post_load, Schema
 
 from superset import db
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, OAuth2State
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
 from superset.utils.lock import KeyValueDistributedLock
 
 if TYPE_CHECKING:
     from superset.models.core import DatabaseUserOAuth2Tokens
+
+JWT_EXPIRATION = timedelta(minutes=5)
 
 
 @backoff.on_exception(
@@ -101,3 +106,71 @@ def refresh_oauth2_token(
         db.session.add(token)
 
     return token.access_token
+
+
+def encode_oauth2_state(state: OAuth2State) -> str:
+    """
+    Encode the OAuth2 state.
+    """
+    payload = {
+        "exp": datetime.now(tz=timezone.utc) + JWT_EXPIRATION,
+        "database_id": state["database_id"],
+        "user_id": state["user_id"],
+        "default_redirect_uri": state["default_redirect_uri"],
+        "tab_id": state["tab_id"],
+    }
+    encoded_state = jwt.encode(
+        payload=payload,
+        key=current_app.config["SECRET_KEY"],
+        algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
+    )
+
+    # Google OAuth2 needs periods to be escaped.
+    encoded_state = encoded_state.replace(".", "%2E")
+
+    return encoded_state
+
+
+class OAuth2StateSchema(Schema):
+    database_id = fields.Int(required=True)
+    user_id = fields.Int(required=True)
+    default_redirect_uri = fields.Str(required=True)
+    tab_id = fields.Str(required=True)
+
+    # pylint: disable=unused-argument
+    @post_load
+    def make_oauth2_state(
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> OAuth2State:
+        return OAuth2State(
+            database_id=data["database_id"],
+            user_id=data["user_id"],
+            default_redirect_uri=data["default_redirect_uri"],
+            tab_id=data["tab_id"],
+        )
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # ignore `exp`
+        unknown = EXCLUDE
+
+
+oauth2_state_schema = OAuth2StateSchema()
+
+
+def decode_oauth2_state(encoded_state: str) -> OAuth2State:
+    """
+    Decode the OAuth2 state.
+    """
+    # Google OAuth2 needs periods to be escaped.
+    encoded_state = encoded_state.replace("%2E", ".")
+
+    payload = jwt.decode(
+        jwt=encoded_state,
+        key=current_app.config["SECRET_KEY"],
+        algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
+    )
+    state = oauth2_state_schema.load(payload)
+
+    return state

@@ -21,7 +21,6 @@ import json
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
-import jwt
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
@@ -30,6 +29,7 @@ from sqlalchemy.engine.url import make_url
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
+from superset.utils.oauth2 import decode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import OAuth2State
@@ -517,7 +517,7 @@ def test_get_oauth2_authorization_uri(mocker: MockFixture) -> None:
         "https://spreadsheets.google.com/feeds"
     )
     encoded_state = query["state"][0].replace("%2E", ".")
-    assert jwt.decode(encoded_state, "not-a-secret", ["HS256"]) == state
+    assert decode_oauth2_state(encoded_state) == state
 
 
 def test_get_oauth2_token(mocker: MockFixture) -> None:

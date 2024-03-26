@@ -25,7 +25,6 @@ from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 from urllib.parse import urlencode
 
-import jwt
 import pandas as pd
 import urllib3
 from apispec import APISpec
@@ -47,6 +46,7 @@ from superset.db_engine_specs.base import OAuth2State, OAuth2TokenResponse
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -160,8 +160,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         """
         return "Google Sheets" in current_app.config["DATABASE_OAUTH2_CREDENTIALS"]
 
-    @staticmethod
-    def get_oauth2_authorization_uri(state: OAuth2State) -> str:
+    @classmethod
+    def get_oauth2_authorization_uri(cls, state: OAuth2State) -> str:
         """
         Return URI for initial OAuth2 request.
 
@@ -173,20 +173,12 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             state["default_redirect_uri"],
         )
 
-        encoded_state = jwt.encode(
-            payload=state,
-            key=current_app.config["SECRET_KEY"],
-            algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
-        )
-        # periods in the state break Google OAuth2 for some reason
-        encoded_state = encoded_state.replace(".", "%2E")
-
         params = {
             "scope": " ".join(SCOPES),
             "access_type": "offline",
             "include_granted_scopes": "false",
             "response_type": "code",
-            "state": encoded_state,
+            "state": encode_oauth2_state(state),
             "redirect_uri": redirect_uri,
             "client_id": config["CLIENT_ID"],
             "prompt": "consent",

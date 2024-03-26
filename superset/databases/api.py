@@ -22,16 +22,8 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-import jwt
 from deprecation import deprecated
-from flask import (
-    current_app,
-    make_response,
-    render_template,
-    request,
-    Response,
-    send_file,
-)
+from flask import make_response, render_template, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
@@ -96,13 +88,13 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
-from superset.db_engine_specs.base import OAuth2State
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base import json_errors_response
 from superset.views.base_api import (
@@ -1109,14 +1101,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if "error" in parameters:
             raise OAuth2Error(parameters["error"])
 
-        state = cast(
-            OAuth2State,
-            jwt.decode(
-                parameters["state"].replace("%2E", "."),
-                current_app.config["SECRET_KEY"],
-                algorithms=[current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"]],
-            ),
-        )
+        state = decode_oauth2_state(parameters["state"])
 
         # exchange code for access/refresh tokens
         database = db.session.query(Database).filter_by(id=state["database_id"]).one()
