@@ -86,7 +86,7 @@ class DuckDBEngineSpec(BaseEngineSpec):
         return set(inspector.get_table_names(schema))
 
     @staticmethod
-    def get_extra_params(database: "Database") -> dict[str, Any]:
+    def get_extra_params(database: Database) -> dict[str, Any]:
         """
         Add a user agent to be used in the requests.
         """
@@ -107,4 +107,6 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine = "duckdb"
     engine_name = "MotherDuck"
 
-    sqlalchemy_uri_placeholder = "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
+    sqlalchemy_uri_placeholder = (
+        "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
+    )
