@@ -1,4 +1,4 @@
-name: Docker Publish Release
+name: Bump Python Package
 
 on:
   push: {}
@@ -28,5 +28,7 @@ jobs:
         uses: ./.github/actions/setup-supersetbot/
 
       - name: Execute custom Node.js script
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           supersetbot bump-python --package "${{ github.event.inputs.package }}" --verbose
