@@ -68,6 +68,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange: () => void;
   renderGroupingHeaders?: () => JSX.Element;
+  renderTimeComparisonDropdown?: () => JSX.Element;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -101,6 +102,7 @@ export default typedMemo(function DataTable<D extends object>({
   wrapperRef: userWrapperRef,
   onColumnOrderChange,
   renderGroupingHeaders,
+  renderTimeComparisonDropdown,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -117,7 +119,8 @@ export default typedMemo(function DataTable<D extends object>({
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
   const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
-  const hasGlobalControl = hasPagination || !!searchInput;
+  const hasGlobalControl =
+    hasPagination || !!searchInput || renderTimeComparisonDropdown;
   const initialState = {
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
@@ -359,7 +362,9 @@ export default typedMemo(function DataTable<D extends object>({
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
           <div className="row">
-            <div className="col-sm-6">
+            <div
+              className={renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'}
+            >
               {hasPagination ? (
                 <SelectPageSize
                   total={resultsSize}
@@ -375,7 +380,11 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div className="col-sm-6">
+              <div
+                className={
+                  renderTimeComparisonDropdown ? 'col-sm-5' : 'col-sm-6'
+                }
+              >
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
@@ -384,6 +393,11 @@ export default typedMemo(function DataTable<D extends object>({
                   setGlobalFilter={setGlobalFilter}
                   filterValue={filterValue}
                 />
+              </div>
+            ) : null}
+            {renderTimeComparisonDropdown ? (
+              <div className="col-sm-2" style={{ float: 'right' }}>
+                {renderTimeComparisonDropdown()}
               </div>
             ) : null}
           </div>
