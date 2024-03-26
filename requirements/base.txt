@@ -30,6 +30,8 @@ bcrypt==4.0.1
     # via paramiko
 billiard==4.2.0
     # via celery
+blinker==1.7.0
+    # via flask
 bottleneck==1.3.7
     # via pandas
 brotli==1.0.9
@@ -92,7 +94,7 @@ email-validator==1.1.3
     # via flask-appbuilder
 exceptiongroup==1.2.0
     # via cattrs
-flask==2.2.5
+flask==2.3.3
     # via
     #   apache-superset
     #   flask-appbuilder
