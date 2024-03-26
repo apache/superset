@@ -1,8 +1,8 @@
 name: Docker Publish Release
 
 on:
-  push:
-  pull_request:
+  push: {}
+  pull_request: {}
 
   # Can be triggered manually
   workflow_dispatch:
@@ -12,7 +12,6 @@ on:
         description: The python package to bump
 jobs:
   bump-python-package:
-    needs: config
     runs-on: ubuntu-latest
     permissions:
       contents: write
