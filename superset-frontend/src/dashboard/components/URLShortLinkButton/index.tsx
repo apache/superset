@@ -98,7 +98,7 @@ export default function URLShortLinkButton({
     >
       <span
         className="short-link-trigger btn btn-default btn-sm"
-        tabIndex={0}
+        tabIndex={-1}
         role="button"
         onClick={e => {
           e.stopPropagation();

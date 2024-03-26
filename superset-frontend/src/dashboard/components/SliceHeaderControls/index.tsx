@@ -21,14 +21,11 @@ import React, {
   Key,
   ReactChild,
   useState,
+  useRef,
+  RefObject,
   useCallback,
 } from 'react';
-import {
-  Link,
-  RouteComponentProps,
-  useHistory,
-  withRouter,
-} from 'react-router-dom';
+import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -74,6 +71,21 @@ const MENU_KEYS = {
   VIEW_RESULTS: 'view_results',
   DRILL_TO_DETAIL: 'drill_to_detail',
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
+  SHARE: 'share',
+  DOWNLOAD: 'download',
+};
+
+const ACTION_KEYS = {
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
+};
+
+const NAV_KEYS = {
+  tab: 'Tab',
+  escape: 'Escape',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
 };
 
 // TODO: replace 3 dots with an icon
@@ -170,25 +182,91 @@ const dropdownIconsStyles = css`
   }
 `;
 
+export const handleDropdownNavigation = (
+  e: React.KeyboardEvent<HTMLElement>,
+  dropdownIsOpen: boolean,
+  menu: React.ReactElement,
+  toggleDropdown: () => void,
+  setSelectedKeys: (keys: string[]) => void,
+) => {
+  if (e.key === NAV_KEYS.tab && !dropdownIsOpen) {
+    return; // if tab, continue with system tab navigation
+  }
+  const menuProps = menu.props || {};
+  // for accessibility using keyboard navigation
+  const keys = (
+    Array.isArray(menuProps.children)
+      ? menuProps.children
+      : [menuProps.children]
+  )
+    .map(
+      (item: any) =>
+        item?.key ||
+        item?.props?.children?.find((child: React.ReactElement) => child?.key)
+          ?.key,
+    )
+    .filter((item: any) => !!item);
+  const { selectedKeys = [] } = menuProps;
+  const currentKeyIndex = keys.indexOf(selectedKeys[0]);
+
+  switch (e.key) {
+    // toggle the dropdown on keypress
+    case ACTION_KEYS.enter:
+    case ACTION_KEYS.spacebar:
+    case ACTION_KEYS.space:
+      if (selectedKeys.length) {
+        // when a menu item is selected, then trigger
+        // the menu item's onClick handler
+        menuProps.onClick?.({ key: selectedKeys[0], domEvent: e });
+        // clear out/deselect keys
+        setSelectedKeys([]);
+        // put focus back on menu trigger
+        e.currentTarget.focus();
+      }
+      // if nothing was selected, or after selecting new menu item,
+      toggleDropdown();
+      break;
+    // select the menu items going down
+    case NAV_KEYS.down:
+    case NAV_KEYS.tab && !e.shiftKey:
+      setSelectedKeys([keys[Math.min(currentKeyIndex + 1, keys.length)]]);
+      break;
+    // select the menu items going up
+    case NAV_KEYS.up:
+    case NAV_KEYS.tab && e.shiftKey:
+      setSelectedKeys([keys[Math.max(currentKeyIndex - 1, 0)]]);
+      break;
+    case NAV_KEYS.escape:
+      // close dropdown menu
+      toggleDropdown();
+      break;
+    default:
+      break;
+  }
+};
+
 const ViewResultsModalTrigger = ({
   canExplore,
   exploreUrl,
   triggerNode,
   modalTitle,
   modalBody,
+  showModal = false,
+  setShowModal,
 }: {
   canExplore?: boolean;
   exploreUrl: string;
   triggerNode: ReactChild;
   modalTitle: ReactChild;
   modalBody: ReactChild;
+  showModal: boolean;
+  setShowModal: (showModal: boolean) => void;
 }) => {
-  const [showModal, setShowModal] = useState(false);
-  const openModal = useCallback(() => setShowModal(true), []);
-  const closeModal = useCallback(() => setShowModal(false), []);
   const history = useHistory();
   const exploreChart = () => history.push(exploreUrl);
   const theme = useTheme();
+  const openModal = useCallback(() => setShowModal(true), []);
+  const closeModal = useCallback(() => setShowModal(false), []);
 
   return (
     <>
@@ -210,6 +288,7 @@ const ViewResultsModalTrigger = ({
           `}
           show={showModal}
           onHide={closeModal}
+          closable
           title={modalTitle}
           footer={
             <>
@@ -261,9 +340,22 @@ const ViewResultsModalTrigger = ({
 };
 
 const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
+  const [dropdownIsOpen, setDropdownIsOpen] = useState(false);
+  const [tableModalIsOpen, setTableModalIsOpen] = useState(false);
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
+
+  const queryMenuRef: RefObject<any> = useRef(null);
+  const menuRef: RefObject<any> = useRef(null);
+
+  const toggleDropdown = ({ close }: { close?: boolean } = {}) => {
+    setDropdownIsOpen(!(close || dropdownIsOpen));
+    // clear selected keys
+    setSelectedKeys([]);
+  };
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
@@ -297,6 +389,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     key: Key;
     domEvent: MouseEvent<HTMLElement>;
   }) => {
+    // close menu
+    toggleDropdown({ close: true });
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
         refreshChart();
@@ -309,6 +403,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
         props.logExploreChart?.(props.slice.slice_id);
+        window.open(props.exploreUrl);
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
@@ -351,6 +446,22 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       }
       case MENU_KEYS.CROSS_FILTER_SCOPING: {
         openScopingModal();
+        break;
+      }
+      case MENU_KEYS.VIEW_RESULTS: {
+        if (!tableModalIsOpen) {
+          setTableModalIsOpen(true);
+        }
+        break;
+      }
+      case MENU_KEYS.DRILL_TO_DETAIL: {
+        setDrillModalIsOpen(!drillModalIsOpen);
+        break;
+      }
+      case MENU_KEYS.VIEW_QUERY: {
+        if (queryMenuRef.current && !queryMenuRef.current.showModal) {
+          queryMenuRef.current.open(domEvent);
+        }
         break;
       }
       default:
@@ -408,6 +519,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       onClick={handleMenuClick}
       selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
+      selectedKeys={selectedKeys}
+      id={`slice_${slice.slice_id}-menu`}
+      ref={menuRef}
     >
       <Menu.Item
         key={MENU_KEYS.FORCE_REFRESH}
@@ -435,11 +549,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
 
       {canExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-          <Link to={props.exploreUrl}>
-            <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
-              {t('Edit chart')}
-            </Tooltip>
-          </Link>
+          <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
+            {t('Edit chart')}
+          </Tooltip>
         </Menu.Item>
       )}
 
@@ -463,6 +575,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             draggable
             resizable
             responsive
+            ref={queryMenuRef}
           />
         </Menu.Item>
       )}
@@ -475,6 +588,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             triggerNode={
               <span data-test="view-query-menu-item">{t('View as table')}</span>
             }
+            setShowModal={setTableModalIsOpen}
+            showModal={tableModalIsOpen}
             modalTitle={t('Chart Data: %s', slice.slice_name)}
             modalBody={
               <ResultsPaneOnDashboard
@@ -493,13 +608,16 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         <DrillDetailMenuItems
           chartId={slice.slice_id}
           formData={props.formData}
+          key={MENU_KEYS.DRILL_TO_DETAIL}
+          showModal={drillModalIsOpen}
+          setShowModal={setDrillModalIsOpen}
         />
       )}
 
       {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
-        <Menu.SubMenu title={t('Share')}>
+        <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE}>
           <ShareMenuItems
             dashboardId={dashboardId}
             dashboardComponentId={componentId}
@@ -514,7 +632,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu title={t('Download')}>
+        <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD}>
           <Menu.Item
             key={MENU_KEYS.EXPORT_CSV}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
@@ -573,15 +691,37 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
+        visible={dropdownIsOpen}
+        onVisibleChange={status => toggleDropdown({ close: !status })}
+        onBlur={e => {
+          // close unless the dropdown menu is clicked
+          const relatedTarget = e.relatedTarget as HTMLElement;
+          if (
+            dropdownIsOpen &&
+            menuRef?.current?.props.id !== relatedTarget?.id
+          ) {
+            toggleDropdown({ close: true });
+          }
+        }}
+        onKeyDown={e =>
+          handleDropdownNavigation(
+            e,
+            dropdownIsOpen,
+            menu,
+            toggleDropdown,
+            setSelectedKeys,
+          )
+        }
       >
         <span
-          css={css`
+          css={() => css`
             display: flex;
             align-items: center;
           `}
           id={`slice_${slice.slice_id}-controls`}
           role="button"
           aria-label="More Options"
+          tabIndex={0}
         >
           <VerticalDotsTrigger />
         </span>

@@ -215,6 +215,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     : [DASHBOARD_GRID_ID];
   const min = Math.min(tabIndex, childIds.length - 1);
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
+  const TOP_OF_PAGE_RANGE = 220;
 
   return (
     <div className="grid-container" data-test="grid-container">
@@ -233,6 +234,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
             fullWidth={false}
             animated={false}
             allowOverflow
+            onFocus={e => {
+              if (
+                // prevent scrolling when tabbing to the tab pane
+                e.target.classList.contains('ant-tabs-tabpane') &&
+                window.scrollY < TOP_OF_PAGE_RANGE
+              ) {
+                // prevent window from jumping down when tabbing
+                // if already at the top of the page
+                // to help with accessibility when using keyboard navigation
+                window.scrollTo(window.scrollX, 0);
+              }
+            }}
           >
             {childIds.map((id, index) => (
               // Matching the key of the first TabPane irrespective of topLevelTabs
