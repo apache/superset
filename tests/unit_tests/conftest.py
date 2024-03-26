@@ -106,7 +106,8 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     # routes when this fixture is called multiple times; we need to clear the
     # registered views to ensure the initialization can happen more than once.
     appbuilder.baseviews = []
-
+    for i in range(20):
+        print("YOYOYOYYOYO")
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
 

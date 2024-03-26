@@ -484,18 +484,23 @@ def test_in_app_context():
     # Expect True within an app context
     with app.app_context():
         result = my_task.apply().get()
-        assert result, "Task should have access to current_app within app context"
+        assert (
+            result is True
+        ), "Task should have access to current_app within app context"
 
     # Expect False outside of an app context
     result = my_task.apply().get()
+    print("RESULT", result)
     assert (
-        not result
+        result is False
     ), "Task should not have access to current_app outside of app context"
 
     # Expect True within an app context again
     with app.app_context():
         result = my_task.apply().get()
-        assert result, "Task should have access to current_app within app context"
+        assert (
+            result is True
+        ), "Task should have access to current_app within app context"
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
