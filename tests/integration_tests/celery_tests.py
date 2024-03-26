@@ -475,25 +475,28 @@ def test_create_table_as():
 def test_in_app_context():
     @celery_app.task(bind=True)
     def my_task(self):
-        # Ensuring that current_app can be accessed
-        assert current_app
+        # Trying to access current_app to see if we're in an app context
+        try:
+            assert current_app
+            return True
+        except RuntimeError:
+            return False
 
-    # Make sure we can call tasks with an app already setup
+    # Run task within an app context, expecting True because current_app should be accessible
     with app.app_context():
-        my_task.apply_async()
+        result = my_task.apply().get()
+        assert result, "Task should have access to current_app within app context"
 
-    # Outside of an app context, current_app should raise a RuntimeError
-    try:
-        my_task.apply_async()
-        assert (
-            False
-        ), "Expected RuntimeError when accessing current_app outside of application context"
-    except RuntimeError:
-        pass
+    # Run task outside of an app context, expecting False because accessing current_app should fail
+    result = my_task.apply().get()
+    assert (
+        not result
+    ), "Task should not have access to current_app outside of app context"
 
-    # Make sure the app gets pushed onto the stack properly and task can be called
+    # Again, ensure task can run within app context after previously running outside of one
     with app.app_context():
-        my_task.apply_async()
+        result = my_task.apply().get()
+        assert result, "Task should have access to current_app within app context"
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
