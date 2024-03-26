@@ -282,7 +282,7 @@ class Github {
     console.log("CWD:", cwd);
 
     // Clone the repo
-    await runShellCommand({ command: `git clone --depth 1 https://github.com/:${this.context.repo} .`, cwd, verbose });
+    await runShellCommand({ command: `git clone --depth 1 https://github.com/${this.context.repo} .`, cwd, verbose });
 
     // Run pip-compile-multi
     await runShellCommand({ command: `pip-compile-multi -P ${lib}`, cwd });
