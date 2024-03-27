@@ -24,7 +24,7 @@ attrs==23.1.0
     #   requests-cache
 babel==2.9.1
     # via flask-babel
-backoff==1.11.1
+backoff==2.2.1
     # via apache-superset
 bcrypt==4.0.1
     # via paramiko
