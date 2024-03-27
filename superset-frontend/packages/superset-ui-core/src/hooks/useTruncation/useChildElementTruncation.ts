@@ -81,7 +81,8 @@ const useChildElementTruncation = () => {
       obs.observe(element);
     }
 
-    // onResize();
+    onResize();
+
     return () => {
       obs.disconnect();
     };
