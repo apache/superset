@@ -441,7 +441,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         start the OAuth2 authentication. The frontend will open a new tab where the user
         can authorize Superset to access the database. Once the user has authorized, the
         tab sends a message to the original tab informing that authorization was
-        successfull (or not), and then closes. The original tab will automatically
+        successful (or not), and then closes. The original tab will automatically
         re-run the query after authorization.
         """
         tab_id = str(uuid4())
@@ -468,7 +468,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "default_redirect_uri": default_redirect_uri,
             # When OAuth2 is complete the browser tab where OAuth2 happened will send a
             # message to the original browser tab informing that the process was
-            # successfull. To allow cross-tab commmunication in a safe way we assign a
+            # successful. To allow cross-tab commmunication in a safe way we assign a
             # UUID to the original tab, and the second tab will use it when sending the
             # message.
             "tab_id": tab_id,
@@ -2008,7 +2008,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param query: Query instance
         :param cancel_query_id: Value returned by get_cancel_query_payload or set in
         other life-cycle methods of the query
-        :return: True if query cancelled successfully, False otherwise
+        :return: True if query cancelled successfuly, False otherwise
         """
 
         return False

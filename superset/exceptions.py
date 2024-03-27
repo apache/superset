@@ -323,7 +323,7 @@ class OAuth2RedirectError(SupersetErrorException):
     - The URL that starts the OAuth2 dance.
     - The UUID of the browser tab where OAuth2 started, so that the newly opened tab
       where OAuth2 happens can communicate with the original tab to inform that OAuth2
-      was successfull (or not).
+      was successful (or not).
     - The redirect URL, so that the original tab can validate that the message from the
       second tab is coming from a valid origin.
 

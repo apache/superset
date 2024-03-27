@@ -45,7 +45,7 @@ interface OAuth2RedirectExtra {
  *
  * The component has a URL that is used to start the OAuth2 dance for the given
  * database. When the user clicks the link a new browser tab will open, where they can
- * authorize Superset to access the data. Once authorization is successfull the user will
+ * authorize Superset to access the data. Once authorization is successful the user will
  * be redirected back to Superset, and their personal access token is stored, so it can
  * be used in subsequent connections. If a refresh token is also present in the response,
  * it will also be stored.
@@ -106,7 +106,7 @@ function OAuth2RedirectMessage({
   useEffect(() => {
     /* Listen for messages from the OAuth2 tab.
      *
-     * After OAuth2 is successfull the opened tab will send a message before
+     * After OAuth2 is successful the opened tab will send a message before
      * closing itself. Once we receive the message we can retrigger the
      * original query in SQL Lab, explore, or in a dashboard.
      */
