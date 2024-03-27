@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -69,9 +67,7 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via
-    #   pyhive
-    #   sqlalchemy-bigquery
+    # via pyhive
 gevent==23.9.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
@@ -91,9 +87,7 @@ google-cloud-bigquery==3.10.0
     #   pandas-gbq
     #   sqlalchemy-bigquery
 google-cloud-bigquery-storage==2.19.1
-    # via
-    #   pandas-gbq
-    #   sqlalchemy-bigquery
+    # via pandas-gbq
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
@@ -208,10 +202,6 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pure-sasl==0.6.2
-    # via
-    #   pyhive
-    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.5
@@ -220,7 +210,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/development.in
-pyhive[hive_pure_sasl]==0.7.0
+pyhive[presto]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -251,7 +241,7 @@ rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
     # via boto3
-sqlalchemy-bigquery==1.6.1
+sqlalchemy-bigquery==1.10.0
     # via apache-superset
 sqloxide==0.1.33
     # via -r requirements/development.in
@@ -264,12 +254,7 @@ tableschema==1.20.2
 tabulator==1.53.5
     # via tableschema
 thrift==0.16.0
-    # via
-    #   apache-superset
-    #   pyhive
-    #   thrift-sasl
-thrift-sasl==0.4.3
-    # via pyhive
+    # via apache-superset
 tomli==2.0.1
     # via
     #   build
