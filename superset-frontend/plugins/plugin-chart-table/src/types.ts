@@ -108,6 +108,7 @@ export type BasicColorFormatterType = {
   arrowColor: string;
   mainArrow: string;
 };
+
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   timeGrain?: TimeGranularity;
   height: number;

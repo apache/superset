@@ -601,10 +601,17 @@ const config: ControlPanelConfig = {
             name: 'comparison_color_enabled',
             config: {
               type: 'CheckboxControl',
-              label: t('basic conditional formatting for comparison '),
+              label: t('basic conditional formatting'),
               renderTrigger: true,
+              visibility: ({ controls }) =>
+                Boolean(controls?.enable_time_comparison?.value) &&
+                isFeatureEnabled(FeatureFlag.ChartPluginsExperimental),
               default: false,
-              description: t('Add color for positive/negative change'),
+              description: t(
+                'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
+                  'main columns for increase and decrease. Basic conditional formatting can be ' +
+                  'overwritten by conditional formatting below.',
+              ),
             },
           },
         ],
@@ -613,7 +620,7 @@ const config: ControlPanelConfig = {
             name: 'comparison_color_scheme',
             config: {
               type: 'SelectControl',
-              label: t('color scheme for comparison'),
+              label: t('color type'),
               default: ColorSchemeEnum.Green,
               renderTrigger: true,
               choices: [
