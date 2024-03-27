@@ -142,7 +142,7 @@ func-timeout==4.3.5
     # via apache-superset
 geographiclib==1.52
     # via geopy
-geopy==2.2.0
+geopy==2.4.1
     # via apache-superset
 google-auth==2.27.0
     # via shillelagh
