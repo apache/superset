@@ -1474,7 +1474,6 @@ SESSION_SERVER_SIDE = False
 # from flask_session import RedisSessionInterface
 #
 # SESSION_SERVER_SIDE = True
-# SESSION_USE_SIGNER = True
 # SESSION_TYPE = "redis"
 # SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
 #
@@ -1704,7 +1703,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
