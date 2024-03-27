@@ -20,6 +20,10 @@ import { renderHook } from '@testing-library/react-hooks';
 import { RefObject } from 'react';
 import useChildElementTruncation from './useChildElementTruncation';
 
+let observeMock: jest.Mock;
+let disconnectMock: jest.Mock;
+let originalResizeObserver: typeof ResizeObserver;
+
 const genElements = (
   scrollWidth: number,
   clientWidth: number,
@@ -52,10 +56,13 @@ const testTruncationHookWithInitialValues = (
     childNodes,
   );
   const { result, rerender } = renderHook(() => useChildElementTruncation());
-  // @ts-ignore
-  result.current[0].current = elementRef.current;
-  // @ts-ignore
-  result.current[1].current = plusRef.current;
+
+  Object.defineProperty(result.current[0], 'current', {
+    value: elementRef.current,
+  });
+  Object.defineProperty(result.current[1], 'current', {
+    value: plusRef.current,
+  });
 
   rerender();
 
@@ -67,6 +74,29 @@ const testTruncationHookWithInitialValues = (
   ]);
 };
 
+beforeAll(() => {
+  // Store the original ResizeObserver
+  originalResizeObserver = window.ResizeObserver;
+
+  // Mock ResizeObserver
+  observeMock = jest.fn();
+  disconnectMock = jest.fn();
+  window.ResizeObserver = jest.fn(() => ({
+    observe: observeMock,
+    disconnect: disconnectMock,
+  })) as unknown as typeof ResizeObserver;
+});
+
+afterAll(() => {
+  // Restore original ResizeObserver after all tests are done
+  window.ResizeObserver = originalResizeObserver;
+});
+
+afterEach(() => {
+  observeMock.mockClear();
+  disconnectMock.mockClear();
+});
+
 test('should return [0, false] when elementRef.current is not defined', () => {
   const { result } = renderHook(() => useChildElementTruncation());
   expect(result.current).toEqual([
@@ -75,14 +105,20 @@ test('should return [0, false] when elementRef.current is not defined', () => {
     0,
     false,
   ]);
+
+  expect(observeMock).not.toHaveBeenCalled();
 });
 
 test('should not recompute when previousEffectInfo is the same as previous', () => {
   const { result, rerender } = renderHook(() => useChildElementTruncation());
-  // @ts-ignore
-  result.current[0].current = document.createElement('div');
-  // @ts-ignore
-  result.current[1].current = document.createElement('div');
+
+  Object.defineProperty(result.current[0], 'current', {
+    value: document.createElement('div'),
+  });
+  Object.defineProperty(result.current[1], 'current', {
+    value: document.createElement('div'),
+  });
+
   const previousEffectInfo = result.current;
 
   rerender();
@@ -145,4 +181,42 @@ test('should return [1, true] with plusSize offsetWidth undefined', () => {
     1,
     true,
   );
+});
+
+test('should call ResizeObserver.observe on element parent', () => {
+  const elementRef = { current: document.createElement('div') };
+  Object.defineProperty(elementRef.current, 'parentElement', {
+    value: document.createElement('div'),
+  });
+  const plusRef = { current: document.createElement('div') };
+  const { result, rerender } = renderHook(() => useChildElementTruncation());
+
+  Object.defineProperty(result.current[0], 'current', {
+    value: elementRef.current,
+  });
+  Object.defineProperty(result.current[1], 'current', {
+    value: plusRef.current,
+  });
+
+  rerender();
+
+  expect(observeMock).toHaveBeenCalled();
+  expect(observeMock).toHaveBeenCalledWith(elementRef.current.parentElement);
+});
+
+test('should not call ResizeObserver.observe if element parent is undefined', () => {
+  const elementRef = { current: document.createElement('div') };
+  const plusRef = { current: document.createElement('div') };
+  const { result, rerender } = renderHook(() => useChildElementTruncation());
+
+  Object.defineProperty(result.current[0], 'current', {
+    value: elementRef.current,
+  });
+  Object.defineProperty(result.current[1], 'current', {
+    value: plusRef.current,
+  });
+
+  rerender();
+
+  expect(observeMock).not.toHaveBeenCalled();
 });
