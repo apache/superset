@@ -10,6 +10,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -257,6 +259,7 @@ statsd==4.0.1
     # via -r requirements/development.in
 tableschema==1.20.10
     # via apache-superset
+thrift==0.16.0
     # via apache-superset
 tomli==2.0.1
     # via
