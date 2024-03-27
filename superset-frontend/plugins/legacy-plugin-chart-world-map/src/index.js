@@ -33,7 +33,6 @@ const metadata = new ChartMetadata({
   name: t('World Map'),
   tags: [
     t('2D'),
-    t('Aesthetic'),
     t('Comparison'),
     t('Intensity'),
     t('Legacy'),

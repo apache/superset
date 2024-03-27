@@ -43,7 +43,6 @@ const metadata = {
     t('Percentages'),
     t('Popular'),
     t('Report'),
-    t('Description'),
   ],
   thumbnail,
   behaviors: [Behavior.DrillToDetail],

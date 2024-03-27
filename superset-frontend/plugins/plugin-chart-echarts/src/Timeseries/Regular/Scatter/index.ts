@@ -70,7 +70,6 @@ export default class EchartsTimeseriesScatterChartPlugin extends EchartsChartPlu
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Time'),
           t('Transformable'),
           t('Scatter'),
