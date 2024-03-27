@@ -6,12 +6,10 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///home/runner/work/superset/superset
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -91,9 +89,7 @@ google-cloud-bigquery==3.10.0
     #   pandas-gbq
     #   sqlalchemy-bigquery
 google-cloud-bigquery-storage==2.19.1
-    # via
-    #   pandas-gbq
-    #   sqlalchemy-bigquery
+    # via sqlalchemy-bigquery
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
@@ -158,7 +154,7 @@ openapi-spec-validator==0.5.6
     # via -r requirements/development.in
 openpyxl==3.1.2
     # via tabulator
-pandas-gbq==0.19.1
+pandas-gbq==0.22.0
     # via apache-superset
 parameterized==0.9.0
     # via -r requirements/development.in
