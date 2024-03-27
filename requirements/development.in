@@ -32,7 +32,7 @@ pre-commit
 progress>=1.5,<2
 pyfakefs
 pyinstrument>=4.0.2,<5
-pylint
+pylint==3.1.0
 pytest
 pytest-cov
 pytest-mock
