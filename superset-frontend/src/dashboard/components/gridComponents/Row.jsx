@@ -238,7 +238,8 @@ class Row extends React.PureComponent {
   }
 
   handleMenuHover = hovered => {
-    this.setState(() => ({ hoverMenuHovered: hovered }));
+    const { isHovered } = hovered;
+    this.setState(() => ({ hoverMenuHovered: isHovered }));
   };
 
   render() {

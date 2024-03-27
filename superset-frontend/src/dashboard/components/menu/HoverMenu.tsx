@@ -25,7 +25,7 @@ interface HoverMenuProps {
   position: 'left' | 'top';
   innerRef: RefObject<HTMLDivElement>;
   children: React.ReactNode;
-  onHover?: (isHovered: boolean) => void;
+  onHover?: (data: { isHovered: boolean }) => void;
 }
 
 const HoverStyleOverrides = styled.div`
@@ -73,14 +73,16 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
   };
 
   handleMouseEnter = () => {
-    if (this.props.onHover) {
-      this.props.onHover(true);
+    const { onHover } = this.props;
+    if (onHover) {
+      onHover({ isHovered: true });
     }
   };
 
   handleMouseLeave = () => {
-    if (this.props.onHover) {
-      this.props.onHover(false);
+    const { onHover } = this.props;
+    if (onHover) {
+      onHover({ isHovered: false });
     }
   };
 
