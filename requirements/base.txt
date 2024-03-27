@@ -278,7 +278,7 @@ pyjwt==2.4.0
     #   flask-jwt-extended
 pynacl==1.5.0
     # via paramiko
-pyparsing==3.0.6
+pyparsing==3.1.2
     # via apache-superset
 pyrsistent==0.20.0
     # via jsonschema
