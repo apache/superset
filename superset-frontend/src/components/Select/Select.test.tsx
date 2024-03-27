@@ -1053,6 +1053,18 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
   expect(await findAllSelectOptions()).toHaveLength(4);
 });
 
+test('does not fire onChange if the same value is selected in single mode', async () => {
+  const onChange = jest.fn();
+  render(<Select {...defaultProps} onChange={onChange} />);
+  const optionText = 'Emma';
+  await open();
+  expect(onChange).toHaveBeenCalledTimes(0);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
