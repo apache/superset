@@ -78,7 +78,7 @@ colorama==0.4.6
     #   flask-appbuilder
 cron-descriptor==1.2.24
     # via apache-superset
-croniter==1.0.15
+croniter==2.0.3
     # via apache-superset
 cryptography==42.0.5
     # via
@@ -298,6 +298,7 @@ python-geohash==0.8.5
 pytz==2021.3
     # via
     #   babel
+    #   croniter
     #   flask-babel
     #   pandas
 pyyaml==6.0.1
