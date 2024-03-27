@@ -68,6 +68,7 @@ import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
+import ExploreContainer from '../ExploreContainer';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -89,13 +90,6 @@ const propTypes = {
   saveAction: PropTypes.string,
   isSaveModalVisible: PropTypes.bool,
 };
-
-const ExploreContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-`;
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useContext, useMemo } from 'react';
 import { useDrop } from 'react-dnd';
 import { t, useTheme } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -31,6 +31,7 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import Icons from 'src/components/Icons';
 import { DndItemType } from '../../DndItemType';
+import { DraggingContext } from '../../ExploreContainer';
 
 export type DndSelectLabelProps = {
   name: string;
@@ -43,18 +44,20 @@ export type DndSelectLabelProps = {
   valuesRenderer: () => ReactNode;
   displayGhostButton?: boolean;
   onClickGhostButton: () => void;
+  isLoading?: boolean;
 };
 
 export default function DndSelectLabel({
   displayGhostButton = true,
   accept,
   valuesRenderer,
+  isLoading,
   ...props
 }: DndSelectLabelProps) {
   const theme = useTheme();
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept,
+    accept: isLoading ? [] : accept,
 
     drop: (item: DatasourcePanelDndItem) => {
       props.onDrop(item);
@@ -70,6 +73,7 @@ export default function DndSelectLabel({
       type: monitor.getItemType(),
     }),
   });
+  const isDragging = useContext(DraggingContext);
 
   const values = useMemo(() => valuesRenderer(), [valuesRenderer]);
 
@@ -94,6 +98,8 @@ export default function DndSelectLabel({
         data-test="dnd-labels-container"
         canDrop={canDrop}
         isOver={isOver}
+        isDragging={isDragging}
+        isLoading={isLoading}
       >
         {values}
         {displayGhostButton && renderGhostButton()}
