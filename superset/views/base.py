@@ -73,6 +73,7 @@ from superset.views.error_handling import json_error_response
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
