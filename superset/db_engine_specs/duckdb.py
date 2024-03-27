@@ -89,7 +89,7 @@ class DuckDBEngineSpec(BaseEngineSpec):
         """
         Add a user agent to be used in the requests.
         """
-        extra: dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        extra: dict[str, Any] = super().get_extra_params(database)
         engine_params: dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: dict[str, Any] = engine_params.setdefault("connect_args", {})
         config: dict[str, Any] = connect_args.setdefault("config", {})
