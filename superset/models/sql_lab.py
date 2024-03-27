@@ -25,12 +25,13 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
-from flask import current_app, Markup
+from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_babel import gettext as __
 from humanize import naturaltime
 from jinja2.exceptions import TemplateError
+from markupsafe import Markup
 from sqlalchemy import (
     Boolean,
     Column,
