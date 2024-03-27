@@ -689,7 +689,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
-    if (activeSelector === FEATURED && activeSection === Sections.Featured) {
+    if (
+      activeSelector === FEATURED &&
+      activeSection === Sections.Featured &&
+      chartsByTags[t('Popular')]
+    ) {
       return chartsByTags[t('Popular')];
     }
     if (
