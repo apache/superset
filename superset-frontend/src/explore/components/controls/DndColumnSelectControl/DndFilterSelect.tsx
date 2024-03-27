@@ -232,7 +232,9 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         warning({ title: t('Warning'), content: result });
         return;
       }
-      removeValue(index);
+      if (result === true) {
+        removeValue(index);
+      }
     },
     [canDelete, removeValue, values],
   );
