@@ -34,6 +34,7 @@ import {
   IKI_RUN_PIPELINE_TYPE as IKI_RUN_PIPELINE,
   IKI_EITL_ROW_TYPE as IKI_EITL_ROW,
   IKI_EITL_COLUMN_TYPE as IKI_EITL_COLUMN,
+  IKI_DYNAMIC_MARKDOWN_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
 const getIndentation = (depth: number) =>
@@ -52,6 +53,7 @@ describe('isValidChild', () => {
     const validExamples = [
       [ROOT, GRID, CHART], // chart is valid because it is wrapped in a row
       [ROOT, GRID, MARKDOWN], // markdown is valid because it is wrapped in a row
+      [ROOT, GRID, IKI_DYNAMIC_MARKDOWN_TYPE],
       [ROOT, GRID, IKI_TABLE], // iki table is valid because it is wrapped in a row
       [ROOT, GRID, IKI_PROCESS_BUILDER], // iki process builder is valid because it is wrapped in a row
       [ROOT, GRID, IKI_RUN_PIPELINE], // iki run pipeline is valid because it is wrapped in a row
@@ -110,6 +112,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, COLUMN],
       [ROOT, TABS, TAB, HEADER],
       [ROOT, TABS, TAB, ROW, MARKDOWN],
+      [ROOT, TABS, TAB, IKI_DYNAMIC_MARKDOWN_TYPE],
       [ROOT, TABS, TAB, IKI_TABLE],
       [ROOT, TABS, TAB, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, IKI_RUN_PIPELINE],
@@ -121,6 +124,7 @@ describe('isValidChild', () => {
       [ROOT, TABS, TAB, ROW, COLUMN, DIVIDER],
       [ROOT, TABS, TAB, ROW, COLUMN, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, IKI_DYNAMIC_MARKDOWN_TYPE],
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_TABLE],
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, IKI_RUN_PIPELINE],
@@ -129,6 +133,7 @@ describe('isValidChild', () => {
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_DYNAMIC_MARKDOWN_TYPE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_TABLE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, IKI_RUN_PIPELINE],
@@ -137,6 +142,7 @@ describe('isValidChild', () => {
 
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, CHART],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, MARKDOWN],
+      [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_DYNAMIC_MARKDOWN_TYPE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_TABLE],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_PROCESS_BUILDER],
       [ROOT, TABS, TAB, ROW, COLUMN, ROW, COLUMN, IKI_RUN_PIPELINE],
