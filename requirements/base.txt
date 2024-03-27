@@ -212,7 +212,7 @@ marshmallow-sqlalchemy==0.23.1
     # via flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.0.2
+msgpack==1.0.8
     # via apache-superset
 nh3==0.2.11
     # via apache-superset
