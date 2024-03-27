@@ -25,7 +25,7 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
 
-const ADMIN_ROLE_NAME = window.adminRole;
+const ADMIN_ROLE_NAME = window.adminRole || 'Admin';
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
