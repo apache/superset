@@ -35,6 +35,9 @@ assists people when migrating to a new version.
   files for production use cases! While we never really supported
   or should have tried to support docker-compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
+- [27697](https://github.com/apache/superset/pull/27697) [minor] flask-session bump leads to them
+  deprecating `SESSION_USE_SIGNER`, check your configs as this flag won't do anything moving
+  forward.
 
 ### Breaking Changes
 
