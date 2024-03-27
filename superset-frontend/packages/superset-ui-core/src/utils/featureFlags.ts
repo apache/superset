@@ -97,6 +97,7 @@ export type FeatureFlagMap = {
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
+    adminRole: string;
   }
 }
 
