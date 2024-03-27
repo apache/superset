@@ -33,11 +33,11 @@ import dateutil.parser
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import (
     and_,
     Boolean,
