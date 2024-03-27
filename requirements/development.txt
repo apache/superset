@@ -208,7 +208,7 @@ pure-eval==0.2.2
     # via stack-data
 pydata-google-auth==1.7.0
     # via pandas-gbq
-pydruid==0.6.5
+pydruid==0.6.6
     # via apache-superset
 pyee==11.0.1
     # via playwright
