@@ -400,7 +400,7 @@ wtforms==2.3.3
     #   wtforms-json
 wtforms-json==0.3.5
     # via apache-superset
-xlsxwriter==3.0.7
+xlsxwriter==3.0.9
     # via apache-superset
 zipp==3.15.0
     # via
