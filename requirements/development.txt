@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -60,7 +58,7 @@ filelock==3.12.2
     # via
     #   tox
     #   virtualenv
-flask-cors==3.0.10
+flask-cors==4.0.0
     # via apache-superset
 flask-testing==0.8.1
     # via -r requirements/development.in
