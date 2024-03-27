@@ -176,7 +176,7 @@ pip-compile-multi==2.6.3
     # via -r requirements/development.in
 pip-tools==7.3.0
     # via pip-compile-multi
-playwright==1.41.2
+playwright==1.42.0
     # via apache-superset
 pluggy==1.2.0
     # via
