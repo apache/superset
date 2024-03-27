@@ -157,6 +157,20 @@ const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const DashboardCrossLinks = React.memo(
+  ({ dashboards }: { dashboards: ChartLinkedDashboard[] }) => {
+    const crossLinks = useMemo(
+      () =>
+        ensureIsArray(dashboards).map((d: ChartLinkedDashboard) => ({
+          title: d.dashboard_title,
+          id: d.id,
+        })),
+      [dashboards],
+    );
+    return <CrossLinks crossLinks={crossLinks} />;
+  },
+);
+
 function ChartList(props: ChartListProps) {
   const {
     addDangerToast,
@@ -390,21 +404,11 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { dashboards },
           },
-        }: any) => (
-          <CrossLinks
-            crossLinks={ensureIsArray(dashboards).map(
-              (d: ChartLinkedDashboard) => ({
-                title: d.dashboard_title,
-                id: d.id,
-              }),
-            )}
-          />
-        ),
+        }: any) => <DashboardCrossLinks dashboards={dashboards} />,
         Header: t('Dashboards added to'),
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
-        hidden: true,
       },
       {
         Cell: ({
