@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -72,7 +70,7 @@ future==0.18.3
     # via
     #   pyhive
     #   sqlalchemy-bigquery
-gevent==23.9.1
+gevent==24.2.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
     # via
