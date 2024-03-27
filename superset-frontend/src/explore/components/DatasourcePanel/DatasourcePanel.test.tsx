@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasourcePanel, {
   IDatasource,
@@ -29,6 +29,8 @@ import {
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import ExploreContainer from '../ExploreContainer';
+import { DndColumnSelect } from '../controls/DndColumnSelectControl';
 
 jest.mock(
   'react-virtualized-auto-sizer',
@@ -210,4 +212,49 @@ test('should not render a save dataset modal when datasource is not query or dat
   expect(await screen.findByText(/metrics/i)).toBeInTheDocument();
 
   expect(screen.queryByText(/create a dataset/i)).toBe(null);
+});
+
+test('should render only eligible metrics and columns when disallow_adhoc_metrics is set', async () => {
+  const newProps = {
+    ...props,
+    datasource: {
+      ...datasource,
+      extra: JSON.stringify({ disallow_adhoc_metrics: true }),
+    },
+  };
+  const column1FilterProps = {
+    type: 'DndColumnSelect' as const,
+    name: 'Filter',
+    onChange: jest.fn(),
+    options: [{ column_name: columns[1].column_name }],
+    actions: { setControlValue: jest.fn() },
+  };
+  const column2FilterProps = {
+    type: 'DndColumnSelect' as const,
+    name: 'Filter',
+    onChange: jest.fn(),
+    options: [
+      { column_name: columns[1].column_name },
+      { column_name: columns[2].column_name },
+    ],
+    actions: { setControlValue: jest.fn() },
+  };
+  const { getByTestId } = render(
+    <ExploreContainer>
+      <DatasourcePanel {...newProps} />
+      <DndColumnSelect {...column1FilterProps} />
+      <DndColumnSelect {...column2FilterProps} />
+    </ExploreContainer>,
+    { useRedux: true, useDnd: true },
+  );
+  const selections = getByTestId('fieldSelections');
+  expect(
+    within(selections).queryByText(columns[0].column_name),
+  ).not.toBeInTheDocument();
+  expect(
+    within(selections).queryByText(columns[1].column_name),
+  ).toBeInTheDocument();
+  expect(
+    within(selections).queryByText(columns[2].column_name),
+  ).toBeInTheDocument();
 });

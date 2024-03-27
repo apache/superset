@@ -23,6 +23,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel, {
   DndSelectLabelProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
+import ExploreContainer, { DropzoneContext } from '../../ExploreContainer';
 
 const defaultProps: DndSelectLabelProps = {
   name: 'Column',
@@ -32,6 +33,23 @@ const defaultProps: DndSelectLabelProps = {
   valuesRenderer: () => <span />,
   ghostButtonText: 'Drop columns here or click',
   onClickGhostButton: jest.fn(),
+};
+const MockChildren = () => {
+  const [zones] = React.useContext(DropzoneContext);
+  return (
+    <>
+      {Object.keys(zones).map(key => (
+        <div key={key} data-test={`mock-result-${key}`}>
+          {String(
+            zones[key]({
+              value: { column_name: 'test' },
+              type: DndItemType.Column,
+            }),
+          )}
+        </div>
+      ))}
+    </>
+  );
 };
 
 test('renders with default props', () => {
@@ -61,4 +79,26 @@ test('Handles ghost button click', () => {
   render(<DndSelectLabel {...defaultProps} />, { useDnd: true });
   userEvent.click(screen.getByText('Drop columns here or click'));
   expect(defaultProps.onClickGhostButton).toHaveBeenCalled();
+});
+
+test('updates dropValidator on changes', () => {
+  const { getByTestId, rerender } = render(
+    <ExploreContainer>
+      <DndSelectLabel {...defaultProps} />
+      <MockChildren />
+    </ExploreContainer>,
+    { useDnd: true },
+  );
+  expect(getByTestId(`mock-result-${defaultProps.name}`)).toHaveTextContent(
+    'false',
+  );
+  rerender(
+    <ExploreContainer>
+      <DndSelectLabel {...defaultProps} canDrop={() => true} />
+      <MockChildren />
+    </ExploreContainer>,
+  );
+  expect(getByTestId(`mock-result-${defaultProps.name}`)).toHaveTextContent(
+    'true',
+  );
 });
