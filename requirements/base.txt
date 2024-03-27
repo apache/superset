@@ -214,7 +214,7 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.8
     # via apache-superset
-nh3==0.2.11
+nh3==0.2.17
     # via apache-superset
 numba==0.57.1
     # via pandas
