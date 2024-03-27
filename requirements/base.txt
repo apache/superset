@@ -393,7 +393,7 @@ werkzeug==3.0.1
     #   flask-login
 wrapt==1.15.0
     # via deprecated
-wtforms==2.3.3
+wtforms==3.1.2
     # via
     #   apache-superset
     #   flask-appbuilder
