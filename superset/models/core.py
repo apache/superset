@@ -999,10 +999,18 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
 
     id = Column(Integer, primary_key=True)
 
-    user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=False)
+    user_id = Column(
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     user = relationship(security_manager.user_model, foreign_keys=[user_id])
 
-    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    database_id = Column(
+        Integer,
+        ForeignKey("dbs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     database = relationship("Database", foreign_keys=[database_id])
 
     access_token = Column(encrypted_field_factory.create(Text), nullable=True)

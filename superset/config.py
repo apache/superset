@@ -1414,6 +1414,7 @@ DATABASE_OAUTH2_CREDENTIALS: dict[str, dict[str, Any]] = {
     # "Google Sheets": {
     #    "CLIENT_ID": "XXX.apps.googleusercontent.com",
     #    "CLIENT_SECRET": "GOCSPX-YYY",
+    #    "BASEURL": "https://accounts.google.com/o/oauth2/v2/auth",
     # },
 }
 # OAuth2 state is encoded in a JWT using the alogorithm below.

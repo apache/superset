@@ -63,10 +63,12 @@ def upgrade():
         sa.ForeignKeyConstraint(
             ["database_id"],
             ["dbs.id"],
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["ab_user.id"],
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id"),
     )

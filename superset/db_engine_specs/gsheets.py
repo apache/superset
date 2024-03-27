@@ -23,7 +23,7 @@ import logging
 import re
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 
 import pandas as pd
 import urllib3
@@ -168,6 +168,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         https://developers.google.com/identity/protocols/oauth2/web-server#creatingclient
         """
         config = current_app.config["DATABASE_OAUTH2_CREDENTIALS"]["Google Sheets"]
+        baseurl = config.get("BASEURL", "https://accounts.google.com/o/oauth2/v2/auth")
         redirect_uri = current_app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
             state["default_redirect_uri"],
@@ -183,7 +184,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             "client_id": config["CLIENT_ID"],
             "prompt": "consent",
         }
-        return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
+        return urljoin(baseurl, "?" + urlencode(params))
 
     @staticmethod
     def get_oauth2_token(code: str, state: OAuth2State) -> OAuth2TokenResponse:

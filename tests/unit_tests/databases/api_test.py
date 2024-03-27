@@ -652,8 +652,8 @@ def test_oauth2_happy_path(
     """
     Test the OAuth2 endpoint when everything goes well.
     """
-    from superset.databases.api import DatabaseRestApi, DatabaseUserOAuth2Tokens
-    from superset.models.core import Database
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
     DatabaseRestApi.datamodel.session = session
 
@@ -715,8 +715,8 @@ def test_oauth2_multiple_tokens(
     """
     Test the OAuth2 endpoint when a second token is added.
     """
-    from superset.databases.api import DatabaseRestApi, DatabaseUserOAuth2Tokens
-    from superset.models.core import Database
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
     DatabaseRestApi.datamodel.session = session
 

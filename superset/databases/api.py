@@ -29,7 +29,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
-from superset import app, db, event_logger
+from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
@@ -62,7 +62,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.database import DatabaseDAO
+from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
@@ -78,6 +78,7 @@ from superset.databases.schemas import (
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
     get_export_ids_schema,
+    OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
     SchemasResponseSchema,
     SelectStarResponseSchema,
@@ -91,7 +92,7 @@ from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
-from superset.models.core import Database, DatabaseUserOAuth2Tokens
+from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
@@ -1094,39 +1095,51 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     type: string
             400:
               $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
-        parameters = request.args.to_dict()
+        parameters = OAuth2ProviderResponseSchema().load(request.args)
+
         if "error" in parameters:
             raise OAuth2Error(parameters["error"])
 
+        # note that when decoding the state we will perform JWT validation, preventing a
+        # malicious payload that would insert a bogus database token, or delete an
+        # existing one.
         state = decode_oauth2_state(parameters["state"])
 
         # exchange code for access/refresh tokens
-        database = db.session.query(Database).filter_by(id=state["database_id"]).one()
+        database = DatabaseDAO.find_by_id(state["database_id"])
+        if database is None:
+            return self.response_404()
+
         token_response = database.db_engine_spec.get_oauth2_token(
             parameters["code"],
             state,
         )
 
         # delete old tokens
-        db.session.query(DatabaseUserOAuth2Tokens).filter(
-            DatabaseUserOAuth2Tokens.user_id == state["user_id"],
-            DatabaseUserOAuth2Tokens.database_id == database.id,
-        ).delete(synchronize_session="fetch")
+        existing = DatabaseUserOAuth2TokensDAO.find_one_or_none(
+            user_id=state["user_id"],
+            database_id=state["database_id"],
+        )
+        if existing:
+            DatabaseUserOAuth2TokensDAO.delete([existing], commit=True)
 
         # store tokens
-        token = DatabaseUserOAuth2Tokens(
-            user_id=state["user_id"],
-            database_id=database.id,
-            access_token=token_response["access_token"],
-            access_token_expiration=datetime.now()
-            + timedelta(seconds=token_response["expires_in"]),
-            refresh_token=token_response.get("refresh_token"),
+        expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
+        DatabaseUserOAuth2TokensDAO.create(
+            attributes={
+                "user_id": state["user_id"],
+                "database_id": state["database_id"],
+                "access_token": token_response["access_token"],
+                "access_token_expiration": expiration,
+                "refresh_token": token_response.get("refresh_token"),
+            },
+            commit=True,
         )
-        db.session.add(token)
-        db.session.commit()
 
         # return blank page that closes itself
         return make_response(
