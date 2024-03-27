@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -214,7 +212,7 @@ pure-sasl==0.6.2
     #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
-pydruid==0.6.5
+pydruid==0.6.6
     # via apache-superset
 pyee==11.0.1
     # via playwright
