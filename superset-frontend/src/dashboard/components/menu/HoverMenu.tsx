@@ -99,6 +99,7 @@ export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
           )}
           onMouseEnter={this.handleMouseEnter}
           onMouseLeave={this.handleMouseLeave}
+          data-test="hover-menu"
         >
           {children}
         </div>
