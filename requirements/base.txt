@@ -282,7 +282,7 @@ pyparsing==3.1.2
     # via apache-superset
 pyrsistent==0.20.0
     # via jsonschema
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   apache-superset
     #   celery
