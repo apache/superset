@@ -25,16 +25,14 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
 
-// this should really be a config value,
-// but is hardcoded in backend logic already, so...
-const ADMIN_ROLE_NAME = 'admin';
+const ADMIN_ROLE_NAME = window.adminRole;
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
-    role => role.toLowerCase() === ADMIN_ROLE_NAME,
+    role => role.toLowerCase() === ADMIN_ROLE_NAME.toLowerCase(),
   );
 
 const isUserDashboardOwner = (

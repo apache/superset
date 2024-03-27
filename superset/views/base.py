@@ -84,6 +84,7 @@ from superset.utils.filters import get_dataset_access_filters
 from .utils import bootstrap_user_data
 
 FRONTEND_CONF_KEYS = (
+    "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
