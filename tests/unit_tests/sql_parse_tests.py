@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 from typing import Optional
+from unittest.mock import Mock
 
 import pytest
 import sqlparse
@@ -1959,7 +1960,10 @@ def test_extract_tables_from_jinja_sql(
     expected: set[Table],
 ) -> None:
     assert (
-        extract_tables_from_jinja_sql(sql.format(engine=engine, macro=macro), engine)
+        extract_tables_from_jinja_sql(
+            sql=sql.format(engine=engine, macro=macro),
+            database=Mock(),
+        )
         == expected
     )
 
