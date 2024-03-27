@@ -242,7 +242,7 @@ const SelectorLabel = styled.button`
     }
 
     & > span[role="img"] {
-      margin-right: ${theme.gridUnit * 3}px;
+      margin-right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
