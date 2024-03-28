@@ -75,7 +75,6 @@ gevent==24.2.1
 google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
@@ -88,8 +87,6 @@ google-cloud-bigquery==3.20.0
     #   apache-superset
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.19.1
-    # via pandas-gbq
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
@@ -153,7 +150,7 @@ openapi-spec-validator==0.5.6
     # via -r requirements/development.in
 openpyxl==3.1.2
     # via dataflows-tabulator
-pandas-gbq==0.19.1
+pandas-gbq==0.22.0
     # via apache-superset
 parameterized==0.9.0
     # via -r requirements/development.in
@@ -185,15 +182,11 @@ progress==1.6
     # via -r requirements/development.in
 prophet==1.1.5
     # via apache-superset
-proto-plus==1.22.2
-    # via google-cloud-bigquery-storage
 protobuf==4.23.0
     # via
     #   google-api-core
-    #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
-    #   proto-plus
 psycopg2-binary==2.9.6
     # via apache-superset
 ptyprocess==0.7.0
