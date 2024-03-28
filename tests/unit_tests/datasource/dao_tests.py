@@ -16,12 +16,14 @@
 # under the License.
 
 from collections.abc import Iterator
+from flask_appbuilder.security.sqla.models import User
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset.utils.core import DatasourceType
-
+from superset.utils.core import override_user
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
@@ -99,9 +101,12 @@ FROM my_catalog.my_schema.my_table
     yield session
 
 
-def test_get_datasource_sqlatable(session_with_data: Session) -> None:
+def test_get_datasource_sqlatable(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.TABLE,
@@ -112,11 +117,29 @@ def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     assert "my_sqla_table" == result.table_name
     assert isinstance(result, SqlaTable)
 
+def test_get_datasource_sqlatable_false(mocker: MockFixture, session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset import security_manager
+    from superset.daos.exceptions import DatasourceNotFound
 
-def test_get_datasource_query(session_with_data: Session) -> None:
+
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    with pytest.raises(DatasourceNotFound):
+        with override_user(User()):
+            DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType.TABLE,
+                datasource_id=1,
+                session=session_with_data,
+            )
+
+def test_get_datasource_query(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import Query
+    from superset import security_manager
 
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.QUERY, datasource_id=1
     )
@@ -124,10 +147,30 @@ def test_get_datasource_query(session_with_data: Session) -> None:
     assert result.id == 1
     assert isinstance(result, Query)
 
+def test_get_datasource_query_false(mocker: MockFixture, session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset.models.sql_lab import Query
+    from superset import security_manager
+    from superset.daos.exceptions import DatasourceNotFound
 
-def test_get_datasource_saved_query(session_with_data: Session) -> None:
+
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    with pytest.raises(DatasourceNotFound):
+        with override_user(User()):
+            DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType.QUERY,
+                datasource_id=1,
+                session=session_with_data,
+            )
+
+
+def test_get_datasource_saved_query(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.daos.datasource import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SAVEDQUERY,
@@ -137,10 +180,27 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
     assert result.id == 1
     assert isinstance(result, SavedQuery)
 
+def test_get_datasource_saved_query_false(mocker: MockFixture, session_with_data: Session) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset import security_manager
+    from superset.daos.exceptions import DatasourceNotFound
 
-def test_get_datasource_sl_table(session_with_data: Session) -> None:
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    with pytest.raises(DatasourceNotFound):
+        with override_user(User()):
+            DatasourceDAO.get_datasource(
+                datasource_type=DatasourceType.SAVEDQUERY,
+                datasource_id=1,
+                session=session_with_data,
+            )
+
+def test_get_datasource_sl_table(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.daos.datasource import DatasourceDAO
     from superset.tables.models import Table
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
@@ -150,10 +210,12 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
     assert result.id == 1
     assert isinstance(result, Table)
 
-
-def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
+def test_get_datasource_sl_dataset(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
@@ -163,12 +225,14 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
     assert result.id == 1
     assert isinstance(result, Dataset)
 
-
-def test_get_datasource_w_str_param(session_with_data: Session) -> None:
+def test_get_datasource_w_str_param(mocker: MockFixture, session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.datasource import DatasourceDAO
     from superset.datasets.models import Dataset
     from superset.tables.models import Table
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
 
     assert isinstance(
         DatasourceDAO.get_datasource(

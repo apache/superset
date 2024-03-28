@@ -26,6 +26,7 @@ from superset.datasets.models import Dataset
 from superset.models.sql_lab import Query, SavedQuery
 from superset.tables.models import Table
 from superset.utils.core import DatasourceType
+from superset.exceptions import SupersetSecurityException
 
 logger = logging.getLogger(__name__)
 
@@ -63,5 +64,10 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 datasource_id,
             )
             raise DatasourceNotFound()
+        
+        try:
+            datasource.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise DatasourceNotFound() from ex
 
         return datasource

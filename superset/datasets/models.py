@@ -117,3 +117,12 @@ class Dataset(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
 
     def __repr__(self) -> str:
         return f"<Dataset id={self.id} database_id={self.database_id} {self.name}>"
+    
+    
+    def raise_for_access(self) -> None:
+        """
+        Raise an exception if the user cannot access the Dataset.
+        :raises SupersetSecurityException: If the user cannot access the Dataset
+        """
+
+        security_manager.raise_for_access(query=self)
