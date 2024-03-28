@@ -16,47 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
-import transportation from './images/transportation.jpg';
-import channels from './images/channels.jpg';
-import employment from './images/employment.jpg';
+import buildQuery from './buildQuery';
+import example1 from './images/example1.png';
+import example2 from './images/example2.png';
+import example3 from './images/example3.png';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   category: t('Correlation'),
-  credits: ['http://bl.ocks.org/mbostock/3074470'],
   description: t(
     'Visualize a related metric across pairs of groups. Heatmaps excel at showcasing the correlation or strength between two groups. Color is used to emphasize the strength of the link between each pair of groups.',
   ),
-  exampleGallery: [
-    { url: transportation, caption: t('Sizes of vehicles') },
-    { url: channels, caption: t('Relationships between community channels') },
-    { url: employment, caption: t('Employment and education') },
-  ],
-  label: ChartLabel.DEPRECATED,
-  name: t('Heatmap (legacy)'),
+  exampleGallery: [{ url: example1 }, { url: example2 }, { url: example3 }],
+  name: t('Heatmap'),
   tags: [
     t('Business'),
     t('Intensity'),
-    t('Legacy'),
     t('Density'),
-    t('Predictive'),
     t('Single Metric'),
-    t('Deprecated'),
+    t('ECharts'),
   ],
   thumbnail,
-  useLegacyApi: true,
 });
 
-/**
- * @deprecated in version 4.0.
- */
-export default class HeatmapChartPlugin extends ChartPlugin {
+export default class EchartsHeatmapChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./ReactHeatmap'),
+      buildQuery,
+      loadChart: () => import('./Heatmap'),
       metadata,
       transformProps,
       controlPanel,

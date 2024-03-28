@@ -88,6 +88,7 @@ const DEFAULT_ORDER = [
   'time_pivot',
   'deck_arc',
   'heatmap',
+  'heatmap_v2',
   'deck_grid',
   'deck_screengrid',
   'treemap_v2',

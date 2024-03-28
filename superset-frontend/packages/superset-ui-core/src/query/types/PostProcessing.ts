@@ -224,6 +224,15 @@ export type PostProcessingFlatten =
   | _PostProcessingFlatten
   | DefaultPostProcessing;
 
+interface _PostProcessingRank {
+  operation: 'rank';
+  options?: {
+    metric: string;
+    group_by: string | null;
+  };
+}
+export type PostProcessingRank = _PostProcessingRank | DefaultPostProcessing;
+
 /**
  * Parameters for chart data postprocessing.
  * See superset/utils/pandas_processing.py.
@@ -241,7 +250,8 @@ export type PostProcessingRule =
   | PostProcessingSort
   | PostProcessingResample
   | PostProcessingRename
-  | PostProcessingFlatten;
+  | PostProcessingFlatten
+  | PostProcessingRank;
 
 export function isPostProcessingAggregation(
   rule?: PostProcessingRule,

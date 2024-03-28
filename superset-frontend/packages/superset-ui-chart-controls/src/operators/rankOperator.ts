@@ -16,8 +16,15 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { QueryFormData, QueryObject } from '@superset-ui/core';
+import { PostProcessingRank } from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
 
-export interface PostProcessingFactory<T> {
-  (formData: QueryFormData, queryObject: QueryObject, options?: any): T;
-}
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export const rankOperator: PostProcessingFactory<PostProcessingRank> = (
+  formData,
+  queryObject,
+  options,
+) => ({
+  operation: 'rank',
+  options,
+});
