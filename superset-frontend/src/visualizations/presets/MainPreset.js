@@ -77,6 +77,7 @@ import {
 } from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
+import { FilterPlugins } from 'src/constants';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
@@ -157,11 +158,15 @@ export default class MainPreset extends Preset {
         new EchartsWaterfallChartPlugin().configure({
           key: 'waterfall',
         }),
-        new SelectFilterPlugin().configure({ key: 'filter_select' }),
-        new RangeFilterPlugin().configure({ key: 'filter_range' }),
-        new TimeFilterPlugin().configure({ key: 'filter_time' }),
-        new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
-        new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
+        new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
+        new RangeFilterPlugin().configure({ key: FilterPlugins.Range }),
+        new TimeFilterPlugin().configure({ key: FilterPlugins.Time }),
+        new TimeColumnFilterPlugin().configure({
+          key: FilterPlugins.TimeColumn,
+        }),
+        new TimeGrainFilterPlugin().configure({
+          key: FilterPlugins.TimeGrain,
+        }),
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
