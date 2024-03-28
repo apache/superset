@@ -48,6 +48,7 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
                     row_count = ReportScheduleDAO.bulk_delete_logs(
                         report_schedule, from_date, commit=False
                     )
+                    db.session.commit()
                     logger.info(
                         "Deleted %s logs for report schedule id: %s",
                         str(row_count),

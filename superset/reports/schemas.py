@@ -320,7 +320,7 @@ class ReportSchedulePutSchema(Schema):
     log_retention = fields.Integer(
         metadata={"description": log_retention_description, "example": 90},
         required=False,
-        validate=[Range(min=1, error=_("Value must be greater than 0"))],
+        validate=[Range(min=0, error=_("Value must be 0 or greater"))],
     )
     grace_period = fields.Integer(
         metadata={"description": grace_period_description, "example": 60 * 60 * 4},
