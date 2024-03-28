@@ -37,14 +37,7 @@ const metadata = new ChartMetadata({
   ),
   exampleGallery: [{ url: example1 }, { url: example2 }],
   name: t('Word Cloud'),
-  tags: [
-    t('Aesthetic'),
-    t('Categorical'),
-    t('Comparison'),
-    t('Description'),
-    t('Density'),
-    t('Single Metric'),
-  ],
+  tags: [t('Categorical'), t('Comparison'), t('Density'), t('Single Metric')],
   thumbnail,
 });
 

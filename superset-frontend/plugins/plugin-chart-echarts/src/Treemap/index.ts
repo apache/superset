@@ -60,7 +60,6 @@ export default class EchartsTreemapChartPlugin extends EchartsChartPlugin<
         exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Treemap'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Comparison'),
           t('ECharts'),

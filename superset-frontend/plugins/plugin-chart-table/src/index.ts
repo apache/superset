@@ -51,7 +51,6 @@ const metadata = new ChartMetadata({
     t('Report'),
     t('Sequential'),
     t('Tabular'),
-    t('Description'),
   ],
   thumbnail,
 });

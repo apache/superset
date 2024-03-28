@@ -66,7 +66,6 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Time'),
           t('Line'),
           t('Transformable'),
