@@ -66,7 +66,8 @@ export const ChartPills = forwardRef(
         >
           {!isLoading && firstQueryResponse && (
             <RowCountLabel
-              rowcount={Number(firstQueryResponse.rowcount) || 0}
+              rowCount={Number(firstQueryResponse.rowcount) || 0}
+              sqlRowCount={Number(firstQueryResponse.sql_rowcount) || 0}
               limit={Number(rowLimit) || 0}
             />
           )}

@@ -44,6 +44,8 @@ export const useResultsTableView = (
         <SingleQueryResultPane
           colnames={chartDataResult[0].colnames}
           coltypes={chartDataResult[0].coltypes}
+          rowCount={chartDataResult[0].rowcount}
+          sqlRowCount={chartDataResult[0].sql_rowcount}
           data={chartDataResult[0].data}
           dataSize={DATA_SIZE}
           datasourceId={datasourceId}

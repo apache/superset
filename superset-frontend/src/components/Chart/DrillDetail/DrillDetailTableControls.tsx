@@ -126,7 +126,10 @@ export default function TableControls({
           height: min-content;
         `}
       >
-        <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
+        <RowCountLabel
+          loading={loading && !totalCount}
+          sqlRowCount={totalCount}
+        />
         <Icons.ReloadOutlined
           iconColor={theme.colors.grayscale.light1}
           iconSize="l"

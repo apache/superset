@@ -48,6 +48,7 @@ export const SamplesPane = ({
   const [colnames, setColnames] = useState<string[]>([]);
   const [coltypes, setColtypes] = useState<GenericDataType[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [sqlRowCount, setRowCount] = useState<int>(0);
   const [responseError, setResponseError] = useState<string>('');
   const datasourceId = useMemo(
     () => `${datasource.id}__${datasource.type}`,
@@ -63,9 +64,11 @@ export const SamplesPane = ({
       setIsLoading(true);
       getDatasourceSamples(datasource.type, datasource.id, queryForce, {})
         .then(response => {
+          console.log('response YO', response);
           setData(ensureIsArray(response.data));
           setColnames(ensureIsArray(response.colnames));
           setColtypes(ensureIsArray(response.coltypes));
+          setRowCount(response.rowcount);
           setResponseError('');
           cache.add(datasource);
           if (queryForce && actions) {
@@ -108,6 +111,7 @@ export const SamplesPane = ({
           data={filteredData}
           columnNames={colnames}
           columnTypes={coltypes}
+          sqlRowCount={sqlRowCount}
           datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
@@ -128,6 +132,7 @@ export const SamplesPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        sqlRowCount={sqlRowCount}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}
@@ -136,6 +141,7 @@ export const SamplesPane = ({
         columns={columns}
         data={filteredData}
         pageSize={dataSize}
+        sqlRowCount={sqlRowCount}
         noDataText={t('No results')}
         emptyWrapperType={EmptyWrapperType.Small}
         className="table-condensed"

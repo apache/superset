@@ -135,7 +135,6 @@ export const useResultsPane = ({
       <EmptyStateMedium image="document.svg" title={title} />,
     );
   }
-
   return resultResp
     .slice(0, queryCount)
     .map((result, idx) => (
@@ -143,6 +142,8 @@ export const useResultsPane = ({
         data={result.data}
         colnames={result.colnames}
         coltypes={result.coltypes}
+        rowCount={result.rowcount}
+        sqlRowCount={result.sql_rowcount}
         dataSize={dataSize}
         datasourceId={queryFormData.datasource}
         key={idx}

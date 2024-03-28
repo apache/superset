@@ -23,30 +23,37 @@ import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 
 type RowCountLabelProps = {
-  rowcount?: number;
+  rowCount?: number;
+  sqlRowCount?: number;
   limit?: number;
   loading?: boolean;
 };
 
+const limitReachedMsg = t(
+  'The row limit set for the chart was reached. The chart may show partial data.',
+);
+
 export default function RowCountLabel(props: RowCountLabelProps) {
-  const { rowcount = 0, limit, loading } = props;
-  const limitReached = rowcount === limit;
+  const { sqlRowCount = 0, rowCount = 0, limit, loading } = props;
+  const limitReached = limit > 0 && sqlRowCount === limit;
   const type =
-    limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
-  const formattedRowCount = getNumberFormatter()(rowcount);
+    limitReached || (sqlRowCount === 0 && !loading) ? 'danger' : 'default';
+  console.log('limitReached YO:', limitReached, type);
+  const formattedRowCount = getNumberFormatter()(sqlRowCount);
   const label = (
     <Label type={type}>
       {loading ? (
         t('Loading...')
       ) : (
         <span data-test="row-count-label">
-          {tn('%s row', '%s rows', rowcount, formattedRowCount)}
+          {tn('%s row', '%s rows', sqlRowCount, formattedRowCount)} |{rowCount}{' '}
+          rows
         </span>
       )}
     </Label>
   );
   return limitReached ? (
-    <Tooltip id="tt-rowcount-tooltip" title={<span>{t('Limit reached')}</span>}>
+    <Tooltip id="tt-rowcount-tooltip" title={<span>{limitReachedMsg}</span>}>
       {label}
     </Tooltip>
   ) : (

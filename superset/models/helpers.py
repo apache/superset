@@ -584,6 +584,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
 class ExtraJSONMixin:
