@@ -135,6 +135,7 @@ class Row extends React.PureComponent {
     this.state = {
       isFocused: false,
       isInView: false,
+      hoverMenuHovered: false,
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
@@ -143,6 +144,7 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
+    this.handleMenuHover = this.handleMenuHover.bind(this);
     this.setVerticalEmptyContainerHeight = debounce(
       this.setVerticalEmptyContainerHeight.bind(this),
       FAST_DEBOUNCE,
@@ -235,6 +237,11 @@ class Row extends React.PureComponent {
     deleteComponent(component.id, parentId);
   }
 
+  handleMenuHover = hovered => {
+    const { isHovered } = hovered;
+    this.setState(() => ({ hoverMenuHovered: isHovered }));
+  };
+
   render() {
     const {
       component: rowComponent,
@@ -252,7 +259,7 @@ class Row extends React.PureComponent {
       onChangeTab,
       isComponentVisible,
     } = this.props;
-    const { containerHeight } = this.state;
+    const { containerHeight, hoverMenuHovered } = this.state;
 
     const rowItems = rowComponent.children || [];
 
@@ -287,7 +294,11 @@ class Row extends React.PureComponent {
             editMode={editMode}
           >
             {editMode && (
-              <HoverMenu innerRef={dragSourceRef} position="left">
+              <HoverMenu
+                onHover={this.handleMenuHover}
+                innerRef={dragSourceRef}
+                position="left"
+              >
                 <DragHandle position="left" />
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
                 <IconButton
@@ -300,6 +311,7 @@ class Row extends React.PureComponent {
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
+                hoverMenuHovered && 'grid-row--hovered',
                 backgroundStyle.className,
               )}
               data-test={`grid-row-${backgroundStyle.className}`}
