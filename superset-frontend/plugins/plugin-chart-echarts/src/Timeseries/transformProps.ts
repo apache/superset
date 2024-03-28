@@ -116,6 +116,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    legendIndex,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -184,7 +185,6 @@ export default function transformProps(
     zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
-
   const labelMap = Object.entries(label_map).reduce((acc, entry) => {
     if (
       entry[1].length > groupby.length &&
@@ -426,6 +426,7 @@ export default function transformProps(
     setControlValue = () => {},
     onContextMenu,
     onLegendStateChanged,
+    onLegendScroll,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -568,6 +569,7 @@ export default function transformProps(
         zoomable,
         legendState,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData as string[],
     },
     series: dedupSeries(series),
@@ -577,6 +579,7 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
+          yAxisIndex: false,
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -623,5 +626,6 @@ export default function transformProps(
     },
     refs,
     coltypeMapping: dataTypes,
+    onLegendScroll,
   };
 }

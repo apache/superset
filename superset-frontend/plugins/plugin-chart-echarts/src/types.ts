@@ -137,6 +137,7 @@ export interface BaseTransformedProps<F> {
   width: number;
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
+  onLegendScroll?: (currentIndex: number) => void;
 }
 
 export type CrossFilterTransformedProps = {
