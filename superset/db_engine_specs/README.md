@@ -529,6 +529,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         url: URL,
         impersonate_user: bool,
         username: str | None,
+        access_token: str | None,
     ) -> URL:
         if impersonate_user and username is not None:
             user = security_manager.find_user(username=username)
@@ -541,6 +542,70 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 The method `get_url_for_impersonation` updates the SQLAlchemy URI before every query. In this particular case, it will fetch the user's email and add it to the `subject` query argument. The driver will then lower the permissions to match that given user. This allows the connection to be configured with a service account that has access to all the spreadsheets, while giving users access to only the spreadsheets they own are have been shared with them (or with their organization — Google will handle the authorization in this case, not Superset).
 
 Alternatively, it's also possible to impersonate users by implementing the `update_impersonation_config`. This is a class method which modifies `connect_args` in place. You can use either method, and ideally they [should be consolidated in a single one](https://github.com/apache/superset/issues/24910).
+
+### OAuth2
+
+Support for authenticating to a database using personal OAuth2 access tokens was introduced in [SIP-85](https://github.com/apache/superset/issues/20300). The Google Sheets DB engine spec is the reference implementation.
+
+To add support for OAuth2 to a DB engine spec, the following attribute and methods are needed:
+
+```python
+class BaseEngineSpec:
+
+    oauth2_exception = OAuth2RedirectError
+
+    @staticmethod
+    def is_oauth2_enabled() -> bool:
+        return False
+
+    @staticmethod
+    def get_oauth2_authorization_uri(state: OAuth2State) -> str:
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_oauth2_token(code: str, state: OAuth2State) -> OAuth2TokenResponse:
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_oauth2_fresh_token(refresh_token: str) -> OAuth2TokenResponse:
+        raise NotImplementedError()
+```
+
+The `oauth2_exception` is an exception that is raised by `cursor.execute` when OAuth2 is needed. This will start the OAuth2 dance when `BaseEngineSpec.execute` is called, by returning the custom error `OAUTH2_REDIRECT` to the frontend. If the database driver doesn't have a specific exception, it might be necessary to overload the `execute` method in the DB engine spec, so that the `BaseEngineSpec.start_oauth2_dance` method gets called whenever OAuth2 is needed.
+
+The first method, `is_oauth2_enabled`, is used to inform if the database supports OAuth2. This can be dynamic; for example, the Google Sheets DB engine spec checks if the Superset configuration has the necessary section:
+
+```python
+from flask import current_app
+
+
+class GSheetsEngineSpec(ShillelaghEngineSpec):
+    @staticmethod
+    def is_oauth2_enabled() -> bool:
+        return "Google Sheets" in current_app.config["DATABASE_OAUTH2_CREDENTIALS"]
+```
+
+Where the configuration for OAuth2 would look like this:
+
+```python
+# superset_config.py
+DATABASE_OAUTH2_CREDENTIALS = {
+    "Google Sheets": {
+        "CLIENT_ID": "XXX.apps.googleusercontent.com",
+        "CLIENT_SECRET": "GOCSPX-YYY",
+    },
+}
+DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+```
+
+The second method, `get_oauth2_authorization_uri`, is responsible for building the URL where the user is sent to initiate OAuth2. This method receives a `state`. The state is an encoded JWT that is passed to the OAuth2 provider, and is received unmodified when the user is redirected back to Superset. The default state contains the user ID and the database ID, so that Superset can know where to store the received OAuth2 tokens.
+
+Additionally, the state also contains a `tab_id`, which is a random UUID4 used as a shared secret for communication between browser tabs. When OAuth2 starts, Superset will open a new browser tab, where the user will grant permissions to Superset. When authentication is complete and successful this opened tab will send a message to the original tab, so that the original query can be re-run. The `tab_id` is sent by the opened tab and verified by the original tab to prevent malicious messages from other sites. As an additional security measure the origin of the message should match the OAuth2 redirect URL.
+
+State also contains a `defaul_redirect_uri`, which is the enpoint in Supeset that receives the tokens from the OAuth2 provider (`/api/v1/database/oauth2/`). The redirect URL can be overwritten in the config file via the `DATABASE_OAUTH2_REDIRECT_URI` parameter. This might be useful where you have multiple Superset instances. Since the OAuth2 provider requires the redirect URL to be registered a priori, it might be easier (or needed) to register a single URL for a proxy service; the proxy service can then inspect the JWT and redirect the request to `defaul_redirect_uri`.
+
+Finally, `get_oauth2_token` and `get_oauth2_fresh_token` are used to actually retrieve a token and refresh an expired token, respectively.
 
 ### File upload
 
@@ -615,7 +680,7 @@ SELECT * FROM my_table
 
 The table `my_table` should live in the `dev` schema. In order to do that, it's necessary to modify the SQLAlchemy URI before running the query. Since different databases have different ways of doing that, this functionality is implemented via the `adjust_engine_params` class method. The method receives the SQLAlchemy URI and `connect_args`, as well as the schema in which the query should run. It then returns a potentially modified URI and `connect_args` to ensure that the query runs in the specified schema.
 
-When a DB engine specs implements `adjust_engine_params` it should have the class attribute `supports_dynamic_schema` set to true. This is critical for security, since **it allows Superset to know to which schema any unqualified table names belong to**. For example, in the query above, if the database supports dynamic schema, Superset would check to see if the user running the query has access to `dev.my_table`. On the other hand, if the database doesn't support dynamic schema, Superset would sue the default database schema instead of `dev`.
+When a DB engine specs implements `adjust_engine_params` it should have the class attribute `supports_dynamic_schema` set to true. This is critical for security, since **it allows Superset to know to which schema any unqualified table names belong to**. For example, in the query above, if the database supports dynamic schema, Superset would check to see if the user running the query has access to `dev.my_table`. On the other hand, if the database doesn't support dynamic schema, Superset would use the default database schema instead of `dev`.
 
 Implementing this method is also important for usability. When the method is not implemented selecting the schema in SQL Lab has no effect on the schema in which the query runs, resulting in a confusing results when using unqualified table names.
 

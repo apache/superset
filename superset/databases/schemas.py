@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-lines
 
 import inspect
 import json
@@ -978,3 +978,38 @@ class DatabaseConnectionSchema(Schema):
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+
+
+class OAuth2ProviderResponseSchema(Schema):
+    """
+    Schema for the payload sent on OAuth2 redirect.
+    """
+
+    code = fields.String(
+        required=False,
+        metadata={"description": "The authorization code returned by the provider"},
+    )
+    state = fields.String(
+        required=False,
+        metadata={"description": "The state parameter originally passed by the client"},
+    )
+    scope = fields.String(
+        required=False,
+        metadata={
+            "description": "A space-separated list of scopes granted by the user"
+        },
+    )
+    error = fields.String(
+        required=False,
+        metadata={
+            "description": "In case of an error, this field contains the error code"
+        },
+    )
+    error_description = fields.String(
+        required=False,
+        metadata={"description": "Additional description of the error"},
+    )
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # Ignore unknown fields that might be sent by the OAuth2 provider
+        unknown = EXCLUDE

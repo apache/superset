@@ -55,7 +55,9 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
 
     database.apply_limit_to_sql.assert_called_with("SELECT 42 AS answer", 2, force=True)
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT 42 AS answer LIMIT 2", query
+        cursor,
+        "SELECT 42 AS answer LIMIT 2",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
@@ -104,7 +106,9 @@ def test_execute_sql_statement_with_rls(
         force=True,
     )
     db_engine_spec.execute_with_cursor.assert_called_with(
-        cursor, "SELECT * FROM sales WHERE organization_id=42 LIMIT 101", query
+        cursor,
+        "SELECT * FROM sales WHERE organization_id=42 LIMIT 101",
+        query,
     )
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 

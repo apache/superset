@@ -65,8 +65,9 @@ def test_execute_connection_error() -> None:
     cursor.execute.side_effect = NewConnectionError(
         HTTPConnection("localhost"), "Exception with sensitive data"
     )
-    with pytest.raises(SupersetDBAPIDatabaseError) as ex:
-        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
+    with pytest.raises(SupersetDBAPIDatabaseError) as excinfo:
+        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1", 1)
+    assert str(excinfo.value) == "Connection failed"
 
 
 @pytest.mark.parametrize(

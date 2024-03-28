@@ -312,3 +312,53 @@ class SupersetParseError(SupersetErrorException):
             extra={"sql": sql, "engine": engine},
         )
         super().__init__(error)
+
+
+class OAuth2RedirectError(SupersetErrorException):
+    """
+    Exception used to start OAuth2 dance for personal tokens.
+
+    The exception requires 3 parameters:
+
+    - The URL that starts the OAuth2 dance.
+    - The UUID of the browser tab where OAuth2 started, so that the newly opened tab
+      where OAuth2 happens can communicate with the original tab to inform that OAuth2
+      was successful (or not).
+    - The redirect URL, so that the original tab can validate that the message from the
+      second tab is coming from a valid origin.
+
+    See the `OAuth2RedirectMessage.tsx` component for more details of how this
+    information is handled.
+    """
+
+    def __init__(self, url: str, tab_id: str, redirect_uri: str):
+        super().__init__(
+            SupersetError(
+                message="You don't have permission to access the data.",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT,
+                level=ErrorLevel.WARNING,
+                extra={"url": url, "tab_id": tab_id, "redirect_uri": redirect_uri},
+            )
+        )
+
+
+class OAuth2Error(SupersetErrorException):
+    """
+    Exception for when OAuth2 goes wrong.
+    """
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message="Something went wrong while doing OAuth2",
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"error": error},
+            )
+        )
+
+
+class CreateKeyValueDistributedLockFailedException(Exception):
+    """
+    Exception to signalize failure to acquire lock.
+    """

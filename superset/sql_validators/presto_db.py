@@ -73,7 +73,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         from pyhive.exc import DatabaseError
 
         try:
-            db_engine_spec.execute(cursor, sql)
+            db_engine_spec.execute(cursor, sql, database.id)
             polled = cursor.poll()
             while polled:
                 logger.info("polling presto for validation progress")

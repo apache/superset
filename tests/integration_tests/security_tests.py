@@ -1551,6 +1551,7 @@ class TestRolePermission(SupersetTestCase):
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
             ["SupersetIndexView", "index"],
+            ["DatabaseRestApi", "oauth2"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:

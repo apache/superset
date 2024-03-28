@@ -49,6 +49,7 @@ class KeyValueResource(StrEnum):
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
+    LOCK = "lock"
 
 
 class SharedKey(StrEnum):
