@@ -18,50 +18,38 @@
  */
 import {
   buildQueryContext,
-  getComparisonInfo,
   ComparisonTimeRangeType,
   QueryFormData,
+  getTimeComparisonFiltersByQueryObject,
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  const {
-    cols: groupby,
-    time_comparison: timeComparison,
-    extra_form_data: extraFormData,
-  } = formData;
+  const baseQuery = buildQueryContext(formData, baseQueryObject => [
+    baseQueryObject,
+  ]);
 
-  const queryContextA = buildQueryContext(formData, baseQueryObject => [
+  let shiftedFormData = formData;
+  if (
+    formData?.time_comparison === ComparisonTimeRangeType.Custom &&
+    formData?.adhoc_custom
+  ) {
+    shiftedFormData = {
+      ...formData,
+      adhoc_filters: formData.adhoc_custom,
+    };
+  }
+  const shiftedQuery = buildQueryContext(shiftedFormData, baseQueryObject => [
     {
       ...baseQueryObject,
-      groupby,
+      filters: getTimeComparisonFiltersByQueryObject(
+        baseQueryObject,
+        formData?.time_comparison,
+      ),
     },
   ]);
 
-  const comparisonFormData = getComparisonInfo(
-    formData,
-    timeComparison,
-    extraFormData,
-  );
-
-  const queryContextB = buildQueryContext(
-    comparisonFormData,
-    baseQueryObject => [
-      {
-        ...baseQueryObject,
-        groupby,
-        extras: {
-          ...baseQueryObject.extras,
-          instant_time_comparison_range:
-            timeComparison !== ComparisonTimeRangeType.Custom
-              ? timeComparison
-              : undefined,
-        },
-      },
-    ],
-  );
-
   return {
-    ...queryContextA,
-    queries: [...queryContextA.queries, ...queryContextB.queries],
+    ...baseQuery,
+    queries: [baseQuery.queries[0], shiftedQuery.queries[0]],
   };
 }

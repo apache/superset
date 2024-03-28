@@ -37,6 +37,7 @@ export default class PopKPIPlugin extends ChartPlugin {
         t('Description'),
         t('Advanced-Analytics'),
       ],
+      queryObjectCount: 2,
       thumbnail,
     });
 
