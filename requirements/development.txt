@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -71,9 +69,7 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via
-    #   pyhive
-    #   sqlalchemy-bigquery
+    # via pyhive
 gevent==23.9.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
@@ -93,9 +89,7 @@ google-cloud-bigquery==3.10.0
     #   pandas-gbq
     #   sqlalchemy-bigquery
 google-cloud-bigquery-storage==2.19.1
-    # via
-    #   pandas-gbq
-    #   sqlalchemy-bigquery
+    # via pandas-gbq
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
@@ -249,7 +243,7 @@ rfc3986==2.0.0
     # via tableschema
 s3transfer==0.6.1
     # via boto3
-sqlalchemy-bigquery==1.6.1
+sqlalchemy-bigquery==1.10.0
     # via apache-superset
 sqloxide==0.1.33
     # via -r requirements/development.in
