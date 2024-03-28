@@ -16,8 +16,8 @@
 # under the License.
 import inspect
 
-from flask import Markup
 from flask_babel import lazy_gettext as _
+from markupsafe import Markup
 from sqlalchemy import MetaData
 
 from superset import app, security_manager

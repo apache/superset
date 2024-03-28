@@ -49,7 +49,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.constants import InstantTimeComparison, LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 
-ParserElement.enablePackrat()
+ParserElement.enable_packrat()
 
 logger = logging.getLogger(__name__)
 
