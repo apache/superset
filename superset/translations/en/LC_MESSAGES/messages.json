@@ -61,6 +61,7 @@
       ],
       "%s operator(s)": [""],
       "%s option(s)": [""],
+      "%s recipients": [""],
       "%s saved metric(s)": [""],
       "%s updated": [""],
       "%s%s": [""],
@@ -157,7 +158,7 @@
         ""
       ],
       "A database with the same name already exists.": [""],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -247,6 +248,7 @@
       "Add and edit filters": [""],
       "Add annotation": [""],
       "Add annotation layer": [""],
+      "Add another notification method": [""],
       "Add calculated columns to dataset in \"Edit datasource\" modal": [""],
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
@@ -268,7 +270,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add sheet": [""],
@@ -316,11 +317,12 @@
       "Alert": [""],
       "Alert Triggered, In Grace Period": [""],
       "Alert condition": [""],
-      "Alert condition schedule": [""],
+      "Alert contents": [""],
       "Alert ended grace period.": [""],
       "Alert failed": [""],
       "Alert fired during grace period.": [""],
       "Alert found an error while executing a query.": [""],
+      "Alert is active": [""],
       "Alert name": [""],
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
@@ -791,6 +793,7 @@
       "Choose a source and a target": [""],
       "Choose a target": [""],
       "Choose chart type": [""],
+      "Choose notification method and recipients.": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [""],
       "Choose the format for legend values": [""],
@@ -937,6 +940,7 @@
       ],
       "Comparison": [""],
       "Comparison Period Lag": [""],
+      "Comparison font size": [""],
       "Comparison suffix": [""],
       "Compose multiple layers together to form complex visuals.": [""],
       "Compute the contribution to the total": [""],
@@ -968,6 +972,8 @@
       "Connection": [""],
       "Connection failed, please check your connection settings": [""],
       "Connection looks good!": [""],
+      "Content format": [""],
+      "Content type": [""],
       "Continue": [""],
       "Continuous": [""],
       "Contours": [""],
@@ -1060,6 +1066,7 @@
         ""
       ],
       "Customize columns": [""],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": [""],
       "D3 format": [""],
@@ -1110,6 +1117,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": [""],
       "Data refreshed": [""],
       "Data type": [""],
@@ -1242,6 +1250,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1526,8 +1538,10 @@
       "Enter a delimiter for this data": [""],
       "Enter a name for this sheet": [""],
       "Enter a new title for the tab": [""],
+      "Enter alert name": [""],
       "Enter duration in seconds": [""],
       "Enter fullscreen": [""],
+      "Enter report name": [""],
       "Enter the required %(dbModelName)s credentials": [""],
       "Entity": [""],
       "Entity ID": [""],
@@ -1746,6 +1760,7 @@
       "GROUP BY": [""],
       "Gauge Chart": [""],
       "General": [""],
+      "General information": [""],
       "Generating link, please wait..": [""],
       "Generic Chart": [""],
       "Geo": [""],
@@ -1864,6 +1879,7 @@
       "In": [""],
       "Include Series": [""],
       "Include a description that will be sent with your report": [""],
+      "Include description to be sent with %s": [""],
       "Include series name as an axis": [""],
       "Include time": [""],
       "Increase": [""],
@@ -2342,6 +2358,9 @@
       "Normalized": [""],
       "Not Time Series": [""],
       "Not added to any dashboard": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": [""],
       "Not defined": [""],
       "Not equal to (≠)": [""],
@@ -2350,6 +2369,7 @@
       "Not triggered": [""],
       "Not up to date": [""],
       "Nothing triggered": [""],
+      "Notification Method": [""],
       "Notification method": [""],
       "November": [""],
       "Now": [""],
@@ -2516,6 +2536,7 @@
       "Percent of total": [""],
       "Percentage": [""],
       "Percentage change": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": [""],
       "Percentage threshold": [""],
       "Percentages": [""],
@@ -2709,6 +2730,7 @@
       "Recommended tags": [""],
       "Record Count": [""],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
@@ -2763,9 +2785,10 @@
       "Report Schedule reached a working timeout.": [""],
       "Report Schedule state not found": [""],
       "Report a bug": [""],
+      "Report contents": [""],
       "Report failed": [""],
+      "Report is active": [""],
       "Report name": [""],
-      "Report schedule": [""],
       "Report schedule client error": [""],
       "Report schedule system error": [""],
       "Report schedule unexpected error": [""],
@@ -2933,8 +2956,8 @@
       "Schedule a new email report": [""],
       "Schedule email report": [""],
       "Schedule query": [""],
-      "Schedule settings": [""],
       "Schedule the query periodically": [""],
+      "Schedule type": [""],
       "Scheduled": [""],
       "Scheduled at (UTC)": [""],
       "Scheduled task executor not found": [""],
@@ -3003,10 +3026,14 @@
       "Select all data": [""],
       "Select all items": [""],
       "Select any columns for metadata inspection": [""],
+      "Select chart to use": [""],
       "Select charts": [""],
       "Select color scheme": [""],
       "Select column": [""],
+      "Select content type": [""],
       "Select current page": [""],
+      "Select dashboard to use": [""],
+      "Select database": [""],
       "Select database or type to search databases": [""],
       "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
         ""
@@ -3016,6 +3043,7 @@
       "Select filter": [""],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [""],
+      "Select format": [""],
       "Select one or many metrics to display, that will be displayed in the percentages of total. Percentage metrics will be calculated only from data within the row limit. You can use an aggregation function on a column or write custom SQL to create a percentage metric.": [
         ""
       ],
@@ -3066,7 +3094,11 @@
       "Service Account": [""],
       "Set auto-refresh interval": [""],
       "Set filter mapping": [""],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": [""],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -3194,6 +3226,9 @@
       ],
       "Solid": [""],
       "Some roles do not exist": [""],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [""],
       "Sorry there was an error fetching saved charts: ": [""],
@@ -3592,7 +3627,9 @@
         ""
       ],
       "The report has been created": [""],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3804,6 +3841,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -4083,6 +4123,7 @@
       "Value and Percentage": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": [""],
       "Value is required": [""],
       "Value must be greater than 0": [""],
@@ -4487,12 +4528,12 @@
       "`width` must be greater or equal to 0": [""],
       "aggregate": [""],
       "alert": [""],
+      "alert condition": [""],
       "alert dark": [""],
       "alerts": [""],
       "all": [""],
       "also copy (duplicate) charts": [""],
       "ancestor": [""],
-      "and": [""],
       "annotation": [""],
       "annotation_layer": [""],
       "asfreq": [""],
@@ -4522,10 +4563,12 @@
       "code International Olympic Committee (cioc)": [""],
       "column": [""],
       "connecting to %(dbModelName)s.": [""],
+      "content type": [""],
       "count": [""],
       "create": [""],
       "create a new chart": [""],
       "create dataset from SQL query": [""],
+      "crontab": [""],
       "css": [""],
       "css_template": [""],
       "cumsum": [""],
@@ -4638,6 +4681,7 @@
       "or use existing ones from the panel on the right": [""],
       "orderby column must be populated": [""],
       "overall": [""],
+      "owners": [""],
       "p-value precision": [""],
       "p1": [""],
       "p5": [""],
@@ -4665,6 +4709,7 @@
       "reboot": [""],
       "recent": [""],
       "recents": [""],
+      "recipients": [""],
       "report": [""],
       "reports": [""],
       "restore zoom": [""],
@@ -4677,6 +4722,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "square": [""],
       "stack": [""],
       "staggered": [""],
@@ -4713,6 +4759,7 @@
       "week": [""],
       "week ending Saturday": [""],
       "week starting Sunday": [""],
+      "working timeout": [""],
       "x": [""],
       "x: values are normalized within each column": [""],
       "y": [""],

@@ -202,9 +202,6 @@
       "A database with the same name already exists.": [
         "База даних з тим самим іменем вже існує."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
-        "Словник із назвами стовпців та їх типами даних, якщо вам потрібно змінити за замовчуванням. Приклад: {\"user_id\": \"Integer\"}"
-      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Повна URL -адреса, що вказує на розташування вбудованого плагіна (наприклад, може бути розміщена на CDN)"
       ],
@@ -340,7 +337,6 @@
       ],
       "Add new color formatter": ["Додайте новий кольоровий форматер"],
       "Add new formatter": ["Додати новий форматер"],
-      "Add notification method": ["Додайте метод сповіщення"],
       "Add required control values to preview chart": [
         "Додайте необхідні контрольні значення для попереднього перегляду діаграми"
       ],
@@ -402,7 +398,6 @@
         "Попередження, спрацьоване, в пільговий період"
       ],
       "Alert condition": ["Умова попередження"],
-      "Alert condition schedule": ["Розклад умови попередження"],
       "Alert ended grace period.": [
         "Попередження закінчився пільговим періодом."
       ],
@@ -1444,6 +1439,7 @@
         ""
       ],
       "Customize columns": ["Налаштуйте стовпці"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Виявлена ​​циклічна залежність"],
       "D3 Format": ["Формат D3"],
       "D3 format": ["Формат D3"],
@@ -1670,6 +1666,10 @@
         "Визначте функцію JavaScript, яка отримує масив даних, що використовується у візуалізації, і, як очікується, поверне модифіковану версію цього масиву. Це може бути використане для зміни властивостей даних, фільтра або збагачення масиву."
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -3016,6 +3016,9 @@
       "Not added to any dashboard": [
         "Не додано на будь-яку інформаційну панель"
       ],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": ["Недоступний"],
       "Not equal to (≠)": ["Не дорівнює (≠)"],
       "Not in": ["Не в"],
@@ -3263,6 +3266,7 @@
       "Percent Change": ["Відсоткова зміна"],
       "Percentage": ["Відсоток"],
       "Percentage change": ["Зміна відсотків"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["Відсоткові показники"],
       "Percentage threshold": ["Відсоток поріг"],
       "Percentages": ["Відсотки"],
@@ -3519,6 +3523,7 @@
       "Recommended tags": ["Рекомендовані теги"],
       "Record Count": ["Реєстрація"],
       "Rectangle": ["Прямокутник"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Перенаправлення до цієї кінцевої точки при натисканні на таблицю зі списку таблиці"
       ],
@@ -3601,7 +3606,6 @@
       "Report a bug": ["Повідомте про помилку"],
       "Report failed": ["Звіт не вдалося"],
       "Report name": ["Назва звіту"],
-      "Report schedule": ["Розклад звіту"],
       "Report schedule client error": ["Помилка звіту про графік звітів"],
       "Report schedule system error": ["Помилка системи розкладу звітів"],
       "Report schedule unexpected error": [
@@ -3807,7 +3811,6 @@
       ],
       "Schedule email report": ["Розклад звіту електронної пошти"],
       "Schedule query": ["Запит на розклад"],
-      "Schedule settings": ["Налаштування розкладу"],
       "Schedule the query periodically": ["Періодично планувати запит"],
       "Scheduled": ["Запланований"],
       "Scheduled at (UTC)": ["Запланований за адресою (UTC)"],
@@ -3981,7 +3984,11 @@
         "Встановіть інтервал автоматичного рефреша"
       ],
       "Set filter mapping": ["Встановіть картографування фільтра"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": ["Налаштування звіту електронної пошти"],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         "Встановлює рівні ієрархії діаграми. Кожен рівень є\n        Представлений одним кільцем з найпотаємнішим колом як верхівка ієрархії."
       ],
@@ -4125,6 +4132,9 @@
       ],
       "Solid": ["Суцільний"],
       "Some roles do not exist": ["Деяких ролей не існує"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": ["Щось пішло не так."],
       "Sorry there was an error fetching database information: %s": [
         "Вибачте, була помилка отримання інформації про базу даних: %s"
@@ -4617,7 +4627,9 @@
         "Радіус окремих точок (тих, які не в кластері). Або чисельна колонка, або `auto`, що масштабує точку на основі найбільшого кластера"
       ],
       "The report has been created": ["Звіт створений"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "Результати, що бекрономиться, більше не мають даних із запиту."
       ],
@@ -4942,6 +4954,9 @@
       "This may be triggered by:": ["Це може бути спровоковано:"],
       "This metric might be incompatible with current dataset": [
         "Цей показник може бути несумісним із поточним набором даних"
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
       ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         "Цей розділ дозволяє налаштувати, як користуватися шматочком\n              генерувати анотації."
@@ -5305,6 +5320,7 @@
       "Value Format": ["Формат значення"],
       "Value bounds": ["Значення цінності"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": ["Формат значення"],
       "Value is required": ["Значення потрібно"],
       "Value must be greater than 0": ["Значення повинно бути більше 0"],
@@ -5860,7 +5876,6 @@
         "також скопіюйте (зробіть дублікат) діаграм"
       ],
       "ancestor": ["предок"],
-      "and": ["і"],
       "annotation": ["анотація"],
       "annotation_layer": ["анотація_layer"],
       "asfreq": ["асфрек"],
@@ -6056,6 +6071,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "series: Ставтеся до кожної серії незалежно; Загалом: усі серії використовують однакову шкалу; Зміна: Показати зміни порівняно з першою точкою даних у кожній серії"
       ],
+      "sql": [""],
       "square": ["квадрат"],
       "stack": ["стек"],
       "staggered": ["здивований"],

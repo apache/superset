@@ -143,9 +143,6 @@
       "A database with the same name already exists.": [
         "Une base de données avec le même nom existe déjà."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
-        "Un dictionnaire avec des noms de colonne et leurs types de données si vous devez modifier les valeurs par défaut. Exemple : {« user_id » :« integer »}"
-      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Une URL complète désignant le lieu du plugiciel (pourrait être hébergé sur un CDN par exemple)"
       ],
@@ -259,7 +256,6 @@
       ],
       "Add new color formatter": ["Ajouter un nouveau formateur de couleur"],
       "Add new formatter": ["Ajouter un nouveau formateur"],
-      "Add notification method": ["Ajouter une méthode de notification"],
       "Add required control values to preview chart": [
         "Ajouter les valeurs de contrôle requises au graphique de prévisualisation"
       ],
@@ -302,7 +298,6 @@
         "Alerte déclenchée, -période de grâce"
       ],
       "Alert condition": ["Condition d'alerte"],
-      "Alert condition schedule": ["Planification de la condition d'alerte"],
       "Alert ended grace period.": [
         "L'alerte a mis fin à la période de grâce."
       ],
@@ -1152,6 +1147,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         "Les graphiques en aires de séries temporelles sont similaires aux graphiques en lignes dans la mesure où ils représentent des variables avec la même échelle, mais les graphiques en aires empilent les mesures les unes sur les autres. Dans Superset, un graphique en aires peut être en flux, en pile ou en expansion."
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Dépendance cyclique constatée"],
       "D3 Format": ["Format D3"],
       "D3 format": ["Format D3"],
@@ -1367,6 +1363,10 @@
         "Définissez une fonction javascript qui reçoit le tableau de données utilisé dans la visualisation et qui doit renvoyer une version modifiée de ce tableau. Cette fonction peut être utilisée pour modifier les propriétés des données, filtrer ou enrichir le tableau."
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -2479,6 +2479,9 @@
       "Normal": ["Normal"],
       "Normalize Across": ["Normaliser à travers"],
       "Normalized": ["Normalisé"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not null": ["Non nul"],
       "Not up to date": ["Pas à jour"],
       "Nothing triggered": ["Rien déclenché"],
@@ -2684,6 +2687,7 @@
         "Coller ici l'URL partageable de Google Sheet"
       ],
       "Percent of total": [""],
+      "Percentage difference between the time periods": [""],
       "Percentages": ["Pourcentages"],
       "Performance": ["Performance"],
       "Period average": ["Moyenne de la période"],
@@ -2897,6 +2901,7 @@
       ],
       "Recommended tags": ["Balises recommandés"],
       "Record Count": ["Nombre d'enregistrements"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Redirige vers ce point de terminaison lorsque l'on clique sur le tableau dans la liste des tableaux."
       ],
@@ -2970,7 +2975,6 @@
       "Report a bug": ["Rapporter un bogue"],
       "Report failed": ["Rapport échoué"],
       "Report name": ["Nom du rapport"],
-      "Report schedule": ["Planification de rapport"],
       "Report schedule unexpected error": [
         "Erreur inattendue de la planification de rapport"
       ],
@@ -3137,7 +3141,6 @@
       "Schedule": ["Planifier"],
       "Schedule email report": ["Planifier un rapport par courriel"],
       "Schedule query": ["Planifier une requête"],
-      "Schedule settings": ["Paramètres de planification"],
       "Schedule the query periodically": [
         "Planifier la requête de façon périodique"
       ],
@@ -3262,6 +3265,10 @@
         "Définir l'intervalle de rafraîchissement automatique"
       ],
       "Set filter mapping": ["Définir le mappage de filtre"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         "Définit les niveaux de hiérarchie du graphique. Chaque niveau est représenté par un anneau, le cercle le plus à l'intérieur étant le sommet de la hiérarchie."
       ],
@@ -3380,6 +3387,9 @@
       ],
       "Solid": ["Solide"],
       "Some roles do not exist": ["Des profils n'existent pas"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        "Un problème s'est produit lors de l'authentification intégrée. Veuillez vérifier la console de développement pour plus de détails."
+      ],
       "Sorry there was an error fetching database information: %s": [
         "Désolé, une erreur s'est produite lors de la récupération des informations de cette base de données : %s"
       ],
@@ -3795,7 +3805,9 @@
         "Le rayon des points individuels (ceux qui ne sont pas dans une grappe). Une colonne numérique ou « Auto », qui met à l’échelle le point en fonction de la plus grande grappe"
       ],
       "The report has been created": ["Le rapport a été créé"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "Le programme dorsal des résultats n'a plus les données de la requête."
       ],
@@ -4090,6 +4102,9 @@
       "This may be triggered by:": ["Cela peut être déclenché par :"],
       "This metric might be incompatible with current dataset": [
         "Cette mesure pourrait être incompatible avec l’ensemble de données actuel."
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        "Cette page est destinée à être intégrée dans un iframe, mais il semble que ce ne soit pas le cas."
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "Cette section contient des options qui permettent un post-traitement analytique avancé des résultats de la requête."
@@ -4402,6 +4417,7 @@
       "Value Domain": ["Domaine de valeur"],
       "Value bounds": ["Limites de valeur"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value is required": ["Une valeur est obligatoire"],
       "Value must be greater than 0": ["La valeur doit être plus grande que 0"],
       "Values are dependent on other filters": [
@@ -4891,7 +4907,6 @@
         "copier également les graphiques (dupliquer)"
       ],
       "ancestor": ["ancêtre"],
-      "and": ["et"],
       "annotation": ["annotation"],
       "annotation_layer": ["annotation_layer"],
       "asfreq": ["asfreq"],
@@ -5023,6 +5038,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "série : traiter chaque série indépendamment; dans l’ensemble : toutes les séries utilisent la même échelle; changement : afficher les changements par rapport au premier point de données de chaque série"
       ],
+      "sql": [""],
       "std": ["std"],
       "step-before": ["step-before"],
       "string type icon": ["icône de type de chaîne"],

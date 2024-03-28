@@ -55,6 +55,7 @@
       ],
       "%s operator(s)": ["Seleziona operatore"],
       "%s option(s)": [""],
+      "%s recipients": [""],
       "%s saved metric(s)": [""],
       "%s%s": [""],
       "%s-%s of %s": [""],
@@ -130,7 +131,7 @@
         ""
       ],
       "A database with the same name already exists.": [""],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -203,6 +204,7 @@
       "Add additional custom parameters": [""],
       "Add annotation": ["Azione"],
       "Add annotation layer": ["Azione"],
+      "Add another notification method": [""],
       "Add calculated columns to dataset in \"Edit datasource\" modal": [""],
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
@@ -223,7 +225,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add tag to entities": [""],
@@ -253,11 +254,11 @@
       ],
       "Alert Triggered, In Grace Period": [""],
       "Alert condition": ["Testa la Connessione"],
-      "Alert condition schedule": ["Testa la Connessione"],
       "Alert ended grace period.": [""],
       "Alert failed": ["Nome Completo"],
       "Alert fired during grace period.": [""],
       "Alert found an error while executing a query.": [""],
+      "Alert is active": [""],
       "Alert name": ["Nome Completo"],
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
@@ -678,6 +679,7 @@
       "Choose a metric for right axis": [
         "Seleziona una metrica per l'asse destro"
       ],
+      "Choose notification method and recipients.": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [""],
       "Choose the position of the legend": [""],
@@ -896,6 +898,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         ""
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["Formato D3"],
       "D3 format": ["Formato D3"],
@@ -940,6 +943,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": [""],
       "Data refreshed": [""],
       "Data type": ["Tipo"],
@@ -1042,6 +1046,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1544,6 +1552,7 @@
       ],
       "Include Series": [""],
       "Include a description that will be sent with your report": [""],
+      "Include description to be sent with %s": [""],
       "Include series name as an axis": [""],
       "Include time": [""],
       "Index Column": [""],
@@ -1912,11 +1921,15 @@
       "Normalize Across": [""],
       "Normalized": [""],
       "Not Time Series": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not equal to (≠)": [""],
       "Not null": [""],
       "Not triggered": [""],
       "Not up to date": [""],
       "Nothing triggered": [""],
+      "Notification Method": [""],
       "Notification method": [""],
       "November": [""],
       "Now": [""],
@@ -2064,6 +2077,7 @@
       "Paste the shareable Google Sheet URL here": [""],
       "Pattern": [""],
       "Percent of total": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage threshold": [""],
       "Percentages": [""],
       "Performance": [""],
@@ -2228,6 +2242,7 @@
       "Recommended tags": [""],
       "Record Count": [""],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Reinvia a questo endpoint al clic sulla tabella dall'elenco delle tabelle"
       ],
@@ -2278,7 +2293,6 @@
       "Report Schedule state not found": [""],
       "Report failed": ["Nome Completo"],
       "Report name": ["Nome Completo"],
-      "Report schedule": ["Importa"],
       "Report schedule unexpected error": [""],
       "Report sending": ["Importa"],
       "Report sent": ["Importa"],
@@ -2416,7 +2430,6 @@
       "Schedule": [""],
       "Schedule email report": [""],
       "Schedule query": ["Mostra query salvate"],
-      "Schedule settings": ["Mostra query salvate"],
       "Schedule the query periodically": [""],
       "Scheduled": [""],
       "Scheduled at (UTC)": [""],
@@ -2516,6 +2529,10 @@
       "Service Account": [""],
       "Set auto-refresh interval": [""],
       "Set filter mapping": [""],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2618,6 +2635,9 @@
         ""
       ],
       "Solid": [""],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [""],
       "Sorry there was an error fetching saved charts: ": [""],
@@ -2953,7 +2973,9 @@
         ""
       ],
       "The report has been created": [""],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3161,6 +3183,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -3403,6 +3428,7 @@
       "Value Domain": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Values are dependent on other filters": [""],
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
@@ -3779,7 +3805,6 @@
       "all": [""],
       "also copy (duplicate) charts": [""],
       "ancestor": [""],
-      "and": [""],
       "annotation": [""],
       "annotation_layer": [""],
       "asfreq": [""],
@@ -3910,6 +3935,7 @@
       "reboot": [""],
       "recent": [""],
       "recents": [""],
+      "recipients": [""],
       "report": ["Importa"],
       "reports": ["Importa"],
       "restore zoom": [""],
@@ -3918,6 +3944,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "stack": [""],
       "staggered": [""],
       "std": [""],
@@ -3944,6 +3971,7 @@
       "week": ["settimana"],
       "week ending Saturday": [""],
       "week starting Sunday": [""],
+      "working timeout": [""],
       "x": [""],
       "x: values are normalized within each column": [""],
       "y": [""],

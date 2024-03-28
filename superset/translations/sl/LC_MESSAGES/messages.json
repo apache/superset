@@ -205,9 +205,6 @@
       "A database with the same name already exists.": [
         "Podatkovna baza z enakim imenom že obstaja."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
-        "Slovar z imeni in podatkovnimi tipi stolpcev, s pomočjo katerega spremenite privzete nastavitve. Primer: {\"user_id\":\"integer\"}"
-      ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
         "Celoten URL, ki kaže na lokacijo zgrajenega vtičnika (lahko gostuje npr. na CDN)"
       ],
@@ -353,7 +350,6 @@
       ],
       "Add new color formatter": ["Dodaj novo pravilo za barvo"],
       "Add new formatter": ["Dodaj novo pravilo"],
-      "Add notification method": ["Dodajte način obveščanja"],
       "Add required control values to preview chart": [
         "Dodaj potrebne parametre za predogled grafikona"
       ],
@@ -415,7 +411,6 @@
         "Opozorilo sproženo, v obdobju mirovanja"
       ],
       "Alert condition": ["Status opozorila"],
-      "Alert condition schedule": ["Urnik statusov opozoril"],
       "Alert ended grace period.": ["Opozorilo je končalo obdobje mirovanja."],
       "Alert failed": ["Opozorilo ni uspelo"],
       "Alert fired during grace period.": [
@@ -1498,6 +1493,7 @@
         "Prilagodi mere grafikona ali stolpce s predponami ali priponami valute. Izberite simbol ali napišite lastnega."
       ],
       "Customize columns": ["Prilagodi stolpce"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Zaznana krožna odvisnost"],
       "D3 Format": ["D3 format"],
       "D3 format": ["D3 format"],
@@ -1751,6 +1747,10 @@
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
         "Definirajte plastnice. Plastnice predstavljajo nabor črt, ki ločujejo območje nad in pod podano mejo. Površinske plastnice predstavlja nabor poligonov, ki zapolnjujejo področje v določenem obsegu vrednosti."
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
+        ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         "Določi funkcijo drsečega okna. Dela skupaj s tekstovnim okvirjem [Obdobja]"
@@ -3185,6 +3185,9 @@
       "Normalized": ["Normiran"],
       "Not Time Series": ["Ni časovna vrsta"],
       "Not added to any dashboard": ["Ni dodano na nobeno nadzorno ploščo"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": ["Ni razpoložljivo"],
       "Not defined": ["Ni definirano"],
       "Not equal to (≠)": ["Ni enako (≠)"],
@@ -3433,6 +3436,7 @@
       "Percent of total": ["Procent celote"],
       "Percentage": ["Procenti"],
       "Percentage change": ["Procentualna sprememba"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["Procentualne mere"],
       "Percentage threshold": ["Procentualni prag"],
       "Percentages": ["Procenti"],
@@ -3685,6 +3689,7 @@
       "Recommended tags": ["Priporočene oznake"],
       "Record Count": ["Število zapisov"],
       "Rectangle": ["Pravokotnik"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Preusmeri v to končno točko, ko kliknete na tabelo v seznamu tabel"
       ],
@@ -3765,7 +3770,6 @@
       "Report a bug": ["Sporočite napako"],
       "Report failed": ["Poročilo ni uspelo"],
       "Report name": ["Naslov poročila"],
-      "Report schedule": ["Urnik poročanja"],
       "Report schedule client error": ["Napaka klienta urnika poročanja"],
       "Report schedule system error": ["Sistemska napaka urnika poročanja"],
       "Report schedule unexpected error": [
@@ -3973,7 +3977,6 @@
       "Schedule a new email report": ["Dodaj novo e-poštno poročilo na urnik"],
       "Schedule email report": ["Dodaj e-poštno poročilo na urnik"],
       "Schedule query": ["Urnik poizvedb"],
-      "Schedule settings": ["Nastavitve urnika"],
       "Schedule the query periodically": ["Periodično zaganjaj poizvedbo"],
       "Scheduled": ["V urniku"],
       "Scheduled at (UTC)": ["Izvede se ob (UTC)"],
@@ -4159,7 +4162,11 @@
       "Service Account": ["Servisni račun"],
       "Set auto-refresh interval": ["Nastavi interval samodejnega osveževanja"],
       "Set filter mapping": ["Nastavi shemo filtrov"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": ["Nastavite e-poštno poročilo"],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         "Nastavi hierarhične nivoje grafikona. Vsak nivo je\n\tpredstavljen z enim obročem, pri čemer je notranji krog na vrhu hierarhije."
       ],
@@ -4307,6 +4314,9 @@
       ],
       "Solid": ["Zapolnjen"],
       "Some roles do not exist": ["Nekatere vloge ne obstajajo"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": ["Nekaj je šlo narobe."],
       "Sorry there was an error fetching database information: %s": [
         "Pri pridobivanju informacij o podatkovni bazi je prišlo do napake: %s"
@@ -4821,8 +4831,8 @@
         "Radij posameznih točk (tistih, ki niso v gruči). Numerični stolpec ali `Auto` (skalira točke na osnovi največje gruče)"
       ],
       "The report has been created": ["Poročilo je bilo ustvarjeno"],
-      "The result of this query should be a numeric-esque value": [
-        "Rezultat te poizvedbe mora biti številska vrednost"
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
       ],
       "The results backend no longer has the data from the query.": [
         "Zaledni sistem rezultatov nima več podatkov iz poizvedbe."
@@ -5159,6 +5169,9 @@
       ],
       "This metric might be incompatible with current dataset": [
         "Ta mera je lahko nekompatibilna s trenutnim podatkovnim setom"
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
       ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         "V tem sklopu lahko nastavite način uporabe rezine\n              za ustvarjanje oznak."
@@ -5551,6 +5564,7 @@
       "Value Format": ["Oblika zapisa vrednosti"],
       "Value bounds": ["Meje vrednosti"],
       "Value cannot exceed %s": ["Vrednost ne sme presegati %s"],
+      "Value difference between the time periods": [""],
       "Value format": ["Oblika zapisa vrednosti"],
       "Value is required": ["Zahtevana je vrednost"],
       "Value must be greater than 0": ["Vrednost mora biti večja od 0"],
@@ -6127,7 +6141,6 @@
       "all": ["vsi"],
       "also copy (duplicate) charts": ["kopiraj (podvoji) tudi grafikone"],
       "ancestor": ["nadrejeni"],
-      "and": ["in"],
       "annotation": ["oznaka"],
       "annotation_layer": ["annotation_layer"],
       "asfreq": ["asfreq"],
@@ -6326,6 +6339,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "serije: Obravnavaj vsako podatkovno serijo neodvisno; skupno: Vse vrste uporabljajo enako skalo; razlika: Prikaži razlike glede na prvo točko vsake serije"
       ],
+      "sql": [""],
       "square": ["pravokotno"],
       "stack": ["nalaganje"],
       "staggered": ["cik-cak"],

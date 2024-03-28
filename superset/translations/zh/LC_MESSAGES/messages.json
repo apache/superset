@@ -133,7 +133,7 @@
         "应作为日期解析的列的逗号分隔列表。"
       ],
       "A database with the same name already exists.": ["已存在同名的数据库。"],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -225,7 +225,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": ["添加新的颜色"],
       "Add new formatter": ["新增格式化"],
-      "Add notification method": ["添加注释层"],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add sheet": ["添加sheet页"],
@@ -265,7 +264,6 @@
       "Aggregation function": ["聚合功能"],
       "Alert Triggered, In Grace Period": ["告警已触发，在宽限期内"],
       "Alert condition": ["告警条件"],
-      "Alert condition schedule": ["告警条件计划"],
       "Alert ended grace period.": ["告警已结束宽限期。"],
       "Alert failed": ["告警失败"],
       "Alert fired during grace period.": ["在宽限期内触发告警。"],
@@ -986,6 +984,7 @@
         ""
       ],
       "Customize columns": ["自定义列"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["D3 格式"],
       "D3 format": ["D3 格式"],
@@ -1029,6 +1028,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         "无法从结果后端检索数据。您需要重新运行原始查询。"
       ],
+      "Data for %s": [""],
       "Data preview": ["数据预览"],
       "Data type": ["数据类型"],
       "DataFrame include at least one series": [
@@ -1149,6 +1149,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -2123,6 +2127,9 @@
       "Normalize Across": ["标准化通过"],
       "Normalized": ["标准化"],
       "Not Time Series": ["美誉时间序列"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not null": ["非空"],
       "Not triggered": ["没有触发"],
       "Not up to date": ["不是最新的"],
@@ -2299,6 +2306,7 @@
       ],
       "Pattern": ["规则"],
       "Percent Change": ["百分比变化"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["百分比指标"],
       "Percentage threshold": ["百分比阈值"],
       "Percentages": ["百分比"],
@@ -2489,6 +2497,7 @@
       "Recommended tags": ["推荐标签"],
       "Record Count": ["记录数"],
       "Rectangle": ["长方形"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "点击表列表中的表时将重定向到此端点"
       ],
@@ -2547,7 +2556,6 @@
       "Report a bug": ["报告bug"],
       "Report failed": ["报告失败"],
       "Report name": ["报告名称"],
-      "Report schedule": ["报告时间表"],
       "Report schedule unexpected error": ["报告计划意外错误。"],
       "Report sending": ["报告发送"],
       "Report sent": ["已发送报告"],
@@ -2673,7 +2681,6 @@
       "Schedule": ["调度"],
       "Schedule email report": ["为图表配置电子邮件报告"],
       "Schedule query": ["分享查询"],
-      "Schedule settings": ["计划设置"],
       "Schedule the query periodically": ["定期调度查询"],
       "Scheduled": ["被调度"],
       "Scheduled at (UTC)": ["计划时间"],
@@ -2785,6 +2792,10 @@
       "Service Account": ["服务帐户"],
       "Set auto-refresh interval": ["设置自动刷新"],
       "Set filter mapping": ["设置过滤映射"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2902,6 +2913,9 @@
       "Smooth Line": [""],
       "Solid": [""],
       "Some roles do not exist": ["看板"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Sorry there was an error fetching database information: %s": [
         "抱歉，获取数据库信息时出错：%s"
       ],
@@ -3281,7 +3295,9 @@
         "单个点的半径（不在簇中的点）。一个数值列或“AUTO”，它根据最大的聚类来缩放点。"
       ],
       "The report has been created": ["数据集已保存"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "结果后端不再拥有来自查询的数据。"
       ],
@@ -3530,6 +3546,9 @@
         "此 markdown 组件有错误。请还原最近的更改。"
       ],
       "This may be triggered by:": ["这可能由以下因素触发："],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "本节包含允许对查询结果进行高级分析处理后的选项。"
       ],
@@ -3809,6 +3828,7 @@
       "Value Format": ["数值格式"],
       "Value bounds": ["值边界"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": ["数值格式"],
       "Value is required": ["需要名称"],
       "Value must be greater than 0": ["`行偏移量` 必须大于或等于0"],
@@ -4218,7 +4238,6 @@
       "alerts": ["警报"],
       "also copy (duplicate) charts": ["同时复制图表"],
       "ancestor": ["上一个"],
-      "and": ["和"],
       "annotation": ["注释"],
       "annotation_layer": ["注释层"],
       "asfreq": [""],
@@ -4351,6 +4370,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "series：独立处理每个序列；overall：所有序列使用相同的比例；change：显示与每个序列中第一个数据点相比的更改"
       ],
+      "sql": [""],
       "std": [""],
       "step-before": [""],
       "string type icon": [""],

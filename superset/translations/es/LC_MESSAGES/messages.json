@@ -117,7 +117,7 @@
       "A comma separated list of columns that should be parsed as dates.": [
         "Una lista separada por comas de columnas que deben ser parseadas como fechas."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -208,7 +208,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": ["Agregar método de notificación"],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add tag to entities": [""],
@@ -235,7 +234,6 @@
         "Alerta disparada, en periodo de gracia"
       ],
       "Alert condition": ["Probar Conexión"],
-      "Alert condition schedule": ["Probar Conexión"],
       "Alert ended grace period.": ["La alerta terminó el periodo de gracia."],
       "Alert failed": ["Alerta fallida"],
       "Alert fired during grace period.": [
@@ -244,6 +242,7 @@
       "Alert found an error while executing a query.": [
         "La alerta encontró un error al ejecutar una consulta."
       ],
+      "Alert is active": [""],
       "Alert name": ["Nombre de la alerta"],
       "Alert on grace period": ["Alerta durante el periodo de gracia"],
       "Alert query returned a non-number value.": [
@@ -918,6 +917,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         ""
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["Formato D3"],
       "D3 format": ["Formato D3"],
@@ -962,6 +962,7 @@
       "Data could not be deserialized from the results backend. The storage format might have changed, rendering the old data stake. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": ["Previsualización de Datos"],
       "Data type": ["Tipo de dato"],
       "DataFrame include at least one series": [
@@ -1081,6 +1082,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1916,6 +1921,9 @@
       "Normal": [""],
       "Normalize Across": [""],
       "Normalized": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not null": ["No nulo"],
       "Not up to date": [""],
       "Nothing triggered": ["Nada disparado"],
@@ -2064,6 +2072,7 @@
       "Paste content of service credentials JSON file here": [""],
       "Paste the shareable Google Sheet URL here": [""],
       "Percent of total": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage threshold": [""],
       "Performance": [""],
       "Period average": [""],
@@ -2227,6 +2236,7 @@
       "Recommended tags": [""],
       "Record Count": ["Número de Registros"],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Redirige a este punto al hacer clic en la tabla de la lista de tablas"
       ],
@@ -2290,7 +2300,6 @@
       ],
       "Report failed": ["Informe fallido"],
       "Report name": ["Nombre de informe"],
-      "Report schedule": ["Programar informe"],
       "Report schedule unexpected error": [
         "Error inesperado del informe programado"
       ],
@@ -2414,7 +2423,6 @@
       "Scatter Plot": [""],
       "Schedule": ["Programar"],
       "Schedule query": ["Guardar Consulta"],
-      "Schedule settings": ["Configuracion"],
       "Schedule the query periodically": [
         "Programar la consulta periódicamente"
       ],
@@ -2496,6 +2504,10 @@
         "Configurar intervalo de actualización automática"
       ],
       "Set filter mapping": ["Configurar mapeo de filtros"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2595,6 +2607,9 @@
         ""
       ],
       "Solid": [""],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [
         "Lo sentimos, hubo un error al obtener la información de la base de datos: %s"
@@ -2910,7 +2925,9 @@
       "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
         ""
       ],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3139,6 +3156,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -3385,6 +3405,7 @@
       "Value Domain": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Values are dependent on other filters": [""],
       "Values selected in other filters will affect the filter options to only show relevant values": [
         ""
@@ -3757,7 +3778,6 @@
         "copiar (duplicar) tambien los Gráficos"
       ],
       "ancestor": [""],
-      "and": ["y"],
       "annotation": ["anotación"],
       "annotation_layer": ["Capas de Anotación"],
       "asfreq": [""],
@@ -3877,6 +3897,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "std": [""],
       "step-before": [""],
       "string type icon": [""],

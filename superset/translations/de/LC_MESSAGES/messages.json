@@ -204,7 +204,7 @@
       "A database with the same name already exists.": [
         "Eine Datenbank mit dem gleichen Namen existiert bereits."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -343,7 +343,6 @@
       ],
       "Add new color formatter": ["Neuen Farbformatierer hinzufügen"],
       "Add new formatter": ["Neuen Formatierer hinzufügen"],
-      "Add notification method": ["Benachrichtigungsmethode hinzufügen"],
       "Add required control values to preview chart": [
         "Erforderliche Steuerelementwerte zur Diagramm-Vorschau hinzufügen"
       ],
@@ -402,7 +401,6 @@
       "Alert": ["Alarm"],
       "Alert Triggered, In Grace Period": ["Alarm ausgelöst, in Kulanzzeit"],
       "Alert condition": ["Alarmierungsbedingung"],
-      "Alert condition schedule": ["Alarmierung-Zeitplan"],
       "Alert ended grace period.": ["Alarm beendet Karenzzeit."],
       "Alert failed": ["Alarm fehlgeschlagen"],
       "Alert fired during grace period.": [
@@ -1461,6 +1459,7 @@
         ""
       ],
       "Customize columns": ["Spalten anpassen"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Zyklische Abhängigkeit erkannt"],
       "D3 Format": ["D3-Format"],
       "D3 format": ["D3 Format"],
@@ -1695,6 +1694,10 @@
         "Definieren Sie eine JavaScript-Funktion, die das in der Visualisierung verwendete Daten-Array empfängt und eine geänderte Version dieses Arrays zurückgibt. Dies kann verwendet werden, um Eigenschaften der Daten zu ändern, zu filtern oder das Array anzureichern."
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -3069,6 +3072,9 @@
       "Normalized": ["Normalisiert"],
       "Not Time Series": ["Keine Zeitreihen"],
       "Not added to any dashboard": ["Zu keinem Dashboard hinzugefügt"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": ["Nicht verfügbar"],
       "Not equal to (≠)": ["Ist nicht gleich (≠)"],
       "Not in": ["Nicht in"],
@@ -3324,6 +3330,7 @@
       "Percent Change": ["Prozentuale Veränderung"],
       "Percentage": ["Prozentsatz"],
       "Percentage change": ["Prozentuale Veränderung"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["Prozentuale Metriken"],
       "Percentage threshold": ["Prozentualer Schwellenwert"],
       "Percentages": ["Prozentwerte"],
@@ -3588,6 +3595,7 @@
       "Recommended tags": ["Empfohlene Tags"],
       "Record Count": ["Anzahl Datensätze"],
       "Rectangle": ["Rechteck"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Leitet zu diesem Endpunkt um, wenn Sie in der Tabellenliste auf die Tabelle klicken"
       ],
@@ -3668,7 +3676,6 @@
       "Report a bug": ["Fehler melden"],
       "Report failed": ["Report fehlgeschlagen"],
       "Report name": ["Name des Reports"],
-      "Report schedule": ["Report-Zeitplan"],
       "Report schedule client error": ["Clientfehler beim Berichts-Zeitplan"],
       "Report schedule system error": ["Systemfehler beim Berichts-Zeitplan"],
       "Report schedule unexpected error": [
@@ -3885,7 +3892,6 @@
       "Schedule a new email report": ["Planen eines neuen E-Mail-Berichts"],
       "Schedule email report": ["Planen von E-Mail-Reports"],
       "Schedule query": ["Abfrage einplanen"],
-      "Schedule settings": ["Zeitplan-Einstellungen"],
       "Schedule the query periodically": [
         "Abfrage in regelmäßigen Abständen einplanen"
       ],
@@ -4057,7 +4063,11 @@
       "Service Account": ["Dienstkonto"],
       "Set auto-refresh interval": ["Auto-Aktualisieren-Interval setzen"],
       "Set filter mapping": ["Festlegen der Filterzuordnung"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": ["E-Mail-Report einrichten"],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         "Legt die Hierarchieebenen des Diagramms fest. Jede Ebene ist\n        dargestellt durch einen Ring mit dem innersten Kreis als Spitze der Hierarchie."
       ],
@@ -4201,6 +4211,9 @@
       ],
       "Solid": ["Durchgezogen"],
       "Some roles do not exist": ["Einige Rollen sind nicht vorhanden"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": ["Etwas ist schief gelaufen."],
       "Sorry there was an error fetching database information: %s": [
         "Beim Abrufen von Datenbankinformationen ist leider ein Fehler aufgetreten: %s"
@@ -4715,7 +4728,9 @@
         "Der Radius einzelner Punkte (die sich nicht in einem Cluster befinden). Entweder eine numerische Spalte oder \"Auto\", die den Punkt basierend auf dem größten Cluster skaliert"
       ],
       "The report has been created": ["Der Report wurde erstellt"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "Das Ergebnis-Backend verfügt nicht mehr über die Daten aus der Abfrage."
       ],
@@ -5039,6 +5054,9 @@
       "This may be triggered by:": ["Dies kann ausgelöst werden durch:"],
       "This metric might be incompatible with current dataset": [
         "Diese Metrik ist möglicherweise nicht mit dem aktuellen Datensatz kompatibel."
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
       ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         "In diesem Abschnitt können Sie konfigurieren, wie die Zeitscheibe verwendet wird.\n               , um Anmerkungen zu generieren."
@@ -5404,6 +5422,7 @@
       "Value Format": ["Wertformat"],
       "Value bounds": ["Wertgrenzen"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": ["Wertformat"],
       "Value is required": ["Wert ist erforderlich"],
       "Value must be greater than 0": ["Der Wert muss größer als 0 sein"],
@@ -5984,7 +6003,6 @@
       "all": ["alle"],
       "also copy (duplicate) charts": ["auch (doppelte) Diagramme kopieren"],
       "ancestor": ["Vorfahr"],
-      "and": ["und"],
       "annotation": ["Anmerkungen"],
       "annotation_layer": ["Anmerkungsebene"],
       "asfreq": ["asfreq"],
@@ -6175,6 +6193,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "Serie: Behandeln Sie jede Serie unabhängig voneinander; insgesamt: Alle Zeitreihen verwenden den gleichen Maßstab; Änderung: Änderungen im Vergleich zum ersten Datenpunkt in jeder Datenreihe anzeigen"
       ],
+      "sql": [""],
       "square": ["Quadrat"],
       "stack": ["Stack"],
       "staggered": ["gestaffelt"],

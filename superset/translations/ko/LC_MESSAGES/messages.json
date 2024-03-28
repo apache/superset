@@ -56,6 +56,7 @@
       ],
       "%s operator(s)": [""],
       "%s option(s)": [""],
+      "%s recipients": [""],
       "%s saved metric(s)": [""],
       "%s updated": [""],
       "%s%s": [""],
@@ -132,7 +133,7 @@
       "A comma-separated list of schemas that files are allowed to upload to.": [
         ""
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -226,7 +227,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add tag to entities": [""],
@@ -260,11 +260,11 @@
       "Aggregation function": [""],
       "Alert Triggered, In Grace Period": [""],
       "Alert condition": [""],
-      "Alert condition schedule": [""],
       "Alert ended grace period.": [""],
       "Alert failed": ["테이블 명"],
       "Alert fired during grace period.": [""],
       "Alert found an error while executing a query.": [""],
+      "Alert is active": [""],
       "Alert name": ["테이블 명"],
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
@@ -670,6 +670,7 @@
       "Choose a dataset": ["데이터소스 선택"],
       "Choose a metric for right axis": [""],
       "Choose a number format": [""],
+      "Choose notification method and recipients.": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": ["주석 레이어"],
       "Choose the format for legend values": [""],
@@ -898,6 +899,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         ""
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["D3 포멧"],
       "D3 format": [""],
@@ -937,6 +939,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": ["데이터 미리보기"],
       "Data refreshed": [""],
       "Data type": ["차트 유형"],
@@ -1052,6 +1055,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1584,6 +1591,7 @@
       ],
       "Include Series": [""],
       "Include a description that will be sent with your report": [""],
+      "Include description to be sent with %s": [""],
       "Include series name as an axis": [""],
       "Index Column": [""],
       "Info": ["정보"],
@@ -1975,6 +1983,9 @@
       "Normalize Across": [""],
       "Normalized": [""],
       "Not Time Series": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": [""],
       "Not equal to (≠)": [""],
       "Not null": [""],
@@ -2142,6 +2153,7 @@
       "Paste the shareable Google Sheet URL here": [""],
       "Pattern": [""],
       "Percent of total": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage threshold": [""],
       "Percentages": [""],
       "Performance": [""],
@@ -2305,6 +2317,7 @@
       "Recommended tags": [""],
       "Record Count": ["레코드 수"],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
@@ -2351,7 +2364,6 @@
       "Report Schedule state not found": [""],
       "Report failed": [""],
       "Report name": ["차트 유형"],
-      "Report schedule": [""],
       "Report schedule client error": [""],
       "Report schedule system error": [""],
       "Report schedule unexpected error": [""],
@@ -2492,7 +2504,6 @@
       ],
       "Schedule": [""],
       "Schedule query": ["Query 공유"],
-      "Schedule settings": ["Query 공유"],
       "Schedule the query periodically": [""],
       "Scheduled": [""],
       "Scheduled at (UTC)": [""],
@@ -2592,6 +2603,10 @@
       "Service Account": [""],
       "Set auto-refresh interval": ["새로고침 간격"],
       "Set filter mapping": [""],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2696,6 +2711,9 @@
       ],
       "Solid": [""],
       "Some roles do not exist": ["몇몇 역할이 존재하지 않습니다"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [""],
       "Sorry there was an error fetching saved charts: ": [""],
@@ -3036,7 +3054,9 @@
         ""
       ],
       "The report has been created": [""],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3239,6 +3259,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -3472,6 +3495,7 @@
       "Value Format": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": [""],
       "Value must be greater than 0": ["값은 0보다 커야합니다"],
       "Values are dependent on other filters": [""],
@@ -3866,7 +3890,6 @@
       "all": [""],
       "also copy (duplicate) charts": [""],
       "ancestor": [""],
-      "and": [""],
       "annotation": ["주석"],
       "annotation_layer": ["주석 레이어"],
       "asfreq": [""],
@@ -3999,6 +4022,7 @@
       "reboot": [""],
       "recent": [""],
       "recents": [""],
+      "recipients": [""],
       "report": [""],
       "reports": [""],
       "restore zoom": [""],
@@ -4007,6 +4031,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "stack": [""],
       "staggered": [""],
       "std": [""],
@@ -4034,6 +4059,7 @@
       "week": ["주"],
       "week ending Saturday": [""],
       "week starting Sunday": [""],
+      "working timeout": [""],
       "x": [""],
       "x: values are normalized within each column": [""],
       "y": [""],

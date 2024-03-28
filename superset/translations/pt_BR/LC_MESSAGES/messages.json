@@ -158,7 +158,7 @@
       "A database with the same name already exists.": [
         "Já existe um banco de dados com o mesmo nome."
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -286,7 +286,6 @@
       "Add metric": ["Adicionar métrica"],
       "Add new color formatter": ["Adicionar novo formatador de cores"],
       "Add new formatter": ["Adicionar novo formatador"],
-      "Add notification method": ["Adicionar método de notificação"],
       "Add required control values to preview chart": [
         "Adicionar controle de valores obrigatórios para visualizar o gráfico"
       ],
@@ -347,7 +346,6 @@
         "Alerta Acionado, em período de carência"
       ],
       "Alert condition": ["Condição de alerta"],
-      "Alert condition schedule": ["Programação do estado de alerta"],
       "Alert ended grace period.": ["O alerta terminou o período de carência."],
       "Alert failed": ["Falha no alerta"],
       "Alert fired during grace period.": [
@@ -1360,6 +1358,7 @@
         ""
       ],
       "Customize columns": ["Personalizar colunas"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Detectada dependência cíclica"],
       "D3 Format": ["Formato D3"],
       "D3 format": ["Formato D3"],
@@ -1596,6 +1595,10 @@
         "Defina uma função javascript que receba a matriz de dados utilizada na visualização e que deva devolver uma versão modificada dessa matriz. Esta pode ser utilizada para alterar as propriedades dos dados, filtrar ou enriquecer a matriz."
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -2917,6 +2920,9 @@
       "Normalized": ["Normalizado"],
       "Not Time Series": ["Não é uma série temporal"],
       "Not added to any dashboard": ["Não adicionado a nenhum painel"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": ["Não disponível"],
       "Not equal to (≠)": ["Diferente de (≠)"],
       "Not in": ["Não está em"],
@@ -3152,6 +3158,7 @@
       "Percent Change": ["Variação percentual"],
       "Percentage": ["Porcentagem"],
       "Percentage change": ["Variação percentual"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["Métricas de porcentagem"],
       "Percentage threshold": ["Limiar da Porcentagem"],
       "Percentages": ["Porcentagens"],
@@ -3407,6 +3414,7 @@
       "Recommended tags": ["Etiquetas recomendadas"],
       "Record Count": ["Contagem de registos"],
       "Rectangle": ["Retângulo"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Redireciona para este endpoint quando se clica na tabela a partir da lista de tabelas"
       ],
@@ -3489,7 +3497,6 @@
       "Report a bug": ["Relatar um bug"],
       "Report failed": ["Relatório falhou"],
       "Report name": ["Nome do relatório"],
-      "Report schedule": ["Agendamento do relatório"],
       "Report schedule client error": [
         "Relatar erro do cliente de programação"
       ],
@@ -3700,7 +3707,6 @@
       "Schedule a new email report": ["Agendar um novo relatório de e-mail"],
       "Schedule email report": ["Agendar relatório por e-mail"],
       "Schedule query": ["Consulta de agendamento"],
-      "Schedule settings": ["Configurações de agendamento"],
       "Schedule the query periodically": ["Agendar a consulta periodicamente"],
       "Scheduled": ["Agendado"],
       "Scheduled at (UTC)": ["Programado em (UTC)"],
@@ -3867,7 +3873,11 @@
         "Definir intervalo da atualização automática"
       ],
       "Set filter mapping": ["Definir o mapeamento de filtros"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": ["Configurar um relatório de e-mail"],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         "Define os níveis hierárquicos do gráfico. Cada nível é\n representado por um anel, sendo o círculo mais interno o topo da hierarquia."
       ],
@@ -4010,6 +4020,9 @@
       ],
       "Solid": ["Sólido"],
       "Some roles do not exist": ["Algumas funções não existem"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": ["Algo não correu bem."],
       "Sorry there was an error fetching database information: %s": [
         "Lamentamos, mas ocorreu um erro ao obter as informações do banco de dados: %s"
@@ -4492,7 +4505,9 @@
         "O raio de pontos individuais (aqueles que não estão em um cluster). Uma coluna numérica ou `Auto`, que dimensiona o ponto com base no maior cluster"
       ],
       "The report has been created": ["O relatório foi criado"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "O backend de resultados não tem mais os dados da consulta."
       ],
@@ -4806,6 +4821,9 @@
       "This may be triggered by:": ["Isso pode ser provocado por:"],
       "This metric might be incompatible with current dataset": [
         "Essa métrica pode ser incompatível com o conjunto de dados atual"
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
       ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         "Esta seção permite configurar como usar o slice\n para gerar anotações."
@@ -5175,6 +5193,7 @@
       "Value Format": ["Formato do valor"],
       "Value bounds": ["Limites de valor"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": ["Formato do valor"],
       "Value is required": ["O valor é necessário"],
       "Value must be greater than 0": ["O valor deve ser maior que 0"],
@@ -5740,7 +5759,6 @@
       "all": ["todos"],
       "also copy (duplicate) charts": ["também copiar (duplicar) gráficos"],
       "ancestor": ["ancestral"],
-      "and": ["e"],
       "annotation": ["anotação"],
       "annotation_layer": ["camada de anotação"],
       "asfreq": ["asfreq"],
@@ -5932,6 +5950,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         "séries: Tratar cada série de forma independente; geral: Todas as séries usam a mesma escala; alteração: Mostrar alterações em comparação com o primeiro ponto de dados em cada série"
       ],
+      "sql": [""],
       "square": ["quadrado"],
       "stack": ["pilha"],
       "staggered": ["escalonado"],

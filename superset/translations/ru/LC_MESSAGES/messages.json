@@ -191,7 +191,7 @@
       "A database with the same name already exists.": [
         "База данных с таким же именем уже существует"
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -327,7 +327,6 @@
       ],
       "Add new color formatter": ["Добавить цветовое форматирование"],
       "Add new formatter": ["Добавить форматирование"],
-      "Add notification method": ["Добавить способ уведомления"],
       "Add required control values to preview chart": [
         "Добавьте обязательные значения для предпросмотра графика"
       ],
@@ -383,7 +382,6 @@
         "Оповещение сработало во время перерыва"
       ],
       "Alert condition": ["Условие оповещения"],
-      "Alert condition schedule": ["Расписание условия оповещения"],
       "Alert ended grace period.": ["У оповещения закончился перерыв."],
       "Alert failed": ["Оповещение не сработало"],
       "Alert fired during grace period.": [
@@ -1372,6 +1370,7 @@
         ""
       ],
       "Customize columns": ["Настроить столбцы"],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": ["Обнаружена циклическая зависимость"],
       "D3 Format": ["Формат даты/времени"],
       "D3 format": ["Формат даты/времени"],
@@ -1572,6 +1571,10 @@
         "Определите функцию javascript, которая получает массив данных, используемый в визуализации, и, как ожидается, вернет измененную версию этого массива. Это может быть использовано для изменения свойств данных, фильтрации или расширения массива."
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -2840,6 +2843,9 @@
       "Normalized": ["Нормализовать"],
       "Not Time Series": ["Не временные ряды"],
       "Not added to any dashboard": ["Не добавлен ни в один дашборд"],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": ["Не доступно"],
       "Not equal to (≠)": ["Не равно (≠)"],
       "Not null": ["Не пусто"],
@@ -3059,6 +3065,7 @@
       "Percent Change": ["Процентное изменение"],
       "Percentage": ["Процентная доля"],
       "Percentage change": ["Процентное изменение"],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": ["Процентные меры"],
       "Percentage threshold": ["Процентный порог"],
       "Percentages": ["Проценты"],
@@ -3281,6 +3288,7 @@
       "Recommended tags": ["Рекомендованные теги"],
       "Record Count": ["Кол-во записей"],
       "Rectangle": ["Прямоугольник"],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
@@ -3354,7 +3362,6 @@
       "Report a bug": ["Сообщить об ошибке"],
       "Report failed": ["Рассылка не удалась"],
       "Report name": ["Имя отчета"],
-      "Report schedule": ["Расписание отчета"],
       "Report schedule client error": [
         "Возникла ошибка расписания отчета на стороне клиента"
       ],
@@ -3551,7 +3558,6 @@
       "Schedule a new email report": ["Запланировать новую рассылку по почте"],
       "Schedule email report": ["Запланировать рассылку по почте"],
       "Schedule query": ["Сохранить запрос"],
-      "Schedule settings": ["Настройки расписания"],
       "Schedule the query periodically": [
         "Запланировать периодическое выполнение запроса"
       ],
@@ -3699,7 +3705,11 @@
       "Service Account": ["Сервисный аккаунт"],
       "Set auto-refresh interval": ["Задать интервал обновления"],
       "Set filter mapping": ["Установить действие фильтра"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": ["Запланировать рассылку по почте"],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -3835,6 +3845,9 @@
       ],
       "Solid": ["Сплошной"],
       "Some roles do not exist": ["Некоторые роли не существуют"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [
         "К сожалению, произошла ошибка при получении информации о базе данных: %s"
@@ -4291,7 +4304,9 @@
         "Радиус маркеров (не находящихся в кластере). Выберите числовой столбец или `Автоматически`, который отмасштабирует маркеры по наибольшему маркеру."
       ],
       "The report has been created": ["Рассылка создана"],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [
         "Сервер не сохранил данные из этого запроса."
       ],
@@ -4600,6 +4615,9 @@
       "This may be triggered by:": ["Возможные причины:"],
       "This metric might be incompatible with current dataset": [
         "Эта мера может быть несовместима с этим датасетом"
+      ],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
       ],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "В этом разделе содержатся параметры, которые позволяют производить аналитическую постобработку результатов запроса"
@@ -4927,6 +4945,7 @@
       "Value Format": ["Формат значения"],
       "Value bounds": ["Ограничения для значения"],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": ["Формат значения"],
       "Value is required": ["Значение обязательно"],
       "Value must be greater than 0": ["Значение должно быть больше 0"],
@@ -5442,7 +5461,6 @@
         "также копировать (дублировать) графики"
       ],
       "ancestor": ["предок"],
-      "and": ["и"],
       "annotation": ["аннотация"],
       "annotation_layer": ["слой_аннотации"],
       "asfreq": ["asfreq (без изменения)"],
@@ -5616,6 +5634,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "std": ["Стандартное отклонение"],
       "step-after": [""],
       "step-before": [""],

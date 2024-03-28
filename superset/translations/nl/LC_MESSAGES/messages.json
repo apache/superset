@@ -133,7 +133,7 @@
         "Een door komma’s gescheiden lijst van kolommen die als datums moeten worden geparseerd."
       ],
       "A database with the same name already exists.": [""],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -242,7 +242,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": ["Meldingsmethode toevoegen"],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add sheet": [""],
@@ -284,7 +283,6 @@
         "Waarschuwing geactiveerd, in grace periode"
       ],
       "Alert condition": ["Naam waarschuwingsconditie"],
-      "Alert condition schedule": ["Waarschuwing conditie planning"],
       "Alert ended grace period.": ["Waarschuwing beëindigd grace period."],
       "Alert failed": ["Waarschuwing mislukt"],
       "Alert fired during grace period.": [
@@ -293,6 +291,7 @@
       "Alert found an error while executing a query.": [
         "Alert heeft een fout gevonden tijdens het uitvoeren van een query."
       ],
+      "Alert is active": [""],
       "Alert name": ["Naam van de waarschuwing"],
       "Alert on grace period": ["Waarschuwing tijdens grace period"],
       "Alert query returned a non-number value.": [
@@ -979,6 +978,7 @@
       ],
       "Comparison": [""],
       "Comparison Period Lag": [""],
+      "Comparison font size": [""],
       "Comparison suffix": [""],
       "Compose multiple layers together to form complex visuals.": [""],
       "Compute the contribution to the total": [
@@ -1019,6 +1019,7 @@
         "Verbinding mislukt, controleer uw verbindingsinstellingen"
       ],
       "Connection looks good!": [""],
+      "Content type": [""],
       "Continue": [""],
       "Continuous": [""],
       "Contours": [""],
@@ -1109,6 +1110,7 @@
         ""
       ],
       "Customize columns": [""],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["D3 Formaat"],
       "D3 format": ["D3 formaat"],
@@ -1160,6 +1162,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": ["Data preview"],
       "Data refreshed": [""],
       "Data type": ["Data type"],
@@ -1303,6 +1306,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -2372,6 +2379,9 @@
       "Normalize Across": [""],
       "Normalized": [""],
       "Not Time Series": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": [""],
       "Not null": ["Not null"],
       "Not triggered": [""],
@@ -2565,6 +2575,7 @@
       "Percent of total": [""],
       "Percentage": [""],
       "Percentage change": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage metrics": [""],
       "Percentage threshold": [""],
       "Percentages": [""],
@@ -2770,6 +2781,7 @@
       "Recommended tags": [""],
       "Record Count": ["Record Aantal"],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
@@ -2845,7 +2857,6 @@
       "Report a bug": [""],
       "Report failed": ["Rapport mislukt"],
       "Report name": ["Naam rapport"],
-      "Report schedule": ["Rapportageplanning"],
       "Report schedule unexpected error": ["Onverwachte fout in rapportschema"],
       "Report sending": ["Rapport verzenden"],
       "Report sent": ["Rapport verzonden"],
@@ -2994,7 +3005,6 @@
       "Schedule": ["Planning"],
       "Schedule email report": [""],
       "Schedule query": ["Query planning"],
-      "Schedule settings": ["Planning instellingen"],
       "Schedule the query periodically": ["Plan de zoekopdracht periodiek"],
       "Scheduled": ["Gepland"],
       "Scheduled at (UTC)": ["Gepland om (UTC)"],
@@ -3108,7 +3118,11 @@
       "Service Account": [""],
       "Set auto-refresh interval": ["Stel auto-refresh in"],
       "Set filter mapping": ["Filter toewijzing instellen"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": [""],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -3228,6 +3242,9 @@
       ],
       "Solid": [""],
       "Some roles do not exist": ["Sommige rollen bestaan niet"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Sorry there was an error fetching database information: %s": [
         "Sorry er is een fout opgetreden bij het ophalen van database informatie: %s"
       ],
@@ -3639,7 +3656,9 @@
         ""
       ],
       "The report has been created": [""],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3903,6 +3922,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section contains options that allow for advanced analytical post processing of query results": [
         "Dit onderdeel bevat opties die geavanceerde analytische nabewerking van queryresultaten mogelijk maken"
       ],
@@ -4193,6 +4215,7 @@
       "Value and Percentage": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value format": [""],
       "Value is required": [""],
       "Value must be greater than 0": ["Waarde moet groter zijn dan 0"],
@@ -4622,7 +4645,6 @@
       "alerts": ["waarschuwingen"],
       "also copy (duplicate) charts": ["kopieer ook (duplicate) grafieken"],
       "ancestor": [""],
-      "and": ["en"],
       "annotation": ["aantekening"],
       "annotation_layer": ["annotation_layer"],
       "asfreq": [""],
@@ -4648,8 +4670,10 @@
       "code International Olympic Committee (cioc)": [""],
       "column": ["kolom"],
       "connecting to %(dbModelName)s.": [""],
+      "content type": [""],
       "count": [""],
       "create dataset from SQL query": [""],
+      "crontab": [""],
       "css": ["css"],
       "css_template": ["css_template"],
       "cumsum": [""],
@@ -4768,6 +4792,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "stack": [""],
       "std": [""],
       "step-before": [""],

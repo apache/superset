@@ -55,6 +55,7 @@
       ],
       "%s operator(s)": ["Selecione operador"],
       "%s option(s)": ["Opções"],
+      "%s recipients": [""],
       "%s saved metric(s)": [""],
       "%s%s": [""],
       "%s-%s of %s": [""],
@@ -127,7 +128,7 @@
       "A comma-separated list of schemas that files are allowed to upload to.": [
         ""
       ],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -215,7 +216,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": ["Metadados adicionais"],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add tag to entities": [""],
@@ -243,6 +243,7 @@
       "Alert ended grace period.": [""],
       "Alert fired during grace period.": [""],
       "Alert found an error while executing a query.": [""],
+      "Alert is active": [""],
       "Alert on grace period": [""],
       "Alert query returned a non-number value.": [""],
       "Alert query returned more than one column.": [""],
@@ -890,6 +891,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         ""
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": ["Formato D3"],
       "D3 format syntax: https://github.com/d3/d3-format": [""],
@@ -932,6 +934,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": ["Pré-visualização de dados"],
       "DataFrame include at least one series": [
         "Selecione pelo menos uma métrica"
@@ -1029,6 +1032,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1522,6 +1529,7 @@
       ],
       "Include Series": [""],
       "Include a description that will be sent with your report": [""],
+      "Include description to be sent with %s": [""],
       "Include series name as an axis": [""],
       "Index": [""],
       "Index Column": ["Adicionar Coluna"],
@@ -1888,6 +1896,9 @@
       "Normalize Across": [""],
       "Normalized": [""],
       "Not Time Series": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": [""],
       "Not equal to (≠)": [""],
       "Not null": [""],
@@ -2051,6 +2062,7 @@
       "Percent of total": [""],
       "Percentage": [""],
       "Percentage change": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage threshold": [""],
       "Percentages": [""],
       "Performance": [""],
@@ -2216,6 +2228,7 @@
       "Recommended tags": [""],
       "Record Count": ["Número de Registos"],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         "Redireciona para este endpoint ao clicar na tabela da respetiva lista"
       ],
@@ -2385,7 +2398,6 @@
       "Schedule": [""],
       "Schedule a new email report": [""],
       "Schedule email report": [""],
-      "Schedule settings": [""],
       "Schedule the query periodically": [""],
       "Scheduled": [""],
       "Scheduled at (UTC)": [""],
@@ -2480,7 +2492,11 @@
       "Service Account": [""],
       "Set auto-refresh interval": ["Intervalo de atualização"],
       "Set filter mapping": [""],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
       "Set up an email report": [""],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2584,6 +2600,9 @@
         ""
       ],
       "Solid": [""],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [
         "Desculpe, houve um erro ao gravar este dashbard: "
@@ -2931,7 +2950,9 @@
       "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
         ""
       ],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3133,6 +3154,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -3372,6 +3396,7 @@
       "Value Domain": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Values are dependent on other filters": [""],
       "Values dependent on": [""],
       "Values selected in other filters will affect the filter options to only show relevant values": [
@@ -3752,7 +3777,6 @@
       "all": [""],
       "also copy (duplicate) charts": [""],
       "ancestor": [""],
-      "and": [""],
       "annotation": ["Anotações"],
       "annotation_layer": ["Camadas de anotação"],
       "asfreq": [""],
@@ -3886,6 +3910,7 @@
       "reboot": [""],
       "recent": [""],
       "recents": [""],
+      "recipients": [""],
       "report": ["Janela de exibição"],
       "reports": ["Janela de exibição"],
       "restore zoom": [""],
@@ -3893,6 +3918,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "square": [""],
       "stack": [""],
       "staggered": [""],
@@ -3916,6 +3942,7 @@
       "week": ["semana"],
       "week ending Saturday": [""],
       "week starting Sunday": [""],
+      "working timeout": [""],
       "x": [""],
       "x: values are normalized within each column": [""],
       "y": [""],

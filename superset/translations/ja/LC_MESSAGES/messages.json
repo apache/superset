@@ -126,7 +126,7 @@
         ""
       ],
       "A database with the same name already exists.": [""],
-      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"integer\"}": [
+      "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types.": [
         ""
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
@@ -205,6 +205,7 @@
       "Add an item": ["アイテムを追加"],
       "Add annotation": ["注釈を追加"],
       "Add annotation layer": ["注釈レイヤーを追加"],
+      "Add another notification method": [""],
       "Add calculated columns to dataset in \"Edit datasource\" modal": [""],
       "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
         ""
@@ -224,7 +225,6 @@
       "Add metrics to dataset in \"Edit datasource\" modal": [""],
       "Add new color formatter": [""],
       "Add new formatter": [""],
-      "Add notification method": [""],
       "Add required control values to preview chart": [""],
       "Add required control values to save chart": [""],
       "Add tag to entities": [""],
@@ -258,7 +258,6 @@
       "Aggregation function": [""],
       "Alert Triggered, In Grace Period": ["アラート発動、猶予期間中"],
       "Alert condition": ["アラート状態"],
-      "Alert condition schedule": ["アラート状態スケジュール"],
       "Alert ended grace period.": ["アラートは猶予期間を終了しました。"],
       "Alert failed": ["アラートに失敗しました"],
       "Alert fired during grace period.": [
@@ -267,6 +266,7 @@
       "Alert found an error while executing a query.": [
         "クエリの実行中にアラートがエラーを検出しました。"
       ],
+      "Alert is active": [""],
       "Alert name": ["アラート名"],
       "Alert on grace period": ["猶予期間に関するアラート"],
       "Alert query returned a non-number value.": [
@@ -683,6 +683,7 @@
       ],
       "Choose a dataset": ["データセットを選択"],
       "Choose a metric for right axis": ["右軸の指標を選択"],
+      "Choose notification method and recipients.": [""],
       "Choose one of the available databases from the panel on the left.": [""],
       "Choose the annotation layer type": [
         "注釈レイヤーのタイプを選んでください"
@@ -807,6 +808,7 @@
       ],
       "Comparison": [""],
       "Comparison Period Lag": [""],
+      "Comparison font size": [""],
       "Comparison suffix": [""],
       "Compose multiple layers together to form complex visuals.": [""],
       "Compute the contribution to the total": ["全体への寄与度を算出"],
@@ -900,6 +902,7 @@
       "Customize chart metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol from dropdown or type your own.": [
         ""
       ],
+      "Customize data source, filters, and layout.": [""],
       "Cyclic dependency detected": [""],
       "D3 Format": [""],
       "D3 format": [""],
@@ -946,6 +949,7 @@
       "Data could not be retrieved from the results backend. You need to re-run the original query.": [
         ""
       ],
+      "Data for %s": [""],
       "Data preview": ["データプレビュー"],
       "Data type": [""],
       "DataFrame include at least one series": [
@@ -1067,6 +1071,10 @@
         ""
       ],
       "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
+        ""
+      ],
+      "Define delivery schedule, timezone, and frequency settings.": [""],
+      "Define the database, SQL query, and triggering conditions for alert.": [
         ""
       ],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
@@ -1942,6 +1950,9 @@
       "Normal": [""],
       "Normalize Across": [""],
       "Normalized": [""],
+      "Not all required fields are complete. Please provide the following:": [
+        ""
+      ],
       "Not available": [""],
       "Not equal to (≠)": [""],
       "Not null": [""],
@@ -2093,6 +2104,7 @@
       "Paste content of service credentials JSON file here": [""],
       "Paste the shareable Google Sheet URL here": [""],
       "Percent of total": [""],
+      "Percentage difference between the time periods": [""],
       "Percentage threshold": [""],
       "Performance": [""],
       "Period average": [""],
@@ -2251,6 +2263,7 @@
       "Recommended tags": [""],
       "Record Count": ["レコード数"],
       "Rectangle": [""],
+      "Recurring (every)": [""],
       "Redirects to this endpoint when clicking on the table from the table list": [
         ""
       ],
@@ -2318,7 +2331,6 @@
       ],
       "Report failed": ["レポートに失敗しました"],
       "Report name": ["レポート名"],
-      "Report schedule": ["レポートスケジュール"],
       "Report schedule unexpected error": [
         "レポートスケジュールの予期せぬエラー"
       ],
@@ -2458,7 +2470,6 @@
       ],
       "Schedule": [""],
       "Schedule query": [""],
-      "Schedule settings": ["スケジュール設定"],
       "Schedule the query periodically": [""],
       "Scheduled": [""],
       "Scheduled at (UTC)": ["スケジュール設定時刻 (UTC)"],
@@ -2554,6 +2565,10 @@
       "Service Account": [""],
       "Set auto-refresh interval": ["自動更新間隔を設定"],
       "Set filter mapping": ["フィルタマッピングを設定"],
+      "Set the time range that will be used for the comparison metrics. For example, \"Year\" will compare to the same dates one year earlier. Use \"Inherit range from time filters\" to shift the comparison time rangeby the same length as your time range and use \"Custom\" to set a custom comparison range.": [
+        ""
+      ],
+      "Set up basic details, such as name and description.": [""],
       "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
         ""
       ],
@@ -2659,6 +2674,9 @@
       ],
       "Solid": [""],
       "Some roles do not exist": ["一部のロールが存在しません"],
+      "Something went wrong with embedded authentication. Check the dev console for details.": [
+        ""
+      ],
       "Something went wrong.": [""],
       "Sorry there was an error fetching database information: %s": [""],
       "Sorry there was an error fetching saved charts: ": [
@@ -2983,7 +3001,9 @@
       "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
         ""
       ],
-      "The result of this query should be a numeric-esque value": [""],
+      "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function).": [
+        ""
+      ],
       "The results backend no longer has the data from the query.": [""],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
         ""
@@ -3207,6 +3227,9 @@
         ""
       ],
       "This metric might be incompatible with current dataset": [""],
+      "This page is intended to be embedded in an iframe, but it looks like that is not the case.": [
+        ""
+      ],
       "This section allows you to configure how to use the slice\n              to generate annotations.": [
         ""
       ],
@@ -3439,6 +3462,7 @@
       "Value Domain": [""],
       "Value bounds": [""],
       "Value cannot exceed %s": [""],
+      "Value difference between the time periods": [""],
       "Value must be greater than 0": ["値は 0 より大きくする必要があります"],
       "Values are dependent on other filters": [""],
       "Values selected in other filters will affect the filter options to only show relevant values": [
@@ -3811,7 +3835,6 @@
       "all": [""],
       "also copy (duplicate) charts": ["チャートも複製する"],
       "ancestor": [""],
-      "and": [""],
       "annotation": ["注釈"],
       "annotation_layer": [""],
       "asfreq": [""],
@@ -3942,6 +3965,7 @@
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
       ],
+      "sql": [""],
       "stack": [""],
       "std": [""],
       "step-before": [""],
