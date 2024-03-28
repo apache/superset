@@ -60,6 +60,17 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name
 ) -> Iterator[uuid.UUID]:
     """
     KV global lock for refreshing tokens.
+
+    This context manager acquires a distributed lock for a given namespace, with
+    optional parameters (eg, namespace="cache", user_id=1). It yields a UUID for the
+    lock that can be used within the context, and corresponds to the key in the KV
+    store.
+
+    :param namespace: The namespace for which the lock is to be acquired.
+    :type namespace: str
+    :param kwargs: Additional keyword arguments.
+    :yields: A unique identifier (UUID) for the acquired lock (the KV key).
+    :raises CreateKeyValueDistributedLockFailedException: If the lock is taken.
     """
     # pylint: disable=import-outside-toplevel
     from superset.commands.key_value.create import CreateKeyValueCommand
