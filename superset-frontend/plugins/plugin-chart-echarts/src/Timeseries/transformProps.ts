@@ -220,6 +220,7 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupby?.length || metrics?.length > 1;
+  const { timeseriesLimitMetric = '' } = formData;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -236,6 +237,7 @@ export default function transformProps(
       xAxisSortSeriesAscending: isMultiSeries
         ? xAxisSortSeriesAscending
         : undefined,
+      timeseriesLimitMetric,
     },
   );
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
