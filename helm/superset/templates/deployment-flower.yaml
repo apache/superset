@@ -61,6 +61,16 @@ spec:
         {{- end }}
       {{- if .Values.supersetCeleryFlower.initContainers }}
       initContainers: {{-  tpl (toYaml .Values.supersetCeleryFlower.initContainers) . | nindent 6 }}
+      {{- if or (.Values.extraEnvRaw) (.Values.extraEnv) }}
+        env:
+          {{- range $key, $value := .Values.extraEnv }}
+          - name: {{ $key | quote}}
+            value: {{ $value | quote }}
+          {{- end }}
+          {{- if .Values.extraEnvRaw }}
+          {{- toYaml .Values.extraEnvRaw | nindent 10 }}
+          {{- end }}
+      {{- end }}
       {{- end }}
       {{- with .Values.hostAliases }}
       hostAliases: {{- toYaml . | nindent 6 }}
