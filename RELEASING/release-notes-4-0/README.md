@@ -59,6 +59,12 @@ When a component was being dragged towards the edge of the tab container or the 
     <img src="media/dashboard-dnd-2.png" alt="Image" width="100%">
 </div>
 
+### Improved drag and drop experience when editing a chart
+
+Now, during dragging, all droppable zones are highlighted, with distinct colors indicating available and unavailable drop locations. This enhancement clarifies potential drop points and helps avoid inadvertent placements in invalid areas. The update also aligns the drag-over feedback with the dashboard's drag-and-drop modifications, ensuring a uniform and enhanced user experience.
+
+![Drag and drop](media/explore-dnd.png)
+
 ### Dropping support for 3.0.X versions
 
 In accordance with our [release process](https://github.com/apache/superset/wiki/Release-Process), we are dropping support for the 3.0.X versions. As a result, we will no longer be providing bug fixes for these versions. We strongly recommend that all users upgrade to the latest version to take advantage of the newest features and bug fixes. Moving forward, the supported versions will be 3.1.X and 4.0.X. Bug fixes will continue to be backported to 3.1.X until the next minor release. For more information, please refer to our [release schedule](https://github.com/apache/superset/wiki/Release-Process#schedule).
