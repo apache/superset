@@ -60,7 +60,7 @@ filelock==3.12.2
     # via
     #   tox
     #   virtualenv
-flask-cors==3.0.10
+flask-cors==4.0.0
     # via apache-superset
 flask-testing==0.8.1
     # via -r requirements/development.in
@@ -69,9 +69,7 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via
-    #   pyhive
-    #   sqlalchemy-bigquery
+    # via pyhive
 gevent==24.2.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
@@ -206,6 +204,10 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pure-sasl==0.6.2
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -214,7 +216,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/development.in
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -256,7 +258,12 @@ statsd==4.0.1
 tableschema==1.20.10
     # via apache-superset
 thrift==0.16.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pyhive
+    #   thrift-sasl
+thrift-sasl==0.4.3
+    # via pyhive
 tomli==2.0.1
     # via
     #   build
