@@ -50,10 +50,12 @@ import {
   mapOptions,
   getOption,
   isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
+  RawValue,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
@@ -220,7 +222,16 @@ const AsyncSelect = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -234,8 +245,8 @@ const AsyncSelect = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
