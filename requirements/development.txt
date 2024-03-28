@@ -69,8 +69,10 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via pyhive
-gevent==23.9.1
+    # via
+    #   pyhive
+    #   sqlalchemy-bigquery
+gevent==24.2.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
     # via
