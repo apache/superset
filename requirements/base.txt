@@ -147,7 +147,9 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -321,7 +323,7 @@ shillelagh[gsheetsapi]==1.2.10
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
-simplejson==3.17.3
+simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via
