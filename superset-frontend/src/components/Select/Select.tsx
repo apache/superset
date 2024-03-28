@@ -53,7 +53,7 @@ import {
   hasCustomLabels,
   getOption,
   isObject,
-  equalValues,
+  isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -229,9 +229,10 @@ const Select = forwardRef(
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
         // on select is fired in single value mode if the same value is selected
-        const valueChanged = !equalValues(
+        const valueChanged = !utilsIsEqual(
           selectedItem,
           selectValue as RawValue | AntdLabeledValue,
+          'value',
         );
         setSelectValue(selectedItem);
         if (valueChanged) {

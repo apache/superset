@@ -49,9 +49,9 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
-export function equalValues(a: V | LabeledValue, b: V | LabeledValue) {
-  const actualA = isObject(a) && 'value' in a ? a.value : a;
-  const actualB = isObject(b) && 'value' in b ? b.value : b;
+export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
+  const actualA = isObject(a) && key in a ? a[key] : a;
+  const actualB = isObject(b) && key in b ? b[key] : b;
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
@@ -66,8 +66,7 @@ export function getOption(
   const optionsArray = ensureIsArray(options);
   return optionsArray.find(
     x =>
-      equalValues(x, value) ||
-      (checkLabel && isObject(x) && 'label' in x && x.label === value),
+      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
   );
 }
 
