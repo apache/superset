@@ -264,7 +264,6 @@ export function extractSeries(
     sortSeriesAscending?: boolean;
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
-    timeseriesLimitMetric?: any;
   } = {},
 ): [SeriesOption[], number[], number | undefined] {
   const {
@@ -279,7 +278,6 @@ export function extractSeries(
     sortSeriesAscending,
     xAxisSortSeries,
     xAxisSortSeriesAscending,
-    timeseriesLimitMetric,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
   const rows: DataRecord[] = data.map(datum => ({
@@ -294,9 +292,7 @@ export function extractSeries(
     sortSeriesAscending,
   );
   const sortedRows =
-    isDefined(xAxisSortSeries) &&
-    isDefined(xAxisSortSeriesAscending) &&
-    !timeseriesLimitMetric
+    isDefined(xAxisSortSeries) && isDefined(xAxisSortSeriesAscending)
       ? sortRows(
           rows,
           totalStackedValues,
