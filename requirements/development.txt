@@ -85,7 +85,7 @@ google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.10.0
+google-cloud-bigquery==3.20.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -106,7 +106,6 @@ grpcio==1.60.1
     # via
     #   -r requirements/development.in
     #   google-api-core
-    #   google-cloud-bigquery
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
@@ -189,13 +188,10 @@ progress==1.6
 prophet==1.1.5
     # via apache-superset
 proto-plus==1.22.2
-    # via
-    #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
+    # via google-cloud-bigquery-storage
 protobuf==4.23.0
     # via
     #   google-api-core
-    #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
@@ -206,6 +202,10 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pure-sasl==0.6.2
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -214,7 +214,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/development.in
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -256,7 +256,12 @@ statsd==4.0.1
 tableschema==1.20.10
     # via apache-superset
 thrift==0.16.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pyhive
+    #   thrift-sasl
+thrift-sasl==0.4.3
+    # via pyhive
 tomli==2.0.1
     # via
     #   build
