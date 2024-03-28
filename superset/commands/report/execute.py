@@ -256,7 +256,9 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_data(user).get(
+            "cookies", {}
+        )
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
@@ -285,7 +287,9 @@ class BaseReportState:
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_data(user).get(
+            "cookies", {}
+        )
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")

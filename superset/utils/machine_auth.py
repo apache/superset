@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 from flask import current_app, Flask, request, Response, session
 from flask_login import login_user
+from flask_wtf.csrf import generate_csrf
 from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
@@ -112,7 +113,7 @@ class MachineAuthProvider:
 
     def get_cookies(self, user: User | None) -> dict[str, str]:
         if user:
-            cookies = self.get_auth_cookies(user)
+            cookies = self.get_auth_data(user).get("cookies", {})
         elif request.cookies:
             cookies = request.cookies
         else:
@@ -120,10 +121,13 @@ class MachineAuthProvider:
         return cookies
 
     @staticmethod
-    def get_auth_cookies(user: User) -> dict[str, str]:
+    def get_auth_data(user: User) -> dict[str, Any]:
         # Login with the user specified to get the reports
+        csrf_token = None
         with current_app.test_request_context("/login"):
             login_user(user)
+            if current_app.config["WTF_CSRF_ENABLED"]:
+                csrf_token = generate_csrf()
             # A mock response object to get the cookie information from
             response = Response()
             current_app.session_interface.save_session(current_app, session, response)
@@ -141,7 +145,7 @@ class MachineAuthProvider:
                 cookie_tuple = list(cookie.items())[0]
                 cookies[cookie_tuple[0]] = cookie_tuple[1]
 
-        return cookies
+        return {"cookies": cookies, "csrf_token": csrf_token}
 
 
 class MachineAuthProviderFactory:
