@@ -10,6 +10,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -17,7 +19,7 @@ asttokens==2.2.1
 backcall==0.2.0
     # via ipython
 boto3==1.26.130
-    # via tabulator
+    # via dataflows-tabulator
 botocore==1.29.130
     # via
     #   boto3
@@ -30,7 +32,7 @@ cfgv==3.3.1
     # via pre-commit
 chardet==5.1.0
     # via
-    #   tabulator
+    #   dataflows-tabulator
     #   tox
 cmdstanpy==1.1.0
     # via prophet
@@ -40,6 +42,8 @@ coverage[toml]==7.2.5
     # via pytest-cov
 cycler==0.11.0
     # via matplotlib
+dataflows-tabulator==1.54.3
+    # via tableschema
 db-dtypes==1.1.1
     # via pandas-gbq
 decorator==5.1.1
@@ -113,7 +117,7 @@ grpcio-status==1.60.1
 identify==2.5.24
     # via pre-commit
 ijson==3.2.0.post0
-    # via tabulator
+    # via dataflows-tabulator
 iniconfig==2.0.0
     # via pytest
 ipython==8.12.2
@@ -127,7 +131,7 @@ jmespath==1.0.1
     #   boto3
     #   botocore
 jsonlines==3.1.0
-    # via tabulator
+    # via dataflows-tabulator
 jsonschema-spec==0.1.4
     # via openapi-spec-validator
 kiwisolver==1.4.4
@@ -137,7 +141,7 @@ lazy-object-proxy==1.9.0
     #   astroid
     #   openapi-spec-validator
 linear-tsv==1.1.0
-    # via tabulator
+    # via dataflows-tabulator
 matplotlib==3.7.1
     # via prophet
 matplotlib-inline==0.1.6
@@ -155,7 +159,7 @@ openapi-schema-validator==0.4.4
 openapi-spec-validator==0.5.6
     # via -r requirements/development.in
 openpyxl==3.1.2
-    # via tabulator
+    # via dataflows-tabulator
 pandas-gbq==0.19.1
     # via apache-superset
 parameterized==0.9.0
@@ -253,11 +257,9 @@ stack-data==0.6.2
     # via ipython
 statsd==4.0.1
     # via -r requirements/development.in
-tableschema==1.20.2
+tableschema==1.20.10
     # via apache-superset
-tabulator==1.53.5
-    # via tableschema
-thrift==0.20.0
+thrift==0.16.0
     # via apache-superset
 tomli==2.0.1
     # via
@@ -289,8 +291,8 @@ tzlocal==4.3
     # via trino
 unicodecsv==0.14.1
     # via
+    #   dataflows-tabulator
     #   tableschema
-    #   tabulator
 virtualenv==20.23.1
     # via
     #   pre-commit
@@ -300,7 +302,7 @@ websocket-client==1.5.1
 wheel==0.40.0
     # via pip-tools
 xlrd==2.0.1
-    # via tabulator
+    # via dataflows-tabulator
 zope-event==4.5.0
     # via gevent
 zope-interface==5.4.0
