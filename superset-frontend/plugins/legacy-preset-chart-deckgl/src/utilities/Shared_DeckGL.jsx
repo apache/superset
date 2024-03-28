@@ -380,10 +380,14 @@ export const mapboxStyle = {
       ['mapbox://styles/mapbox/satellite-streets-v9', t('Satellite Streets')],
       ['mapbox://styles/mapbox/satellite-v9', t('Satellite')],
       ['mapbox://styles/mapbox/outdoors-v9', t('Outdoors')],
+      [
+        'tile://https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        t('OpenStreetMap'),
+      ],
     ],
     default: 'mapbox://styles/mapbox/light-v9',
     description: t(
-      'Base layer map style. See Mapbox documentation: %s',
+      'Mapbox base layer map style (see Mapbox documentation: %s) or tile server URL.',
       'https://docs.mapbox.com/help/glossary/style-url/',
     ),
   },
