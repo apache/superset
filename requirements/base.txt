@@ -291,7 +291,7 @@ python-dateutil==2.9.0.post0
     #   holidays
     #   pandas
     #   shillelagh
-python-dotenv==0.19.0
+python-dotenv==1.0.1
     # via apache-superset
 python-geohash==0.8.5
     # via apache-superset
