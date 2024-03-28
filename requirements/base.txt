@@ -66,7 +66,7 @@ click==8.1.7
     #   flask-appbuilder
 click-didyoumean==0.3.0
     # via celery
-click-option-group==0.5.5
+click-option-group==0.5.6
     # via apache-superset
 click-plugins==1.1.1
     # via celery
