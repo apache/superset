@@ -58,3 +58,9 @@ test('Should call download image on click', async () => {
     expect(props.addDangerToast).toBeCalledTimes(0);
   });
 });
+
+test('Component is rendered with role="button"', async () => {
+  renderComponent();
+  const button = screen.getByRole('button', { name: 'Download as Image' });
+  expect(button).toBeInTheDocument();
+});

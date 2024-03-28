@@ -173,3 +173,12 @@ it('Uses callbacks on click', () => {
   }
   expect(DEFAULT_PROPS.removeCustomScope).toHaveBeenCalledWith(4);
 });
+
+it('Renders charts scoping list panel with FilterTitle rendered with role="button"', () => {
+  setup();
+  expect(screen.getByText('All charts/global scoping')).toBeVisible();
+  expect(screen.getByText('All charts/global scoping')).toHaveAttribute(
+    'role',
+    'button',
+  );
+});

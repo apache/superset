@@ -58,3 +58,9 @@ test('Should call download pdf on click', async () => {
     expect(props.addDangerToast).toBeCalledTimes(0);
   });
 });
+
+test('Component is rendered with role="button"', async () => {
+  renderComponent();
+  const button = screen.getByRole('button', { name: 'Export as PDF' });
+  expect(button).toBeInTheDocument();
+});
