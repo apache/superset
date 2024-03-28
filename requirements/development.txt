@@ -60,7 +60,7 @@ filelock==3.12.2
     # via
     #   tox
     #   virtualenv
-flask-cors==3.0.10
+flask-cors==4.0.0
     # via apache-superset
 flask-testing==0.8.1
     # via -r requirements/development.in
@@ -69,9 +69,7 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via
-    #   pyhive
-    #   sqlalchemy-bigquery
+    # via pyhive
 gevent==24.2.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
