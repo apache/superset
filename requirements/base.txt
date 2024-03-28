@@ -66,7 +66,7 @@ click==8.1.7
     #   flask-appbuilder
 click-didyoumean==0.3.0
     # via celery
-click-option-group==0.5.5
+click-option-group==0.5.6
     # via apache-superset
 click-plugins==1.1.1
     # via celery
@@ -147,9 +147,7 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via
-    #   shillelagh
-    #   sqlalchemy
+    # via shillelagh
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -190,7 +188,7 @@ limits==3.4.0
     # via flask-limiter
 llvmlite==0.40.1
     # via numba
-mako==1.2.4
+mako==1.3.2
     # via
     #   alembic
     #   apache-superset
@@ -271,7 +269,7 @@ pycparser==2.20
     # via cffi
 pygments==2.15.0
     # via rich
-pyjwt==2.4.0
+pyjwt==2.8.0
     # via
     #   apache-superset
     #   flask-appbuilder
@@ -282,7 +280,7 @@ pyparsing==3.1.2
     # via apache-superset
 pyrsistent==0.20.0
     # via jsonschema
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   apache-superset
     #   celery
@@ -354,9 +352,9 @@ sqlparse==0.4.4
     # via apache-superset
 sshtunnel==0.4.0
     # via apache-superset
-tabulate==0.8.9
+tabulate==0.8.10
     # via apache-superset
-typing-extensions==4.4.0
+typing-extensions==4.10.0
     # via
     #   alembic
     #   apache-superset
