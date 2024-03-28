@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo, useRef } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { styled, t, useTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 
@@ -99,12 +99,8 @@ export default function TruncatedList<ListItemType>({
   getKey = item => item as unknown as React.Key,
   maxLinks = 20,
 }: TruncatedListProps<ListItemType>) {
-  const itemsNotInTooltipRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    itemsNotInTooltipRef,
-    plusRef,
-  ) as [number, boolean];
+  const [itemsNotInTooltipRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
 
   const nMoreItems = useMemo(
     () => (items.length > maxLinks ? items.length - maxLinks : undefined),

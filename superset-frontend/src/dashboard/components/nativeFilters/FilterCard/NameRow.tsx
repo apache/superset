@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -31,8 +31,7 @@ export const NameRow = ({
   hidePopover,
 }: FilterCardRowProps & { hidePopover: () => void }) => {
   const theme = useTheme();
-  const filterNameRef = useRef<HTMLElement>(null);
-  const [elementsTruncated] = useTruncation(filterNameRef);
+  const [filterNameRef, , elementsTruncated] = useTruncation();
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );

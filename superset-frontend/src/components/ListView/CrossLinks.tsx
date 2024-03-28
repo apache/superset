@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { styled, useTruncation } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import CrossLinksTooltip from './CrossLinksTooltip';
@@ -60,17 +60,13 @@ const StyledCrossLinks = styled.div`
   `}
 `;
 
-export default function CrossLinks({
+function CrossLinks({
   crossLinks,
   maxLinks = 20,
   linkPrefix = '/superset/dashboard/',
 }: CrossLinksProps) {
-  const crossLinksRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    crossLinksRef,
-    plusRef,
-  );
+  const [crossLinksRef, plusRef, elementsTruncated, hasHiddenElements] =
+    useTruncation();
   const hasMoreItems = useMemo(
     () =>
       crossLinks.length > maxLinks ? crossLinks.length - maxLinks : undefined,
@@ -80,18 +76,13 @@ export default function CrossLinks({
     () => (
       <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
         {crossLinks.map((link, index) => (
-          <Link
-            key={link.id}
-            to={linkPrefix + link.id}
-            target="_blank"
-            rel="noreferer noopener"
-          >
+          <Link key={link.id} to={linkPrefix + link.id}>
             {index === 0 ? link.title : `, ${link.title}`}
           </Link>
         ))}
       </span>
     ),
-    [crossLinks],
+    [crossLinks, crossLinksRef, linkPrefix],
   );
   const tooltipLinks = useMemo(
     () =>
@@ -99,7 +90,7 @@ export default function CrossLinks({
         title: l.title,
         to: linkPrefix + l.id,
       })),
-    [crossLinks, maxLinks],
+    [crossLinks, linkPrefix, maxLinks],
   );
 
   return (
@@ -119,3 +110,5 @@ export default function CrossLinks({
     </StyledCrossLinks>
   );
 }
+
+export default React.memo(CrossLinks);
