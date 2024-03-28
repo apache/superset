@@ -354,7 +354,7 @@ sqlparse==0.4.4
     # via apache-superset
 sshtunnel==0.4.0
     # via apache-superset
-tabulate==0.8.9
+tabulate==0.8.10
     # via apache-superset
 typing-extensions==4.10.0
     # via
