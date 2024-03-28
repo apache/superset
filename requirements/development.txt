@@ -142,7 +142,7 @@ matplotlib-inline==0.1.6
     # via ipython
 mccabe==0.7.0
     # via pylint
-mysqlclient==2.1.0
+mysqlclient==2.2.4
     # via apache-superset
 nodeenv==1.7.0
     # via pre-commit
