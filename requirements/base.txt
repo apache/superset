@@ -132,7 +132,7 @@ flask-sqlalchemy==2.5.1
     # via
     #   flask-appbuilder
     #   flask-migrate
-flask-talisman==1.0.0
+flask-talisman==1.1.0
     # via apache-superset
 flask-wtf==1.2.1
     # via
@@ -147,7 +147,9 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
