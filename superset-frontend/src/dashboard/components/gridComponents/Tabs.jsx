@@ -18,11 +18,19 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t } from '@superset-ui/core';
+import {
+  getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import { connect } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { AntdModal } from 'src/components';
+import { isEqual } from 'lodash';
+import jsonStringify from 'json-stringify-pretty-compact';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { Draggable } from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import DashboardComponent from '../../containers/DashboardComponent';
@@ -256,9 +264,50 @@ export class Tabs extends React.PureComponent {
     }
   };
 
+  // the initial color map is generated on save and catches all rendered charts
+  // charts hidden in nested tabs are not rendered, thus not included
+  // must update the label color map when switching tabs to include these charts
+  updateLabelColorsMap() {
+    const currentLabelColorsMap = Object.fromEntries(
+      getSharedLabelColor().getColorMap(),
+    );
+    const { metadata } = this.props.dashboardInfo;
+    const labelColorsMap = metadata?.shared_label_colors || {};
+    // color consistency is currently only supported when a color scheme is set
+    if (
+      metadata?.color_scheme &&
+      !isEqual(labelColorsMap, currentLabelColorsMap)
+    ) {
+      const updatedMetadata = {
+        ...metadata,
+        shared_label_colors: currentLabelColorsMap,
+      };
+      SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${this.props.dashboardId}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          json_metadata: jsonStringify(updatedMetadata),
+        }),
+      })
+        .then(() =>
+          this.props.dispatch(
+            dashboardInfoChanged({
+              metadata: updatedMetadata,
+            }),
+          ),
+        )
+        .catch(e => console.error(e));
+    }
+  }
+
   handleClickTab(tabIndex) {
     const { component } = this.props;
     const { children: tabIds } = component;
+
+    // the charts need to render first
+    setTimeout(() => {
+      this.updateLabelColorsMap();
+    }, 500);
 
     if (tabIndex !== this.state.tabIndex) {
       const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);

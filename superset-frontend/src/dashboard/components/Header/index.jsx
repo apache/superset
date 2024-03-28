@@ -372,13 +372,17 @@ class Header extends React.PureComponent {
       ? currentRefreshFrequency
       : dashboardInfo.metadata?.refresh_frequency;
 
-    const currentColorScheme =
-      dashboardInfo?.metadata?.color_scheme || colorScheme;
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
+    const currentColorScheme =
+      dashboardInfo?.metadata?.color_scheme || colorScheme;
     const currentSharedLabelColors = Object.fromEntries(
       getSharedLabelColor().getColorMap(),
     );
+    // an empty color scheme should not bring shared label colors forward
+    const sharedLabelColors = currentColorScheme
+      ? currentSharedLabelColors
+      : {};
 
     const data = {
       certified_by: dashboardInfo.certified_by,
@@ -395,7 +399,7 @@ class Header extends React.PureComponent {
         color_scheme: currentColorScheme,
         positions,
         refresh_frequency: refreshFrequency,
-        shared_label_colors: currentSharedLabelColors,
+        shared_label_colors: sharedLabelColors,
       },
     };
 

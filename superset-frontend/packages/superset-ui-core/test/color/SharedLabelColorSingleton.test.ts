@@ -96,13 +96,7 @@ describe('SharedLabelColor', () => {
     it('should do nothing when source is not dashboard', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.source = SharedLabelColorSource.Explore;
-      sharedLabelColor.addSlice('a', 'red');
-      expect(Object.fromEntries(sharedLabelColor.sliceLabelMap)).toEqual({});
-    });
-
-    it('should do nothing when sliceId is undefined', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 'red');
+      sharedLabelColor.addSlice('a', 'red', 1);
       expect(Object.fromEntries(sharedLabelColor.sliceLabelMap)).toEqual({});
     });
   });
@@ -144,8 +138,8 @@ describe('SharedLabelColor', () => {
       const colorMap = sharedLabelColor.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({
         a: 'yellow',
-        b: 'yellow',
-        c: 'green',
+        b: 'green',
+        c: 'yellow',
       });
     });
 
@@ -195,9 +189,9 @@ describe('SharedLabelColor', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 2);
-      sharedLabelColor.reset();
+      sharedLabelColor.clear();
       const colorMap = sharedLabelColor.getColorMap();
-      expect(Object.fromEntries(colorMap)).toEqual({ a: '', b: '' });
+      expect(Object.fromEntries(colorMap)).toEqual({});
     });
   });
 });

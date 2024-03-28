@@ -381,16 +381,21 @@ const PropertiesModal = ({
     const sharedLabelColor = getSharedLabelColor();
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
+
+    // reset forced colors
     categoricalNamespace.resetColors();
+
     if (currentColorScheme) {
+      // reset the shared label color map based on the current color scheme
       sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
+      // store the shared label color map and domain in the metadata
       metadata.shared_label_colors = Object.fromEntries(
         sharedLabelColor.getColorMap(),
       );
       metadata.color_scheme_domain =
         categoricalSchemeRegistry.get(colorScheme)?.colors || [];
     } else {
-      sharedLabelColor.reset();
+      sharedLabelColor.clear();
       metadata.shared_label_colors = {};
       metadata.color_scheme_domain = [];
     }
