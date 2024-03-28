@@ -22,23 +22,24 @@ import pytest
 from superset import app, db
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
 
-from .base_tests import SupersetTestCase
-
 
 class TestCache(SupersetTestCase):
     def setUp(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         cache_manager.cache.clear()
         cache_manager.data_cache.clear()
 
     def tearDown(self):
         cache_manager.cache.clear()
         cache_manager.data_cache.clear()
+        super().tearDown()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_no_data_cache(self):

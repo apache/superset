@@ -76,6 +76,7 @@ from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
 from superset.views.utils import build_extra_filters, get_form_data
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -897,7 +898,7 @@ class TestUtils(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 

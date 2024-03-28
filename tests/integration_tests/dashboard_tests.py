@@ -29,6 +29,11 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -101,7 +106,6 @@ class TestDashboard(SupersetTestCase):
         return positions
 
     def test_get_dashboard(self):
-        self.login(username="admin")
         for dash in db.session.query(Dashboard):
             assert escape(dash.dashboard_title) in self.client.get(dash.url).get_data(
                 as_text=True
@@ -111,7 +115,7 @@ class TestDashboard(SupersetTestCase):
         url_for("Superset.dashboard", dashboard_id_or_slug=1)
 
     def test_new_dashboard(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash_count_before = db.session.query(func.count(Dashboard.id)).first()[0]
         url = "/dashboard/new/"
         response = self.client.get(url, follow_redirects=False)
@@ -171,7 +175,6 @@ class TestDashboard(SupersetTestCase):
         "load_birth_names_dashboard_with_slices", "public_role_like_gamma"
     )
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
-        self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
         self.grant_public_access_to_table(table)
 
@@ -188,7 +191,7 @@ class TestDashboard(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_users_can_list_published_dashboard(self):
-        self.login("alpha")
+        self.login(ALPHA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")
         assert f"/superset/dashboard/{pytest.hidden_dash_slug}/" not in resp
         assert f"/superset/dashboard/{pytest.published_dash_slug}/" in resp
@@ -225,7 +228,6 @@ class TestDashboard(SupersetTestCase):
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
-        gamma_user = security_manager.find_user("gamma")
         slug = f"admin_owned_unpublished_dash_{random()}"
 
         # Create a dashboard owned by admin and unpublished
@@ -238,7 +240,7 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
 
         # list dashboards as a gamma user
-        self.login(gamma_user.username)
+        self.login(GAMMA_USERNAME)
         resp = self.get_resp("/api/v1/dashboard/")
 
         db.session.delete(dash)

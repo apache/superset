@@ -14,24 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-QUERY_FORMAT = "?q={}"
-
-DASHBOARDS_API_URL = "api/v1/dashboard/"
-DASHBOARDS_API_URL_WITH_QUERY_FORMAT = DASHBOARDS_API_URL + QUERY_FORMAT
-DASHBOARD_API_URL_FORMAT = DASHBOARDS_API_URL + "{}"
-EXPORT_DASHBOARDS_API_URL = DASHBOARDS_API_URL + "export/"
-EXPORT_DASHBOARDS_API_URL_WITH_QUERY_FORMAT = EXPORT_DASHBOARDS_API_URL + QUERY_FORMAT
-
-GET_DASHBOARD_VIEW_URL_FORMAT = "/superset/dashboard/{}/"
-
-DELETE_DASHBOARD_VIEW_URL_FORMAT = "/dashboard/delete/{}"
-GET_DASHBOARDS_LIST_VIEW = "/dashboard/list/"
-NEW_DASHBOARD_URL = "/dashboard/new/"
-GET_CHARTS_API_URL = "/api/v1/chart/"
-
-GAMMA_ROLE_NAME = "Gamma"
-
-DASHBOARD_SLUG_OF_ACCESSIBLE_TABLE = "births"
-DEFAULT_DASHBOARD_SLUG_TO_TEST = "births"
-WORLD_HEALTH_SLUG = "world_health"
+ADMIN_USERNAME = "admin"
+ALPHA_USERNAME = "alpha"
+GAMMA_NO_CSV_USERNAME = "gamma_no_csv"
+GAMMA_SQLLAB_NO_DATA_USERNAME = "gamma_sqllab_no_data"
+GAMMA_SQLLAB_USERNAME = "gamma_sqllab"
+GAMMA_USERNAME = "gamma"

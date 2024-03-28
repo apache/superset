@@ -25,6 +25,11 @@ from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.daos.dashboard import DashboardDAO
 from superset.utils.core import backend, override_user
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    GAMMA_SQLLAB_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.dashboards.dashboard_test_utils import *
 from tests.integration_tests.dashboards.security.base_case import (
     BaseTestDashboardSecurity,
@@ -59,7 +64,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         dashboard_to_access = create_dashboard_to_db(
             owners=[], slices=[create_slice_to_db()], published=False
         )
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
@@ -137,7 +142,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             .one_or_none()
         )
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
-        self.login("gamma")
+        self.login(GAMMA_USERNAME)
 
         # assert redirect on regular rbac access denied
         response = self.get_dashboard_view_response(dashboard)
@@ -160,7 +165,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             .one_or_none()
         )
         dashboard = create_dashboard_to_db(published=True, slices=[slice])
-        self.login("gamma_sqllab")
+        self.login(GAMMA_SQLLAB_USERNAME)
 
         response = self.get_dashboard_view_response(dashboard)
 
@@ -208,7 +213,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboard_view__public_user_can_not_access_without_permission(self):
         dashboard_to_access = create_dashboard_to_db(published=True)
         grant_access_to_dashboard(dashboard_to_access, "Alpha")
-        self.logout()
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
@@ -223,7 +227,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         dashboard_to_access = create_dashboard_to_db(published=False)
         grant_access_to_dashboard(dashboard_to_access, "Public")
-        self.logout()
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
 
@@ -240,8 +243,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             published=True, slices=[create_slice_to_db()]
         )
         grant_access_to_dashboard(dashboard_to_access, "Public")
-
-        self.logout()
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
@@ -272,8 +273,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
                 slices=[create_slice_to_db(datasource_id=table.id)], published=True
             )
         ]
-        self.login(username)
-        return not_owned_dashboards, owned_dashboards
+        return username, not_owned_dashboards, owned_dashboards
 
     def _create_sample_only_published_dashboard_with_roles(self):
         username = random_str()
@@ -289,8 +289,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
         for dash in published_dashboards + draft_dashboards:
             grant_access_to_dashboard(dash, new_role)
-        self.login(username)
-        return new_role, draft_dashboards, published_dashboards
+        return username, new_role, draft_dashboards, published_dashboards
 
     def test_get_dashboards_api__admin_get_all_dashboards(self):
         # arrange
@@ -299,7 +298,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         )
         dashboard_counts = count_dashboards()
 
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         # act
         response = self.get_dashboards_api_response()
@@ -310,9 +309,12 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_api__owner_get_all_owned_dashboards(self):
         # arrange
         (
+            username,
             not_owned_dashboards,
             owned_dashboards,
         ) = self._create_sample_dashboards_with_owner_access()
+
+        self.login(username)
 
         # act
         response = self.get_dashboards_api_response()
@@ -337,10 +339,13 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     def test_get_dashboards_api__user_get_only_published_permitted_dashboards(self):
         (
+            username,
             new_role,
             draft_dashboards,
             published_dashboards,
         ) = self._create_sample_only_published_dashboard_with_roles()
+
+        self.login(username)
 
         # act
         response = self.get_dashboards_api_response()
@@ -362,7 +367,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self,
     ):
         create_dashboard_to_db(published=True)
-        self.logout()
 
         # act
         response = self.get_dashboards_api_response()
@@ -386,8 +390,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         for dash in published_dashboards + draft_dashboards:
             grant_access_to_dashboard(dash, "Public")
-
-        self.logout()
 
         # act
         response = self.get_dashboards_api_response()
@@ -422,7 +424,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         assert not dashboard_to_access.published
         assert dashboard_to_access.roles == []
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_to_access.uuid}"
         rv = self.client.get(uri)
         assert rv.status_code == 403
@@ -439,7 +441,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         assert not dashboard.published
         assert dashboard.roles == [admin_role]
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard.uuid}"
         rv = self.client.get(uri)
         assert rv.status_code == 403
@@ -473,15 +475,14 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             ),
         }
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         rv = self.client.post(uri, json=data)
         self.assertEqual(rv.status_code, 403)
         self.logout()
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.post(uri, json=data)
         self.assertEqual(rv.status_code, 200)
-        self.logout()
         response = json.loads(rv.data.decode("utf-8"))
 
         target = (

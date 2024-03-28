@@ -28,11 +28,15 @@ from unittest.mock import patch
 from superset import db
 from superset.models.core import Log
 from superset.views.log.api import LogRestApi
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.dashboard_utils import create_dashboard
 from tests.integration_tests.test_app import app
-from .base_tests import SupersetTestCase
-
 
 EXPECTED_COLUMNS = [
     "action",
@@ -73,7 +77,7 @@ class TestLogApi(SupersetTestCase):
         with patch.object(LogRestApi, "is_enabled", return_value=False):
             admin_user = self.get_user("admin")
             self.insert_log("some_action", admin_user)
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
             uri = f"api/v1/log/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
@@ -85,7 +89,7 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         log = self.insert_log("some_action", admin_user)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         arguments = {"filters": [{"col": "action", "opr": "sw", "value": "some_"}]}
         uri = f"api/v1/log/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
@@ -103,11 +107,11 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         log = self.insert_log("action", admin_user)
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         uri = "api/v1/log/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 403)
-        self.login(username="alpha")
+        self.login(ALPHA_USERNAME)
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 403)
         db.session.delete(log)
@@ -119,7 +123,7 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         log = self.insert_log("some_action", admin_user)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/log/{log.id}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -137,7 +141,7 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         log = self.insert_log("action", admin_user)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/log/{log.id}"
         rv = self.client.delete(uri)
         self.assertEqual(rv.status_code, 405)
@@ -150,7 +154,7 @@ class TestLogApi(SupersetTestCase):
         """
         admin_user = self.get_user("admin")
         log = self.insert_log("action", admin_user)
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         log_data = {"action": "some_action"}
         uri = f"api/v1/log/{log.id}"
@@ -164,7 +168,7 @@ class TestLogApi(SupersetTestCase):
         Log API: Test recent activity endpoint
         """
         admin_user = self.get_user("admin")
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
         log1 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
@@ -200,7 +204,7 @@ class TestLogApi(SupersetTestCase):
         Log API: Test recent activity actions argument
         """
         admin_user = self.get_user("admin")
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
         log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("explore", admin_user, dashboard_id=dash.id)
@@ -225,7 +229,7 @@ class TestLogApi(SupersetTestCase):
         db.session.query(Log).delete(synchronize_session=False)
         db.session.commit()
         admin_user = self.get_user("admin")
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
         log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
@@ -247,7 +251,7 @@ class TestLogApi(SupersetTestCase):
         Log API: Test recent activity pagination arguments
         """
         admin_user = self.get_user("admin")
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
         dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
         dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])

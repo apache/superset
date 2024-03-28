@@ -23,6 +23,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 
 class TestDatasourceApi(SupersetTestCase):
@@ -35,7 +36,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_ints(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
         self.assertEqual(rv.status_code, 200)
@@ -45,7 +46,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_strs(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
         self.assertEqual(rv.status_code, 200)
@@ -55,7 +56,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_floats(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col3/values/")
         self.assertEqual(rv.status_code, 200)
@@ -65,7 +66,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_nulls(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col4/values/")
         self.assertEqual(rv.status_code, 200)
@@ -74,7 +75,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_integers_with_nulls(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col6/values/")
         self.assertEqual(rv.status_code, 200)
@@ -84,7 +85,7 @@ class TestDatasourceApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_invalid_datasource_type(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(
             f"api/v1/datasource/not_table/{table.id}/column/col1/values/"
@@ -96,7 +97,7 @@ class TestDatasourceApi(SupersetTestCase):
     @patch("superset.datasource.api.DatasourceDAO.get_datasource")
     def test_get_column_values_datasource_type_not_supported(self, get_datasource_mock):
         get_datasource_mock.side_effect = DatasourceTypeNotSupportedError
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.get("api/v1/datasource/table/1/column/col1/values/")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -105,7 +106,7 @@ class TestDatasourceApi(SupersetTestCase):
         )
 
     def test_get_column_values_datasource_not_found(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.get("api/v1/datasource/table/999/column/col1/values/")
         self.assertEqual(rv.status_code, 404)
         response = json.loads(rv.data.decode("utf-8"))
@@ -120,7 +121,7 @@ class TestDatasourceApi(SupersetTestCase):
         gamma_role = security_manager.find_role("Gamma")
         security_manager.add_permission_role(gamma_role, perm)
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         table = self.get_virtual_dataset()
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
         self.assertEqual(rv.status_code, 403)
@@ -137,7 +138,7 @@ class TestDatasourceApi(SupersetTestCase):
         datasource.values_for_column.side_effect = NotImplementedError
         get_datasource_mock.return_value = datasource
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.get("api/v1/datasource/sl_table/1/column/col1/values/")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -149,7 +150,7 @@ class TestDatasourceApi(SupersetTestCase):
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.models.helpers.ExploreMixin.values_for_column")
     def test_get_column_values_normalize_columns_enabled(self, values_for_column_mock):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
@@ -162,7 +163,7 @@ class TestDatasourceApi(SupersetTestCase):
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
     def test_get_column_values_not_denormalize_column(self, denormalize_name_mock):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = True
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
@@ -171,7 +172,7 @@ class TestDatasourceApi(SupersetTestCase):
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.models.helpers.ExploreMixin.values_for_column")
     def test_get_column_values_normalize_columns_disabled(self, values_for_column_mock):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
@@ -184,7 +185,7 @@ class TestDatasourceApi(SupersetTestCase):
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
     def test_get_column_values_denormalize_column(self, denormalize_name_mock):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         table.normalize_columns = False
         rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")

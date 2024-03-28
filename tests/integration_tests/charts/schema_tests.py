@@ -38,7 +38,6 @@ class TestSchema(SupersetTestCase):
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_limit_and_offset(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # too low limit and offset
@@ -51,14 +50,12 @@ class TestSchema(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_null_timegrain(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
         _ = ChartDataQueryContextSchema().load(payload)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_series_limit(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         payload["queries"][0]["timeseries_limit"] = 2

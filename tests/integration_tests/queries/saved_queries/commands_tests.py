@@ -55,6 +55,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
     def tearDown(self):
         db.session.delete(self.example_query)
         db.session.commit()
+        super().tearDown()
 
     @patch("superset.queries.saved_queries.filters.g")
     def test_export_query_command(self, mock_g):

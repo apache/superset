@@ -43,11 +43,12 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
-from .base_tests import SupersetTestCase
 
 
 def delete_imports():
@@ -223,7 +224,7 @@ class TestImportExport(SupersetTestCase):
     @unittest.skip("Schema needs to be updated")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_1_dashboard(self):
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         birth_dash = self.get_dash_by_slug("births")
         id_ = birth_dash.id
         export_dash_url = f"/dashboard/export_dashboards_form?id={id_}&action=go"
@@ -254,7 +255,7 @@ class TestImportExport(SupersetTestCase):
         "load_birth_names_dashboard_with_slices",
     )
     def test_export_2_dashboards(self):
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         birth_dash = self.get_dash_by_slug("births")
         world_health_dash = self.get_dash_by_slug("world_health")
         export_dash_url = (
