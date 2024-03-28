@@ -26,8 +26,6 @@ import {
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
-  SMART_DATE_DETAILED_ID,
-  SMART_DATE_ID,
   LegendState,
   SupersetTheme,
   TimeseriesAnnotationLayer,
