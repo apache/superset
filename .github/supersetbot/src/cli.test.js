@@ -7,6 +7,6 @@ describe('CLI Test', () => {
   ])('returns %s for release %s', (command, arg, contains) => {
     const result = spawnSync(command, arg);
     const output = result.stdout.toString();
-    expect(result.stdout.toString()).toContain(contains);
+    expect(output).toContain(contains);
   });
 });

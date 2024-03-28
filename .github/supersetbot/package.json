@@ -1,6 +1,6 @@
 {
   "name": "supersetbot",
-  "version": "0.4.2",
+  "version": "0.0.0-dev",
   "description": "A bot for the Superset GitHub repo",
   "type": "module",
   "main": "src/index.js",
@@ -18,7 +18,8 @@
     "commander": "^11.0.0",
     "semver": "^7.6.0",
     "simple-git": "^3.22.0",
-    "string-argv": "^0.3.2"
+    "string-argv": "^0.3.2",
+    "toml": "^3.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",

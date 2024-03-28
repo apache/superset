@@ -18,6 +18,7 @@
  */
 
 import { spawn } from 'child_process';
+
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -40,39 +41,73 @@ export async function currentPackageVersion() {
   return data.version;
 }
 
-export function runShellCommand(command, raiseOnError = true) {
+export function runShellCommand({
+  command, raiseOnError = true, exitOnError = true, cwd = null, verbose = false, dryRun = false,
+}) {
   return new Promise((resolve, reject) => {
-    // Split the command string into an array of arguments
     const args = command.split(/\s+/).filter((s) => !!s && s !== '\\');
-    const childProcess = spawn(args.shift(), args);
-    let stdoutData = '';
-    let stderrData = '';
+    const spawnOptions = {
+      shell: true,
+      cwd,
+      env: { ...process.env },
+    };
 
-    // Capture stdout data
-    childProcess.stdout.on('data', (data) => {
-      stdoutData += data;
-      console.log(`stdout: ${data}`);
+    if (cwd) {
+      console.log(`RUN \`${command}\` in "${cwd}"`);
+    } else {
+      console.log(`RUN: \`${command}\``);
+    }
+
+    if (dryRun) {
+      resolve({ stdout: '', stderr: '' });
+      return;
+    }
+
+    const child = spawn(args.shift(), args, spawnOptions);
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      if (verbose) {
+        console.log(data.toString());
+      }
+      stdout += data.toString();
     });
 
-    // Capture stderr data
-    childProcess.stderr.on('data', (data) => {
-      stderrData += data;
-      console.error(`stderr: ${data}`);
+    child.stderr.on('data', (data) => {
+      if (verbose) {
+        console.log(data.toString());
+      }
+      stderr += data.toString();
     });
 
-    // Handle process exit
-    childProcess.on('close', (code) => {
-      if (code === 0) {
-        resolve(stdoutData);
-      } else {
-        const msg = `Command failed with code ${code}: ${stderrData}`;
+    child.on('close', (code) => {
+      if (code !== 0) {
+        const msg = `Command failed with exit code ${code}: ${stderr}`;
+        console.error(msg);
+
         if (raiseOnError) {
           reject(new Error(msg));
-        } else {
-          console.error(msg);
+        }
+        if (exitOnError) {
           process.exit(1);
         }
       }
+
+      resolve({ stdout, stderr });
+    });
+
+    child.on('error', (err) => {
+      reject(err);
     });
   });
+}
+
+export function shuffleArray(originalArray) {
+  const array = [...originalArray]; // Create a shallow copy of the array
+  for (let i = array.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }

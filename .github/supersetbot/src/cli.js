@@ -73,7 +73,9 @@ export default function getCLI(context) {
         func: github.syncLabels,
         verbose: opts.verbose,
       });
-      await wrapped({labels, prId, actor: opts.actor, verbose: opts.verbose, dryRun: opts.dryRun});
+      await wrapped({
+        labels, prId, actor: opts.actor, verbose: opts.verbose, dryRun: opts.dryRun,
+      });
     });
 
   program.command('version')
@@ -113,7 +115,7 @@ export default function getCLI(context) {
           // eslint-disable-next-line no-await-in-loop
           await github.syncLabels({
             labels,
-            existingLabels: prIdLabelMap.get(prId).map(l => l.name),
+            existingLabels: prIdLabelMap.get(prId).map((l) => l.name),
             prId,
             ...opts,
           });
@@ -151,6 +153,21 @@ export default function getCLI(context) {
         await github.assignOrgLabel(opts.issue, opts.verbose, opts.dryRun);
       });
 
+    program.command('bump-python')
+      .description('Submit PR(s) to bump python dependencies')
+      .option('-p, --python-package <pythonPackage>', 'name of the package to bump')
+      .option('-g, --group <group>', 'specify a group of optional dependencies to bump')
+      .option('-u, --use-current-repo', 'Uses the current repo instead of a temporary one')
+      .option('-l, --limit <limit>', 'Limit the number of PRs to create', null, parseInt)
+      .action(async function () {
+        const opts = context.processOptions(this, ['repo']);
+        const github = new Github({ context });
+        if (opts.pythonPackage) {
+          await github.createBumpLibPullRequest({ ...opts });
+        } else {
+          await github.createAllBumpPRs({ ...opts });
+        }
+      });
 
     program.command('docker')
       .description('Generates/run docker build commands use in CI')
@@ -163,10 +180,10 @@ export default function getCLI(context) {
       .action(function () {
         const opts = context.processOptions(this, ['preset']);
         opts.platform = opts.platform || ['linux/arm64'];
-        const cmd = docker.getDockerCommand({ ...opts });
-        context.log(cmd);
+        const command = docker.getDockerCommand({ ...opts });
+        context.log(command);
         if (!opts.dryRun) {
-          utils.runShellCommand(cmd, false);
+          utils.runShellCommand({ command, raiseOnError: false });
         }
       });
   }

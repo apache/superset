@@ -106,7 +106,7 @@ export default class Git {
 
     const prs = [];
     const promises = [];
-    [...prIds].forEach(prId => {
+    [...prIds].forEach((prId) => {
       promises.push(
         this.getReleaseLabels(prId, verbose, excludeCherries)
           .then((labels) => {
