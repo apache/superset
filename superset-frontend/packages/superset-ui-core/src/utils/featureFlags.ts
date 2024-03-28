@@ -56,6 +56,7 @@ export enum FeatureFlag {
   TaggingSystem = 'TAGGING_SYSTEM',
   Thumbnails = 'THUMBNAILS',
   UseAnalagousColors = 'USE_ANALAGOUS_COLORS',
+  EnableAws = 'ENABLE_AWS',
 }
 
 export type ScheduleQueriesProps = {

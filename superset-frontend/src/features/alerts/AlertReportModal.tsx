@@ -82,6 +82,12 @@ type SelectValue = {
   label: string;
 };
 
+interface S3NotificationSettings {
+  aws_secret_key: string;
+  aws_key: string;
+  aws_s3_types: string;
+}
+
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
@@ -386,7 +392,11 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   };
 
   return (
-    <StyledNotificationAddButton className={status} onClick={checkStatus}>
+    <StyledNotificationAddButton
+      className={status}
+      onClick={checkStatus}
+      data-test="notification_method"
+    >
       <i className="fa fa-plus" />{' '}
       {status === 'active'
         ? t('Add another notification method')
@@ -490,6 +500,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled =
     isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
 
+  const initialSettings: S3NotificationSettings = {
+    aws_secret_key: '',
+    aws_key: '',
+    aws_s3_types: '',
+  };
+
+  const [s3NotificationSettings, setS3NotificationSettings] =
+    useState<S3NotificationSettings>(initialSettings);
+
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
 
@@ -557,6 +576,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  // for s3 update
+  const handleS3SettingUpdate = (updatedS3Setting: any) => {
+    setS3NotificationSettings(updatedS3Setting);
+  };
+
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
 
@@ -602,6 +626,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
+      ...s3NotificationSettings,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
@@ -1671,6 +1696,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledNotificationMethodWrapper>
               <NotificationMethod
                 setting={notificationSetting}
+                s3Setting={s3NotificationSettings}
+                onUpdateS3Setting={handleS3SettingUpdate}
+                currentAlert={currentAlert}
                 index={i}
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}

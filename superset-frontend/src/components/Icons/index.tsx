@@ -143,6 +143,7 @@ const IconFileNames = [
   'server',
   'share',
   'slack',
+  's3',
   'sort_asc',
   'sort_desc',
   'sort',

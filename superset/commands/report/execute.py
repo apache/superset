@@ -64,7 +64,7 @@ from superset.reports.models import (
     ReportState,
 )
 from superset.reports.notifications import create_notification
-from superset.reports.notifications.base import NotificationContent
+from superset.reports.notifications.base import AwsConfiguration, NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.tasks.utils import get_executor
 from superset.utils.core import HeaderDataType, override_user
@@ -359,6 +359,7 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
+
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
@@ -413,6 +414,15 @@ class BaseReportState:
             header_data=header_data,
         )
 
+    def _get_aws_configuration(self) -> AwsConfiguration:
+        aws_key = self._report_schedule.aws_key
+        aws_secret_key = self._report_schedule.aws_secret_key
+        aws_s3_types = self._report_schedule.aws_s3_types
+
+        return AwsConfiguration(
+            aws_key=aws_key, aws_secret_key=aws_secret_key, aws_s3_types=aws_s3_types
+        )
+
     def _send(
         self,
         notification_content: NotificationContent,
@@ -425,7 +435,13 @@ class BaseReportState:
         """
         notification_errors: list[SupersetError] = []
         for recipient in recipients:
-            notification = create_notification(recipient, notification_content)
+            if recipient.type == ReportRecipientType.S3:
+                aws_configuration = self._get_aws_configuration()
+                notification = create_notification(
+                    recipient, notification_content, aws_configuration
+                )
+            else:
+                notification = create_notification(recipient, notification_content)
             try:
                 if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
                     logger.info(
@@ -465,6 +481,7 @@ class BaseReportState:
         :raises: CommandException
         """
         notification_content = self._get_notification_content()
+
         self._send(notification_content, self._report_schedule.recipients)
 
     def send_error(self, name: str, message: str) -> None:

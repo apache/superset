@@ -127,13 +127,16 @@ export const useExploreAdditionalActionsMenu = (
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
   const dispatch = useDispatch();
-  const [showReportSubMenu, setShowReportSubMenu] = useState(null);
+  const [showReportSubMenuForEmail, setShowReportSubMenuForEmail] =
+    useState(false);
+  const [showReportSubMenuForS3, setShowReportSubMenuForS3] = useState(false);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const chart = useSelector(
     state => state.charts?.[getChartKey(state.explore)],
   );
 
   const { datasource } = latestQueryFormData;
+  const isS3Feature = isFeatureEnabled(FeatureFlag.EnableAws);
 
   const shareByEmail = useCallback(async () => {
     try {
@@ -394,13 +397,14 @@ export const useExploreAdditionalActionsMenu = (
           ) : null}
         </Menu.SubMenu>
         <Menu.Divider />
-        {showReportSubMenu ? (
+        {showReportSubMenuForEmail ? (
           <>
             <Menu.SubMenu title={t('Manage email report')}>
               <HeaderReportDropDown
+                reportType="Email"
                 chart={chart}
-                setShowReportSubMenu={setShowReportSubMenu}
-                showReportSubMenu={showReportSubMenu}
+                setShowReportSubMenu={setShowReportSubMenuForEmail}
+                showReportSubMenu={showReportSubMenuForEmail}
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
@@ -411,14 +415,46 @@ export const useExploreAdditionalActionsMenu = (
         ) : (
           <Menu>
             <HeaderReportDropDown
+              reportType="Email"
               chart={chart}
-              setShowReportSubMenu={setShowReportSubMenu}
+              setShowReportSubMenu={setShowReportSubMenuForEmail}
               setIsDropdownVisible={setIsDropdownVisible}
               isDropdownVisible={isDropdownVisible}
               useTextMenu
             />
           </Menu>
         )}
+
+        {isS3Feature ? (
+          showReportSubMenuForS3 ? (
+            <>
+              <Menu.SubMenu title={t('Manage S3 Report')}>
+                <HeaderReportDropDown
+                  reportType="S3"
+                  chart={chart}
+                  setShowReportSubMenu={setShowReportSubMenuForS3}
+                  showReportSubMenu={showReportSubMenuForS3}
+                  setIsDropdownVisible={setIsDropdownVisible}
+                  isDropdownVisible={isDropdownVisible}
+                  useTextMenu
+                />
+              </Menu.SubMenu>
+              <Menu.Divider />
+            </>
+          ) : (
+            <Menu>
+              <HeaderReportDropDown
+                reportType="S3"
+                chart={chart}
+                setShowReportSubMenu={setShowReportSubMenuForS3}
+                setIsDropdownVisible={setIsDropdownVisible}
+                isDropdownVisible={isDropdownVisible}
+                useTextMenu
+              />
+            </Menu>
+          )
+        ) : null}
+
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -448,7 +484,8 @@ export const useExploreAdditionalActionsMenu = (
       handleMenuClick,
       isDropdownVisible,
       latestQueryFormData,
-      showReportSubMenu,
+      showReportSubMenuForEmail,
+      showReportSubMenuForS3,
       slice,
       theme.gridUnit,
     ],

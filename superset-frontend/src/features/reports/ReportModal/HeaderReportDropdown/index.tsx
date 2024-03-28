@@ -32,7 +32,10 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
-import { AlertObject } from 'src/features/alerts/types';
+import {
+  AlertObject,
+  NotificationMethodOption,
+} from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
@@ -95,6 +98,7 @@ export enum CreationMethod {
   Dashboards = 'dashboards',
 }
 export interface HeaderReportProps {
+  reportType: NotificationMethodOption;
   dashboardId?: number;
   chart?: ChartState;
   useTextMenu?: boolean;
@@ -108,6 +112,7 @@ export interface HeaderReportProps {
 const EMPTY_OBJECT = {};
 
 export default function HeaderReportDropDown({
+  reportType,
   dashboardId,
   chart,
   useTextMenu = false,
@@ -132,6 +137,16 @@ export default function HeaderReportDropDown({
     any,
     UserWithPermissionsAndRoles
   >(state => state.user);
+
+  const hasReportType = (report: AlertObject) => {
+    const reportTypes =
+      report?.recipients !== undefined
+        ? report?.recipients.map(record => record.type)
+        : [];
+    const foundMatch = reportTypes.includes(reportType);
+    return !isEmpty(report) && foundMatch;
+  };
+
   const canAddReports = () => {
     if (!isFeatureEnabled(FeatureFlag.AlertReports)) {
       return false;
@@ -189,7 +204,9 @@ export default function HeaderReportDropDown({
     }
   }, []);
 
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
+  const reportTypeExists = hasReportType(report);
+  const showReportSubMenu =
+    reportTypeExists && setShowReportSubMenu && canAddReports();
 
   // @z-index-below-dashboard-header (100) - 1 = 99
   const dropdownOverlayStyle = {
@@ -200,10 +217,10 @@ export default function HeaderReportDropDown({
   useEffect(() => {
     if (showReportSubMenu) {
       setShowReportSubMenu(true);
-    } else if (!report && setShowReportSubMenu) {
+    } else if (!reportTypeExists && setShowReportSubMenu) {
       setShowReportSubMenu(false);
     }
-  }, [report]);
+  }, [reportTypeExists, showReportSubMenu]);
 
   const handleShowMenu = () => {
     if (setIsDropdownVisible) {
@@ -219,17 +236,28 @@ export default function HeaderReportDropDown({
     }
   };
 
+  // Default text to email report, even if this is an unknown reportType
+  // to be backwards compatable with previous default
+  const newReportText =
+    reportType === 'S3' ? t('Set up S3 report') : t('Set up an email report');
+  const activeReportText =
+    reportType === 'S3' ? t('S3 reports active') : t('Email reports active');
+  const editReportText =
+    reportType === 'S3' ? t('Edit S3 report') : t('Edit Email report');
+  const deleteReportText =
+    reportType === 'S3' ? t('Delete S3 report') : t('Delete Email report');
+
   const textMenu = () =>
-    isEmpty(report) ? (
+    !hasReportType(report) ? (
       <Menu selectable={false} {...rest} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
-              <div>{t('Set up an email report')}</div>
+              <div>{newReportText}</div>
               <DropdownItemExtension />
             </StyledDropdownItemWithIcon>
           ) : (
-            t('Set up an email report')
+            newReportText
           )}
         </Menu.Item>
         <Menu.Divider />
@@ -243,18 +271,19 @@ export default function HeaderReportDropDown({
           >
             <MenuItemWithCheckboxContainer>
               <Checkbox checked={isReportActive} onChange={noOp} />
-              {t('Email reports active')}
+              {activeReportText}
             </MenuItemWithCheckboxContainer>
           </Menu.Item>
           <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
-            {t('Edit email report')}
+            {editReportText}
           </Menu.Item>
           <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
-            {t('Delete email report')}
+            {deleteReportText}
           </Menu.Item>
         </Menu>
       )
     );
+
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
       <Menu.Item>
@@ -280,7 +309,7 @@ export default function HeaderReportDropDown({
   );
 
   const iconMenu = () =>
-    isEmpty(report) ? (
+    !hasReportType(report) ? (
       <span
         role="button"
         title={t('Schedule email report')}
@@ -316,6 +345,7 @@ export default function HeaderReportDropDown({
       {canAddReports() && (
         <>
           <ReportModal
+            type={reportType === 'S3' ? 's3 report' : 'email report'}
             userId={user.userId}
             show={showModal}
             onHide={() => setShowModal(false)}
@@ -326,6 +356,7 @@ export default function HeaderReportDropDown({
               dashboardId ? CreationMethod.Dashboards : CreationMethod.Charts
             }
           />
+
           {useTextMenu ? textMenu() : iconMenu()}
           {currentReportDeleting && (
             <DeleteModal
