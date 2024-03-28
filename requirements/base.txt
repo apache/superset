@@ -147,14 +147,16 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
     # via apache-superset
 holidays==0.25
     # via apache-superset
-humanize==3.11.0
+humanize==4.9.0
     # via apache-superset
 idna==3.2
     # via
