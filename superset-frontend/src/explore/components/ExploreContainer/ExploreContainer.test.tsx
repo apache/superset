@@ -20,7 +20,7 @@ import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 
-import ExploreContainer, { DraggingContext } from '.';
+import ExploreContainer, { DraggingContext, DropzoneContext } from '.';
 import OptionWrapper from '../controls/DndColumnSelectControl/OptionWrapper';
 
 const MockChildren = () => {
@@ -29,6 +29,24 @@ const MockChildren = () => {
     <div data-test="mock-children" className={dragging ? 'dragging' : ''}>
       {dragging ? 'dragging' : 'not dragging'}
     </div>
+  );
+};
+
+const MockChildren2 = () => {
+  const [zones, dispatch] = React.useContext(DropzoneContext);
+  return (
+    <>
+      <div data-test="mock-children">{Object.keys(zones).join(':')}</div>
+      <button
+        type="button"
+        onClick={() => dispatch({ key: 'test_item_1', canDrop: () => true })}
+      >
+        Add
+      </button>
+      <button type="button" onClick={() => dispatch({ key: 'test_item_1' })}>
+        Remove
+      </button>
+    </>
   );
 };
 
@@ -43,7 +61,7 @@ test('should render children', () => {
   expect(getByText('not dragging')).toBeInTheDocument();
 });
 
-test('should update the style on dragging state', () => {
+test('should propagate dragging state', () => {
   const defaultProps = {
     label: <span>Test label</span>,
     tooltipTitle: 'This is a tooltip title',
@@ -82,4 +100,24 @@ test('should update the style on dragging state', () => {
   // don't show dragging state for the sorting item
   fireEvent.dragStart(getByText('Label 2'));
   expect(container.getElementsByClassName('dragging')).toHaveLength(0);
+});
+
+test('should manage the dropValidators', () => {
+  const { queryByText, getByText } = render(
+    <ExploreContainer>
+      <MockChildren2 />
+    </ExploreContainer>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  expect(queryByText('test_item_1')).not.toBeInTheDocument();
+  const addDropValidatorButton = getByText('Add');
+  fireEvent.click(addDropValidatorButton);
+  expect(getByText('test_item_1')).toBeInTheDocument();
+  const removeDropValidatorButton = getByText('Remove');
+  fireEvent.click(removeDropValidatorButton);
+  expect(queryByText('test_item_1')).not.toBeInTheDocument();
 });
