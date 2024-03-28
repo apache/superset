@@ -312,6 +312,7 @@ class DashboardCopySchema(Schema):
             "description": "Whether or not to also copy all charts on the dashboard"
         }
     )
+    dashboard_title_RU = fields.String(description=dashboard_title_description)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
