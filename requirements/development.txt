@@ -69,9 +69,7 @@ fonttools==4.43.0
 freezegun==1.2.2
     # via -r requirements/development.in
 future==0.18.3
-    # via
-    #   pyhive
-    #   sqlalchemy-bigquery
+    # via pyhive
 gevent==24.2.1
     # via apache-superset
 google-api-core[grpc]==2.11.0
@@ -85,7 +83,7 @@ google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.10.0
+google-cloud-bigquery==3.20.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -106,7 +104,6 @@ grpcio==1.60.1
     # via
     #   -r requirements/development.in
     #   google-api-core
-    #   google-cloud-bigquery
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
@@ -189,13 +186,10 @@ progress==1.6
 prophet==1.1.5
     # via apache-superset
 proto-plus==1.22.2
-    # via
-    #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
+    # via google-cloud-bigquery-storage
 protobuf==4.23.0
     # via
     #   google-api-core
-    #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
