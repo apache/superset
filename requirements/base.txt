@@ -271,7 +271,7 @@ pycparser==2.20
     # via cffi
 pygments==2.15.0
     # via rich
-pyjwt==2.4.0
+pyjwt==2.8.0
     # via
     #   apache-superset
     #   flask-appbuilder
