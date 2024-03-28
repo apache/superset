@@ -21,7 +21,7 @@ import simplejson as json
 
 
 def md5_sha_from_str(val: str) -> str:
-    return hashlib.md5(val.encode("utf-8")).hexdigest()
+    return hashlib.md5(val.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
 def md5_sha_from_dict(

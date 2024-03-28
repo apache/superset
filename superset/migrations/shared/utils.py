@@ -54,7 +54,7 @@ def table_has_column(table: str, column: str) -> bool:
 
 uuid_by_dialect = {
     MySQLDialect: "UNHEX(REPLACE(CONVERT(UUID() using utf8mb4), '-', ''))",
-    PGDialect: "uuid_in(md5(random()::text || clock_timestamp()::text)::cstring)",
+    PGDialect: "uuid_in(sha256(random()::text || clock_timestamp()::text)::cstring)",
 }
 
 
