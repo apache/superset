@@ -2,7 +2,7 @@ import { spawnSync } from 'child_process';
 
 const REPO = 'apache/superset';
 const CACHE_REPO = `${REPO}-cache`;
-const BASE_PY_IMAGE = '3.9-slim-bookworm';
+const BASE_PY_IMAGE = '3.10-slim-bookworm';
 
 export function runCmd(command, raiseOnFailure = true) {
   const { stdout, stderr } = spawnSync(command, { shell: true, encoding: 'utf-8', env: process.env });

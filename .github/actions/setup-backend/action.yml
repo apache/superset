@@ -4,7 +4,7 @@ inputs:
   python-version:
     description: 'Python version to set up.'
     required: true
-    default: '3.9'
+    default: '3.10'
   cache:
     description: 'Cache dependencies. Options: pip'
     required: false
@@ -22,6 +22,9 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         cache: ${{ inputs.cache }}
+    - name: apt-get deps
+      shell: bash
+      run: sudo apt-get install -y libldap2-dev libsasl2-dev
     - name: Install dependencies
       run: |
         sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev

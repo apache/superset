@@ -54,7 +54,6 @@ body:
     attributes:
       label: Python version
       options:
-        - "3.9"
         - "3.10"
         - "3.11"
         - Not applicable
