@@ -76,12 +76,7 @@ function CrossLinks({
     () => (
       <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
         {crossLinks.map((link, index) => (
-          <Link
-            key={link.id}
-            to={linkPrefix + link.id}
-            target="_blank"
-            rel="noreferer noopener"
-          >
+          <Link key={link.id} to={linkPrefix + link.id}>
             {index === 0 ? link.title : `, ${link.title}`}
           </Link>
         ))}
