@@ -38,8 +38,7 @@ from tests.integration_tests.test_app import app
 
 @pytest.fixture
 def chart(app_context, load_world_bank_dashboard_with_slices) -> Slice:
-    session: Session = app_context.app.appbuilder.get_session
-    chart = session.query(Slice).filter_by(slice_name="World's Population").one()
+    chart = db.session.query(Slice).filter_by(slice_name="World's Population").one()
     return chart
 
 

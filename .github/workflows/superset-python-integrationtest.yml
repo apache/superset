@@ -3,10 +3,15 @@ name: Python-Integration
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/npm_and_yarn/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   test-mysql:
@@ -34,7 +39,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -46,21 +51,15 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
-      - name: Install dependencies
+      - name: Setup MySQL
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
             setup-mysql
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -73,7 +72,6 @@ jobs:
         if: steps.check.outcome == 'failure'
         run: |
           bash .github/workflows/codecov.sh -c -F python -F mysql
-
   test-postgres:
     runs-on: ubuntu-20.04
     strategy:
@@ -100,7 +98,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -112,21 +110,15 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
-      - name: Install dependencies
+      - name: Setup Postgres
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
         if: steps.check.outcome == 'failure'
@@ -150,7 +142,9 @@ jobs:
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: |
-        sqlite:///${{ github.workspace }}/.temp/unittest.db
+        sqlite:///${{ github.workspace }}/.temp/superset.db?check_same_thread=true
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: |
+        sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
         image: redis:7-alpine
@@ -158,7 +152,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -170,21 +164,16 @@ jobs:
         continue-on-error: true
         run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        uses: ./.github/actions/setup-backend/
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: 'requirements/testing.txt'
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
-            apt-get-install
-            pip-upgrade
-            pip install wheel
-            pip install -r requirements/testing.txt
+            # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
       - name: Run celery
         if: steps.check.outcome == 'failure'

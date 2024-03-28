@@ -17,14 +17,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  QueryColumn,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import React from 'react';
+import { QueryColumn, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ExtraControlProps,
   SharedControlConfig,
@@ -266,21 +260,3 @@ export const dndXAxisControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
   ...xAxisMixin,
 };
-
-export function withDndFallback(
-  DndComponent: React.ComponentType<any>,
-  FallbackComponent: React.ComponentType<any>,
-) {
-  return function DndControl(props: any) {
-    const enableExploreDnd = useMemo(
-      () => isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP),
-      [],
-    );
-
-    return enableExploreDnd ? (
-      <DndComponent {...props} />
-    ) : (
-      <FallbackComponent {...props} />
-    );
-  };
-}

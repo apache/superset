@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode, MouseEventHandler } from 'react';
 
 /**
  * A function which returns text (or marked-up text)
@@ -44,15 +44,15 @@ interface MenuObjectChildProps {
   disable?: boolean;
 }
 
-export interface SwitchProps {
-  isEditMode: boolean;
-  dbFetched: any;
-  disableSSHTunnelingForEngine?: boolean;
-  useSSHTunneling: boolean;
-  setUseSSHTunneling: React.Dispatch<React.SetStateAction<boolean>>;
-  setDB: React.Dispatch<any>;
-  isSSHTunneling: boolean;
-}
+// loose typing to avoid any circular dependencies
+// refer to SSHTunnelSwitch component for strict typing
+type SwitchProps = {
+  db: object;
+  changeMethods: {
+    onParametersChange: (event: any) => void;
+  };
+  clearValidationErrors: () => void;
+};
 
 type ConfigDetailsProps = {
   embeddedId: string;
@@ -127,12 +127,51 @@ export interface SQLResultTableExtentionProps {
   expandedColumns?: string[];
 }
 
+/**
+ * Interface for extensions to Slice Header
+ */
+export interface SliceHeaderExtension {
+  sliceId: number;
+  dashboardId: number;
+}
+
+/**
+ * Interface for extensions to Embed Modal
+ */
+export interface DashboardEmbedModalExtensions {
+  dashboardId: string;
+  show: boolean;
+  onHide: () => void;
+}
+
+export interface ButtonProps {
+  name: ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
+  'data-test'?: string;
+  buttonStyle:
+    | 'primary'
+    | 'secondary'
+    | 'dashed'
+    | 'link'
+    | 'warning'
+    | 'success'
+    | 'tertiary';
+}
+
+export interface SubMenuProps {
+  buttons?: Array<ButtonProps>;
+  name?: string | ReactNode;
+  activeChild?: string;
+}
+
 export type Extensions = Partial<{
   'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
+  'embedded.modal': React.ComponentType<DashboardEmbedModalExtensions>;
   'dashboard.nav.right': React.ComponentType;
+  'home.submenu': React.ComponentType<SubMenuProps>;
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
   'report-modal.dropdown.item.icon': React.ComponentType;
@@ -147,4 +186,5 @@ export type Extensions = Partial<{
   'dataset.delete.related': React.ComponentType<DatasetDeleteRelatedExtensionProps>;
   'sqleditor.extension.form': React.ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': React.ComponentType<SQLResultTableExtentionProps>;
+  'dashboard.slice.header': React.ComponentType<SliceHeaderExtension>;
 }>;

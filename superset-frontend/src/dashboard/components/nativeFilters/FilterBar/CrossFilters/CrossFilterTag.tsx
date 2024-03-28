@@ -71,7 +71,7 @@ const CrossFilterTag = (props: {
   return (
     <StyledTag
       css={css`
-        ${orientation === FilterBarOrientation.VERTICAL
+        ${orientation === FilterBarOrientation.Vertical
           ? `
             margin-top: ${theme.gridUnit * 2}px;
           `

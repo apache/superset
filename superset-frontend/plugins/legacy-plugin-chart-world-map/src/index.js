@@ -46,9 +46,9 @@ const metadata = new ChartMetadata({
   thumbnail,
   useLegacyApi: true,
   behaviors: [
-    Behavior.INTERACTIVE_CHART,
-    Behavior.DRILL_TO_DETAIL,
-    Behavior.DRILL_BY,
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
   ],
 });
 

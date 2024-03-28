@@ -29,6 +29,7 @@ import {
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -55,8 +56,8 @@ export type Chart = ChartState & {
 };
 
 export enum FilterBarOrientation {
-  VERTICAL = 'VERTICAL',
-  HORIZONTAL = 'HORIZONTAL',
+  Vertical = 'VERTICAL',
+  Horizontal = 'HORIZONTAL',
 }
 
 // chart's cross filter scoping can have its custom value or point to the global configuration
@@ -117,7 +118,6 @@ export type DashboardState = {
 export type DashboardInfo = {
   id: number;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
   };
   userId: string;
@@ -144,6 +144,7 @@ export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;
+  database?: Database;
 };
 export type DatasourcesState = {
   [key: string]: Datasource;
@@ -171,7 +172,7 @@ export type Layout = { [key: string]: LayoutItem };
 export type Charts = { [key: number]: Chart };
 
 type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
+export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 /** State of dashboardLayout item in redux */
 export type LayoutItem = {

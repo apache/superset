@@ -24,7 +24,7 @@ from flask_babel import _
 from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     extract_column_dtype,

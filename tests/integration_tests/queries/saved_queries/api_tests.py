@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 from zipfile import is_zipfile, ZipFile
@@ -24,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import yaml
 import pytest
 import prison
+from freezegun import freeze_time
 from sqlalchemy.sql import func, and_
 
 import tests.integration_tests.test_app
@@ -507,14 +509,17 @@ class TestSavedQueryApi(SupersetTestCase):
             db.session.query(SavedQuery).filter(SavedQuery.label == "label1").all()[0]
         )
         self.login(username="admin")
-        uri = f"api/v1/saved_query/{saved_query.id}"
-        rv = self.get_assert_metric(uri, "get")
-        assert rv.status_code == 200
+        with freeze_time(datetime.now()):
+            uri = f"api/v1/saved_query/{saved_query.id}"
+            rv = self.get_assert_metric(uri, "get")
+            assert rv.status_code == 200
 
         expected_result = {
             "id": saved_query.id,
             "database": {"id": saved_query.database.id, "database_name": "examples"},
             "description": "cool description",
+            "changed_by": None,
+            "changed_on_delta_humanized": "now",
             "created_by": {
                 "first_name": saved_query.created_by.first_name,
                 "id": saved_query.created_by.id,
@@ -527,9 +532,8 @@ class TestSavedQueryApi(SupersetTestCase):
             "template_parameters": None,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
-            if key not in ("changed_on_delta_humanized",):
+            if key != "changed_on":
                 assert value == expected_result[key]
 
     def test_get_saved_query_not_found(self):

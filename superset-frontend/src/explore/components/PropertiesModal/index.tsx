@@ -208,7 +208,7 @@ function PropertiesModal({
         }[]
       ).map(o => o.value);
     }
-    if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       // update tags
       try {
         fetchTags(
@@ -264,7 +264,7 @@ function PropertiesModal({
   }, [slice.slice_name]);
 
   useEffect(() => {
-    if (!isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) return;
+    if (!isFeatureEnabled(FeatureFlag.TaggingSystem)) return;
     try {
       fetchTags(
         {
@@ -426,10 +426,10 @@ function PropertiesModal({
                 )}
               </StyledHelpBlock>
             </FormItem>
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
               <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
             )}
-            {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) && (
+            {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
               <FormItem>
                 <AsyncSelect
                   ariaLabel="Tags"

@@ -18,19 +18,17 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import React, { FC, useCallback, useEffect, useMemo } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  FeatureFlag,
   Filter,
   Filters,
   getCategoricalSchemeRegistry,
-  isFeatureEnabled,
   SupersetClient,
   useComponentDidUpdate,
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
-import pick from 'lodash/pick';
+import { pick } from 'lodash';
 import Tabs from 'src/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -51,7 +49,7 @@ import { setColorScheme } from 'src/dashboard/actions/dashboardState';
 import jsonStringify from 'json-stringify-pretty-compact';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
-import { getRootLevelTabIndex, getRootLevelTabsComponent } from './utils';
+import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -89,22 +87,22 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     Object.values(state.charts).map(chart => chart.id),
   );
 
+  const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
       directPathToChild,
     });
 
-    return nextTabIndex > -1
-      ? nextTabIndex
-      : getRootLevelTabIndex(dashboardLayout, directPathToChild);
+    if (nextTabIndex === -1) {
+      return prevTabIndexRef.current ?? 0;
+    }
+    prevTabIndexRef.current = nextTabIndex;
+    return nextTabIndex;
   }, [dashboardLayout, directPathToChild]);
 
   useEffect(() => {
-    if (
-      !isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) ||
-      nativeFilterScopes.length === 0
-    ) {
+    if (nativeFilterScopes.length === 0) {
       return;
     }
     const scopes = nativeFilterScopes.map(filterScope => {

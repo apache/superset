@@ -24,11 +24,13 @@ from superset import db
 
 
 class VizType(str, Enum):
-    TREEMAP = "treemap"
-    DUAL_LINE = "dual_line"
     AREA = "area"
+    BUBBLE = "bubble"
+    DUAL_LINE = "dual_line"
+    LINE = "line"
     PIVOT_TABLE = "pivot_table"
     SUNBURST = "sunburst"
+    TREEMAP = "treemap"
 
 
 @click.group()
@@ -75,18 +77,22 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.migrations.shared.migrate_viz.processors import (
         MigrateAreaChart,
+        MigrateBubbleChart,
         MigrateDualLine,
+        MigrateLineChart,
         MigratePivotTable,
         MigrateSunburst,
         MigrateTreeMap,
     )
 
     migrations = {
-        VizType.TREEMAP: MigrateTreeMap,
-        VizType.DUAL_LINE: MigrateDualLine,
         VizType.AREA: MigrateAreaChart,
+        VizType.BUBBLE: MigrateBubbleChart,
+        VizType.DUAL_LINE: MigrateDualLine,
+        VizType.LINE: MigrateLineChart,
         VizType.PIVOT_TABLE: MigratePivotTable,
         VizType.SUNBURST: MigrateSunburst,
+        VizType.TREEMAP: MigrateTreeMap,
     }
     if is_downgrade:
         migrations[viz_type].downgrade(db.session)

@@ -38,7 +38,7 @@ export const useDatasetMetadataBar = ({
   const theme = useTheme();
   const [result, setResult] = useState<Dataset>();
   const [status, setStatus] = useState<ResourceStatus>(
-    datasetProps ? ResourceStatus.COMPLETE : ResourceStatus.LOADING,
+    datasetProps ? ResourceStatus.Complete : ResourceStatus.Loading,
   );
 
   useEffect(() => {
@@ -48,10 +48,10 @@ export const useDatasetMetadataBar = ({
       })
         .then(({ json: { result } }) => {
           setResult(result);
-          setStatus(ResourceStatus.COMPLETE);
+          setStatus(ResourceStatus.Complete);
         })
         .catch(() => {
-          setStatus(ResourceStatus.ERROR);
+          setStatus(ResourceStatus.Error);
         });
     }
   }, [datasetId, datasetProps]);
@@ -82,23 +82,23 @@ export const useDatasetMetadataBar = ({
           ? owners.map(owner => `${owner.first_name} ${owner.last_name}`)
           : [notAvailable];
       items.push({
-        type: MetadataType.TABLE,
+        type: MetadataType.Table,
         title: table_name,
       });
       items.push({
-        type: MetadataType.LAST_MODIFIED,
+        type: MetadataType.LastModified,
         value: changed_on_humanized,
         modifiedBy,
       });
       items.push({
-        type: MetadataType.OWNER,
+        type: MetadataType.Owner,
         createdBy,
         owners: formattedOwners,
         createdOn: created_on_humanized,
       });
       if (description) {
         items.push({
-          type: MetadataType.DESCRIPTION,
+          type: MetadataType.Description,
           value: description,
         });
       }
@@ -110,10 +110,10 @@ export const useDatasetMetadataBar = ({
           margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
-        {status === ResourceStatus.COMPLETE && (
+        {status === ResourceStatus.Complete && (
           <MetadataBar items={items} tooltipPlacement="bottom" />
         )}
-        {status === ResourceStatus.ERROR && (
+        {status === ResourceStatus.Error && (
           <Alert
             type="error"
             message={t('There was an error loading the dataset metadata')}

@@ -21,8 +21,8 @@ from uuid import uuid4
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
-from superset.charts.commands.exceptions import ChartDataQueryFailedError
-from superset.charts.data.commands.get_data_command import ChartDataCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
 from tests.integration_tests.base_tests import SupersetTestCase

@@ -149,7 +149,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20133%7D',
       slice_name: 'Rural Breakdown',
       form_data: {},
-      viz_type: 'sunburst',
+      viz_type: 'sunburst_v2',
       datasource: '2__table',
       description: null,
       description_markeddown: '',

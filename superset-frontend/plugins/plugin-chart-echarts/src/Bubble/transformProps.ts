@@ -28,9 +28,9 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps } from '../utils/series';
+import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
 import { Refs } from '../types';
-import { parseYAxisBound } from '../utils/controls';
+import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
@@ -84,6 +84,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     series: bubbleSeries,
     xAxisLabel: bubbleXAxisTitle,
     yAxisLabel: bubbleYAxisTitle,
+    xAxisBounds,
     xAxisFormat,
     yAxisFormat,
     yAxisBounds,
@@ -91,6 +92,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     logYAxis,
     xAxisTitleMargin,
     yAxisTitleMargin,
+    truncateXAxis,
     truncateYAxis,
     xAxisLabelRotation,
     yAxisLabelRotation,
@@ -104,7 +106,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const legends: string[] = [];
+  const legends = new Set<string>();
   const series: ScatterSeriesOption[] = [];
 
   const xAxisLabel: string = getMetricLabel(x);
@@ -114,9 +116,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const refs: Refs = {};
 
   data.forEach(datum => {
-    const name =
-      ((bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string) ||
-      NULL_STRING;
+    const dataName = bubbleSeries ? datum[bubbleSeries] : datum[entity];
+    const name = dataName ? String(dataName) : NULL_STRING;
     const bubbleSeriesValue = bubbleSeries ? datum[bubbleSeries] : null;
 
     series.push({
@@ -133,7 +134,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: 'scatter',
       itemStyle: { color: colorFn(name), opacity },
     });
-    legends.push(name);
+    legends.add(name);
   });
 
   normalizeSymbolSize(series, maxBubbleSize);
@@ -142,7 +143,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
 
-  const [min, max] = yAxisBounds.map(parseYAxisBound);
+  const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
+  const [yAxisMin, yAxisMax] = (yAxisBounds || []).map(parseAxisBound);
 
   const padding = getPadding(
     showLegend,
@@ -156,6 +158,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     convertInteger(xAxisTitleMargin),
   );
 
+  const xAxisType = logXAxis ? AxisType.Log : AxisType.Value;
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
@@ -173,7 +176,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         fontWight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
-      type: logXAxis ? AxisType.log : AxisType.value,
+      type: xAxisType,
+      ...getMinAndMaxFromBounds(xAxisType, truncateXAxis, xAxisMin, xAxisMax),
     },
     yAxis: {
       axisLabel: { formatter: yAxisFormatter },
@@ -190,13 +194,13 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         fontWight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
-      min,
-      max,
-      type: logYAxis ? AxisType.log : AxisType.value,
+      min: yAxisMin,
+      max: yAxisMax,
+      type: logYAxis ? AxisType.Log : AxisType.Value,
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
-      data: legends,
+      data: Array.from(legends),
     },
     tooltip: {
       show: !inContextMenu,

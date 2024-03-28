@@ -60,11 +60,12 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app, flash, g, Markup, request
+from flask import current_app, g, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
+from markupsafe import Markup
 from pandas.api.types import infer_dtype
 from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, inspect, select, Text
@@ -72,7 +73,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
+from sqlalchemy.types import TypeEngine
 from typing_extensions import TypeGuard
 
 from superset.constants import (
@@ -105,7 +106,7 @@ from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource, TableColumn
     from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -120,18 +121,6 @@ JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 InputType = TypeVar("InputType")  # pylint: disable=invalid-name
 
 ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
-
-
-class LenientEnum(Enum):
-    """Enums with a `get` method that convert a enum value to `Enum` if it is a
-    valid value."""
-
-    @classmethod
-    def get(cls, value: Any) -> Any:
-        try:
-            return super().__new__(cls, value)
-        except ValueError:
-            return None
 
 
 class AdhocMetricExpressionType(StrEnum):
@@ -280,15 +269,6 @@ class PostProcessingContributionOrientation(StrEnum):
     COLUMN = "column"
 
 
-class QueryMode(str, LenientEnum):
-    """
-    Whether the query runs on aggregate or returns raw records
-    """
-
-    RAW = "raw"
-    AGGREGATE = "aggregate"
-
-
 class QuerySource(Enum):
     """
     The source of a SQL query.
@@ -352,17 +332,6 @@ class ColumnSpec(NamedTuple):
     generic_type: GenericDataType
     is_dttm: bool
     python_date_format: str | None = None
-
-
-def flasher(msg: str, severity: str = "message") -> None:
-    """Flask's flash if available, logging call if not"""
-    try:
-        flash(msg, severity)
-    except RuntimeError:
-        if severity == "danger":
-            logger.error(msg, exc_info=True)
-        else:
-            logger.info(msg)
 
 
 def parse_js_uri_path_item(
@@ -448,15 +417,6 @@ def cast_to_boolean(value: Any) -> bool | None:
     return False
 
 
-def list_minus(l: list[Any], minus: list[Any]) -> list[Any]:
-    """Returns l without what is in minus
-
-    >>> list_minus([1, 2, 3], [2])
-    [1, 3]
-    """
-    return [o for o in l if o not in minus]
-
-
 class DashboardEncoder(json.JSONEncoder):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -472,22 +432,6 @@ class DashboardEncoder(json.JSONEncoder):
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
             return json.JSONEncoder(sort_keys=True).default(o)
-
-
-class JSONEncodedDict(TypeDecorator):  # pylint: disable=abstract-method
-    """Represents an immutable structure as a json-encoded string."""
-
-    impl = TEXT
-
-    def process_bind_param(
-        self, value: dict[Any, Any] | None, dialect: str
-    ) -> str | None:
-        return json.dumps(value) if value is not None else None
-
-    def process_result_value(
-        self, value: str | None, dialect: str
-    ) -> dict[Any, Any] | None:
-        return json.loads(value) if value is not None else None
 
 
 def format_timedelta(time_delta: timedelta) -> str:
@@ -879,6 +823,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     config: dict[str, Any],
     files: list[str] | None = None,
     data: dict[str, str] | None = None,
+    pdf: dict[str, bytes] | None = None,
     images: dict[str, bytes] | None = None,
     dryrun: bool = False,
     cc: str | None = None,
@@ -933,6 +878,15 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         msg.attach(
             MIMEApplication(
                 body, Content_Disposition=f"attachment; filename='{name}'", Name=name
+            )
+        )
+
+    for name, body_pdf in (pdf or {}).items():
+        msg.attach(
+            MIMEApplication(
+                body_pdf,
+                Content_Disposition=f"attachment; filename='{name}'",
+                Name=name,
             )
         )
 
@@ -993,13 +947,6 @@ def get_email_address_list(address_string: str) -> list[str]:
     if isinstance(address_string, str):
         address_string_list = re.split(r",|\s|;", address_string)
     return [x.strip() for x in address_string_list if x.strip()]
-
-
-def get_email_address_str(address_string: str) -> str:
-    address_list = get_email_address_list(address_string)
-    address_list_str = ", ".join(address_list)
-
-    return address_list_str
 
 
 def choicify(values: Iterable[Any]) -> list[tuple[Any, Any]]:
@@ -1122,7 +1069,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
 def merge_extra_filters(form_data: dict[str, Any]) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
-    # interactive filters like the ones emitted by the "Filter Box" visualization.
+    # interactive filters.
     # Note extra_filters only support simple filters.
     form_data.setdefault("applied_time_extras", {})
     adhoc_filters = form_data.get("adhoc_filters", [])
@@ -1408,6 +1355,15 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
         form_data["filters"] = simple_where_filters
 
 
+def get_user() -> User | None:
+    """
+    Get the current user (if defined).
+
+    :returns: The current user
+    """
+    return g.user if hasattr(g, "user") else None
+
+
 def get_username() -> str | None:
     """
     Get username (if defined) associated with the current user.
@@ -1435,6 +1391,19 @@ def get_user_id() -> int | None:
 
     try:
         return g.user.id
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+def get_user_email() -> str | None:
+    """
+    Get the email (if defined) associated with the current user.
+
+    :returns: The email
+    """
+
+    try:
+        return g.user.email
     except Exception:  # pylint: disable=broad-except
         return None
 
@@ -1692,22 +1661,13 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: BaseColumn) -> GenericDataType:
+def extract_column_dtype(col: TableColumn) -> GenericDataType:
     if col.is_temporal:
         return GenericDataType.TEMPORAL
     if col.is_numeric:
         return GenericDataType.NUMERIC
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
-
-
-def indexed(items: list[Any], key: str | Callable[[Any], Any]) -> dict[Any, list[Any]]:
-    """Build an index for a list of objects"""
-    idx: dict[Any, Any] = {}
-    for item in items:
-        key_ = getattr(item, key) if isinstance(key, str) else key(item)
-        idx.setdefault(key_, []).append(item)
-    return idx
 
 
 def is_test() -> bool:

@@ -34,7 +34,7 @@ export default class TimeFormatterRegistry extends RegistryWithDefaultKey<
     super({
       initialDefaultKey: TimeFormats.DATABASE_DATETIME,
       name: 'TimeFormatter',
-      overwritePolicy: OverwritePolicy.WARN,
+      overwritePolicy: OverwritePolicy.Warn,
     });
 
     this.d3Format = DEFAULT_D3_TIME_FORMAT;

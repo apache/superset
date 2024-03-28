@@ -26,10 +26,15 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './constants';
-import { legendSection } from '../controls';
+import {
+  legendSection,
+  truncateXAxis,
+  xAxisBounds,
+  xAxisLabelRotation,
+} from '../controls';
+import { defaultYAxis } from '../defaults';
 
-const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation, opacity } =
-  DEFAULT_FORM_DATA;
+const { logAxis, truncateYAxis, yAxisBounds, opacity } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -127,26 +132,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [
-          {
-            name: 'xAxisLabelRotation',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              clearable: false,
-              label: t('Rotate x axis label'),
-              choices: [
-                [0, '0°'],
-                [45, '45°'],
-              ],
-              default: xAxisLabelRotation,
-              renderTrigger: true,
-              description: t(
-                'Input field supports custom rotation. e.g. 30 for 30°',
-              ),
-            },
-          },
-        ],
+        [xAxisLabelRotation],
         [
           {
             name: 'x_axis_title_margin',
@@ -211,7 +197,7 @@ const config: ControlPanelConfig = {
                 [0, '0°'],
                 [45, '45°'],
               ],
-              default: xAxisLabelRotation,
+              default: defaultYAxis.yAxisLabelRotation,
               renderTrigger: true,
               description: t(
                 'Input field supports custom rotation. e.g. 30 for 30°',
@@ -246,6 +232,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [truncateXAxis],
+        [xAxisBounds],
         [
           {
             name: 'truncateYAxis',

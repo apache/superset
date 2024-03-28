@@ -33,14 +33,6 @@ export const mockDataMaskInfo: DataMaskStateWithId = {
 };
 
 export const nativeFiltersInfo: NativeFiltersState = {
-  filterSets: {
-    '1': {
-      id: 1,
-      name: 'Set name',
-      nativeFilters: {},
-      dataMask: mockDataMaskInfo,
-    },
-  },
   filters: {
     DefaultsID: {
       cascadeParentIds: [],
@@ -69,7 +61,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
         allowsMultipleValues: true,
         isRequired: false,
       },
-      type: NativeFilterType.NATIVE_FILTER,
+      type: NativeFilterType.NativeFilter,
       description: 'test description',
     },
   },

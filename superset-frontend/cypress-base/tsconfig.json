@@ -11,5 +11,6 @@
     "noEmit": true
   },
   "files": ["cypress/support/index.d.ts", "./node_modules/@applitools/eyes-cypress/eyes-index.d.ts"],
-  "include": ["node_modules/cypress", "cypress/**/*.ts"]
+  "include": ["cypress/**/*.ts", "./cypress.config.ts"],
+  "exclude": ["node_modules"]
 }

@@ -26,16 +26,15 @@
   "dependencies": {
     "@react-icons/all-files": "^4.1.0",
     "@types/d3-array": "^2.9.0",
-    "@types/enzyme": "^3.10.5",
-    "@types/react-table": "^7.0.29",
-    "classnames": "^2.3.2",
+    "@types/enzyme": "^3.10.18",
+    "@types/react-table": "^7.7.19",
+    "classnames": "^2.5.1",
     "d3-array": "^2.4.0",
     "lodash": "^4.17.21",
-    "match-sorter": "^6.3.0",
     "memoize-one": "^5.1.1",
-    "react-table": "^7.6.3",
+    "react-table": "^7.8.0",
     "regenerator-runtime": "^0.13.7",
-    "xss": "^1.0.10"
+    "xss": "^1.0.14"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
@@ -47,6 +46,7 @@
     "@testing-library/user-event": "^12.7.0",
     "@types/classnames": "*",
     "@types/react": "*",
+    "match-sorter": "^6.3.3",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },

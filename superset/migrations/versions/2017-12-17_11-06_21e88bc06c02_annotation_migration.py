@@ -69,7 +69,6 @@ def upgrade():
                 )
             params["annotation_layers"] = new_layers
             slc.params = json.dumps(params)
-            session.merge(slc)
             session.commit()
     session.close()
 
@@ -86,6 +85,5 @@ def downgrade():
         if layers:
             params["annotation_layers"] = [layer["value"] for layer in layers]
             slc.params = json.dumps(params)
-            session.merge(slc)
             session.commit()
     session.close()

@@ -74,8 +74,6 @@ class TestRowLevelSecurity(SupersetTestCase):
     BASE_FILTER_REGEX = re.compile(r"gender = 'boy'")
 
     def setUp(self):
-        session = db.session
-
         # Create roles
         self.role_ab = security_manager.add_role(self.NAME_AB_ROLE)
         self.role_q = security_manager.add_role(self.NAME_Q_ROLE)
@@ -83,13 +81,13 @@ class TestRowLevelSecurity(SupersetTestCase):
         gamma_user.roles.append(self.role_ab)
         gamma_user.roles.append(self.role_q)
         self.create_user_with_roles("NoRlsRoleUser", ["Gamma"])
-        session.commit()
+        db.session.commit()
 
         # Create regular RowLevelSecurityFilter (energy_usage, unicode_test)
         self.rls_entry1 = RowLevelSecurityFilter()
         self.rls_entry1.name = "rls_entry1"
         self.rls_entry1.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["energy_usage", "unicode_test"]))
             .all()
         )
@@ -104,7 +102,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry2 = RowLevelSecurityFilter()
         self.rls_entry2.name = "rls_entry2"
         self.rls_entry2.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -118,7 +116,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry3 = RowLevelSecurityFilter()
         self.rls_entry3.name = "rls_entry3"
         self.rls_entry3.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -132,7 +130,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.rls_entry4 = RowLevelSecurityFilter()
         self.rls_entry4.name = "rls_entry4"
         self.rls_entry4.tables.extend(
-            session.query(SqlaTable)
+            db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(["birth_names"]))
             .all()
         )
@@ -145,15 +143,14 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.commit()
 
     def tearDown(self):
-        session = db.session
-        session.delete(self.rls_entry1)
-        session.delete(self.rls_entry2)
-        session.delete(self.rls_entry3)
-        session.delete(self.rls_entry4)
-        session.delete(security_manager.find_role("NameAB"))
-        session.delete(security_manager.find_role("NameQ"))
-        session.delete(self.get_user("NoRlsRoleUser"))
-        session.commit()
+        db.session.delete(self.rls_entry1)
+        db.session.delete(self.rls_entry2)
+        db.session.delete(self.rls_entry3)
+        db.session.delete(self.rls_entry4)
+        db.session.delete(security_manager.find_role("NameAB"))
+        db.session.delete(security_manager.find_role("NameQ"))
+        db.session.delete(self.get_user("NoRlsRoleUser"))
+        db.session.commit()
 
     @pytest.fixture()
     def create_dataset(self):
@@ -276,7 +273,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-            "WHERE ((name like 'A%'\n        or name like 'B%')\n       OR (name like 'Q%'))\n  AND (gender = 'boy');"
+            "WHERE\n  (\n    (\n      name LIKE 'A%' OR name LIKE 'B%'\n    ) OR (\n      name LIKE 'Q%'\n    )\n  )\n  AND (\n    gender = 'boy'\n  )"
             in sql
         )
 
@@ -622,7 +619,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
-RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
+RLS_GENDER_REGEX = re.compile(r"AND \([\s\n]*gender = 'girl'[\s\n]*\)")
 
 
 @mock.patch.dict(

@@ -22,12 +22,12 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.css_templates.commands.delete import DeleteCssTemplateCommand
-from superset.css_templates.commands.exceptions import (
+from superset.commands.css.delete import DeleteCssTemplateCommand
+from superset.commands.css.exceptions import (
     CssTemplateDeleteFailedError,
     CssTemplateNotFoundError,
 )
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.css_templates.filters import CssTemplateAllTextFilter
 from superset.css_templates.schemas import (
     get_delete_ids_schema,
@@ -54,6 +54,10 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     show_columns = [
+        "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.id",
+        "changed_by.last_name",
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
@@ -79,7 +83,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
     order_columns = ["template_name"]
 
     search_filters = {"template_name": [CssTemplateAllTextFilter]}
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

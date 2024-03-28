@@ -2,18 +2,27 @@ name: Frontend
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/**/docs/**"
-      - "dependabot/**/cypress-base/**"
+    branches:
+      - "master"
+      - "[0-9].[0-9]"
+    paths:
+      - "superset-frontend/**"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset-frontend/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   frontend-build:
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -28,7 +37,7 @@ jobs:
         run: ./scripts/ci_check_no_file_changes.sh frontend
       - name: Setup Node.js
         if: steps.check.outcome == 'failure'
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "16"
       - name: Install dependencies
@@ -36,11 +45,20 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
-      - name: lint
+      - name: eslint
         if: steps.check.outcome == 'failure'
         working-directory: ./superset-frontend
         run: |
-          npm run lint -- --quiet
+          npm run eslint -- . --quiet
+      - name: tsc
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: |
+          npm run type
+      - name: prettier
+        if: steps.check.outcome == 'failure'
+        working-directory: ./superset-frontend
+        run: |
           npm run prettier-check
       - name: Build plugins packages
         if: steps.check.outcome == 'failure'

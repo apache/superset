@@ -61,8 +61,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
             hidden_dash.slices = [slice]
             hidden_dash.published = False
 
-            db.session.merge(published_dash)
-            db.session.merge(hidden_dash)
+            db.session.add(published_dash)
+            db.session.add(hidden_dash)
             yield db.session.commit()
 
             self.revoke_public_access_to_table(table)
@@ -192,4 +192,4 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
-        DashboardDAO.delete(dashboard)
+        DashboardDAO.delete([dashboard])

@@ -31,20 +31,6 @@ say() {
   fi
 }
 
-# default command to run when the `run` input is empty
-default-setup-command() {
-  apt-get-install
-  pip-upgrade
-}
-
-apt-get-install() {
-  say "::group::apt-get install dependencies"
-  sudo apt-get update && sudo apt-get install --yes \
-    libsasl2-dev \
-    libldap2-dev
-  say "::endgroup::"
-}
-
 pip-upgrade() {
   say "::group::Upgrade pip"
   pip install --upgrade pip
@@ -157,16 +143,18 @@ cypress-run() {
   local browser=${CYPRESS_BROWSER:-chrome}
 
   export TERM="xterm"
+  export ELECTRON_DISABLE_GPU=true # Attempt to disable GPU for Electron-based Cypress
 
   say "::group::Run Cypress for [$page]"
   if [[ -z $CYPRESS_KEY ]]; then
-    $cypress --spec "cypress/e2e/$page" --browser "$browser"
+    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser"
   else
     export CYPRESS_RECORD_KEY=$(echo $CYPRESS_KEY | base64 --decode)
     # additional flags for Cypress dashboard recording
-    $cypress --spec "cypress/e2e/$page" --browser "$browser" \
+    xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' $cypress --spec "cypress/e2e/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \
       --parallel --ci-build-id "${GITHUB_SHA:0:8}-${NONCE}"
+
   fi
 
   # don't add quotes to $record because we do want word splitting

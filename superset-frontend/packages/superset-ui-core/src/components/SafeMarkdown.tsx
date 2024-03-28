@@ -44,7 +44,7 @@ function SafeMarkdown({
   htmlSanitization = true,
   htmlSchemaOverrides = {},
 }: SafeMarkdownProps) {
-  const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
+  const escapeHtml = isFeatureEnabled(FeatureFlag.EscapeMarkdownHtml);
 
   const rehypePlugins = useMemo(() => {
     const rehypePlugins: any = [];
@@ -67,6 +67,7 @@ function SafeMarkdown({
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
       skipHtml={false}
+      transformLinkUri={null}
     >
       {source}
     </ReactMarkdown>

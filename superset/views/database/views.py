@@ -307,7 +307,6 @@ class ExcelToDatabaseView(SimpleFormView):
 
     def form_get(self, form: ExcelToDatabaseForm) -> None:
         form.header.data = 0
-        form.mangle_dupe_cols.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
         form.sheet_name.data = ""
@@ -343,7 +342,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 index_col=form.index_col.data,
                 io=form.excel_file.data,
                 keep_default_na=not form.null_values.data,
-                na_values=form.null_values.data if form.null_values.data else None,
+                na_values=form.null_values.data if form.null_values.data else [],
                 parse_dates=form.parse_dates.data,
                 skiprows=form.skiprows.data,
                 sheet_name=form.sheet_name.data if form.sheet_name.data else 0,

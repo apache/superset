@@ -21,10 +21,10 @@ import pytest
 
 from superset import app, db, security, security_manager
 from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
+from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.connectors.sqla.models import SqlaTable
-from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.permalink.commands.create import CreateExplorePermalinkCommand
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.key_value.utils import decode_permalink_id
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
@@ -43,22 +43,22 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
                 schema=get_example_default_schema(),
                 sql="select 123 as intcol, 'abc' as strcol",
             )
-            session = db.session
-            session.add(dataset)
-            session.commit()
+            db.session.add(dataset)
+            db.session.commit()
 
             yield dataset
 
             # rollback
-            session.delete(dataset)
-            session.commit()
+            db.session.delete(dataset)
+            db.session.commit()
 
     @pytest.fixture()
     def create_slice(self):
         with self.create_app().app_context():
-            session = db.session
             dataset = (
-                session.query(SqlaTable).filter_by(table_name="dummy_sql_table").first()
+                db.session.query(SqlaTable)
+                .filter_by(table_name="dummy_sql_table")
+                .first()
             )
             slice = Slice(
                 datasource_id=dataset.id,
@@ -67,34 +67,32 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
                 slice_name="slice_name",
             )
 
-            session.add(slice)
-            session.commit()
+            db.session.add(slice)
+            db.session.commit()
 
             yield slice
 
             # rollback
-            session.delete(slice)
-            session.commit()
+            db.session.delete(slice)
+            db.session.commit()
 
     @pytest.fixture()
     def create_query(self):
         with self.create_app().app_context():
-            session = db.session
-
             query = Query(
                 sql="select 1 as foo;",
                 client_id="sldkfjlk",
                 database=get_example_database(),
             )
 
-            session.add(query)
-            session.commit()
+            db.session.add(query)
+            db.session.commit()
 
             yield query
 
             # rollback
-            session.delete(query)
-            session.commit()
+            db.session.delete(query)
+            db.session.commit()
 
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("create_dataset", "create_slice")
@@ -138,8 +136,8 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         assert cache_data.get("datasource") == datasource
 
     @patch("superset.security.manager.g")
-    @patch("superset.key_value.commands.get.GetKeyValueCommand.run")
-    @patch("superset.explore.permalink.commands.get.decode_permalink_id")
+    @patch("superset.commands.key_value.get.GetKeyValueCommand.run")
+    @patch("superset.commands.explore.permalink.get.decode_permalink_id")
     @pytest.mark.usefixtures("create_dataset", "create_slice")
     def test_get_permalink_command_with_old_dataset_key(
         self, decode_id_mock, get_kv_command_mock, mock_g

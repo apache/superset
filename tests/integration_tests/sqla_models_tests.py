@@ -132,14 +132,15 @@ class TestDatabaseModel(SupersetTestCase):
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
             self.assertTrue(col.is_temporal)
 
-    @patch("superset.jinja_context.g")
-    def test_extra_cache_keys(self, flask_g):
-        flask_g.user.username = "abc"
+    @patch("superset.jinja_context.get_user_id", return_value=1)
+    @patch("superset.jinja_context.get_username", return_value="abc")
+    @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
+    def test_extra_cache_keys(self, mock_user_email, mock_username, mock_user_id):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["user"],
+            "groupby": ["id", "username", "email"],
             "metrics": [],
             "is_timeseries": False,
             "filter": [],
@@ -148,19 +149,29 @@ class TestDatabaseModel(SupersetTestCase):
         # Table with Jinja callable.
         table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
-            sql="SELECT '{{ current_username() }}' as user",
+            sql="""
+            SELECT
+              '{{ current_user_id() }}' as id,
+              '{{ current_username() }}' as username,
+              '{{ current_user_email() }}' as email
+            """,
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
         extra_cache_keys = table1.get_extra_cache_keys(query_obj)
         self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
-        assert extra_cache_keys == ["abc"]
+        assert extra_cache_keys == [1, "abc", "abc@test.com"]
 
         # Table with Jinja callable disabled.
         table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
-            sql="SELECT '{{ current_username(False) }}' as user",
+            sql="""
+            SELECT
+              '{{ current_user_id(False) }}' as id,
+              '{{ current_username(False) }}' as username,
+              '{{ current_user_email(False) }}' as email,
+            """,
             database=get_example_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
@@ -189,9 +200,8 @@ class TestDatabaseModel(SupersetTestCase):
         self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
-    @patch("superset.jinja_context.g")
-    def test_jinja_metrics_and_calc_columns(self, flask_g):
-        flask_g.user.username = "abc"
+    @patch("superset.jinja_context.get_username", return_value="abc")
+    def test_jinja_metrics_and_calc_columns(self, mock_username):
         base_query_obj = {
             "granularity": None,
             "from_dttm": None,
@@ -242,10 +252,11 @@ class TestDatabaseModel(SupersetTestCase):
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
         # assert virtual dataset
-        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        assert "SELECT\n  'user_abc' AS user,\n  'xyz_P1D' AS time_grain" in query
         # assert dataset calculated column
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
         # assert adhoc column
         assert "'foo_P1D'" in query
         # assert dataset saved metric
@@ -254,6 +265,61 @@ class TestDatabaseModel(SupersetTestCase):
         assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
+        db.session.commit()
+
+    @patch("superset.views.utils.get_form_data")
+    def test_jinja_metric_macro(self, mock_form_data_context):
+        self.login(username="admin")
+        table = self.get_table(name="birth_names")
+        metric = SqlMetric(
+            metric_name="count_jinja_metric", expression="count(*)", table=table
+        )
+        db.session.commit()
+
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "columns": [],
+            "metrics": [
+                {
+                    "hasCustomLabel": True,
+                    "label": "Metric using Jinja macro",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric') }}",
+                },
+                {
+                    "hasCustomLabel": True,
+                    "label": "Same but different",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric', "
+                    + str(table.id)
+                    + ") }}",
+                },
+            ],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
+        }
+        mock_form_data_context.return_value = [
+            {
+                "url_params": {
+                    "datasource_id": table.id,
+                }
+            },
+            None,
+        ]
+        sqla_query = table.get_sqla_query(**base_query_obj)
+        query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
+        database = table.database
+        with database.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
+
+        for metric_label in {"metric using jinja macro", "same but different"}:
+            assert f"count(*) as {quote(metric_label)}" in query.lower()
+
+        db.session.delete(metric)
         db.session.commit()
 
     def test_adhoc_metrics_and_calc_columns(self):
@@ -738,7 +804,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         {
             "operator": FilterOperator.NOT_EQUALS.value,
             "count": 0,
-            "sql_should_contain": "COL4 IS NOT NULL",
+            "sql_should_contain": "NOT COL4 IS NULL",
         },
     ]
     for expected in expected_results:

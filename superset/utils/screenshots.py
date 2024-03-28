@@ -201,7 +201,7 @@ class BaseScreenshot:
             logger.debug("Cropping to: %s*%s", str(img.size[0]), str(desired_width))
             img = img.crop((0, 0, img.size[0], desired_width))
         logger.debug("Resizing to %s", str(thumb_size))
-        img = img.resize(thumb_size, Image.ANTIALIAS)
+        img = img.resize(thumb_size, Image.Resampling.LANCZOS)
         new_img = BytesIO()
         if output != "png":
             img = img.convert("RGB")

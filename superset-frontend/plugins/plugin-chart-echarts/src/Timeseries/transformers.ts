@@ -64,7 +64,7 @@ import {
   formatAnnotationLabel,
   parseAnnotationOpacity,
 } from '../utils/annotation';
-import { getChartPadding } from '../utils/series';
+import { getChartPadding, getTimeCompareStackId } from '../utils/series';
 import {
   OpacityEnum,
   StackControlsValue,
@@ -166,6 +166,7 @@ export function transformSeries(
     isHorizontal?: boolean;
     lineStyle?: LineStyleOption;
     queryIndex?: number;
+    timeCompare?: string[];
   },
 ): SeriesOption | undefined {
   const { name } = series;
@@ -190,6 +191,7 @@ export function transformSeries(
     sliceId,
     isHorizontal = false,
     queryIndex = 0,
+    timeCompare = [],
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -219,9 +221,9 @@ export function transformSeries(
   } else if (stack && isObservation) {
     // the suffix of the observation series is '' (falsy), which disables
     // stacking. Therefore we need to set something that is truthy.
-    stackId = 'obs';
+    stackId = getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
-    stackId = forecastSeries.type;
+    stackId = getTimeCompareStackId(forecastSeries.type, timeCompare, name);
   }
   let plotType;
   if (
@@ -552,6 +554,7 @@ export function getPadding(
   yAxisTitlePosition?: string,
   yAxisTitleMargin?: number,
   xAxisTitleMargin?: number,
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -562,21 +565,29 @@ export function getPadding(
     ? TIMESERIES_CONSTANTS.yAxisLabelTopOffset
     : 0;
   const xAxisOffset = addXAxisTitleOffset ? Number(xAxisTitleMargin) || 0 : 0;
-  return getChartPadding(showLegend, legendOrientation, margin, {
-    top:
-      yAxisTitlePosition && yAxisTitlePosition === 'Top'
-        ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-        : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
-    bottom: zoomable
-      ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
-      : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
-    left:
-      yAxisTitlePosition === 'Left'
-        ? TIMESERIES_CONSTANTS.gridOffsetLeft + (Number(yAxisTitleMargin) || 0)
-        : TIMESERIES_CONSTANTS.gridOffsetLeft,
-    right:
-      showLegend && legendOrientation === LegendOrientation.Right
-        ? 0
-        : TIMESERIES_CONSTANTS.gridOffsetRight,
-  });
+  return getChartPadding(
+    showLegend,
+    legendOrientation,
+    margin,
+    {
+      top:
+        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+          ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+      bottom:
+        zoomable && !isHorizontal
+          ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
+          : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
+      left:
+        yAxisTitlePosition === 'Left'
+          ? TIMESERIES_CONSTANTS.gridOffsetLeft +
+            (Number(yAxisTitleMargin) || 0)
+          : TIMESERIES_CONSTANTS.gridOffsetLeft,
+      right:
+        showLegend && legendOrientation === LegendOrientation.Right
+          ? 0
+          : TIMESERIES_CONSTANTS.gridOffsetRight,
+    },
+    isHorizontal,
+  );
 }

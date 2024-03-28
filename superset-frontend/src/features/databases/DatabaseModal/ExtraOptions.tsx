@@ -202,7 +202,7 @@ const ExtraOptions = ({
                 />
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
+            <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
                   id="disable_data_preview"
@@ -216,6 +216,22 @@ const ExtraOptions = ({
                     'Disable data preview when fetching table metadata in SQL Lab. ' +
                       ' Useful to avoid browser performance issues when using ' +
                       ' databases with very wide tables.',
+                  )}
+                />
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
+              <div className="input-container">
+                <IndeterminateCheckbox
+                  id="expand_rows"
+                  indeterminate={false}
+                  checked={!!extraJson?.schema_options?.expand_rows}
+                  onChange={onExtraInputChange}
+                  labelText={t('Enable row expansion in schemas')}
+                />
+                <InfoTooltip
+                  tooltip={t(
+                    'For Trino, describe full schemas of nested ROW types, expanding them with dotted paths',
                   )}
                 />
               </div>
@@ -553,6 +569,22 @@ const ExtraOptions = ({
               'Specify the database version. This is used with Presto for query cost ' +
                 'estimation, and Dremio for syntax changes, among others.',
             )}
+          </div>
+        </StyledInputContainer>
+        <StyledInputContainer css={no_margin_bottom}>
+          <div className="input-container">
+            <IndeterminateCheckbox
+              id="disable_drill_to_detail"
+              indeterminate={false}
+              checked={!!extraJson?.disable_drill_to_detail}
+              onChange={onExtraInputChange}
+              labelText={t('Disable drill to detail')}
+            />
+            <InfoTooltip
+              tooltip={t(
+                'Disables the drill to detail feature for this database.',
+              )}
+            />
           </div>
         </StyledInputContainer>
       </Collapse.Panel>

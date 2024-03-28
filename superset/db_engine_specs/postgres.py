@@ -24,7 +24,6 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
-import sqlparse
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -37,6 +36,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql_parse import SQLScript
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -182,8 +182,21 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
 
-class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
+        if isinstance(sqla_type, Date):
+            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        if isinstance(sqla_type, DateTime):
+            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
+        return None
+
+
+class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
     engine_aliases = {"postgres"}
     supports_dynamic_schema = True
@@ -268,8 +281,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         This method simply uses the parent method after checking that there are no
         malicious path setting in the query.
         """
-        sql = sqlparse.format(query.sql, strip_comments=True)
-        if re.search(r"set\s+search_path\s*=", sql, re.IGNORECASE):
+        script = SQLScript(query.sql, engine=cls.engine)
+        settings = script.get_settings()
+        if "search_path" in settings:
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
@@ -356,19 +370,6 @@ WHERE datistemplate = false;
         return set(inspector.get_table_names(schema)) | set(
             inspector.get_foreign_table_names(schema)
         )
-
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
-    ) -> str | None:
-        sqla_type = cls.get_sqla_column_type(target_type)
-
-        if isinstance(sqla_type, Date):
-            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if isinstance(sqla_type, DateTime):
-            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
-            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
-        return None
 
     @staticmethod
     def get_extra_params(database: Database) -> dict[str, Any]:

@@ -35,9 +35,9 @@ describe('Dashboards filters', () => {
     setFilter('Owner', 'admin user');
   });
 
-  it('should allow filtering by "Created by" correctly', () => {
-    setFilter('Created by', 'alpha user');
-    setFilter('Created by', 'admin user');
+  it('should allow filtering by "Modified by" correctly', () => {
+    setFilter('Modified by', 'alpha user');
+    setFilter('Modified by', 'admin user');
   });
 
   it('should allow filtering by "Status" correctly', () => {

@@ -180,6 +180,51 @@ See [Translating](#translating) for more details.
 
 There is a dedicated [`apache-superset` tag](https://stackoverflow.com/questions/tagged/apache-superset) on [StackOverflow](https://stackoverflow.com/). Please use it when asking questions.
 
+## Types of Contributors
+
+Following the project governance model of the Apache Software Foundation (ASF), Apache Superset has a specific set of contributor roles:
+
+### PMC Member
+
+A Project Management Committee (PMC) member is a person who has been elected by the PMC to help manage the project. PMC members are responsible for the overall health of the project, including community development, release management, and project governance. PMC members are also responsible for the technical direction of the project.
+
+For more information about Apache Project PMCs, please refer to https://www.apache.org/foundation/governance/pmcs.html
+
+### Committer
+
+A committer is a person who has been elected by the PMC to have write access (commit access) to the code repository. They can modify the code, documentation, and website and accept contributions from others.
+
+The official list of committers and PMC members can be found [here](https://projects.apache.org/committee.html?superset).
+
+### Contributor
+
+A contributor is a person who has contributed to the project in any way, including but not limited to code, tests, documentation, issues, and discussions.
+
+> You can also review the Superset project's guidelines for PMC member promotion here: https://github.com/apache/superset/wiki/Guidelines-for-promoting-Superset-Committers-to-the-Superset-PMC
+
+### Security Team
+
+The security team is a selected subset of PMC members, committers and non-committers who are responsible for handling security issues.
+
+New members of the security team are selected by the PMC members in a vote. You can request to be added to the team by sending a message to private@superset.apache.org. However, the team should be small and focused on solving security issues, so the requests will be evaluated on a case-by-case basis and the team size will be kept relatively small, limited to only actively security-focused contributors.
+
+This security team must follow the [ASF vulnerability handling process](https://apache.org/security/committers.html#asf-project-security-for-committers).
+
+Each new security issue is tracked as a JIRA ticket on the [ASF's JIRA Superset security project](https://issues.apache.org/jira/secure/RapidBoard.jspa?rapidView=588&projectKey=SUPERSETSEC)
+
+Security team members must:
+
+- Have an [ICLA](https://www.apache.org/licenses/contributor-agreements.html) signed with Apache Software Foundation.
+- Not reveal information about pending and unfixed security issues to anyone (including their employers) unless specifically authorised by the security team members, e.g., if the security team agrees that diagnosing and solving an issue requires the involvement of external experts.
+
+A release manager, the contributor overseeing the release of a specific version of Apache Superset, is by default a member of the security team.  However, they are not expected to be active in assessing, discussing, and fixing security issues.
+
+Security team members should also follow these general expectations:
+
+- Actively participate in assessing, discussing, fixing, and releasing security issues in Superset.
+- Avoid discussing security fixes in public forums. Pull request (PR) descriptions should not contain any information about security issues. The corresponding JIRA ticket should contain a link to the PR.
+- Security team members who contribute to a fix may be listed as remediation developers in the CVE report, along with their job affiliation (if they choose to include it).
+
 ## Pull Request Guidelines
 
 A philosophy we would like to strongly encourage is
@@ -424,7 +469,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
+Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -432,7 +477,7 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/testing.txt
+pip install -r requirements/development.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
@@ -486,7 +531,7 @@ If you add a new requirement or update an existing requirement (per the `install
 ```bash
 $ python3 -m venv venv
 $ source venv/bin/activate
-$ python3 -m pip install -r requirements/integration.txt
+$ python3 -m pip install -r requirements/development.txt
 $ pip-compile-multi --no-upgrade
 ```
 
@@ -577,7 +622,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the package, and various means to opt out of it, but one easy way to opt out is to add this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` envinronment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -598,16 +643,29 @@ There are three types of assets you can build:
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
 3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
-If this type of error comes while building assets(i.e using above commands):
+If while using the above commands you encounter an error related to the limit of file watchers:
 
 ```bash
-Error: You must provide the URL of lib/mappings.wasm by calling SourceMapConsumer.initialize
+Error: ENOSPC: System limit for number of file watchers reached
 ```
+The error is thrown because the number of files monitored by the system has reached the limit.
+You can address this this error by increasing the number of inotify watchers.
 
-Then put this:
-
+The current value of max watches can be checked with:
 ```bash
-export NODE_OPTIONS=--no-experimental-fetch
+cat /proc/sys/fs/inotify/max_user_watches
+```
+Edit the file /etc/sysctl.conf to increase this value.
+The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
+
+Open the file in editor and add a line at the bottom specifying the max watches values.
+```bash
+fs.inotify.max_user_watches=524288
+```
+Save the file and exit editor.
+To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from sysctl.conf:
+```bash
+sudo sysctl -p
 ```
 
 #### Webpack dev server
@@ -637,10 +695,10 @@ npm run dev-server
 npm run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
-npm run dev-server -- --supersetPort=8081
+npm run dev-server -- --env=--supersetPort=8081
 
 # Proxy to a remote backend but serve local assets
-npm run dev-server -- --superset=https://superset-dev.example.com
+npm run dev-server -- --env=--superset=https://superset-dev.example.com
 ```
 
 The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall. It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
@@ -691,7 +749,7 @@ The current status of the usability of each flag (stable vs testing, etc) can be
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
 
 ```bash
-pip3 install -r requirements/integration.txt
+pip3 install -r requirements/development.txt
 pre-commit install
 ```
 
@@ -730,7 +788,10 @@ is configured as a pre-commit hook. There are also numerous [editor integrations
 ```bash
 cd superset-frontend
 npm ci
-npm run lint
+# run eslint checks
+npm run eslint -- .
+# run tsc (typescript) checks
+npm run type
 ```
 
 If using the eslint extension with vscode, put the following in your workspace `settings.json` file:

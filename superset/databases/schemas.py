@@ -28,13 +28,13 @@ from marshmallow.validate import Length, ValidationError
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
-from superset.constants import PASSWORD_MASK
-from superset.databases.commands.exceptions import DatabaseInvalidError
-from superset.databases.ssh_tunnel.commands.exceptions import (
+from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidCredentials,
     SSHTunnelMissingCredentials,
 )
+from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -132,7 +132,9 @@ extra_description = markdown(
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
     "whether or not the Explore button in SQL Lab results is shown.<br/>"
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
-    "preview queries will be run when fetching table metadata in SQL Lab.",
+    "preview queries will be run when fetching table metadata in SQL Lab."
+    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
+    "drill to detail is disabled for the database.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -422,7 +424,7 @@ class DatabaseSSHTunnel(Schema):
     private_key_password = fields.String(required=False)
 
 
-class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -479,7 +481,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
-class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -536,7 +538,7 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     uuid = fields.String(required=False)
 
 
-class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
+class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -750,6 +752,8 @@ class ImportV1DatabaseExtraSchema(Schema):
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
+    disable_drill_to_detail = fields.Boolean(required=False)
+    version = fields.String(required=False, allow_none=True)
 
 
 class ImportV1DatabaseSchema(Schema):

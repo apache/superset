@@ -44,25 +44,25 @@ export function datasetReducer(
   };
 
   switch (action.type) {
-    case DatasetActionType.selectDatabase:
+    case DatasetActionType.SelectDatabase:
       return {
         ...trimmedState,
         ...action.payload,
         schema: null,
         table_name: null,
       };
-    case DatasetActionType.selectSchema:
+    case DatasetActionType.SelectSchema:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
         table_name: null,
       };
-    case DatasetActionType.selectTable:
+    case DatasetActionType.SelectTable:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
       };
-    case DatasetActionType.changeDataset:
+    case DatasetActionType.ChangeDataset:
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,

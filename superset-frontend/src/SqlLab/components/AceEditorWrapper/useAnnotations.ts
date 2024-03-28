@@ -67,15 +67,15 @@ export function useAnnotations(params: FetchValidationQueryParams) {
                   text: err.message,
                 }))
               : isError
-              ? [
-                  {
-                    type: 'error',
-                    row: 0,
-                    column: 0,
-                    text: `The server failed to validate your query.\n${message}`,
-                  },
-                ]
-              : [],
+                ? [
+                    {
+                      type: 'error',
+                      row: 0,
+                      column: 0,
+                      text: `The server failed to validate your query.\n${message}`,
+                    },
+                  ]
+                : [],
         };
       },
     },

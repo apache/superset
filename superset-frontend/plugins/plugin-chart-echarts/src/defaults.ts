@@ -24,6 +24,11 @@ export const defaultGrid = {
 
 export const defaultYAxis = {
   scale: true,
+  yAxisLabelRotation: 0,
+};
+
+export const defaultXAxis = {
+  xAxisLabelRotation: 0,
 };
 
 export const defaultLegendPadding = {

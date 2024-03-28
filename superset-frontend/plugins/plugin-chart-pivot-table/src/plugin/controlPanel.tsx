@@ -19,7 +19,6 @@
 import React from 'react';
 import {
   ensureIsArray,
-  hasGenericChartAxes,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormMetric,
@@ -30,7 +29,6 @@ import {
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   sharedControls,
   Dataset,
   getStandardizedControls,
@@ -39,7 +37,6 @@ import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -65,37 +62,35 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          hasGenericChartAxes
-            ? {
-                name: 'time_grain_sqla',
-                config: {
-                  ...sharedControls.time_grain_sqla,
-                  visibility: ({ controls }) => {
-                    const dttmLookup = Object.fromEntries(
-                      ensureIsArray(controls?.groupbyColumns?.options).map(
-                        option => [option.column_name, option.is_dttm],
-                      ),
-                    );
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.groupbyColumns?.options).map(
+                    option => [option.column_name, option.is_dttm],
+                  ),
+                );
 
-                    return [
-                      ...ensureIsArray(controls?.groupbyColumns.value),
-                      ...ensureIsArray(controls?.groupbyRows.value),
-                    ]
-                      .map(selection => {
-                        if (isAdhocColumn(selection)) {
-                          return true;
-                        }
-                        if (isPhysicalColumn(selection)) {
-                          return !!dttmLookup[selection];
-                        }
-                        return false;
-                      })
-                      .some(Boolean);
-                  },
-                },
-              }
-            : null,
-          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
+                return [
+                  ...ensureIsArray(controls?.groupbyColumns.value),
+                  ...ensureIsArray(controls?.groupbyRows.value),
+                ]
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
         ],
         [
           {

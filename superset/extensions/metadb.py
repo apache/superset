@@ -38,6 +38,7 @@ joins and unions are done in memory, using the SQLite engine.
 from __future__ import annotations
 
 import datetime
+import decimal
 import operator
 import urllib.parse
 from collections.abc import Iterator
@@ -49,7 +50,6 @@ from shillelagh.adapters.base import Adapter
 from shillelagh.backends.apsw.dialects.base import APSWDialect
 from shillelagh.exceptions import ProgrammingError
 from shillelagh.fields import (
-    Blob,
     Boolean,
     Date,
     DateTime,
@@ -86,7 +86,7 @@ class SupersetAPSWDialect(APSWDialect):
 
     Queries can also join data across different Superset databases.
 
-    The dialect is built in top of the shillelagh library, leveraging SQLite to
+    The dialect is built in top of the Shillelagh library, leveraging SQLite to
     create virtual tables on-the-fly proxying Superset tables. The
     `SupersetShillelaghAdapter` adapter is responsible for returning data when a
     Superset table is accessed.
@@ -164,11 +164,32 @@ class Duration(Field[datetime.timedelta, datetime.timedelta]):
     db_api_type = "DATETIME"
 
 
+class Decimal(Field[decimal.Decimal, decimal.Decimal]):
+    """
+    Shillelagh field used for representing decimals.
+    """
+
+    type = "DECIMAL"
+    db_api_type = "NUMBER"
+
+
+class FallbackField(Field[Any, str]):
+    """
+    Fallback field for unknown types; converts to string.
+    """
+
+    type = "TEXT"
+    db_api_type = "STRING"
+
+    def parse(self, value: Any) -> str | None:
+        return value if value is None else str(value)
+
+
 # pylint: disable=too-many-instance-attributes
 class SupersetShillelaghAdapter(Adapter):
 
     """
-    A shillelagh adapter for Superset tables.
+    A Shillelagh adapter for Superset tables.
 
     Shillelagh adapters are responsible for fetching data from a given resource,
     allowing it to be represented as a virtual table in SQLite. This one works
@@ -190,6 +211,7 @@ class SupersetShillelaghAdapter(Adapter):
         datetime.datetime: DateTime,
         datetime.time: Time,
         datetime.timedelta: Duration,
+        decimal.Decimal: Decimal,
     }
 
     @staticmethod
@@ -268,7 +290,7 @@ class SupersetShillelaghAdapter(Adapter):
         """
         Convert a Python type into a Shillelagh field.
         """
-        class_ = cls.type_map.get(python_type, Blob)
+        class_ = cls.type_map.get(python_type, FallbackField)
         return class_(filters=[Equal, Range], order=Order.ANY, exact=True)
 
     def _set_columns(self) -> None:

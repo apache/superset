@@ -56,7 +56,7 @@ export const TableControls = ({
   )
     .filter(
       ([name, type]) =>
-        type === GenericDataType.TEMPORAL &&
+        type === GenericDataType.Temporal &&
         name &&
         !originalTimeColumns.includes(name),
     )

@@ -181,11 +181,13 @@ const TimeTable = ({
       let v;
       let errorMsg;
       if (column.colType === 'time') {
-        // Time lag ratio
+        // If time lag is negative, we compare from the beginning of the data
         const timeLag = column.timeLag || 0;
         const totalLag = Object.keys(reversedEntries).length;
-        if (timeLag >= totalLag) {
+        if (Math.abs(timeLag) >= totalLag) {
           errorMsg = `The time lag set at ${timeLag} is too large for the length of data at ${reversedEntries.length}. No data available.`;
+        } else if (timeLag < 0) {
+          v = reversedEntries[totalLag + timeLag][valueField];
         } else {
           v = reversedEntries[timeLag][valueField];
         }

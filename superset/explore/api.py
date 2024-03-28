@@ -16,21 +16,21 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset.charts.commands.exceptions import ChartNotFoundError
+from superset.commands.chart.exceptions import ChartNotFoundError
+from superset.commands.explore.get import GetExploreCommand
+from superset.commands.explore.parameters import CommandParameters
+from superset.commands.temporary_cache.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.explore.commands.get import GetExploreCommand
-from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
-from superset.temporary_cache.commands.exceptions import (
-    TemporaryCacheAccessDeniedError,
-    TemporaryCacheResourceNotFoundError,
-)
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,6 @@ class ExploreRestApi(BaseSupersetApi):
         """
         try:
             params = CommandParameters(
-                actor=g.user,
                 permalink_key=request.args.get("permalink_key", type=str),
                 form_data_key=request.args.get("form_data_key", type=str),
                 datasource_id=request.args.get("datasource_id", type=int),

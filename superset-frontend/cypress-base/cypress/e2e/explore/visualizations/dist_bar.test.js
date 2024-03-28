@@ -89,6 +89,6 @@ describe('Visualization > Distribution bar chart', () => {
     ).should('exist');
     cy.get('.dist_bar .nv-legend .nv-legend-symbol')
       .first()
-      .should('have.css', 'fill', 'rgb(255, 90, 95)');
+      .should('have.css', 'fill', 'rgb(41, 105, 107)');
   });
 });

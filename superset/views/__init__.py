@@ -22,7 +22,6 @@ from . import (
     css_templates,
     dynamic_plugins,
     health,
-    redirects,
     sql_lab,
     tags,
 )

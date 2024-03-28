@@ -20,6 +20,7 @@ import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.png';
 
 const metadata = new ChartMetadata({
   category: t('Map'),
@@ -27,7 +28,8 @@ const metadata = new ChartMetadata({
   description: t(
     'Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data',
   ),
-  name: t('deck.gl Countour'),
+  exampleGallery: [{ url: example }],
+  name: t('deck.gl Contour'),
   thumbnail,
   useLegacyApi: true,
   tags: [t('deckGL'), t('Spatial'), t('Comparison'), t('Experimental')],

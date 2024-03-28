@@ -19,12 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEmpty } from 'lodash';
-import {
-  isFeatureEnabled,
-  FeatureFlag,
-  SupersetClient,
-  t,
-} from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -104,7 +99,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     super(props);
     this.state = {
       css: props.customCss,
-      cssTemplates: [],
       showReportSubMenu: null,
     };
 
@@ -112,23 +106,6 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
     this.handleMenuClick = this.handleMenuClick.bind(this);
     this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
-  }
-
-  UNSAFE_componentWillMount() {
-    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
-      .then(({ json }) => {
-        const cssTemplates = json.result.map(row => ({
-          value: row.template_name,
-          css: row.css,
-          label: row.template_name,
-        }));
-        this.setState({ cssTemplates });
-      })
-      .catch(() => {
-        this.props.addDangerToast(
-          t('An error occurred while fetching available CSS templates'),
-        );
-      });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -216,6 +193,8 @@ class HeaderActionsDropdown extends React.PureComponent {
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
+    const isEmbedded = !dashboardInfo?.userId;
+
     const url = getDashboardUrl({
       pathname: window.location.pathname,
       filters: getActiveFilters(),
@@ -237,7 +216,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Refresh dashboard')}
           </Menu.Item>
         )}
-        {!editMode && (
+        {!editMode && !isEmbedded && (
           <Menu.Item
             key={MENU_KEYS.TOGGLE_FULLSCREEN}
             onClick={this.handleMenuClick}
@@ -260,8 +239,8 @@ class HeaderActionsDropdown extends React.PureComponent {
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
               initialCss={this.state.css}
-              templates={this.state.cssTemplates}
               onChange={this.changeCss}
+              addDangerToast={addDangerToast}
             />
           </Menu.Item>
         )}
@@ -359,18 +338,14 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu>
           )
         ) : null}
-        {editMode &&
-          !(
-            isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) &&
-            isEmpty(dashboardInfo?.metadata?.filter_scopes)
-          ) && (
-            <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
-              <FilterScopeModal
-                className="m-r-5"
-                triggerNode={t('Set filter mapping')}
-              />
-            </Menu.Item>
-          )}
+        {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
+          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
+            <FilterScopeModal
+              className="m-r-5"
+              triggerNode={t('Set filter mapping')}
+            />
+          </Menu.Item>
+        )}
 
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal

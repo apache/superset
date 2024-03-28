@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEmpty from 'lodash/isEmpty';
-import isBoolean from 'lodash/isBoolean';
+import { isEmpty, isBoolean } from 'lodash';
 
 import { QueryObject } from './types';
 

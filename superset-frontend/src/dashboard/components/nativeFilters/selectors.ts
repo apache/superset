@@ -31,7 +31,7 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -130,7 +130,7 @@ const selectIndicatorsForChartFromFilter = (
 
   return Object.keys(filter.columns)
     .filter(column =>
-      getChartIdsInFilterBoxScope({
+      getChartIdsInFilterScope({
         filterScope: filter.scopes[column],
       }).includes(chartId),
     )
@@ -295,7 +295,7 @@ export const selectChartCrossFilters = (
   filterEmitter = false,
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     crossFilterIndicators = Object.values(chartConfiguration)
       .filter(chartConfig => {
         const inScope =
@@ -358,37 +358,34 @@ export const selectNativeIndicatorsForChart = (
     return cachedNativeIndicatorsForChart[chartId];
   }
 
-  let nativeFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS)) {
-    nativeFilterIndicators =
-      nativeFilters &&
-      Object.values(nativeFilters)
-        .filter(
-          nativeFilter =>
-            nativeFilter.type === NativeFilterType.NATIVE_FILTER &&
-            nativeFilter.chartsInScope?.includes(chartId),
-        )
-        .map(nativeFilter => {
-          const column = nativeFilter.targets?.[0]?.column?.name;
-          const filterState = dataMask[nativeFilter.id]?.filterState;
-          const label = extractLabel(filterState);
-          return {
+  const nativeFilterIndicators =
+    nativeFilters &&
+    Object.values(nativeFilters)
+      .filter(
+        nativeFilter =>
+          nativeFilter.type === NativeFilterType.NativeFilter &&
+          nativeFilter.chartsInScope?.includes(chartId),
+      )
+      .map(nativeFilter => {
+        const column = nativeFilter.targets?.[0]?.column?.name;
+        const filterState = dataMask[nativeFilter.id]?.filterState;
+        const label = extractLabel(filterState);
+        return {
+          column,
+          name: nativeFilter.name,
+          path: [nativeFilter.id],
+          status: getStatus({
+            label,
             column,
-            name: nativeFilter.name,
-            path: [nativeFilter.id],
-            status: getStatus({
-              label,
-              column,
-              rejectedColumns,
-              appliedColumns,
-            }),
-            value: label,
-          };
-        });
-  }
+            rejectedColumns,
+            appliedColumns,
+          }),
+          value: label,
+        };
+      });
 
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
     crossFilterIndicators = selectChartCrossFilters(
       dataMask,
       chartId,

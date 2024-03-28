@@ -19,7 +19,6 @@ from typing import Any, cast, Optional
 from urllib import parse
 
 import simplejson as json
-import sqlparse
 from flask import request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -27,6 +26,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
+from superset.commands.sql_lab.estimate import QueryEstimationCommand
+from superset.commands.sql_lab.execute import CommandResult, ExecuteSqlCommand
+from superset.commands.sql_lab.export import SqlResultExportCommand
+from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -34,11 +37,8 @@ from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql_lab import get_sql_results
+from superset.sql_parse import SQLScript
 from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.commands.estimate import QueryEstimationCommand
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
-from superset.sqllab.commands.export import SqlResultExportCommand
-from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
@@ -230,7 +230,7 @@ class SqlLabRestApi(BaseSupersetApi):
         """
         try:
             model = self.format_model_schema.load(request.json)
-            result = sqlparse.format(model["sql"], reindent=True, keyword_case="upper")
+            result = SQLScript(model["sql"], model.get("engine")).format()
             return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -343,7 +343,9 @@ class SqlLabRestApi(BaseSupersetApi):
         # return the result without special encoding
         return json_success(
             json.dumps(
-                result, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
+                result,
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
             ),
             200,
         )

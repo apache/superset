@@ -16,18 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactWrapper } from 'enzyme';
 import React from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { act } from 'react-dom/test-utils';
-import { Provider } from 'react-redux';
-import { mockStore } from 'spec/fixtures/mockStore';
-import { styledMount as mount } from 'spec/helpers/theming';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { AntdDropdown } from 'src/components';
-import { Menu } from 'src/components/Menu';
-import Alert from 'src/components/Alert';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -59,83 +49,56 @@ jest.mock('@superset-ui/core', () => ({
   }),
 }));
 
-describe('FiltersConfigModal', () => {
-  const mockedProps = {
-    isOpen: true,
-    initialFilterId: 'NATIVE_FILTER-1',
-    createNewOnOpen: true,
-    onCancel: jest.fn(),
-    onSave: jest.fn(),
-  };
-  function setup(overridesProps?: any) {
-    return mount(
-      <Provider store={mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <FiltersConfigModal {...mockedProps} {...overridesProps} />
-        </DndProvider>
-      </Provider>,
-    );
-  }
+const mockedProps = {
+  isOpen: true,
+  initialFilterId: 'NATIVE_FILTER-1',
+  createNewOnOpen: true,
+  onCancel: jest.fn(),
+  onSave: jest.fn(),
+};
+function setup(overridesProps?: any) {
+  return render(<FiltersConfigModal {...mockedProps} {...overridesProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
+}
 
-  it('should be a valid react element', () => {
-    expect(React.isValidElement(<FiltersConfigModal {...mockedProps} />)).toBe(
-      true,
-    );
+test('should be a valid react element', () => {
+  const { container } = setup();
+  expect(container).toBeInTheDocument();
+});
+
+test('the form validates required fields', async () => {
+  const onSave = jest.fn();
+  const { getByRole } = setup({ save: onSave });
+  fireEvent.change(getByRole('textbox', { name: 'Description' }), {
+    target: { value: 'test name' },
+  });
+  const saveButton = getByRole('button', { name: 'Save' });
+  fireEvent.click(saveButton);
+  expect(onSave).toHaveBeenCalledTimes(0);
+});
+
+describe('createNewOnOpen', () => {
+  test('does not show alert when there is no unsaved filters', async () => {
+    const onCancel = jest.fn();
+    const { getByRole } = setup({ onCancel, createNewOnOpen: false });
+    fireEvent.click(getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('the form validates required fields', async () => {
-    const onSave = jest.fn();
-    const wrapper = setup({ save: onSave });
-    act(() => {
-      wrapper
-        .find('input')
-        .first()
-        .simulate('change', { target: { value: 'test name' } });
-
-      wrapper.find('.ant-modal-footer button').at(1).simulate('click');
+  test('shows correct alert message for unsaved filters', async () => {
+    const onCancel = jest.fn();
+    const { getByRole, getByTestId, findByRole } = setup({
+      onCancel,
+      createNewOnOpen: false,
     });
-    await waitForComponentToPaint(wrapper);
-    expect(onSave.mock.calls).toHaveLength(0);
-  });
-
-  describe('when click cancel', () => {
-    let onCancel: jest.Mock;
-    let wrapper: ReactWrapper;
-
-    beforeEach(() => {
-      onCancel = jest.fn();
-      wrapper = setup({ onCancel, createNewOnOpen: false });
-    });
-
-    async function clickCancel() {
-      act(() => {
-        wrapper.find('.ant-modal-footer button').at(0).simulate('click');
-      });
-      await waitForComponentToPaint(wrapper);
-    }
-
-    async function addFilter() {
-      act(() => {
-        wrapper.find(AntdDropdown).at(0).simulate('mouseEnter');
-      });
-      await waitForComponentToPaint(wrapper, 300);
-      act(() => {
-        wrapper.find(Menu.Item).at(0).simulate('click');
-      });
-    }
-
-    it('does not show alert when there is no unsaved filters', async () => {
-      await clickCancel();
-      expect(onCancel.mock.calls).toHaveLength(1);
-    });
-
-    it('shows correct alert message for unsaved filters', async () => {
-      await addFilter();
-      await clickCancel();
-      expect(onCancel.mock.calls).toHaveLength(0);
-      expect(wrapper.find(Alert).text()).toContain(
-        'There are unsaved changes.',
-      );
-    });
+    fireEvent.mouseOver(getByTestId('new-dropdown-icon'));
+    const addFilterButton = await findByRole('menuitem', { name: 'Filter' });
+    fireEvent.click(addFilterButton);
+    fireEvent.click(getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalledTimes(0);
+    expect(getByRole('alert')).toBeInTheDocument();
+    expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
   });
 });

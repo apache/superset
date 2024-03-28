@@ -49,7 +49,7 @@ from superset.utils.core import (
 from superset.utils.hashing import md5_sha_from_dict
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         order_desc: bool = True,
         orderby: list[OrderBy] | None = None,
         post_processing: list[dict[str, Any] | None] | None = None,
-        row_limit: int | None,
+        row_limit: int | None = None,
         row_offset: int | None = None,
         series_columns: list[Column] | None = None,
         series_limit: int = 0,

@@ -14,9 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+from typing import Any
 
 from superset.migrations.shared.migrate_viz import MigrateDualLine
+from tests.unit_tests.migrations.viz.utils import migrate_and_assert
 
 ADHOC_FILTERS = [
     {
@@ -28,7 +29,7 @@ ADHOC_FILTERS = [
     }
 ]
 
-SOURCE_FORM_DATA = {
+SOURCE_FORM_DATA: dict[str, Any] = {
     "metric": "num_boys",
     "y_axis_format": ",d",
     "y_axis_bounds": [50, 100],
@@ -42,7 +43,7 @@ SOURCE_FORM_DATA = {
     "yAxisIndex": 0,
 }
 
-TARGET_FORM_DATA = {
+TARGET_FORM_DATA: dict[str, Any] = {
     "metrics": ["num_boys"],
     "y_axis_format": ",d",
     "y_axis_bounds": [50, 100],
@@ -64,34 +65,4 @@ TARGET_FORM_DATA = {
 def test_migration() -> None:
     source = SOURCE_FORM_DATA.copy()
     target = TARGET_FORM_DATA.copy()
-    upgrade_downgrade(source, target)
-
-
-def upgrade_downgrade(source, target) -> None:
-    from superset.models.slice import Slice
-
-    dumped_form_data = json.dumps(source)
-
-    slc = Slice(
-        viz_type=MigrateDualLine.source_viz_type,
-        datasource_type="table",
-        params=dumped_form_data,
-        query_context=f'{{"form_data": {dumped_form_data}}}',
-    )
-
-    # upgrade
-    slc = MigrateDualLine.upgrade_slice(slc)
-
-    # verify form_data
-    new_form_data = json.loads(slc.params)
-    assert new_form_data == target
-    assert new_form_data["form_data_bak"] == source
-
-    # verify query_context
-    new_query_context = json.loads(slc.query_context)
-    assert new_query_context["form_data"]["viz_type"] == "mixed_timeseries"
-
-    # downgrade
-    slc = MigrateDualLine.downgrade_slice(slc)
-    assert slc.viz_type == MigrateDualLine.source_viz_type
-    assert json.loads(slc.params) == source
+    migrate_and_assert(MigrateDualLine, source, target)

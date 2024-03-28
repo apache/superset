@@ -92,10 +92,10 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
         obj = table(table_name=tbl_name, schema=schema)
+        db.session.add(obj)
     obj.main_dttm_col = "datetime"
     obj.database = database
     obj.filter_select_enabled = True
-    db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj

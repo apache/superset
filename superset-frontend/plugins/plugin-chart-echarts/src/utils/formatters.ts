@@ -23,6 +23,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   isSavedMetric,
+  NumberFormats,
   QueryFormMetric,
   smartDateDetailedFormatter,
   smartDateFormatter,
@@ -30,14 +31,22 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 
+export const getPercentFormatter = (format?: string) =>
+  getNumberFormatter(
+    !format || format === NumberFormats.SMART_NUMBER
+      ? NumberFormats.PERCENT
+      : format,
+  );
+
 export const getYAxisFormatter = (
   metrics: QueryFormMetric[],
   forcePercentFormatter: boolean,
   customFormatters: Record<string, ValueFormatter>,
   defaultFormatter: ValueFormatter,
+  format?: string,
 ) => {
   if (forcePercentFormatter) {
-    return getNumberFormatter(',.0%');
+    return getPercentFormatter(format);
   }
   const metricsArray = ensureIsArray(metrics);
   if (

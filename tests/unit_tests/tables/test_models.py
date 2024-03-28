@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 # pylint: disable=import-outside-toplevel, unused-argument
-
 from sqlalchemy.orm.session import Session
+
+from superset import db
 
 
 def test_table_model(session: Session) -> None:
@@ -28,7 +28,7 @@ def test_table_model(session: Session) -> None:
     from superset.models.core import Database
     from superset.tables.models import Table
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     Table.metadata.create_all(engine)  # pylint: disable=no-member
 
     table = Table(
@@ -44,8 +44,8 @@ def test_table_model(session: Session) -> None:
             )
         ],
     )
-    session.add(table)
-    session.flush()
+    db.session.add(table)
+    db.session.flush()
 
     assert table.id == 1
     assert table.uuid is not None

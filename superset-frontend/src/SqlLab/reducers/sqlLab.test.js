@@ -75,6 +75,25 @@ describe('sqlLabReducer', () => {
         initialState.queryEditors.length,
       );
     });
+    it('should select the latest query editor when tabHistory is empty', () => {
+      const currentQE = newState.queryEditors[0];
+      newState = {
+        ...initialState,
+        tabHistory: [initialState.queryEditors[0]],
+      };
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: currentQE,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length - 1,
+      );
+      expect(newState.queryEditors.map(qe => qe.id)).not.toContainEqual(
+        currentQE.id,
+      );
+      expect(newState.tabHistory).toEqual([initialState.queryEditors[2].id]);
+    });
     it('should remove a query editor including unsaved changes', () => {
       expect(newState.queryEditors).toHaveLength(
         initialState.queryEditors.length + 1,
@@ -397,7 +416,7 @@ describe('sqlLabReducer', () => {
         id: 'abcd',
         changed_on: Date.now(),
         startDttm: Date.now(),
-        state: QueryState.FETCHING,
+        state: QueryState.Fetching,
         progress: 100,
         resultsKey: 'fa3dccc4-c549-4fbf-93c8-b4fb5a6fb8b7',
         cached: false,
@@ -412,7 +431,7 @@ describe('sqlLabReducer', () => {
               ...query,
               results: {
                 query_id: 1234,
-                status: QueryState.SUCCESS,
+                status: QueryState.Success,
                 data: [],
               },
             },
@@ -420,7 +439,7 @@ describe('sqlLabReducer', () => {
         },
         actions.clearInactiveQueries(Date.now()),
       );
-      expect(newState.queries.abcd.state).toBe(QueryState.SUCCESS);
+      expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
 });

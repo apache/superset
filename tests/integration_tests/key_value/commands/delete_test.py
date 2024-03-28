@@ -58,7 +58,7 @@ def test_delete_id_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.delete import DeleteKeyValueCommand
+    from superset.commands.key_value.delete import DeleteKeyValueCommand
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=ID_KEY).run() is True
 
@@ -68,7 +68,7 @@ def test_delete_uuid_entry(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.delete import DeleteKeyValueCommand
+    from superset.commands.key_value.delete import DeleteKeyValueCommand
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=UUID_KEY).run() is True
 
@@ -78,6 +78,6 @@ def test_delete_entry_missing(
     admin: User,
     key_value_entry: KeyValueEntry,
 ) -> None:
-    from superset.key_value.commands.delete import DeleteKeyValueCommand
+    from superset.commands.key_value.delete import DeleteKeyValueCommand
 
     assert DeleteKeyValueCommand(resource=RESOURCE, key=456).run() is False

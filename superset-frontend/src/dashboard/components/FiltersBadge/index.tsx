@@ -59,7 +59,7 @@ const StyledFilterCount = styled.div`
       vertical-align: middle;
       color: ${theme.colors.grayscale.base};
       &:hover {
-        color: ${theme.colors.grayscale.light1}
+        color: ${theme.colors.grayscale.light1};
       }
     }
 

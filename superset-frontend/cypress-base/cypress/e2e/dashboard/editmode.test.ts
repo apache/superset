@@ -88,6 +88,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
 }
 
 function resetTabbedDashboard(go = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
     const jsonMetadata = r?.json_metadata || '{}';
     const metadata = JSON.parse(jsonMetadata);
@@ -515,7 +516,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
 
       // open main tab and nested tab
       openTab(0, 0);
@@ -526,7 +527,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
     });
 
     it('should apply the color scheme across main tabs', () => {
@@ -557,7 +558,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(204, 0, 134)');
+        .should('have.css', 'fill', 'rgb(156, 52, 152)');
 
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
@@ -758,7 +759,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
 
       resize(
-        '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
+        '[data-test="dashboard-markdown-editor"] .resizable-container div.resizable-container-handle--bottom + div',
       ).to(500, 600);
 
       cy.getBySel('dashboard-markdown-editor').contains('Test resize');

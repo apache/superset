@@ -62,7 +62,6 @@ def upgrade():
                 pos["v"] = 1
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.merge(dashboard)
         session.commit()
 
     session.close()
@@ -85,6 +84,5 @@ def downgrade():
                 pos["v"] = 0
 
         dashboard.position_json = json.dumps(positions, indent=2)
-        session.merge(dashboard)
         session.commit()
     pass
