@@ -28,6 +28,7 @@ class VizType(str, Enum):
     BUBBLE = "bubble"
     DUAL_LINE = "dual_line"
     LINE = "line"
+    HEATMAP = "heatmap"
     PIVOT_TABLE = "pivot_table"
     SUNBURST = "sunburst"
     TREEMAP = "treemap"
@@ -80,6 +81,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         MigrateBubbleChart,
         MigrateDualLine,
         MigrateLineChart,
+        MigrateHeatmapChart,
         MigratePivotTable,
         MigrateSunburst,
         MigrateTreeMap,
@@ -90,6 +92,7 @@ def migrate(viz_type: VizType, is_downgrade: bool = False) -> None:
         VizType.BUBBLE: MigrateBubbleChart,
         VizType.DUAL_LINE: MigrateDualLine,
         VizType.LINE: MigrateLineChart,
+        VizType.HEATMAP: MigrateHeatmapChart,
         VizType.PIVOT_TABLE: MigratePivotTable,
         VizType.SUNBURST: MigrateSunburst,
         VizType.TREEMAP: MigrateTreeMap,
