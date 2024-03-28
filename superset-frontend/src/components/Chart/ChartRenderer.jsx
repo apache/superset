@@ -91,6 +91,7 @@ class ChartRenderer extends React.Component {
           isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
       inContextMenu: false,
       legendState: undefined,
+      legendIndex: 0,
     };
     this.hasQueryResponseChange = false;
 
@@ -105,6 +106,7 @@ class ChartRenderer extends React.Component {
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
     this.handleLegendStateChanged = this.handleLegendStateChanged.bind(this);
     this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
+    this.handleLegendScroll = this.handleLegendScroll.bind(this);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
@@ -119,6 +121,7 @@ class ChartRenderer extends React.Component {
       setDataMask: dataMask => {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
+      onLegendScroll: this.handleLegendScroll,
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -231,6 +234,10 @@ class ChartRenderer extends React.Component {
 
   handleLegendStateChanged(legendState) {
     this.setState({ legendState });
+  }
+
+  handleLegendScroll(legendIndex) {
+    this.setState({legendIndex})
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
@@ -362,6 +369,7 @@ class ChartRenderer extends React.Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+            legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />
         </div>
