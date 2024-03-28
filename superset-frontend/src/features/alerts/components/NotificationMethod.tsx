@@ -57,13 +57,25 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
+  onInputChange?: (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => void;
+  email_subject: string;
+  defaultSubject: string;
 }
+
+const TRANSLATIONS = {
+  EMAIL_SUBJECT_NAME: t('Email subject name (optional)'),
+};
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   setting = null,
   index,
   onUpdate,
   onRemove,
+  onInputChange,
+  email_subject,
+  defaultSubject,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
@@ -106,6 +118,14 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     }
   };
 
+  const onSubjectChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    if (onInputChange) {
+      onInputChange(event);
+    }
+  };
+
   // Set recipients
   if (!!recipients && recipientValue !== recipients) {
     setRecipientValue(recipients);
@@ -144,23 +164,47 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         </StyledInputContainer>
       </div>
       {method !== undefined ? (
-        <StyledInputContainer>
-          <div className="control-label">
-            {t('%s recipients', method)}
-            <span className="required">*</span>
+        <>
+          <div className="inline-container">
+            <StyledInputContainer>
+              {method === 'Email' ? (
+                <>
+                  <div className="control-label">
+                    {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+                  </div>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="email_subject"
+                      value={email_subject}
+                      placeholder={defaultSubject}
+                      onChange={onSubjectChange}
+                    />
+                  </div>{' '}
+                </>
+              ) : null}
+            </StyledInputContainer>
           </div>
-          <div className="input-container">
-            <textarea
-              name="recipients"
-              data-test="recipients"
-              value={recipientValue}
-              onChange={onRecipientsChange}
-            />
+          <div className="inline-container">
+            <StyledInputContainer>
+              <div className="control-label">
+                {t('%s recipients', method)}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <textarea
+                  name="recipients"
+                  data-test="recipients"
+                  value={recipientValue}
+                  onChange={onRecipientsChange}
+                />
+              </div>
+              <div className="helper">
+                {t('Recipients are separated by "," or ";"')}
+              </div>
+            </StyledInputContainer>
           </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
-        </StyledInputContainer>
+        </>
       ) : null}
     </StyledNotificationMethod>
   );

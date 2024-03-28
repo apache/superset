@@ -496,6 +496,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
+  const [emailSubject, setEmailSubject] = useState<string>('');
+
   const onNotificationAdd = () => {
     const settings: NotificationSetting[] = notificationSettings.slice();
     settings.push({
@@ -537,6 +539,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     owners: [],
     recipients: [],
     sql: '',
+    email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
@@ -869,6 +872,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const parsedValue = type === 'number' ? parseInt(value, 10) || null : value;
 
     updateAlertState(name, parsedValue);
+
+    if (name === 'name') {
+      updateEmailSubject();
+    }
   };
 
   const onCustomWidthChange = (value: number | null | undefined) => {
@@ -1180,6 +1187,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentAlertSafe = currentAlert || {};
   useEffect(() => {
     validateAll();
+    updateEmailSubject();
   }, [
     currentAlertSafe.name,
     currentAlertSafe.owners,
@@ -1222,6 +1230,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
 
     return titleText;
+  };
+
+  const updateEmailSubject = () => {
+    if (contentType === 'chart') {
+      if (currentAlert?.name || currentAlert?.chart?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.chart?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else if (contentType === 'dashboard') {
+      if (currentAlert?.name || currentAlert?.dashboard?.label) {
+        setEmailSubject(
+          `${currentAlert?.name}: ${currentAlert?.dashboard?.label || ''}`,
+        );
+      } else {
+        setEmailSubject('');
+      }
+    } else {
+      setEmailSubject('');
+    }
   };
 
   return (
@@ -1675,6 +1705,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                onInputChange={onInputChange}
+                email_subject={currentAlert?.email_subject || ''}
+                defaultSubject={emailSubject || ''}
               />
             </StyledNotificationMethodWrapper>
           ))}
