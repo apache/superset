@@ -375,7 +375,7 @@ export function addChart(chart, key) {
 }
 
 export function handleChartDataResponse(response, json, useLegacyApi) {
-  if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
+  if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
     // deal with getChartDataRequest transforming the response data
     const result = 'result' in json ? json.result : json;
     switch (response.status) {

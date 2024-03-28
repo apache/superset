@@ -83,7 +83,7 @@ describe('chart actions', () => {
     waitForAsyncDataStub.restore();
 
     global.featureFlags = {
-      [FeatureFlag.GlobalAsyncQueries]: false,
+      [FeatureFlag.GLOBAL_ASYNC_QUERIES]: false,
     };
   });
 
@@ -136,7 +136,7 @@ describe('chart actions', () => {
 
     it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and results are returned synchronously', async () => {
       global.featureFlags = {
-        [FeatureFlag.GlobalAsyncQueries]: true,
+        [FeatureFlag.GLOBAL_ASYNC_QUERIES]: true,
       };
       const result = await handleChartDataResponse(
         { status: 200 },
@@ -147,7 +147,7 @@ describe('chart actions', () => {
 
     it('handleChartDataResponse should handle responses when GlobalAsyncQueries flag is enabled and query is running asynchronously', async () => {
       global.featureFlags = {
-        [FeatureFlag.GlobalAsyncQueries]: true,
+        [FeatureFlag.GLOBAL_ASYNC_QUERIES]: true,
       };
       const result = await handleChartDataResponse(
         { status: 202 },
