@@ -323,7 +323,7 @@ shillelagh[gsheetsapi]==1.2.10
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
-simplejson==3.17.3
+simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via
