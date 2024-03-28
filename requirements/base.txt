@@ -356,7 +356,7 @@ sshtunnel==0.4.0
     # via apache-superset
 tabulate==0.8.9
     # via apache-superset
-typing-extensions==4.4.0
+typing-extensions==4.10.0
     # via
     #   alembic
     #   apache-superset
