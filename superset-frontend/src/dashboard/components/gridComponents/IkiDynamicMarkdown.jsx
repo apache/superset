@@ -155,6 +155,29 @@ class IkiDynamicMarkdown extends React.PureComponent {
     if (this.props.editMode) {
       MarkdownEditor.preload();
     }
+    if (this.props.editMode && this.props.editMode !== prevProps.editMode) {
+      setTimeout(() => {
+        this.handleChangeEditorMode('edit');
+      }, 500);
+    } else if (
+      !this.props.editMode &&
+      this.props.editMode !== prevProps.editMode
+    ) {
+      this.handleChangeEditorMode('preview');
+      // setTimeout(() => {
+      //   const iframe = document.getElementById(
+      //     `ikirunpipeline-widget-${this.props.component.id}`,
+      //   );
+      //   if (iframe && iframe !== undefined) {
+      //     iframe.contentWindow.postMessage(
+      //       JSON.stringify({
+      //         data: 'superset-to-widget/confirm-pipeline-selection',
+      //       }),
+      //       this.props.ikigaiOrigin,
+      //     );
+      //   }
+      // }, 500);
+    }
   }
 
   componentDidCatch() {
@@ -195,13 +218,15 @@ class IkiDynamicMarkdown extends React.PureComponent {
               ).src,
             );
           } else {
-            widgetUrl = `${this.props.ikigaiOrigin}/widget/interactive-forecast-chart?mode=edit`;
+            widgetUrl = `${this.props.ikigaiOrigin}/widget//widget/custom?mode=edit&parent=superset`;
           }
 
           if (
             messageObject.info === 'widget-to-superset/dynamic-markdown-setup'
           ) {
             widgetUrlQuery = new URLSearchParams(widgetUrl);
+            widgetUrlQuery.set('mode', this.state.editorMode);
+            widgetUrlQuery.set('parent', 'superset');
             widgetUrlQuery.set('project_id', messageData.projectId);
             widgetUrlQuery.set('component_id', messageData.componentId);
             widgetUrl.search = widgetUrlQuery.toString();
@@ -220,25 +245,26 @@ class IkiDynamicMarkdown extends React.PureComponent {
     });
   }
 
-  handleIkiRunPipelineChange(nextValue) {
-    this.setState({
-      markdownSource: nextValue,
-    });
-    const { updateComponents, component } = this.props;
-    if (component.meta.code !== nextValue) {
-      updateComponents({
-        [component.id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            code: nextValue,
-          },
-        },
-      });
-    }
-    this.handleChangeEditorMode('preview');
-    MarkdownEditor.setValue(nextValue);
-    MarkdownEditor.preload();
+  handleIkiRunPipelineChange(nextValue, saveToDashboard) {
+    this.setState(
+      {
+        markdownSource: nextValue,
+      },
+      () => {
+        const { updateComponents, component } = this.props;
+        if (saveToDashboard) {
+          updateComponents({
+            [component.id]: {
+              ...component,
+              meta: {
+                ...component.meta,
+                code: nextValue,
+              },
+            },
+          });
+        }
+      },
+    );
   }
 
   setEditor(editor) {
@@ -260,12 +286,41 @@ class IkiDynamicMarkdown extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-    if (mode === 'preview') {
-      this.updateMarkdownContent();
-      nextState.hasError = false;
-    }
+    // if (mode === 'preview') {
+    //   this.updateMarkdownContent();
+    //   nextState.hasError = false;
+    // }
 
     this.setState(nextState);
+
+    let widgetUrl;
+
+    if (
+      document.getElementById(
+        `ikidynamicmarkdown-widget-${this.props.component.id}`,
+      )
+    ) {
+      widgetUrl = new URL(
+        document.getElementById(
+          `ikidynamicmarkdown-widget-${this.props.component.id}`,
+        ).src,
+      );
+    } else {
+      widgetUrl = `${this.props.ikigaiOrigin}/widget/pipeline/run?mode=edit&v=1&run_flow_times=${timestamp}`;
+    }
+
+    const widgetUrlQuery = new URLSearchParams(widgetUrl.search);
+    widgetUrlQuery.set('mode', mode);
+    widgetUrl.search = widgetUrlQuery.toString();
+    const tempIframe = `<iframe
+                      id="ikidynamicmarkdown-widget-${this.props.component.id}"
+                      name="dynamic-markdown-${timestamp}"
+                      src="${widgetUrl}"
+                      title="Dynamic Markdown Component"
+                      className="ikirunpipeline-widget"
+                      style="min-height: 100%;"
+                    />`;
+    this.handleIkiRunPipelineChange(tempIframe, false);
   }
 
   updateMarkdownContent() {
@@ -305,7 +360,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
   }
 
   renderIframe() {
-    const { markdownSource, hasError } = this.state;
+    const { markdownSource, hasError, editorMode } = this.state;
     const { ikigaiOrigin } = this.props;
     let iframe = '';
     let iframeSrc = '';
@@ -316,9 +371,10 @@ class IkiDynamicMarkdown extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
+        iframeSrcUrl.searchParams.set('mode', editorMode);
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset&project_id=&component_id=`;
+        iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset`;
       }
       iframe = `<iframe
                   id="ikidynamicmarkdown-widget-${this.props.component.id}"

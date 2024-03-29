@@ -19,6 +19,33 @@
 @import '../../assets/stylesheets/less/variables.less';
 
 .dashboard-builder-sidepane {
+  .sidepanel-toggle-button {
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    top: 78px;
+    left: -20px;
+    border-radius: 6px;
+    background-color: #824ef0;
+    z-index: 2;
+
+    .sidepanel-toggle-btn-svg {
+      fill: #fff !important;
+      height: 8px;
+      width: auto;
+      padding: 2px;
+      transition: all 0.2s ease;
+
+      &.expanded {
+        transform: rotate(90deg) !important;
+      }
+
+      &.collapsed {
+        transform: rotate(-90deg) !important;
+      }
+    }
+  }
+
   .dashboard-builder-sidepane-header {
     font-size: @font-size-l;
     font-weight: @font-weight-bold;
