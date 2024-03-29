@@ -28,6 +28,7 @@ import {
   DatasetObject,
 } from 'src/features/datasets/AddDataset/types';
 import { Table } from 'src/hooks/apiResources';
+import { useLocation } from 'react-router-dom';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -122,6 +123,9 @@ export default function LeftPanel({
   datasetNames,
 }: LeftPanelProps) {
   const { addDangerToast } = useToasts();
+  const location = useLocation();
+
+  const isAddingDataSet = location.pathname.includes('/dataset/add');
 
   const setDatabase = useCallback(
     (db: Partial<DatabaseObject>) => {
@@ -144,6 +148,7 @@ export default function LeftPanel({
     });
   };
   useEffect(() => {
+    // TODO: storing and fetching the last selected database from local storage is potentially technical debt
     const currentUserSelectedDb = getItem(
       LocalStorageKeys.Database,
       null,
@@ -174,7 +179,7 @@ export default function LeftPanel({
   return (
     <LeftPanelStyle>
       <TableSelector
-        database={dataset?.db}
+        database={isAddingDataSet ? null : dataset?.db}
         handleError={addDangerToast}
         emptyState={emptyStateComponent(false)}
         onDbChange={setDatabase}
