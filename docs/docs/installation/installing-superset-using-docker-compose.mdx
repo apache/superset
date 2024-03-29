@@ -163,10 +163,10 @@ CPU, so you may want to disable it on a resource-constrained device.
 :::note
 Users often want to connect to other databases from Superset. Currently, the easiest way to
 do this is to modify the `docker-compose-non-dev.yml` file and add your database as a service that
-    the other services depend on (via `x-superset-depends-on`). Others have attempted to set
-    `network_mode: host` on the Superset services, but these generally break the installation,
-    because the configuration requires use of the Docker Compose DNS resolver for the service names.
-    If you have a good solution for this, let us know!
+the other services depend on (via `x-superset-depends-on`). Others have attempted to set
+`network_mode: host` on the Superset services, but these generally break the installation,
+because the configuration requires use of the Docker Compose DNS resolver for the service names.
+If you have a good solution for this, let us know!
 :::
 
 :::note
