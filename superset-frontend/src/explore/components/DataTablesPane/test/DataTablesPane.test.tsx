@@ -138,7 +138,7 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(await screen.findByText('1 row')).toBeVisible();
+    expect(await screen.findByText('2 rows')).toBeVisible();
 
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
