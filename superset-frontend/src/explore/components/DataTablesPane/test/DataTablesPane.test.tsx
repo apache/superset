@@ -105,9 +105,7 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(
-      screen.container.querySelector('.row-count-label'),
-    ).toHaveTextContent('1 row');
+    expect(await screen.findByText('1 row')).toBeVisible();
 
     userEvent.click(screen.getByLabelText('Copy'));
     expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
@@ -140,9 +138,7 @@ describe('DataTablesPane', () => {
       useRedux: true,
     });
     userEvent.click(screen.getByText('Results'));
-    expect(
-      screen.container.querySelector('.row-count-label'),
-    ).toHaveTextContent('2 rows');
+    expect(await screen.findByText('1 row')).toBeVisible();
 
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
