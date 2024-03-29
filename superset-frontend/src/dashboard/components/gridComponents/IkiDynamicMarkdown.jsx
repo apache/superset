@@ -203,6 +203,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
           ) {
             widgetUrlQuery = new URLSearchParams(widgetUrl);
             widgetUrlQuery.set('project_id', messageData.projectId);
+            widgetUrlQuery.set('component_id', messageData.componentId);
             widgetUrl.search = widgetUrlQuery.toString();
             const tempIframe = `<iframe
                                 id="ikiinteractiveforecast-widget-${this.props.component.id}"
@@ -317,7 +318,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
         const iframeSrcUrl = new URL(iframeHtml.src);
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
       } else {
-        iframeSrc = `${ikigaiOrigin}/widget/custom?parent=superset&project_id=''`;
+        iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset&project_id=&component_id=`;
       }
       iframe = `<iframe
                   id="ikidynamicmarkdown-widget-${this.props.component.id}"
