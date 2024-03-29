@@ -21,7 +21,6 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-import time
 from typing import Any, Optional
 from unittest import mock
 from zipfile import ZipFile
@@ -719,9 +718,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         app._got_first_request = False
         async_query_manager_factory.init_app(app)
         self.login("admin")
-        # fighting a weird race condition only my mysql in the test matrix where we get
-        # a 200 instead of a 202
-        time.sleep(0.5)
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         self.assertEqual(rv.status_code, 202)
         data = json.loads(rv.data.decode("utf-8"))
