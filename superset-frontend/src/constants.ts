@@ -189,3 +189,11 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
   common: DEFAULT_COMMON_BOOTSTRAP_DATA,
 };
+
+export enum FilterPlugins {
+  Select = 'filter_select',
+  Range = 'filter_range',
+  Time = 'filter_time',
+  TimeColumn = 'filter_timecolumn',
+  TimeGrain = 'filter_timegrain',
+}

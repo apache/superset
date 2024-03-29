@@ -65,6 +65,7 @@ describe('ChartPage', () => {
     const { getByTestId } = render(<ChartPage />, {
       useRouter: true,
       useRedux: true,
+      useDnd: true,
     });
     await waitFor(() =>
       expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -110,6 +111,7 @@ describe('ChartPage', () => {
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
         useRedux: true,
+        useDnd: true,
       });
       await waitFor(() =>
         expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
@@ -156,6 +158,7 @@ describe('ChartPage', () => {
         {
           useRouter: true,
           useRedux: true,
+          useDnd: true,
         },
       );
       await waitFor(() =>
