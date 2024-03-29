@@ -208,7 +208,7 @@ setup(
         "starrocks": ["starrocks>=1.0.0"],
         "doris": ["pydoris>=1.0.0, <2.0.0"],
     },
-    python_requires="~=3.9",  # TODO: change it to "~=3.10"
+    python_requires="~=3.10",
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
