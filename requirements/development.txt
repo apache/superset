@@ -10,6 +10,8 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.4
+    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -193,6 +195,10 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pure-sasl==0.6.2
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -201,7 +207,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.2.2
     # via -r requirements/development.in
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via -r requirements/development.in
@@ -243,7 +249,12 @@ statsd==4.0.1
 tableschema==1.20.10
     # via apache-superset
 thrift==0.20.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pyhive
+    #   thrift-sasl
+thrift-sasl==0.4.3
+    # via pyhive
 tomli==2.0.1
     # via
     #   build

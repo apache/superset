@@ -213,3 +213,18 @@ class MigrateBubbleChart(MigrateViz):
 
         # Truncate y-axis by default to preserve layout
         self.data["y_axis_showminmax"] = True
+
+
+class MigrateHeatmapChart(MigrateViz):
+    source_viz_type = "heatmap"
+    target_viz_type = "heatmap_v2"
+    rename_keys = {
+        "all_columns_x": "x_axis",
+        "all_columns_y": "groupby",
+        "y_axis_bounds": "value_bounds",
+        "show_perc": "show_percentage",
+    }
+    remove_keys = {"sort_by_metric", "canvas_image_rendering"}
+
+    def _pre_action(self) -> None:
+        self.data["legend_type"] = "continuous"
