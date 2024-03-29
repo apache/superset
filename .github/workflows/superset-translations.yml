@@ -50,12 +50,5 @@ jobs:
         uses: ./.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: |
-            apt-get-install
-            pip-upgrade
-            pip install -r requirements/base.txt
       - name: Test babel extraction
         run: ./scripts/babel_update.sh

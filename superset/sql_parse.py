@@ -19,16 +19,18 @@
 
 from __future__ import annotations
 
+import enum
 import logging
 import re
 import urllib.parse
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, cast, Generic, TYPE_CHECKING, TypeVar
 
 import sqlglot
 import sqlparse
 from flask_babel import gettext as __
+from jinja2 import nodes
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
 from sqlglot.dialects.dialect import Dialect, Dialects
@@ -71,6 +73,9 @@ try:
     from sqloxide import parse_sql as sqloxide_parse
 except (ImportError, ModuleNotFoundError):
     sqloxide_parse = None
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"
@@ -116,7 +121,7 @@ SQLGLOT_DIALECTS = {
     # "impala": ???
     # "kustokql": ???
     # "kylin": ???
-    # "mssql": ???
+    "mssql": Dialects.TSQL,
     "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
     # "ocient": ???
@@ -332,88 +337,174 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     return source.name in ctes_in_scope
 
 
-class SQLScript:
+# To avoid unnecessary parsing/formatting of queries, the statement has the concept of
+# an "internal representation", which is the AST of the SQL statement. For most of the
+# engines supported by Superset this is `sqlglot.exp.Expression`, but there is a special
+# case: KustoKQL uses a different syntax and there are no Python parsers for it, so we
+# store the AST as a string (the original query), and manipulate it with regular
+# expressions.
+InternalRepresentation = TypeVar("InternalRepresentation")
+
+# The base type. This helps type checking the `split_query` method correctly, since each
+# derived class has a more specific return type (the class itself). This will no longer
+# be needed once Python 3.11 is the lowest version supported. See PEP 673 for more
+# information: https://peps.python.org/pep-0673/
+TBaseSQLStatement = TypeVar("TBaseSQLStatement")  # pylint: disable=invalid-name
+
+
+class BaseSQLStatement(Generic[InternalRepresentation]):
     """
-    A SQL script, with 0+ statements.
+    Base class for SQL statements.
+
+    The class can be instantiated with a string representation of the query or, for
+    efficiency reasons, with a pre-parsed AST. This is useful with `sqlglot.parse`,
+    which will split a query in multiple already parsed statements.
+
+    The `engine` parameters comes from the `engine` attribute in a Superset DB engine
+    spec.
     """
 
     def __init__(
         self,
-        query: str,
-        engine: str | None = None,
+        statement: str | InternalRepresentation,
+        engine: str,
     ):
-        dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
+        self._parsed: InternalRepresentation = (
+            self._parse_statement(statement, engine)
+            if isinstance(statement, str)
+            else statement
+        )
+        self.engine = engine
+        self.tables = self._extract_tables_from_statement(self._parsed, self.engine)
 
-        self.statements = [
-            SQLStatement(statement, engine=engine)
-            for statement in parse(query, dialect=dialect)
-            if statement
-        ]
+    @classmethod
+    def split_query(
+        cls: type[TBaseSQLStatement],
+        query: str,
+        engine: str,
+    ) -> list[TBaseSQLStatement]:
+        """
+        Split a query into multiple instantiated statements.
+
+        This is a helper function to split a full SQL query into multiple
+        `BaseSQLStatement` instances. It's used by `SQLScript` when instantiating the
+        statements within a query.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def _parse_statement(
+        cls,
+        statement: str,
+        engine: str,
+    ) -> InternalRepresentation:
+        """
+        Parse a string containing a single SQL statement, and returns the parsed AST.
+
+        Derived classes should not assume that `statement` contains a single statement,
+        and MUST explicitly validate that. Since this validation is parser dependent the
+        responsibility is left to the children classes.
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def _extract_tables_from_statement(
+        cls,
+        parsed: InternalRepresentation,
+        engine: str,
+    ) -> set[Table]:
+        """
+        Extract all table references in a given statement.
+        """
+        raise NotImplementedError()
 
     def format(self, comments: bool = True) -> str:
         """
-        Pretty-format the SQL query.
+        Format the statement, optionally ommitting comments.
         """
-        return ";\n".join(statement.format(comments) for statement in self.statements)
+        raise NotImplementedError()
 
-    def get_settings(self) -> dict[str, str]:
+    def get_settings(self) -> dict[str, str | bool]:
         """
-        Return the settings for the SQL query.
+        Return any settings set by the statement.
 
-            >>> statement = SQLScript("SET foo = 'bar'; SET foo = 'baz'")
-            >>> statement.get_settings()
-            {"foo": "'baz'"}
+        For example, for this statement:
 
+            sql> SET foo = 'bar';
+
+        The method should return `{"foo": "'bar'"}`. Note the single quotes.
         """
-        settings: dict[str, str] = {}
-        for statement in self.statements:
-            settings.update(statement.get_settings())
+        raise NotImplementedError()
 
-        return settings
+    def __str__(self) -> str:
+        return self.format()
 
 
-class SQLStatement:
+class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
 
-    This class provides helper methods to manipulate and introspect SQL.
+    This class is used for all engines with dialects that can be parsed using sqlglot.
     """
 
     def __init__(
         self,
         statement: str | exp.Expression,
-        engine: str | None = None,
+        engine: str,
     ):
-        dialect = SQLGLOT_DIALECTS.get(engine) if engine else None
+        self._dialect = SQLGLOT_DIALECTS.get(engine)
+        super().__init__(statement, engine)
 
-        if isinstance(statement, str):
-            try:
-                self._parsed = self._parse_statement(statement, dialect)
-            except ParseError as ex:
-                raise SupersetParseError(statement, engine) from ex
-        else:
-            self._parsed = statement
+    @classmethod
+    def split_query(
+        cls,
+        query: str,
+        engine: str,
+    ) -> list[SQLStatement]:
+        dialect = SQLGLOT_DIALECTS.get(engine)
 
-        self._dialect = dialect
-        self.tables = extract_tables_from_statement(self._parsed, dialect)
+        try:
+            statements = sqlglot.parse(query, dialect=dialect)
+        except sqlglot.errors.ParseError as ex:
+            raise SupersetParseError("Unable to split query") from ex
 
-    @staticmethod
+        return [cls(statement, engine) for statement in statements if statement]
+
+    @classmethod
     def _parse_statement(
-        sql_statement: str,
-        dialect: Dialects | None,
+        cls,
+        statement: str,
+        engine: str,
     ) -> exp.Expression:
         """
         Parse a single SQL statement.
         """
-        statements = [
-            statement
-            for statement in sqlglot.parse(sql_statement, dialect=dialect)
-            if statement
-        ]
+        dialect = SQLGLOT_DIALECTS.get(engine)
+
+        # We could parse with `sqlglot.parse_one` to get a single statement, but we need
+        # to verify that the string contains exactly one statement.
+        try:
+            statements = sqlglot.parse(statement, dialect=dialect)
+        except sqlglot.errors.ParseError as ex:
+            raise SupersetParseError("Unable to split query") from ex
+
+        statements = [statement for statement in statements if statement]
         if len(statements) != 1:
-            raise ValueError("SQLStatement should have exactly one statement")
+            raise SupersetParseError("SQLStatement should have exactly one statement")
 
         return statements[0]
+
+    @classmethod
+    def _extract_tables_from_statement(
+        cls,
+        parsed: exp.Expression,
+        engine: str,
+    ) -> set[Table]:
+        """
+        Find all referenced tables.
+        """
+        dialect = SQLGLOT_DIALECTS.get(engine)
+        return extract_tables_from_statement(parsed, dialect)
 
     def format(self, comments: bool = True) -> str:
         """
@@ -422,7 +513,7 @@ class SQLStatement:
         write = Dialect.get_or_raise(self._dialect)
         return write.generate(self._parsed, copy=False, comments=comments, pretty=True)
 
-    def get_settings(self) -> dict[str, str]:
+    def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL statement.
 
@@ -436,6 +527,192 @@ class SQLStatement:
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
+
+
+class KQLSplitState(enum.Enum):
+    """
+    State machine for splitting a KQL query.
+
+    The state machine keeps track of whether we're inside a string or not, so we
+    don't split the query in a semi-colon that's part of a string.
+    """
+
+    OUTSIDE_STRING = enum.auto()
+    INSIDE_SINGLE_QUOTED_STRING = enum.auto()
+    INSIDE_DOUBLE_QUOTED_STRING = enum.auto()
+    INSIDE_MULTILINE_STRING = enum.auto()
+
+
+def split_kql(kql: str) -> list[str]:
+    """
+    Custom function for splitting KQL statements.
+    """
+    statements = []
+    state = KQLSplitState.OUTSIDE_STRING
+    statement_start = 0
+    query = kql if kql.endswith(";") else kql + ";"
+    for i, character in enumerate(query):
+        if state == KQLSplitState.OUTSIDE_STRING:
+            if character == ";":
+                statements.append(query[statement_start:i])
+                statement_start = i + 1
+            elif character == "'":
+                state = KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+            elif character == '"':
+                state = KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+            elif character == "`" and query[i - 2 : i] == "``":
+                state = KQLSplitState.INSIDE_MULTILINE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
+            and character == "'"
+            and query[i - 1] != "\\"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
+            and character == '"'
+            and query[i - 1] != "\\"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+        elif (
+            state == KQLSplitState.INSIDE_MULTILINE_STRING
+            and character == "`"
+            and query[i - 2 : i] == "``"
+        ):
+            state = KQLSplitState.OUTSIDE_STRING
+
+    return statements
+
+
+class KustoKQLStatement(BaseSQLStatement[str]):
+    """
+    Special class for Kusto KQL.
+
+    Kusto KQL is a SQL-like language, but it's not supported by sqlglot. Queries look
+    like this:
+
+        StormEvents
+        | summarize PropertyDamage = sum(DamageProperty) by State
+        | join kind=innerunique PopulationData on State
+        | project State, PropertyDamagePerCapita = PropertyDamage / Population
+        | sort by PropertyDamagePerCapita
+
+    See https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/ for more
+    details about it.
+    """
+
+    @classmethod
+    def split_query(
+        cls,
+        query: str,
+        engine: str,
+    ) -> list[KustoKQLStatement]:
+        """
+        Split a query at semi-colons.
+
+        Since we don't have a parser, we use a simple state machine based function. See
+        https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/scalar-data-types/string
+        for more information.
+        """
+        return [cls(statement, engine) for statement in split_kql(query)]
+
+    @classmethod
+    def _parse_statement(
+        cls,
+        statement: str,
+        engine: str,
+    ) -> str:
+        if engine != "kustokql":
+            raise SupersetParseError(f"Invalid engine: {engine}")
+
+        statements = split_kql(statement)
+        if len(statements) != 1:
+            raise SupersetParseError("SQLStatement should have exactly one statement")
+
+        return statements[0].strip()
+
+    @classmethod
+    def _extract_tables_from_statement(cls, parsed: str, engine: str) -> set[Table]:
+        """
+        Extract all tables referenced in the statement.
+
+            StormEvents
+            | where InjuriesDirect + InjuriesIndirect > 50
+            | join (PopulationData) on State
+            | project State, Population, TotalInjuries = InjuriesDirect + InjuriesIndirect
+
+        """
+        logger.warning(
+            "Kusto KQL doesn't support table extraction. This means that data access "
+            "roles will not be enforced by Superset in the database."
+        )
+        return set()
+
+    def format(self, comments: bool = True) -> str:
+        """
+        Pretty-format the SQL statement.
+        """
+        return self._parsed
+
+    def get_settings(self) -> dict[str, str | bool]:
+        """
+        Return the settings for the SQL statement.
+
+            >>> statement = KustoKQLStatement("set querytrace;")
+            >>> statement.get_settings()
+            {"querytrace": True}
+
+        """
+        set_regex = r"^set\s+(?P<name>\w+)(?:\s*=\s*(?P<value>\w+))?$"
+        if match := re.match(set_regex, self._parsed, re.IGNORECASE):
+            return {match.group("name"): match.group("value") or True}
+
+        return {}
+
+
+class SQLScript:
+    """
+    A SQL script, with 0+ statements.
+    """
+
+    # Special engines that can't be parsed using sqlglot. Supporting non-SQL engines
+    # adds a lot of complexity to Superset, so we should avoid adding new engines to
+    # this data structure.
+    special_engines = {
+        "kustokql": KustoKQLStatement,
+    }
+
+    def __init__(
+        self,
+        query: str,
+        engine: str,
+    ):
+        statement_class = self.special_engines.get(engine, SQLStatement)
+        self.statements = statement_class.split_query(query, engine)
+
+    def format(self, comments: bool = True) -> str:
+        """
+        Pretty-format the SQL query.
+        """
+        return ";\n".join(statement.format(comments) for statement in self.statements)
+
+    def get_settings(self) -> dict[str, str | bool]:
+        """
+        Return the settings for the SQL query.
+
+            >>> statement = SQLScript("SET foo = 'bar'; SET foo = 'baz'")
+            >>> statement.get_settings()
+            {"foo": "'baz'"}
+
+        """
+        settings: dict[str, str | bool] = {}
+        for statement in self.statements:
+            settings.update(statement.get_settings())
+
+        return settings
 
 
 class ParsedQuery:
@@ -1232,3 +1509,61 @@ def extract_table_references(
         Table(*[part["value"] for part in table["name"][::-1]])
         for table in find_nodes_by_key(tree, "Table")
     }
+
+
+def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+    """
+    Extract all table references in the Jinjafied SQL statement.
+
+    Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
+    statement may represent invalid SQL which is non-parsable by SQLGlot.
+
+    Firstly, we extract any tables referenced within the confines of specific Jinja
+    macros. Secondly, we replace these non-SQL Jinja calls with a pseudo-benign SQL
+    expression to help ensure that the resulting SQL statements are parsable by
+    SQLGlot.
+
+    :param sql: The Jinjafied SQL statement
+    :param database: The database associated with the SQL statement
+    :returns: The set of tables referenced in the SQL statement
+    :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
+    :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
+    """
+
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+        get_template_processor,
+    )
+
+    processor = get_template_processor(database)
+    template = processor.env.parse(sql)
+
+    tables = set()
+
+    for node in template.find_all(nodes.Call):
+        if isinstance(node.node, nodes.Getattr) and node.node.attr in (
+            "latest_partition",
+            "latest_sub_partition",
+        ):
+            # Extract the table referenced in the macro.
+            tables.add(
+                Table(
+                    *[
+                        remove_quotes(part)
+                        for part in node.args[0].value.split(".")[::-1]
+                        if len(node.args) == 1
+                    ]
+                )
+            )
+
+            # Replace the potentially problematic Jinja macro with some benign SQL.
+            node.__class__ = nodes.TemplateData
+            node.fields = nodes.TemplateData.fields
+            node.data = "NULL"
+
+    return (
+        tables
+        | ParsedQuery(
+            sql_statement=processor.process_template(template),
+            engine=database.db_engine_spec.engine,
+        ).tables
+    )

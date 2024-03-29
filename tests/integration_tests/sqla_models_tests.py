@@ -267,6 +267,61 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
 
+    @patch("superset.views.utils.get_form_data")
+    def test_jinja_metric_macro(self, mock_form_data_context):
+        self.login(username="admin")
+        table = self.get_table(name="birth_names")
+        metric = SqlMetric(
+            metric_name="count_jinja_metric", expression="count(*)", table=table
+        )
+        db.session.commit()
+
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "columns": [],
+            "metrics": [
+                {
+                    "hasCustomLabel": True,
+                    "label": "Metric using Jinja macro",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric') }}",
+                },
+                {
+                    "hasCustomLabel": True,
+                    "label": "Same but different",
+                    "expressionType": AdhocMetricExpressionType.SQL,
+                    "sqlExpression": "{{ metric('count_jinja_metric', "
+                    + str(table.id)
+                    + ") }}",
+                },
+            ],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
+        }
+        mock_form_data_context.return_value = [
+            {
+                "url_params": {
+                    "datasource_id": table.id,
+                }
+            },
+            None,
+        ]
+        sqla_query = table.get_sqla_query(**base_query_obj)
+        query = table.database.compile_sqla_query(sqla_query.sqla_query)
+
+        database = table.database
+        with database.get_sqla_engine_with_context() as engine:
+            quote = engine.dialect.identifier_preparer.quote_identifier
+
+        for metric_label in {"metric using jinja macro", "same but different"}:
+            assert f"count(*) as {quote(metric_label)}" in query.lower()
+
+        db.session.delete(metric)
+        db.session.commit()
+
     def test_adhoc_metrics_and_calc_columns(self):
         base_query_obj = {
             "granularity": None,

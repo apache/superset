@@ -27,6 +27,7 @@ runs:
       run: sudo apt-get install -y libldap2-dev libsasl2-dev
     - name: Install dependencies
       run: |
+        sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
         pip install --upgrade pip setuptools wheel
         if [ "${{ inputs.requirements-type }}" = "dev" ]; then
           pip install -r requirements/development.txt

@@ -18,7 +18,7 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -103,21 +103,89 @@ export const LabelsContainer = styled.div`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const borderPulse = keyframes`
+  0% {
+    right: 100%;
+  }
+  50% {
+    left: 4px;
+  }
+  90% {
+    right: 4px;
+  }
+  100% {
+    left: 100%;
+  }
+`;
+
 export const DndLabelsContainer = styled.div<{
   canDrop?: boolean;
   isOver?: boolean;
+  isDragging?: boolean;
+  isLoading?: boolean;
 }>`
-  padding: ${({ theme }) => theme.gridUnit}px;
-  border: ${({ canDrop, isOver, theme }) => {
-    if (canDrop) {
-      return `dashed 1px ${theme.colors.info.dark1}`;
-    }
-    if (isOver && !canDrop) {
-      return `dashed 1px ${theme.colors.error.dark1}`;
-    }
-    return `solid 1px ${theme.colors.grayscale.light2}`;
-  }};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  ${({ theme, isLoading, canDrop, isDragging, isOver }) => `
+  position: relative;
+  padding: ${theme.gridUnit}px;
+  border: ${
+    !isLoading && isDragging
+      ? `dashed 1px ${
+          canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
+        }`
+      : `solid 1px ${
+          isLoading && isDragging
+            ? theme.colors.warning.light1
+            : theme.colors.grayscale.light2
+        }`
+  };
+  border-radius: ${theme.gridUnit}px;
+  &:before,
+  &:after {
+    content: ' ';
+    position: absolute;
+    border-radius: ${theme.gridUnit}px;
+  }
+  &:before {
+    display: ${isDragging || isLoading ? 'block' : 'none'};
+    background-color: ${
+      canDrop ? theme.colors.primary.base : theme.colors.error.light1
+    };
+    z-index: ${theme.zIndex.aboveDashboardCharts};
+    opacity: ${theme.opacity.light};
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    left: 1px;
+  }
+  &:after {
+    display: ${isLoading || (canDrop && isOver) ? 'block' : 'none'};
+    background-color: ${
+      isLoading ? theme.colors.grayscale.light3 : theme.colors.primary.base
+    };
+    z-index: ${theme.zIndex.dropdown};
+    opacity: ${theme.opacity.mediumLight};
+    top: ${-theme.gridUnit}px;
+    right: ${-theme.gridUnit}px;
+    bottom: ${-theme.gridUnit}px;
+    left: ${-theme.gridUnit}px;
+    cursor: ${isLoading ? 'wait' : 'auto'};
+  }
+  `}
+
+  &:before {
+    ${({ theme, isLoading }) =>
+      isLoading &&
+      css`
+        animation: ${borderPulse} 2s ease-in infinite;
+        background: linear-gradient(currentColor 0 0) 0 100%/0% 3px no-repeat;
+        background-size: 100% ${theme.gridUnit / 2}px;
+        top: auto;
+        right: ${theme.gridUnit}px;
+        left: ${theme.gridUnit}px;
+        bottom: -${theme.gridUnit / 2}px;
+        height: ${theme.gridUnit / 2}px;
+      `};
+  }
 `;
 
 export const AddControlLabel = styled.div<{
