@@ -44,7 +44,7 @@ msgid ""
 "\n"
 "            Error: %(text)s\n"
 "            "
-msgstr ""
+msgstr "\n错误：%(text)s\n"
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:133
 msgid " (excluded)"
@@ -60,12 +60,12 @@ msgstr ""
 #: superset-frontend/src/explore/components/SaveModal.tsx:396
 #, fuzzy
 msgid " a dashboard OR "
-msgstr "保存看板"
+msgstr "一个已存在的看板或者"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:398
 #, fuzzy
 msgid " a new one"
-msgstr "改变为"
+msgstr "另存为新的"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:314
 msgid " expression which needs to adhere to the "
@@ -99,7 +99,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:371
 #, fuzzy
 msgid " to add calculated columns"
-msgstr "计算列"
+msgstr "添加计算列"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:421
 #, fuzzy
@@ -109,7 +109,7 @@ msgstr "添加指标"
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:382
 #, fuzzy
 msgid " to edit or add columns and metrics."
-msgstr "%s 列与计量指标"
+msgstr "编辑或增加列与指标"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:360
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:395
@@ -156,27 +156,27 @@ msgstr ""
 #: superset/db_engine_specs/snowflake.py:112
 #, python-format
 msgid "%(object)s does not exist in this database."
-msgstr "%(object)s 数据库中不存在。"
+msgstr "数据库中不存在 %(object)s 。"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:44
 #, fuzzy, python-format
 msgid "%(other)s charts will appear here"
-msgstr "示例 %(tableName)s 将出现在此处"
+msgstr " %(other)s 图表将出现在此处"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:46
 #, fuzzy, python-format
 msgid "%(other)s dashboards will appear here"
-msgstr "示例 %(tableName)s 将出现在此处"
+msgstr " %(other)s 看板将出现在此处"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:48
 #, fuzzy, python-format
 msgid "%(other)s recents will appear here"
-msgstr "示例 %(tableName)s 将出现在此处"
+msgstr " %(other)s 最近访问的将出现在此处"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:50
 #, fuzzy, python-format
 msgid "%(other)s saved queries will appear here"
-msgstr "最近查看的图表、看板和保存的查询将显示在此处"
+msgstr "%(other)s 保存的请求将出现在此处"
 
 #: superset/reports/notifications/email.py:179
 #, python-format
@@ -188,7 +188,7 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:390
 #, python-format
 msgid "%(rows)d rows returned"
-msgstr "%(rows)d行被检索到"
+msgstr "返回了 %(rows)d 行"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:93
 #, python-format
@@ -222,31 +222,31 @@ msgstr ""
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:89
 #, python-format
 msgid "%s Error"
-msgstr "%s 异常"
+msgstr "%s 个异常"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:298
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1363
 #, fuzzy, python-format
 msgid "%s PASSWORD"
-msgstr "密码"
+msgstr "%s 密码"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:318
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1381
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
-msgstr ""
+msgstr "%s SSH 隧道密码"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:341
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1399
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY"
-msgstr ""
+msgstr "%s SSH 隧道私有密钥"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:363
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1419
 #, python-format
 msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
-msgstr ""
+msgstr "%s SSH 隧道私有密钥密码"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:252
 #, python-format
@@ -256,12 +256,12 @@ msgstr "%s 已选定"
 #: superset-frontend/src/pages/DatasetList/index.tsx:859
 #, python-format
 msgid "%s Selected (%s Physical, %s Virtual)"
-msgstr "%s 个被选中 (%s 个物理, %s 个虚拟)"
+msgstr "%s 个被选中 (%s 个实体, %s 个虚拟)"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:852
 #, python-format
 msgid "%s Selected (Physical)"
-msgstr "%s 个被选中（物理）"
+msgstr "%s 个被选中（实体）"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:845
 #, python-format
@@ -402,7 +402,7 @@ msgstr "0个被选中"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:167
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:242
 msgid "1 calendar day frequency"
-msgstr ""
+msgstr "1个日历日的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:166
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:313
@@ -427,7 +427,7 @@ msgstr "1小时"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:241
 #, fuzzy
 msgid "1 hourly frequency"
-msgstr "刷新频率"
+msgstr "每小时一次的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:161
 #: superset-frontend/src/explore/controls.jsx:257
@@ -437,17 +437,17 @@ msgstr "1分钟"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:165
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:240
 msgid "1 minutely frequency"
-msgstr ""
+msgstr "每分钟一次的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:170
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:245
 msgid "1 month end frequency"
-msgstr ""
+msgstr "每月一次的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:169
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:244
 msgid "1 month start frequency"
-msgstr ""
+msgstr "每月月初的频率"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:314
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:198
@@ -487,13 +487,13 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:247
 #, fuzzy
 msgid "1 year end frequency"
-msgstr "刷新频率"
+msgstr "每年年末的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:171
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:246
 #, fuzzy
 msgid "1 year start frequency"
-msgstr "刷新频率"
+msgstr "每年年初的频率"
 
 #: superset/db_engine_specs/base.py:103
 msgid "10 minute"
@@ -708,7 +708,7 @@ msgstr "60天"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:168
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:243
 msgid "7 calendar day frequency"
-msgstr ""
+msgstr "7个日历日的频率"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:167
 #: superset-frontend/src/explore/controls.jsx:263
@@ -766,19 +766,19 @@ msgstr "空间"
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1028
 #, fuzzy
 msgid "<no type>"
-msgstr "图表类型"
+msgstr "无类型"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:114
 msgid "== (Is equal)"
-msgstr "== (等于)"
+msgstr "等于（==）"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:102
 msgid "> (Larger than)"
-msgstr "> (大于)"
+msgstr "大于（>）"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:110
 msgid ">= (Larger or equal)"
-msgstr ">= (大于等于)"
+msgstr "大于等于（>=）"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:35
 msgid "A Big Number"
@@ -957,7 +957,7 @@ msgstr "四月"
 #: superset-frontend/src/pages/DatabaseList/index.tsx:344
 #: superset-frontend/src/pages/DatabaseList/index.tsx:512
 msgid "AQE"
-msgstr "AQE（异步执行查询）"
+msgstr "异步执行查询"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:98
 msgid "AUG"
@@ -1057,7 +1057,7 @@ msgstr "新增"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:395
 msgid "Add Alert"
-msgstr "添加告警"
+msgstr "新增告警"
 
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
@@ -1069,19 +1069,19 @@ msgstr "新增CSS模板"
 
 #: superset/views/chart/mixin.py:27
 msgid "Add Chart"
-msgstr "添加图表"
+msgstr "新增图表"
 
 #: superset/connectors/sqla/views.py:72
 msgid "Add Column"
-msgstr "添加列"
+msgstr "新增列"
 
 #: superset/views/dashboard/mixin.py:26
 msgid "Add Dashboard"
-msgstr "添加看板"
+msgstr "新增看板"
 
 #: superset/views/database/mixins.py:35
 msgid "Add Database"
-msgstr "添加数据库"
+msgstr "新增数据库"
 
 #: superset/views/log/__init__.py:23
 msgid "Add Log"
@@ -1089,33 +1089,33 @@ msgstr "新增日志"
 
 #: superset/connectors/sqla/views.py:207
 msgid "Add Metric"
-msgstr "添加指标"
+msgstr "新增指标"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:394
 msgid "Add Report"
-msgstr "添加报告"
+msgstr "新增报告"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:352
 #, fuzzy
 msgid "Add Rule"
-msgstr "日期格式化"
+msgstr "新增规则"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:410
 msgid "Add Tag"
-msgstr ""
+msgstr "新增标签"
 
 #: superset/views/dynamic_plugins.py:60
 msgid "Add a Plugin"
-msgstr "添加插件"
+msgstr "新增插件"
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:294
 #, fuzzy
 msgid "Add a dataset"
-msgstr "添加数据集"
+msgstr "新增数据集"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:253
 msgid "Add a new tab"
-msgstr "添加新的标签页"
+msgstr "新增新的选项卡"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:277
 msgid "Add a new tab to create SQL Query"
@@ -1123,12 +1123,12 @@ msgstr ""
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:222
 msgid "Add additional custom parameters"
-msgstr "添加其他自定义参数"
+msgstr "新增其他自定义参数"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:118
 #, fuzzy
 msgid "Add an annotation layer"
-msgstr "添加注释层"
+msgstr "新增注释层"
 
 #: superset-frontend/src/explore/components/controls/CollectionControl/index.jsx:63
 msgid "Add an item"
@@ -1141,17 +1141,17 @@ msgstr "范围过滤"
 
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:281
 msgid "Add annotation"
-msgstr "添加注释"
+msgstr "新增注释"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:214
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:226
 #: superset-frontend/src/features/annotationLayers/AnnotationLayerModal.tsx:241
 msgid "Add annotation layer"
-msgstr "添加注释层"
+msgstr "新增注释层"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:337
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "在“编辑数据源”对话框中向数据集添加计算列"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:334
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
@@ -1169,7 +1169,7 @@ msgstr "增加过滤条件"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:139
 msgid "Add custom scoping"
-msgstr ""
+msgstr "添加自定义作用域"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:106
 #, fuzzy
@@ -1178,7 +1178,7 @@ msgstr "必须是分组列"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:389
 msgid "Add delivery method"
-msgstr "添加通知方法"
+msgstr "新增通知方法"
 
 #: superset-frontend/src/features/tags/TagModal.tsx:301
 #, fuzzy
@@ -1188,7 +1188,7 @@ msgstr "为您的查询写一段描述"
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:356
 #, fuzzy
 msgid "Add extra connection information."
-msgstr "无效账户信息"
+msgstr "增加额外的连接信息"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:176
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl/index.jsx:372
@@ -1210,7 +1210,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
-msgstr ""
+msgstr "添加过滤器和分隔符"
 
 #: superset-frontend/src/components/Datasource/CollectionTable.tsx:481
 msgid "Add item"
@@ -1218,7 +1218,7 @@ msgstr "增加条件"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/MetricsControl.jsx:333
 msgid "Add metric"
-msgstr "添加指标"
+msgstr "新增指标"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:401
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
@@ -1226,7 +1226,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:176
 msgid "Add new color formatter"
-msgstr "添加新的颜色"
+msgstr "增加新的的颜色格式化器"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:169
 msgid "Add new formatter"
@@ -1234,15 +1234,15 @@ msgstr "新增格式化"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:388
 msgid "Add notification method"
-msgstr "添加注释层"
+msgstr "新增注释层"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:255
 msgid "Add required control values to preview chart"
-msgstr ""
+msgstr "添加必需的控制值以预览图表"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:265
 msgid "Add required control values to save chart"
-msgstr ""
+msgstr "添加必需的控制值以保存图表"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:107
 msgid "Add sheet"
@@ -1250,17 +1250,17 @@ msgstr "添加sheet页"
 
 #: superset-frontend/src/features/allEntities/AllEntitiesTable.tsx:164
 msgid "Add tag to entities"
-msgstr ""
+msgstr "给对象添加标签"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:230
 #, fuzzy
 msgid "Add the name of the chart"
-msgstr "活动图表的ID"
+msgstr "给图表添加名称"
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:512
 #, fuzzy
 msgid "Add the name of the dashboard"
-msgstr "保存并转到看板"
+msgstr "给看板添加名称"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:383
 msgid "Add to dashboard"
@@ -1301,7 +1301,7 @@ msgstr "附加元数据"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:56
 msgid "Additional padding for legend."
-msgstr "图示附加的padding值。"
+msgstr "图例额外的内边距。"
 
 #: superset/db_engine_specs/base.py:1996
 #: superset/db_engine_specs/clickhouse.py:220
@@ -1312,7 +1312,7 @@ msgstr "编辑模板参数"
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:497
 #, fuzzy
 msgid "Additional settings."
-msgstr "条件格式设置"
+msgstr "额外的设置"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:162
 msgid "Additional text to add before or after the value, e.g. unit"
@@ -1327,11 +1327,11 @@ msgstr "附加"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:85
 msgid "Adjust how this database will interact with SQL Lab."
-msgstr ""
+msgstr "调整此数据库与 SQL 工具箱的交互方式。"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:247
 msgid "Adjust performance settings of this database."
-msgstr ""
+msgstr "调整此数据库的性能设置"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:128
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/controlPanel.ts:109
@@ -1348,7 +1348,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:34
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1864
 msgid "Advanced"
-msgstr "进阶"
+msgstr "高级选项"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:114
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:234
@@ -1604,11 +1604,11 @@ msgstr "所有图表"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ChartsScopingListPanel.tsx:146
 msgid "All charts/global scoping"
-msgstr ""
+msgstr "所有的图表或者全局作用域"
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
 msgid "All filters"
-msgstr "所有过滤"
+msgstr "所有过滤器"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/state.ts:36
 msgid "All panels"
@@ -1654,7 +1654,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:445
 msgid "Allow columns to be rearranged"
-msgstr ""
+msgstr "允许列重排"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:120
 msgid "Allow creation of new tables based on queries"
@@ -1672,7 +1672,7 @@ msgstr "允许数据操作语言"
 msgid ""
 "Allow end user to drag-and-drop column headers to rearrange them. Note "
 "their changes won't persist for the next time they open the chart."
-msgstr ""
+msgstr "允许最终用户通过拖放列标题来重新排列它们。请注意，他们所做的更改不会在下次打开图表时保留。"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:437
 #, fuzzy
@@ -1823,7 +1823,7 @@ msgstr "展开表结构时出错。请与管理员联系。"
 #: superset-frontend/src/views/CRUD/hooks.ts:106
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr "获取%s仪表板时出错：%s"
+msgstr "获取%s看板时出错：%s"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:174
 #: superset-frontend/src/views/CRUD/hooks.ts:265
@@ -1844,7 +1844,7 @@ msgstr "获取图表所有者时出错 %s"
 #: superset-frontend/src/pages/DashboardList/index.tsx:539
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "获取仪表板所有者时出错：%s"
+msgstr "获取看板所有者时出错：%s"
 
 #: superset-frontend/src/pages/ChartList/index.tsx:293
 msgid "An error occurred while fetching dashboards"
@@ -1854,7 +1854,7 @@ msgstr "获取看板时出错"
 #: superset-frontend/src/pages/DashboardList/index.tsx:236
 #, python-format
 msgid "An error occurred while fetching dashboards: %s"
-msgstr "获取仪表板时出错：%s"
+msgstr "获取看板时出错：%s"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:172
 #, python-format
@@ -1918,7 +1918,7 @@ msgstr "获取结构信息时出错：%s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:712
 msgid "An error occurred while fetching tab state"
-msgstr "获取tab页状态时出错"
+msgstr "获取选项卡状态时出错"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:137
 msgid "An error occurred while fetching table metadata"
@@ -1970,7 +1970,7 @@ msgstr "删除查询时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:749
 msgid "An error occurred while removing tab. Please contact your administrator."
-msgstr "删除tab页时出错。请与管理员联系。"
+msgstr "删除选项卡时出错。请与管理员联系。"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1142
 msgid ""
@@ -1987,7 +1987,7 @@ msgstr "渲染可视化时发生错误：%s"
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
-msgstr "设置活动tab页时出错。请与管理员联系。"
+msgstr "设置活动选项卡时出错。请与管理员联系。"
 
 #: superset-frontend/src/explore/actions/exploreActions.ts:89
 msgid "An error occurred while starring this chart"
@@ -2039,7 +2039,7 @@ msgstr "注释"
 #: superset-frontend/src/pages/AnnotationList/index.tsx:259
 #, fuzzy, python-format
 msgid "Annotation Layer %s"
-msgstr "注解层"
+msgstr "注释层"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/annotationsAndLayers.tsx:36
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:109
@@ -2127,7 +2127,7 @@ msgstr "注释层值"
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:71
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:290
 msgid "Annotation layers"
-msgstr "注解层"
+msgstr "注释层"
 
 #: superset-frontend/src/dashboard/components/SliceHeader/index.tsx:57
 msgid "Annotation layers are still loading."
@@ -2258,7 +2258,7 @@ msgstr "将条件颜色格式应用于数字列"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:142
 #, fuzzy
 msgid "Apply filters"
-msgstr "所有过滤"
+msgstr "应用过滤器"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:111
 msgid "Apply metrics on"
@@ -2321,7 +2321,7 @@ msgstr "确实要删除所选图表吗？"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:680
 msgid "Are you sure you want to delete the selected dashboards?"
-msgstr "确实要删除选定的仪表板吗？"
+msgstr "确实要删除选定的看板吗？"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:789
 msgid "Are you sure you want to delete the selected datasets?"
@@ -2371,7 +2371,7 @@ msgstr "面积图"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:42
 #, fuzzy
 msgid "Area Chart (legacy)"
-msgstr "面积图不透明度"
+msgstr "面积图（传统）"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:177
 msgid "Area chart"
@@ -2448,7 +2448,7 @@ msgstr "自动补全查询谓词"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:725
 msgid "Automatic Color"
-msgstr ""
+msgstr "自动配色"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:327
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:355
@@ -2483,7 +2483,7 @@ msgstr "Y 轴格式化"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:102
 #, fuzzy
 msgid "Axis Title"
-msgstr "选项卡标题"
+msgstr "轴标题"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:30
 msgid "Axis ascending"
@@ -2508,7 +2508,7 @@ msgstr "返回"
 #: superset-frontend/src/pages/AnnotationList/index.tsx:264
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:185
 msgid "Back to all"
-msgstr ""
+msgstr "返回到列表"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:332
 #: superset/views/database/mixins.py:200
@@ -2519,12 +2519,12 @@ msgstr "后端"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:266
 #, fuzzy
 msgid "Backward values"
-msgstr "条形栏的值"
+msgstr "向后数值"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:496
 #, fuzzy
 msgid "Bad formula."
-msgstr "日期格式化"
+msgstr "错误的公式"
 
 #: superset/viz.py:1880 superset/viz.py:1920
 msgid "Bad spatial key"
@@ -2536,16 +2536,16 @@ msgstr "错误的空间字段"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:84
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:85
 msgid "Bar"
-msgstr "条形图"
+msgstr "柱"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:74
 msgid "Bar Chart"
-msgstr "条形图"
+msgstr "柱状图"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/DistBar/index.js:39
 #, fuzzy
 msgid "Bar Chart (legacy)"
-msgstr "面积图不透明度"
+msgstr "柱状图（传统）"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:60
 #, fuzzy
@@ -2554,7 +2554,7 @@ msgstr "时间序列条形图用于显示指标随时间的变化"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:315
 msgid "Bar Values"
-msgstr "条形栏的值"
+msgstr "柱的值"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:272
 #, fuzzy
@@ -2565,7 +2565,7 @@ msgstr "方向"
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:272
 #, fuzzy
 msgid "Base"
-msgstr "数据库"
+msgstr "基础"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:228
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:385
@@ -2738,7 +2738,7 @@ msgstr "气泡图"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bubble/index.js:33
 #, fuzzy
 msgid "Bubble Chart (legacy)"
-msgstr "面积图不透明度"
+msgstr "气泡图（传统）"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:146
 msgid "Bubble Color"
@@ -2840,7 +2840,7 @@ msgstr "取消"
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1583
 #, fuzzy
 msgid "CREATE DATASET"
-msgstr "修改数据集"
+msgstr "创建数据集"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.tsx:680
 msgid "CREATE TABLE AS"
@@ -2902,7 +2902,7 @@ msgstr "CSS模板不能被删除"
 #: superset/views/database/forms.py:109
 #, fuzzy
 msgid "CSV Upload"
-msgstr "CSV上传"
+msgstr "允许CSV上传"
 
 #: superset/views/database/views.py:289
 #, python-format
@@ -3018,7 +3018,7 @@ msgstr "时间热力图"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:213
 msgid "Can not move top level tab into nested tabs"
-msgstr "无法将顶级tab页移动到嵌套tab页中"
+msgstr "无法将顶级选项卡移动到嵌套选项卡中"
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:74
 #, fuzzy
@@ -3050,11 +3050,11 @@ msgstr "取消"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:340
 msgid "Cancel query on window unload event"
-msgstr "取消窗口上传事件的查询"
+msgstr "当窗口关闭时取消查询"
 
 #: superset/commands/sql_lab/export.py:78
 msgid "Cannot access the query"
-msgstr ""
+msgstr "无法访问查询"
 
 #: superset/commands/database/exceptions.py:111
 msgid "Cannot delete a database that has datasets attached"
@@ -3107,7 +3107,7 @@ msgstr "分类"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:115
 #, fuzzy
 msgid "Category Name"
-msgstr "查询名称"
+msgstr "分类名称"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:57
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:122
@@ -3131,7 +3131,7 @@ msgstr "缩放和移动"
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:70
 #, fuzzy
 msgid "Category name"
-msgstr "查询名称"
+msgstr "分类名称"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:87
 msgid "Category of target nodes"
@@ -3241,7 +3241,7 @@ msgstr ""
 #: superset/commands/chart/exceptions.py:151
 #, fuzzy
 msgid "Changing one or more of these dashboards is forbidden"
-msgstr "无法修改该看板"
+msgstr "有些看板无法修改"
 
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:51
 msgid ""
@@ -3404,17 +3404,17 @@ msgstr "图表标题"
 #: superset-frontend/src/explore/actions/saveModalActions.js:145
 #, fuzzy, python-format
 msgid "Chart [%s] has been overwritten"
-msgstr "图表 [{}] 已经覆盖"
+msgstr "图表 [%s] 已经覆盖"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:142
 #, fuzzy, python-format
 msgid "Chart [%s] has been saved"
-msgstr "图表 [{}] 已经保存"
+msgstr "图表 [%s] 已经保存"
 
 #: superset-frontend/src/explore/actions/saveModalActions.js:163
 #, fuzzy, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
-msgstr "图表 [{}] 已经添加到看板 [{}]"
+msgstr "图表 [%s] 已经添加到看板 [%s]"
 
 #: superset/views/core.py:625
 msgid "Chart [{}] has been overwritten"
@@ -3543,7 +3543,7 @@ msgstr "检查玫瑰图是否应该使用线段面积而不是线段半径来进
 
 #: superset-frontend/src/dashboard/components/AnchorLink/index.tsx:73
 msgid "Check out this chart in dashboard:"
-msgstr "在仪表盘中查看此图表"
+msgstr "在看板中查看此图表"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:509
 msgid "Check out this chart: "
@@ -3707,7 +3707,7 @@ msgstr "数字格式化"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:174
 msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
-msgstr ""
+msgstr "点击“+添加/编辑过滤器”按钮来创建新的看板过滤器。"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:274
 msgid ""
@@ -3801,7 +3801,7 @@ msgstr "关闭"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:133
 msgid "Close all other tabs"
-msgstr "关闭其他tab页"
+msgstr "关闭其他选项卡"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:103
 msgid "Close tab"
@@ -4222,7 +4222,7 @@ msgstr "条件格式设置"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:70
 msgid "Confidence interval"
-msgstr "信区间间隔"
+msgstr "置信区间间隔"
 
 #: superset/utils/pandas_postprocessing/prophet.py:133
 msgid "Confidence interval must be between 0 and 1 (exclusive)"
@@ -4428,7 +4428,7 @@ msgstr "将查询链接复制到剪贴板"
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:26
 #, fuzzy
 msgid "Copy the identifier of the account you are trying to connect to."
-msgstr "复制尝试连接的数据库名"
+msgstr "将尝试连接的数据库名复制到这里"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:95
 msgid "Copy the name of the HTTP Path of your cluster."
@@ -4437,7 +4437,7 @@ msgstr ""
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:117
 #, fuzzy
 msgid "Copy the name of the database you are trying to connect to."
-msgstr "复制尝试连接的数据库名"
+msgstr "将尝试连接的数据库名复制到这里"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:297
 msgid "Copy to Clipboard"
@@ -4499,7 +4499,7 @@ msgstr "列"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:175
 #, fuzzy
 msgid "Count Unique Values"
-msgstr "可被过滤"
+msgstr "计算唯一值"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:193
 msgid "Count as Fraction of Columns"
@@ -4544,7 +4544,7 @@ msgstr "创建"
 #: superset-frontend/src/SqlLab/components/ExploreResultsButton/index.tsx:49
 #, fuzzy
 msgid "Create Chart"
-msgstr "面积图"
+msgstr "创建图表"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:380
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:330
@@ -4572,7 +4572,7 @@ msgstr "创建新图表"
 #: superset-frontend/src/utils/getChartRequiredFieldsMissingMessage.ts:22
 #, fuzzy
 msgid "Create chart"
-msgstr "面积图"
+msgstr "创建图表"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:144
 msgid "Create chart with dataset"
@@ -4581,12 +4581,12 @@ msgstr ""
 #: superset-frontend/src/features/home/RightMenu.tsx:179
 #, fuzzy
 msgid "Create dataset"
-msgstr "修改数据集"
+msgstr "创建数据集"
 
 #: superset-frontend/src/features/datasets/AddDataset/Footer/index.tsx:109
 #, fuzzy
 msgid "Create dataset and create chart"
-msgstr "创建新图表"
+msgstr "创建数据集和图表"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:340
 #: superset-frontend/src/pages/ChartCreation/index.tsx:373
@@ -4608,7 +4608,7 @@ msgstr "创建人"
 #: superset/charts/filters.py:119 superset/dashboards/filters.py:55
 #, fuzzy
 msgid "Created by me"
-msgstr "创建人"
+msgstr "我创建的"
 
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:96
 msgid "Created on"
@@ -4621,7 +4621,7 @@ msgstr "导入图表失败，原因未知"
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton/index.tsx:70
 msgid "Creating a data source and creating a new tab"
-msgstr "创建数据源，并弹出一个新的标签页"
+msgstr "创建数据源，并弹出一个新的选项卡"
 
 #: superset/views/chart/mixin.py:77 superset/views/dashboard/mixin.py:84
 #: superset/views/dashboard/views.py:187 superset/views/database/mixins.py:189
@@ -4665,21 +4665,21 @@ msgstr "累计"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:118
 msgid "Currency"
-msgstr ""
+msgstr "货币"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:327
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:150
 #, fuzzy
 msgid "Currency format"
-msgstr "数值格式"
+msgstr "货币格式"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:104
 msgid "Currency prefix or suffix"
-msgstr ""
+msgstr "货币前缀或后缀"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:116
 msgid "Currency symbol"
-msgstr ""
+msgstr "货币符号"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:131
 #, python-format
@@ -4799,17 +4799,17 @@ msgstr "删除"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:364
 msgid "DML"
-msgstr "DML（数据操作语言）"
+msgstr "允许DML"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:123
 msgid "Daily seasonality"
-msgstr ""
+msgstr "日度季节性"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:218
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:378
 #, fuzzy
 msgid "Dark"
-msgstr "雷达"
+msgstr "暗色"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:31
 msgid "Dark Cyan"
@@ -4831,7 +4831,7 @@ msgstr "看板"
 #: superset-frontend/src/explore/actions/saveModalActions.js:153
 #, fuzzy, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
-msgstr "看板 [{}] 刚刚被创建，并且图表 [{}] 已被添加到其中"
+msgstr "看板 [%s] 刚刚被创建，并且图表 [%s] 已被添加到其中"
 
 #: superset/views/core.py:670
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
@@ -4869,7 +4869,7 @@ msgstr "看板属性"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:117
 msgid "Dashboard scheme"
-msgstr "仪表盘模式"
+msgstr "看板模式"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:871
 msgid ""
@@ -4896,13 +4896,13 @@ msgstr "看板"
 #: superset/initialization/__init__.py:250 superset/views/chart/mixin.py:78
 #: superset/views/dashboard/mixin.py:24
 msgid "Dashboards"
-msgstr "仪表盘"
+msgstr "看板"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:313
 #: superset-frontend/src/pages/ChartList/index.tsx:403
 #, fuzzy
 msgid "Dashboards added to"
-msgstr "看板"
+msgstr "已添加看板到"
 
 #: superset/commands/dashboard/exceptions.py:54
 #, fuzzy
@@ -4911,7 +4911,7 @@ msgstr "看板无法被创建"
 
 #: superset/commands/chart/exceptions.py:91
 msgid "Dashboards do not exist"
-msgstr "仪表盘"
+msgstr "看板不存在"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:689
 #, fuzzy
@@ -4962,7 +4962,7 @@ msgstr "数据预览"
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:303
 #, fuzzy
 msgid "Data refreshed"
-msgstr "上次刷新的元数据"
+msgstr "已刷新数据"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:278
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:281
@@ -5020,7 +5020,7 @@ msgstr "数据库 \"%(database_name)s\" schema \"%(schema_name)s\" 不允许用�
 #: superset/initialization/__init__.py:242
 #, fuzzy
 msgid "Database Connections"
-msgstr "测试连接"
+msgstr "数据库连接"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1530
 msgid "Database Creation Error"
@@ -5329,7 +5329,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:194
 msgid "Decides which measure to sort the base axis by."
-msgstr ""
+msgstr "决定按哪个度量来对基轴进行排序。"
 
 #: superset/views/database/forms.py:205 superset/views/database/forms.py:380
 msgid "Decimal Character"
@@ -5350,20 +5350,20 @@ msgstr "Deck.gl - 弧度"
 #: superset/viz.py:2291
 #, fuzzy
 msgid "Deck.gl - Contour"
-msgstr "Deck.gl - 弧度"
+msgstr "Deck.gl - 等高线"
 
 #: superset/viz.py:2312
 msgid "Deck.gl - GeoJSON"
-msgstr "Deck.gl - 地理json"
+msgstr "Deck.gl - GeoJSON"
 
 #: superset/viz.py:2270
 #, fuzzy
 msgid "Deck.gl - Heatmap"
-msgstr "圆弧图"
+msgstr "Deck.gl - 热力图"
 
 #: superset/viz.py:1834
 msgid "Deck.gl - Multiple Layers"
-msgstr "多图层"
+msgstr "Deck.gl - 多图层"
 
 #: superset/viz.py:2159
 msgid "Deck.gl - Paths"
@@ -5371,7 +5371,7 @@ msgstr "Deck.gl - 路径"
 
 #: superset/viz.py:2211
 msgid "Deck.gl - Polygon"
-msgstr "Deck.gl - 多角形"
+msgstr "Deck.gl - 多边形"
 
 #: superset/viz.py:2040
 msgid "Deck.gl - Scatter plot"
@@ -5592,7 +5592,7 @@ msgstr "删除注释"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:214
 msgid "Delete dashboard tab?"
-msgstr "是否删除仪表盘tab页？"
+msgstr "是否删除看板选项卡？"
 
 #: superset-frontend/src/pages/DatabaseList/index.tsx:428
 msgid "Delete database"
@@ -5699,7 +5699,7 @@ msgstr "已删除：%s"
 msgid ""
 "Deleting a tab will remove all content within it. You may still reverse "
 "this action with the"
-msgstr ""
+msgstr "删除一个标签页将会移除其中的所有内容。您仍然可以回退这个操作，点击"
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:184
 msgid "Delimited long & lat single column"
@@ -5835,11 +5835,11 @@ msgstr "维度"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/mixins.tsx:34
 msgid "Dimension to use on x-axis."
-msgstr ""
+msgstr "用于 x 轴的维度。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/mixins.tsx:33
 msgid "Dimension to use on y-axis."
-msgstr ""
+msgstr "用于 y 轴的维度。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:61
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/controlPanel.ts:163
@@ -5868,14 +5868,14 @@ msgstr "方向"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:212
 msgid "Disable SQL Lab data preview queries"
-msgstr ""
+msgstr "禁用 SQL 工具箱数据预览查询"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:215
 msgid ""
 "Disable data preview when fetching table metadata in SQL Lab.  Useful to "
 "avoid browser performance issues when using  databases with very wide "
 "tables."
-msgstr ""
+msgstr "在 SQL 工具箱中获取表的元数据时禁用数据预览。当使用具有非常宽表的数据库时，这样做有助于避免浏览器性能问题。"
 
 #: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:98
 msgid "Disable embedding?"
@@ -6027,12 +6027,12 @@ msgstr "草稿"
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:199
 msgid "Drag and drop components and charts to the dashboard"
-msgstr ""
+msgstr "拖放组件或图表到此看板"
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:222
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:189
 msgid "Drag and drop components to this tab"
-msgstr ""
+msgstr "拖放组件或图表到此选项卡"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:223
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:148
@@ -6088,11 +6088,11 @@ msgstr "排序 %s"
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:139
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:154
 msgid "Drill to detail"
-msgstr ""
+msgstr "钻取详情"
 
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:39
 msgid "Drill to detail by"
-msgstr ""
+msgstr "钻取详情由"
 
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailMenuItems.tsx:165
 msgid "Drill to detail by value is not yet supported for this chart type."
@@ -6107,7 +6107,7 @@ msgstr ""
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailModal.tsx:126
 #, python-format
 msgid "Drill to detail: %s"
-msgstr ""
+msgstr "钻取详情：%s"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndColumnSelect.tsx:179
 #, fuzzy
@@ -6124,7 +6124,7 @@ msgstr[0] "将列/指标放在此处或单击"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:253
 #, fuzzy
 msgid "Drop a temporal column here or click"
-msgstr "将列拖放到此处或单击"
+msgstr "将时间列拖放到此处或单击"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndFilterSelect.tsx:401
 msgid "Drop columns/metrics here or click"
@@ -6134,7 +6134,7 @@ msgstr "将列/指标拖放到此处或单击"
 #: superset-frontend/src/pages/DatasetList/index.tsx:487
 #, fuzzy
 msgid "Duplicate"
-msgstr "复制tab页"
+msgstr "复制"
 
 #: superset/views/datasource/views.py:112
 #, python-format
@@ -6151,17 +6151,17 @@ msgstr "重复的列/指标标签：%(labels)s。请确保所有列和指标都�
 #: superset-frontend/src/features/datasets/DuplicateDatasetModal.tsx:61
 #, fuzzy
 msgid "Duplicate dataset"
-msgstr "编辑数据集"
+msgstr "复制数据集"
 
 #: superset-frontend/src/SqlLab/components/SqlEditorTabHeader/index.tsx:143
 msgid "Duplicate tab"
-msgstr "复制tab页"
+msgstr "复制选项卡"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:82
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:142
 #: superset-frontend/src/pages/QueryHistoryList/index.tsx:232
 msgid "Duration"
-msgstr "持续时间"
+msgstr "时长"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:265
 #, fuzzy
@@ -6169,20 +6169,20 @@ msgid ""
 "Duration (in seconds) of the caching timeout for charts of this database."
 " A timeout of 0 indicates that the cache never expires, and -1 bypasses "
 "the cache. Note this defaults to the global timeout if undefined."
-msgstr "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为全局超时。"
+msgstr "该数据库图表缓存超时的持续时间（单位为秒）。超时时间设置为0表示缓存永不过期，设置为-1则表示绕过缓存。如果未定义，此项默认采用全局超时设置。"
 
 #: superset/views/database/mixins.py:172
 msgid ""
 "Duration (in seconds) of the caching timeout for charts of this database."
 " A timeout of 0 indicates that the cache never expires. Note this "
 "defaults to the global timeout if undefined."
-msgstr "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为全局超时。"
+msgstr "此数据库图表的缓存超时时长（单位为秒）。超时时长设置为0表示缓存永不过期。如果未定义，该设置将默认使用全局超时设置。"
 
 #: superset/views/chart/mixin.py:69
 msgid ""
 "Duration (in seconds) of the caching timeout for this chart. Note this "
 "defaults to the datasource/table timeout if undefined."
-msgstr "此图表的缓存超时持续时间(以秒为单位)。注意，如果未定义，这默认为数据源/表超时。"
+msgstr "此图表的缓存超时持续时间(单位为秒)。如果未定义，该设置将默认使用数据源/数据库表的超时设置。"
 
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:406
 #, fuzzy
@@ -6190,49 +6190,49 @@ msgid ""
 "Duration (in seconds) of the caching timeout for this chart. Set to -1 to"
 " bypass the cache. Note this defaults to the dataset's timeout if "
 "undefined."
-msgstr "此图表的缓存超时前的持续时间（秒）。请注意，如果未定义则默认为数据集的超时时间。"
+msgstr "此图表缓存过期时间的时长（单位为秒）。设置为 -1 可以绕过缓存。如果未定义，将默认使用数据集的超时设置。"
 
 #: superset/connectors/sqla/views.py:371
 msgid ""
 "Duration (in seconds) of the caching timeout for this table. A timeout of"
 " 0 indicates that the cache never expires. Note this defaults to the "
 "database timeout if undefined."
-msgstr "此表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为数据库的超时。"
+msgstr "此表的缓存超时持续时间(单位为秒)。超时为0表示缓存永远不会过期。如果未定义，将默认使用数据库的超时设置。"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:287
 msgid ""
 "Duration (in seconds) of the metadata caching timeout for schemas of this"
 " database. If left unset, the cache never expires."
-msgstr "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，这默认为永不过期。"
+msgstr "此数据库模式的元数据缓存超时时长（单位为秒）。如果不进行设置，缓存将永不过期。"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:308
 msgid ""
 "Duration (in seconds) of the metadata caching timeout for tables of this "
 "database. If left unset, the cache never expires. "
-msgstr "此数据库图表的缓存超时持续时间(以秒为单位)。超时为0表示缓存永远不会过期。注意，如果未定义，缓存为永不过期。"
+msgstr "此数据库表的元数据缓存超时时长（单位为秒）。如果不进行设置，缓存将永不过期。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:59
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
-msgstr "持续时间(毫秒)(1.40008 => 1ms 400µs 80ns)"
+msgstr "时长(毫秒)(1.40008 => 1ms 400µs 80ns)"
 
 #: superset-frontend/src/explore/controls.jsx:90
 #, fuzzy
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
-msgstr "持续时间(毫秒)(1.40008 => 1ms 400µs 80ns)"
+msgstr "时长(毫秒)(1.40008 => 1ms 400µs 80ns)"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:58
 #: superset-frontend/src/explore/controls.jsx:89
 msgid "Duration in ms (66000 => 1m 6s)"
-msgstr "持续时间(毫秒)(66000 => 1m 6s)"
+msgstr "时长(毫秒)(66000 => 1m 6s)"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/controlPanel.ts:64
 #, fuzzy
 msgid "Dynamic Aggregation Function"
-msgstr "聚合功能"
+msgstr "动态聚合函数"
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:133
 msgid "Dynamically search all filter values"
-msgstr ""
+msgstr "动态搜索所有的过滤器值"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:60
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/index.ts:53
@@ -6369,7 +6369,7 @@ msgstr "编辑报表"
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:352
 #, fuzzy
 msgid "Edit Rule"
-msgstr "光模式"
+msgstr "编辑规则"
 
 #: superset/connectors/sqla/views.py:294
 msgid "Edit Table"
@@ -6408,7 +6408,7 @@ msgstr "编辑图表属性"
 #: superset-frontend/src/dashboard/components/Header/index.jsx:630
 #: superset-frontend/src/dashboard/components/Header/index.jsx:632
 msgid "Edit dashboard"
-msgstr "编辑仪表盘"
+msgstr "编辑看板"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1754
 msgid "Edit database"
@@ -6426,7 +6426,7 @@ msgstr "编辑邮件报告"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:151
 msgid "Edit formatter"
-msgstr "日期格式化"
+msgstr "编辑格式化"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:252
 msgid "Edit properties"
@@ -6449,7 +6449,7 @@ msgstr "编辑模板参数"
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:247
 #, fuzzy
 msgid "Edit the dashboard"
-msgstr "编辑仪表盘"
+msgstr "编辑看板"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:349
 msgid "Edit time range"
@@ -6504,21 +6504,21 @@ msgstr "十一月"
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:380
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:382
 msgid "Embed code"
-msgstr ""
+msgstr "嵌入式代码"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:328
 #, fuzzy
 msgid "Embed dashboard"
-msgstr "保存看板"
+msgstr "嵌入看板"
 
 #: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:108
 msgid "Embedding deactivated."
-msgstr ""
+msgstr "解除嵌入。"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:171
 #, fuzzy
 msgid "Emit Filter Events"
-msgstr "可被过滤"
+msgstr "发送过滤器事件"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:189
 msgid "Emphasis"
@@ -6552,7 +6552,7 @@ msgstr "查询为空？"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Row.jsx:250
 msgid "Empty row"
-msgstr ""
+msgstr "空的"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:300
 #: superset-frontend/src/features/home/SubMenu.tsx:303
@@ -6606,7 +6606,7 @@ msgstr "启用查询成本估算"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:230
 msgid "Enable row expansion in schemas"
-msgstr ""
+msgstr "在模式中启用行展开功能"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/pagination.tsx:33
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:292
@@ -6643,7 +6643,7 @@ msgstr "结束角度"
 #: superset-frontend/src/features/annotations/AnnotationModal.tsx:306
 #, fuzzy
 msgid "End date"
-msgstr "发送文本"
+msgstr "结束时间"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/AdvancedFrame.tsx:78
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:184
@@ -6724,7 +6724,7 @@ msgstr "相同的日期大小"
 
 #: superset-frontend/src/explore/constants.ts:58
 msgid "Equal to (=)"
-msgstr ""
+msgstr "等于（=）"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:140
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:295
@@ -7071,11 +7071,11 @@ msgstr "在SQL工具箱中展示数据库"
 #: superset-frontend/src/pages/DatabaseList/index.tsx:494
 #: superset/views/database/mixins.py:183
 msgid "Expose in SQL Lab"
-msgstr "在 SQL 工具箱中公开"
+msgstr "在 SQL 工具箱中展示"
 
 #: superset/views/database/mixins.py:103
 msgid "Expose this DB in SQL Lab"
-msgstr "在 SQL 工具箱中公开这个数据库"
+msgstr "在 SQL 工具箱中展示这个数据库"
 
 #: superset/connectors/sqla/views.py:159
 msgid "Expression"
@@ -7215,7 +7215,7 @@ msgstr "无法启动远程查询"
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:84
 #, fuzzy
 msgid "Failed to tag items"
-msgstr "反选所有"
+msgstr "选择标签项失败"
 
 #: superset-frontend/src/features/reports/ReportModal/index.tsx:372
 msgid "Failed to update report"
@@ -7339,11 +7339,11 @@ msgstr "过滤器默认值"
 #: superset-frontend/src/components/Table/index.tsx:216
 #, fuzzy
 msgid "Filter menu"
-msgstr "过滤值"
+msgstr "过滤器菜单"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:818
 msgid "Filter name"
-msgstr "过滤值"
+msgstr "过滤器名称"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:91
 msgid "Filter only displays values relevant to selections made in other filters."
@@ -7503,7 +7503,7 @@ msgstr "对于Presto和Postgres，显示计算成本按钮(查询后)"
 msgid ""
 "For Trino, describe full schemas of nested ROW types, expanding them with"
 " dotted paths"
-msgstr ""
+msgstr "用于 Trino，描述嵌套的行类型的完整的模式，使用点号展开他的路径。"
 
 #: superset-frontend/src/dashboard/components/EmbeddedModal/index.tsx:184
 msgid "For further instructions, consult the"
@@ -7542,7 +7542,7 @@ msgstr "数据库名称"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:157
 #, fuzzy
 msgid "Force date format"
-msgstr "日期格式化"
+msgstr "强制日期格式化"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:418
 msgid "Force refresh"
@@ -7550,11 +7550,11 @@ msgstr "强制刷新"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:295
 msgid "Force refresh schema list"
-msgstr "强制刷新数据"
+msgstr "强制刷新模式列表"
 
 #: superset-frontend/src/components/TableSelector/index.tsx:313
 msgid "Force refresh table list"
-msgstr "强制刷新数据"
+msgstr "强制刷新表列表"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:56
 msgid "Forecast periods"
@@ -7562,7 +7562,7 @@ msgstr "预测期"
 
 #: superset-frontend/src/SqlLab/components/ColumnElement/index.tsx:64
 msgid "Foreign key"
-msgstr ""
+msgstr "外键"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:36
 #, fuzzy
@@ -7590,12 +7590,12 @@ msgstr "在邮件中附件CSV"
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:143
 #, fuzzy
 msgid "Formatted date"
-msgstr "格式表"
+msgstr "格式日期"
 
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailPane.tsx:132
 #, fuzzy
 msgid "Formatted value"
-msgstr "限制选择器值"
+msgstr "格式化值"
 
 #: superset-frontend/src/components/Chart/DrillDetail/DrillDetailPane.tsx:128
 #, fuzzy
@@ -7613,7 +7613,7 @@ msgstr "D3 格式"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:265
 #, fuzzy
 msgid "Forward values"
-msgstr "条形栏的值"
+msgstr "向前数值"
 
 #: superset-frontend/packages/superset-ui-core/src/query/extractQueryFields.ts:121
 msgid "Found invalid orderby options"
@@ -7646,7 +7646,7 @@ msgstr "起始时间不可以大于当前时间"
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:42
 #, fuzzy
 msgid "Full name"
-msgstr "查询名称"
+msgstr "完整名称"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:59
 msgid "Funnel Chart"
@@ -7681,7 +7681,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/index.ts:58
 #, fuzzy
 msgid "Generic Chart"
-msgstr "所有图表"
+msgstr "通用图表"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:37
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.ts:35
@@ -7745,12 +7745,12 @@ msgstr "重力"
 #: superset-frontend/src/explore/constants.ts:67
 #, fuzzy
 msgid "Greater or equal (>=)"
-msgstr ">= (大于等于)"
+msgstr "大于等于(>=)"
 
 #: superset-frontend/src/explore/constants.ts:65
 #, fuzzy
 msgid "Greater than (>)"
-msgstr "创建一个 "
+msgstr "大于（>）"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/controlPanel.ts:56
 #, fuzzy
@@ -7893,12 +7893,12 @@ msgstr "水平图"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:276
 #, fuzzy
 msgid "Horizontal"
-msgstr "比例"
+msgstr "横向"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:192
 #, fuzzy
 msgid "Horizontal (Top)"
-msgstr "水平对齐"
+msgstr "横向（顶部对齐）"
 
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:101
 msgid "Horizontal alignment"
@@ -8124,7 +8124,7 @@ msgstr "很重要！如果表尚未按实体ID排序，则选择此项，否则�
 #: superset-frontend/src/explore/constants.ts:70
 #, fuzzy
 msgid "In"
-msgstr "在"
+msgstr ""
 
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/controlPanel.ts:56
 msgid "Include Series"
@@ -8146,12 +8146,12 @@ msgstr "包含时间"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:71
 #, fuzzy
 msgid "Increase"
-msgstr "创建"
+msgstr "增加"
 
 #: superset-frontend/src/SqlLab/components/ColumnElement/index.tsx:65
 #, fuzzy
 msgid "Index"
-msgstr "我的编辑"
+msgstr "索引"
 
 #: superset/views/database/forms.py:221 superset/views/database/forms.py:352
 msgid "Index Column"
@@ -8406,11 +8406,11 @@ msgstr "非空"
 #: superset-frontend/src/explore/constants.ts:81
 #, fuzzy
 msgid "Is null"
-msgstr "非空"
+msgstr "是空"
 
 #: superset/views/base_api.py:177
 msgid "Is tagged"
-msgstr ""
+msgstr "有标签"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:368
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:376
@@ -8569,7 +8569,7 @@ msgstr "蛇形图"
 #: superset-frontend/src/SqlLab/components/KeyboardShortcutButton/index.tsx:93
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.tsx:654
 msgid "Keyboard shortcuts"
-msgstr ""
+msgstr "键盘快捷键"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:239
 msgid "Keys for table"
@@ -8753,7 +8753,7 @@ msgstr "布局"
 
 #: superset-frontend/src/dashboard/components/BuilderComponentPane/index.tsx:81
 msgid "Layout elements"
-msgstr ""
+msgstr "布局元素"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:114
 msgid "Layout type of graph"
@@ -8824,7 +8824,7 @@ msgstr "左值"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:42
 #: superset-frontend/src/visualizations/TimeTable/index.ts:35
 msgid "Legacy"
-msgstr "遗产"
+msgstr "传统"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:158
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:278
@@ -8832,7 +8832,7 @@ msgstr "遗产"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:157
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:101
 msgid "Legend"
-msgstr "图示"
+msgstr "图例"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:163
 #, fuzzy
@@ -8847,20 +8847,20 @@ msgstr "方向"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:177
 #, fuzzy
 msgid "Legend Position"
-msgstr "标签位置"
+msgstr "图例位置"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:74
 msgid "Legend type"
-msgstr "图示类型"
+msgstr "图例类型"
 
 #: superset-frontend/src/explore/constants.ts:62
 #, fuzzy
 msgid "Less or equal (<=)"
-msgstr "<= (小于等于)"
+msgstr "小于等于 (<=)"
 
 #: superset-frontend/src/explore/constants.ts:60
 msgid "Less than (<)"
-msgstr ""
+msgstr "小于（<）"
 
 #: superset-frontend/plugins/legacy-plugin-chart-paired-t-test/src/controlPanel.ts:89
 msgid "Lift percent precision"
@@ -8883,7 +8883,7 @@ msgstr ""
 #: superset-frontend/src/explore/constants.ts:74
 #, fuzzy
 msgid "Like (case insensitive)"
-msgstr "过滤值（区分大小写）"
+msgstr "Like（区分大小写）"
 
 #: superset-frontend/src/explore/components/RowCountLabel/index.tsx:49
 msgid "Limit reached"
@@ -8924,7 +8924,7 @@ msgstr "限制显示的系列数。应用联接的子查询(或不支持子查�
 msgid ""
 "Limits the number of the rows that are computed in the query that is the "
 "source of the data used for this chart."
-msgstr ""
+msgstr "限制了用于此图表的数据源查询中计算的行数。"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:49
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:39
@@ -8942,11 +8942,11 @@ msgstr "行"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/index.ts:69
 msgid "Line Chart"
-msgstr "多线图"
+msgstr "折线图"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/index.js:39
 msgid "Line Chart (legacy)"
-msgstr ""
+msgstr "折线图（传统）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:121
 msgid "Line Style"
@@ -8975,7 +8975,7 @@ msgstr "线宽"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/controlPanel.ts:109
 #, fuzzy
 msgid "Line width unit"
-msgstr "线宽"
+msgstr "线宽单位"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:135
 msgid "Linear Color Scheme"
@@ -8988,13 +8988,13 @@ msgstr "线性颜色方案"
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:188
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:264
 msgid "Linear interpolation"
-msgstr ""
+msgstr "线性插值"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:197
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/sharedDndControls.tsx:27
 #, fuzzy
 msgid "Lines column"
-msgstr "时间列"
+msgstr "线条列"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:346
 #, fuzzy
@@ -9009,7 +9009,7 @@ msgstr "链接成功！"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:176
 #, fuzzy
 msgid "List Unique Values"
-msgstr "限制选择器值"
+msgstr "列出唯一值"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:124
 msgid "List of extra columns made available in JavaScript functions"
@@ -9124,11 +9124,11 @@ msgstr "登录"
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:119
 #, fuzzy
 msgid "Login with"
-msgstr "线宽"
+msgstr "登录方式"
 
 #: superset-frontend/src/features/home/RightMenu.tsx:482
 msgid "Logout"
-msgstr "退出"
+msgstr "登出"
 
 #: superset/views/log/__init__.py:21
 msgid "Logs"
@@ -9136,7 +9136,7 @@ msgstr "日志"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:690
 msgid "Long dashed"
-msgstr ""
+msgstr "长虚线"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:50
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:174
@@ -9279,7 +9279,7 @@ msgstr "三月"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:52
 msgid "Margin"
-msgstr "边距(margin)"
+msgstr "边距"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:385
 msgid "Mark a column as temporal in \"Edit datasource\" modal"
@@ -9364,7 +9364,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:73
 #, fuzzy
 msgid "Maximum value"
-msgstr "最大"
+msgstr "最大值"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:96
 msgid "Maximum value on the gauge axis"
@@ -9382,11 +9382,11 @@ msgstr "特定时期内的平均值"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:268
 #, fuzzy
 msgid "Mean values"
-msgstr "限制选择器值"
+msgstr "平均值"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:179
 msgid "Median"
-msgstr ""
+msgstr "中位数"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:230
 msgid ""
@@ -9404,7 +9404,7 @@ msgstr "节点大小中位数，最大的节点将比最小的节点大4倍"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:267
 #, fuzzy
 msgid "Median values"
-msgstr "限制选择器值"
+msgstr "中位数值"
 
 #: superset-frontend/src/dashboard/util/headerStyleOptions.ts:30
 msgid "Medium"
@@ -9498,7 +9498,7 @@ msgstr "节点值的度量"
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/labelUtils.tsx:126
 #, fuzzy
 msgid "Metric name"
-msgstr "查询名称"
+msgstr "指标名称"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:836
 #, python-format
@@ -9658,7 +9658,7 @@ msgstr "量规轴上的最小值"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:152
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:202
 msgid "Minor Split Line"
-msgstr "小的分模线"
+msgstr "次级分隔线"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:306
 #, fuzzy
@@ -9688,7 +9688,7 @@ msgstr "丢失数据集"
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/index.ts:68
 #, fuzzy
 msgid "Mixed Chart"
-msgstr "最小化图表"
+msgstr "混合图表"
 
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:293
 #: superset/connectors/sqla/views.py:414 superset/views/dashboard/mixin.py:85
@@ -9990,7 +9990,7 @@ msgstr "新增的列：%s"
 #: superset-frontend/src/features/datasets/AddDataset/Header/index.tsx:36
 #, fuzzy
 msgid "New dataset"
-msgstr "修改数据集"
+msgstr "新数据集"
 
 #: superset-frontend/src/features/datasets/DuplicateDatasetModal.tsx:66
 #, fuzzy
@@ -10010,17 +10010,17 @@ msgstr "关闭标签"
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:259
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:301
 msgid "New tab (Ctrl + q)"
-msgstr "新建Tab页 (Ctrl + q)"
+msgstr "新建选项卡 (Ctrl + q)"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:260
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.tsx:302
 msgid "New tab (Ctrl + t)"
-msgstr "新建Tab页 (Ctrl + t)"
+msgstr "新建选项卡 (Ctrl + t)"
 
 #: superset-frontend/src/features/queries/QueryPreviewModal.tsx:134
 #: superset-frontend/src/features/queries/SavedQueryPreviewModal.tsx:114
 msgid "Next"
-msgstr "之后"
+msgstr "下一个"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/index.js:32
 msgid "Nightingale Rose Chart"
@@ -10067,11 +10067,11 @@ msgstr "已创建"
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:115
 #, fuzzy
 msgid "No annotation layers"
-msgstr "注解层"
+msgstr "没有注释层"
 
 #: superset-frontend/src/pages/AnnotationLayerList/index.tsx:269
 msgid "No annotation layers yet"
-msgstr "没有注释层"
+msgstr "还没有注释层"
 
 #: superset-frontend/src/pages/AnnotationList/index.tsx:242
 msgid "No annotation yet"
@@ -10080,12 +10080,12 @@ msgstr "没有注释"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:255
 #, fuzzy
 msgid "No applied filters"
-msgstr "删除该行"
+msgstr "没有应用过滤器"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:157
 #, fuzzy
 msgid "No available filters."
-msgstr "所有过滤"
+msgstr "没有有效的过滤器"
 
 #: superset-frontend/src/features/datasets/AddDataset/EditDataset/UsageTab/index.tsx:253
 msgid "No charts"
@@ -10094,12 +10094,12 @@ msgstr "没有图表"
 #: superset-frontend/src/features/home/EmptyState.tsx:35
 #, fuzzy
 msgid "No charts yet"
-msgstr "没有图表"
+msgstr "还没有图表"
 
 #: superset-frontend/src/components/Chart/DrillBy/DrillByMenuItems.tsx:275
 #, fuzzy
 msgid "No columns found"
-msgstr "找不到兼容的列"
+msgstr "找不到列"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:127
 msgid "No compatible columns found"
@@ -10108,17 +10108,17 @@ msgstr "找不到兼容的列"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:93
 #, fuzzy
 msgid "No compatible datasets found"
-msgstr "找不到兼容的列"
+msgstr "找不到兼容的数据库"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:306
 #, fuzzy
 msgid "No compatible schema found"
-msgstr "找不到兼容的列"
+msgstr "找不到兼容的模式"
 
 #: superset-frontend/src/features/home/EmptyState.tsx:36
 #, fuzzy
 msgid "No dashboards yet"
-msgstr "没有看板"
+msgstr "还没有看板"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberViz.tsx:134
 #: superset-frontend/src/components/Table/index.tsx:222
@@ -10174,7 +10174,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Vertical.tsx:170
 msgid "No global filters are currently added"
-msgstr ""
+msgstr "当前没有已添加的全局过滤器"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:210
 #, fuzzy
@@ -10370,7 +10370,7 @@ msgstr "未命名"
 #: superset-frontend/src/explore/constants.ts:59
 #, fuzzy
 msgid "Not equal to (≠)"
-msgstr "!= (不等于)"
+msgstr "不等于（≠）"
 
 #: superset-frontend/src/explore/constants.ts:71
 #, fuzzy
@@ -10416,11 +10416,11 @@ msgstr "空值"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:262
 #, fuzzy
 msgid "Null imputation"
-msgstr "动画"
+msgstr "空值填补"
 
 #: superset/datasets/filters.py:26
 msgid "Null or Empty"
-msgstr "Null或空"
+msgstr "空或空白"
 
 #: superset/views/database/forms.py:399
 msgid "Null values"
@@ -10719,8 +10719,8 @@ msgid ""
 "assumes that you have a Celery worker setup as well as a results backend."
 " Refer to the installation docs for more information."
 msgstr ""
-"以异步模式操作数据库，这意味着查询是在远程worker上执行的，而不是在web服务器本身上执行的, 这假设您有一个Celery worker "
-"setup以及一个执行后端。有关更多信息，请参考安装文档。"
+"以异步模式操作数据库，即查询操作在远程工作节点上执行，而不是在Web服务器上执行。这意味着您需要"
+"设置有一个Celery工作节点以及一个结果后端。有关更多信息，请参考安装文档。"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:129
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:133
@@ -10797,12 +10797,12 @@ msgstr "方向"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:278
 #, fuzzy
 msgid "Orientation of bar chart"
-msgstr "树的方向"
+msgstr "条形图的方向"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:184
 #, fuzzy
 msgid "Orientation of filter bar"
-msgstr "树的方向"
+msgstr "过滤器栏的方向"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:140
 msgid "Orientation of tree"
@@ -11143,7 +11143,7 @@ msgstr "百分比"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:245
 msgid "Performance"
-msgstr ""
+msgstr "性能"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:74
 msgid "Period average"
@@ -11169,7 +11169,7 @@ msgstr "对此图表进行认证的个人或团体。"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:715
 msgid "Person or group that has certified this dashboard."
-msgstr "已对此仪表板进行认证的个人或组。"
+msgstr "已对此看板进行认证的个人或组。"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:339
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1285
@@ -11180,15 +11180,15 @@ msgstr "认证此指标的个人或团体"
 #: superset-frontend/src/pages/DatasetList/index.tsx:364
 #: superset-frontend/src/pages/DatasetList/index.tsx:534
 msgid "Physical"
-msgstr "物理信息"
+msgstr "实体"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:154
 msgid "Physical (table or view)"
-msgstr "物理（表或视图）"
+msgstr "实体（表或视图）"
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:288
 msgid "Physical dataset"
-msgstr "物化数据集"
+msgstr "实体数据集"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/controlPanel.ts:102
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/controlPanel.ts:139
@@ -11249,7 +11249,7 @@ msgstr "饼图"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/index.js:28
 #, fuzzy
 msgid "Pie Chart (legacy)"
-msgstr "面积图不透明度"
+msgstr "饼图（传统）"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:199
 msgid "Pie shape"
@@ -11383,7 +11383,7 @@ msgstr "请先保存您的图表，然后尝试创建一个新的电子邮件报
 
 #: superset/commands/report/exceptions.py:115
 msgid "Please save your dashboard first, then try creating a new email report."
-msgstr "请先保存您的仪表盘，然后尝试创建一个新的电子邮件报告。"
+msgstr "请先保存您的看板，然后尝试创建一个新的电子邮件报告。"
 
 #: superset-frontend/src/pages/ChartCreation/index.tsx:365
 msgid "Please select both a Dataset and a Chart type to proceed"
@@ -11498,7 +11498,7 @@ msgstr "人口年龄数据"
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:71
 #, fuzzy
 msgid "Port"
-msgstr "报告"
+msgstr "端口"
 
 #: superset/db_engine_specs/mssql.py:106
 #: superset/db_engine_specs/postgres.py:140
@@ -11510,7 +11510,7 @@ msgstr "主机名 \"%(hostname)s\" 上的端口 %(port)s 拒绝连接。"
 
 #: superset/db_engine_specs/ocient.py:266
 msgid "Port out of range 0-65535"
-msgstr ""
+msgstr "端口超过 0-65535 的范围"
 
 #: superset/views/dashboard/mixin.py:86
 msgid "Position JSON"
@@ -11574,11 +11574,11 @@ msgstr "预测分析"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:63
 msgid "Prefix"
-msgstr ""
+msgstr "前缀"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:106
 msgid "Prefix or suffix"
-msgstr ""
+msgstr "前缀或者后缀"
 
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.tsx:39
 msgid "Preview"
@@ -11593,12 +11593,12 @@ msgstr "预览 %s"
 #: superset-frontend/src/features/queries/QueryPreviewModal.tsx:126
 #: superset-frontend/src/features/queries/SavedQueryPreviewModal.tsx:106
 msgid "Previous"
-msgstr "之前"
+msgstr "前一个"
 
 #: superset-frontend/src/SqlLab/components/KeyboardShortcutButton/index.tsx:52
 #, fuzzy
 msgid "Previous Line"
-msgstr "之前"
+msgstr "前一个"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:252
 msgid "Primary"
@@ -12036,7 +12036,7 @@ msgstr "重新获取结果"
 
 #: superset/templates/appbuilder/general/widgets/search.html:58
 msgid "Refresh"
-msgstr "刷新间隔"
+msgstr "刷新"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:234
 msgid "Refresh dashboard"
@@ -12054,7 +12054,7 @@ msgstr "刷新间隔"
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:79
 #, fuzzy
 msgid "Refresh interval saved"
-msgstr "刷新间隔"
+msgstr "刷新间隔已保存"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1276
 msgid "Refresh the default values"
@@ -12074,7 +12074,7 @@ msgstr "时间序列的列"
 #: superset-frontend/src/pages/RowLevelSecurityList/index.tsx:271
 #, fuzzy
 msgid "Regular"
-msgstr "圆"
+msgstr "常规"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:381
 #, fuzzy
@@ -12083,7 +12083,7 @@ msgid ""
 "referenced in the filter, base filters apply filters to all queries "
 "except the roles defined in the filter, and can be used to define what "
 "users can see if no RLS filters within a filter group apply to them."
-msgstr "常规过滤将where子句添加到查询中，以确定用户是否属于过滤中引用的角色。基本过滤将应用于除过滤中定义的角色之外的所有查询，并且可以用于定义在没有应用RLS过滤组的情况下，哪些用户可以看到内容。"
+msgstr "如果用户属于过滤器中引用的角色，常规过滤器会向查询添加WHERE子句；基础过滤器则对所有查询应用过滤条件，除了过滤器中定义的角色之外。如果在过滤器组内没有适用于用户的行级安全（RLS）过滤器，基础过滤器可以用来定义用户能够看到的内容。"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:40
 #: superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/src/index.js:34
@@ -12303,7 +12303,7 @@ msgstr "请求丢失的数据字段。"
 #: superset-frontend/src/utils/getClientErrorObject.ts:144
 #, fuzzy
 msgid "Request timed out"
-msgstr "请求不是JSON"
+msgstr "请求超时"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:97
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:101
@@ -12313,7 +12313,7 @@ msgstr "必填"
 
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:341
 msgid "Required control values have been removed"
-msgstr ""
+msgstr "必需的控件值已被移除"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/advancedAnalytics.tsx:155
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:352
@@ -12332,7 +12332,7 @@ msgstr "Pandas 重新采样的填充方法"
 #: superset/utils/pandas_postprocessing/resample.py:43
 #, fuzzy
 msgid "Resample operation requires DatetimeIndex"
-msgstr "透视操作至少需要一个索引"
+msgstr "重新采样操作需要时间索引"
 
 #: superset-frontend/src/components/Table/index.tsx:218
 #, fuzzy
@@ -12350,7 +12350,7 @@ msgstr ""
 #: superset/commands/temporary_cache/exceptions.py:49
 #, fuzzy
 msgid "Resource was not found."
-msgstr "数据库没有找到"
+msgstr "资源没有找到"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/RemovedFilter.tsx:46
 msgid "Restore Filter"
@@ -12432,7 +12432,7 @@ msgstr ""
 
 #: superset/dashboards/filters.py:193
 msgid "Role"
-msgstr "用户信息"
+msgstr "角色"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:368
 #: superset-frontend/src/dashboard/components/PropertiesModal/PropertiesModal.test.tsx:382
@@ -12450,7 +12450,7 @@ msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
 "access to a dashboard will bypass dataset level checks. If no roles are "
 "defined, regular access permissions apply."
-msgstr "角色是一个定义对仪表板访问权限的列表。授予角色对仪表板的访问权限将绕过数据集级别的检查。如果未定义角色，则仪表板对所有角色都可用。"
+msgstr "角色是一个定义对看板访问权限的列表。授予角色对看板的访问权限将绕过数据集级别的检查。如果未定义角色，则看板对所有角色都可用。"
 
 #: superset/views/dashboard/mixin.py:65
 #, fuzzy
@@ -12458,7 +12458,7 @@ msgid ""
 "Roles is a list which defines access to the dashboard. Granting a role "
 "access to a dashboard will bypass dataset level checks.If no roles are "
 "defined, regular access permissions apply."
-msgstr "角色是一个定义对仪表板访问权限的列表。授予角色对仪表板的访问权限将绕过数据集级别的检查。如果未定义角色，则仪表板对所有角色都可用。"
+msgstr "角色是一个定义对看板访问权限的列表。授予角色对看板的访问权限将绕过数据集级别的检查。如果未定义角色，则看板对所有角色都可用。"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:253
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:137
@@ -12508,7 +12508,7 @@ msgstr "应用于词云中的单词的旋转方式"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:267
 msgid "Round cap"
-msgstr "国家地图"
+msgstr "边界"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:51
 #: superset-frontend/src/dashboard/components/gridComponents/new/NewRow.jsx:31
@@ -12573,11 +12573,11 @@ msgstr "规则"
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:370
 #, fuzzy
 msgid "Rule Name"
-msgstr "查询名称"
+msgstr "规则名称"
 
 #: superset-frontend/src/features/rls/RowLevelSecurityModal.tsx:268
 msgid "Rule added"
-msgstr ""
+msgstr "规则已添加"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton/index.tsx:52
 msgid "Run"
@@ -12927,7 +12927,7 @@ msgstr "保存看板"
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:108
 #, fuzzy
 msgid "Save dataset"
-msgstr "修改数据集"
+msgstr "保存数据集"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:148
 msgid "Save for this session"
@@ -12935,7 +12935,7 @@ msgstr "保存此会话"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:353
 msgid "Save or Overwrite Dataset"
-msgstr ""
+msgstr "保存或覆盖数据集"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery/index.tsx:206
 msgid "Save query"
@@ -13078,7 +13078,7 @@ msgstr "模式"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:273
 msgid "Schema cache timeout"
-msgstr "图表缓存超时"
+msgstr "模式缓存超时"
 
 #: superset/connectors/sqla/views.py:338
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
@@ -13171,7 +13171,7 @@ msgstr "次计量指标"
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:423
 #, fuzzy
 msgid "Secondary currency format"
-msgstr "次级y轴格式"
+msgstr "次级货币格式"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:397
 #, fuzzy
@@ -13233,7 +13233,7 @@ msgstr "选择表"
 #: superset-frontend/src/explore/components/SaveModal.tsx:395
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:131
 msgid "Select"
-msgstr "批量选择"
+msgstr "选择"
 
 #: superset-frontend/src/components/Select/AsyncSelect.tsx:130
 #: superset-frontend/src/components/Select/Select.tsx:112
@@ -13249,7 +13249,7 @@ msgstr "添加通知方法"
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:132
 #, fuzzy
 msgid "Select Tags"
-msgstr "反选所有"
+msgstr "选择标签"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:94
 msgid "Select Viz Type"
@@ -13257,7 +13257,7 @@ msgstr "选择一个可视化类型"
 
 #: superset/views/database/forms.py:422
 msgid "Select a Columnar file to be uploaded to a database."
-msgstr "选择要上传到数据库的Excel文件。"
+msgstr "选择要上传到数据库的列式文件。"
 
 #: superset/views/database/forms.py:290
 msgid "Select a Excel file to be uploaded to a database."
@@ -13265,7 +13265,7 @@ msgstr "选择要上传到数据库的Excel文件。"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:126
 msgid "Select a column"
-msgstr "反选所有"
+msgstr "选择列"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:389
 msgid "Select a dashboard"
@@ -13274,12 +13274,12 @@ msgstr "看板"
 #: superset-frontend/src/features/datasets/AddDataset/Header/index.tsx:39
 #, fuzzy
 msgid "Select a database table and create dataset"
-msgstr "选择要写入查询的数据库"
+msgstr "选择数据库表并创建数据集"
 
 #: superset-frontend/src/features/datasets/AddDataset/Footer/index.tsx:87
 #, fuzzy
 msgid "Select a database table."
-msgstr "选择将要连接的数据库"
+msgstr "选择数据库表"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ModalHeader.tsx:169
 msgid "Select a database to connect"
@@ -13288,21 +13288,21 @@ msgstr "选择将要连接的数据库"
 #: superset/views/database/forms.py:139
 #, fuzzy
 msgid "Select a database to upload the file to"
-msgstr "选择将要连接的数据库"
+msgstr "选择将要上传文件的数据库"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.tsx:849
 msgid "Select a database to write a query"
-msgstr "选择要写入查询的数据库"
+msgstr "选择要进行查询的数据库"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DatasetSelect.tsx:94
 #, fuzzy
 msgid "Select a dataset"
-msgstr "反选所有"
+msgstr "选择数据集"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:112
 #, fuzzy
 msgid "Select a dimension"
-msgstr "维度"
+msgstr "选择维度"
 
 #: superset/views/database/forms.py:110
 #, fuzzy
@@ -13323,7 +13323,7 @@ msgstr ""
 #: superset/views/database/forms.py:156
 #, fuzzy
 msgid "Select a schema if the database supports this"
-msgstr "指定一个Schema(需要数据库支持)"
+msgstr "指定一个模式(需要数据库支持)"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:198
 msgid ""
@@ -13342,12 +13342,12 @@ msgstr "选择总选项"
 #: superset-frontend/src/components/Table/index.tsx:226
 #, fuzzy
 msgid "Select all data"
-msgstr "反选所有"
+msgstr "选择所有数据"
 
 #: superset-frontend/src/components/Table/index.tsx:220
 #, fuzzy
 msgid "Select all items"
-msgstr "反选所有"
+msgstr "选择所有项"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:104
 msgid "Select any columns for metadata inspection"
@@ -13356,12 +13356,12 @@ msgstr "选择任意列进行元数据巡检"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:132
 #, fuzzy
 msgid "Select chart"
-msgstr "所有图表"
+msgstr "选择图表"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.ts:44
 #: superset-frontend/src/features/tags/TagModal.tsx:321
 msgid "Select charts"
-msgstr "所有图表"
+msgstr "选择图表"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:177
 msgid "Select color scheme"
@@ -13404,7 +13404,7 @@ msgstr "使用旧数据源编辑器"
 #: superset-frontend/src/components/ImportModal/index.tsx:445
 #, fuzzy
 msgid "Select file"
-msgstr "选择过滤器"
+msgstr "选择文件"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:323
 #: superset-frontend/src/filters/components/Select/index.ts:28
@@ -13413,11 +13413,11 @@ msgstr "选择过滤器"
 
 #: superset-frontend/src/filters/components/Select/index.ts:29
 msgid "Select filter plugin using AntD"
-msgstr "选择过滤器"
+msgstr "使用AntD的选择过滤器插件"
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:101
 msgid "Select first filter value by default"
-msgstr ""
+msgstr "默认选择首个过滤器值"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:34
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:122
@@ -13426,27 +13426,29 @@ msgid ""
 "percentages of total. Percentage metrics will be calculated only from "
 "data within the row limit. You can use an aggregation function on a "
 "column or write custom SQL to create a percentage metric."
-msgstr ""
+msgstr "选择一个或多个要显示的指标，这些指标将以总数的百分比形式显示。"
+"百分比指标只会根据行限制内的数据计算得出。您可以对某个列使用聚合函数，"
+"或编写自定义SQL来创建百分比指标。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:163
 msgid ""
 "Select one or many metrics to display. You can use an aggregation "
 "function on a column or write custom SQL to create a metric."
-msgstr ""
+msgstr "选择一个或多个要展示的指标。您可以对某个列使用聚合函数，或编写自定义SQL来创建一个指标。"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:359
 msgid "Select operator"
-msgstr "选择运营商"
+msgstr "选择操作符"
 
 #: superset-frontend/src/components/ListView/Filters/Select.tsx:99
 #: superset-frontend/src/components/ListView/Filters/Select.tsx:113
 msgid "Select or type a value"
-msgstr "选择或键入一个值"
+msgstr "选择或输入一个值"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1274
 #, fuzzy
 msgid "Select or type currency symbol"
-msgstr "选择或键入一个值"
+msgstr "选择或输入货币符号"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:415
 #, fuzzy
@@ -13498,7 +13500,8 @@ msgid ""
 "applying cross-filters from any chart on the dashboard. You can select "
 "\"All charts\" to apply cross-filters to all charts that use the same "
 "dataset or contain the same column name in the dashboard."
-msgstr ""
+msgstr "选择您希望在此看板上应用交叉筛选的图表。取消选择一个图表将在从看板上的任何图表应用交叉筛选时排除它。"
+"您可以选择“所有图表”，以对使用相同数据集或在看板中包含相同列名的所有图表应用交叉筛选。"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/CrossFilters/ScopingModal/ScopingTreePanel.tsx:188
 msgid ""
@@ -13512,7 +13515,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/sharedDndControls.tsx:37
 #, fuzzy
 msgid "Select the geojson column"
-msgstr "反选所有"
+msgstr "选择GeoJSON列"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:82
 msgid "Select the number of bins for the histogram"
@@ -13527,7 +13530,7 @@ msgstr "选择直方图的容器数"
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
-msgstr ""
+msgstr "在控制面板中的突出显示字段中选择值。然后点击 %s 按钮来运行查询。"
 
 #: superset-frontend/src/features/alerts/AlertReportModal.tsx:423
 msgid "Send as CSV"
@@ -13556,11 +13559,11 @@ msgstr "顺序"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:52
 msgid "Series"
-msgstr "序列"
+msgstr "系列"
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:61
 msgid "Series Height"
-msgstr "序列高度"
+msgstr "系列高度"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:54
 #, fuzzy
@@ -13575,12 +13578,12 @@ msgstr "降序"
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:266
 #, fuzzy
 msgid "Series Order"
-msgstr "图示类型"
+msgstr "系列顺序"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:77
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:78
 msgid "Series Style"
-msgstr "线条样式"
+msgstr "系列样式"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:156
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:87
@@ -13597,11 +13600,11 @@ msgstr "时间序列的列"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:290
 #: superset-frontend/src/explore/controls.jsx:350
 msgid "Series limit"
-msgstr "序列限制"
+msgstr "系列限制"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:144
 msgid "Series type"
-msgstr "图示类型"
+msgstr "系列类型"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/pagination.tsx:46
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:313
@@ -13611,7 +13614,7 @@ msgstr "页面长度"
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/pagination.tsx:32
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:291
 msgid "Server pagination"
-msgstr "服务器分页"
+msgstr "服务端分页"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:114
 msgid "Service Account"
@@ -13660,12 +13663,12 @@ msgstr "分享"
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:507
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:374
 msgid "Share chart by email"
-msgstr "通过电子邮件分享图表”"
+msgstr "通过电子邮件分享图表"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:314
 #, fuzzy
 msgid "Share permalink by email"
-msgstr "通过电子邮件分享图表”"
+msgstr "通过电子邮件分享链接"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1175
 msgid "Shared query"
@@ -13858,7 +13861,7 @@ msgstr "将数据点显示为线条上的圆形标记"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:370
 #, fuzzy
 msgid "Show empty columns"
-msgstr "显示较少时间列"
+msgstr "显示空列"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/index.ts:57
 #, fuzzy
@@ -13886,25 +13889,25 @@ msgstr "显示图例"
 
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/ColumnConfigControl.tsx:159
 msgid "Show less columns"
-msgstr "显示较少时间列"
+msgstr "显示较少的列"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:419
 msgid "Show less..."
-msgstr "显示..."
+msgstr "显示更少..."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:309
 #, fuzzy
 msgid "Show minor ticks on axes."
-msgstr "是否忽略空位置"
+msgstr "在坐标轴上显示次级刻度。"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:380
 msgid "Show only my charts"
-msgstr ""
+msgstr "只显示我的图表"
 
 #: superset-frontend/src/components/Form/LabeledErrorBoundInput.tsx:138
 #, fuzzy
 msgid "Show password."
-msgstr "显示看板"
+msgstr "显示密码"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:290
 msgid "Show percentage"
@@ -14020,7 +14023,7 @@ msgstr "我的编辑"
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:45
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:46
 msgid "Single Metric"
-msgstr "按指标过滤"
+msgstr "单个指标"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1120
 msgid "Single Value"
@@ -14094,7 +14097,7 @@ msgstr "数字格式化"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:84
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:68
 msgid "Smooth Line"
-msgstr ""
+msgstr "平滑线"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:58
 #, fuzzy
@@ -14259,7 +14262,7 @@ msgstr "排序 %s"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:49
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:40
 msgid "Sort by metric"
-msgstr "排序指标"
+msgstr "根据指标排序"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:279
 msgid "Sort columns alphabetically"
@@ -14277,7 +14280,7 @@ msgstr "降序"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1053
 msgid "Sort filter values"
-msgstr "可被过滤"
+msgstr "排序过滤器值"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1097
 msgid "Sort metric"
@@ -14293,7 +14296,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1067
 msgid "Sort type"
-msgstr "图表类型"
+msgstr "排序类型"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:62
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:52
@@ -14312,7 +14315,7 @@ msgstr "源 SQL"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:73
 msgid "Source category"
-msgstr "数据库名称"
+msgstr "源分类"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:73
 #, fuzzy
@@ -14331,7 +14334,7 @@ msgstr "具体日期/时间"
 
 #: superset/views/database/forms.py:323 superset/views/database/forms.py:450
 msgid "Specify a schema (if database flavor supports this)."
-msgstr "指定一个Schema(需要数据库支持)"
+msgstr "指定一个模式(需要数据库支持)"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.tsx:817
 msgid "Specify name to CREATE TABLE AS schema in: public"
@@ -14630,11 +14633,11 @@ msgstr "成功"
 #: superset-frontend/src/components/Datasource/ChangeDatasourceModal.tsx:195
 #, fuzzy
 msgid "Successfully changed dataset!"
-msgstr "修改数据集"
+msgstr "修改数据集成功！"
 
 #: superset-frontend/src/explore/components/controls/CurrencyControl/CurrencyControl.tsx:64
 msgid "Suffix"
-msgstr ""
+msgstr "后缀"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:67
 msgid "Suffix to apply after the percentage display"
@@ -14642,7 +14645,7 @@ msgstr "百分比显示后要应用的后缀"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:177
 msgid "Sum"
-msgstr ""
+msgstr "求和"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:188
 msgid "Sum as Fraction of Columns"
@@ -14712,7 +14715,7 @@ msgstr "调查结果"
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:468
 #, fuzzy
 msgid "Swap dataset"
-msgstr "数据集"
+msgstr "交换数据集"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:259
 msgid "Swap rows and columns"
@@ -14822,7 +14825,7 @@ msgstr "找不到 [%(table_name)s] 表，请仔细检查您的数据库连接、
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:294
 msgid "Table cache timeout"
-msgstr "图表缓存超时"
+msgstr "数据库表缓存超时"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/DatasetPanel.tsx:176
 #, fuzzy
@@ -14888,22 +14891,22 @@ msgstr "无法删除数据集"
 #: superset/tags/exceptions.py:39
 #, fuzzy
 msgid "Tag could not be found."
-msgstr "数据库没有找到"
+msgstr "没有找到标签"
 
 #: superset/commands/tag/exceptions.py:40 superset/tags/exceptions.py:35
 #, fuzzy
 msgid "Tag could not be updated."
-msgstr "无法更新数据集。"
+msgstr "无法更新标签。"
 
 #: superset-frontend/src/features/tags/TagModal.tsx:255
 #, fuzzy
 msgid "Tag created"
-msgstr "已创建"
+msgstr "标签已创建"
 
 #: superset-frontend/src/features/tags/TagModal.tsx:290
 #, fuzzy
 msgid "Tag name"
-msgstr "选项卡名字"
+msgstr "标签名字"
 
 #: superset/tags/exceptions.py:30
 msgid "Tag name is invalid (cannot contain ':')"
@@ -14912,12 +14915,12 @@ msgstr ""
 #: superset/commands/tag/exceptions.py:32
 #, fuzzy
 msgid "Tag parameters are invalid."
-msgstr "数据集参数无效。"
+msgstr "标签参数无效。"
 
 #: superset-frontend/src/features/tags/TagModal.tsx:237
 #, fuzzy
 msgid "Tag updated"
-msgstr "上一季度"
+msgstr "标签已更新"
 
 #: superset-frontend/src/features/tags/BulkTagModal.tsx:81
 #, python-format
@@ -14927,7 +14930,7 @@ msgstr ""
 #: superset/commands/tag/exceptions.py:48
 #, fuzzy
 msgid "Tagged Object could not be deleted."
-msgstr "无法删除数据集"
+msgstr "无法删除标签对象"
 
 #: superset-frontend/src/components/MetadataBar/ContentConfig.tsx:128
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.tsx:733
@@ -15099,12 +15102,12 @@ msgstr "点和簇的颜色（RGB）"
 #: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:318
 #, fuzzy
 msgid "The color of the isoband"
-msgstr "是否规范化直方图"
+msgstr "等值带的颜色"
 
 #: superset-frontend/src/explore/components/controls/ContourControl/ContourPopoverControl.tsx:263
 #, fuzzy
 msgid "The color of the isoline"
-msgstr "是否规范化直方图"
+msgstr "等值线的颜色"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:352
 #: superset-frontend/src/explore/controls.jsx:464
@@ -15116,7 +15119,7 @@ msgstr "绘制图表的配色方案"
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
-msgstr "配色方案由相关的仪表盘决定。在仪表板属性中编辑配色方案"
+msgstr "配色方案由相关的看板决定。在看板属性中编辑配色方案"
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl/index.jsx:196
 #, fuzzy
@@ -15155,7 +15158,7 @@ msgid ""
 "users have %s SQL Lab tabs using this database open. Are you sure you "
 "want to continue? Deleting the database will break those objects."
 msgstr ""
-"数据库 %s 已经关联了 %s 图表和 %s 仪表盘，并且用户在该数据库上打开了 %s 个 SQL "
+"数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL "
 "编辑器标签。确定要继续吗？删除数据库将破坏这些对象。"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:199
@@ -15246,7 +15249,7 @@ msgstr "数据源太大，无法进行查询。"
 msgid ""
 "The description can be displayed as widget headers in the dashboard view."
 " Supports markdown."
-msgstr "作为为小部件标题可以在仪表板视图中显示的描述，支持markdown格式语法。"
+msgstr "作为为小部件标题可以在看板视图中显示的描述，支持markdown格式语法。"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:108
 msgid "The distance between cells, in pixels"
@@ -15262,7 +15265,7 @@ msgstr "缓存失效前的持续时间（以秒为单位）"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:349
 #, fuzzy
 msgid "The encoding format of the lines"
-msgstr "是否规范化直方图"
+msgstr "线条的编码格式"
 
 #: superset-frontend/src/features/databases/DatabaseModal/ExtraOptions.tsx:548
 msgid ""
@@ -15406,8 +15409,8 @@ msgid ""
 "configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
 "download to csv to see more rows up to the %(limit)d limit."
 msgstr ""
-"显示的结果数由配置DISPLAY_MAX_ROW限制为 %(rows)d 。请添加其他限制/筛选器或下载到csv以查看更多行数，限制为 "
-"%(limit)d "
+"显示的结果数量被配置项 DISPLAY_MAX_ROW 限制为最多 %(rows)d 条。如果您想查看更多的行数，"
+"请添加额外的限制/过滤条件或下载 CSV 文件，则可查看最多 %(limit)d 条。"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:333
 #, python-format
@@ -15415,29 +15418,29 @@ msgid ""
 "The number of results displayed is limited to %(rows)d. Please add "
 "additional limits/filters, download to csv, or contact an admin to see "
 "more rows up to the %(limit)d limit."
-msgstr "显示的结果数限制为 %(rows)d。请添加其他筛选器，下载到csv，或与管理员联系以查看 %(limit)d 的更多行”"
+msgstr "显示的结果数量被限制为最多 %(rows)d 条。若需查看更多的行数（上限为 %(limit)d 条），请添加额外的限制/过滤条件、下载 CSV 文件或联系管理员。"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:378
 #, fuzzy, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the dropdown."
-msgstr "显示的行数通过限制下拉框限制为  %(rows)d 。"
+msgstr "下拉菜单限制了显示的行数为 %(rows)d。"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:352
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the limit dropdown."
-msgstr "显示的行数通过限制下拉框限制为  %(rows)d 。"
+msgstr "通过【行限制】下拉菜单，显示的行数被限制为 %(rows)d 行。"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:344
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the query"
-msgstr "查询将显示的行数限制为  %(rows)d "
+msgstr "显示的行数由查询限制为 %(rows)d 行"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:357
 #, python-format
 msgid ""
 "The number of rows displayed is limited to %(rows)d by the query and "
 "limit dropdown."
-msgstr "查询和限制下拉列表将显示的行数限制为 %(rows)d"
+msgstr "显示的行数由查询和【行限制】下拉菜单共同限制为 %(rows)d 行。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/sections.tsx:63
 #: superset-frontend/src/explore/controlPanels/sections.tsx:46
@@ -15446,7 +15449,7 @@ msgstr "终止缓存前的时间（秒）"
 
 #: superset/errors.py:137
 msgid "The object does not exist in the given database."
-msgstr "源数据库中存在的表的名称"
+msgstr "此数据库中不存在这个对象"
 
 #: superset/sqllab/query_render.py:100
 #, python-format
@@ -15482,7 +15485,7 @@ msgid ""
 " export files, and should be added manually after the import if they are "
 "needed."
 msgstr ""
-"需要以下数据库的密码才能将它们与仪表板一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
+"需要以下数据库的密码才能将它们与看板一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
 "部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 #: superset-frontend/src/features/datasets/constants.ts:23
@@ -15539,7 +15542,7 @@ msgid ""
 "The pointer to a physical table (or view). Keep in mind that the chart is"
 " associated to this Superset logical table, and this logical table points"
 " the physical table referenced here."
-msgstr "指向物理表（或视图）的指针。请记住，图表将与此逻辑表相关联，并且此逻辑表指向此处引用的物理表。"
+msgstr "指向实体表（或视图）的指针。请记住，图表将与此逻辑表相关联，并且此逻辑表指向此处引用的实体表。"
 
 #: superset/errors.py:112
 msgid "The port is closed."
@@ -15547,7 +15550,7 @@ msgstr "报告失败"
 
 #: superset/errors.py:145
 msgid "The port number is invalid."
-msgstr "数据库参数无效"
+msgstr "端口值无效"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:158
 msgid "The primary metric is used to define the arc segment sizes"
@@ -15556,11 +15559,11 @@ msgstr "主计量指标用于定义弧段大小。"
 #: superset/commands/dataset/exceptions.py:205
 #, fuzzy
 msgid "The provided table was not found in the provided database"
-msgstr "Issue 1005 - 该表已在数据库中删除或重命名。"
+msgstr "该表在数据库中不存在"
 
 #: superset/errors.py:140
 msgid "The query associated with the results was deleted."
-msgstr "删除与结果关联的查询。"
+msgstr "与结果关联的查询已删除。"
 
 #: superset/commands/sql_lab/export.py:63
 #: superset/commands/sql_lab/results.py:91
@@ -15703,7 +15706,7 @@ msgstr "表被创建。作为这两个阶段配置过程的一部分，您现在
 
 #: superset/errors.py:109
 msgid "The table was deleted or renamed in the database."
-msgstr "Issue 1005 - 该表已在数据库中删除或重命名。"
+msgstr "该表已在数据库中删除或重命名。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:243
 #: superset-frontend/src/explore/controls.jsx:281
@@ -15941,7 +15944,7 @@ msgstr "删除所选图表时出现问题：%s"
 
 #: superset-frontend/src/pages/DashboardList/index.tsx:262
 msgid "There was an issue deleting the selected dashboards: "
-msgstr "删除所选仪表板时出现问题："
+msgstr "删除所选看板时出现问题："
 
 #: superset-frontend/src/pages/DatasetList/index.tsx:712
 #, python-format
@@ -15998,7 +16001,7 @@ msgstr "删除时出现问题：%s"
 #: superset-frontend/src/pages/Home/index.tsx:270
 #, fuzzy, python-format
 msgid "There was an issue fetching your dashboards: %s"
-msgstr "删除所选仪表板时出现问题：%s"
+msgstr "删除所选看板时出现问题：%s"
 
 #: superset-frontend/src/pages/Home/index.tsx:248
 #, python-format
@@ -16111,7 +16114,7 @@ msgstr "此图表可能与过滤器不兼容(数据集不匹配)"
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:544
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:560
 msgid "This column must contain date/time information."
-msgstr "包含行信息的数据库列"
+msgstr "此列必须包含日期时间信息。"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:230
 msgid ""
@@ -16154,7 +16157,7 @@ msgid ""
 "This dashboard is not published which means it will not show up in the "
 "list of dashboards. Favorite it to see it there or access it by using the"
 " URL directly."
-msgstr "此看板未发布，这意味着它不会显示在仪表板列表中。您可以进行收藏并在收藏栏中查看或直接使用URL访问它。"
+msgstr "此看板未发布，这意味着它不会显示在看板列表中。您可以进行收藏并在收藏栏中查看或直接使用URL访问它。"
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:33
 msgid ""
@@ -16164,11 +16167,11 @@ msgstr "此看板未发布，它将不会显示在看板列表中。单击此处
 
 #: superset-frontend/src/dashboard/actions/dashboardState.js:148
 msgid "This dashboard is now hidden"
-msgstr "无法修改该看板"
+msgstr "此看板已隐藏"
 
 #: superset-frontend/src/dashboard/actions/dashboardState.js:147
 msgid "This dashboard is now published"
-msgstr "当前看板 ${nowPublished}"
+msgstr "此看板已发布"
 
 #: superset-frontend/src/dashboard/components/PublishedStatus/index.jsx:43
 msgid "This dashboard is published. Click to make it a draft."
@@ -16494,7 +16497,7 @@ msgstr "时间列 \"%(col)s\" 在数据集中不存在"
 
 #: superset-frontend/src/filters/components/TimeColumn/index.ts:29
 msgid "Time column filter plugin"
-msgstr "选择过滤器"
+msgstr "时间列过滤插件"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:771
 msgid "Time column to apply dependent temporal filter to"
@@ -16602,7 +16605,7 @@ msgstr "时间字符串是模糊的。"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/index.js:36
 #, fuzzy
 msgid "Time-series Bar Chart (legacy)"
-msgstr "时间序列-条形图"
+msgstr "时间序列-条形图（传统）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Compare/index.js:32
 msgid "Time-series Percent Change"
@@ -16685,7 +16688,7 @@ msgstr "单元格内容"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:203
 msgid "Tooltip sort by metric"
-msgstr "排序指标"
+msgstr "按指标排序提示"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:193
 msgid "Tooltip time format"
@@ -16813,29 +16816,29 @@ msgstr "如果 ... 则触发警报"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:224
 #, fuzzy
 msgid "Truncate Axis"
-msgstr "截断Y轴"
+msgstr "截断轴"
 
 #: superset-frontend/src/explore/components/controls/ColumnConfigControl/constants.tsx:142
 #, fuzzy
 msgid "Truncate Cells"
-msgstr "截断Y轴"
+msgstr "截断单元格"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:361
 #, fuzzy
 msgid "Truncate Metric"
-msgstr "排序指标"
+msgstr "截断指标"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:275
 #, fuzzy
 msgid "Truncate X Axis"
-msgstr "截断Y轴"
+msgstr "截断X轴"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:278
 #, fuzzy
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
 " applicable for numercal X axis."
-msgstr "截断Y轴。可以通过指定最小或最大界限来重写。"
+msgstr "截断X轴。可以通过指定最小或最大界限来重写。"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:242
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:344
@@ -16987,7 +16990,7 @@ msgstr ""
 #: superset/utils/date_parser.py:393
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
-msgstr "找不到这样的假期：[{}]"
+msgstr "找不到这样的假期：[%(holiday)s]"
 
 #: superset-frontend/src/features/datasets/AddDataset/DatasetPanel/MessageContent.tsx:69
 msgid ""
@@ -17291,7 +17294,7 @@ msgstr "使用到数据库的加密连接"
 #: superset/db_engine_specs/base.py:2004
 #, fuzzy
 msgid "Use an ssh tunnel connection to the database"
-msgstr "使用到数据库的加密连接"
+msgstr "使用SSH隧道连接到数据库"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:454
 #, python-format
@@ -17471,12 +17474,12 @@ msgstr "`行偏移量` 必须大于或等于0"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:204
 msgid "Values are dependent on other filters"
-msgstr ""
+msgstr "这些值依赖于其他过滤器"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:211
 #, fuzzy
 msgid "Values dependent on"
-msgstr "指标降序"
+msgstr "值依赖于"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:207
 msgid ""
@@ -17506,12 +17509,12 @@ msgstr "版本"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:275
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/index.ts:83
 msgid "Vertical"
-msgstr "垂直"
+msgstr "纵向"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/index.tsx:188
 #, fuzzy
 msgid "Vertical (Left)"
-msgstr "垂直"
+msgstr "纵向（左对齐）"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Area/index.js:38
 msgid "Video game consoles"
@@ -17537,7 +17540,7 @@ msgstr "编辑数据集"
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:124
 #, fuzzy
 msgid "View all charts"
-msgstr "搜索所有图表"
+msgstr "查看所有图表"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:476
 #, fuzzy
@@ -17580,7 +17583,7 @@ msgstr "视口"
 #: superset-frontend/src/pages/DatasetList/index.tsx:533
 #, fuzzy
 msgid "Virtual"
-msgstr "虚拟信息"
+msgstr "虚拟"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:155
 msgid "Virtual (SQL)"
@@ -17752,7 +17755,7 @@ msgstr "为您的查询设置标签"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/index.ts:63
 #, fuzzy
 msgid "Waterfall Chart"
-msgstr "搜索所有图表"
+msgstr "瀑布图"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1531
 msgid ""
@@ -17834,7 +17837,7 @@ msgstr "周日为一周开始"
 #: superset-frontend/src/features/reports/ReportModal/index.tsx:131
 #, fuzzy
 msgid "Weekly Report"
-msgstr "报告"
+msgstr "周报"
 
 #: superset-frontend/src/features/reports/ReportModal/index.tsx:130
 #, python-format
@@ -17843,7 +17846,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:104
 msgid "Weekly seasonality"
-msgstr ""
+msgstr "周度季节性"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
 #, python-format
@@ -18026,7 +18029,7 @@ msgstr "为指标添加条状图背景"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Waterfall/controlPanel.tsx:58
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:44
 msgid "Whether to display a legend for the chart"
-msgstr "是否显示图表的图示（色块分布）"
+msgstr "是否显示图表的图例（色块分布）"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:83
 msgid "Whether to display bubbles on top of countries"
@@ -18062,7 +18065,7 @@ msgstr "是否显示标签。"
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:116
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:160
 msgid "Whether to display the legend (toggles)"
-msgstr "是否显示图示（切换）"
+msgstr "是否显示图例（切换）"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:185
 msgid "Whether to display the metric name as a title"
@@ -18139,11 +18142,11 @@ msgstr "是否包含时间段中定义的时间粒度"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:274
 #, fuzzy
 msgid "Whether to make the grid 3D"
-msgstr "是否规范化直方图"
+msgstr "是否将网格变为3D"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:139
 msgid "Whether to make the histogram cumulative"
-msgstr "是否规范化直方图"
+msgstr "是否将直方图设置为累积的"
 
 #: superset/connectors/sqla/views.py:104
 msgid ""
@@ -18175,7 +18178,7 @@ msgstr "是否显示额外的控件。额外的控制包括使多栏图表堆叠
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:203
 msgid "Whether to show minor ticks on the axis"
-msgstr "是否忽略空位置"
+msgstr "是否在坐标轴上显示次级刻度"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:176
 msgid "Whether to show the pointer"
@@ -18193,7 +18196,7 @@ msgstr "是否显示Y轴的最小值和最大值"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:208
 #, fuzzy
 msgid "Whether to sort ascending or descending on the base Axis."
-msgstr "是否忽略空位置"
+msgstr "确定是按升序还是降序对基轴进行排序。"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:107
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/orderBy.tsx:48
@@ -18310,7 +18313,7 @@ msgstr "X 轴标题下边距"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:143
 msgid "X AXIS TITLE MARGIN"
-msgstr ""
+msgstr "X 轴标题边距"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:38
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:215
@@ -18397,7 +18400,7 @@ msgstr "Y界限"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Bubble/controlPanel.tsx:215
 msgid "Y AXIS TITLE MARGIN"
-msgstr "Y轴标题页边距"
+msgstr "Y轴标题边距"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:66
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:224
@@ -18455,16 +18458,16 @@ msgstr "Y 轴标题"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:86
 msgid "Y Axis Title Margin"
-msgstr ""
+msgstr "Y 轴标题边距"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:101
 #, fuzzy
 msgid "Y Axis Title Position"
-msgstr "行小计的位置"
+msgstr "Y 轴标题位置"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:248
 msgid "Y Log Scale"
-msgstr "Y经度标度"
+msgstr "Y 对数尺度"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:99
 msgid "Y bounds"
@@ -18479,7 +18482,7 @@ msgstr "升序排序"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:99
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:189
 msgid "Y-Axis Sort By"
-msgstr ""
+msgstr "Y 轴排序"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/mixins.tsx:33
 #, fuzzy
@@ -18505,7 +18508,7 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:85
 msgid "Yearly seasonality"
-msgstr ""
+msgstr "年度季节性"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
 #, python-format
@@ -18553,7 +18556,7 @@ msgid ""
 "You are importing one or more dashboards that already exist. Overwriting "
 "might cause you to lose some of your work. Are you sure you want to "
 "overwrite?"
-msgstr "您正在导入一个或多个已存在的仪表板。覆盖可能会导致您丢失一些工作。确定要覆盖吗？"
+msgstr "您正在导入一个或多个已存在的看板。覆盖可能会导致您丢失一些工作。确定要覆盖吗？"
 
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:1457
 msgid ""
@@ -18579,7 +18582,7 @@ msgstr "您正在导入一个或多个已存在的图表。覆盖可能会导致
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:196
 #, fuzzy
 msgid "You can"
-msgstr "国家地图"
+msgstr "你可以"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:208
 msgid "You can add the components in the"
@@ -18599,22 +18602,23 @@ msgid ""
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
-msgstr ""
+msgstr "您可以选择显示所有您有权限访问的图表，或者仅显示您拥有的图表。"
+"您的过滤器选择将被保存，并保持激活状态，直到您选择更改它。"
 
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:200
 #: superset-frontend/src/dashboard/components/DashboardGrid.jsx:223
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
-msgstr ""
+msgstr "您可以创建一个新图表，或使用右侧面板中的现有图表。"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:194
 msgid "You can preview the list of dashboards in the chart settings dropdown."
-msgstr ""
+msgstr "您可以在图表设置的下拉菜单中预览看板列表。"
 
 #: superset-frontend/src/components/Chart/ChartContextMenu/ChartContextMenu.tsx:186
 msgid "You can't apply cross-filter on this data point."
-msgstr ""
+msgstr "您无法在这个数据点上应用交叉筛选。"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:497
 msgid ""
@@ -18760,7 +18764,7 @@ msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
-msgstr ""
+msgstr "您已更新了控制面板中的值，但图表未自动更新。请点击“更新图表”按钮运行查询或"
 
 #: superset-frontend/src/explore/components/ControlPanelsContainer.tsx:665
 msgid ""
@@ -18820,7 +18824,7 @@ msgstr "这个查询无法被加载。"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:263
 #, fuzzy
 msgid "Zero imputation"
-msgstr "描述"
+msgstr "零值填补"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:303
 msgid "Zoom"
@@ -18833,7 +18837,7 @@ msgstr "地图缩放等级"
 #: superset-frontend/src/dashboard/actions/dashboardState.js:256
 #, fuzzy
 msgid "[ untitled dashboard ]"
-msgstr "编辑仪表盘"
+msgstr "未命名看板"
 
 #: superset/viz.py:1751
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
@@ -18926,12 +18930,12 @@ msgstr "合计"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:43
 #: superset-frontend/src/pages/AlertReportList/index.tsx:112
 msgid "alert"
-msgstr "警报"
+msgstr "警报色"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:46
 #, fuzzy
 msgid "alert dark"
-msgstr "警报"
+msgstr "警报色（暗色）"
 
 #: superset-frontend/src/pages/AlertReportList/index.tsx:113
 msgid "alerts"
@@ -18995,7 +18999,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/menu/BackgroundStyleDropdown.tsx:76
 msgid "background"
-msgstr ""
+msgstr "背景"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:125
 #, fuzzy
@@ -19033,7 +19037,7 @@ msgstr "底部"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:222
 msgid "button (cmd + z) until you save your changes."
-msgstr ""
+msgstr "按钮（cmd + z）直到你保存它。"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor/index.tsx:72
 msgid "by using"
@@ -19071,12 +19075,12 @@ msgstr "选择WHERE或HAVING子句..."
 #: superset-frontend/src/components/ListView/ListView.tsx:450
 #, fuzzy
 msgid "clear all filters"
-msgstr "搜索所有过滤选项"
+msgstr "清除所有过滤器"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:278
 #: superset-frontend/src/explore/components/ExploreChartPanel/index.jsx:353
 msgid "click here"
-msgstr ""
+msgstr "点击这里"
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:44
 msgid "code ISO 3166-1 alpha-2 (cca2)"
@@ -19200,12 +19204,12 @@ msgstr "圆弧图"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Contour/index.ts:32
 #, fuzzy
 msgid "deck.gl Contour"
-msgstr "圆弧图"
+msgstr "等高线"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Geojson/index.ts:32
 #, fuzzy
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - 多角形"
+msgstr "Deck.gl - Geojson"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Grid/index.ts:31
 #, fuzzy
@@ -19215,7 +19219,7 @@ msgstr "圆弧图"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Heatmap/index.ts:32
 #, fuzzy
 msgid "deck.gl Heatmap"
-msgstr "圆弧图"
+msgstr "热力图"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.ts:30
 #, fuzzy
@@ -19230,7 +19234,7 @@ msgstr "Deck.gl - 路径"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Polygon/index.ts:31
 #, fuzzy
 msgid "deck.gl Polygon"
-msgstr "Deck.gl - 多角形"
+msgstr "Deck.gl - 多边形"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Scatter/index.ts:31
 #, fuzzy
@@ -19245,7 +19249,7 @@ msgstr "Deck.gl - 屏幕网格"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.ts:36
 #, fuzzy
 msgid "deck.gl charts"
-msgstr "圆弧图"
+msgstr "图表"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/index.ts:33
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Arc/index.ts:35
@@ -19260,7 +19264,7 @@ msgstr "圆弧图"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Screengrid/index.ts:36
 #, fuzzy
 msgid "deckGL"
-msgstr "圆弧图"
+msgstr "deckGL图表"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:87
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:106
@@ -19287,7 +19291,7 @@ msgstr "描述"
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/layers/Hex/controlPanel.ts:79
 #, fuzzy
 msgid "deviation"
-msgstr "描述"
+msgstr "偏离"
 
 #: superset-frontend/src/features/databases/DatabaseModal/SqlAlchemyForm.tsx:83
 msgid "dialect+driver://username:password@host:port/database"
@@ -19299,36 +19303,36 @@ msgstr "草稿"
 
 #: superset/views/log/__init__.py:32
 msgid "dttm"
-msgstr "dttm"
+msgstr "时间"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:155
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:176
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:154
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:202
 msgid "e.g. ********"
-msgstr "********"
+msgstr "例如：********"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:46
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:75
 msgid "e.g. 127.0.0.1"
-msgstr "127.0.0.1"
+msgstr "例如：127.0.0.1"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:69
 msgid "e.g. 5432"
-msgstr "5432"
+msgstr "例如：5432"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:36
 msgid "e.g. AccountAdmin"
-msgstr ""
+msgstr "例如：用户名"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:134
 #: superset-frontend/src/features/databases/DatabaseModal/SSHTunnelForm.tsx:107
 msgid "e.g. Analytics"
-msgstr "高级分析"
+msgstr "例如：分析"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:32
 msgid "e.g. compute_wh"
-msgstr ""
+msgstr "例如：compute_wh"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:219
 msgid "e.g. param1=value1&param2=value2"
@@ -19336,20 +19340,20 @@ msgstr "例如：param1=value1&param2=value2"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:92
 msgid "e.g. sql/protocolv1/o/12345"
-msgstr ""
+msgstr "例如：sql/protocolv1/o/12345"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:114
 #: superset-frontend/src/features/databases/DatabaseModal/index.tsx:680
 msgid "e.g. world_population"
-msgstr "世界人口"
+msgstr "例如：世界人口"
 
 #: superset-frontend/src/features/databases/DatabaseModal/DatabaseConnectionForm/ValidatedInputField.tsx:29
 msgid "e.g. xy12345.us-east-2.aws"
-msgstr ""
+msgstr "例如：xy12345.us-east-2.aws"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:123
 msgid "e.g., a \"user id\" column"
-msgstr "时间序列的列"
+msgstr "例如：userid列"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:214
 #, fuzzy
@@ -19364,11 +19368,11 @@ msgstr "序列"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:44
 #, fuzzy
 msgid "error"
-msgstr "错误"
+msgstr "错误色"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:47
 msgid "error dark"
-msgstr ""
+msgstr "错误色（暗色）"
 
 #: superset/models/helpers.py:1821
 #, fuzzy
@@ -19536,7 +19540,7 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:124
 #, fuzzy
 msgid "linear"
-msgstr "清除"
+msgstr "线性"
 
 #: superset-frontend/src/pages/ExecutionLogList/index.tsx:70
 msgid "log"
@@ -19680,7 +19684,7 @@ msgstr "小时"
 
 #: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:204
 msgid "or use existing ones from the panel on the right"
-msgstr ""
+msgstr "或从右侧面板中使用已存在的对象。"
 
 #: superset/charts/schemas.py:1295
 msgid "orderby column must be populated"
@@ -19911,12 +19915,12 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 #, fuzzy
 msgid "success"
-msgstr "成功"
+msgstr "成功色"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:45
 #, fuzzy
 msgid "success dark"
-msgstr "成功"
+msgstr "成功色（暗色）"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:173
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:258
@@ -19970,7 +19974,7 @@ msgstr "停止"
 #: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:221
 #, fuzzy
 msgid "undo"
-msgstr "撤消？"
+msgstr "撤销"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/ColumnTypeLabel/ColumnTypeLabel.tsx:55
 #, fuzzy
@@ -20015,7 +20019,7 @@ msgstr "时间（秒）"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1088
 msgid "virtual"
-msgstr "虚拟信息"
+msgstr "虚拟"
 
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:74
 #, fuzzy
