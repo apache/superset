@@ -144,6 +144,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   ) => void;
   enableTimeComparison?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
+  basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
 }
 
 export enum ColorSchemeEnum {

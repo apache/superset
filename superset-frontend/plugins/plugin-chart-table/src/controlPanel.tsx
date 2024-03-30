@@ -643,7 +643,16 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom Conditional Formatting'),
-              multi: true,
+              extraColorChoices: [
+                {
+                  value: ColorSchemeEnum.Green,
+                  label: t('Green for increase, red for decrease'),
+                },
+                {
+                  value: ColorSchemeEnum.Red,
+                  label: t('Red for increase, green for decrease'),
+                },
+              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),

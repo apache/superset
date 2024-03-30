@@ -253,6 +253,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     enableTimeComparison,
     basicColorFormatters,
+    basicColorColumnFormatters,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -762,6 +763,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
           }
 
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                : '';
+          }
+
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
@@ -793,7 +807,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               `}
           `;
 
-          const arrowStyles = css`
+          let arrowStyles = css`
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
@@ -801,6 +815,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               : theme.colors.error.base};
             margin-right: ${theme.gridUnit}px;
           `;
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            arrowStyles = css`
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colors.success.base
+                : theme.colors.error.base};
+              margin-right: ${theme.gridUnit}px;
+            `;
+          }
 
           const cellProps = {
             // show raw number in title in case of numeric values
