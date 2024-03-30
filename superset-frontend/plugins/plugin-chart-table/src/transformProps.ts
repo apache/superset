@@ -477,16 +477,14 @@ const transformProps = (
     originalColumns: DataColumnMeta[],
     conditionalFormatting?: ConditionalFormattingConfig[],
   ) => {
-    const selectedColumns =
-      conditionalFormatting &&
-      conditionalFormatting.filter(
-        (config: ConditionalFormattingConfig) =>
-          config.column &&
-          (config.colorScheme === ColorSchemeEnum.Green ||
-            config.colorScheme === ColorSchemeEnum.Red),
-      );
+    const selectedColumns = conditionalFormatting?.filter(
+      (config: ConditionalFormattingConfig) =>
+        config.column &&
+        (config.colorScheme === ColorSchemeEnum.Green ||
+          config.colorScheme === ColorSchemeEnum.Red),
+    );
 
-    return selectedColumns && selectedColumns.length
+    return selectedColumns?.length
       ? getBasicColorFormatter(originalData, originalColumns, selectedColumns)
       : undefined;
   };
