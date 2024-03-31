@@ -8,10 +8,10 @@
                 "plural_forms": "nplurals=1; plural=0"
             },
             "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
-                "此过滤条件是从看板上下文继承的。保存图表时不会保存。"
+                "\n此过滤条件是从看板上下文继承的。保存图表时不会保存。"
             ],
             "\n            Error: %(text)s\n            ": [
-                "\n错误：%(text)s\n"
+                "\n错误：%(text)s\n            "
             ],
             " (excluded)": [
                 "(不包含)"
@@ -47,16 +47,16 @@
                 ""
             ],
             " to open SQL Lab. From there you can save the query as a dataset.": [
-                ""
+                "然后打开SQL工具箱。在那里你可以将查询保存为一个数据集。"
             ],
             " to visualize your data.": [
                 ""
             ],
             "!= (Is not equal)": [
-                "!= (不等于)"
+                "不等于（不等于）"
             ],
             "% calculation": [
-                "计算类型"
+                "% 计算"
             ],
             "%(dialect)s cannot be used as a data source for security reasons.": [
                 "出于安全原因，%(dialect)s SQLite数据库不能用作数据源。"
@@ -182,7 +182,7 @@
                 ""
             ],
             "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n": [
-                "--  注意：除非您保存查询，否则如果清除cookie或更改浏览器时，这些选项卡将不会保留。"
+                "--  注意：除非您保存查询，否则如果清除cookie或更改浏览器时，这些选项卡将不会保留。\n"
             ],
             ".": [
                 ""
@@ -374,34 +374,34 @@
                 ":"
             ],
             "< (Smaller than)": [
-                "< (小于)"
+                "小于（<）"
             ],
             "<= (Smaller or equal)": [
-                "<= (小于等于)"
+                "小于等于（<=）"
             ],
             "<enter SQL expression here>": [
-                ""
+                "输入SQL表达式"
             ],
             "<new column>": [
-                "时间列"
+                "新列"
             ],
             "<new metric>": [
-                "保存的指标"
+                "新指标"
             ],
             "<new spatial>": [
                 "空间"
             ],
             "<no type>": [
-                "图表类型"
+                "无类型"
             ],
             "== (Is equal)": [
-                "== (等于)"
+                "等于（==）"
             ],
             "> (Larger than)": [
-                "> (大于)"
+                "大于（>）"
             ],
             ">= (Larger or equal)": [
-                ">= (大于等于)"
+                "大于等于（>=）"
             ],
             "A Big Number": [
                 "大数字"
@@ -605,7 +605,7 @@
                 "新增新的选项卡"
             ],
             "Add a new tab to create SQL Query": [
-                ""
+                "添加一个选项卡以创建 SQL 查询"
             ],
             "Add additional custom parameters": [
                 "新增其他自定义参数"
@@ -659,7 +659,7 @@
                 ""
             ],
             "Add filters and dividers": [
-                ""
+                "添加过滤器和分隔符"
             ],
             "Add item": [
                 "增加条件"
@@ -677,13 +677,13 @@
                 "新增格式化"
             ],
             "Add notification method": [
-                "新增注释层"
+                "新增通知方法"
             ],
             "Add required control values to preview chart": [
-                ""
+                "添加必需的控制值以预览图表"
             ],
             "Add required control values to save chart": [
-                ""
+                "添加必需的控制值以保存图表"
             ],
             "Add sheet": [
                 "添加sheet页"
@@ -713,7 +713,7 @@
                 "附加参数"
             ],
             "Additional fields may be required": [
-                ""
+                "可能需要额外的字段"
             ],
             "Additional information": [
                 "附加信息"
@@ -833,13 +833,13 @@
                 "告警查询返回多个列。"
             ],
             "Alert query returned more than one column. %(num_cols)s columns returned": [
-                "告警查询返回多个列。%s 列被返回"
+                "告警查询返回多个列。%(num_cols)s 列被返回"
             ],
             "Alert query returned more than one row.": [
                 "告警查询返回了多行。"
             ],
             "Alert query returned more than one row. %(num_rows)s rows returned": [
-                "告警查询返回了多行。%s 行被返回"
+                "告警查询返回了多行。%(num_rows)s 行被返回"
             ],
             "Alert running": [
                 "告警运行中"
@@ -875,7 +875,7 @@
                 "所有的图表或者全局作用域"
             ],
             "All filters": [
-                "所有过滤"
+                "所有过滤器"
             ],
             "All panels": [
                 "应用于所有面板"
@@ -902,10 +902,10 @@
                 "允许 DML"
             ],
             "Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).": [
-                ""
+                "如果数据库支持（例如 Oracle、Snowflake 等），允许将列名更改为不区分大小写的格式。"
             ],
             "Allow columns to be rearranged": [
-                "允许列重拍"
+                "允许列重排"
             ],
             "Allow creation of new tables based on queries": [
                 "允许基于查询创建新表"
@@ -920,7 +920,7 @@
                 "允许最终用户通过拖放列标题来重新排列它们。请注意，他们所做的更改不会在下次打开图表时保留。"
             ],
             "Allow file uploads to database": [
-                "选择要上传到数据库的Excel文件。"
+                "允许上传文件到数据库"
             ],
             "Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.": [
                 "允许使用非SELECT语句(如UPDATE、DELETE、CREATE等)操作数据库。"
@@ -941,7 +941,7 @@
                 "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELETE，CREATE，...）"
             ],
             "Allowed Domains (comma separated)": [
-                ""
+                "允许的域名（逗号分隔）"
             ],
             "Alphabetical": [
                 "按字母顺序排列"
@@ -1127,7 +1127,7 @@
                 "注释"
             ],
             "Annotation Layer %s": [
-                "注解层"
+                "注释层 %s"
             ],
             "Annotation Layers": [
                 "注释层"
@@ -1187,7 +1187,7 @@
                 "注释层值"
             ],
             "Annotation layers": [
-                "注解层"
+                "注释层"
             ],
             "Annotation layers are still loading.": [
                 "注释层仍在加载。"
@@ -1241,13 +1241,13 @@
                 "追加"
             ],
             "Applied cross-filters (%d)": [
-                "应用的交叉条件 (%d)"
+                "应用的交叉过滤器 (%d)"
             ],
             "Applied filters (%d)": [
-                "应用的条件 (%d)"
+                "应用的过滤器 (%d)"
             ],
             "Applied filters: %s": [
-                "应用的条件 (%d)"
+                "应用的过滤器 (%s)"
             ],
             "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
                 "应用的滚动窗口（rolling window）未返回任何数据。请确保源查询满足滚动窗口中定义的最小周期。"
@@ -1265,7 +1265,7 @@
                 "将条件颜色格式应用于数字列"
             ],
             "Apply filters": [
-                "所有过滤"
+                "应用过滤器"
             ],
             "Apply metrics on": [
                 "应用指标到"
@@ -1292,7 +1292,7 @@
                 "确定要删除吗"
             ],
             "Are you sure you want to delete %s?": [
-                "确定要删除吗"
+                "确定要删除 %s 吗？"
             ],
             "Are you sure you want to delete the selected %s?": [
                 "确实要删除选定的 %s 吗？"
@@ -1370,7 +1370,7 @@
                 "八月"
             ],
             "Auto": [
-                "在"
+                "自动"
             ],
             "Auto Zoom": [
                 "数据缩放"
@@ -1415,7 +1415,7 @@
                 "轴线降序"
             ],
             "BOOLEAN": [
-                ""
+                "布尔值"
             ],
             "Back": [
                 "返回"
@@ -1448,7 +1448,7 @@
                 "时间序列条形图用于显示指标随时间的变化"
             ],
             "Bar Values": [
-                "柱的值"
+                "柱状图的值"
             ],
             "Bar orientation": [
                 "方向"
@@ -1505,13 +1505,13 @@
                 "底部边距"
             ],
             "Bottom left": [
-                "底部"
+                "底 左"
             ],
             "Bottom margin, in pixels, allowing for more room for axis labels": [
                 "底部边距，以像素为单位，为轴标签留出更多空间"
             ],
             "Bottom right": [
-                "底部"
+                "底 右"
             ],
             "Bottom to Top": [
                 "自下而上"
@@ -1820,7 +1820,7 @@
                 "修改人"
             ],
             "Changes saved.": [
-                ""
+                "修改已保存"
             ],
             "Changing one or more of these dashboards is forbidden": [
                 "有些看板无法修改"
@@ -1889,13 +1889,13 @@
                 "图表标题"
             ],
             "Chart [%s] has been overwritten": [
-                "图表 [{}] 已经覆盖"
+                "图表 [%s] 已经覆盖"
             ],
             "Chart [%s] has been saved": [
-                "图表 [{}] 已经保存"
+                "图表 [%s] 已经保存"
             ],
             "Chart [%s] was added to dashboard [%s]": [
-                "图表 [{}] 已经添加到看板 [{}]"
+                "图表 [%s] 已经添加到看板 [%s]"
             ],
             "Chart [{}] has been overwritten": [
                 "图表 [{}] 已经覆盖"
@@ -2072,7 +2072,7 @@
                 "数据集的典型的逐行逐列电子表格视图。使用表格显示底层数据的视图或显示聚合指标。"
             ],
             "Clause": [
-                "从句"
+                "条件"
             ],
             "Clear": [
                 "清除"
@@ -2084,13 +2084,13 @@
                 "清除所有"
             ],
             "Clear form": [
-                "数字格式化"
+                "清除表单"
             ],
             "Click on \"+Add/Edit Filters\" button to create new dashboard filters": [
                 "点击“+添加/编辑过滤器”按钮来创建新的看板过滤器。"
             ],
             "Click on \"Create chart\" button in the control panel on the left to preview a visualization or": [
-                ""
+                "点击左侧控制面板中的“创建图表”按钮以预览可视化效果，或者"
             ],
             "Click the lock to make changes.": [
                 "单击锁以进行更改。"
@@ -2114,10 +2114,10 @@
                 "点击编辑"
             ],
             "Click to edit %s.": [
-                "点击编辑"
+                "点击编辑 %s。"
             ],
             "Click to edit chart.": [
-                "点击编辑"
+                "点击编辑图表。"
             ],
             "Click to edit label": [
                 "单击以编辑标签"
@@ -2186,7 +2186,7 @@
                 "色彩 Steps"
             ],
             "Color bounds": [
-                "Y界限"
+                "色彩界限"
             ],
             "Color by": [
                 "排序 "
@@ -2375,10 +2375,10 @@
                 "配置进阶时间范围"
             ],
             "Configure Time Range: Last...": [
-                "配置时间范围：上一（Last）.."
+                "配置时间范围：最近..."
             ],
             "Configure Time Range: Previous...": [
-                "配置时间范围：前一（Previous）.."
+                "配置时间范围：上一期..."
             ],
             "Configure custom time range": [
                 "配置自定义时间范围"
@@ -2390,7 +2390,7 @@
                 "注释层基本配置"
             ],
             "Configure this dashboard to embed it into an external web application.": [
-                ""
+                "配置此仪表板，以便将其嵌入到外部网络应用程序中。"
             ],
             "Configure your how you overlay is displayed here.": [
                 "配置如何在这里显示您的覆盖。"
@@ -2540,7 +2540,7 @@
                 "列"
             ],
             "Count Unique Values": [
-                "可被过滤"
+                "计算唯一值"
             ],
             "Count as Fraction of Columns": [
                 ""
@@ -2573,10 +2573,10 @@
                 "创建图表"
             ],
             "Create a dataset": [
-                "创建一个 "
+                "创建数据集 "
             ],
             "Create a dataset to begin visualizing your data as a chart or go to\n          SQL Lab to query your data.": [
-                ""
+                "创建一个数据集以开始将您的数据可视化为图表，或者前往 SQL 工具箱查询您的数据。"
             ],
             "Create a new chart": [
                 "创建新图表"
@@ -2636,7 +2636,7 @@
                 "交叉筛选作用域"
             ],
             "Cross-filters": [
-                "交叉筛选作用域"
+                "交叉筛选"
             ],
             "Cumulative": [
                 "累计"
@@ -2747,7 +2747,7 @@
                 "看板"
             ],
             "Dashboard [%s] just got created and chart [%s] was added to it": [
-                "看板 [{}] 刚刚被创建，并且图表 [{}] 已被添加到其中"
+                "看板 [%s] 刚刚被创建，并且图表 [%s] 已被添加到其中"
             ],
             "Dashboard [{}] just got created and chart [{}] was added to it": [
                 "看板 [{}] 刚刚被创建，并且图表 [{}] 已被添加到其中"
@@ -2822,7 +2822,7 @@
                 "数据预览"
             ],
             "Data refreshed": [
-                "上次刷新的元数据"
+                "已刷新数据"
             ],
             "Data type": [
                 "数据类型"
@@ -2963,7 +2963,7 @@
                 "数据集"
             ],
             "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
-                ""
+                "数据集可以基于数据库表或SQL查询创建。请在左侧选择一个数据库表或者"
             ],
             "Datasets can have a main temporal column (main_dttm_col), but can also have secondary time columns. When this attribute is true, whenever the secondary columns are filtered, the same filter is applied to the main datetime column.": [
                 ""
@@ -3026,7 +3026,7 @@
                 "数据库引擎未返回所有查询的列"
             ],
             "Deactivate": [
-                "激活"
+                "禁用"
             ],
             "December": [
                 "十二月"
@@ -3089,7 +3089,7 @@
                 "缺省值"
             ],
             "Default datetime": [
-                "默认纬度"
+                "默认时间"
             ],
             "Default latitude": [
                 "默认纬度"
@@ -3203,10 +3203,10 @@
                 "删除"
             ],
             "Deleted %(num)d annotation": [
-                "选择一个注释图层"
+                "删除了 %(num)d 个注释"
             ],
             "Deleted %(num)d annotation layer": [
-                "选择一个注释图层"
+                "删除了 %(num)d 个注释层"
             ],
             "Deleted %(num)d chart": [
                 "删除了 %(num)d 个图表"
@@ -3221,7 +3221,7 @@
                 "已经删除 %(num)d 个数据集"
             ],
             "Deleted %(num)d report schedule": [
-                "已经删除了 %(num)d 个报告时间表"
+                "已经删除了 %(num)d 个报告计划"
             ],
             "Deleted %(num)d rules": [
                 "删除了 %(num)d 个图表"
@@ -3326,19 +3326,19 @@
                 "在 SQL 工具箱中获取表的元数据时禁用数据预览。当使用具有非常宽表的数据库时，这样做有助于避免浏览器性能问题。"
             ],
             "Disable embedding?": [
-                ""
+                "禁用嵌入吗？"
             ],
             "Disabled": [
                 "禁用"
             ],
             "Discard": [
-                "看板"
+                "取消"
             ],
             "Discrete": [
                 "离散"
             ],
             "Display": [
-                "显示名称"
+                "显示"
             ],
             "Display Name": [
                 "显示名称"
@@ -3365,7 +3365,7 @@
                 "显示行级合计"
             ],
             "Display settings": [
-                "计划设置"
+                "显示配置"
             ],
             "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
                 "显示图形结构中实体之间的连接。用于映射关系和显示网络中哪些节点是重要的。图表可以配置为强制引导或循环。如果您的数据具有地理空间组件，请尝试使用deck.gl圆弧图表。"
@@ -3398,7 +3398,7 @@
                 "已编辑"
             ],
             "Download": [
-                "下载为图片"
+                "下载"
             ],
             "Download as Image": [
                 "下载为图片"
@@ -3407,7 +3407,7 @@
                 "下载为图片"
             ],
             "Download to CSV": [
-                "下载到CSV"
+                "下载为CSV"
             ],
             "Draft": [
                 "草稿"
@@ -3446,16 +3446,16 @@
                 "排序 %s"
             ],
             "Drill to detail": [
-                ""
+                "钻取详情"
             ],
             "Drill to detail by": [
-                ""
+                "钻取详情由"
             ],
             "Drill to detail by value is not yet supported for this chart type.": [
                 ""
             ],
             "Drill to detail is disabled because this chart does not group data by dimension value.": [
-                ""
+                "由于此图表未按维度值对数据进行分组，因此钻取详情的功能已被禁用。"
             ],
             "Drill to detail: %s": [
                 "钻取详情：%s"
@@ -3680,10 +3680,10 @@
                 "激活邮件报告"
             ],
             "Embed": [
-                "十一月"
+                "嵌入"
             ],
             "Embed code": [
-                "嵌入式代码"
+                "嵌入代码"
             ],
             "Embed dashboard": [
                 "嵌入看板"
@@ -3692,7 +3692,7 @@
                 "解除嵌入。"
             ],
             "Emit Filter Events": [
-                "可被过滤"
+                "发送过滤器事件"
             ],
             "Emphasis": [
                 "重点"
@@ -3701,25 +3701,25 @@
                 "就业和教育"
             ],
             "Empty circle": [
-                "空圈"
+                "空循环"
             ],
             "Empty collection": [
                 "空集合"
             ],
             "Empty column": [
-                "我的列"
+                "空的列"
             ],
             "Empty query result": [
-                "查询为空？"
+                "空的查询结果"
             ],
             "Empty query?": [
                 "查询为空？"
             ],
             "Empty row": [
-                ""
+                "空的行"
             ],
             "Enable 'Allow file uploads to database' in any database's settings": [
-                ""
+                "在数据库设置中启用“允许上传文件到数据库”"
             ],
             "Enable Filter Select": [
                 "启用过滤器选择"
@@ -3731,7 +3731,7 @@
                 "启用数据缩放控件"
             ],
             "Enable embedding": [
-                "启用节点拖动"
+                "启用嵌入"
             ],
             "Enable forecast": [
                 "启用预测"
@@ -3809,7 +3809,7 @@
                 "全屏"
             ],
             "Enter the required %(dbModelName)s credentials": [
-                ""
+                "请输入必要的 %(dbModelName)s 的凭据"
             ],
             "Entity": [
                 "实体"
@@ -3878,7 +3878,7 @@
                 "在运行查询之前计算执行计划"
             ],
             "Event": [
-                "最近"
+                "事件"
             ],
             "Event Flow": [
                 "事件流"
@@ -3923,7 +3923,7 @@
                 "排除选定的值"
             ],
             "Excluded roles": [
-                "包含系列"
+                "包含角色"
             ],
             "Executed SQL": [
                 "已执行的SQL"
@@ -3938,19 +3938,19 @@
                 "操作日志"
             ],
             "Existing dataset": [
-                "丢失数据集"
+                "存在的数据集"
             ],
             "Exit fullscreen": [
                 "退出全屏"
             ],
             "Expand": [
-                "和"
+                "展开"
             ],
             "Expand all": [
                 "全部展开"
             ],
             "Expand data panel": [
-                ""
+                "展开数据面板"
             ],
             "Expand row": [
                 "标题行"
@@ -3986,19 +3986,19 @@
                 "导出查询"
             ],
             "Export to .CSV": [
-                "导出到YAML格式"
+                "导出为CSV"
             ],
             "Export to .JSON": [
-                "导出到YAML格式"
+                "导出为JSON"
             ],
             "Export to Excel": [
-                "导出到YAML格式"
+                "导出为Excel"
             ],
             "Export to PDF": [
-                "导出到YAML格式"
+                "导出为PDF"
             ],
             "Export to YAML": [
-                "导出到YAML格式"
+                "导出为YAML"
             ],
             "Export to YAML?": [
                 "导出到YAML？"
@@ -4007,13 +4007,13 @@
                 "导出全量CSV"
             ],
             "Export to full Excel": [
-                "导出到YAML格式"
+                "导出全量Excel"
             ],
             "Export to original .CSV": [
-                ""
+                "导出原始CSV"
             ],
             "Export to pivoted .CSV": [
-                ""
+                "导出为透视表形式的CSV"
             ],
             "Expose database in SQL Lab": [
                 "在SQL工具箱中展示数据库"
@@ -4082,7 +4082,7 @@
                 "停止查询失败。 %s"
             ],
             "Failed to create report": [
-                ""
+                "创建报告发生错误"
             ],
             "Failed to execute %(query)s": [
                 ""
@@ -4109,7 +4109,7 @@
                 "无法启动远程查询"
             ],
             "Failed to tag items": [
-                "反选所有"
+                "选择标签项失败"
             ],
             "Failed to update report": [
                 ""
@@ -4136,7 +4136,7 @@
                 "抓取中"
             ],
             "Field cannot be decoded by JSON. %(json_error)s": [
-                "字段不能由JSON解码。%{json_error}s"
+                "字段不能由JSON解码。%(json_error)s"
             ],
             "Field cannot be decoded by JSON. %(msg)s": [
                 "字段不能由JSON解码。%(msg)s"
@@ -4184,10 +4184,10 @@
                 "过滤器默认值"
             ],
             "Filter menu": [
-                "过滤值"
+                "过滤器菜单"
             ],
             "Filter name": [
-                "过滤值"
+                "过滤器名称"
             ],
             "Filter only displays values relevant to selections made in other filters.": [
                 ""
@@ -4235,7 +4235,7 @@
                 "具有相同组key的过滤将在组中一起进行\"OR\"运算，而不同的过滤组将一起进行\"AND\"运算。未定义的组的key被视为唯一组，即不分组在一起。例如，如果表有三个过滤，其中两个用于财务部门和市场营销 (group key = 'department')，其中一个表示欧洲地区(group key = 'region')，filter子句将应用过滤 (department = 'Finance' OR department = 'Marketing') 和 (region = 'Europe')"
             ],
             "Find": [
-                "在"
+                "查找"
             ],
             "Finish": [
                 "完成"
@@ -4283,7 +4283,7 @@
                 "用于 Trino，描述嵌套的行类型的完整的模式，使用点号展开他的路径。"
             ],
             "For further instructions, consult the": [
-                ""
+                "更深入的了解，请查看"
             ],
             "For more information about objects are in context in the scope of this function, refer to the": [
                 ""
@@ -4604,7 +4604,7 @@
                 "如果表已存在，执行其中一个：舍弃（什么都不做），替换（删除表并重建），或者追加(插入数据)"
             ],
             "Ignore cache when generating report": [
-                "生成屏幕截图时报表计划执行失败。"
+                "生成报告时忽略缓存"
             ],
             "Ignore null locations": [
                 ""
@@ -4676,7 +4676,7 @@
                 "包含系列"
             ],
             "Include a description that will be sent with your report": [
-                ""
+                "描述要发送给你的报告"
             ],
             "Include series name as an axis": [
                 "包括系列名称作为轴"
@@ -4748,7 +4748,7 @@
                 "无效的JSON"
             ],
             "Invalid advanced data type: %(advanced_data_type)s": [
-                "无效的结果类型：%(result_type)s"
+                "无效的高级数据类型：%(advanced_data_type)s"
             ],
             "Invalid certificate": [
                 "无效认证"
@@ -4811,10 +4811,10 @@
                 "无效的滚动类型：%(type)s"
             ],
             "Invalid spatial point encountered: %(latlong)s": [
-                "遇到无效的空间点：%s"
+                "遇到无效的空间点：%(latlong)s"
             ],
             "Invalid state.": [
-                "无效认证"
+                "无效状态。"
             ],
             "Invalid tab ids: %s(tab_ids)": [
                 ""
@@ -4997,7 +4997,7 @@
                 "大"
             ],
             "Last": [
-                "上一"
+                "上一个周期"
             ],
             "Last Changed": [
                 "更新时间"
@@ -5009,30 +5009,30 @@
                 "上次更新 %s"
             ],
             "Last Updated %s by %s": [
-                "上次更新 %s"
+                "上次由 %s 更新 %s"
             ],
             "Last available value seen on %s": [
                 " %s 最后一个可用值"
             ],
-            "Last day": [
-                "上一（昨）天"
+            "last day": [
+                "昨天"
             ],
             "Last modified": [
                 "最后修改"
             ],
-            "Last month": [
+            "last month": [
                 "上一月"
             ],
-            "Last quarter": [
+            "last quarter": [
                 "上一季度"
             ],
             "Last run": [
                 "上次执行"
             ],
-            "Last week": [
+            "last week": [
                 "上一周"
             ],
-            "Last year": [
+            "last year": [
                 "上一年"
             ],
             "Latitude": [
@@ -5138,7 +5138,7 @@
                 "限制了用于此图表的数据源查询中计算的行数。"
             ],
             "Line": [
-                "行"
+                "直线"
             ],
             "Line Chart": [
                 "折线图"
@@ -5219,7 +5219,7 @@
                 "加载中..."
             ],
             "Locate the chart": [
-                "创建新图表"
+                "定位到图表"
             ],
             "Log Scale": [
                 "日志规模"
@@ -5303,7 +5303,7 @@
                 "管理"
             ],
             "Manage email report": [
-                "删除邮件报告"
+                "管理邮件报告"
             ],
             "Manage your databases": [
                 "管理你的数据库"
@@ -5450,7 +5450,7 @@
                 "从 `since` 到 `until` 的度量值变化"
             ],
             "Metric currency": [
-                ""
+                "指标货币类型"
             ],
             "Metric descending": [
                 "指标降序"
@@ -5555,7 +5555,7 @@
                 "次级分隔线"
             ],
             "Minor ticks": [
-                "整合指标"
+                "次级刻度"
             ],
             "Minute": [
                 "分钟"
@@ -5675,7 +5675,7 @@
                 "现在"
             ],
             "NUMERIC": [
-                "我的指标"
+                "数字"
             ],
             "Name": [
                 "名称"
@@ -5720,7 +5720,7 @@
                 ""
             ],
             "Need help? Learn more about": [
-                ""
+                "需要帮助？请看"
             ],
             "Network error": [
                 "网络异常。"
@@ -5771,46 +5771,46 @@
                 "无结果"
             ],
             "No Rules yet": [
-                "最近"
+                "还没有规则"
             ],
             "No Tags created": [
-                "已创建"
+                "还没创建标签"
             ],
             "No annotation layers": [
-                "注解层"
+                "没有注释层"
             ],
             "No annotation layers yet": [
-                "没有注释层"
+                "还没有注释层"
             ],
             "No annotation yet": [
                 "没有注释"
             ],
             "No applied filters": [
-                "删除该行"
+                "没有应用过滤器"
             ],
             "No available filters.": [
-                "所有过滤"
+                "没有有效的过滤器"
             ],
             "No charts": [
                 "没有图表"
             ],
             "No charts yet": [
-                "没有图表"
+                "还没有图表"
             ],
             "No columns found": [
-                "找不到兼容的列"
+                "找不到列"
             ],
             "No compatible columns found": [
                 "找不到兼容的列"
             ],
             "No compatible datasets found": [
-                "找不到兼容的列"
+                "找不到兼容的数据库"
             ],
             "No compatible schema found": [
-                "找不到兼容的列"
+                "找不到兼容的模式"
             ],
             "No dashboards yet": [
-                "没有看板"
+                "还没有看板"
             ],
             "No data": [
                 "没有数据"
@@ -5855,7 +5855,7 @@
                 "直方图容器数"
             ],
             "No recents yet": [
-                "最近"
+                "还没有记录"
             ],
             "No records found": [
                 "没有找到任何记录"
@@ -5870,7 +5870,7 @@
                 ""
             ],
             "No results were returned for this query": [
-                ""
+                "此查询没有数据返回"
             ],
             "No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.": [
                 "此查询没有返回任何结果。如果希望返回结果，请确保所有过滤选择的配置正确，并且数据源包含所选时间范围的数据。"
@@ -5957,7 +5957,7 @@
                 "不等于（≠）"
             ],
             "Not in": [
-                "注释"
+                "Not In"
             ],
             "Not null": [
                 "非空"
@@ -6482,10 +6482,10 @@
                 "每个序列的像素高度"
             ],
             "Pixels": [
-                ""
+                "像素"
             ],
             "Plain": [
-                ""
+                "平铺"
             ],
             "Please DO NOT overwrite the \"filter_scopes\" key.": [
                 ""
@@ -6686,7 +6686,7 @@
                 "Broker的密码"
             ],
             "Proceed": [
-                "红色"
+                "继续"
             ],
             "Progress": [
                 "进度"
@@ -6728,7 +6728,7 @@
                 "Python日期格式模板"
             ],
             "QUERY DATA IN SQL LAB": [
-                ""
+                "在SQL工具箱中查询数据"
             ],
             "Quarter": [
                 "季度"
@@ -6818,7 +6818,7 @@
                 ""
             ],
             "Ran %s": [
-                "持续时间：%s"
+                "运行于 %s"
             ],
             "Range": [
                 "范围"
@@ -6920,7 +6920,7 @@
                 "获取图表时出错"
             ],
             "Refreshing columns": [
-                "时间序列的列"
+                "刷新列"
             ],
             "Regular": [
                 "常规"
@@ -6989,13 +6989,13 @@
                 "报表计划删除失败。"
             ],
             "Report Schedule execution failed when generating a csv.": [
-                "生成屏幕截图时报表计划执行失败。"
+                "在生成 CSV 文件时，报告计划执行失败。"
             ],
             "Report Schedule execution failed when generating a dataframe.": [
-                "生成屏幕截图时报表计划执行失败。"
+                "在生成数据框时，报告计划执行失败。"
             ],
             "Report Schedule execution failed when generating a screenshot.": [
-                "生成屏幕截图时报表计划执行失败。"
+                "在生成屏幕截图时，报告计划执行失败。"
             ],
             "Report Schedule execution got an unexpected error.": [
                 "报表计划执行遇到意外错误。"
@@ -7028,7 +7028,7 @@
                 "报告名称"
             ],
             "Report schedule": [
-                "报告时间表"
+                "报告计划任务"
             ],
             "Report schedule client error": [
                 "报告计划意外错误。"
@@ -7085,7 +7085,7 @@
                 "重新采样操作需要时间索引"
             ],
             "Reset": [
-                "最近"
+                "重置"
             ],
             "Reset state": [
                 "状态重置"
@@ -7103,7 +7103,7 @@
                 "结果"
             ],
             "Results %s": [
-                "结果"
+                "结果 %s"
             ],
             "Results backend is not configured.": [
                 "后端未配置结果"
@@ -7127,7 +7127,7 @@
                 "详细提示"
             ],
             "Right": [
-                "高度"
+                "右边"
             ],
             "Right Axis Format": [
                 "右轴格式化"
@@ -7283,7 +7283,7 @@
                 "SQL Lab 视图"
             ],
             "SQL Lab uses your browser's local storage to store queries and results.\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.\nTo keep SQL Lab from crashing, please delete some query tabs.\nYou can re-access these queries by using the Save feature before you delete the tab.\nNote that you will need to close other SQL Lab windows before you do this.": [
-                "SQL Lab使用浏览器的本地存储来存储查询和结果"
+                "SQL Lab 将查询和结果数据存储在浏览器的本地存储中。目前，您已使用了 %(currentUsage)s KB，总共可用 %(maxStorage)d KB 存储空间。为了防止 SQL Lab 崩溃，请删除一些查询标签页。在删除标签页之前，您可以通过使用保存功能来重新访问这些查询。请注意，在执行此操作之前，您需要关闭其他的 SQL Lab 窗口。"
             ],
             "SQL Query": [
                 "SQL查询"
@@ -7334,16 +7334,16 @@
                 "开始 (包含)"
             ],
             "STEP %(stepCurr)s OF %(stepLast)s": [
-                ""
+                "第 %(stepCurr)s 步，共 %(stepLast)s 步"
             ],
             "STRING": [
-                "正在执行"
+                "字符串"
             ],
             "SUN": [
                 "星期日"
             ],
             "Sample Standard Deviation": [
-                "就业和教育"
+                "样本标准差"
             ],
             "Sample Variance": [
                 ""
@@ -7430,7 +7430,7 @@
                 "请保存查询以启用共享"
             ],
             "Save this query as a virtual dataset to continue exploring": [
-                ""
+                "将这个查询保存为虚拟数据集以继续探索"
             ],
             "Saved": [
                 "保存"
@@ -7508,7 +7508,7 @@
                 "模式，只在一些数据库中使用，比如Postgres、Redshift和DB2"
             ],
             "Schemas allowed for File upload": [
-                "模式允许使用CSV上传"
+                "允许使用CSV上传的模式"
             ],
             "Scope": [
                 "停止"
@@ -7517,13 +7517,13 @@
                 "范围"
             ],
             "Screenshot width": [
-                ""
+                "截图宽度"
             ],
             "Screenshot width must be between %(min)spx and %(max)spx": [
-                ""
+                "截图宽度必须位于 %(min)spx - %(max)spx 之间"
             ],
             "Scroll": [
-                ""
+                "滚动"
             ],
             "Scroll down to the bottom to enable overwriting changes. ": [
                 ""
@@ -7613,7 +7613,7 @@
                 "添加通知方法"
             ],
             "Select Tags": [
-                "反选所有"
+                "选择标签"
             ],
             "Select Viz Type": [
                 "选择一个可视化类型"
@@ -7625,10 +7625,10 @@
                 "选择要上传到数据库的Excel文件。"
             ],
             "Select a column": [
-                "反选所有"
+                "选择列"
             ],
             "Select a dashboard": [
-                "看板"
+                "选择看板"
             ],
             "Select a database table and create dataset": [
                 "选择数据库表并创建数据集"
@@ -7646,10 +7646,10 @@
                 "选择要进行查询的数据库"
             ],
             "Select a dataset": [
-                "反选所有"
+                "选择数据集"
             ],
             "Select a dimension": [
-                "维度"
+                "选择维度"
             ],
             "Select a file to be uploaded to the database": [
                 "选择一个CSV文件上传到数据库."
@@ -7673,10 +7673,10 @@
                 "选择总选项"
             ],
             "Select all data": [
-                "反选所有"
+                "选择所有数据"
             ],
             "Select all items": [
-                "反选所有"
+                "选择所有项"
             ],
             "Select any columns for metadata inspection": [
                 "选择任意列进行元数据巡检"
@@ -7703,7 +7703,7 @@
                 "选择表或输入表名"
             ],
             "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
-                "选择数据库需要在Advanced选项卡中完成额外的字段才能成功连接数据库了解数据库的需求"
+                "选择数据库需要在高级选项中完成额外的字段才能成功连接数据库。了解您的数据库需要什么："
             ],
             "Select dataset source": [
                 "使用旧数据源编辑器"
@@ -7718,7 +7718,7 @@
                 "使用AntD的选择过滤器插件"
             ],
             "Select first filter value by default": [
-                ""
+                "默认选择首个过滤器值"
             ],
             "Select one or many metrics to display, that will be displayed in the percentages of total. Percentage metrics will be calculated only from data within the row limit. You can use an aggregation function on a column or write custom SQL to create a percentage metric.": [
                 "选择一个或多个要显示的指标，这些指标将以总数的百分比形式显示。百分比指标只会根据行限制内的数据计算得出。您可以对某个列使用聚合函数，或编写自定义SQL来创建百分比指标。"
@@ -7766,10 +7766,10 @@
                 "选择您希望在此看板上应用交叉筛选的图表。取消选择一个图表将在从看板上的任何图表应用交叉筛选时排除它。您可以选择“所有图表”，以对使用相同数据集或在看板中包含相同列名的所有图表应用交叉筛选。"
             ],
             "Select the charts to which you want to apply cross-filters when interacting with this chart. You can select \"All charts\" to apply filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
-                ""
+                "选择您希望在与此图表交互时应用交叉筛选的图表。您可以选择“所有图表”，以对使用相同数据集或在仪表板中包含相同列名的所有图表应用筛选器。"
             ],
             "Select the geojson column": [
-                "反选所有"
+                "选择GeoJSON列"
             ],
             "Select the number of bins for the histogram": [
                 "选择直方图的容器数"
@@ -7844,7 +7844,7 @@
                 "设置过滤映射"
             ],
             "Set up an email report": [
-                "删除邮件报告"
+                "设置邮件报告"
             ],
             "Sets the hierarchy levels of the chart. Each level is\n        represented by one ring with the innermost circle as the top of the hierarchy.": [
                 ""
@@ -8177,13 +8177,13 @@
                 "抱歉，似乎没有数据"
             ],
             "Sorry, there was an error saving this %s: %s": [
-                "抱歉，这个看板在获取图表时发生错误：%s"
+                "抱歉，保存  %s 时发生错误：%s"
             ],
             "Sorry, there was an error saving this dashboard: %s": [
-                "抱歉，这个看板在获取图表时发生错误：%s"
+                "抱歉，这个看板在保存时发生错误：%s"
             ],
             "Sorry, your browser does not support copying.": [
-                "抱歉，您的浏览器不支持复制操作。使用 Ctrl / Cmd + C！"
+                "抱歉，您的浏览器不支持复制操作。"
             ],
             "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [
                 "抱歉，您的浏览器不支持复制操作。使用 Ctrl / Cmd + C！"
@@ -8192,7 +8192,7 @@
                 "排序:"
             ],
             "Sort Bars": [
-                "排序条形栏"
+                "排序柱状图"
             ],
             "Sort Descending": [
                 "降序"
@@ -8237,7 +8237,7 @@
                 "降序"
             ],
             "Sort filter values": [
-                "可被过滤"
+                "排序过滤器值"
             ],
             "Sort metric": [
                 "排序指标"
@@ -8249,7 +8249,7 @@
                 ""
             ],
             "Sort type": [
-                "图表类型"
+                "排序类型"
             ],
             "Source": [
                 "来源"
@@ -8366,16 +8366,16 @@
                 "状态"
             ],
             "Step - end": [
-                ""
+                "对齐终点"
             ],
             "Step - middle": [
-                ""
+                "居中"
             ],
             "Step - start": [
-                ""
+                "对齐起点"
             ],
             "Step type": [
-                "数据类型"
+                "每阶类型"
             ],
             "Stepped Line": [
                 "时间序列阶梯图"
@@ -8402,7 +8402,7 @@
                 "直方图"
             ],
             "Streets": [
-                "最近"
+                "街道"
             ],
             "Strength to pull the graph toward center": [
                 "将图形拉向中心"
@@ -8582,7 +8582,7 @@
                 "表名未定义"
             ],
             "Table or View \"%(table)s\" does not exist.": [
-                "指标 '%(username)s' 不存在"
+                "表或视图 '%(table)s' 不存在"
             ],
             "Table that visualizes paired t-tests, which are used to understand statistical differences between groups.": [
                 "可视化检验的表格，用于了解各组之间的统计差异"
@@ -8831,10 +8831,10 @@
                 "主机 \"%(hostname)s\" 可能已关闭，无法连接到"
             ],
             "The host \"%(hostname)s\" might be down, and can't be reached on port %(port)s.": [
-                "主机 \"%(hostname)s\" 可能已关闭，无法通过端口访问 "
+                "主机 \"%(hostname)s\" 可能已停止，无法通过端口 \"%(port)s\" 访问 "
             ],
             "The host might be down, and can't be reached on the provided port.": [
-                "主机可能宕机了，无法在所提供的端口上连接到它"
+                "主机可能已停止，无法在所提供的端口上连接到它"
             ],
             "The hostname \"%(hostname)s\" cannot be resolved.": [
                 "无法解析主机名 \"%(hostname)s\" "
@@ -9035,7 +9035,7 @@
                 "表被创建。作为这两个阶段配置过程的一部分，您现在应该单击新表的编辑按钮来配置它。"
             ],
             "The table was deleted or renamed in the database.": [
-                "Issue 1005 - 该表已在数据库中删除或重命名。"
+                "该表已在数据库中删除或重命名。"
             ],
             "The time column for the visualization. Note that you can define arbitrary expression that return a DATETIME column in the table. Also note that the filter below is applied against this column or expression": [
                 "可视化的时间栏。注意，您可以定义返回表中的DATETIMLE列的任意表达式。还请注意下面的筛选器应用于该列或表达式。"
@@ -9092,10 +9092,10 @@
                 "存在关联的警报或报告"
             ],
             "There are associated alerts or reports: %(report_names)s": [
-                "存在关联的警报或报告：%s,"
+                "存在关联的警报或报告：%(report_names)s"
             ],
             "There are no charts added to this dashboard": [
-                "此看板中没有过滤条件。"
+                "此看板中没有添加图表。"
             ],
             "There are no components added to this tab": [
                 ""
@@ -9152,7 +9152,7 @@
                 "删除 %s 时出现问题：%s"
             ],
             "There was an issue deleting rules: %s": [
-                "删除 %s 时出现问题：%s"
+                "删除规则时出现问题：%s"
             ],
             "There was an issue deleting the selected %s: %s": [
                 "删除所选 %s 时出现问题: %s"
@@ -9242,7 +9242,7 @@
                 "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如127.0.0.1)"
             ],
             "This chart applies cross-filters to charts whose datasets contain columns with the same name.": [
-                ""
+                "此图表将交叉筛选应用于那些数据集包含具有相同名称列的图表。"
             ],
             "This chart has been moved to a different filter scope.": [
                 "此图表已移至其他过滤器范围内。"
@@ -9296,7 +9296,7 @@
                 "此看板已发布。单击以使其成为草稿。"
             ],
             "This dashboard is ready to embed. In your application, pass the following id to the SDK:": [
-                ""
+                "此仪表板已准备好嵌入。在您的应用程序中，将以下 ID 传递给 SDK："
             ],
             "This dashboard was saved successfully.": [
                 "该看板已成功保存。"
@@ -9365,7 +9365,7 @@
                 ""
             ],
             "This table already has a dataset": [
-                ""
+                "该表已经有了数据集"
             ],
             "This table already has a dataset associated with it. You can only associate one dataset with a table.\n": [
                 ""
@@ -9377,28 +9377,28 @@
                 "这个值应该小于正确的目标值"
             ],
             "This visualization type does not support cross-filtering.": [
-                "选择可视化类型"
+                "可视化类型不支持交叉过滤"
             ],
             "This visualization type is not supported.": [
-                "选择可视化类型"
+                "可视化类型不支持"
             ],
             "This was triggered by:": [
                 "这是由以下因素引发的："
             ],
             "This will remove your current embed configuration.": [
-                ""
+                "这会移除当前的嵌入配置。"
             ],
             "Threshold": [
-                "标签阈值"
+                "阈值"
             ],
             "Threshold alpha level for determining significance": [
                 "确定重要性的阈值α水平"
             ],
             "Threshold: ": [
-                "标签阈值"
+                "阈值"
             ],
             "Thumbnails": [
-                ""
+                "缩略图"
             ],
             "Thursday": [
                 "星期四"
@@ -9488,7 +9488,7 @@
                 ""
             ],
             "Time delta is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
-                "时间是模糊的。"
+                "时间差值含糊不清，请明确指定是 [%(human_readable)s 前] 还是 [%(human_readable)s 后]。"
             ],
             "Time filter": [
                 "日期过滤器"
@@ -9533,7 +9533,7 @@
                 "时间偏移"
             ],
             "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later].": [
-                "时间字符串是模糊的。"
+                "时间字符串不明确。请指定为 [%(human_readable)s 前] 还是 [%(human_readable)s 后]。"
             ],
             "Time-series Bar Chart (legacy)": [
                 "时间序列-条形图（传统）"
@@ -9584,31 +9584,31 @@
                 "为看板生成一个可读的 URL"
             ],
             "Tooltip": [
-                "详细提示"
+                "提示"
             ],
             "Tooltip Contents": [
-                "单元格内容"
+                "提示内容"
             ],
             "Tooltip sort by metric": [
                 "按指标排序提示"
             ],
             "Tooltip time format": [
-                "时间格式"
+                "提示的时间格式"
             ],
             "Top": [
                 "顶部"
             ],
             "Top left": [
-                "警报"
+                "上左"
             ],
             "Top right": [
-                "高度"
+                "上右"
             ],
             "Top to Bottom": [
-                "点击回顶部"
+                "自上而下"
             ],
             "Total": [
-                "显示总计"
+                "总计"
             ],
             "Total (%(aggfunc)s)": [
                 ""
@@ -9617,13 +9617,13 @@
                 ""
             ],
             "Total value": [
-                "左值"
+                "总计值"
             ],
             "Total: %s": [
-                "显示总计"
+                "总计: %s"
             ],
             "Totals": [
-                "显示总计"
+                "总计"
             ],
             "Track job": [
                 "跟踪任务"
@@ -9758,7 +9758,7 @@
                 ""
             ],
             "Unable to find such a holiday: [%(holiday)s]": [
-                "找不到这样的假期：[{}]"
+                "找不到这样的假期：[%(holiday)s]"
             ],
             "Unable to load columns for the selected table. Please select a different table.": [
                 ""
@@ -9902,28 +9902,28 @@
                 "上传JSON文件"
             ],
             "Upload columnar file": [
-                "上传列级文件"
+                "上传列式文件"
             ],
             "Upload columnar file to database": [
-                "上传列级文件"
+                "上传列式文件到数据库"
             ],
             "Upload file to database": [
                 "上传文件到数据库"
             ],
             "Upper Threshold": [
-                "标签阈值"
+                "向上阈值"
             ],
             "Upper threshold must be greater than lower threshold": [
                 "`行限制` 必须大于或等于1"
             ],
             "Usage": [
-                "巨大"
+                "用途"
             ],
             "Use \"%(menuName)s\" menu instead.": [
                 ""
             ],
             "Use %s to open in a new tab.": [
-                "在新标签中查询"
+                "使用 %s 打开新的选项卡。"
             ],
             "Use Area Proportions": [
                 "使用面积比例"
@@ -9932,13 +9932,13 @@
                 "使用列"
             ],
             "Use a log scale": [
-                "使用Y轴的对数刻度"
+                "使用对数刻度"
             ],
             "Use a log scale for the X-axis": [
-                "使用Y轴的对数刻度"
+                "X轴上使用对数刻度"
             ],
             "Use a log scale for the Y-axis": [
-                "使用Y轴的对数刻度"
+                "Y轴上使用对数刻度"
             ],
             "Use an encrypted connection to the database": [
                 "使用到数据库的加密连接"
@@ -9947,7 +9947,7 @@
                 "使用SSH隧道连接到数据库"
             ],
             "Use another existing chart as a source for annotations and overlays.\n          Your chart must be one of these visualization types: [%s]": [
-                ""
+                "使用另一个现有的图表作为注释和标记的数据源。您的图表必须是以下可视化类型之一：[%s]"
             ],
             "Use date formatting even when metric value is not a timestamp": [
                 ""
@@ -10040,10 +10040,10 @@
                 "`行偏移量` 必须大于或等于0"
             ],
             "Values are dependent on other filters": [
-                ""
+                "这些值依赖于其他过滤器"
             ],
             "Values dependent on": [
-                "指标降序"
+                "值依赖于"
             ],
             "Values selected in other filters will affect the filter options to only show relevant values": [
                 ""
@@ -10199,13 +10199,13 @@
                 "瀑布图"
             ],
             "We are unable to connect to your database. Click \"See more\" for database-provided information that may help troubleshoot the issue.": [
-                ""
+                "无法连接到数据库。点击“查看更多”来获取数据库提供的信息以解决问题。"
             ],
             "We can't seem to resolve column \"%(column)s\" at line %(location)s.": [
-                "我们似乎无法解析行 %(location)s 所处的列 \"%(column)\" 。"
+                "我们似乎无法解析行 %(location)s 所处的列 \"%(column)s\" 。"
             ],
             "We can't seem to resolve the column \"%(column_name)s\"": [
-                "我们似乎无法解析列 \"%(column_name)\" 。"
+                "我们似乎无法解析列 \"%(column_name)s\" 。"
             ],
             "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
                 "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
@@ -10298,7 +10298,7 @@
                 "指定SQL时，数据源会充当视图。在对生成的父查询进行分组和筛选时，系统将使用此语句作为子查询。"
             ],
             "When the secondary temporal columns are filtered, apply the same filter to the main datetime column.": [
-                ""
+                "当对次要时间列进行筛选时，将相同的筛选条件应用到主日期时间列。"
             ],
             "When using \"Autocomplete filters\", this can be used to improve performance of the query fetching the values. Use this option to apply a predicate (WHERE clause) to the query selecting the distinct values from the table. Typically the intent would be to limit the scan by applying a relative time filter on a partitioned or indexed time-related field.": [
                 "当使用 \"自适配过滤条件\" 时，这可以用来提高获取查询数据的性能。使用此选项可将谓词（WHERE子句）应用于从表中进行选择不同值的查询。通常，这样做的目的是通过对分区或索引的相关时间字段配置相对应的过滤时间来限制扫描。"
@@ -10532,7 +10532,7 @@
                 "X 轴"
             ],
             "X Axis Bounds": [
-                "Y 轴界限"
+                "X 轴界限"
             ],
             "X Axis Format": [
                 "X 轴格式化"
@@ -10667,10 +10667,10 @@
                 ""
             ],
             "You can choose to display all charts that you have access to or only the ones you own.\n              Your filter selection will be saved and remain active until you choose to change it.": [
-                ""
+                "您可以选择显示所有您有权限访问的图表，或者仅显示您拥有的图表。您的过滤器选择将被保存，并保持激活状态，直到您选择更改它。"
             ],
             "You can create a new chart or use existing ones from the panel on the right": [
-                "您可以创建一个新图表，或使用右侧面板中的现有图表。"
+                "您可以创建一个新图表，或使用右侧面板中的现有的对象。"
             ],
             "You can preview the list of dashboards in the chart settings dropdown.": [
                 "您可以在图表设置的下拉菜单中预览看板列表。"
@@ -10685,7 +10685,7 @@
                 "不能将45°刻度线布局与时间范围过滤器一起使用"
             ],
             "You do not have permission to edit this %s": [
-                "您没有编辑此图表的权限"
+                "您没有编辑此 %s 的权限"
             ],
             "You do not have permission to edit this chart": [
                 "您没有编辑此图表的权限"
@@ -10694,7 +10694,7 @@
                 "您没有编辑此看板的权限"
             ],
             "You do not have permission to read tags": [
-                "您没有编辑此图表的权限"
+                "您没有编辑此标签的权限"
             ],
             "You do not have permissions to edit this dashboard.": [
                 "您没有编辑此看板的权限。"
@@ -10703,43 +10703,43 @@
                 "您没有编辑此图表的权限"
             ],
             "You don't have access to this chart.": [
-                "您没有编辑此看板的权限。"
+                "您没有访问此图表的权限。"
             ],
             "You don't have access to this dashboard.": [
-                "您没有编辑此看板的权限。"
+                "您没有访问此看板的权限。"
             ],
             "You don't have access to this dataset.": [
-                "您没有编辑此看板的权限。"
+                "您没有访问此数据集的权限。"
             ],
             "You don't have access to this embedded dashboard config.": [
-                "您没有编辑此看板的权限。"
+                "您没有访问此嵌入看板的权限。"
             ],
             "You don't have any favorites yet!": [
                 "您还没有任何的收藏！"
             ],
             "You don't have permission to modify the value.": [
-                "您没有编辑此图表的权限"
+                "您没有编辑此值的权限"
             ],
             "You don't have the rights to alter %(resource)s": [
-                "您没有权利修改这个标题。"
+                "您没有权利修改 %(resource)s"
             ],
             "You don't have the rights to alter this chart": [
-                "您没有权利修改这个标题。"
+                "您没有权利修改这个图表。"
             ],
             "You don't have the rights to alter this dashboard": [
-                "您没有权利修改这个标题。"
+                "您没有权利修改这个看板。"
             ],
             "You don't have the rights to alter this title.": [
                 "您没有权利修改这个标题。"
             ],
             "You don't have the rights to create a chart": [
-                "您没有授权 "
+                "您没有权利创建图表"
             ],
             "You don't have the rights to create a dashboard": [
-                "您没有授权 "
+                "您没有权利创建看板"
             ],
             "You don't have the rights to download as csv": [
-                "您没有授权 "
+                "您没有权利创建下载csv"
             ],
             "You have removed this filter.": [
                 "您已删除此过滤条件。"
@@ -10772,7 +10772,7 @@
                 "不是最新的"
             ],
             "Your chart is ready to go!": [
-                ""
+                "图表已就绪！"
             ],
             "Your dashboard is too large. Please reduce its size before saving it.": [
                 "您的看板太大了。保存前请缩小尺寸。"
@@ -10790,16 +10790,16 @@
                 "您的查询已被调度。要查看查询的详细信息，请跳转到保存查询页面查看。"
             ],
             "Your query was not properly saved": [
-                "您的查询已保存"
+                "您的查询没有保存"
             ],
             "Your query was saved": [
                 "您的查询已保存"
             ],
             "Your query was updated": [
-                "您的查询已保存"
+                "您的查询已更新"
             ],
             "Your report could not be deleted": [
-                "这个查询无法被加载。"
+                "这个报告无法被删除"
             ],
             "Zero imputation": [
                 "零值填补"
@@ -10817,7 +10817,7 @@
                 "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
             ],
             "[Longitude] and [Latitude] must be set": [
-                "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
+                "[经度] 和 [纬度] 的必须设置"
             ],
             "[Missing Dataset]": [
                 "丢失数据集"
@@ -10826,13 +10826,13 @@
                 "无标题"
             ],
             "[asc]": [
-                "基础"
+                "[升序]"
             ],
             "[dashboard name]": [
                 "[看板名称]"
             ],
             "[desc]": [
-                ""
+                "[描述]"
             ],
             "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
                 "次计量指标用来定义颜色与主度量的比率。如果两个度量匹配，则将颜色映射到级别组"
@@ -10841,7 +10841,7 @@
                 "无标题"
             ],
             "`compare_columns` must have the same length as `source_columns`.": [
-                "长度必须保持一致"
+                "比较的列长度必须原始列保持一致"
             ],
             "`compare_type` must be `difference`, `percentage` or `ratio`": [
                 "`compare_type` 必须是 `difference`, `percentage` 或 `ratio`"
@@ -10856,13 +10856,13 @@
                 "后处理必须指定操作类型（`operation`）"
             ],
             "`prophet` package not installed": [
-                "未安装程序包 `fbprophet`"
+                "未安装程序包 `prophet`"
             ],
             "`rename_columns` must have the same length as `columns`.": [
-                "长度必须保持一致"
+                "重命名的列长度必须和原来保持一致"
             ],
             "`row_limit` must be greater than or equal to 0": [
-                "`行限制` 必须大于或等于1"
+                "`行限制` 必须大于或等于0"
             ],
             "`row_offset` must be greater than or equal to 0": [
                 "`行偏移量` 必须大于或等于0"
@@ -10874,22 +10874,22 @@
                 "合计"
             ],
             "alert": [
-                "警报色"
+                "警报"
             ],
             "alert dark": [
-                "警报色（暗色）"
+                "警报（暗色）"
             ],
             "alerts": [
                 "警报"
             ],
             "all": [
-                "小"
+                "全部"
             ],
             "also copy (duplicate) charts": [
                 "同时复制图表"
             ],
             "ancestor": [
-                "上一个"
+                "上一级"
             ],
             "and": [
                 "和"
@@ -10907,7 +10907,7 @@
                 "在"
             ],
             "auto": [
-                "在"
+                "自动"
             ],
             "auto (Smooth)": [
                 ""
@@ -10916,7 +10916,7 @@
                 "背景"
             ],
             "basis": [
-                "重点"
+                "基础"
             ],
             "below (example:": [
                 ""
@@ -10961,7 +10961,7 @@
                 "选择WHERE或HAVING子句..."
             ],
             "clear all filters": [
-                "搜索所有过滤选项"
+                "清除所有过滤器"
             ],
             "click here": [
                 "点击这里"
@@ -10982,7 +10982,7 @@
                 ""
             ],
             "count": [
-                "列"
+                "计数"
             ],
             "create": [
                 "创建"
@@ -10991,7 +10991,7 @@
                 "创建新图表"
             ],
             "create dataset from SQL query": [
-                "从文件中导入数据库"
+                "从SQL查询创建数据集"
             ],
             "css": [
                 "css"
@@ -11000,10 +11000,10 @@
                 "css模板"
             ],
             "cumsum": [
-                ""
+                "累积求和"
             ],
             "cumulative": [
-                "激活"
+                "累积"
             ],
             "dashboard": [
                 "看板"
@@ -11027,7 +11027,7 @@
                 "天"
             ],
             "day of the month": [
-                "一个月中的天数"
+                "一个月的天数"
             ],
             "day of the week": [
                 "一周的天数"
@@ -11036,22 +11036,22 @@
                 "Deck.gl - 多角形"
             ],
             "deck.gl Arc": [
-                "圆弧图"
+                "Deck.gl - 圆弧图"
             ],
             "deck.gl Contour": [
-                "等高线"
+                "Deck.gl - 等高线"
             ],
             "deck.gl Geojson": [
                 "Deck.gl - Geojson"
             ],
             "deck.gl Grid": [
-                "圆弧图"
+                "Deck.gl - 网格图"
             ],
             "deck.gl Heatmap": [
-                "热力图"
+                "Deck.gl - 热力图"
             ],
             "deck.gl Multiple Layers": [
-                "多图层"
+                "Deck.gl - 多图层"
             ],
             "deck.gl Path": [
                 "Deck.gl - 路径"
@@ -11066,7 +11066,7 @@
                 "Deck.gl - 屏幕网格"
             ],
             "deck.gl charts": [
-                "图表"
+                "Deck.gl - 图表"
             ],
             "deckGL": [
                 "deckGL图表"
@@ -11108,7 +11108,7 @@
                 "例如：用户名"
             ],
             "e.g. Analytics": [
-                "例如：分析"
+                "例如：admin"
             ],
             "e.g. compute_wh": [
                 "例如：compute_wh"
@@ -11120,7 +11120,7 @@
                 "例如：sql/protocolv1/o/12345"
             ],
             "e.g. world_population": [
-                "例如：世界人口"
+                "例如：postgres"
             ],
             "e.g. xy12345.us-east-2.aws": [
                 "例如：xy12345.us-east-2.aws"
@@ -11135,10 +11135,10 @@
                 "序列"
             ],
             "error": [
-                "错误色"
+                "错误"
             ],
             "error dark": [
-                "错误色（暗色）"
+                "错误（暗色）"
             ],
             "error_message": [
                 "错误信息"
@@ -11177,7 +11177,7 @@
                 ""
             ],
             "flat": [
-                "在"
+                "扁平"
             ],
             "for more information on how to structure your URI.": [
                 "来查询有关如何构造URI的更多信息。"
@@ -11195,7 +11195,7 @@
                 "热力图：其中所有数值都经过了归一化"
             ],
             "here": [
-                "分享"
+                "点击这里"
             ],
             "hour": [
                 "小时"
@@ -11204,7 +11204,7 @@
                 "图像渲染画布对象的 CSS 属性，它定义了浏览器如何放大图像"
             ],
             "in": [
-                "在"
+                "处于"
             ],
             "in modal": [
                 "（在模型中）"
@@ -11222,10 +11222,10 @@
                 "无效 JSON"
             ],
             "key a-z": [
-                "a-z"
+                "a-z键"
             ],
             "key z-a": [
-                "z-a"
+                "z-a键"
             ],
             "label": [
                 "标签"
@@ -11234,7 +11234,7 @@
                 "最新分区："
             ],
             "left": [
-                "警报"
+                "左"
             ],
             "less than {min} {name}": [
                 ""
@@ -11258,7 +11258,7 @@
                 "中位数"
             ],
             "meters": [
-                "参数"
+                "指标"
             ],
             "metric": [
                 "指标"
@@ -11306,19 +11306,19 @@
                 "位于"
             ],
             "or": [
-                "小时"
+                "或者"
             ],
             "or use existing ones from the panel on the right": [
-                ""
+                "或从右侧面板中使用已存在的对象"
             ],
             "orderby column must be populated": [
-                "无法更新您的查询"
+                "必须填充用于排序的列"
             ],
             "overall": [
-                "清除所有"
+                "全部"
             ],
             "p-value precision": [
-                "假定值精度"
+                "P值精度"
             ],
             "p1": [
                 ""
@@ -11342,7 +11342,7 @@
                 ""
             ],
             "pending": [
-                "渲染"
+                "正在处理"
             ],
             "percentile (exclusive)": [
                 "百分位数(独占)"
@@ -11351,13 +11351,13 @@
                 "百分位数必须是具有两个数值的列表或元组，其中第一个数值要小于第二个数值"
             ],
             "permalink state not found": [
-                "未找到报表计划状态"
+                "未找到持久链接状态"
             ],
             "pixelated (Sharp)": [
                 ""
             ],
             "pixels": [
-                ""
+                "像素"
             ],
             "previous calendar month": [
                 "前一月"
@@ -11375,13 +11375,13 @@
                 "季度"
             ],
             "queries": [
-                "序列"
+                "查询"
             ],
             "query": [
                 "查询"
             ],
             "random": [
-                "和"
+                "随机"
             ],
             "reboot": [
                 "重启"
@@ -11402,7 +11402,7 @@
                 ""
             ],
             "right": [
-                "高度"
+                "右"
             ],
             "rowlevelsecurity": [
                 "行级安全"
@@ -11414,7 +11414,7 @@
                 "已保存查询"
             ],
             "seconds": [
-                "30秒钟"
+                "秒"
             ],
             "series": [
                 "序列"
@@ -11423,7 +11423,7 @@
                 "series：独立处理每个序列；overall：所有序列使用相同的比例；change：显示与每个序列中第一个数据点相比的更改"
             ],
             "square": [
-                "上一季度"
+                "方形"
             ],
             "stack": [
                 "堆叠"
@@ -11432,28 +11432,28 @@
                 "没有触发"
             ],
             "std": [
-                ""
+                "标准差"
             ],
             "step-after": [
-                "css模板"
+                "步骤之后"
             ],
             "step-before": [
-                ""
+                "步骤之前"
             ],
             "stopped": [
                 "停止"
             ],
             "stream": [
-                "直方图"
+                "流式"
             ],
             "string type icon": [
                 ""
             ],
             "success": [
-                "成功色"
+                "成功"
             ],
             "success dark": [
-                "成功色（暗色）"
+                "成功（暗色）"
             ],
             "sum": [
                 ""
@@ -11474,16 +11474,16 @@
                 "文本区域"
             ],
             "to": [
-                "停止"
+                "至"
             ],
             "top": [
-                "停止"
+                "顶部"
             ],
             "undo": [
                 "撤销"
             ],
             "unknown type icon": [
-                "未知错误"
+                "未知类型图标"
             ],
             "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile.": [
                 "上百分位数必须大于0且小于100。而且必须高于下百分位。"
@@ -11492,19 +11492,19 @@
                 "最新分区："
             ],
             "value ascending": [
-                "指标升序"
+                "升序"
             ],
             "value descending": [
-                "指标降序"
+                "降序"
             ],
             "var": [
-                "条形图"
+                "变量"
             ],
             "variance": [
-                "三角形"
+                "变量"
             ],
             "view instructions": [
-                "时间（秒）"
+                "查看指引"
             ],
             "virtual": [
                 "虚拟"
@@ -11519,7 +11519,7 @@
                 "周"
             ],
             "week ending Saturday": [
-                "周一为一周结束"
+                "周六为一周结束"
             ],
             "week starting Sunday": [
                 "周日为一周开始"
@@ -11541,6 +11541,9 @@
             ],
             "zoom area": [
                 ""
+            ],
+            "Profile": [
+                "用户资料"
             ]
         }
     }
