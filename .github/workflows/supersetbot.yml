@@ -21,7 +21,7 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))
     steps:
       - name: Quickly add thumbs up!
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           script: |
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/')
