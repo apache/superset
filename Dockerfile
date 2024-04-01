@@ -119,6 +119,7 @@ RUN apt-get update -qq \
         libasound2 \
         libxtst6 \
         wget \
+        pkg-config \
     # Install GeckoDriver WebDriver
     && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
     # Install Firefox
