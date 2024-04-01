@@ -2055,7 +2055,10 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     filter_type = Column(
-        Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
+        Enum(
+            *[filter_type.value for filter_type in utils.RowLevelSecurityFilterType],
+            name="filter_type_enum",
+        ),
     )
     group_key = Column(String(255), nullable=True)
     roles = relationship(
