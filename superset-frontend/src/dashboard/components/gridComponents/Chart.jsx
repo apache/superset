@@ -35,6 +35,8 @@ const propTypes = {
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
+  // DODO added
+  updateSliceNameRU: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
   setControlValue: PropTypes.func,
@@ -404,7 +406,11 @@ class Chart extends React.Component {
       labelColors,
       sharedLabelColors,
       updateSliceName,
+      // DODO added
+      updateSliceNameRU,
       sliceName,
+      // DODO added
+      sliceNameRU,
       toggleExpandSlice,
       timeout,
       supersetCanExplore,
@@ -423,7 +429,7 @@ class Chart extends React.Component {
       emitCrossFilters,
       logEvent,
       // DODO added
-      dashboardLanguage,
+      userLanguage,
     } = this.props;
 
     const { width } = this.state;
@@ -475,7 +481,11 @@ class Chart extends React.Component {
           exportFullCSV={this.exportFullCSV}
           exportFullXLSX={this.exportFullXLSX}
           updateSliceName={updateSliceName}
+          // DODO added
+          updateSliceNameRU={updateSliceNameRU}
           sliceName={sliceName}
+          // DODO added
+          sliceNameRU={sliceNameRU}
           supersetCanExplore={supersetCanExplore}
           supersetCanShare={supersetCanShare}
           supersetCanCSV={supersetCanCSV}
@@ -491,7 +501,7 @@ class Chart extends React.Component {
           width={width}
           height={this.getHeaderHeight()}
           // DODO added
-          dashboardLanguage={dashboardLanguage}
+          userLanguage={userLanguage}
         />
 
         {/*
@@ -553,7 +563,7 @@ class Chart extends React.Component {
             isInView={isInView}
             emitCrossFilters={emitCrossFilters}
             // DODO added
-            dashboardLanguage={dashboardLanguage}
+            userLanguage={userLanguage}
           />
         </ChartWrapper>
       </SliceContainer>

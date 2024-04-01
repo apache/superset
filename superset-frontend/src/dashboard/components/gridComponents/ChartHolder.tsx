@@ -305,7 +305,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
               sliceName={
                 component.meta.sliceNameOverride ||
                 component.meta.sliceName ||
-                ''
+                '--'
               }
               updateSliceName={handleUpdateSliceName}
               // DODO added
@@ -313,8 +313,9 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 component.meta.sliceNameOverrideRU ||
                 component.meta.sliceNameRU ||
                 component.meta.sliceName ||
-                ''
+                '--'
               }
+              // DODO added
               updateSliceNameRU={handleUpdateSliceNameRU}
               isComponentVisible={isComponentVisible}
               handleToggleFullSize={handleToggleFullSize}

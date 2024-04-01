@@ -74,35 +74,10 @@ import { useNativeFilters } from './state';
 
 type DashboardBuilderProps = {};
 
-function getPageLanguage() {
-  if (!document) {
-    return null;
-  }
-  const select = document.querySelector('#changeLanguage select');
-  // @ts-ignore
-  const selectedLanguage = select ? select.value : null;
-  return selectedLanguage;
-}
-
-const getLocaleForSuperset = () => {
-  const dodoisLanguage = getPageLanguage();
-  if (dodoisLanguage) {
-    if (dodoisLanguage === 'ru-RU') return 'ru';
-    return 'en';
-  }
-  return 'en';
-};
-
 // DODO added
-let userLanguage = 'en';
-
-if (process.env.type === undefined) {
-  userLanguage =
-    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
-    'en';
-} else {
-  userLanguage = getLocaleForSuperset();
-}
+const userLanguage =
+  (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+  'en';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
@@ -619,7 +594,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ]}
             editMode={editMode}
           >
-            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
@@ -627,9 +601,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               index={0}
               renderTabContent={false}
               renderHoverMenu={false}
+              onChangeTab={handleChangeTab}
               // DODO added
               userLanguage={userLanguage}
-              onChangeTab={handleChangeTab}
             />
           </WithPopoverMenu>
         )}

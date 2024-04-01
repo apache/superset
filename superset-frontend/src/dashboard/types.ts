@@ -167,9 +167,9 @@ export type LayoutItem = {
     defaultText?: string;
     height: number;
     placeholder?: string;
-    // DODO added
-    sliceNameRU?: string;
     sliceName?: string;
+    sliceNameRU?: string;
+    // DODO added
     sliceNameOverride?: string;
     sliceNameOverrideRU?: string;
     text?: string;
