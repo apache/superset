@@ -19,17 +19,17 @@ under the License.
 
 # Release Notes for Superset 4.0.0
 
-4.0.0 brings a plethora of exciting changes to Superset. We have introduced several breaking changes to improve the overall architecture and scalability of our codebase. These changes may require some code updates, but they are designed to enhance performance and maintainability in the long run. We have also upgraded various dependencies to their latest versions and deprecated certain features that are no longer aligned with our long-term roadmap. We encourage all developers to carefully review the `CHANGELOG.md` and `UPDATING.md` files and update their code accordingly. Even though, our main focus was on code cleanup, this release still contain exciting new features and mark a significant milestone for us, paving the way for our continued growth and success.
+4.0.0 brings a plethora of exciting changes to Superset. We have introduced several breaking changes to improve the overall architecture and scalability of our codebase. These changes may require some code updates, but they are designed to enhance performance and maintainability in the long run. We have also upgraded various dependencies to their latest versions and deprecated certain features that are no longer aligned with our long-term roadmap. We encourage all developers to carefully review the `CHANGELOG.md` and `UPDATING.md` files and update their code accordingly. While our main focus was on code cleanup, this release also contains exciting new features and marks a significant milestone for the project.
 
 Here are some of the highlights of this release.
 
 ### Alerts and Reports modal redesign
 
-The Alerts and Reports modal has been [redesigned](https://github.com/apache/superset/discussions/25729) to improve the user experience and make it more intuitive. The new design is has the following goals:
+The Alerts and Reports modal has been [redesigned](https://github.com/apache/superset/discussions/25729) to improve the user experience and make it more intuitive. The new design has the following goals:
 
 - Declutter the interface by providing a cleaner, more organized layout
 - Create a linear setup process with the necessary options in a step-by-step manner to make alert/report setup more intuitive
-- Prepare the interface for additional features that will be introduced in future releases
+- Prepare the interface for additional features that will be introduced in future releases, like the ability to pre-filter a dashboard being sent.
 
 <div>
     <img src="media/alert-modal-1.png" alt="Image" width="33%">
@@ -101,7 +101,7 @@ The following feature flags were enabled by default:
 
 As part of the 4.0 approved initiatives, the following features were removed from Superset:
 
-- Filter Box: [#26328](https://github.com/apache/superset/pull/26328) removed the Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removed the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native dashboard filters.
+- Filter Box: [#26328](https://github.com/apache/superset/pull/26328) removed the Filter Box code and its associated dependencies `react-select` and `array-move`. It also removed the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native dashboard filters.
 
 - Filter Sets: [#26369](https://github.com/apache/superset/pull/26369) removed the Filters Set feature including the deprecated `DASHBOARD_NATIVE_FILTERS_SET` feature flag and all related API endpoints. The feature is permanently removed as it was not being actively maintained, it was not widely used, and it was full of bugs. We also considered that if we were to provide a similar feature, it would be better to re-implement it from scratch given the amount of technical debt that the implementation had.
 
@@ -115,7 +115,7 @@ As part of [[SIP-99] Proposal for correctly handling business logic](https://git
 
 ### All country maps are now managed via Jupyter Notebook
 
-In this release we made updates to the Jupyter Notebook to ensure reliable execution by removing deprecated methods, adding new countries, including missing maps and fixing filename inconsistencies. This will make it easier to add more countries, dynamically add them to the country map plugin, and update map regions periodically. You can check [#26300](https://github.com/apache/superset/pull/26300) for more details.
+In this release we made updates to the Jupyter Notebook to ensure reliable execution by removing deprecated methods, adding new countries, including missing maps, and fixing filename inconsistencies. This will make it easier to add more countries, dynamically add them to the country map plugin, and update map regions periodically. You can check [#26300](https://github.com/apache/superset/pull/26300) for more details.
 
 ### Sunburst chart migrated to ECharts
 
@@ -136,7 +136,7 @@ The ECharts version of the Sunburst chart was introduced by [#22833](https://git
 As with any Superset version upgrade, the process is simple in the broadest strokes, as outlined in the documentation. However, as with any upgrade, we expect to see numerous speed bumps along that path depending on your configuration, your infrastructure, your databases in use, and other customizations/configurations. To make a safe leap to this version, we'd suggest the following steps:
 
 - Back up your databases
-- Carefully read `CHANGELOG.md` for all the incremental changes in this version (and prior versions, between your current installation and 4.0.0).
+- Carefully read `CHANGELOG.md` for all the incremental changes in this version (and any prior versions between your current installation and 4.0.0).
 - Similarly, review `UPDATING.md` to keep an eye out for all changes that have been explicitly marked as breaking changes.
 - Adjust your feature flags and configurations to meet your feature requirements and preferences.
 - Execute the migrations
@@ -146,6 +146,6 @@ Your mileage may vary depending on:
 
 - How you install and deploy Superset (e.g. docker vs. pip vs. helm)
 - How you’ve configured Superset
-- What integrations, databases, etc. you’re using
+- What integrations, databases, etc. you're using
 
 Reach out in `#deploying-superset` on Slack in case you find any problems, and if you find a reproducible bug, please file a new issue on GitHub.
