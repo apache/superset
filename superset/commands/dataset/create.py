@@ -32,7 +32,8 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DAOCreateFailedError
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetSecurityException, \
+    SupersetGenericDBErrorException
 from superset.extensions import db, security_manager
 from superset.sql_parse import Table
 
@@ -52,7 +53,8 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
             db.session.commit()
-        except (SQLAlchemyError, DAOCreateFailedError) as ex:
+        except (SQLAlchemyError, DAOCreateFailedError,
+                SupersetGenericDBErrorException) as ex:
             logger.warning(ex, exc_info=True)
             db.session.rollback()
             raise DatasetCreateFailedError() from ex
