@@ -18,7 +18,6 @@
 
 from textwrap import dedent
 from typing import Any, Optional
-from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockFixture
@@ -71,8 +70,7 @@ def test_parse_sql_multi_statement() -> None:
     ]
 
 
-@patch("superset.db_engine_specs.base.current_app")
-def test_validate_db_uri(current_app) -> None:
+def test_validate_db_uri(mocker: MockFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
     """
@@ -80,7 +78,10 @@ def test_validate_db_uri(current_app) -> None:
     def mock_validate(sqlalchemy_uri: URL) -> None:
         raise ValueError("Invalid URI")
 
-    current_app.config = {"DB_ENGINE_URI_VALIDATOR": mock_validate}
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        {"DB_ENGINE_URI_VALIDATOR": mock_validate},
+    )
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
