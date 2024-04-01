@@ -71,7 +71,7 @@ In accordance with our [release process](https://github.com/apache/superset/wiki
 
 ### Feature flag changes
 
-Following our 4.0 proposals, the following feature flags were removed:
+Following our 4.0 proposals, the following feature flags were removed, i.e., the feature was permanently enabled or removed.
 
 - `VERSIONED_EXPORT`
 - `DASHBOARD_FILTERS_EXPERIMENTAL`
