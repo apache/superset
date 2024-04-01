@@ -1,4 +1,4 @@
-// DODO was here (TODO)
+// DODO was here
 import React, { FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
@@ -24,6 +24,7 @@ import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import setupPlugins from 'src/setup/setupPlugins';
+import { bootstrapData } from 'src/preamble';
 
 import {
   getItem,
@@ -49,6 +50,9 @@ import {
 } from '../styles';
 
 export const DashboardPageIdContext = React.createContext('');
+
+// DODO added
+const userLanguage = bootstrapData?.common?.locale || 'en';
 
 setupPlugins();
 const DashboardContainer = React.lazy(
@@ -148,7 +152,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const {
+    dashboard_title,
+    // DODO added
+    dashboard_title_RU,
+    css,
+    metadata,
+    id = 0,
+  } = dashboard || {};
 
   // Filter sets depend on native filters
   const filterSetEnabled =
@@ -225,15 +236,27 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
-  // TODO: DODO -- add russian title
+  // DODO changed
   useEffect(() => {
-    if (dashboard_title) {
-      document.title = dashboard_title;
+    const fallBackPageTitle = dashboard_title || 'Superset dashboard';
+
+    if (userLanguage === 'ru') {
+      if (dashboard_title_RU || dashboard_title) {
+        document.title =
+          dashboard_title_RU || dashboard_title || fallBackPageTitle;
+      }
+    } else if (userLanguage === 'en') {
+      if (dashboard_title) {
+        document.title = dashboard_title || fallBackPageTitle;
+      }
+    } else {
+      document.title = fallBackPageTitle;
     }
+
     return () => {
       document.title = originalDocumentTitle;
     };
-  }, [dashboard_title]);
+  }, [dashboard_title, dashboard_title_RU]);
 
   useEffect(() => {
     if (typeof css === 'string') {
