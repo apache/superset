@@ -1,0 +1,92 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FormItem } from 'src/components/Form';
+import { css, styled, SupersetTheme } from '@superset-ui/core';
+
+const MODAL_BODY_HEIGHT = 180.5;
+const anticonHeight = 12;
+
+export const StyledFormItem = styled(FormItem)`
+  margin-bottom: 0;
+`;
+
+export const StyledDiv = styled.div`
+  padding-top: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  width: 100%;
+  label {
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    text-transform: uppercase;
+  }
+`;
+
+export const antdCollapseStyles = (theme: SupersetTheme) => css`
+  .ant-collapse-header {
+    padding-top: ${theme.gridUnit * 3.5}px;
+    padding-bottom: ${theme.gridUnit * 2.5}px;
+    .anticon.ant-collapse-arrow {
+      top: calc(50% - ${anticonHeight / 2}px);
+    }
+    .helper {
+      color: ${theme.colors.grayscale.base};
+    }
+  }
+  h4 {
+    font-size: 16px;
+    margin-top: 0;
+    margin-bottom: ${theme.gridUnit}px;
+  }
+  p.helper {
+    margin-bottom: 0;
+    padding: 0;
+  }
+`;
+
+export const antDModalNoPaddingStyles = css`
+  .ant-modal-body {
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+  }
+`;
+
+export const antDModalStyles = (theme: SupersetTheme) => css`
+  .ant-select-dropdown {
+    height: ${theme.gridUnit * 40}px;
+  }
+
+  .ant-modal-header {
+    padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 4}px;
+  }
+
+  .ant-modal-close-x .close {
+    color: ${theme.colors.grayscale.dark1};
+    opacity: 1;
+  }
+
+  .ant-modal-body {
+    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
+  }
+
+  .ant-modal-footer {
+    height: ${theme.gridUnit * 16.25}px;
+  }
+`;

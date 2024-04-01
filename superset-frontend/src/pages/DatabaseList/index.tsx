@@ -49,6 +49,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
+import CSVUploadModal from 'src/features/databases/CSVUploadModal';
 import { DatabaseObject } from 'src/features/databases/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -135,6 +136,8 @@ function DatabaseList({
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [csvUploadModalOpen, setCsvUploadModalOpen] = useState<boolean>(false);
+
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
@@ -230,6 +233,16 @@ function DatabaseList({
     {
       label: t('Upload file to database'),
       childs: [
+        {
+          label: t('New Upload CSV'),
+          name: 'Upload CSV file',
+          url: '#',
+          onClick: () => {
+            setCsvUploadModalOpen(true);
+          },
+          perm: canUploadCSV && showUploads,
+          disable: isDisabled,
+        },
         {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
@@ -556,6 +569,14 @@ function DatabaseList({
         onDatabaseAdd={() => {
           refreshData();
         }}
+      />
+      <CSVUploadModal
+        onHide={() => {
+          {
+            setCsvUploadModalOpen(false);
+          }
+        }}
+        show={csvUploadModalOpen}
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

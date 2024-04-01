@@ -309,7 +309,9 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                       </DropdownMenu.Item>
                     ) : (
                       <DropdownMenu.Item key={item.label}>
-                        <a href={item.url}>{item.label}</a>
+                        <a href={item.url} onClick={item.onClick}>
+                          {item.label}
+                        </a>
                       </DropdownMenu.Item>
                     );
                   }
