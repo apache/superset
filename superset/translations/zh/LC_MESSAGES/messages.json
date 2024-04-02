@@ -17,7 +17,7 @@
                 "(不包含)"
             ],
             " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
-                ""
+                "如果您不想覆盖GeoJSON中指定的颜色，请将不透明度设置为0"
             ],
             " a dashboard OR ": [
                 "一个已存在的看板或者"
@@ -53,7 +53,7 @@
                 ""
             ],
             "!= (Is not equal)": [
-                "不等于（不等于）"
+                "不等于（!=）"
             ],
             "% calculation": [
                 "% 计算"
@@ -143,10 +143,10 @@
                 "%s 个选项"
             ],
             "%s row": [
-                "%s 异常"
+                "%s 行"
             ],
             "%s saved metric(s)": [
-                "%s 列与计量指标"
+                "%s 保存的指标"
             ],
             "%s updated": [
                 "上次更新 %s"
@@ -161,13 +161,13 @@
                 "(已删除)"
             ],
             "(deleted or invalid type)": [
-                ""
+                "(已删除或无效类型)"
             ],
             "(no description, click to see stack trace)": [
                 "无描述，单击可查看堆栈跟踪"
             ],
             "), and they become available in your SQL (example:": [
-                ""
+                "), 他们在你的SQL中会变成有效数据 (比如:"
             ],
             "*%(name)s*\n\n%(description)s\n\n<%(url)s|Explore in Superset>\n\n%(table)s\n": [
                 ""
@@ -197,7 +197,7 @@
                 "天"
             ],
             "1 day ago": [
-                ""
+                "1天之前"
             ],
             "1 hour": [
                 "1小时"
@@ -218,10 +218,10 @@
                 "每月月初的频率"
             ],
             "1 week": [
-                "周"
+                "1周"
             ],
             "1 week ago": [
-                ""
+                "1周之前"
             ],
             "1 week starting Monday (freq=W-MON)": [
                 "周一为一周开始"
@@ -233,7 +233,7 @@
                 "年"
             ],
             "1 year ago": [
-                ""
+                "1年之前"
             ],
             "1 year end frequency": [
                 "每年年末的频率"
@@ -248,16 +248,16 @@
                 "周"
             ],
             "104 weeks ago": [
-                ""
+                "104周之前"
             ],
             "15 minute": [
                 "15分钟"
             ],
             "156 weeks": [
-                "周"
+                "156周"
             ],
             "156 weeks ago": [
-                ""
+                "156周之前"
             ],
             "1AS": [
                 ""
@@ -275,22 +275,22 @@
                 ""
             ],
             "2 years": [
-                "年"
+                "2年"
             ],
             "2 years ago": [
-                ""
+                "2年之前"
             ],
             "2/98 percentiles": [
-                ""
+                "2/98百分位"
             ],
             "22": [
                 ""
             ],
             "28 days": [
-                "90天"
+                "28天"
             ],
             "28 days ago": [
-                ""
+                "28天之前"
             ],
             "2D": [
                 "2D"
@@ -299,16 +299,16 @@
                 "国家3字码"
             ],
             "3 years": [
-                "年"
+                "3年"
             ],
             "3 years ago": [
-                ""
+                "3年前"
             ],
             "30 days": [
                 "30天"
             ],
             "30 days ago": [
-                "30天"
+                "30天之前"
             ],
             "30 minute": [
                 "30分钟"
@@ -341,13 +341,13 @@
                 "5秒"
             ],
             "52 weeks": [
-                "周"
+                "52周"
             ],
             "52 weeks ago": [
-                ""
+                "52周之前"
             ],
             "52 weeks starting Monday (freq=52W-MON)": [
-                "周一为一周开始"
+                "以周一开始的52周"
             ],
             "6 hour": [
                 "6小时"
@@ -359,13 +359,13 @@
                 "7个日历日的频率"
             ],
             "7 days": [
-                "90天"
+                "7天"
             ],
             "7D": [
                 ""
             ],
             "9/91 percentiles": [
-                ""
+                "9/91百分位"
             ],
             "90 days": [
                 "90天"
@@ -389,7 +389,7 @@
                 "新指标"
             ],
             "<new spatial>": [
-                "空间"
+                "新空间"
             ],
             "<no type>": [
                 "无类型"
@@ -449,13 +449,13 @@
                 "用于颜色的指标"
             ],
             "A new chart and dashboard will be created.": [
-                "看板无法被创建"
+                "将会创建一个新图表和看板"
             ],
             "A new chart will be created.": [
-                "您的查询无法保存。"
+                "将会创建一个新图表"
             ],
             "A new dashboard will be created.": [
-                "看板无法被创建"
+                "将会创建一个新看板"
             ],
             "A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.": [
                 "一种极坐标图表，其中圆被分成等角度的楔形，任何楔形表示的值由其面积表示，而不是其半径或扫掠角度。"
@@ -467,7 +467,7 @@
                 "对 [时间] 配置的引用，会将粒度考虑在内"
             ],
             "A report named \"%(name)s\" already exists": [
-                "数据集 %(name)s 已存在"
+                "报告 %(name)s 已存在"
             ],
             "A reusable dataset will be saved with your chart.": [
                 ""
@@ -515,10 +515,10 @@
                 "八月"
             ],
             "AXIS TITLE MARGIN": [
-                ""
+                "轴标题边距"
             ],
             "AXIS TITLE POSITION": [
-                "行小计的位置"
+                "轴标题的位置"
             ],
             "About": [
                 "关于"
@@ -749,19 +749,19 @@
                 "高级分析"
             ],
             "Advanced Data type": [
-                "数据缓存已加载"
+                "高级数据类型"
             ],
             "Advanced analytics": [
                 "高级分析"
             ],
             "Advanced analytics Query A": [
-                "高级分析"
+                "高级分析查询A"
             ],
             "Advanced analytics Query B": [
-                "高级分析"
+                "高级分析查询B"
             ],
             "Advanced data type": [
-                "数据缓存已加载"
+                "高级数据类型"
             ],
             "Advanced-Analytics": [
                 "高级分析"
@@ -926,10 +926,10 @@
                 "允许使用非SELECT语句(如UPDATE、DELETE、CREATE等)操作数据库。"
             ],
             "Allow node selections": [
-                "允许多节点选择"
+                "允许节点选择"
             ],
             "Allow sending multiple polygons as a filter event": [
-                ""
+                "允许使用多个多边形来过滤事件"
             ],
             "Allow this database to be explored": [
                 "允许浏览此数据库"
@@ -1145,10 +1145,10 @@
                 "注释层"
             ],
             "Annotation layer could not be created.": [
-                "您的查询无法保存"
+                "无法创建注释层"
             ],
             "Annotation layer could not be updated.": [
-                "您的查询无法保存"
+                "无法更新注释层"
             ],
             "Annotation layer description columns": [
                 "注释层描述列。"
@@ -1280,7 +1280,7 @@
                 "四月"
             ],
             "Arc": [
-                "三月"
+                "圆弧"
             ],
             "Are you sure you intend to overwrite the following values?": [
                 "您确实要删除选定的查询吗？"
@@ -1355,7 +1355,7 @@
                 "数据集参数无效。"
             ],
             "Assist": [
-                "重点"
+                "关联"
             ],
             "Associated Charts": [
                 "关联的图表"
@@ -1391,10 +1391,10 @@
                 "可用分类模式:"
             ],
             "Average": [
-                "大"
+                "平均值"
             ],
             "Average value": [
-                "目标值"
+                "平均值"
             ],
             "Axis": [
                 "坐标轴"
@@ -1505,13 +1505,13 @@
                 "底部边距"
             ],
             "Bottom left": [
-                "底 左"
+                "底左"
             ],
             "Bottom margin, in pixels, allowing for more room for axis labels": [
                 "底部边距，以像素为单位，为轴标签留出更多空间"
             ],
             "Bottom right": [
-                "底 右"
+                "底右"
             ],
             "Bottom to Top": [
                 "自下而上"
@@ -1562,7 +1562,7 @@
                 "数字格式化"
             ],
             "Bucket break points": [
-                ""
+                "桶分割点"
             ],
             "Build": [
                 "重构"
@@ -1580,7 +1580,7 @@
                 "商业"
             ],
             "Business Data Type": [
-                ""
+                "业务数据类型"
             ],
             "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
                 "默认情况下，每个过滤器在初始页面加载时最多加载1000个选项。如果您有超过1000个过滤值，并且希望启用动态搜索，以便在键入时加载筛选值（可能会给数据库增加压力），请选中此框。"
@@ -1619,7 +1619,7 @@
                 "CSS"
             ],
             "CSS Styles": [
-                "堆积样式"
+                "CSS 样式"
             ],
             "CSS Templates": [
                 "CSS 模板"
@@ -1913,10 +1913,10 @@
                 "图表变化"
             ],
             "Chart could not be created.": [
-                "您的查询无法保存。"
+                "您的图表无法保存。"
             ],
             "Chart could not be updated.": [
-                "您的查询无法保存。"
+                "您的图表无法更新。"
             ],
             "Chart does not exist": [
                 "图表没有找到"
@@ -2105,10 +2105,10 @@
                 "单击此链接可切换到仅显示连接此数据库所需的必填字段的备用表单。"
             ],
             "Click to add a contour": [
-                ""
+                "点击添加等高线"
             ],
             "Click to cancel sorting": [
-                ""
+                "点击取消排序"
             ],
             "Click to edit": [
                 "点击编辑"
@@ -2216,16 +2216,16 @@
                 "列\"%(column)s\"不是数字或不在查询结果中"
             ],
             "Column Configuration": [
-                "检查配置"
+                "列配置"
             ],
             "Column Data Types": [
-                "数据缓存已加载"
+                "列数据类型"
             ],
             "Column Formatting": [
-                "条件格式设置"
+                "列格式"
             ],
             "Column Label(s)": [
-                "字段标签"
+                "列标签"
             ],
             "Column containing ISO 3166-2 codes of region/province/department in your table.": [
                 "表中包含地区/省/省的ISO 3166-2代码的列"
@@ -2237,10 +2237,10 @@
                 "包含经度数据的列"
             ],
             "Column datatype": [
-                "列名"
+                "列数据类型"
             ],
             "Column header tooltip": [
-                "详细提示"
+                "列标题提示"
             ],
             "Column is required": [
                 "列是必填项"
@@ -2285,7 +2285,7 @@
                 "应作为日期解析的列的逗号分隔列表。"
             ],
             "Columns To Read": [
-                "显示总计"
+                "要读取的列"
             ],
             "Columns missing in dataset: %(invalid_columns)s": [
                 "数据源中缺少列：%(invalid_columns)s"
@@ -2438,7 +2438,7 @@
                 "连续式"
             ],
             "Contours": [
-                "连续式"
+                "等高线"
             ],
             "Contribution": [
                 "贡献"
@@ -2447,7 +2447,7 @@
                 "贡献模式"
             ],
             "Control": [
-                "列"
+                "控件"
             ],
             "Control labeled ": [
                 "控件已标记 "
@@ -2537,19 +2537,19 @@
                 ""
             ],
             "Count": [
-                "列"
+                "计数"
             ],
             "Count Unique Values": [
                 "计算唯一值"
             ],
             "Count as Fraction of Columns": [
-                ""
+                "列计数的分数占比"
             ],
             "Count as Fraction of Rows": [
-                ""
+                "行计数的分数占比"
             ],
             "Count as Fraction of Total": [
-                ""
+                "总计数的分数占比"
             ],
             "Country": [
                 "国家"
@@ -2654,7 +2654,7 @@
                 "货币符号"
             ],
             "Currently rendered: %s": [
-                ""
+                "当前渲染为：%s"
             ],
             "Custom": [
                 "自定义"
@@ -2702,7 +2702,7 @@
                 "D3 格式"
             ],
             "D3 format syntax: https://github.com/d3/d3-format": [
-                "D3插件格式语法: https://github.com/d3/d3-time-format"
+                "D3格式语法: https://github.com/d3/d3-time-format"
             ],
             "D3 number format for numbers between -1.0 and 1.0, useful when you want to have different significant digits for small and large numbers": [
                 "D3数字格式，用于-1.0和1.0之间的数字，当您希望小数和大数有不同的符号数字时很有用"
@@ -3074,7 +3074,7 @@
                 "Deck.gl - 屏幕网格"
             ],
             "Decrease": [
-                "创建"
+                "减少"
             ],
             "Default Endpoint": [
                 "默认端点"
@@ -3113,16 +3113,16 @@
                 "当\"默认为第一项\"被选中时默认值需要设置为自动"
             ],
             "Define a function that receives the input and outputs the content for a tooltip": [
-                ""
+                "定义一个函数，该函数接收输入并输出用于工具提示的内容"
             ],
             "Define a function that returns a URL to navigate to when user clicks": [
-                ""
+                "定义一个函数，该函数返回用户点击时导航至的 URL 地址"
             ],
             "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array.": [
-                ""
+                "定义一个 JavaScript 函数，该函数接收用于可视化的数据数组，并期望返回该数组的修改版本。这可以用来改变数据的属性、进行过滤或丰富数组。"
             ],
             "Define contour layers. Isolines represent a collection of line segments that serparate the area above and below a given threshold. Isobands represent a collection of polygons that fill the are containing values in a given threshold range.": [
-                ""
+                "定义等高线图层。等值线代表一组线段的集合，这些线段将高于和低于给定阈值的区域分隔开来。等值带代表一组多边形的集合，用以填充包含在给定阈值范围内的区域。"
             ],
             "Defines a rolling window function to apply, works along with the [Periods] text box": [
                 "定义要应用的滚动窗口函数，与 [期限] 文本框一起使用"
@@ -3275,7 +3275,7 @@
                 "反选所有"
             ],
             "Details": [
-                "显示总计"
+                "详细信息"
             ],
             "Details of the certification": [
                 "认证详情"
@@ -3287,7 +3287,7 @@
                 "确定此看板在所有看板列表中是否可见"
             ],
             "Diamond": [
-                "下钻"
+                "钻石"
             ],
             "Did you mean:": [
                 "您的意思是："
@@ -3302,16 +3302,16 @@
                 "维度"
             ],
             "Dimension to use on x-axis.": [
-                "用于 x 轴的维度。"
+                "用于 X 轴的维度。"
             ],
             "Dimension to use on y-axis.": [
-                "用于 y 轴的维度。"
+                "用于 Y 轴的维度。"
             ],
             "Dimensions": [
                 "维度"
             ],
             "Dimensions contain qualitative values such as names, dates, or geographical data. Use dimensions to categorize, segment, and reveal the details in your data. Dimensions affect the level of detail in the view.": [
-                ""
+                "维度包含诸如名称、日期或地理数据等定性值。使用维度对数据进行分类、细分，并展现数据中的细节。维度影响视图中的细节级别。"
             ],
             "Directed Force Layout": [
                 "有向图"
@@ -3344,7 +3344,7 @@
                 "显示名称"
             ],
             "Display column level subtotal": [
-                "显示列级别合计"
+                "显示列级别小计"
             ],
             "Display column level total": [
                 "显示列级别合计"
@@ -3359,7 +3359,7 @@
                 ""
             ],
             "Display row level subtotal": [
-                "显示行级合计"
+                "显示行级小计"
             ],
             "Display row level total": [
                 "显示行级合计"
@@ -3428,10 +3428,10 @@
                 "当标签在外侧时，是否在饼图到标签之间连线？"
             ],
             "Draw split lines for minor axis ticks": [
-                "绘制次要y轴记号的分割线"
+                "绘制次要Y轴刻度的分割线"
             ],
             "Draw split lines for minor y-axis ticks": [
-                "绘制次要y轴记号的分割线"
+                "绘制次要Y轴刻度的分割线"
             ],
             "Drill by": [
                 ""
@@ -3701,7 +3701,7 @@
                 "就业和教育"
             ],
             "Empty circle": [
-                "空循环"
+                "空心圆"
             ],
             "Empty collection": [
                 "空集合"
@@ -3791,7 +3791,7 @@
                 "进入CA_BUNDLE"
             ],
             "Enter Primary Credentials": [
-                "上传验证文件"
+                "上传主凭据"
             ],
             "Enter a delimiter for this data": [
                 "输入标签的新标题"
@@ -4037,7 +4037,7 @@
                 "额外参数"
             ],
             "Extra data for JS": [
-                ""
+                "给JS的额外数据"
             ],
             "Extra data to specify table metadata. Currently supports metadata of the format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\", \"details\": \"This table is the source of truth.\" }, \"warning_markdown\": \"This is a warning.\" }`.": [
                 "指定表元数据的额外内容。目前支持的认证数据格式为：`{ \"certification\": { \"certified_by\": \"Data Platform Team\", \"details\": \"This table is the source of truth.\" } }`."
@@ -4055,7 +4055,7 @@
                 "用于jinja模板化查询的额外url"
             ],
             "Extruded": [
-                "(不包含)"
+                "拉伸"
             ],
             "FEB": [
                 "二月"
@@ -4064,10 +4064,10 @@
                 "星期五"
             ],
             "Factor": [
-                "因素"
+                "因子"
             ],
             "Factor to multiply the metric by": [
-                ""
+                "用于乘以度量值的因子"
             ],
             "Fail": [
                 "失败"
@@ -4151,7 +4151,7 @@
                 ""
             ],
             "Fill Color": [
-                "固定颜色"
+                "填充颜色"
             ],
             "Fill all required fields to enable \"Default Value\"": [
                 "填写所有必填字段以启用默认值"
@@ -4160,7 +4160,7 @@
                 "填充方式"
             ],
             "Filled": [
-                "失败"
+                "填充"
             ],
             "Filter": [
                 "过滤器"
@@ -4241,7 +4241,7 @@
                 "完成"
             ],
             "First": [
-                ""
+                "第一个值"
             ],
             "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates": [
                 "将趋势线固定为指定的完整时间范围，以防过滤的结果不包括开始日期或结束日期"
@@ -4259,7 +4259,7 @@
                 "固定颜色"
             ],
             "Fixed point radius": [
-                "点半径"
+                "固定点半径"
             ],
             "Flow": [
                 "流图"
@@ -4286,7 +4286,7 @@
                 "更深入的了解，请查看"
             ],
             "For more information about objects are in context in the scope of this function, refer to the": [
-                ""
+                "要了解在此函数作用域中上下文中的对象的更多信息，请参阅"
             ],
             "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
                 "对于常规过滤，这些是此过滤将应用于的角色。对于基本过滤，这些是过滤不适用的角色，例如Admin代表admin应该查看所有数据。"
@@ -4358,10 +4358,10 @@
                 "频率"
             ],
             "Friction": [
-                "摩擦"
+                "摩擦力"
             ],
             "Friction between nodes": [
-                "节点之间的摩擦"
+                "节点之间的摩擦力"
             ],
             "Friday": [
                 "星期五"
@@ -4400,13 +4400,13 @@
                 "地理位置"
             ],
             "GeoJson Column": [
-                "没有列"
+                "GeoJSON列"
             ],
             "GeoJson Settings": [
-                "计划设置"
+                "GeoJSON设置"
             ],
             "Geohash": [
-                "Geo哈希"
+                "Geohash"
             ],
             "Get the last date by the date unit.": [
                 "按日期单位获取最后的日期。"
@@ -4442,10 +4442,10 @@
                 "大于（>）"
             ],
             "Grid": [
-                "星期五"
+                "网格"
             ],
             "Grid Size": [
-                "节点大小"
+                "网格大小"
             ],
             "Group By": [
                 "分组"
@@ -4466,10 +4466,10 @@
                 ""
             ],
             "Handlebars": [
-                "句柄图"
+                "Handlebars"
             ],
             "Handlebars Template": [
-                "删除模板"
+                "Handlebars模板"
             ],
             "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
                 "应用于颜色编码的硬值边界。只有当对整个热图应用标准化时才是相关的和应用的。"
@@ -4493,25 +4493,25 @@
                 "高度"
             ],
             "Height of the sparkline": [
-                "标记线的标签"
+                "迷你图的高度"
             ],
             "Hide Line": [
-                "隐藏Layer"
+                "隐藏线"
             ],
             "Hide chart description": [
-                "切换图表说明"
+                "隐藏图表说明"
             ],
             "Hide layer": [
                 "隐藏Layer"
             ],
             "Hide password.": [
-                "密码"
+                "隐藏密码"
             ],
             "Hide tool bar": [
                 "隐藏工具栏"
             ],
             "Hides the Line for the time series": [
-                "时间序列设置"
+                "隐藏时间系列的线"
             ],
             "Hierarchy": [
                 "层次"
@@ -4523,10 +4523,10 @@
                 "主页"
             ],
             "Horizon Chart": [
-                "地平线图"
+                "横向图表"
             ],
             "Horizon Charts": [
-                "水平图"
+                "水平图表"
             ],
             "Horizontal": [
                 "横向"
@@ -4607,7 +4607,7 @@
                 "生成报告时忽略缓存"
             ],
             "Ignore null locations": [
-                ""
+                "忽略空位置"
             ],
             "Ignore time": [
                 "忽略时间"
@@ -4703,7 +4703,7 @@
                 "圆环圈内部空洞的内径"
             ],
             "Input custom width in pixels": [
-                ""
+                "输入自定义宽度（像素）"
             ],
             "Input field supports custom rotation. e.g. 30 for 30°": [
                 "输入字段支持自定义。例如，30代表30°"
@@ -4712,10 +4712,10 @@
                 "强度"
             ],
             "Intensity Radius": [
-                "点半径"
+                "强度半径"
             ],
             "Intensity Radius is the radius at which the weight is distributed": [
-                ""
+                "强度半径是指权重分布的半径"
             ],
             "Intensity is the value multiplied by the weight to obtain the final weight": [
                 ""
@@ -4823,7 +4823,7 @@
                 "反选"
             ],
             "Invert current page": [
-                "百分比变化"
+                "反转当前页"
             ],
             "Is certified": [
                 "已认证"
@@ -4856,13 +4856,13 @@
                 "时间条件"
             ],
             "Is true": [
-                ""
+                "为真"
             ],
             "Isoband": [
-                "和"
+                "等值带"
             ],
             "Isoline": [
-                "离线"
+                "等值线"
             ],
             "Issue 1000 - The dataset is too large to query.": [
                 "Issue 1000 - 数据集太大，无法进行查询。"
@@ -4901,13 +4901,13 @@
                 "一月"
             ],
             "JavaScript data interceptor": [
-                ""
+                "JS数据拦截器"
             ],
             "JavaScript onClick href": [
                 ""
             ],
             "JavaScript tooltip generator": [
-                ""
+                "JS提示生成器"
             ],
             "Jinja templating": [
                 "编辑模板"
@@ -4997,22 +4997,22 @@
                 "大"
             ],
             "Last": [
-                "上一个周期"
+                "最后一个"
             ],
             "Last Changed": [
-                "更新时间"
+                "最后更新"
             ],
             "Last Modified": [
                 "最后修改"
             ],
             "Last Updated %s": [
-                "上次更新 %s"
+                "最后更新 %s"
             ],
             "Last Updated %s by %s": [
-                "上次由 %s 更新 %s"
+                "最后由 %s 更新 %s"
             ],
             "Last available value seen on %s": [
-                " %s 最后一个可用值"
+                "到 %s 最后一个可用值"
             ],
             "last day": [
                 "昨天"
@@ -5042,7 +5042,7 @@
                 "默认视口纬度"
             ],
             "Layer configuration": [
-                "配置Layer"
+                "配置层"
             ],
             "Layout": [
                 "布局"
@@ -5084,10 +5084,10 @@
                 "图例"
             ],
             "Legend Format": [
-                "数值格式"
+                "图例格式"
             ],
             "Legend Orientation": [
-                "方向"
+                "图例方向"
             ],
             "Legend Position": [
                 "图例位置"
@@ -5105,10 +5105,10 @@
                 "提升百分比精度"
             ],
             "Light": [
-                "高度"
+                "明亮"
             ],
             "Light mode": [
-                "光模式"
+                "明亮模式"
             ],
             "Like": [
                 ""
@@ -5171,10 +5171,10 @@
                 "线性插值"
             ],
             "Lines column": [
-                "线条列"
+                "线段列"
             ],
             "Lines encoding": [
-                "轴线升序"
+                "线段编码"
             ],
             "Link Copied!": [
                 "链接成功！"
@@ -5183,7 +5183,7 @@
                 "列出唯一值"
             ],
             "List of extra columns made available in JavaScript functions": [
-                ""
+                "在JavaScript函数中可用的额外列列表"
             ],
             "List of n+1 values for bucketing metric into n buckets.": [
                 ""
@@ -5222,7 +5222,7 @@
                 "定位到图表"
             ],
             "Log Scale": [
-                "日志规模"
+                "对数尺度"
             ],
             "Log retention": [
                 "日志保留"
@@ -5312,7 +5312,7 @@
                 "必填参数"
             ],
             "Manually set min/max values for the y-axis.": [
-                "使用Y轴的对数刻度"
+                "手工设置Y轴最大最小值"
             ],
             "Map": [
                 "地图"
@@ -5375,10 +5375,10 @@
                 "最大字体大小"
             ],
             "Maximum Radius": [
-                ""
+                "最大半径"
             ],
             "Maximum radius size of the circle, in pixels. As the zoom level changes, this insures that the circle respects this maximum radius.": [
-                ""
+                "圆的最大半径尺寸，以像素为单位。随着缩放级别的变化，这确保圆始终保持这一最大半径。"
             ],
             "Maximum value": [
                 "最大值"
@@ -5498,13 +5498,13 @@
                 "指标"
             ],
             "Middle": [
-                "文件"
+                "中间"
             ],
             "Midnight": [
                 "凌晨（当天）"
             ],
             "Miles": [
-                "过滤"
+                "英里"
             ],
             "Min": [
                 "最小值"
@@ -5519,7 +5519,7 @@
                 "最小周期"
             ],
             "Min/max (no outliers)": [
-                ""
+                "最大最小值（忽略离群值）"
             ],
             "Mine": [
                 "我的编辑"
@@ -5531,7 +5531,7 @@
                 "最小字体大小"
             ],
             "Minimum Radius": [
-                "点半径"
+                "最小半径"
             ],
             "Minimum leaf node event count": [
                 "节点最小事件数"
@@ -5543,7 +5543,7 @@
                 "标签显示百分比最小阈值"
             ],
             "Minimum value": [
-                "空值"
+                "最小值"
             ],
             "Minimum value for label to be displayed on graph.": [
                 "在图形上显示标签的最小值。"
@@ -5600,10 +5600,10 @@
                 "查看更多"
             ],
             "More filters": [
-                "日期过滤器"
+                "更多过滤器"
             ],
             "Move only": [
-                "移动"
+                "仅移动"
             ],
             "Moves the given set of dates by a specified interval.": [
                 "将给定的日期集以指定的间隔进行移动"
@@ -5621,19 +5621,19 @@
                 "多元"
             ],
             "Multiple": [
-                "多方"
+                "多选"
             ],
             "Multiple file extensions are not allowed for columnar uploads. Please make sure all files are of the same extension.": [
                 "柱状上传不允许使用多个文件扩展名请确保所有文件的扩展名相同。"
             ],
             "Multiple filtering": [
-                "自适配过滤条件"
+                "多重过滤"
             ],
             "Multiple formats accepted, look the geopy.points Python library for more details": [
                 "接受多种格式，查看geopy.points库以获取更多细节"
             ],
             "Multiplier": [
-                "多方"
+                "倍数"
             ],
             "Must be unique": [
                 "需要唯一"
@@ -5717,7 +5717,7 @@
                 "您的数据集"
             ],
             "Need help? Learn how to connect your database": [
-                ""
+                "需要帮助？学习如何连接到数据库"
             ],
             "Need help? Learn more about": [
                 "需要帮助？请看"
@@ -5876,19 +5876,19 @@
                 "此查询没有返回任何结果。如果希望返回结果，请确保所有过滤选择的配置正确，并且数据源包含所选时间范围的数据。"
             ],
             "No rows were returned for this dataset": [
-                ""
+                "这个数据集没有返回任何行"
             ],
             "No samples were returned for this dataset": [
-                "此数据集没有启用简单的特别度量"
+                "这个数据集没有返回预览数据"
             ],
             "No saved expressions found": [
-                "保存表达式"
+                "没有已保存的表达式"
             ],
             "No saved metrics found": [
-                "%s 列与计量指标"
+                "没有已保存的指标"
             ],
             "No saved queries yet": [
-                "已保存查询"
+                "还没保存查询"
             ],
             "No stored results found, you need to re-run your query": [
                 "找不到存储的结果，需要重新运行查询"
@@ -5897,10 +5897,10 @@
                 "没有发现这样的列。若要在度量值上筛选，请尝试自定义SQL选项卡。"
             ],
             "No table columns": [
-                "没有时间列"
+                "没有列"
             ],
             "No temporal columns found": [
-                "找不到兼容的列"
+                "没有找到时间列"
             ],
             "No time columns": [
                 "没有时间列"
@@ -5933,25 +5933,25 @@
                 "正常"
             ],
             "Normalize Across": [
-                "标准化通过"
+                "标准化"
             ],
             "Normalize column names": [
-                "自定义列"
+                "标准化列名称"
             ],
             "Normalized": [
                 "标准化"
             ],
             "Not Time Series": [
-                "美誉时间序列"
+                "没有时间系列"
             ],
             "Not added to any dashboard": [
-                "添加到看板"
+                "没有添加到任何看板"
             ],
             "Not available": [
                 "没有可用的描述"
             ],
             "Not defined": [
-                "未命名"
+                "未定义"
             ],
             "Not equal to (≠)": [
                 "不等于（≠）"
@@ -6008,7 +6008,7 @@
                 "数字格式化"
             ],
             "Number of buckets to group data": [
-                ""
+                "数据分组的桶数量"
             ],
             "Number of decimal digits to round numbers to": [
                 "要四舍五入的十进制位数"
@@ -6131,7 +6131,7 @@
                 "只有选定的面板将受此过滤条件的影响"
             ],
             "Only show the total value on the stacked chart, and not show on the selected category": [
-                "仅在堆积图上显示合计值，而不在所选类别上显示"
+                "仅在堆叠图上显示合计值，而不在所选类别上显示"
             ],
             "Only single queries supported": [
                 "仅支持单个查询"
@@ -6236,7 +6236,7 @@
                 "其他"
             ],
             "Outdoors": [
-                ""
+                "户外"
             ],
             "Outer Radius": [
                 "外缘"
@@ -6365,13 +6365,13 @@
                 "将可共享的Google Sheet URL粘贴到此处"
             ],
             "Pattern": [
-                "规则"
+                "样式"
             ],
             "Percent Change": [
                 "百分比变化"
             ],
             "Percent of total": [
-                "显示总计"
+                "总数的百分比"
             ],
             "Percentage": [
                 "百分比"
@@ -6392,22 +6392,22 @@
                 "性能"
             ],
             "Period average": [
-                ""
+                "周期平均值"
             ],
             "Periods": [
                 "周期"
             ],
             "Periods must be a whole number": [
-                "句点必须是正整数值"
+                "周期必须是整数值"
             ],
             "Person or group that has certified this chart.": [
-                "对此图表进行认证的个人或团体。"
+                "认证此图表的个人或组。"
             ],
             "Person or group that has certified this dashboard.": [
-                "已对此看板进行认证的个人或组。"
+                "认证此看板的个人或组。"
             ],
             "Person or group that has certified this metric": [
-                "认证此指标的个人或团体"
+                "认证此指标的个人或组"
             ],
             "Physical": [
                 "实体"
@@ -6464,7 +6464,7 @@
                 "饼图形状"
             ],
             "Pin": [
-                "Pin"
+                "标记"
             ],
             "Pivot Table": [
                 "透视表"
@@ -6548,13 +6548,13 @@
                 "插件"
             ],
             "Point Color": [
-                "固定颜色"
+                "点颜色"
             ],
             "Point Radius": [
                 "点半径"
             ],
             "Point Radius Scale": [
-                "点半径"
+                "点半径比例尺"
             ],
             "Point Radius Unit": [
                 "点半径单位"
@@ -6563,10 +6563,10 @@
                 "字体大小"
             ],
             "Point Unit": [
-                "点半径单位"
+                "点单位"
             ],
             "Point to your spatial columns": [
-                ""
+                "指向你的地理空间列"
             ],
             "Points": [
                 "点配置"
@@ -6575,16 +6575,16 @@
                 "点和簇将随着视图改变而更新。"
             ],
             "Polygon Column": [
-                "我的列"
+                "多边形列"
             ],
             "Polygon Encoding": [
-                "报告发送"
+                "多边形编码"
             ],
             "Polygon Settings": [
-                "计划设置"
+                "多边形设置"
             ],
             "Polyline": [
-                ""
+                "多段线"
             ],
             "Popular": [
                 "常用"
@@ -6659,7 +6659,7 @@
                 "前一个"
             ],
             "Primary": [
-                "主键"
+                "主要"
             ],
             "Primary Metric": [
                 "主计量指标"
@@ -6836,7 +6836,7 @@
                 "范围标签"
             ],
             "Ranges": [
-                "管理"
+                "范围"
             ],
             "Ranges to highlight with shading": [
                 "突出阴影的范围"
@@ -6944,7 +6944,7 @@
                 "相对量"
             ],
             "Reload": [
-                "红色"
+                "重新加载"
             ],
             "Remove": [
                 "删除"
@@ -7052,10 +7052,10 @@
                 "报告"
             ],
             "Repulsion": [
-                "表达式"
+                "排斥力"
             ],
             "Repulsion strength between nodes": [
-                "节点间的斥力"
+                "节点间的排斥力强度"
             ],
             "Request is incorrect: %(error)s": [
                 "请求不正确: %(error)s"
@@ -7139,7 +7139,7 @@
                 "右轴指标"
             ],
             "Right to Left": [
-                "右到左"
+                "从右到左"
             ],
             "Right value": [
                 "右侧的值"
@@ -7187,7 +7187,7 @@
                 "应用于词云中的单词的旋转方式"
             ],
             "Round cap": [
-                "边界"
+                "圆端点"
             ],
             "Row": [
                 "行"
@@ -7298,34 +7298,34 @@
                 "SQLAlchemy URI"
             ],
             "SSH Host": [
-                ""
+                "SSH主机"
             ],
             "SSH Password": [
-                "密码"
+                "SSH密码"
             ],
             "SSH Port": [
-                ""
+                "SSH端口"
             ],
             "SSH Tunnel": [
-                ""
+                "SSH隧道"
             ],
             "SSH Tunnel configuration parameters": [
-                ""
+                "SSH隧道参数配置"
             ],
             "SSH Tunnel could not be deleted.": [
-                "这个查询无法被加载。"
+                "SSH隧道无法被删除。"
             ],
             "SSH Tunnel could not be updated.": [
-                "您的查询无法保存。"
+                "SSH隧道无法更新。"
             ],
             "SSH Tunnel not found.": [
-                "CSS模板未找到"
+                "SSH隧道未找到"
             ],
             "SSH Tunnel parameters are invalid.": [
-                "图表参数无效。"
+                "SSH隧道参数无效。"
             ],
             "SSH Tunneling is not enabled": [
-                ""
+                "SSH隧道未激活"
             ],
             "SSL Mode \"require\" will be used.": [
                 "SSL模式 \"require\" 将被使用。"
@@ -7346,16 +7346,16 @@
                 "样本标准差"
             ],
             "Sample Variance": [
-                ""
+                "样本方差"
             ],
             "Samples": [
-                "重新采样"
+                "数据预览"
             ],
             "Samples for dataset could not be retrieved.": [
-                "无法创建数据集。"
+                "无法预览此数据集"
             ],
             "Samples for datasource could not be retrieved.": [
-                "无法创建数据集。"
+                "无法预览此数据源"
             ],
             "Sankey": [
                 "蛇形图"
@@ -7367,7 +7367,7 @@
                 "桑基图"
             ],
             "Satellite": [
-                "日期过滤器"
+                "卫星"
             ],
             "Satellite Streets": [
                 ""
@@ -7460,7 +7460,7 @@
                 "缩放和移动"
             ],
             "Scale only": [
-                "存在规模"
+                "仅缩放"
             ],
             "Scatter": [
                 "散点"
@@ -7559,7 +7559,7 @@
                 "秒"
             ],
             "Secondary": [
-                "次要的"
+                "次要"
             ],
             "Secondary Metric": [
                 "次计量指标"
@@ -7598,10 +7598,10 @@
                 "查看更多"
             ],
             "See query details": [
-                "已保存查询"
+                "查看查询详情"
             ],
             "See table schema": [
-                "选择表"
+                "查看表结构"
             ],
             "Select": [
                 "选择"
@@ -7658,7 +7658,7 @@
                 "为右轴选择一个指标"
             ],
             "Select a metric to display. You can use an aggregation function on a column or write custom SQL to create a metric.": [
-                ""
+                "选择一个要展示的指标。您可以使用聚合函数对列进行操作，或编写自定义SQL来创建一个指标。"
             ],
             "Select a schema if the database supports this": [
                 "指定一个模式(需要数据库支持)"
@@ -7670,7 +7670,7 @@
                 "选择一个可视化类型"
             ],
             "Select aggregate options": [
-                "选择总选项"
+                "选择聚合选项"
             ],
             "Select all data": [
                 "选择所有数据"
@@ -7688,25 +7688,25 @@
                 "选择图表"
             ],
             "Select color scheme": [
-                "线性颜色方案"
+                "选择颜色方案"
             ],
             "Select column": [
-                "时间列"
+                "选择列"
             ],
             "Select current page": [
-                "选择父级过滤"
+                "选择当前页"
             ],
             "Select dashboards": [
-                "看板"
+                "选择看板"
             ],
             "Select database or type to search databases": [
-                "选择表或输入表名"
+                "选择数据库或输入名称来搜索"
             ],
             "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
                 "选择数据库需要在高级选项中完成额外的字段才能成功连接数据库。了解您的数据库需要什么："
             ],
             "Select dataset source": [
-                "使用旧数据源编辑器"
+                "选择数据源"
             ],
             "Select file": [
                 "选择文件"
@@ -7736,31 +7736,31 @@
                 "选择或输入货币符号"
             ],
             "Select or type dataset name": [
-                "选择表或输入表名"
+                "选择表或输入数据集名称"
             ],
             "Select owners": [
-                "运行选定的查询"
+                "选择所有者"
             ],
             "Select saved metrics": [
-                "选择保存指标"
+                "选择已保存指标"
             ],
             "Select saved queries": [
-                "选择保存指标"
+                "选择已保存查询"
             ],
             "Select schema or type to search schemas": [
-                "选择表或输入表名"
+                "选择模式或输入模式名称来搜索"
             ],
             "Select scheme": [
-                "选择表"
+                "选择方案"
             ],
             "Select subject": [
                 "选择主题"
             ],
             "Select table or type to search tables": [
-                "选择表或输入表名"
+                "选择表或输入表名来搜索"
             ],
             "Select the Annotation Layer you would like to use.": [
-                "选择注释层类型"
+                "选择您想使用的注释层"
             ],
             "Select the charts to which you want to apply cross-filters in this dashboard. Deselecting a chart will exclude it from being filtered when applying cross-filters from any chart on the dashboard. You can select \"All charts\" to apply cross-filters to all charts that use the same dataset or contain the same column name in the dashboard.": [
                 "选择您希望在此看板上应用交叉筛选的图表。取消选择一个图表将在从看板上的任何图表应用交叉筛选时排除它。您可以选择“所有图表”，以对使用相同数据集或在看板中包含相同列名的所有图表应用交叉筛选。"
@@ -7772,10 +7772,10 @@
                 "选择GeoJSON列"
             ],
             "Select the number of bins for the histogram": [
-                "选择直方图的容器数"
+                "选择直方图的分箱数量"
             ],
             "Select the numeric columns to draw the histogram": [
-                "选择直方图的容器数"
+                "选择数值列来绘制直方图"
             ],
             "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
                 "在控制面板中的突出显示字段中选择值。然后点击 %s 按钮来运行查询。"
@@ -7820,7 +7820,7 @@
                 "系列图表类型(折线，柱状图等)"
             ],
             "Series colors": [
-                "时间序列的列"
+                "系列颜色"
             ],
             "Series limit": [
                 "系列限制"
@@ -7868,7 +7868,7 @@
                 "已分享的查询"
             ],
             "Shared query fields": [
-                "已保存查询"
+                "共享查询字段"
             ],
             "Sheet Name": [
                 "Sheet名称"
@@ -7940,7 +7940,7 @@
                 "显示时间戳"
             ],
             "Show Tooltip Labels": [
-                "显示总计"
+                "显示提示标签"
             ],
             "Show Total": [
                 "显示总计"
@@ -7958,10 +7958,10 @@
                 "显示值"
             ],
             "Show Y-axis": [
-                ""
+                "显示Y轴"
             ],
             "Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.": [
-                ""
+                "在迷你图上显示Y轴。如果设置了手动设置的最小/最大值，则显示之，否则显示数据中的最小/最大值。"
             ],
             "Show all columns": [
                 "显示所有列"
@@ -7979,10 +7979,10 @@
                 "切换图表说明"
             ],
             "Show columns subtotal": [
-                "显示总计"
+                "显示列小计"
             ],
             "Show columns total": [
-                "显示总计"
+                "显示列总计"
             ],
             "Show data points as circle markers on the lines": [
                 "将数据点显示为线条上的圆形标记"
@@ -8024,25 +8024,25 @@
                 "显示百分比"
             ],
             "Show pointer": [
-                "显示鼠标"
+                "显示指示器"
             ],
             "Show progress": [
                 "显示进度"
             ],
             "Show rows subtotal": [
-                "显示总计行数"
+                "显示行小计"
             ],
             "Show rows total": [
-                "显示总计行数"
+                "显示行总计"
             ],
             "Show series values on the chart": [
-                "显示栏上的值"
+                "在图表上显示系列值"
             ],
             "Show split lines": [
                 "显示分割线"
             ],
             "Show the value on top of the bar": [
-                "显示栏上的值"
+                "在柱子上方显示值"
             ],
             "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
                 "显示所选指标的总聚合。注意行限制并不应用于结果"
@@ -8069,7 +8069,7 @@
                 "显示 %s个 总计 %s个"
             ],
             "Shows a list of all series available at that point in time": [
-                "详细提示显示了该时间点的所有序列的列表。"
+                "显示了该位置的所有系列的可用值的列表。"
             ],
             "Shows or hides markers for the time series": [
                 ""
@@ -8084,16 +8084,16 @@
                 "此数据集没有启用简单的特别度量"
             ],
             "Single": [
-                "我的编辑"
+                "单选"
             ],
             "Single Metric": [
                 "单个指标"
             ],
             "Single Value": [
-                "空值"
+                "单个值"
             ],
             "Single value": [
-                "空值"
+                "单个值"
             ],
             "Single value type": [
                 "单值类型"
@@ -8303,40 +8303,40 @@
                 ""
             ],
             "Stack series": [
-                "已保存查询"
+                "堆叠系列"
             ],
             "Stack series on top of each other": [
-                "叠加系列"
+                "在每个上方堆叠系列"
             ],
             "Stacked": [
                 "堆叠"
             ],
             "Stacked Bars": [
-                "堆叠条形图"
+                "堆叠柱状图"
             ],
             "Stacked Style": [
-                "堆积样式"
+                "堆叠样式"
             ],
             "Stacked style": [
-                "堆积样式"
+                "堆叠样式"
             ],
             "Standard time series": [
-                "时间序列"
+                "标准时间序列"
             ],
             "Start": [
                 "开始"
             ],
             "Start (Longitude, Latitude): ": [
-                "无效的经度/纬度"
+                "起始经度/纬度"
             ],
             "Start Longitude & Latitude": [
-                "无效的经度/纬度"
+                "起始经度/纬度"
             ],
             "Start angle": [
-                "开始时间"
+                "开始角度"
             ],
             "Start at (UTC)": [
-                "由UTC开始"
+                "开始于（UTC）"
             ],
             "Start date": [
                 "开始时间"
@@ -8345,13 +8345,13 @@
                 "开始日期包含在时间范围内"
             ],
             "Start y-axis at 0": [
-                "y轴从0开始"
+                "Y轴从0开始"
             ],
             "Start y-axis at zero. Uncheck to start y-axis at minimum value in the data.": [
-                "从零开始y轴。取消选中以从数据中的最小值开始y轴 "
+                "从零开始Y轴。取消选中以从数据中的最小值开始Y轴 "
             ],
             "Started": [
-                "状态"
+                "开始了"
             ],
             "State": [
                 "状态"
@@ -8366,13 +8366,13 @@
                 "状态"
             ],
             "Step - end": [
-                "对齐终点"
+                "阶梯 - 结束"
             ],
             "Step - middle": [
-                "居中"
+                "阶梯 - 中间"
             ],
             "Step - start": [
-                "对齐起点"
+                "阶梯 - 开始"
             ],
             "Step type": [
                 "每阶类型"
@@ -8408,19 +8408,19 @@
                 "将图形拉向中心"
             ],
             "Stretched style": [
-                "堆积样式"
+                "拉伸样式"
             ],
             "Strings used for sheet names (default is the first sheet).": [
                 "用于sheet名称的字符串（默认为第一个sheet）。"
             ],
             "Stroke Color": [
-                "固定颜色"
+                "边线颜色"
             ],
             "Stroke Width": [
                 "线宽"
             ],
             "Stroked": [
-                "红色"
+                "描边"
             ],
             "Structural": [
                 "结构"
@@ -8441,7 +8441,7 @@
                 "子标题的字体大小"
             ],
             "Submit": [
-                ""
+                "提交"
             ],
             "Subtotal": [
                 ""
@@ -8462,13 +8462,13 @@
                 "求和"
             ],
             "Sum as Fraction of Columns": [
-                ""
+                "列总和的分数占比"
             ],
             "Sum as Fraction of Rows": [
-                ""
+                "行总和的分数占比"
             ],
             "Sum as Fraction of Total": [
-                ""
+                "值总和的分数占比"
             ],
             "Sum of values over specified period": [
                 "指定期间内的值总和"
@@ -8642,7 +8642,7 @@
                 "目标"
             ],
             "Target Color": [
-                "目标类别"
+                "目标颜色"
             ],
             "Target category": [
                 "目标类别"
@@ -8657,7 +8657,7 @@
                 "模板参数"
             ],
             "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
-                "模板链接，可以包含{{度量}}或来自控件的其他值。"
+                "模板链接，可以包含{{metric}}或来自控件的其他值。"
             ],
             "Terminate running queries when browser window closed or navigated to another page. Available for Presto, Hive, MySQL, Postgres and Snowflake databases.": [
                 "当浏览器窗口关闭或导航到其他页面时，终止正在运行的查询。适用于Presto、Hive、MySQL、Postgres和Snowflake数据库"
@@ -8735,7 +8735,7 @@
                 "配色方案由相关的看板决定。在看板属性中编辑配色方案"
             ],
             "The column header label": [
-                "将列拖放到此处"
+                "列的标题"
             ],
             "The column was deleted or renamed in the database.": [
                 "该列已在数据库中删除或重命名。"
@@ -8756,7 +8756,7 @@
                 "数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL 编辑器标签。确定要继续吗？删除数据库将破坏这些对象。"
             ],
             "The database columns that contains lines information": [
-                "包含行信息的数据库列"
+                "包含线段信息的数据库列"
             ],
             "The database could not be found": [
                 "数据库没有找到"
@@ -8987,7 +8987,7 @@
                 "数据集已保存"
             ],
             "The result of this query should be a numeric-esque value": [
-                ""
+                "此查询的结果应为类似数字的值"
             ],
             "The results backend no longer has the data from the query.": [
                 "结果后端不再拥有来自查询的数据。"
@@ -9080,13 +9080,13 @@
                 "连接到数据库时提供的用户名无效。"
             ],
             "The way the ticks are laid out on the X-axis": [
-                "X轴记号的排列显示方式"
+                "X轴刻度的布局方式"
             ],
             "The width of the Isoline in pixels": [
-                "活动图表的ID"
+                "等值线的宽度（以像素为单位）"
             ],
             "The width of the lines": [
-                "活动图表的ID"
+                "线条的宽度"
             ],
             "There are associated alerts or reports": [
                 "存在关联的警报或报告"
@@ -9215,7 +9215,7 @@
                 "预览所选查询时出现问题。%s"
             ],
             "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}": [
-                "桑基图里面有一个循环，请提供一棵树。这是一个错误的链接：{}"
+                "您的桑基图中存在循环，请提供一棵树。这是一个错误的链接：{}"
             ],
             "These are the datasets this filter will be applied to.": [
                 "这些是将应用此过滤的表。"
@@ -9329,7 +9329,7 @@
                 "此图表可能与过滤器不兼容(数据集不匹配)"
             ],
             "This functionality is disabled in your environment for security reasons.": [
-                ""
+                "出于安全考虑，此功能在您的环境中被禁用。"
             ],
             "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).": [
                 "这是将会添加到WHERE子句的条件。例如，要仅返回特定客户端的行，可以使用子句 `client_id = 9` 定义常规过滤。若要在用户不属于RLS过滤角色的情况下不显示行，可以使用子句 `1 = 0`（始终为false）创建基本过滤。"
@@ -9359,7 +9359,7 @@
                 "本节包含允许对查询结果进行高级分析处理后的选项。"
             ],
             "This section contains validation errors": [
-                ""
+                "这部分有错误"
             ],
             "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly.": [
                 ""
@@ -9368,7 +9368,7 @@
                 "该表已经有了数据集"
             ],
             "This table already has a dataset associated with it. You can only associate one dataset with a table.\n": [
-                ""
+                "此表已经关联了一个数据集。一个表只能关联一个数据集。"
             ],
             "This value should be greater than the left target value": [
                 "这个值应该大于左边的目标值"
@@ -9455,10 +9455,10 @@
                 "时间序列 - 周期透视表"
             ],
             "Time Series - Stacked": [
-                "时间序列 - 堆积图"
+                "时间序列 - 堆叠图"
             ],
             "Time Series Options": [
-                "时间序列的列"
+                "时间序列选项"
             ],
             "Time Shift": [
                 "时间偏移"
@@ -9698,7 +9698,7 @@
                 "星期二"
             ],
             "Tukey": [
-                "查询"
+                ""
             ],
             "Type": [
                 "类型"
@@ -9719,7 +9719,7 @@
                 "接受Google Sheets的类型"
             ],
             "Type of comparison, value difference or percentage": [
-                ""
+                "比较类型，值差异或百分比"
             ],
             "UI Configuration": [
                 "UI 配置"
@@ -9728,7 +9728,7 @@
                 "URL 地址"
             ],
             "URL Parameters": [
-                "URL参数"
+                "URL 参数"
             ],
             "URL parameters": [
                 "URL 参数"
@@ -10022,19 +10022,19 @@
                 "数值格式"
             ],
             "Value and Percentage": [
-                "显示百分比"
+                "值和百分比"
             ],
             "Value bounds": [
                 "值边界"
             ],
             "Value cannot exceed %s": [
-                ""
+                "值不能超过 %s"
             ],
             "Value format": [
                 "数值格式"
             ],
             "Value is required": [
-                "需要名称"
+                "需要值"
             ],
             "Value must be greater than 0": [
                 "`行偏移量` 必须大于或等于0"
@@ -10256,7 +10256,7 @@
                 "周 %s"
             ],
             "Weight": [
-                "高度"
+                "权重"
             ],
             "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
                 "加载结果时遇到问题。查询设置为 %s 秒后超时。"
@@ -10286,7 +10286,7 @@
                 "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
             ],
             "When checked, the map will zoom to your data after each query": [
-                ""
+                "勾选后，每次查询后地图将自动缩放至您的数据范围"
             ],
             "When enabled, users are able to visualize SQL Lab results in Explore.": [
                 "启用后，用户可以在Explore中可视化SQL实验室结果。"
@@ -10328,7 +10328,7 @@
                 "单元格条形图中的正负值是否按0对齐"
             ],
             "Whether to always show the annotation label": [
-                "是否显示标签。"
+                "是否显示注释标签。"
             ],
             "Whether to animate the progress and the value or just display them": [
                 "是以动画形式显示进度和值，还是仅显示它们"
@@ -10337,7 +10337,7 @@
                 "是否应用基于色标等级的正态分布"
             ],
             "Whether to apply filter when items are clicked": [
-                "是否显示笔划"
+                "数据项被点击的时候是否应用过滤器"
             ],
             "Whether to colorize numeric values by if they are positive or negative": [
                 "根据数值是正数还是负数来为其上色"
@@ -10355,16 +10355,16 @@
                 "是否在国家之上展示气泡"
             ],
             "Whether to display the aggregate count": [
-                "是否显示笔划"
+                "是否显示聚合计数"
             ],
             "Whether to display the interactive data table": [
-                "是否将指标名显示为标题"
+                "是否显示交互式数据表格"
             ],
             "Whether to display the labels.": [
                 "是否显示标签。"
             ],
             "Whether to display the labels. Note that the label only displays when the 5% threshold.": [
-                "是否显示标签。"
+                "是否显示标签。请注意，只有当达到5%的阈值时标签才会显示。"
             ],
             "Whether to display the legend (toggles)": [
                 "是否显示图例（切换）"
@@ -10382,19 +10382,19 @@
                 "是否在单元格内显示数值"
             ],
             "Whether to display the stroke": [
-                "是否显示笔划"
+                "是否显示边框"
             ],
             "Whether to display the time range interactive selector": [
                 "是否显示时间范围交互选择器"
             ],
             "Whether to display the timestamp": [
-                "是否显示笔划"
+                "是否显示时间戳"
             ],
             "Whether to display the tooltip labels.": [
                 "是否显示标签。"
             ],
             "Whether to display the trend line": [
-                "是否显示笔划"
+                "是否显示趋势线"
             ],
             "Whether to enable changing graph position and scaling.": [
                 "是否启用更改图形位置和缩放。"
@@ -10403,7 +10403,7 @@
                 "是否在强制布局模式下启用节点拖动。"
             ],
             "Whether to fill the objects": [
-                "是否显示标签。"
+                "是否填充对象"
             ],
             "Whether to ignore locations that are null": [
                 "是否忽略空位置"
@@ -10442,7 +10442,7 @@
                 "是否在坐标轴上显示次级刻度"
             ],
             "Whether to show the pointer": [
-                "是否显示笔划"
+                "是否显示指示器"
             ],
             "Whether to show the progress of gauge chart": [
                 "是否显示量规图进度"
@@ -10475,7 +10475,7 @@
                 "在悬停时突出显示哪些关系"
             ],
             "Whisker/outlier options": [
-                "箱须/离群值选项"
+                "异常值/离群值选项"
             ],
             "White": [
                 "白色"
@@ -10487,7 +10487,7 @@
                 "置信区间必须介于0和1（不包含1）之间"
             ],
             "Width of the sparkline": [
-                ""
+                "迷你图的宽度"
             ],
             "Window must be > 0": [
                 "窗口必须大于0"
@@ -10544,22 +10544,22 @@
                 "X轴标题"
             ],
             "X Log Scale": [
-                "X经度标度"
+                "X对数尺度"
             ],
             "X Tick Layout": [
-                "X轴记号图层"
+                "X轴刻度图层"
             ],
             "X bounds": [
                 "X界限"
             ],
             "X-Axis Sort Ascending": [
-                "升序排序"
+                "X轴升序排序"
             ],
             "X-Axis Sort By": [
-                ""
+                "X轴排序"
             ],
             "X-axis": [
-                "坐标轴"
+                "X轴"
             ],
             "XScale Interval": [
                 "X轴比例尺间隔"
@@ -10760,7 +10760,7 @@
                 "必须先成功运行查询"
             ],
             "You need to configure HTML sanitization to use CSS": [
-                ""
+                "您需要配置HTML限制以使用CSS"
             ],
             "You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the \"Update chart\" button or": [
                 "您已更新了控制面板中的值，但图表未自动更新。请点击“更新图表”按钮运行查询或"
@@ -11258,13 +11258,13 @@
                 "中位数"
             ],
             "meters": [
-                "指标"
+                "米"
             ],
             "metric": [
                 "指标"
             ],
             "min": [
-                "分钟"
+                "最小值"
             ],
             "minute": [
                 "分"
@@ -11429,16 +11429,16 @@
                 "堆叠"
             ],
             "staggered": [
-                "没有触发"
+                "错开"
             ],
             "std": [
                 "标准差"
             ],
             "step-after": [
-                "步骤之后"
+                "阶梯 - 之后"
             ],
             "step-before": [
-                "步骤之前"
+                "阶梯 - 之前"
             ],
             "stopped": [
                 "停止"
@@ -11447,7 +11447,7 @@
                 "流式"
             ],
             "string type icon": [
-                ""
+                "字符类图标"
             ],
             "success": [
                 "成功"
@@ -11456,7 +11456,7 @@
                 "成功（暗色）"
             ],
             "sum": [
-                ""
+                "求和"
             ],
             "syntax.": [
                 "语法"
@@ -11501,7 +11501,7 @@
                 "变量"
             ],
             "variance": [
-                "变量"
+                "方差"
             ],
             "view instructions": [
                 "查看指引"
@@ -11544,6 +11544,9 @@
             ],
             "Profile": [
                 "用户资料"
+            ],
+            "sign in with": [
+                "SSO"
             ]
         }
     }
