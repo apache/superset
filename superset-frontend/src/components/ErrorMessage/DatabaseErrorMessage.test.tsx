@@ -56,7 +56,14 @@ const mockedProps = {
 };
 
 test('should render', () => {
-  const { container } = render(<DatabaseErrorMessage {...mockedProps} />);
+  const nullExtraProps = {
+    ...mockedProps,
+    error: {
+      ...mockedProps.error,
+      extra: null,
+    },
+  };
+  const { container } = render(<DatabaseErrorMessage {...nullExtraProps} />);
   expect(container).toBeInTheDocument();
 });
 
