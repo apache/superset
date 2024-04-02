@@ -126,7 +126,7 @@ services:
       disable: true
 
   superset-node:
-    image: node:16
+    image: node:18
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
