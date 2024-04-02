@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { formatTimeRange, buildTimeRangeString } from './fetchTimeRange';
+import {
+  formatTimeRange,
+  buildTimeRangeString,
+} from '../../src/utils/fetchTimeRange';
 
 describe('buildTimeRangeString', () => {
   it('generates proper time range string', () => {
