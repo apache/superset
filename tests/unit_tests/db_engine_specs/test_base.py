@@ -80,7 +80,7 @@ def test_validate_db_uri(mocker: MockFixture) -> None:
 
     mocker.patch(
         "superset.db_engine_specs.base.current_app.config",
-        {"DB_ENGINE_URI_VALIDATOR": mock_validate},
+        {"DB_SQLA_URI_VALIDATOR": mock_validate},
     )
 
     from superset.db_engine_specs.base import BaseEngineSpec
