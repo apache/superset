@@ -18,10 +18,15 @@
  */
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
-import { Column, ensureIsArray, t, useChangeEffect } from '@superset-ui/core';
+import {
+  Column,
+  ensureIsArray,
+  t,
+  useChangeEffect,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { Select, FormInstance } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm } from '../types';
 

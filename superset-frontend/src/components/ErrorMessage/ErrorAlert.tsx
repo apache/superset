@@ -17,14 +17,19 @@
  * under the License.
  */
 import React, { useState, ReactNode } from 'react';
-import { styled, useTheme, t } from '@superset-ui/core';
+import {
+  ErrorLevel,
+  ErrorSource,
+  styled,
+  useTheme,
+  t,
+} from '@superset-ui/core';
 import { noOp } from 'src/utils/common';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { isCurrentUserBot } from 'src/utils/isBot';
 
 import Icons from 'src/components/Icons';
-import { ErrorLevel, ErrorSource } from './types';
 import CopyToClipboard from '../CopyToClipboard';
 
 const ErrorAlertDiv = styled.div<{ level: ErrorLevel }>`

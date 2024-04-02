@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, SupersetClientResponse, t } from '@superset-ui/core';
 import {
+  COMMON_ERR_MESSAGES,
+  JsonObject,
+  SupersetClientResponse,
+  t,
   SupersetError,
   ErrorTypeEnum,
-} from 'src/components/ErrorMessage/types';
-import COMMON_ERR_MESSAGES from './errorMessages';
+} from '@superset-ui/core';
 
 // The response always contains an error attribute, can contain anything from the
 // SupersetClientResponse object, and can contain a spread JSON blob
@@ -84,29 +86,6 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   }
 
   return { ...error, error: error.error }; // explicit ClientErrorObject
-}
-
-/*
- * Utility to get standardized error text for generic update failures
- */
-export async function getErrorText(
-  errorObject: ErrorType,
-  source: ErrorTextSource,
-) {
-  const { error, message } = await getClientErrorObject(errorObject);
-  let errorText = t('Sorry, an unknown error occurred.');
-
-  if (error) {
-    errorText = t(
-      'Sorry, there was an error saving this %s: %s',
-      source,
-      error,
-    );
-  }
-  if (typeof message === 'string' && message === 'Forbidden') {
-    errorText = t('You do not have permission to edit this %s', source);
-  }
-  return errorText;
 }
 
 export function getClientErrorObject(
@@ -201,6 +180,29 @@ export function getClientErrorObject(
       error,
     });
   });
+}
+
+/*
+ * Utility to get standardized error text for generic update failures
+ */
+export async function getErrorText(
+  errorObject: ErrorType,
+  source: ErrorTextSource,
+) {
+  const { error, message } = await getClientErrorObject(errorObject);
+  let errorText = t('Sorry, an unknown error occurred.');
+
+  if (error) {
+    errorText = t(
+      'Sorry, there was an error saving this %s: %s',
+      source,
+      error,
+    );
+  }
+  if (typeof message === 'string' && message === 'Forbidden') {
+    errorText = t('You do not have permission to edit this %s', source);
+  }
+  return errorText;
 }
 
 export function getClientErrorMessage(

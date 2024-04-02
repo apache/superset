@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { ErrorTypeEnum, getClientErrorObject } from '@superset-ui/core';
 
 describe('getClientErrorObject()', () => {
   it('Returns a Promise', () => {
