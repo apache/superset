@@ -1,21 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import 'whatwg-fetch';
 import fetchRetry from 'fetch-retry';
@@ -40,13 +23,28 @@ function tryParsePayload(payload: Payload) {
 /**
  * Try appending search params to an URL if needed.
  */
+// DODO changed
 function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
   if (params) {
+    const splitPartial = partialUrl.split('?language=');
+    let languageAddition = '';
+    if (splitPartial && splitPartial.length > 1) {
+      languageAddition = splitPartial[1];
+    }
+
     const url = new URL(partialUrl, window.location.href);
-    const search =
-      params instanceof URLSearchParams ? params : new URLSearchParams(params);
-    // will completely override any existing search params
-    url.search = search.toString();
+
+    if (languageAddition) {
+      url.searchParams.set('language', languageAddition);
+    } else {
+      const search =
+        params instanceof URLSearchParams
+          ? params
+          : new URLSearchParams(params);
+
+      // will completely override any existing search params
+      url.search = search.toString();
+    }
     return url.href;
   }
   return partialUrl;
@@ -59,6 +57,7 @@ function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
  * @param {Payload} jsonPayload json payload to post, will automatically add Content-Type header
  * @param {string} stringify whether to stringify field values when post as formData
  */
+// DODO changed
 export default async function callApi({
   body,
   cache = 'default',
@@ -76,6 +75,7 @@ export default async function callApi({
   searchParams,
 }: CallApi): Promise<Response> {
   const fetchWithRetry = fetchRetry(fetch, fetchRetryOptions);
+  // DODO changed
   const url = `${getFullUrl(url_, searchParams)}`;
 
   const request = {
