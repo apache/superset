@@ -44,10 +44,11 @@ LRU_CACHE_MAX_SIZE = 256
 
 # Used when calculating the time shift for time comparison
 class InstantTimeComparison(StrEnum):
+    CUSTOM = "c"
     INHERITED = "r"
-    YEAR = "y"
     MONTH = "m"
     WEEK = "w"
+    YEAR = "y"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods

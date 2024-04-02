@@ -26,6 +26,7 @@ from marshmallow.validate import Length, Range
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.constants import InstantTimeComparison
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
@@ -948,6 +949,14 @@ class ChartDataFilterSchema(Schema):
     )
 
 
+class InstantTimeComparisonInfoSchema(Schema):
+    range = fields.String(
+        metadata={"description": "Type of time comparison to be used"},
+        validate=validate.OneOf(choices=[ran.value for ran in InstantTimeComparison]),
+    )
+    filter = fields.Nested(ChartDataFilterSchema, allow_none=True)
+
+
 class ChartDataExtrasSchema(Schema):
     relative_start = fields.String(
         metadata={
@@ -995,6 +1004,14 @@ class ChartDataExtrasSchema(Schema):
             "description": "This is only set using the new time comparison controls "
             "that is made available in some plugins behind the experimental "
             "feature flag."
+        },
+        allow_none=True,
+    )
+    instant_time_comparison_info = fields.Nested(
+        InstantTimeComparisonInfoSchema,
+        metadata={
+            "description": "Extra parameters to use instant time comparison"
+            " with JOINs using a single query"
         },
         allow_none=True,
     )
