@@ -66,6 +66,7 @@ from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
+    CSVUploadPostSchema,
     database_schemas_query_schema,
     database_tables_query_schema,
     DatabaseConnectionSchema,
@@ -127,6 +128,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
+        "csv_upload",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -236,6 +238,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        CSVUploadPostSchema,
         DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
@@ -1233,6 +1236,54 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
         )
         command.run()
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/csv_upload/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def csv_upload(self, pk: int) -> Response:
+        """Upload a CSV file into a database.
+        ---
+        post:
+          summary: Upload a CSV file to a database table
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  $ref: '#/components/schemas/CSVUploadPostSchema'
+          responses:
+            200:
+              description: CSV upload response
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            request_form = request.form.to_dict()
+            request_form["file"] = request.files.get("file")
+            parameters = CSVUploadPostSchema().load(request_form)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
         return self.response(200, message="OK")
 
     @expose("/<int:pk>/function_names/", methods=("GET",))

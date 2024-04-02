@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  FunctionComponent,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { SupersetClient, SupersetTheme, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
@@ -33,14 +28,15 @@ import {
   AntdButton as Button,
   AsyncSelect,
   Select,
+  Typography,
 } from 'src/components';
 import { Divider, InputNumber, Switch } from 'antd';
-import { CollapsePanelProps, CollapseProps } from 'antd/lib/collapse';
 import { UploadOutlined } from '@ant-design/icons';
 import { Input } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
-import withToasts from '../../../components/MessageToasts/withToasts';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   antDModalStyles,
   antDModalNoPaddingStyles,
@@ -99,30 +95,6 @@ const defaultUploadInfo: UploadInfo = {
   column_data_types: '',
 };
 
-export interface CustomCollapsePanelProps extends CollapsePanelProps {
-  children?: React.ReactNode;
-}
-
-export interface CustomCollapseProps extends CollapseProps {
-  children?: React.ReactNode;
-}
-
-// const StyledPanel = (props: CustomCollapsePanelProps) => (
-//   <AntdCollapse.Panel
-//     css={(theme: SupersetTheme) => antdPanelStyles(theme)}
-//     {...props}
-//   />
-// );
-//
-// const StyledCollapse = (props: CustomCollapseProps) => (
-//   <Collapse
-//     expandIconPosition="right"
-//     accordion
-//     defaultActiveKey="general"
-//     css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
-//   />
-// )
-
 const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   onHide,
   show,
@@ -131,6 +103,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   // Declare states here
   const [databaseId, setDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [columns, setColumns] = React.useState<string[]>([]);
+  const [delimiter, setDelimiter] = useState<string>(',');
 
   const delimiterOptions = [
     {
@@ -170,6 +144,10 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     setDatabaseId(database?.value);
   };
 
+  const onChangeDelimiter = (value: string) => {
+    setDelimiter(value);
+  };
+
   const clearModal = () => {
     setFileList([]);
     form.resetFields();
@@ -179,12 +157,18 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     () =>
       (input = '', page: number, pageSize: number) => {
         const query = rison.encode_uri({
-          filter: {},
+          filters: [
+            {
+              col: 'allow_file_upload',
+              opr: 'eq',
+              value: true,
+            },
+          ],
           page,
           page_size: pageSize,
         });
         return SupersetClient.get({
-          endpoint: `/api/v1/database?q=${query}`,
+          endpoint: `/api/v1/database/?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { id: number; database_name: string }) => ({
@@ -204,25 +188,101 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   };
 
   const onFinish = () => {
-    const formData = form.getFieldsValue();
-    formData.database_id = databaseId;
-    const mergedValues = { ...defaultUploadInfo, ...formData };
+    const fields = form.getFieldsValue();
+    fields.database_id = databaseId;
+    const mergedValues = { ...defaultUploadInfo, ...fields };
     console.log(mergedValues);
+    const formData = new FormData();
+    const file = fileList[0]?.originFileObj;
+    if (file) {
+      formData.append('file', file);
+    }
+    formData.append('delimiter', mergedValues.delimiter);
+    formData.append('table_name', mergedValues.table_name);
+    formData.append('schema', mergedValues.schema);
+    formData.append('already_exists', mergedValues.already_exists);
+    return SupersetClient.post({
+      endpoint: `/api/v1/database/${databaseId}/csv_upload/`,
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then(() => true)
+      .catch(response =>
+        getClientErrorObject(response).then(error => {
+          if (!error.errors) {
+            console.log(error.message || error.error);
+            return false;
+          }
+          return false;
+        }),
+      )
+      .finally(() => {
+        console.log('finally');
+      });
   };
 
   const onRemoveFile = (removedFile: UploadFile) => {
     setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+    setColumns([]);
     return false;
   };
 
-  const onChangeFile = (info: UploadChangeParam) => {
+  const MultiSelectColumns = () => (
+    <Select
+      mode="multiple"
+      options={columns.map(column => ({
+        value: column,
+        label: column,
+      }))}
+      allowClear
+    />
+  );
+
+  const readFileContent = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = event => {
+        if (event.target) {
+          const text = event.target.result as string;
+          resolve(text);
+        } else {
+          reject(new Error('Failed to read file content'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file content'));
+      };
+      reader.readAsText(file.slice(0, 10000)); // Read only first 10000 bytes to get the first line
+    });
+
+  const processFileContent = async (file: File) => {
+    try {
+      const text = await readFileContent(file);
+      const firstLine = text.split('\n')[0].trim();
+      const firstRow = firstLine
+        .split(delimiter)
+        .map(column => column.replace(/^"(.*)"$/, '$1'));
+      setColumns(firstRow);
+    } catch (error) {
+      message.error('Failed to process file content');
+    }
+  };
+
+  const onChangeFile = async (info: UploadChangeParam<any>) => {
     setFileList([
       {
         ...info.file,
         status: 'done',
       },
     ]);
+    await processFileContent(info.file.originFileObj);
   };
+
+  useEffect(() => {
+    if (columns.length > 0) {
+      processFileContent(fileList[0].originFileObj);
+    }
+  }, [delimiter]);
 
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
@@ -300,6 +360,20 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   </Upload>
                 </StyledFormItem>
               </Col>
+              <Col>
+                {columns.length > 0 && (
+                  <>
+                    <Typography.Text type="success">
+                      Loaded {columns.length} column(s):
+                    </Typography.Text>
+                    {columns.map((column, index) => (
+                      <Typography.Text key={index} code type="success">
+                        {column}
+                      </Typography.Text>
+                    ))}
+                  </>
+                )}
+              </Col>
             </Row>
             <Divider orientation="left">Basic</Divider>
             <Row justify="space-between">
@@ -352,8 +426,12 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                 </p>
               </Col>
               <Col span={11}>
-                <StyledFormItem label={t('Delimiter')} name="Delimiter">
-                  <Select options={delimiterOptions} allowNewOptions />
+                <StyledFormItem label={t('Delimiter')} name="delimiter">
+                  <Select
+                    options={delimiterOptions}
+                    onChange={onChangeDelimiter}
+                    allowNewOptions
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Select a delimiter for this data')}
@@ -417,7 +495,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Columns To Be Parsed as Dates')}
                   name="column_dates"
                 >
-                  <Input type="text" />
+                  <MultiSelectColumns />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -474,7 +552,13 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col>
                 <StyledFormItem label={t('Index Column')} name="index_column">
-                  <Input type="text" />
+                  <Select
+                    options={columns.map(column => ({
+                      value: column,
+                      label: column,
+                    }))}
+                    allowClear
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -517,7 +601,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Columns To Read')}
                   name="columns_read"
                 >
-                  <Input type="text" />
+                  <MultiSelectColumns />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Json list of the column names that should be read')}

@@ -24,7 +24,7 @@ from typing import Any
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow.validate import Length, OneOf, ValidationError
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
@@ -40,6 +40,7 @@ from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.utils.backports import StrEnum
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -977,4 +978,124 @@ class DatabaseConnectionSchema(Schema):
     sqlalchemy_uri = fields.String(
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
+    )
+
+
+class TableUploadAction(StrEnum):
+    """
+    Enum for the table upload action.
+    """
+
+    FAIL = "fail"
+    REPLACE = "replace"
+    APPEND = "append"
+
+
+class CSVUploadPostSchema(Schema):
+    """
+    Schema for CSV Upload
+    """
+
+    file = fields.Raw(
+        required=True,
+        metadata={"description": "The CSV file to upload"},
+    )
+    delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
+    already_exists = fields.String(
+        required=True,
+        validate=OneOf(choices=("fail", "replace", "append")),
+        metadata={
+            "description": "What to do if the table already "
+            "exists accepts: fail, replace, append"
+        },
+    )
+    column_data_types = fields.Dict(
+        metadata={
+            "description": "A dictionary with column names and "
+            "their data types if you need to change "
+            "the defaults. Example: {'user_id':'int'}. "
+            "Check Python Pandas library for supported data types"
+        }
+    )
+    column_dates = fields.List(
+        fields.String(),
+        metadata={
+            "description": "A list of column names that should be "
+            "parsed as dates. Example: ['date', 'timestamp']"
+        },
+    )
+    column_labels = fields.String(
+        metadata={
+            "description": "Column label for index column(s). "
+            "If None is given and Dataframe"
+            "Index is checked, Index Names are used"
+        }
+    )
+    columns_read = fields.List(
+        fields.String(),
+        metadata={"description": "A List of the column names that should be read"},
+    )
+    dataframe_index = fields.String(
+        metadata={
+            "description": "Column to use as the row labels of the dataframe. "
+            "Leave empty if no index column"
+        }
+    )
+    day_first = fields.Boolean(
+        metadata={
+            "description": "DD/MM format dates, international and European format"
+        }
+    )
+    decimal_character = fields.String(
+        metadata={
+            "description": "Character to recognize as decimal point. " "Default is '.'"
+        }
+    )
+    header_row = fields.Number(
+        metadata={
+            "description": "Row containing the headers to use as column names"
+            "(0 is first line of data). Leave empty if there is no header row."
+        }
+    )
+    index_column = fields.String(
+        metadata={
+            "description": "Column to use as the row labels of the dataframe. "
+            "Leave empty if no index column"
+        }
+    )
+    null_values = fields.List(
+        fields.String(),
+        metadata={
+            "description": "A list of strings that should be treated as null. "
+            "Examples: [''] for empty strings, ['None', 'N/A'],"
+            "Warning: Hive database supports only a single value"
+        },
+    )
+    overwrite_duplicates = fields.Boolean(
+        metadata={
+            "description": "If duplicate columns are not overridden,"
+            "they will be presented as 'X.1, X.2 ...X.x'."
+        }
+    )
+    rows_to_read = fields.Number(
+        metadata={
+            "description": "Number of rows to read from the file. "
+            "If None, reads all rows."
+        }
+    )
+    schema = fields.String(
+        metadata={"description": "The schema to upload the CSV file to."}
+    )
+    skip_blank_lines = fields.Boolean(
+        metadata={"description": "Skip blank lines in the CSV file."}
+    )
+    skip_initial_space = fields.Boolean(
+        metadata={"description": "Skip spaces after delimiter."}
+    )
+    skip_rows = fields.Number(
+        metadata={"description": "Number of rows to skip at start of file."}
+    )
+    table_name = fields.String(
+        required=True,
+        metadata={"description": "The name of the table to be created/appended"},
     )
