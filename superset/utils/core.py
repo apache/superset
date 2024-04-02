@@ -902,6 +902,8 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg_mutator = config["EMAIL_HEADER_MUTATOR"]
     # the base notification returns the message without any editing.
     new_msg = msg_mutator(msg, **(header_data or {}))
+    if new_msg["To"].split(", ") != recipients:
+        recipients = new_msg["To"].split(", ")
     send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 
