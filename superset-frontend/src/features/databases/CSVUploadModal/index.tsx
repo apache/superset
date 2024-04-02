@@ -34,19 +34,19 @@ import {
   AsyncSelect,
   Select,
 } from 'src/components';
-import {
-  antDModalStyles,
-  antDModalNoPaddingStyles,
-  antdCollapseStyles,
-  StyledFormItem,
-} from './styles';
-import withToasts from '../../../components/MessageToasts/withToasts';
 import { Divider, InputNumber, Switch } from 'antd';
 import { CollapsePanelProps, CollapseProps } from 'antd/lib/collapse';
 import { UploadOutlined } from '@ant-design/icons';
 import { Input } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+import withToasts from '../../../components/MessageToasts/withToasts';
+import {
+  antDModalStyles,
+  antDModalNoPaddingStyles,
+  antdCollapseStyles,
+  StyledFormItem,
+} from './styles';
 
 interface CSVUploadModalProps {
   onHide: () => void;
@@ -353,7 +353,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
               <Col span={11}>
                 <StyledFormItem label={t('Delimiter')} name="Delimiter">
-                  <Select options={delimiterOptions} allowNewOptions={true} />
+                  <Select options={delimiterOptions} allowNewOptions />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Select a delimiter for this data')}
@@ -442,7 +442,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Decimal Character')}
                   name="decimal_character"
                 >
-                  <Input type="text" defaultValue={'.'} />
+                  <Input type="text" defaultValue="." />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Character to interpret as decimal point')}
