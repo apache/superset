@@ -126,7 +126,7 @@ flask-login==0.6.3
     #   flask-appbuilder
 flask-migrate==3.1.0
     # via apache-superset
-flask-session==0.5.0
+flask-session==0.8.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via
@@ -214,6 +214,8 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.8
     # via apache-superset
+msgspec==0.18.6
+    # via flask-session
 nh3==0.2.17
     # via apache-superset
 numba==0.57.1

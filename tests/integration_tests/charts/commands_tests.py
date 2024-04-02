@@ -173,7 +173,7 @@ class TestExportChartsCommand(SupersetTestCase):
 class TestImportChartsCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
-    def test_import_v1_chart(self, sm_g, utils_g):
+    def test_import_v1_chart(self, sm_g, utils_g) -> None:
         """Test that we can import a chart"""
         admin = sm_g.user = utils_g.user = security_manager.find_user("admin")
         contents = {
@@ -192,7 +192,7 @@ class TestImportChartsCommand(SupersetTestCase):
         assert json.loads(chart.params) == {
             "annotation_layers": [],
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
-            "datasource": dataset.uid,
+            "datasource": dataset.uid if dataset else None,
             "js_columns": ["color"],
             "js_data_mutator": "data => data.map(d => ({\\n    ...d,\\n    color: colors.hexToRGB(d.extraProps.color)\\n}));",
             "js_onclick_href": "",
@@ -228,7 +228,8 @@ class TestImportChartsCommand(SupersetTestCase):
         dataset = (
             db.session.query(SqlaTable).filter_by(uuid=dataset_config["uuid"]).one()
         )
-        assert dataset.table_name == "imported_dataset"
+        table_name = dataset.table_name if dataset else None
+        assert table_name == "imported_dataset"
         assert chart.table == dataset
 
         database = (
