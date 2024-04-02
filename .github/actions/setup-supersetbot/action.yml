@@ -21,9 +21,10 @@ runs:
 
     - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
       if: ${{ inputs.from-npm != 'true' }}
-      repository: apache-superset/supersetbot
       uses: actions/checkout@v4
-      path: supersetbot
+      with:
+        repository: apache-superset/supersetbot
+        path: supersetbot
 
     - name: Setup supersetbot from repo
       if: ${{ inputs.from-npm != 'true' }}
