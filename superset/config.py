@@ -35,7 +35,7 @@ from collections import OrderedDict
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Literal, Type, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
 
 import pkg_resources
 from celery.schedules import crontab
@@ -941,7 +941,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG: type[CeleryConfig] = CeleryConfig  # pylint: disable=invalid-name
+CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
