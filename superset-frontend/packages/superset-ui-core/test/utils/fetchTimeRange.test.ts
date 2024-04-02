@@ -17,38 +17,66 @@
  * under the License.
  */
 
+import fetchMock from 'fetch-mock';
 import {
   formatTimeRange,
   buildTimeRangeString,
+  fetchTimeRange,
 } from '../../src/utils/fetchTimeRange';
 
-describe('buildTimeRangeString', () => {
-  it('generates proper time range string', () => {
-    expect(
-      buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
-    ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
-    expect(buildTimeRangeString('', '2020-07-30T00:00:00')).toBe(
-      ' : 2020-07-30T00:00:00',
-    );
-    expect(buildTimeRangeString('', '')).toBe(' : ');
+afterEach(fetchMock.restore);
+
+it('generates proper time range string', () => {
+  expect(
+    buildTimeRangeString('2010-07-30T00:00:00', '2020-07-30T00:00:00'),
+  ).toBe('2010-07-30T00:00:00 : 2020-07-30T00:00:00');
+  expect(buildTimeRangeString('', '2020-07-30T00:00:00')).toBe(
+    ' : 2020-07-30T00:00:00',
+  );
+  expect(buildTimeRangeString('', '')).toBe(' : ');
+});
+
+it('generates a readable time range', () => {
+  expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
+  expect(formatTimeRange('No filter')).toBe('No filter');
+  expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
+    'Yesterday ≤ col < Tomorrow',
+  );
+  expect(formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00')).toBe(
+    '2010-07-30 ≤ col < 2020-07-30',
+  );
+  expect(formatTimeRange('2010-07-30T01:00:00 : ')).toBe(
+    '2010-07-30T01:00:00 ≤ col < ∞',
+  );
+  expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
+    '-∞ ≤ col < 2020-07-30',
+  );
+});
+
+it('returns a formatted time range from response', async () => {
+  fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
+    result: [
+      {
+        since: '2021-04-13T00:00:00',
+        until: '2021-04-14T00:00:00',
+        timeRange: 'Last day',
+      },
+    ],
+  });
+
+  const timeRange = await fetchTimeRange('Last day', 'temporal_col');
+  expect(timeRange).toEqual({
+    value: '2021-04-13 ≤ temporal_col < 2021-04-14',
   });
 });
 
-describe('formatTimeRange', () => {
-  it('generates a readable time range', () => {
-    expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
-    expect(formatTimeRange('No filter')).toBe('No filter');
-    expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
-      'Yesterday ≤ col < Tomorrow',
-    );
-    expect(formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00')).toBe(
-      '2010-07-30 ≤ col < 2020-07-30',
-    );
-    expect(formatTimeRange('2010-07-30T01:00:00 : ')).toBe(
-      '2010-07-30T01:00:00 ≤ col < ∞',
-    );
-    expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
-      '-∞ ≤ col < 2020-07-30',
-    );
+it('returns a formatted error message from response', async () => {
+  fetchMock.get("glob:*/api/v1/time_range/?q='Last+day'", {
+    status: 500,
+  });
+
+  const timeRange = await fetchTimeRange('Last day', 'temporal_col');
+  expect(timeRange).toEqual({
+    error: 'Internal Server Error',
   });
 });

@@ -49,14 +49,13 @@ const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
   createArrayPromise,
 );
 
+const actual = jest.requireActual('../../../src/chart/clients/ChartClient');
 // ChartClient is now a mock
-jest.mock('../../../src/chart/clients/ChartClient', () =>
-  jest.fn().mockImplementation(() => ({
-    loadDatasource: mockLoadDatasource,
-    loadFormData: mockLoadFormData,
-    loadQueryData: mockLoadQueryData,
-  })),
-);
+jest.spyOn(actual, 'default').mockImplementation(() => ({
+  loadDatasource: mockLoadDatasource,
+  loadFormData: mockLoadFormData,
+  loadQueryData: mockLoadQueryData,
+}));
 
 const ChartClientMock = ChartClient as jest.Mock<ChartClient>;
 
