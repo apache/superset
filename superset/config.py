@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+# mypy: ignore-errors
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
@@ -940,7 +941,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
+CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -1474,7 +1475,6 @@ SESSION_SERVER_SIDE = False
 # from flask_session import RedisSessionInterface
 #
 # SESSION_SERVER_SIDE = True
-# SESSION_USE_SIGNER = True
 # SESSION_TYPE = "redis"
 # SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
 #
@@ -1704,7 +1704,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *  # noqa: F403, F401
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
