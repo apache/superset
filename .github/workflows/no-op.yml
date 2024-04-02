@@ -45,7 +45,7 @@ jobs:
   python-lint:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for python-lint
@@ -55,7 +55,7 @@ jobs:
   test-postgres-hive:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
@@ -65,7 +65,7 @@ jobs:
   test-postgres-presto:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
@@ -75,7 +75,7 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
