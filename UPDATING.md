@@ -35,6 +35,9 @@ assists people when migrating to a new version.
   files for production use cases! While we never really supported
   or should have tried to support docker-compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
+- [24112](https://github.com/apache/superset/pull/24112): Python 3.10 is now the recommended python version to use, 3.9 still
+  supported but getting deprecated in the nearish future. CI/CD runs on py310 so you probably want to align. If you
+  use official dockers, upgrade should happen automatically.
 - [27697](https://github.com/apache/superset/pull/27697) [minor] flask-session bump leads to them
   deprecating `SESSION_USE_SIGNER`, check your configs as this flag won't do anything moving
   forward.

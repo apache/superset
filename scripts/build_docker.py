@@ -25,7 +25,7 @@ import click
 
 REPO = "apache/superset"
 CACHE_REPO = f"{REPO}-cache"
-BASE_PY_IMAGE = "3.9-slim-bookworm"
+BASE_PY_IMAGE = "3.10-slim-bookworm"
 
 
 def run_cmd(command: str, raise_on_failure: bool = True) -> str:
@@ -149,9 +149,9 @@ def get_docker_command(
         build_target = "dev"
     elif build_preset == "lean":
         build_target = "lean"
-    elif build_preset == "py310":
+    elif build_preset == "py311":
         build_target = "lean"
-        py_ver = "3.10-slim-bookworm"
+        py_ver = "3.11-slim-bookworm"
     elif build_preset == "websocket":
         build_target = ""
         docker_context = "superset-websocket"
@@ -217,7 +217,7 @@ def get_docker_command(
 @click.command()
 @click.argument(
     "build_preset",
-    type=click.Choice(["lean", "dev", "dockerize", "websocket", "py310", "ci"]),
+    type=click.Choice(["lean", "dev", "dockerize", "websocket", "py311", "ci"]),
 )
 @click.argument("build_context", type=click.Choice(["push", "pull_request", "release"]))
 @click.option(

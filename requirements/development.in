@@ -36,7 +36,7 @@ pylint
 pytest
 pytest-cov
 pytest-mock
-python-ldap>=3.4.3
+python-ldap>=3.4.4
 sqloxide
 statsd
 tox
