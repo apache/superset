@@ -24,13 +24,13 @@ jobs:
       checks: write
     steps:
 
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
-
-      - name: "Checkout `master` ( ${{ github.sha }} )"
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
-          ref: master
+          persist-credentials: false
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
 
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5

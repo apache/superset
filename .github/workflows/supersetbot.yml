@@ -32,6 +32,11 @@ jobs:
               content: '+1'
             });
 
+      - name: "Checkout `master` ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
         with:

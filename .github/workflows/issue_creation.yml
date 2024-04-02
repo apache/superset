@@ -11,10 +11,11 @@ jobs:
   superbot-orglabel:
     runs-on: ubuntu-latest
     steps:
-      - name: Execute SupersetBot Command
-        uses: actions/setup-node@v4
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
         with:
-          node-version: '20'
+          persist-credentials: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
