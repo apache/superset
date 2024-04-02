@@ -59,7 +59,11 @@ import {
 } from '@ant-design/icons';
 
 import { isEmpty } from 'lodash';
-import { DataColumnMeta, TableChartTransformedProps } from './types';
+import {
+  ColorSchemeEnum,
+  DataColumnMeta,
+  TableChartTransformedProps,
+} from './types';
 import DataTable, {
   DataTableProps,
   SearchInputProps,
@@ -250,6 +254,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     isUsingTimeComparison,
+    basicColorFormatters,
+    basicColorColumnFormatters,
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -693,7 +699,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Array.isArray(columnColorFormatters) &&
         columnColorFormatters.length > 0;
 
+      const hasBasicColorFormatters =
+        isUsingTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
+
       const valueRange =
+        !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
@@ -727,6 +739,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
+          let arrow = '';
+          const originKey = column.key.substring(column.label.length).trim();
+          if (!hasColumnColorFormatters && hasBasicColorFormatters) {
+            backgroundColor =
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                : '';
+          }
+
           if (hasColumnColorFormatters) {
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
@@ -739,6 +762,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   backgroundColor = formatterResult;
                 }
               });
+          }
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
+            arrow =
+              column.label === comparisonLabels[0]
+                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                : '';
           }
 
           const StyledCell = styled.td`
@@ -771,6 +807,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 })};
               `}
           `;
+
+          let arrowStyles = css`
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
+              ColorSchemeEnum.Green
+              ? theme.colors.success.base
+              : theme.colors.error.base};
+            margin-right: ${theme.gridUnit}px;
+          `;
+
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            arrowStyles = css`
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colors.success.base
+                : theme.colors.error.base};
+              margin-right: ${theme.gridUnit}px;
+            `;
+          }
 
           const cellProps = {
             'aria-labelledby': `header-${column.key}`,
@@ -841,10 +899,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
-                text
+                <>
+                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {text}
+                </>
               )}
             </StyledCell>
           );
