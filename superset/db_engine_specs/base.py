@@ -1956,6 +1956,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
+        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
+            db_engine_uri_validator(sqlalchemy_uri)
+
         if existing_disallowed := cls.disallow_uri_query_params.get(
             sqlalchemy_uri.get_driver_name(), set()
         ).intersection(sqlalchemy_uri.query):
