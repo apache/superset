@@ -55,6 +55,7 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 
@@ -435,6 +436,26 @@ class Header extends React.PureComponent {
     this.setState({ showingEmbedModal: false });
   };
 
+  getMetadataItems = () => {
+    const { dashboardInfo } = this.props;
+    return [
+      {
+        type: MetadataType.LastModified,
+        value: dashboardInfo.changed_on_delta_humanized,
+        modifiedBy: dashboardInfo.changed_by_name || t('Not available'),
+      },
+      {
+        type: MetadataType.Owner,
+        createdBy: dashboardInfo.created_by_name || t('Not available'),
+        owners:
+          dashboardInfo.owners_by_name.length > 0
+            ? dashboardInfo.owners_by_name
+            : t('None'),
+        createdOn: dashboardInfo.created_on_delta_humanized,
+      },
+    ];
+  };
+
   render() {
     const {
       dashboardTitle,
@@ -533,6 +554,12 @@ class Header extends React.PureComponent {
                 canEdit={userCanEdit}
                 canSave={userCanSaveAs}
                 visible={!editMode}
+              />
+            ),
+            !editMode && (
+              <MetadataBar
+                items={this.getMetadataItems()}
+                tooltipPlacement="bottom"
               />
             ),
           ]}

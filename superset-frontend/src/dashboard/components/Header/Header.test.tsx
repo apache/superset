@@ -44,6 +44,11 @@ const createProps = () => ({
         ],
       },
     },
+    changed_on_delta_humanized: '7 minutes ago',
+    changed_by_name: 'John Doe',
+    created_on_delta_humanized: '10 days ago',
+    created_by_name: 'Kay Mon',
+    owners_by_name: ['John Doe'],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -185,6 +190,17 @@ test('should publish', () => {
   expect(mockedProps.savePublished).toHaveBeenCalledTimes(0);
   userEvent.click(draft);
   expect(mockedProps.savePublished).toHaveBeenCalledTimes(1);
+});
+
+test('should render metadata', () => {
+  const mockedProps = createProps();
+  setup(mockedProps);
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.created_by_name),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).toBeInTheDocument();
 });
 
 test('should render the "Undo" action as disabled', () => {
