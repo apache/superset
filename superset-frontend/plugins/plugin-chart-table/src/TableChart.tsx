@@ -699,7 +699,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         columnColorFormatters.length > 0;
 
       const hasBasicColorFormatters =
-        Array.isArray(basicColorFormatters) && basicColorFormatters.length > 0;
+        enableTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
 
       const valueRange =
         !hasBasicColorFormatters &&

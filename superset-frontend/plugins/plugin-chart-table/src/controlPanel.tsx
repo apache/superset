@@ -628,7 +628,8 @@ const config: ControlPanelConfig = {
                 [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
               ],
               visibility: ({ controls }) =>
-                controls?.comparison_color_enabled?.value === true,
+                Boolean(controls?.enable_time_comparison?.value) &&
+                Boolean(controls?.comparison_color_enabled?.value),
               description: t(
                 'Adds color to the chart symbols based on the positive or ' +
                   'negative change from the comparison value.',
