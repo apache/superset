@@ -50,7 +50,7 @@ dill==0.3.6
     # via pylint
 distlib==0.3.6
     # via virtualenv
-docker==6.1.1
+docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
@@ -298,8 +298,6 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-websocket-client==1.5.1
-    # via docker
 wheel==0.40.0
     # via pip-tools
 xlrd==2.0.1
