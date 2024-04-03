@@ -18,6 +18,7 @@
  */
 import { FormItem } from 'src/components/Form';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
+import errorIcon from '../../../assets/images/icons/error.svg';
 
 const MODAL_BODY_HEIGHT = 180.5;
 const anticonHeight = 12;
@@ -26,16 +27,16 @@ export const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
-export const StyledDiv = styled.div`
-  padding-top: 8px;
-  padding-left: 8px;
-  padding-right: 8px;
-  width: 100%;
-  label {
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    text-transform: uppercase;
-  }
-`;
+// export const StyledDiv = styled.div`
+//   padding-top: 8px;
+//   padding-left: 8px;
+//   padding-right: 8px;
+//   width: 100%;
+//   label {
+//     color: ${({ theme }) => theme.colors.grayscale.base};
+//     text-transform: uppercase;
+//   }
+// `;
 
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-header {
@@ -68,10 +69,6 @@ export const antDModalNoPaddingStyles = css`
 `;
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
-  .ant-select-dropdown {
-    height: ${theme.gridUnit * 40}px;
-  }
-
   .ant-modal-header {
     padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
       ${theme.gridUnit * 4}px;

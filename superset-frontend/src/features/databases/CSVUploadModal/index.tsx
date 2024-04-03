@@ -30,9 +30,9 @@ import {
   Select,
   Typography,
 } from 'src/components';
-import { Divider, InputNumber, Switch } from 'antd';
+import { Divider, Switch } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
-import { Input } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -59,15 +59,15 @@ interface UploadInfo {
   skip_blank_lines: boolean;
   day_first: boolean;
   decimal_character: string;
-  null_values: string;
+  null_values: Array<string>;
   header_row: string;
-  rows_to_read: string;
+  rows_to_read: string | null;
   skip_rows: string;
-  column_dates: string;
-  index_column: string;
+  column_dates: Array<string>;
+  index_column: string | null;
   dataframe_index: boolean;
   column_labels: string;
-  columns_read: string;
+  columns_read: Array<string>;
   overwrite_duplicates: boolean;
   column_data_types: string;
 }
@@ -82,15 +82,15 @@ const defaultUploadInfo: UploadInfo = {
   skip_blank_lines: false,
   day_first: false,
   decimal_character: '.',
-  null_values: '',
+  null_values: [],
   header_row: '0',
-  rows_to_read: '0',
+  rows_to_read: null,
   skip_rows: '0',
-  column_dates: '',
-  index_column: '',
+  column_dates: [],
+  index_column: null,
   dataframe_index: false,
   column_labels: '',
-  columns_read: '',
+  columns_read: [],
   overwrite_duplicates: false,
   column_data_types: '',
 };
@@ -105,6 +105,29 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = React.useState<string[]>([]);
   const [delimiter, setDelimiter] = useState<string>(',');
+
+  const nullValuesOptions = [
+    {
+      value: '""',
+      label: 'Empty Strings ""',
+    },
+    {
+      value: 'None',
+      label: 'None',
+    },
+    {
+      value: 'nan',
+      label: 'nan',
+    },
+    {
+      value: 'null',
+      label: 'null',
+    },
+    {
+      value: 'N/A',
+      label: 'N/A',
+    },
+  ];
 
   const delimiterOptions = [
     {
@@ -189,6 +212,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 
   const onFinish = () => {
     const fields = form.getFieldsValue();
+    console.log(fields);
     fields.database_id = databaseId;
     const mergedValues = { ...defaultUploadInfo, ...fields };
     console.log(mergedValues);
@@ -201,6 +225,25 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     formData.append('table_name', mergedValues.table_name);
     formData.append('schema', mergedValues.schema);
     formData.append('already_exists', mergedValues.already_exists);
+    formData.append('skip_initial_space', mergedValues.skip_initial_space);
+    formData.append('skip_blank_lines', mergedValues.skip_blank_lines);
+    formData.append('day_first', mergedValues.day_first);
+    formData.append('decimal_character', mergedValues.decimal_character);
+    formData.append('null_values', mergedValues.null_values);
+    formData.append('header_row', mergedValues.header_row);
+    if (mergedValues.rows_to_read != null) {
+      formData.append('rows_to_read', mergedValues.rows_to_read);
+    }
+    formData.append('skip_rows', mergedValues.skip_rows);
+    formData.append('column_dates', mergedValues.column_dates);
+    if (mergedValues.index_column != null) {
+      formData.append('index_column', mergedValues.index_column);
+    }
+    formData.append('dataframe_index', mergedValues.dataframe_index);
+    formData.append('column_labels', mergedValues.column_labels);
+    formData.append('columns_read', mergedValues.columns_read);
+    formData.append('overwrite_duplicates', mergedValues.overwrite_duplicates);
+    formData.append('column_data_types', mergedValues.column_data_types);
     return SupersetClient.post({
       endpoint: `/api/v1/database/${databaseId}/csv_upload/`,
       body: formData,
@@ -227,16 +270,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     return false;
   };
 
-  const MultiSelectColumns = () => (
-    <Select
-      mode="multiple"
-      options={columns.map(column => ({
-        value: column,
-        label: column,
-      }))}
-      allowClear
-    />
-  );
+  const columnsToOptions = () =>
+    columns.map(column => ({
+      value: column,
+      label: column,
+    }));
 
   const readFileContent = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -451,7 +489,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="2"
           >
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('If Table Already Exists')}
                   name="already_exists"
@@ -464,7 +502,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Skip Initial Space')}
                   name="skip_initial_space"
@@ -475,7 +513,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Skip Blank Lines')}
                   name="skip_blank_lines"
@@ -490,12 +528,17 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Columns To Be Parsed as Dates')}
                   name="column_dates"
                 >
-                  <MultiSelectColumns />
+                  <Select
+                    mode="multiple"
+                    options={columnsToOptions()}
+                    allowClear
+                    allowNewOptions
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -505,7 +548,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Day First')} name="day_first">
                   <Switch />
                 </StyledFormItem>
@@ -515,7 +558,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Decimal Character')}
                   name="decimal_character"
@@ -528,9 +571,14 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Null Values')} name="null_values">
-                  <Input type="text" />
+                  <Select
+                    mode="multiple"
+                    options={nullValuesOptions}
+                    allowClear
+                    allowNewOptions
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -550,7 +598,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="3"
           >
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Index Column')} name="index_column">
                   <Select
                     options={columns.map(column => ({
@@ -558,6 +606,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                       label: column,
                     }))}
                     allowClear
+                    allowNewOptions
                   />
                 </StyledFormItem>
                 <p className="help-block">
@@ -568,7 +617,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Dataframe Index')}
                   name="dataframe_index"
@@ -581,7 +630,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Column Label(s)')}
                   name="column_labels"
@@ -596,20 +645,25 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Columns To Read')}
                   name="columns_read"
                 >
-                  <MultiSelectColumns />
+                  <Select
+                    mode="multiple"
+                    options={columnsToOptions()}
+                    allowClear
+                    allowNewOptions
+                  />
                 </StyledFormItem>
                 <p className="help-block">
-                  {t('Json list of the column names that should be read')}
+                  {t('List of the column names that should be read')}
                 </p>
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Overwrite Duplicate Columns')}
                   name="overwrite_duplicates"
@@ -624,7 +678,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Column Data Types')}
                   name="column_data_types"
@@ -649,7 +703,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="4"
           >
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Header Row')} name="header_row">
                   <Input type="text" defaultValue={0} />
                 </StyledFormItem>
@@ -661,7 +715,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Rows to Read')} name="rows_to_read">
                   <InputNumber min={0} />
                 </StyledFormItem>
@@ -671,7 +725,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               </Col>
             </Row>
             <Row>
-              <Col>
+              <Col span={24}>
                 <StyledFormItem label={t('Skip Rows')} name="skip_rows">
                   <InputNumber min={0} />
                 </StyledFormItem>

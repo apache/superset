@@ -31,6 +31,7 @@ from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
@@ -1282,6 +1283,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
+            logger.info(parameters)
+            CSVImportCommand(
+                pk,
+                parameters["table_name"],
+                parameters["schema"],
+                parameters["file"],
+                parameters,
+            ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
         return self.response(200, message="OK")

@@ -89,7 +89,18 @@ class DatabaseExtraValidationError(ValidationError):
 
 
 class DatabaseNotFoundError(CommandException):
+    status = 404
     message = _("Database not found.")
+
+
+class DatabaseSchemaUploadNotAllowed(CommandException):
+    status = 403
+    message = _("Database schema is not allowed for csv uploads.")
+
+
+class DatabaseUploadFailed(CommandException):
+    status = 422
+    message = _("Database upload file failed")
 
 
 class DatabaseCreateFailedError(CreateFailedError):

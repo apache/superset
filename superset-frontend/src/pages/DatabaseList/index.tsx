@@ -571,7 +571,9 @@ function DatabaseList({
         }}
       />
       <CSVUploadModal
-        onHide={setCsvUploadModalOpen(false)}
+        onHide={() => {
+          setCsvUploadModalOpen(false);
+        }}
         show={csvUploadModalOpen}
       />
       {databaseCurrentlyDeleting && (

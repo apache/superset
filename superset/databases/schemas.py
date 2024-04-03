@@ -981,14 +981,20 @@ class DatabaseConnectionSchema(Schema):
     )
 
 
-class TableUploadAction(StrEnum):
-    """
-    Enum for the table upload action.
-    """
-
-    FAIL = "fail"
-    REPLACE = "replace"
-    APPEND = "append"
+class DelimitedListField(fields.List):
+    def _deserialize(
+        self, value: str, attr: Any, data: Any, **kwargs: Any
+    ) -> list[Any]:
+        try:
+            if value:
+                values = value.split(",")
+            else:
+                values = []
+            return super()._deserialize(values, attr, data, **kwargs)
+        except AttributeError:
+            raise ValidationError(
+                f"{attr} is not a delimited list it has a non string value {value}."
+            )
 
 
 class CSVUploadPostSchema(Schema):
@@ -1009,7 +1015,7 @@ class CSVUploadPostSchema(Schema):
             "exists accepts: fail, replace, append"
         },
     )
-    column_data_types = fields.Dict(
+    column_data_types = fields.String(
         metadata={
             "description": "A dictionary with column names and "
             "their data types if you need to change "
@@ -1017,7 +1023,7 @@ class CSVUploadPostSchema(Schema):
             "Check Python Pandas library for supported data types"
         }
     )
-    column_dates = fields.List(
+    column_dates = DelimitedListField(
         fields.String(),
         metadata={
             "description": "A list of column names that should be "
@@ -1031,7 +1037,7 @@ class CSVUploadPostSchema(Schema):
             "Index is checked, Index Names are used"
         }
     )
-    columns_read = fields.List(
+    columns_read = DelimitedListField(
         fields.String(),
         metadata={"description": "A List of the column names that should be read"},
     )
@@ -1048,10 +1054,10 @@ class CSVUploadPostSchema(Schema):
     )
     decimal_character = fields.String(
         metadata={
-            "description": "Character to recognize as decimal point. " "Default is '.'"
+            "description": "Character to recognize as decimal point. Default is '.'"
         }
     )
-    header_row = fields.Number(
+    header_row = fields.Integer(
         metadata={
             "description": "Row containing the headers to use as column names"
             "(0 is first line of data). Leave empty if there is no header row."
@@ -1063,11 +1069,11 @@ class CSVUploadPostSchema(Schema):
             "Leave empty if no index column"
         }
     )
-    null_values = fields.List(
+    null_values = DelimitedListField(
         fields.String(),
         metadata={
             "description": "A list of strings that should be treated as null. "
-            "Examples: [''] for empty strings, ['None', 'N/A'],"
+            "Examples: '' for empty strings, 'None', 'N/A',"
             "Warning: Hive database supports only a single value"
         },
     )
@@ -1077,7 +1083,7 @@ class CSVUploadPostSchema(Schema):
             "they will be presented as 'X.1, X.2 ...X.x'."
         }
     )
-    rows_to_read = fields.Number(
+    rows_to_read = fields.Integer(
         metadata={
             "description": "Number of rows to read from the file. "
             "If None, reads all rows."
@@ -1092,7 +1098,7 @@ class CSVUploadPostSchema(Schema):
     skip_initial_space = fields.Boolean(
         metadata={"description": "Skip spaces after delimiter."}
     )
-    skip_rows = fields.Number(
+    skip_rows = fields.Integer(
         metadata={"description": "Number of rows to skip at start of file."}
     )
     table_name = fields.String(
