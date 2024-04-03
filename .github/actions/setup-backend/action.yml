@@ -4,7 +4,7 @@ inputs:
   python-version:
     description: 'Python version to set up.'
     required: true
-    default: '3.9'
+    default: '3.10'
   cache:
     description: 'Cache dependencies. Options: pip'
     required: false

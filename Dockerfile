@@ -18,11 +18,11 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.9-slim-bookworm
+ARG PY_VER=3.10-slim-bookworm
 
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-FROM --platform=${BUILDPLATFORM} node:16-bookworm-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
@@ -119,6 +119,7 @@ RUN apt-get update -qq \
         libasound2 \
         libxtst6 \
         wget \
+        pkg-config \
     # Install GeckoDriver WebDriver
     && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
     # Install Firefox

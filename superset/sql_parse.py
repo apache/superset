@@ -1548,7 +1548,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             tables.add(
                 Table(
                     *[
-                        remove_quotes(part)
+                        remove_quotes(part.strip())
                         for part in node.args[0].value.split(".")[::-1]
                         if len(node.args) == 1
                     ]

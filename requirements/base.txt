@@ -84,6 +84,7 @@ cryptography==42.0.5
     # via
     #   apache-superset
     #   paramiko
+    #   pyopenssl
 deprecated==1.2.13
     # via limits
 deprecation==2.1.0
@@ -126,7 +127,7 @@ flask-login==0.6.3
     #   flask-appbuilder
 flask-migrate==3.1.0
     # via apache-superset
-flask-session==0.5.0
+flask-session==0.8.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via
@@ -214,6 +215,8 @@ mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.8
     # via apache-superset
+msgspec==0.18.6
+    # via flask-session
 nh3==0.2.17
     # via apache-superset
 numba==0.57.1
@@ -278,6 +281,8 @@ pyjwt==2.8.0
     #   flask-jwt-extended
 pynacl==1.5.0
     # via paramiko
+pyopenssl==24.1.0
+    # via shillelagh
 pyparsing==3.1.2
     # via apache-superset
 pyrsistent==0.20.0
@@ -319,11 +324,11 @@ rsa==4.9
     # via google-auth
 selenium==3.141.0
     # via apache-superset
-shillelagh[gsheetsapi]==1.2.10
+shillelagh[gsheetsapi]==1.2.18
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
-simplejson==3.17.3
+simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via

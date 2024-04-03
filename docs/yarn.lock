@@ -176,10 +176,10 @@
     classnames "^2.2.6"
     rc-util "^5.9.4"
 
-"@ant-design/icons@^5.3.1":
-  version "5.3.1"
-  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-5.3.1.tgz#908eda82cbd455b83b30d620947ab8fbf2f4c5da"
-  integrity sha512-85zROTJCCApQn0Ee6L9561+Vd7yVKtSWNm2TpmOsYMrumchbzaRK83x1WWHv2VG+Y1ZAaKkDwcnnSPS/eSwNHA==
+"@ant-design/icons@^5.3.6":
+  version "5.3.6"
+  resolved "https://registry.yarnpkg.com/@ant-design/icons/-/icons-5.3.6.tgz#172bbcfcfa39f9a1d9ef73ad5cf98c6184fb83f8"
+  integrity sha512-JeWsgNjvkTTC73YDPgWOgdScRku/iHN9JU0qk39OSEmJSCiRghQMLlxGTCY5ovbRRoXjxHXnUKgQEgBDnQfKmA==
   dependencies:
     "@ant-design/colors" "^7.0.0"
     "@ant-design/icons-svg" "^4.4.0"
@@ -1790,13 +1790,13 @@
     react-helmet-async "*"
     react-loadable "npm:@docusaurus/react-loadable@5.5.2"
 
-"@docusaurus/module-type-aliases@^3.1.1":
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-3.1.1.tgz#b304402b0535a13ebd4c0db1c368d2604d54d02f"
-  integrity sha512-xBJyx0TMfAfVZ9ZeIOb1awdXgR4YJMocIEzTps91rq+hJDFJgJaylDtmoRhUxkwuYmNK1GJpW95b7DLztSBJ3A==
+"@docusaurus/module-type-aliases@^3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-3.2.0.tgz#ef883d8418f37e551eca72adc409014e720786d4"
+  integrity sha512-jRSp9YkvBwwNz6Xgy0RJPsnie+Ebb//gy7GdbkJ2pW2gvvlYKGib2+jSF0pfIzvyZLulfCynS1KQdvDKdSl8zQ==
   dependencies:
     "@docusaurus/react-loadable" "5.5.2"
-    "@docusaurus/types" "3.1.1"
+    "@docusaurus/types" "3.2.0"
     "@types/history" "^4.7.11"
     "@types/react" "*"
     "@types/react-router-config" "*"
@@ -2058,10 +2058,10 @@
     webpack "^5.73.0"
     webpack-merge "^5.8.0"
 
-"@docusaurus/types@3.1.1":
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/@docusaurus/types/-/types-3.1.1.tgz#747c9dee8cf7c3b0e5ee7351bac5e9c4fdc7f259"
-  integrity sha512-grBqOLnubUecgKFXN9q3uit2HFbCxTWX4Fam3ZFbMN0sWX9wOcDoA7lwdX/8AmeL20Oc4kQvWVgNrsT8bKRvzg==
+"@docusaurus/types@3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@docusaurus/types/-/types-3.2.0.tgz#c5bfd000ad4f72e9a7e6beff79905f9ea165fcd3"
+  integrity sha512-uG3FfTkkkbZIPPNYx6xRfZHKeGyRd/inIT1cqvYt1FobFLd+7WhRXrSBqwJ9JajJjEAjNioRMVFgGofGf/Wdww==
   dependencies:
     "@mdx-js/mdx" "^3.0.0"
     "@types/history" "^4.7.11"
@@ -2700,10 +2700,10 @@
   resolved "https://registry.npmjs.org/@trysound/sax/-/sax-0.2.0.tgz"
   integrity sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==
 
-"@tsconfig/docusaurus@^2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@tsconfig/docusaurus/-/docusaurus-2.0.2.tgz#f96c7453ce9969ef938284eac74441e2d646efd7"
-  integrity sha512-12HWfYmgUl4M2o76/TFufGtI68wl2k/b8qPrIrG7ci9YJLrpAtadpy897Bz5v29Mlkr7a1Hq4KHdQTKtU+2rhQ==
+"@tsconfig/docusaurus@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@tsconfig/docusaurus/-/docusaurus-2.0.3.tgz#08a4a65e038a499fc4154ce32b538913d9f3c90d"
+  integrity sha512-3l1L5PzWVa7l0691TjnsZ0yOIEwG9DziSqu5IPZPlI5Dowi7z42cEym8Y35GHbgHvPcBfNxfrbxm7Cncn4nByQ==
 
 "@types/acorn@^4.0.0":
   version "4.0.6"
@@ -10113,10 +10113,10 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
-typescript@^5.3.3:
-  version "5.3.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.3.3.tgz#b3ce6ba258e72e6305ba66f5c9b452aaee3ffe37"
-  integrity sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==
+typescript@^5.4.3:
+  version "5.4.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.4.3.tgz#5c6fedd4c87bee01cd7a528a30145521f8e0feff"
+  integrity sha512-KrPd3PKaCLr78MalgiwJnA25Nm8HAmdwN3mYUYZgG/wizIo9EainNVQI9/yDavtVFRN2h3k8uf3GLHuhDMgEHg==
 
 ua-parser-js@^0.7.30:
   version "0.7.33"
