@@ -16,6 +16,9 @@ concurrency:
 
 jobs:
   update-lock-file:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     if: >
       (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]') ||
@@ -39,6 +42,8 @@ jobs:
           npm install
 
       - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub-Actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
