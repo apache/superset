@@ -131,8 +131,9 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     )
 
     try:
-        column_description = get_columns_description(dataset.database, dataset.schema,
-                                                     statements[0])
+        column_description = get_columns_description(
+            dataset.database, dataset.schema, statements[0]
+        )
         return column_description
 
     except SupersetGenericDBErrorException as ex:
