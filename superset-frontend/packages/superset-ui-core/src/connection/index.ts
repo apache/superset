@@ -23,5 +23,4 @@ export { default as SupersetClientClass } from './SupersetClientClass';
 
 export * from './types';
 export * from './constants';
-export * from './getClientErrorObject';
 export { default as __hack_reexport_connection } from './types';

@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { COMMON_ERR_MESSAGES } from '@superset-ui/core';
 import {
+  COMMON_ERR_MESSAGES,
   getClientErrorMessage,
   getClientErrorObject,
   getErrorText,
   parseErrorJson,
-} from '../../src/connection/getClientErrorObject';
-import { ErrorTypeEnum } from '../../src/query/types/Query';
+  ErrorTypeEnum,
+} from '@superset-ui/core';
 
 it('Returns a Promise', () => {
   const response = getClientErrorObject('error');
