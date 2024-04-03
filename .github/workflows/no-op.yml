@@ -45,7 +45,7 @@ jobs:
   python-lint:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for python-lint
@@ -55,7 +55,7 @@ jobs:
   test-postgres-hive:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
@@ -65,7 +65,7 @@ jobs:
   test-postgres-presto:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
@@ -75,10 +75,40 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
         run: |
           echo "This is a no-op step for unit-tests to ensure a successful status when skipped."
+          exit 0
+  test-mysql:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-mysql
+        run: |
+          echo "This is a no-op step for test-mysql to ensure a successful status when skipped."
+          exit 0
+  test-postgres:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-postgres
+        run: |
+          echo "This is a no-op step for test-postgres to ensure a successful status when skipped."
+          exit 0
+  test-sqlite:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-sqlite
+        run: |
+          echo "This is a no-op step for test-sqlite to ensure a successful status when skipped."
           exit 0

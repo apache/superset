@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.10", "3.11"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config

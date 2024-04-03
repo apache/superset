@@ -69,9 +69,7 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         thumbnail,
         tags: [
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('ECharts'),
-          t('Experimental'),
           t('Line'),
           t('Multi-Variables'),
           t('Time'),

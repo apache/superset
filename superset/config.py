@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+# mypy: ignore-errors
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
@@ -43,6 +44,7 @@ from flask_appbuilder.security.manager import AUTH_DB
 from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
@@ -288,8 +290,10 @@ APP_NAME = "Superset"
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user
-# e.g. setting it to '/' would take the user to '/superset/welcome/'
+# Specify where clicking the logo would take the user'
+# Default value of None will take you to '/superset/welcome'
+# You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
+# or you can specify a full URL e.g. 'https://foo.bar'
 LOGO_TARGET_PATH = None
 
 # Specify tooltip that should appear when hovering over the App Icon/Logo
@@ -938,7 +942,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     }
 
 
-CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
+CELERY_CONFIG: type[CeleryConfig] = CeleryConfig
 
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
@@ -1204,6 +1208,17 @@ DASHBOARD_TEMPLATE_ID = None
 DB_CONNECTION_MUTATOR = None
 
 
+# A callable that is invoked for every invocation of DB Engine Specs
+# which allows for custom validation of the engine URI.
+# See: superset.db_engine_specs.base.BaseEngineSpec.validate_database_uri
+# Example:
+#   def DB_ENGINE_URI_VALIDATOR(sqlalchemy_uri: URL):
+#       if not <some condition>:
+#           raise Exception("URI invalid")
+#
+DB_SQLA_URI_VALIDATOR: Callable[[URL], None] | None = None
+
+
 # A function that intercepts the SQL to be executed and can alter it.
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
@@ -1392,6 +1407,25 @@ PREFERRED_DATABASES: list[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
+# Details needed for databases that allows user to authenticate using personal
+# OAuth2 tokens. See https://github.com/apache/superset/issues/20300 for more
+# information
+DATABASE_OAUTH2_CREDENTIALS: dict[str, dict[str, Any]] = {
+    # "Google Sheets": {
+    #    "CLIENT_ID": "XXX.apps.googleusercontent.com",
+    #    "CLIENT_SECRET": "GOCSPX-YYY",
+    #    "BASEURL": "https://accounts.google.com/o/oauth2/v2/auth",
+    # },
+}
+# OAuth2 state is encoded in a JWT using the alogorithm below.
+DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+# By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
+# specified. If you're running multiple Superset instances you might want to have a
+# proxy handling the redirects, since redirect URIs need to be registered in the OAuth2
+# applications. In that case, the proxy can forward the request to the correct instance
+# by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
+# DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 
@@ -1472,7 +1506,6 @@ SESSION_SERVER_SIDE = False
 # from flask_session import RedisSessionInterface
 #
 # SESSION_SERVER_SIDE = True
-# SESSION_USE_SIGNER = True
 # SESSION_TYPE = "redis"
 # SESSION_REDIS = Redis(host="localhost", port=6379, db=0)
 #
@@ -1702,7 +1735,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type: ignore
+        from superset_config import *  # noqa: F403, F401
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

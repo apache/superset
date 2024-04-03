@@ -36,13 +36,14 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import escape, g, Markup
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
@@ -583,6 +584,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
 class ExtraJSONMixin:

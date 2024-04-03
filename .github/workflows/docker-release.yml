@@ -51,11 +51,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Setup Node Env
-        uses: actions/setup-node@v4
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
         with:
-          node-version: '20'
-      - run: npm install -g supersetbot
+          persist-credentials: false
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
       - name: Execute custom Node.js script
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}

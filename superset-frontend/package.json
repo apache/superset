@@ -266,6 +266,7 @@
     "@types/react-table": "^7.7.19",
     "@types/react-transition-group": "^4.4.10",
     "@types/react-ultimate-pagination": "^1.2.0",
+    "@types/react-virtualized-auto-sizer": "^1.0.4",
     "@types/react-window": "^1.8.5",
     "@types/redux-localstorage": "^1.0.8",
     "@types/redux-mock-store": "^1.0.2",
@@ -330,7 +331,7 @@
     "prettier-plugin-packagejson": "^2.4.10",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
-    "react-test-renderer": "^16.9.0",
+    "react-test-renderer": "^16.14.0",
     "redux-mock-store": "^1.5.4",
     "sinon": "^9.0.2",
     "source-map": "^0.7.4",
@@ -353,8 +354,8 @@
     "xdm": "^3.4.0"
   },
   "engines": {
-    "node": "^16.20.2",
-    "npm": "^8.19.4"
+    "node": "^18.19.1",
+    "npm": "^10.2.4"
   },
   "overrides": {
     "d3-color": "^3.1.0",

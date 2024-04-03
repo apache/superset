@@ -93,6 +93,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         cls,
         cursor: Any,
         query: str,
+        database_id: int,
         **kwargs: Any,
     ) -> None:
         try:

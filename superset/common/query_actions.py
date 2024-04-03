@@ -135,6 +135,8 @@ def _get_full(
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
         }
     return payload
 
