@@ -100,7 +100,7 @@ googleapis-common-protos==1.59.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.60.1
+grpcio==1.62.1
     # via
     #   apache-superset
     #   google-api-core
