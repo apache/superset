@@ -1049,6 +1049,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL")
             and instant_time_comparison_info
         ):
+            # Check that only DBs that support JOINs and Subqueries use this feature
+            if (
+                self.database is not None
+                and self.database.db_engine_spec is not None
+                and (
+                    not self.database.db_engine_spec.allows_joins
+                    or not self.database.db_engine_spec.allows_subqueries
+                )
+            ):
+                raise QueryObjectValidationError(
+                    _("Instant time comparison is not supported for this database")
+                )
             (
                 final_query_sql,
                 labels_expected,
