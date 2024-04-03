@@ -1890,6 +1890,7 @@ SELECT * FROM t"""
     "macro",
     [
         "latest_partition('foo.bar')",
+        "latest_partition(' foo.bar ')",  # Non-atypical user error which works
         "latest_sub_partition('foo.bar', baz='qux')",
     ],
 )
