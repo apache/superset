@@ -19,16 +19,21 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING
+from typing import Any, TypedDict, TYPE_CHECKING
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
+from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 
 from superset.config import VERSION_STRING
 from superset.constants import TimeGrain, USER_AGENT
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.errors import SupersetError
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -102,10 +107,89 @@ class DuckDBEngineSpec(BaseEngineSpec):
         return extra
 
 
+# schema for adding a database by providing parameters instead of the
+# full SQLAlchemy URI
+class BasicParametersSchema(Schema):
+    database = fields.String(
+        required=True, metadata={"description": __("Database name")}
+    )
+    password = fields.String(allow_none=True, metadata={"description": __("MotherDuck token")})
+
+
+class MotherDuckParametersType(TypedDict, total=False):
+    database: str
+    password: str
+
+
+class MotherDuckPropertiesType(TypedDict):
+    parameters: MotherDuckParametersType
+
+
 class MotherDuckEngineSpec(DuckDBEngineSpec):
     engine = "duckdb"
     engine_name = "MotherDuck"
 
+    # recommended driver name for the DB engine spec
+    default_driver = "duckdb_engine"
+
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
     )
+
+    # schema describing the parameters used to configure the DB
+    parameters_schema = BasicParametersSchema()
+
+
+    @classmethod
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+        cls,
+        parameters: MotherDuckParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        return f"{cls.engine}:///md:{parameters['database']}"\
+        f"?motherduck_token={parameters['password']}", 
+
+    @classmethod
+    def get_parameters_from_uri(  # pylint: disable=unused-argument
+        cls, uri: str, encrypted_extra: dict[str, Any] | None = None
+    ) -> MotherDuckParametersType:
+        # pattern = "md:(?P<database>\w+).*?motherduck_token=(?P<token>\w+)"
+        # m = re.search(pattern, uri)
+        # return {
+        #     "database": m.group('database'),
+        #     "motherduck_token": m.group('token')
+        # }
+        return {
+            "database": "foo",
+            "password": "bar"
+        }
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.parameters_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
+    
+    @classmethod
+    def validate_parameters(
+        cls, properties: MotherDuckPropertiesType
+    ) -> list[SupersetError]:
+        """
+        Validates any number of parameters, for progressive validation.
+
+        If only the hostname is present it will check if the name is resolvable. As more
+        parameters are present in the request, more validation is done.
+        """
+        errors: list[SupersetError] = []
+        return errors
