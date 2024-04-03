@@ -30,7 +30,6 @@ import {
 } from '@superset-ui/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
-import { Tooltip } from 'src/components/Tooltip';
 
 const isTimeRangeEqual = (
   left: BinaryAdhocFilter[],
