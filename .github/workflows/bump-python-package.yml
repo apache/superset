@@ -14,7 +14,7 @@ on:
         required: true
         description: Max number of PRs to open (0 for no limit)
         default: 5
-  pull_request: {}
+
 jobs:
   bump-python-package:
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: 3.10
+          python-version: "3.10"
 
       - name: Install pip-compile-multi
         run: pip install pip-compile-multi
