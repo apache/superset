@@ -25,6 +25,7 @@ jobs:
       issues: write
     steps:
       - name: Quickly add thumbs up!
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot')
         uses: actions/github-script@v7
         with:
           script: |
