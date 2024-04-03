@@ -13,6 +13,7 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
+import { bootstrapData } from 'src/preamble';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -488,6 +489,10 @@ class Header extends React.PureComponent {
     };
 
     const NavExtension = extensionsRegistry.get('dashboard.nav.right');
+    // DODO added
+    const userLanguage =
+      (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+      'en';
 
     return (
       <div
@@ -498,7 +503,10 @@ class Header extends React.PureComponent {
       >
         <PageHeaderWithActions
           editableTitleProps={{
-            title: dashboardTitle,
+            title:
+              userLanguage === 'ru'
+                ? dashboardTitleRU || dashboardTitle
+                : dashboardTitle,
             canEdit: userCanEdit && editMode,
             onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),

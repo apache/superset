@@ -563,6 +563,8 @@ function ExploreViewContainer(props) {
         isStarred={props.isStarred}
         slice={props.slice}
         sliceName={props.sliceName}
+        // DODO added
+        sliceNameRU={props.sliceNameRU}
         table_name={props.table_name}
         formData={props.form_data}
         chart={props.chart}

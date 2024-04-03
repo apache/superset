@@ -22,34 +22,10 @@ const propTypes = {
   dashboardId: PropTypes.number,
 };
 
-function getPageLanguage() {
-  if (!document) {
-    return null;
-  }
-  const select = document.querySelector('#changeLanguage select');
-  // @ts-ignore
-  const selectedLanguage = select ? select.value : null;
-  return selectedLanguage;
-}
-
-const getLocaleForSuperset = () => {
-  const dodoisLanguage = getPageLanguage();
-  if (dodoisLanguage) {
-    if (dodoisLanguage === 'ru-RU') return 'ru';
-    return 'en';
-  }
-  return 'en';
-};
-
-let userLanguage = 'en';
-
-if (process.env.type === undefined) {
-  userLanguage =
-    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
-    'en';
-} else {
-  userLanguage = getLocaleForSuperset();
-}
+// DODO added
+const userLanguage =
+  (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+  'en';
 
 const defaultProps = {};
 
@@ -303,6 +279,7 @@ class DashboardGrid extends React.PureComponent {
                 onResize={this.handleResize}
                 onResizeStop={this.handleResizeStop}
                 onChangeTab={this.handleChangeTab}
+                // DODO added
                 userLanguage={userLanguage}
               />
             ))}

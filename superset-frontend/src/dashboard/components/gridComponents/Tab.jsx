@@ -65,6 +65,31 @@ const TabTitleContainer = styled.div`
   `}
 `;
 
+// DODO added
+const TitleWrapper = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: row;
+  margin-bottom: 8px;
+  min-height: 31px;
+
+  span {
+    margin-left: 12px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+`;
+const TitleLabel = styled.span`
+  display: inline-block;
+  padding: 0;
+`;
+const StyledFlag = styled.i`
+  margin-top: 2px;
+`;
+
 const renderDraggableContentBottom = dropProps =>
   dropProps.dropIndicatorProps && (
     <div className="drop-indicator drop-indicator--bottom" />
@@ -79,7 +104,6 @@ class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
-    // DODO added
     this.handleChangeTextRU = this.handleChangeTextRU.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
     this.handleOnHover = this.handleOnHover.bind(this);
@@ -255,24 +279,6 @@ class Tab extends React.PureComponent {
   }
 
   renderTab() {
-    // DODO added
-    const TitleWrapper = styled.div`
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      flex-direction: row;
-      span {
-        margin-left: 12px;
-        &:first-child {
-          margin-left: 0;
-        }
-      }
-    `;
-    const TitleLabel = styled.span`
-      display: inline-block;
-      padding: 0;
-    `;
-
     const {
       component,
       parentComponent,
@@ -281,6 +287,8 @@ class Tab extends React.PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      // DODO added
+      userLanguage,
     } = this.props;
 
     return (
@@ -300,68 +308,66 @@ class Tab extends React.PureComponent {
             className="dragdroppable-tab"
             ref={dragSourceRef}
           >
+            {editMode && (
+              <TitleWrapper>
+                {/* DODO changed */}
+                <TitleLabel>
+                  <div className="f16">
+                    <StyledFlag className="flag gb" />
+                  </div>
+                </TitleLabel>
+                <EditableTitle
+                  title={component.meta.text}
+                  defaultTitle={component.meta.defaultText}
+                  placeholder={component.meta.placeholder}
+                  canEdit={editMode && isFocused}
+                  onSaveTitle={this.handleChangeText}
+                  showTooltip={false}
+                  editing={editMode && isFocused}
+                />
+              </TitleWrapper>
+            )}
             {/* DODO added */}
             {editMode && (
-              <>
-                <TitleWrapper>
-                  <TitleLabel>EN:</TitleLabel>
-                  <EditableTitle
-                    title={component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeText}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                </TitleWrapper>
-                <TitleWrapper>
-                  <TitleLabel>RU:</TitleLabel>
-                  <EditableTitle
-                    title={component.meta.textRU}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeTextRU}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                </TitleWrapper>
-              </>
+              <TitleWrapper>
+                <TitleLabel>
+                  <div className="f16">
+                    <StyledFlag className="flag ru" />
+                  </div>
+                </TitleLabel>
+                <EditableTitle
+                  title={component.meta.textRU}
+                  defaultTitle={component.meta.defaultText}
+                  placeholder={component.meta.placeholder}
+                  canEdit={editMode && isFocused}
+                  onSaveTitle={this.handleChangeTextRU}
+                  showTooltip={false}
+                  editing={editMode && isFocused}
+                />
+              </TitleWrapper>
             )}
             {!editMode && (
-              <div style={{ position: 'relative' }}>
-                <div style={{ right: '-4px', position: 'absolute' }}>
-                  <AnchorLink
-                    id={component.id}
-                    dashboardId={this.props.dashboardId}
-                    placement={index >= 5 ? 'left' : 'right'}
-                  />
-                </div>
-
-                {this.props.userLanguage === 'en' && (
-                  <EditableTitle
-                    title={component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeText}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                )}
-                {this.props.userLanguage === 'ru' && (
-                  <EditableTitle
-                    title={component.meta.textRU || component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeTextRU}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                )}
-              </div>
+              <EditableTitle
+              // DODO changed
+                title={
+                  userLanguage === 'ru'
+                    ? component.meta.textRU || component.meta.text
+                    : component.meta.text
+                }
+                defaultTitle={component.meta.defaultText}
+                placeholder={component.meta.placeholder}
+                canEdit={editMode && isFocused}
+                onSaveTitle={this.handleChangeText}
+                showTooltip={false}
+                editing={editMode && isFocused}
+              />
+            )}
+            {!editMode && (
+              <AnchorLink
+                id={component.id}
+                dashboardId={this.props.dashboardId}
+                placement={index >= 5 ? 'left' : 'right'}
+              />
             )}
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
