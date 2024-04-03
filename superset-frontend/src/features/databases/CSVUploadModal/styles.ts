@@ -27,17 +27,6 @@ export const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
-// export const StyledDiv = styled.div`
-//   padding-top: 8px;
-//   padding-left: 8px;
-//   padding-right: 8px;
-//   width: 100%;
-//   label {
-//     color: ${({ theme }) => theme.colors.grayscale.base};
-//     text-transform: uppercase;
-//   }
-// `;
-
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-header {
     padding-top: ${theme.gridUnit * 3.5}px;

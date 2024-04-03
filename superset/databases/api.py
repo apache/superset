@@ -1349,6 +1349,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           summary: Upload a CSV file to a database table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
           requestBody:
             required: true
             content:

@@ -173,6 +173,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 
   const clearModal = () => {
     setFileList([]);
+    setColumns([]);
     form.resetFields();
   };
 
