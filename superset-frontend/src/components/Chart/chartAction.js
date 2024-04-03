@@ -25,6 +25,7 @@ import {
   SupersetClient,
   t,
   isFeatureEnabled,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -38,7 +39,6 @@ import {
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';

@@ -24,7 +24,12 @@ import React, {
   useCallback,
 } from 'react';
 import Alert from 'src/components/Alert';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  t,
+  styled,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { ServerPagination, SortByType } from 'src/components/TableView/types';
 import StyledModal from 'src/components/Modal';
@@ -33,7 +38,6 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Loading from 'src/components/Loading';
 import { AntdInput } from 'src/components';
 import { Input } from 'src/components/Input';

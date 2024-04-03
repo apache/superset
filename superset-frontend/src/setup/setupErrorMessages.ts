@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ErrorTypeEnum } from '@superset-ui/core';
 import getErrorMessageComponentRegistry from 'src/components/ErrorMessage/getErrorMessageComponentRegistry';
-import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import TimeoutErrorMessage from 'src/components/ErrorMessage/TimeoutErrorMessage';
 import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessage';
 import MarshmallowErrorMessage from 'src/components/ErrorMessage/MarshmallowErrorMessage';

@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import rison from 'rison';
-import { SupersetClient, NO_TIME_RANGE, JsonObject } from '@superset-ui/core';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { NO_TIME_RANGE, JsonObject } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import {
   COMMON_RANGE_VALUES_SET,
@@ -26,26 +24,6 @@ import {
   customTimeRangeDecode,
 } from '.';
 import { FrameType } from '../types';
-
-export const SEPARATOR = ' : ';
-
-export const buildTimeRangeString = (since: string, until: string): string =>
-  `${since}${SEPARATOR}${until}`;
-
-const formatDateEndpoint = (dttm: string, isStart?: boolean): string =>
-  dttm.replace('T00:00:00', '') || (isStart ? '-∞' : '∞');
-
-export const formatTimeRange = (
-  timeRange: string,
-  columnPlaceholder = 'col',
-) => {
-  const splitDateRange = timeRange.split(SEPARATOR);
-  if (splitDateRange.length === 1) return timeRange;
-  return `${formatDateEndpoint(
-    splitDateRange[0],
-    true,
-  )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(splitDateRange[1])}`;
-};
 
 export const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
@@ -61,29 +39,6 @@ export const guessFrame = (timeRange: string): FrameType => {
     return 'Custom';
   }
   return 'Advanced';
-};
-
-export const fetchTimeRange = async (
-  timeRange: string,
-  columnPlaceholder = 'col',
-) => {
-  const query = rison.encode_uri(timeRange);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
-  try {
-    const response = await SupersetClient.get({ endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result[0]?.since || '',
-      response?.json?.result[0]?.until || '',
-    );
-    return {
-      value: formatTimeRange(timeRangeString, columnPlaceholder),
-    };
-  } catch (response) {
-    const clientError = await getClientErrorObject(response);
-    return {
-      error: clientError.message || clientError.error || response.statusText,
-    };
-  }
 };
 
 export function useDefaultTimeFilter() {

@@ -24,12 +24,12 @@ import {
   SupersetClient,
   SupersetClientResponse,
   SupersetTheme,
+  getClientErrorObject,
   t,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';

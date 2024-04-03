@@ -26,6 +26,7 @@ import {
   getSharedLabelColor,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -34,7 +35,6 @@ import {
 } from 'src/components/Chart/chartAction';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
