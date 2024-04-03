@@ -1684,19 +1684,19 @@
   resolved "https://registry.yarnpkg.com/@ctrl/tinycolor/-/tinycolor-3.6.1.tgz#b6c75a56a1947cc916ea058772d666a2c8932f31"
   integrity sha512-SITSV6aIXsuVNV3f3O0f2n/cgyEDWoSqtZMYiAmcsYHydcKrOz3gUxB/iXd/Qf08+IZX4KpgNbvUdMBmWz+kcA==
 
-"@docsearch/css@3.5.2":
-  version "3.5.2"
-  resolved "https://registry.yarnpkg.com/@docsearch/css/-/css-3.5.2.tgz#610f47b48814ca94041df969d9fcc47b91fc5aac"
-  integrity sha512-SPiDHaWKQZpwR2siD0KQUwlStvIAnEyK6tAE2h2Wuoq8ue9skzhlyVQ1ddzOxX6khULnAALDiR/isSF3bnuciA==
+"@docsearch/css@3.6.0":
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/@docsearch/css/-/css-3.6.0.tgz#0e9f56f704b3a34d044d15fd9962ebc1536ba4fb"
+  integrity sha512-+sbxb71sWre+PwDK7X2T8+bhS6clcVMLwBPznX45Qu6opJcgRjAp7gYSDzVFp187J+feSj5dNBN1mJoi6ckkUQ==
 
-"@docsearch/react@^3.1.1", "@docsearch/react@^3.5.2":
-  version "3.5.2"
-  resolved "https://registry.yarnpkg.com/@docsearch/react/-/react-3.5.2.tgz#2e6bbee00eb67333b64906352734da6aef1232b9"
-  integrity sha512-9Ahcrs5z2jq/DcAvYtvlqEBHImbm4YJI8M9y0x6Tqg598P40HTEkX7hsMcIuThI+hTFxRGZ9hll0Wygm2yEjng==
+"@docsearch/react@^3.1.1", "@docsearch/react@^3.6.0":
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/@docsearch/react/-/react-3.6.0.tgz#b4f25228ecb7fc473741aefac592121e86dd2958"
+  integrity sha512-HUFut4ztcVNmqy9gp/wxNbC7pTOHhgVVkHVGCACTuLhUKUhKAF9KYHJtMiLUJxEqiFLQiuri1fWF8zqwM/cu1w==
   dependencies:
     "@algolia/autocomplete-core" "1.9.3"
     "@algolia/autocomplete-preset-algolia" "1.9.3"
-    "@docsearch/css" "3.5.2"
+    "@docsearch/css" "3.6.0"
     algoliasearch "^4.19.1"
 
 "@docusaurus/core@2.4.3", "@docusaurus/core@^2.4.1":
