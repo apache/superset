@@ -222,7 +222,7 @@ pyproject-api==1.5.2
     # via tox
 pyproject-hooks==1.0.0
     # via build
-pytest==8.1.1
+pytest==7.4.4
     # via
     #   apache-superset
     #   pytest-cov
