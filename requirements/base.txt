@@ -164,11 +164,7 @@ idna==3.2
     #   email-validator
     #   requests
 importlib-metadata==6.6.0
-    # via
-    #   apache-superset
-    #   flask
-    #   markdown
-    #   shillelagh
+    # via apache-superset
 importlib-resources==5.12.0
     # via limits
 isodate==0.6.1
@@ -353,7 +349,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset
     #   flask-appbuilder
-sqlglot==23.2.0
+sqlglot==23.6.3
     # via apache-superset
 sqlparse==0.4.4
     # via apache-superset
@@ -367,7 +363,6 @@ typing-extensions==4.10.0
     #   apache-superset
     #   cattrs
     #   flask-limiter
-    #   kombu
     #   limits
     #   shillelagh
 tzdata==2023.3
@@ -409,9 +404,7 @@ wtforms-json==0.3.5
 xlsxwriter==3.0.9
     # via apache-superset
 zipp==3.15.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
