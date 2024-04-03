@@ -55,6 +55,7 @@ g.window.Worker ??= Worker;
 g.window.IntersectionObserver ??= IntersectionObserver;
 g.window.ResizeObserver ??= ResizeObserver;
 g.window.featureFlags ??= {};
+g.window.adminRole ??= 'Admin';
 g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
 
