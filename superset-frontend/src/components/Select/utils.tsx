@@ -21,9 +21,15 @@ import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
-import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
+import {
+  LabeledValue,
+  OptGroupValue,
+  RawValue,
+  SelectOptionsType,
+  V,
+} from './types';
 
-const { Option } = AntdSelect;
+const { Option, OptGroup } = AntdSelect;
 
 export const SELECT_ALL_VALUE: RawValue = 'Select All';
 export const selectAllOption = {
@@ -58,15 +64,21 @@ export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
   return actualA == actualB;
 }
 
+export function isOptGroup(option: V | LabeledValue): option is OptGroupValue {
+  return isObject(option) && 'options' in option;
+}
+
 export function getOption(
   value: V,
   options?: V | LabeledValue | (V | LabeledValue)[],
   checkLabel = false,
 ): V | LabeledValue {
   const optionsArray = ensureIsArray(options);
-  return optionsArray.find(
-    x =>
-      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
+  return optionsArray.find(opt =>
+    isOptGroup(opt)
+      ? getOption(value, opt.options, checkLabel)
+      : isEqual(opt, value, 'value') ||
+        (checkLabel && isEqual(opt, value, 'label')),
   );
 }
 
@@ -197,11 +209,20 @@ export const handleFilterOptionHelper = (
   return false;
 };
 
-export const hasCustomLabels = (options: SelectOptionsType) =>
-  options?.some(opt => !!opt?.customLabel);
+export const hasCustomLabels = (options: SelectOptionsType): boolean =>
+  options?.some(opt =>
+    isOptGroup(opt) ? hasCustomLabels(opt.options) : !!opt?.customLabel,
+  );
 
 export const renderSelectOptions = (options: SelectOptionsType) =>
   options.map(opt => {
+    if (isOptGroup(opt)) {
+      return (
+        <OptGroup key={opt.title} label={opt.label}>
+          {renderSelectOptions(opt.options)}
+        </OptGroup>
+      );
+    }
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
     const value = isOptObject ? opt.value : opt;

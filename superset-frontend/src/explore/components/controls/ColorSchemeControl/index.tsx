@@ -179,7 +179,7 @@ const ColorSchemeControl = ({
       disabled={!!dashboardId}
       name={`select-${name}`}
       onChange={handleOnChange}
-      options={options}
+      options={[{ title: 'test', label: 'test', options }]}
       placeholder={t('Select scheme')}
       value={currentScheme}
     />

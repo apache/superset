@@ -33,7 +33,12 @@ export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = { label?: ReactNode; value?: V };
+export type LabeledValue = {
+  label?: ReactNode;
+  value?: V;
+};
+
+export type OptGroupValue = LabeledValue & { options: SelectOptionsType };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
