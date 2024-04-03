@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -181,7 +179,7 @@ pluggy==1.2.0
     # via
     #   pytest
     #   tox
-pre-commit==3.3.3
+pre-commit==3.7.0
     # via apache-superset
 progress==1.6
     # via apache-superset
