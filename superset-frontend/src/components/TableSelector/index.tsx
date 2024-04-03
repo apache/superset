@@ -25,7 +25,12 @@ import React, {
 } from 'react';
 import { SelectValue } from 'antd/lib/select';
 
-import { styled, t } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  getClientErrorMessage,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { Select } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -37,10 +42,6 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useTables, Table } from 'src/hooks/apiResources';
-import {
-  getClientErrorMessage,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 
 const REFRESH_WIDTH = 30;
 

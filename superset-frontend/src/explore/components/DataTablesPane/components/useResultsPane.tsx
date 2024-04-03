@@ -22,11 +22,11 @@ import {
   styled,
   t,
   getChartMetadataRegistry,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls } from './DataTableControls';

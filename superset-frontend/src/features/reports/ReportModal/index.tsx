@@ -23,9 +23,8 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   addReport,
   editReport,
