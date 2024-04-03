@@ -87,6 +87,8 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetErrorException,
+    SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
 )
@@ -1744,7 +1746,15 @@ class SqlaTable(
 
         try:
             df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+        except (SupersetErrorException, SupersetErrorsException) as ex:
+            # SupersetError(s) exception should not be captured; instead, they should
+            # bubble up to the Flask error handler so they are returned as proper SIP-40
+            # errors. This is particularly important for database OAuth2, see SIP-85.
+            raise ex
         except Exception as ex:  # pylint: disable=broad-except
+            # TODO (betodealmeida): review exception handling while querying the external
+            # database. Ideally we'd expect and handle external database error, but
+            # everything else / the default should be to let things bubble up.
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(

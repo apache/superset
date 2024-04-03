@@ -101,6 +101,8 @@ def test_opendistro_strip_comments() -> None:
     mock_cursor.execute.return_value = []
 
     OpenDistroEngineSpec.execute(
-        mock_cursor, "-- some comment \nSELECT 1\n --other comment"
+        mock_cursor,
+        "-- some comment \nSELECT 1\n --other comment",
+        1,
     )
     mock_cursor.execute.assert_called_once_with("SELECT 1\n")

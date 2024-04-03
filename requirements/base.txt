@@ -84,6 +84,7 @@ cryptography==42.0.5
     # via
     #   apache-superset
     #   paramiko
+    #   pyopenssl
 deprecated==1.2.13
     # via limits
 deprecation==2.1.0
@@ -147,7 +148,9 @@ geopy==2.4.1
 google-auth==2.27.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==21.2.0
     # via apache-superset
 hashids==1.3.1
@@ -278,6 +281,8 @@ pyjwt==2.8.0
     #   flask-jwt-extended
 pynacl==1.5.0
     # via paramiko
+pyopenssl==24.1.0
+    # via shillelagh
 pyparsing==3.1.2
     # via apache-superset
 pyrsistent==0.20.0
@@ -319,7 +324,7 @@ rsa==4.9
     # via google-auth
 selenium==3.141.0
     # via apache-superset
-shillelagh[gsheetsapi]==1.2.10
+shillelagh[gsheetsapi]==1.2.18
     # via apache-superset
 shortid==0.1.2
     # via apache-superset
