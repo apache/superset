@@ -10,8 +10,6 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-appnope==0.1.4
-    # via ipython
 astroid==2.15.8
     # via pylint
 asttokens==2.2.1
@@ -85,7 +83,7 @@ google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.20.0
+google-cloud-bigquery==3.20.1
     # via
     #   apache-superset
     #   pandas-gbq
