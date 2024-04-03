@@ -27,7 +27,7 @@ $ git clone https://github.com/apache/superset
 
 ### 2. Start the latest official release of Superset
 
-```
+```bash
 # Enter the repository you just cloned
 $ cd superset
 
@@ -40,7 +40,7 @@ are downloaded and the output settles, you're ready to log in.
 
 ### 3. Log into Superset
 Now head over to [http://localhost:8088](http://localhost:8088) and log in with the default created account:
-```
+```bash
 username: admin
 password: admin
 ```
@@ -48,13 +48,13 @@ password: admin
 #### 🎉 Congratulations! Superset is now up and running on your machine! 🎉
 
 ### Wrapping Up
-Once you're done with Superset, you can stop and remove it just like any other container:
-```
+Once you're done with Superset, you can stop and delete just like any other container environment:
+```bash
 $ docker-compose down
 ```
 :::tip
-You can use the same container more than once, as Superset will persist data locally. However, make sure to properly stop all
-processes by running Docker `stop` command. By doing so, you can avoid data corruption and/or loss of data.
+You can use the same environment more than once, as Superset will persist data locally. However, make sure to properly stop all
+processes by running Docker Compose `stop` command. By doing so, you can avoid data corruption and/or loss of data.
 :::
 
 ## What's next?
