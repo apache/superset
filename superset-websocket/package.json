@@ -24,7 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^9.0.1",
-    "winston": "^3.11.0",
+    "winston": "^3.13.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {
