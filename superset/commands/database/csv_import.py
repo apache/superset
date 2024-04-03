@@ -36,8 +36,11 @@ from superset.views.database.validators import schema_allows_file_upload
 
 logger = logging.getLogger(__name__)
 
+READ_CSV_CHUNK_SIZE = 1000
+
 
 class CSVImportOptions(TypedDict, total=False):
+    schema: str
     delimiter: str
     already_exists: str
     column_data_types: str
@@ -62,14 +65,13 @@ class CSVImportCommand(BaseCommand):
         self,
         model_id: int,
         table_name: str,
-        schema: Optional[str],
         file: Any,
         options: CSVImportOptions,
     ) -> None:
         self._model_id = model_id
         self._model: Optional[Database] = None
         self._table_name = table_name
-        self._schema = schema
+        self._schema = options.get("schema")
         self._file = file
         self._options = options
 
@@ -81,7 +83,7 @@ class CSVImportCommand(BaseCommand):
         try:
             df = pd.concat(
                 pd.read_csv(
-                    chunksize=1000,
+                    chunksize=READ_CSV_CHUNK_SIZE,
                     encoding="utf-8",
                     filepath_or_buffer=self._file,
                     header=self._options.get("header_row", 0),
@@ -109,7 +111,7 @@ class CSVImportCommand(BaseCommand):
                 csv_table,
                 df,
                 to_sql_kwargs={
-                    "chunksize": 1000,
+                    "chunksize": READ_CSV_CHUNK_SIZE,
                     "if_exists": self._options.get("already_exists", "fail"),
                     "index": self._options.get("index_column"),
                     "index_label": self._options.get("column_labels"),
@@ -117,7 +119,7 @@ class CSVImportCommand(BaseCommand):
             )
         except Exception as ex:
             logger.exception(ex)
-            raise DatabaseUploadFailed(exception=ex)
+            raise DatabaseUploadFailed(exception=ex) from ex
         sqla_table = (
             db.session.query(SqlaTable)
             .filter_by(

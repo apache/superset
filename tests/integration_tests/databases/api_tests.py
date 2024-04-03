@@ -1444,7 +1444,12 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_csv_upload",
+            "can_write",
+            "can_export",
+        }
 
     def test_get_invalid_database_table_metadata(self):
         """

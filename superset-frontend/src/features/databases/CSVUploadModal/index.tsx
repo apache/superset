@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
-import { SupersetClient, SupersetTheme, t } from '@superset-ui/core';
+import {
+  getClientErrorObject,
+  SupersetClient,
+  SupersetTheme,
+  t,
+} from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Collapse from 'src/components/Collapse';
 import {
@@ -36,7 +41,6 @@ import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   antDModalStyles,
   antDModalNoPaddingStyles,
@@ -303,7 +307,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
         .map(column => column.replace(/^"(.*)"$/, '$1'));
       setColumns(firstRow);
     } catch (error) {
-      message.error('Failed to process file content');
+      console.log('Failed to process file content');
     }
   };
 
@@ -318,7 +322,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   };
 
   useEffect(() => {
-    if (columns.length > 0) {
+    if (
+      columns.length > 0 &&
+      fileList[0].originFileObj &&
+      fileList[0].originFileObj instanceof File
+    ) {
       processFileContent(fileList[0].originFileObj);
     }
   }, [delimiter]);

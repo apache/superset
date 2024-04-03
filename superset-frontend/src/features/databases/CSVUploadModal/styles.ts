@@ -18,7 +18,6 @@
  */
 import { FormItem } from 'src/components/Form';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
-import errorIcon from '../../../assets/images/icons/error.svg';
 
 const MODAL_BODY_HEIGHT = 180.5;
 const anticonHeight = 12;

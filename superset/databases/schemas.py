@@ -40,7 +40,6 @@ from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.utils.backports import StrEnum
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -991,10 +990,10 @@ class DelimitedListField(fields.List):
             else:
                 values = []
             return super()._deserialize(values, attr, data, **kwargs)
-        except AttributeError:
+        except AttributeError as exc:
             raise ValidationError(
                 f"{attr} is not a delimited list it has a non string value {value}."
-            )
+            ) from exc
 
 
 class CSVUploadPostSchema(Schema):
@@ -1106,7 +1105,7 @@ class CSVUploadPostSchema(Schema):
         metadata={"description": "The name of the table to be created/appended"},
     )
 
-    
+
 class OAuth2ProviderResponseSchema(Schema):
     """
     Schema for the payload sent on OAuth2 redirect.

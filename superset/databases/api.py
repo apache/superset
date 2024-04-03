@@ -1389,7 +1389,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             CSVImportCommand(
                 pk,
                 parameters["table_name"],
-                parameters["schema"],
                 parameters["file"],
                 parameters,
             ).run()
