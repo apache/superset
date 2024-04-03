@@ -1331,10 +1331,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if (  # pylint: disable=consider-using-min-builtin
-                        progress > query.progress
-                    ):
-                        query.progress = progress
+                    query.progress = max(query.progress, progress)
                     db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)

@@ -547,7 +547,7 @@ Alternatively, it's also possible to impersonate users by implementing the `upda
 
 Support for authenticating to a database using personal OAuth2 access tokens was introduced in [SIP-85](https://github.com/apache/superset/issues/20300). The Google Sheets DB engine spec is the reference implementation.
 
-To add support for OAuth2 to a DB engine spec, the following attributes are needed:
+Note that this API is still experimental and evolving quickly, subject to breaking changes. Currently, to add support for OAuth2 to a DB engine spec, the following attributes are needed:
 
 ```python
 class BaseEngineSpec:
