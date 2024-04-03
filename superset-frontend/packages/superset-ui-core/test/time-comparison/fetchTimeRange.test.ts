@@ -22,7 +22,7 @@ import {
   formatTimeRange,
   buildTimeRangeString,
   fetchTimeRange,
-} from '../../src/utils/fetchTimeRange';
+} from '../../src/time-comparison/fetchTimeRange';
 
 afterEach(fetchMock.restore);
 
