@@ -34,7 +34,3 @@ runs:
         # simple trick to install globally with dependencies
         npm pack
         npm install -g ./supersetbot*.tgz
-
-    - name: supersetbot version
-      shell: bash
-      run: supersetbot version
