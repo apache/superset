@@ -176,6 +176,8 @@ export default function DataSourcePanel({
     );
   }, [dropzones, metrics]);
 
+  const hiddenColumnCount = _columns.length - allowedColumns.length;
+  const hiddenMetricCount = metrics.length - allowedMetrics.length;
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [showAllMetrics, setShowAllMetrics] = useState(false);
@@ -346,6 +348,8 @@ export default function DataSourcePanel({
                   onCollapseMetricsChange: setCollapseMetrics,
                   collapseColumns,
                   onCollapseColumnsChange: setCollapseColumns,
+                  hiddenMetricCount,
+                  hiddenColumnCount,
                 }}
                 overscanCount={5}
               >
