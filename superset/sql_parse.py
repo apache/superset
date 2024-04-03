@@ -31,7 +31,7 @@ from jinja2 import nodes
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
 from sqlglot.dialects import Dialects
-from sqlglot.errors import SqlglotError
+from sqlglot.errors import ParseError, SqlglotError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -297,11 +297,21 @@ class ParsedQuery:
             statements = parse(self.stripped(), dialect=self._dialect)
         except SqlglotError as ex:
             logger.warning("Unable to parse SQL (%s): %s", self._dialect, self.sql)
-            dialect = self._dialect or "generic"
+
+            message = (
+                "Error parsing near '{highlight}' at line {line}:{col}".format(  # pylint: disable=consider-using-f-string
+                    **ex.errors[0]
+                )
+                if isinstance(ex, ParseError)
+                else str(ex)
+            )
+
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
-                    message=__(f"Unable to parse SQL ({dialect}): {self.sql}"),
+                    message=__(
+                        f"You may have an error in your SQL statement. {message}"
+                    ),
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
