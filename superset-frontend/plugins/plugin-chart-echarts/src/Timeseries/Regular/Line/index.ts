@@ -71,7 +71,6 @@ export default class EchartsTimeseriesLineChartPlugin extends EchartsChartPlugin
           t('ECharts'),
           t('Predictive'),
           t('Advanced-Analytics'),
-          t('Aesthetic'),
           t('Line'),
           t('Popular'),
         ],

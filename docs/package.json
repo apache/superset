@@ -16,8 +16,8 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@algolia/client-search": "^4.22.1",
-    "@ant-design/icons": "^5.3.1",
+    "@algolia/client-search": "^4.23.2",
+    "@ant-design/icons": "^5.3.6",
     "@docsearch/react": "^3.5.2",
     "@docusaurus/core": "^2.4.1",
     "@docusaurus/plugin-client-redirects": "^2.4.3",
@@ -45,10 +45,10 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.1.1",
-    "@tsconfig/docusaurus": "^2.0.2",
+    "@docusaurus/module-type-aliases": "^3.2.0",
+    "@tsconfig/docusaurus": "^2.0.3",
     "@types/react": "^17.0.42",
-    "typescript": "^5.3.3",
+    "typescript": "^5.4.3",
     "webpack": "^5.91.0"
   },
   "browserslist": {

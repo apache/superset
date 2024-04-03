@@ -23,6 +23,7 @@ import DatabaseErrorMessage from 'src/components/ErrorMessage/DatabaseErrorMessa
 import MarshmallowErrorMessage from 'src/components/ErrorMessage/MarshmallowErrorMessage';
 import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMessage';
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
+import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -148,6 +149,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.MARSHMALLOW_ERROR,
     MarshmallowErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.OAUTH2_REDIRECT,
+    OAuth2RedirectMessage,
   );
   setupErrorMessagesExtra();
 }

@@ -18,6 +18,7 @@
  */
 import React, {
   ChangeEventHandler,
+  ReactElement,
   useCallback,
   useEffect,
   useMemo,
@@ -60,9 +61,9 @@ type VizEntry = {
 
 enum Sections {
   AllCharts = 'ALL_CHARTS',
+  Featured = 'FEATURED',
   Category = 'CATEGORY',
   Tags = 'TAGS',
-  RecommendedTags = 'RECOMMENDED_TAGS',
 }
 
 const DEFAULT_ORDER = [
@@ -124,6 +125,8 @@ export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
+
+const FEATURED = t('Featured');
 
 const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
@@ -238,8 +241,8 @@ const SelectorLabel = styled.button`
       }
     }
 
-    & span:first-of-type svg {
-      margin-top: ${theme.gridUnit * 1.5}px;
+    & > span[role="img"] {
+      margin-right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
@@ -450,7 +453,7 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
 const Selector: React.FC<{
   selector: string;
   sectionId: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   isSelected: boolean;
   onClick: (selector: string, sectionId: string) => void;
   className?: string;
@@ -569,13 +572,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const [activeSelector, setActiveSelector] = useState<string>(
-    () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
+    () => selectedVizMetadata?.category || FEATURED,
   );
 
   const [activeSection, setActiveSection] = useState<string>(() =>
-    selectedVizMetadata?.category
-      ? Sections.Category
-      : Sections.RecommendedTags,
+    selectedVizMetadata?.category ? Sections.Category : Sections.Featured,
   );
 
   // get a fuse instance for fuzzy search
@@ -667,19 +668,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [Sections.RecommendedTags]: {
-        title: t('Recommended tags'),
-        icon: <Icons.Tags />,
-        selectors: RECOMMENDED_TAGS,
-      },
       [Sections.Category]: {
         title: t('Category'),
-        icon: <Icons.Category />,
+        icon: <Icons.Category iconSize="m" />,
         selectors: categories,
       },
       [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags />,
+        icon: <Icons.Tags iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -694,16 +690,19 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       return sortedMetadata;
     }
     if (
+      activeSelector === FEATURED &&
+      activeSection === Sections.Featured &&
+      chartsByTags[t('Popular')]
+    ) {
+      return chartsByTags[t('Popular')];
+    }
+    if (
       activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
-    if (
-      (activeSection === Sections.Tags ||
-        activeSection === Sections.RecommendedTags) &&
-      chartsByTags[activeSelector]
-    ) {
+    if (activeSection === Sections.Tags && chartsByTags[activeSelector]) {
       return chartsByTags[activeSelector];
     }
     return [];
@@ -725,7 +724,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
-          icon={<Icons.Ballot />}
+          icon={<Icons.Ballot iconSize="m" />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
@@ -733,10 +732,28 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
+        <Selector
+          css={({ gridUnit }) =>
+            // adjust style for not being inside a collapse
+            css`
+              margin: ${gridUnit * 2}px;
+              margin-bottom: 0;
+            `
+          }
+          sectionId={Sections.Featured}
+          selector={FEATURED}
+          icon={<Icons.FireOutlined iconSize="m" />}
+          isSelected={
+            !isActivelySearching &&
+            FEATURED === activeSelector &&
+            Sections.Featured === activeSection
+          }
+          onClick={clickSelector}
+        />
         <AntdCollapse
           expandIconPosition="right"
           ghost
-          defaultActiveKey={Object.keys(sectionMap)}
+          defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
             const section = sectionMap[sectionId];

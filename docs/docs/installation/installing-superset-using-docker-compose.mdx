@@ -10,8 +10,8 @@ version: 1
 **DO NOT USE THIS FOR PRODUCTION!**
 
 The fastest way to try Superset locally is using Docker Compose on a Linux or Mac OSX
-computer. Superset does not have official support for Windows, so we have provided a VM workaround
-below. It's also the easiest way to launch a fully functioning **development environment** quickly.
+computer. Superset does not have official support for Windows. It's also the easiest
+way to launch a fully functioning **development environment** quickly.
 
 :::caution
 Since `docker-compose` is primarily designed to run a set of containers on **a single host**
@@ -37,35 +37,14 @@ Note that there are 3 major ways we support to run docker-compose:
 
 More on these two approaches after setting up the requirements for either.
 
-### 1. Install a Docker Engine and Docker Compose
+### Requirements
 
-**Mac OSX**
+Note that this documentation assumes that you have [Docker](https://www.docker.com),
+[docker-compose](https://docs.docker.com/compose/), and
+[git](https://git-scm.com/) installed.
 
-[Install Docker for Mac](https://docs.docker.com/docker-for-mac/install/), which includes the Docker
-engine and a recent version of `docker compose` out of the box.
 
-Once you have Docker for Mac installed, open up the preferences pane for Docker, go to the
-"Resources" section and increase the allocated memory to 6GB. With only the 2GB of RAM allocated by
-default, Superset will fail to start.
-
-**Linux**
-
-[Install Docker on Linux](https://docs.docker.com/engine/install/) by following Docker’s
-instructions for whichever flavor of Linux suits you. Because `docker compose` is not installed as
-part of the base Docker installation on Linux, once you have a working engine, follow the
-[docker compose installation instructions](https://docs.docker.com/compose/install/) for Linux.
-
-**Windows**
-
-Superset is not officially supported on Windows unfortunately. One option for Windows users to try
-out Superset locally is to install an Ubuntu Desktop VM via
-[VirtualBox](https://www.virtualbox.org/) and proceed with the Docker on Linux instructions inside
-of that VM. We recommend assigning at least 8GB of RAM to the virtual machine as well as
-provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and
-all of the required dependencies. Docker Desktop [recently added support for Windows Subsystem for
-Linux (WSL) 2](https://docs.docker.com/docker-for-windows/wsl/), which may be another option.
-
-### 2. Clone Superset's GitHub repository
+### 1. Clone Superset's GitHub repository
 
 [Clone Superset's repo](https://github.com/apache/superset) in your terminal with the
 following command:
@@ -77,7 +56,7 @@ git clone https://github.com/apache/superset.git
 Once that command completes successfully, you should see a new `superset` folder in your
 current directory.
 
-### 3. Launch Superset Through Docker Compose
+### 2. Launch Superset Through Docker Compose
 
 First let's assume you're familiar with docker-compose mechanics. Here we'll refer generally
 to `docker compose up` even though in some cases you may want to force a check for newer remote
@@ -184,7 +163,7 @@ To disable the Scarf telemetry pixel, set the `SCARF_ANALYTICS` environment vari
 your terminal and/or in your `docker/.env` file.
 :::
 
-### 4. Log in to Superset
+### 3. Log in to Superset
 
 Your local Superset instance also includes a Postgres server to store your data and is already
 pre-loaded with some example datasets that ship with Superset. You can access Superset now via your
@@ -201,7 +180,7 @@ username: admin
 password: admin
 ```
 
-### 5. Connecting Superset to your local database instance
+### 4. Connecting Superset to your local database instance
 
 When running Superset using `docker` or `docker compose` it runs in its own docker container, as if
 the Superset was running in a separate machine entirely. Therefore attempts to connect to your local
