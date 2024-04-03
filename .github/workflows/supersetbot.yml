@@ -44,9 +44,6 @@ jobs:
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
-        with:
-          from-npm: 'true'
-
 
       - name: Execute custom Node.js script
         env:
