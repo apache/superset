@@ -14,6 +14,7 @@ on:
         required: true
         description: Max number of PRs to open (0 for no limit)
         default: 5
+  pull_request: {}
 jobs:
   bump-python-package:
     runs-on: ubuntu-latest
