@@ -19,8 +19,13 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - name: Quickly add thumbs up!
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot')
         uses: actions/github-script@v7
         with:
           script: |
@@ -28,16 +33,14 @@ jobs:
             await github.rest.reactions.createForIssueComment({
               owner,
               repo,
-              comment_id: ${{ github.event.comment.id }},
+              comment_id: context.payload.comment.id,
               content: '+1'
             });
-      - name: Execute SupersetBot Command
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: "Checkout ( ${{ github.sha }} )"
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -48,16 +51,6 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
-          INPUT_COMMENT_BODY: ${{ github.event.inputs.comment_body }}
+          COMMENT_BODY: ${{ github.event.comment.body }}${{ github.event.inputs.comment_body }}
         run: |
-          cat <<EOF > script.js
-          const run = async () => {
-            const { runCommandFromGithubAction } = await import('supersetbot');
-            const cmd = process.env.COMMENT_BODY || process.env.INPUT_COMMENT_BODY;
-            console.log("Executing: ", cmd);
-            await runCommandFromGithubAction(cmd);
-          };
-          run().catch(console.error);
-          EOF
-          node script.js
+          supersetbot run "$COMMENT_BODY"
