@@ -26,11 +26,12 @@ from flask import current_app
 from marshmallow import EXCLUDE, fields, post_load, Schema
 
 from superset import db
-from superset.db_engine_specs.base import BaseEngineSpec, OAuth2State
 from superset.exceptions import CreateKeyValueDistributedLockFailedException
+from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 from superset.utils.lock import KeyValueDistributedLock
 
 if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import DatabaseUserOAuth2Tokens
 
 JWT_EXPIRATION = timedelta(minutes=5)
@@ -44,6 +45,7 @@ JWT_EXPIRATION = timedelta(minutes=5)
     max_tries=5,
 )
 def get_oauth2_access_token(
+    config: OAuth2ClientConfig,
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
@@ -73,7 +75,7 @@ def get_oauth2_access_token(
         return token.access_token
 
     if token.refresh_token:
-        return refresh_oauth2_token(database_id, user_id, db_engine_spec, token)
+        return refresh_oauth2_token(config, database_id, user_id, db_engine_spec, token)
 
     # since the access token is expired and there's no refresh token, delete the entry
     db.session.delete(token)
@@ -82,6 +84,7 @@ def get_oauth2_access_token(
 
 
 def refresh_oauth2_token(
+    config: OAuth2ClientConfig,
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
@@ -92,7 +95,10 @@ def refresh_oauth2_token(
         user_id=user_id,
         database_id=database_id,
     ):
-        token_response = db_engine_spec.get_oauth2_fresh_token(token.refresh_token)
+        token_response = db_engine_spec.get_oauth2_fresh_token(
+            config,
+            token.refresh_token,
+        )
 
         # store new access token; note that the refresh token might be revoked, in which
         # case there would be no access token in the response

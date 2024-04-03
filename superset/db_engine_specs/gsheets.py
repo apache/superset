@@ -23,13 +23,11 @@ import logging
 import re
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
-from urllib.parse import urlencode, urljoin
 
 import pandas as pd
-import urllib3
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import current_app, g
+from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
@@ -42,11 +40,9 @@ from sqlalchemy.engine.url import URL
 from superset import db, security_manager
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
-from superset.db_engine_specs.base import OAuth2State, OAuth2TokenResponse
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -62,7 +58,6 @@ EXAMPLE_GSHEETS_URL = (
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
 ma_plugin = MarshmallowPlugin()
-http = urllib3.PoolManager()
 
 
 class GSheetsParametersSchema(Schema):
@@ -111,7 +106,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
     supports_file_upload = True
 
-    # exception raised by shillelagh that should trigger OAuth2
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_scope = " ".join(SCOPES)
+    oauth2_authorization_request_uri = (  # pylint: disable=invalid-name
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    )
+    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"
     oauth2_exception = UnauthenticatedError
 
     @classmethod
@@ -152,82 +153,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             metadata = {}
 
         return {"metadata": metadata["extra"]}
-
-    @staticmethod
-    def is_oauth2_enabled() -> bool:
-        """
-        Return if OAuth2 is enabled for GSheets.
-        """
-        return "Google Sheets" in current_app.config["DATABASE_OAUTH2_CREDENTIALS"]
-
-    @classmethod
-    def get_oauth2_authorization_uri(cls, state: OAuth2State) -> str:
-        """
-        Return URI for initial OAuth2 request.
-
-        https://developers.google.com/identity/protocols/oauth2/web-server#creatingclient
-        """
-        config = current_app.config["DATABASE_OAUTH2_CREDENTIALS"]["Google Sheets"]
-        baseurl = config.get("BASEURL", "https://accounts.google.com/o/oauth2/v2/auth")
-        redirect_uri = current_app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            state["default_redirect_uri"],
-        )
-
-        params = {
-            "scope": " ".join(SCOPES),
-            "access_type": "offline",
-            "include_granted_scopes": "false",
-            "response_type": "code",
-            "state": encode_oauth2_state(state),
-            "redirect_uri": redirect_uri,
-            "client_id": config["CLIENT_ID"],
-            "prompt": "consent",
-        }
-        return urljoin(baseurl, "?" + urlencode(params))
-
-    @staticmethod
-    def get_oauth2_token(code: str, state: OAuth2State) -> OAuth2TokenResponse:
-        """
-        Exchange authorization code for refresh/access tokens.
-        """
-        config = current_app.config["DATABASE_OAUTH2_CREDENTIALS"]["Google Sheets"]
-        redirect_uri = current_app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            state["default_redirect_uri"],
-        )
-
-        response = http.request(
-            "POST",
-            "https://oauth2.googleapis.com/token",
-            fields={
-                "code": code,
-                "client_id": config["CLIENT_ID"],
-                "client_secret": config["CLIENT_SECRET"],
-                "redirect_uri": redirect_uri,
-                "grant_type": "authorization_code",
-            },
-        )
-        return json.loads(response.data.decode("utf-8"))
-
-    @staticmethod
-    def get_oauth2_fresh_token(refresh_token: str) -> OAuth2TokenResponse:
-        """
-        Refresh an access token that has expired.
-        """
-        config = current_app.config["DATABASE_OAUTH2_CREDENTIALS"]["Google Sheets"]
-
-        response = http.request(
-            "POST",
-            "https://oauth2.googleapis.com/token",
-            fields={
-                "client_id": config["CLIENT_ID"],
-                "client_secret": config["CLIENT_SECRET"],
-                "refresh_token": refresh_token,
-                "grant_type": "refresh_token",
-            },
-        )
-        return json.loads(response.data.decode("utf-8"))
 
     @classmethod
     def build_sqlalchemy_uri(

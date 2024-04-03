@@ -1115,9 +1115,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if database is None:
             return self.response_404()
 
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
+
         token_response = database.db_engine_spec.get_oauth2_token(
+            oauth2_config,
             parameters["code"],
-            state,
         )
 
         # delete old tokens

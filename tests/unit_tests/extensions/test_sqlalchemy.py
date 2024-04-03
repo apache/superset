@@ -124,7 +124,11 @@ def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) ->
     """
     mocker.patch(
         "superset.extensions.metadb.current_app.config",
-        {"DB_SQLA_URI_VALIDATOR": None, "SUPERSET_META_DB_LIMIT": 1},
+        {
+            "DB_SQLA_URI_VALIDATOR": None,
+            "SUPERSET_META_DB_LIMIT": 1,
+            "DATABASE_OAUTH2_CLIENTS": {},
+        },
     )
     mocker.patch("superset.extensions.metadb.security_manager")
 
