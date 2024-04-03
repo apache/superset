@@ -412,7 +412,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                         "last_name": "user",
                     }
                 ],
-                "owners_by_name": ["admin user"],
                 "roles": [],
                 "position_json": "",
                 "published": False,

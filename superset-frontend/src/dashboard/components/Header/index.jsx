@@ -46,6 +46,7 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import getOwnerName from 'src/utils/getOwnerName';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -448,8 +449,8 @@ class Header extends React.PureComponent {
         type: MetadataType.Owner,
         createdBy: dashboardInfo.created_by_name || t('Not available'),
         owners:
-          dashboardInfo.owners_by_name.length > 0
-            ? dashboardInfo.owners_by_name
+          dashboardInfo.owners.length > 0
+            ? dashboardInfo.owners.map(getOwnerName)
             : t('None'),
         createdOn: dashboardInfo.created_on_delta_humanized,
       },

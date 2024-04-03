@@ -35,7 +35,7 @@ export default {
   changed_by_name: 'John Doe',
   created_on_delta_humanized: '10 days ago',
   created_by_name: 'Kay Mon',
-  owners_by_name: ['John Doe'],
+  owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
   userId: 'mock_user_id',
   dash_edit_perm: true,
   dash_save_perm: true,

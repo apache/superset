@@ -249,10 +249,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return str(self.created_by)
 
     @property
-    def owners_by_name(self) -> list[str]:
-        return [owner.get_full_name() for owner in self.owners]
-
-    @property
     def data(self) -> dict[str, Any]:
         positions = self.position_json
         if positions:

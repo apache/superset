@@ -48,7 +48,7 @@ const createProps = () => ({
     changed_by_name: 'John Doe',
     created_on_delta_humanized: '10 days ago',
     created_by_name: 'Kay Mon',
-    owners_by_name: ['John Doe'],
+    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',

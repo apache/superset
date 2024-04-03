@@ -193,7 +193,6 @@ class DashboardGetResponseSchema(Schema):
     changed_on = fields.DateTime()
     charts = fields.List(fields.String(metadata={"description": charts_description}))
     owners = fields.List(fields.Nested(UserSchema(exclude=["username"])))
-    owners_by_name = fields.List(fields.String())
     roles = fields.List(fields.Nested(RolesSchema))
     tags = fields.Nested(TagSchema, many=True)
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
