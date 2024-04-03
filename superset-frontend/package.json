@@ -331,7 +331,7 @@
     "prettier-plugin-packagejson": "^2.4.10",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
-    "react-test-renderer": "^16.9.0",
+    "react-test-renderer": "^16.14.0",
     "redux-mock-store": "^1.5.4",
     "sinon": "^9.0.2",
     "source-map": "^0.7.4",
