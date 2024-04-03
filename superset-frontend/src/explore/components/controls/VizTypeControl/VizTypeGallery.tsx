@@ -742,7 +742,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           sectionId={Sections.Featured}
           selector={FEATURED}
-          icon={<Icons.PushpinOutlined iconSize="m" />}
+          icon={<Icons.FireOutlined iconSize="m" />}
           isSelected={
             !isActivelySearching &&
             FEATURED === activeSelector &&
