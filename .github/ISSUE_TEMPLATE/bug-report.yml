@@ -45,7 +45,7 @@ body:
       label: Superset version
       options:
         - master / latest-dev
-        - "3.1.1"
+        - "3.1.2"
         - "3.0.4"
     validations:
       required: true
