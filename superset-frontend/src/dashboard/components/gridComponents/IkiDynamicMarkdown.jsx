@@ -238,7 +238,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
                                 className="ikirunpipeline-widget"
                                 style="min-height: 100%;"
                             />`;
-            this.handleIkiRunPipelineChange(tempIframe);
+            this.handleIkiRunPipelineChange(tempIframe, true);
           }
         }
       }
@@ -320,7 +320,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
                       className="ikirunpipeline-widget"
                       style="min-height: 100%;"
                     />`;
-    this.handleIkiRunPipelineChange(tempIframe, false);
+    this.handleIkiRunPipelineChange(tempIframe, true);
   }
 
   updateMarkdownContent() {
