@@ -224,4 +224,10 @@ it('getErrorText', async () => {
   expect(await getErrorText(new Response(error), 'dashboard')).toEqual(
     'You do not have permission to edit this dashboard',
   );
+  expect(
+    await getErrorText(
+      new Response(JSON.stringify({ status: 'error' })),
+      'dashboard',
+    ),
+  ).toEqual('Sorry, an unknown error occurred.');
 });
