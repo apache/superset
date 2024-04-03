@@ -50,7 +50,7 @@ dill==0.3.6
     # via pylint
 distlib==0.3.6
     # via virtualenv
-docker==6.1.1
+docker==7.0.0
     # via apache-superset
 et-xmlfile==1.1.0
     # via openpyxl
@@ -66,7 +66,7 @@ flask-testing==0.8.1
     # via apache-superset
 fonttools==4.43.0
     # via matplotlib
-freezegun==1.2.2
+freezegun==1.4.0
     # via apache-superset
 future==0.18.3
     # via pyhive
@@ -83,7 +83,7 @@ google-auth-oauthlib==1.0.0
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.20.0
+google-cloud-bigquery==3.20.1
     # via
     #   apache-superset
     #   pandas-gbq
@@ -100,7 +100,7 @@ googleapis-common-protos==1.59.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.60.1
+grpcio==1.62.1
     # via
     #   apache-superset
     #   google-api-core
@@ -163,7 +163,7 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==10.2.0
+pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
@@ -177,7 +177,7 @@ pluggy==1.2.0
     # via
     #   pytest
     #   tox
-pre-commit==3.3.3
+pre-commit==3.7.0
     # via apache-superset
 progress==1.6
     # via apache-superset
@@ -199,16 +199,18 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
-    # via thrift-sasl
+    # via
+    #   pyhive
+    #   thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
     # via apache-superset
 pyee==11.0.1
     # via playwright
-pyfakefs==5.2.2
+pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -223,7 +225,7 @@ pytest==7.3.1
     #   apache-superset
     #   pytest-cov
     #   pytest-mock
-pytest-cov==4.0.0
+pytest-cov==5.0.0
     # via apache-superset
 pytest-mock==3.10.0
     # via apache-superset
@@ -241,7 +243,7 @@ s3transfer==0.6.1
     # via boto3
 sqlalchemy-bigquery==1.10.0
     # via apache-superset
-sqloxide==0.1.33
+sqloxide==0.1.43
     # via apache-superset
 stack-data==0.6.2
     # via ipython
@@ -252,9 +254,12 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
+    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pyhive
 tomli==2.0.1
     # via
     #   build
@@ -291,8 +296,6 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-websocket-client==1.5.1
-    # via docker
 wheel==0.40.0
     # via pip-tools
 xlrd==2.0.1
