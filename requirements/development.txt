@@ -202,6 +202,8 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pure-sasl==0.6.2
+    # via thrift-sasl
 pydata-google-auth==1.7.0
     # via pandas-gbq
 pydruid==0.6.6
@@ -252,6 +254,10 @@ statsd==4.0.1
 tableschema==1.20.10
     # via apache-superset
 thrift==0.16.0
+    # via
+    #   apache-superset
+    #   thrift-sasl
+thrift-sasl==0.4.3
     # via apache-superset
 tomli==2.0.1
     # via

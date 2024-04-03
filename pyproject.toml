@@ -134,6 +134,7 @@ hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
     "thrift>=0.14.1, <1.0.0",
+    "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>0.16.2, <0.17"]
 kusto = ["sqlalchemy-kusto>=2.0.0, <3"]
