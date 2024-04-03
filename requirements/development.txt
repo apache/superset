@@ -210,7 +210,7 @@ pydruid==0.6.6
     # via apache-superset
 pyee==11.0.1
     # via playwright
-pyfakefs==5.2.2
+pyfakefs==5.3.5
     # via apache-superset
 pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
