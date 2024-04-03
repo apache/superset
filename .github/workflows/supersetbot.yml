@@ -37,7 +37,7 @@ jobs:
               content: '+1'
             });
 
-      - name: "Checkout `master` ( ${{ github.sha }} )"
+      - name: "Checkout ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false

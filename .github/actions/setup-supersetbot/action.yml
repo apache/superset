@@ -4,7 +4,7 @@ inputs:
   from-npm:
     description: 'Install from npm instead of local setup'
     required: false
-    default: 'false' # Defaults to using the local setup
+    default: 'true' # Defaults to using the local setup
 runs:
   using: 'composite'
   steps:
