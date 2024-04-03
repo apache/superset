@@ -51,7 +51,6 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_ISSUE_NUMBER: ${{ github.event.issue.number }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
-          INPUT_COMMENT_BODY: ${{ github.event.inputs.comment_body }}
+          COMMENT_BODY: ${{ github.event.comment.body }}${{ github.event.inputs.comment_body }}
         run: |
           supersetbot run "$COMMENT_BODY"
