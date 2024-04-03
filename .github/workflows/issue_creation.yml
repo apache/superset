@@ -10,19 +10,21 @@ on:
 jobs:
   superbot-orglabel:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
-      - name: Execute SupersetBot Command
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
-      - name: Execute custom Node.js script
+      - name: Execute supersetbot orglabel command
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

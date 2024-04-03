@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json
 from datetime import datetime
 from typing import Optional
 
 import pytest
+from pytest_mock import MockerFixture
 
+from superset.config import VERSION_STRING
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
@@ -38,3 +41,34 @@ def test_convert_dttm(
     from superset.db_engine_specs.duckdb import DuckDBEngineSpec as spec
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_get_extra_params(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_extra_params`` method.
+    """
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    database.extra = {}
+    assert DuckDBEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {
+                "config": {"custom_user_agent": f"apache-superset/{VERSION_STRING}"}
+            }
+        }
+    }
+
+    database.extra = json.dumps(
+        {"engine_params": {"connect_args": {"config": {"custom_user_agent": "my-app"}}}}
+    )
+    assert DuckDBEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {
+                "config": {
+                    "custom_user_agent": f"apache-superset/{VERSION_STRING} my-app"
+                }
+            }
+        }
+    }

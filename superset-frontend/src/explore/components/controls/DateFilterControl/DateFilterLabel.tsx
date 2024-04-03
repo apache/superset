@@ -25,6 +25,7 @@ import {
   NO_TIME_RANGE,
   SupersetTheme,
   useCSSTextTruncation,
+  fetchTimeRange,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -41,7 +42,6 @@ import ControlPopover from '../ControlPopover/ControlPopover';
 import { DateFilterControlProps, FrameType } from './types';
 import {
   DateFilterTestKey,
-  fetchTimeRange,
   FRAME_OPTIONS,
   guessFrame,
   useDefaultTimeFilter,

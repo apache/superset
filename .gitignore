@@ -112,3 +112,4 @@ messages.mo
 docker/requirements-local.txt
 
 cache/
+docker/*local*

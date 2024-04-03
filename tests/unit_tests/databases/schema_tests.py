@@ -225,3 +225,45 @@ def test_rename_encrypted_extra() -> None:
         "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
         "masked_encrypted_extra": "{}",
     }
+
+
+def test_oauth2_schema_success() -> None:
+    """
+    Test a successful redirect.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load({"code": "SECRET", "state": "12345"})
+    assert payload == {"code": "SECRET", "state": "12345"}
+
+
+def test_oauth2_schema_error() -> None:
+    """
+    Test a redirect with an error.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load({"error": "access_denied"})
+    assert payload == {"error": "access_denied"}
+
+
+def test_oauth2_schema_extra() -> None:
+    """
+    Test a redirect with extra keys.
+    """
+    from superset.databases.schemas import OAuth2ProviderResponseSchema
+
+    schema = OAuth2ProviderResponseSchema()
+
+    payload = schema.load(
+        {
+            "code": "SECRET",
+            "state": "12345",
+            "optional": "NEW THING",
+        }
+    )
+    assert payload == {"code": "SECRET", "state": "12345"}

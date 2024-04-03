@@ -17,9 +17,13 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, ensureIsArray, t } from '@superset-ui/core';
+import {
+  styled,
+  ensureIsArray,
+  t,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 

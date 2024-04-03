@@ -80,6 +80,7 @@ const basicQueryResult: ChartDataResponseResult = {
   is_cached: false,
   query: 'SELECT ...',
   rowcount: 100,
+  sql_rowcount: 100,
   stacktrace: null,
   status: 'success',
   from_dttm: null,

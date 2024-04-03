@@ -30,6 +30,7 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  rowcount,
   datasourceId,
   dataSize = 50,
   isVisible,
@@ -55,6 +56,7 @@ export const SingleQueryResultPane = ({
         data={filteredData}
         columnNames={colnames}
         columnTypes={coltypes}
+        rowcount={rowcount}
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={false}

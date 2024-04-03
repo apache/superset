@@ -26,7 +26,7 @@ class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     # Frontend errors
@@ -67,6 +67,8 @@ class SupersetErrorType(StrEnum):
     USER_ACTIVITY_SECURITY_ACCESS_ERROR = "USER_ACTIVITY_SECURITY_ACCESS_ERROR"
     DASHBOARD_SECURITY_ACCESS_ERROR = "DASHBOARD_SECURITY_ACCESS_ERROR"
     CHART_SECURITY_ACCESS_ERROR = "CHART_SECURITY_ACCESS_ERROR"
+    OAUTH2_REDIRECT = "OAUTH2_REDIRECT"
+    OAUTH2_REDIRECT_ERROR = "OAUTH2_REDIRECT_ERROR"
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
@@ -194,7 +196,7 @@ class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     INFO = "info"

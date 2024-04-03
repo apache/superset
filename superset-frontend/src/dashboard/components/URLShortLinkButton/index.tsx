@@ -17,14 +17,13 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { t } from '@superset-ui/core';
+import { getClientErrorObject, t } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export type URLShortLinkButtonProps = {
   dashboardId: number;
