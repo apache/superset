@@ -10,7 +10,7 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
-astroid==2.15.8
+astroid==3.1.0
     # via pylint
 asttokens==2.2.1
     # via stack-data
@@ -130,9 +130,7 @@ jsonschema-spec==0.1.4
 kiwisolver==1.4.4
     # via matplotlib
 lazy-object-proxy==1.9.0
-    # via
-    #   astroid
-    #   openapi-spec-validator
+    # via openapi-spec-validator
 linear-tsv==1.1.0
     # via dataflows-tabulator
 matplotlib==3.7.1
@@ -216,7 +214,7 @@ pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
-pylint==2.17.7
+pylint==3.1.0
     # via apache-superset
 pyproject-api==1.5.2
     # via tox
