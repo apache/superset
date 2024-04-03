@@ -18,7 +18,7 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { fetchTimeRange } from '@superset-ui/core';
+import { ComparisonTimeRangeType, fetchTimeRange } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -114,5 +114,30 @@ it('returns a formatted error message from response', async () => {
   timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({
     error: 'Network error',
+  });
+});
+
+it('fetchTimeRange with shift', async () => {
+  fetchMock.getOnce(
+    "glob:*/api/v1/relative_time_range/?q=(base_time_range:'Last+day',shift%3Am)",
+    {
+      result: [
+        {
+          since: '2021-04-13T00:00:00',
+          until: '2021-04-14T00:00:00',
+          timeRange: 'Last day',
+        },
+      ],
+    },
+  );
+
+  const timeRange = await fetchTimeRange(
+    'Last day',
+    'temporal_col',
+    ComparisonTimeRangeType.Month,
+  );
+
+  expect(timeRange).toEqual({
+    value: '2021-04-13 ≤ temporal_col < 2021-04-14',
   });
 });
