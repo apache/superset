@@ -185,7 +185,7 @@ def create_dashboard_report(dashboard, extra, **kwargs):
         extra={
             "dashboard": extra,
         },
-        **kwargs
+        **kwargs,
     )
     error = None
 
