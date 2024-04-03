@@ -277,26 +277,30 @@ def test_extract_tables_illdefined() -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM schemaname.")
     assert (
-        str(excinfo.value) == "Unable to parse SQL (generic): SELECT * FROM schemaname."
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:25"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname.schemaname.")
     assert (
         str(excinfo.value)
-        == "Unable to parse SQL (generic): SELECT * FROM catalogname.schemaname."
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:37"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname..")
     assert (
         str(excinfo.value)
-        == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:27"
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables('SELECT * FROM "tbname')
-    assert str(excinfo.value) == 'Unable to parse SQL (generic): SELECT * FROM "tbname'
+    assert (
+        str(excinfo.value)
+        == "You may have an error in your SQL statement. Error tokenizing 'SELECT * FROM \"tbnam'"
+    )
 
     # odd edge case that works
     assert extract_tables("SELECT * FROM catalogname..tbname") == {
