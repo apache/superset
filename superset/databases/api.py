@@ -871,7 +871,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.select_star.__name__)
         try:
             result = database.select_star(
-                table_name, schema_name, latest_partition=True, show_cols=True
+                table_name, schema_name, latest_partition=True
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
