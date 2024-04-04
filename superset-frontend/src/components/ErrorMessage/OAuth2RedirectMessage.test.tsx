@@ -23,13 +23,14 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
 import {
   ErrorLevel,
   ErrorSource,
   ErrorTypeEnum,
-} from 'src/components/ErrorMessage/types';
+  ThemeProvider,
+  supersetTheme,
+} from '@superset-ui/core';
+import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';

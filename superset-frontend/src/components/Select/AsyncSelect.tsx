@@ -29,11 +29,15 @@ import React, {
   useImperativeHandle,
   ClipboardEvent,
 } from 'react';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  t,
+  usePrevious,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,

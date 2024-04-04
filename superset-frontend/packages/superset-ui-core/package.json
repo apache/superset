@@ -47,7 +47,7 @@
     "d3-scale": "^3.0.0",
     "d3-time": "^1.0.10",
     "d3-time-format": "^2.2.0",
-    "fetch-retry": "^4.0.1",
+    "fetch-retry": "^6.0.0",
     "jed": "^1.1.1",
     "lodash": "^4.17.11",
     "math-expression-evaluator": "^1.3.8",

@@ -1329,7 +1329,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if progress > query.progress:
+                    if (  # pylint: disable=consider-using-min-builtin
+                        progress > query.progress
+                    ):
                         query.progress = progress
                     db.session.commit()
             time.sleep(poll_interval)

@@ -26,7 +26,7 @@ class SupersetErrorType(StrEnum):
     """
     Types of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     # Frontend errors
@@ -196,7 +196,7 @@ class ErrorLevel(StrEnum):
     """
     Levels of errors that can exist within Superset.
 
-    Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    Keep in sync with superset-frontend/packages/superset-ui-core/src/query/types/Query.ts
     """
 
     INFO = "info"
