@@ -40,7 +40,7 @@ export const ComparisonRangeLabel = () => {
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
-      state.explore.form_data.adhoc_filters.filter(
+      state.explore.form_data.adhoc_filters?.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),
@@ -51,7 +51,7 @@ export const ComparisonRangeLabel = () => {
     BinaryAdhocFilter[]
   >(
     state =>
-      state.explore.form_data.adhoc_custom.filter(
+      state.explore.form_data.adhoc_custom?.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),
