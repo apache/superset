@@ -227,7 +227,10 @@ class IkiDynamicMarkdown extends React.PureComponent {
             messageObject.info === 'widget-to-superset/dynamic-markdown-setup'
           ) {
             widgetUrlQuery = new URLSearchParams(widgetUrl);
-            widgetUrlQuery.set('mode', this.state.editorMode);
+            widgetUrlQuery.set(
+              'mode',
+              this.state.editorMode ? 'edit' : 'preview',
+            );
             widgetUrlQuery.set('parent', 'superset');
             widgetUrlQuery.set('project_id', messageData.projectId);
             widgetUrlQuery.set('component_id', messageData.componentId);
@@ -362,8 +365,8 @@ class IkiDynamicMarkdown extends React.PureComponent {
   }
 
   renderIframe() {
-    const { markdownSource, hasError, editorMode } = this.state;
-    const { ikigaiOrigin } = this.props;
+    const { markdownSource, hasError } = this.state;
+    const { ikigaiOrigin, editMode } = this.props;
     let iframe = '';
     let iframeSrc = '';
     if (ikigaiOrigin) {
@@ -373,7 +376,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
         iframeWrapper.innerHTML = markdownSource;
         const iframeHtml = iframeWrapper.firstChild;
         const iframeSrcUrl = new URL(iframeHtml.src);
-        iframeSrcUrl.searchParams.set('mode', editorMode);
+        iframeSrcUrl.searchParams.set('mode', editMode ? 'edit' : 'preview');
         iframeSrc = ikigaiOrigin + iframeSrcUrl.pathname + iframeSrcUrl.search;
       } else {
         iframeSrc = `${ikigaiOrigin}/widget/custom?mode=edit&parent=superset`;
