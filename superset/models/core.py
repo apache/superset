@@ -114,7 +114,7 @@ class ConfigurationMethod(StrEnum):
     DYNAMIC_FORM = "dynamic_form"
 
 
-class EngineManager:
+class EngineManager:  # pylint: disable=R0903
     """
     Allocate an engine once per process as per API documentation
     https://docs.sqlalchemy.org/en/20/core/connections.html
@@ -125,18 +125,23 @@ class EngineManager:
     """
 
     _lock = threading.Lock()
-    _sqla_engines: dict[str, tuple[Engine, dict]] = {}
+    _sqla_engines: dict[tuple[str, tuple], Engine] = {}
 
     @classmethod
     def create_engine(cls, sqlalchemy_url: str, **params) -> Engine:
+
+        def dict_to_sortedtuple(cparams: dict[str, Any]) -> tuple:
+            return tuple(
+                (k, dict_to_sortedtuple(v) if isinstance(v, dict) else v)
+                for k, v in sorted(cparams.items())
+            )
+
+        key = (sqlalchemy_url, dict_to_sortedtuple(params))
         with cls._lock:
-            tpl = cls._sqla_engines.get(sqlalchemy_url)
-            if tpl is not None:
-                engine, cparams = tpl
-                if cparams == params:
-                    return engine
-            engine = create_engine(sqlalchemy_url, **params)
-            cls._sqla_engines[sqlalchemy_url] = (engine, params)
+            engine = cls._sqla_engines.get(key)
+            if engine is None:
+                engine = create_engine(sqlalchemy_url, **params)
+                cls._sqla_engines[key] = engine
         return engine
 
 
