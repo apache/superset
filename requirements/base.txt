@@ -406,3 +406,6 @@ zipp==3.15.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+# add the click house driver
+clickhouse-connect==0.7.7
