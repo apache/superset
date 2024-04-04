@@ -29,6 +29,7 @@ from superset.commands.database.exceptions import (
 from superset.models.core import Database
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
+from tests.integration_tests.conftest import only_postgresql
 from tests.integration_tests.test_app import app
 from tests.unit_tests.fixtures.common import create_csv_file
 
@@ -235,6 +236,7 @@ def test_csv_upload_database_not_found():
             ).run()
 
 
+@only_postgresql
 @pytest.mark.usefixtures("setup_csv_upload_with_context_schema1")
 def test_csv_upload_schema_not_allowed():
     admin_user = security_manager.find_user(username="admin")
