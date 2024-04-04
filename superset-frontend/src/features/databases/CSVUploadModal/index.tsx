@@ -49,6 +49,8 @@ import {
 } from './styles';
 
 interface CSVUploadModalProps {
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   onHide: () => void;
   show: boolean;
 }
@@ -100,6 +102,8 @@ const defaultUploadInfo: UploadInfo = {
 };
 
 const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
+  addDangerToast,
+  addSuccessToast,
   onHide,
   show,
 }) => {
@@ -109,6 +113,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = React.useState<string[]>([]);
   const [delimiter, setDelimiter] = useState<string>(',');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const nullValuesOptions = [
     {
@@ -217,10 +222,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 
   const onFinish = () => {
     const fields = form.getFieldsValue();
-    console.log(fields);
     fields.database_id = databaseId;
     const mergedValues = { ...defaultUploadInfo, ...fields };
-    console.log(mergedValues);
     const formData = new FormData();
     const file = fileList[0]?.originFileObj;
     if (file) {
@@ -249,23 +252,24 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     formData.append('columns_read', mergedValues.columns_read);
     formData.append('overwrite_duplicates', mergedValues.overwrite_duplicates);
     formData.append('column_data_types', mergedValues.column_data_types);
+    setIsLoading(true);
     return SupersetClient.post({
       endpoint: `/api/v1/database/${databaseId}/csv_upload/`,
       body: formData,
       headers: { Accept: 'application/json' },
     })
-      .then(() => true)
+      .then(() => {
+        addSuccessToast(t('CSV Imported'));
+        setIsLoading(false);
+        onClose();
+      })
       .catch(response =>
         getClientErrorObject(response).then(error => {
-          if (!error.errors) {
-            console.log(error.message || error.error);
-            return false;
-          }
-          return false;
+          addDangerToast(error.error || 'Error');
         }),
       )
       .finally(() => {
-        console.log('finally');
+        setIsLoading(false);
       });
   };
 
@@ -307,7 +311,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
         .map(column => column.replace(/^"(.*)"$/, '$1'));
       setColumns(firstRow);
     } catch (error) {
-      console.log('Failed to process file content');
+      addDangerToast('Failed to process file content');
     }
   };
 
@@ -351,6 +355,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
         antDModalNoPaddingStyles,
         antDModalStyles(theme),
       ]}
+      primaryButtonLoading={isLoading}
       name="database"
       data-test="csvupload-modal"
       onHandledPrimaryAction={form.submit}

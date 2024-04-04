@@ -571,6 +571,8 @@ function DatabaseList({
         }}
       />
       <CSVUploadModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         onHide={() => {
           setCsvUploadModalOpen(false);
         }}

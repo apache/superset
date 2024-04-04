@@ -119,7 +119,7 @@ describe('CSVUploadModal', () => {
     });
   });
 
-  test('renders the file settings elements correctly', async () => {
+  test('renders the file settings elements correctly', () => {
     expect(
       screen.queryByText('If Table Already Exists'),
     ).not.toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('CSVUploadModal', () => {
     });
   });
 
-  test('renders the columns elements correctly', async () => {
+  test('renders the columns elements correctly', () => {
     const panelHeader = screen.getByRole('heading', {
       name: /columns/i,
     });
@@ -189,30 +189,26 @@ describe('CSVUploadModal', () => {
     visibleComponents.forEach(component => {
       expect(component).toBeVisible();
     });
+  });
 
-    test('renders the rows elements correctly', async () => {
-      const panelHeader = screen.getByRole('heading', {
-        name: /rows/i,
-      });
-      userEvent.click(panelHeader);
-      const inputHeaderRow = screen.getByRole('textbox', {
-        name: /header row/i,
-      });
-      const inputRowsToRead = screen.getByRole('textbox', {
-        name: /rows to read/i,
-      });
-      const inputSkipRows = screen.getByRole('textbox', {
-        name: /skip rows/i,
-      });
+  test('renders the rows elements correctly', () => {
+    const panelHeader = screen.getByRole('heading', {
+      name: /rows/i,
+    });
+    userEvent.click(panelHeader);
+    const inputHeaderRow = screen.getByRole('textbox', {
+      name: /header row/i,
+    });
+    const inputRowsToRead = screen.getByRole('spinbutton', {
+      name: /rows to read/i,
+    });
+    const inputSkipRows = screen.getByRole('spinbutton', {
+      name: /skip rows/i,
+    });
 
-      const visibleComponents = [
-        inputHeaderRow,
-        inputRowsToRead,
-        inputSkipRows,
-      ];
-      visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
-      });
+    const visibleComponents = [inputHeaderRow, inputRowsToRead, inputSkipRows];
+    visibleComponents.forEach(component => {
+      expect(component).toBeVisible();
     });
   });
 });
