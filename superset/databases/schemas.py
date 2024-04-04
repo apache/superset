@@ -1003,7 +1003,6 @@ class CSVUploadPostSchema(Schema):
 
     file = fields.Raw(
         required=True,
-        type="file",
         metadata={"description": "The CSV file to upload"},
     )
     delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
