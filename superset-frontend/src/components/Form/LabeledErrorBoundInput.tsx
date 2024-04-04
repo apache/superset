@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Input, Tooltip } from 'antd';
+import { Input, Tooltip, Button } from 'antd';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import Icons from 'src/components/Icons';
@@ -148,6 +148,17 @@ const LabeledErrorBoundInput = ({
         />
       ) : (
         <StyledInput {...props} {...validationMethods} />
+      )}
+      {props.name === 'access_token' ? (
+        <Button type="link" htmlType="button" onClick={(o: any) => {
+          const href = 'https://app.motherduck.com/token-request?appName=Superset&close=y';
+          window.open(href);
+          return true;
+        }}>
+            Get token
+          </Button>
+      ) : (
+        <br />
       )}
     </FormItem>
   </StyledFormGroup>
