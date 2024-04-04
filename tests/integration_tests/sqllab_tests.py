@@ -18,6 +18,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime
+from textwrap import dedent
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -578,12 +579,13 @@ class TestSqlLab(SupersetTestCase):
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
     def test_execute_sql_statements(self, mock_execute_sql_statement, mock_get_query):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_session = mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
@@ -607,7 +609,7 @@ class TestSqlLab(SupersetTestCase):
         mock_execute_sql_statement.assert_has_calls(
             [
                 mock.call(
-                    "SET @value = 42",
+                    "-- comment\nSET @value = 42",
                     mock_query,
                     mock_session,
                     mock_cursor,
@@ -615,7 +617,7 @@ class TestSqlLab(SupersetTestCase):
                     False,
                 ),
                 mock.call(
-                    "SELECT @value AS foo",
+                    "SELECT /*+ hint */ @value AS foo",
                     mock_query,
                     mock_session,
                     mock_cursor,
@@ -631,12 +633,13 @@ class TestSqlLab(SupersetTestCase):
     def test_execute_sql_statements_no_results_backend(
         self, mock_execute_sql_statement, mock_get_query
     ):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_session = mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
@@ -681,12 +684,13 @@ class TestSqlLab(SupersetTestCase):
     def test_execute_sql_statements_ctas(
         self, mock_execute_sql_statement, mock_get_query
     ):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_session = mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
@@ -714,7 +718,7 @@ class TestSqlLab(SupersetTestCase):
         mock_execute_sql_statement.assert_has_calls(
             [
                 mock.call(
-                    "SET @value = 42",
+                    "-- comment\nSET @value = 42",
                     mock_query,
                     mock_session,
                     mock_cursor,
@@ -722,7 +726,7 @@ class TestSqlLab(SupersetTestCase):
                     False,
                 ),
                 mock.call(
-                    "SELECT @value AS foo",
+                    "SELECT /*+ hint */ @value AS foo",
                     mock_query,
                     mock_session,
                     mock_cursor,
@@ -761,12 +765,13 @@ class TestSqlLab(SupersetTestCase):
 
         # try invalid CVAS
         mock_query.ctas_method = CtasMethod.VIEW
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,
