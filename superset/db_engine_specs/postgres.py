@@ -209,7 +209,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     encryption_parameters = {"sslmode": "require"}
 
     max_column_name_length = 63
-    try_remove_schema_from_table_name = False
+    try_remove_schema_from_table_name = False  # pylint: disable=invalid-name
 
     column_type_mappings = (
         (
