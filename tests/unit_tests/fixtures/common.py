@@ -27,11 +27,6 @@ def dttm() -> datetime:
 
 
 def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
-    # Create a BytesIO object
-    buf = BytesIO()
-
-    # Define some sample data
-
     data = (
         [
             ["Name", "Age", "City"],
@@ -41,13 +36,10 @@ def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
         else data
     )
 
-    # Using StringIO to create a CSV in-memory string
     output = StringIO()
     writer = csv.writer(output)
     for row in data:
         writer.writerow(row)
-    # Move to the beginning of the StringIO buffer
     output.seek(0)
-    # Create a BytesIO object
     bytes_buffer = BytesIO(output.getvalue().encode("utf-8"))
     return bytes_buffer
