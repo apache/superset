@@ -109,6 +109,7 @@ const LabeledErrorBoundInput = ({
   id,
   className,
   visibilityToggle,
+  get_url,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -154,10 +155,8 @@ const LabeledErrorBoundInput = ({
           type="link"
           htmlType="button"
           onClick={() => {
-            const href =
-              'https://app.motherduck.com/token-request?appName=Superset&close=y';
+            const href = get_url;
             window.open(href);
-            console.log(props);
             return true;
           }}
         >
