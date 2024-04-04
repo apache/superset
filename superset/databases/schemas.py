@@ -1003,6 +1003,7 @@ class CSVUploadPostSchema(Schema):
 
     file = fields.Raw(
         required=True,
+        type="file",
         metadata={"description": "The CSV file to upload"},
     )
     delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
@@ -1026,7 +1027,7 @@ class CSVUploadPostSchema(Schema):
         fields.String(),
         metadata={
             "description": "A list of column names that should be "
-            "parsed as dates. Example: ['date', 'timestamp']"
+            "parsed as dates. Example: date,timestamp"
         },
     )
     column_labels = fields.String(
@@ -1102,6 +1103,8 @@ class CSVUploadPostSchema(Schema):
     )
     table_name = fields.String(
         required=True,
+        validate=Length(min=1, max=10000),
+        allow_none=False,
         metadata={"description": "The name of the table to be created/appended"},
     )
 

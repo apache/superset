@@ -14,14 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=unused-argument, import-outside-toplevel, line-too-long
-
 import json
 from datetime import datetime
 from io import BytesIO
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 from uuid import UUID
 
 import pytest
@@ -32,6 +29,9 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from tests.unit_tests.fixtures.common import create_csv_file
+
+# pylint: disable=unused-argument, import-outside-toplevel, line-too-long
 
 
 def test_filter_by_uuid(
@@ -808,3 +808,235 @@ def test_oauth2_error(
             }
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "payload,cmd_called_with",
+    [
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                {
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table2",
+                "delimiter": ";",
+                "already_exists": "replace",
+                "column_dates": "col1,col2",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                {
+                    "already_exists": "replace",
+                    "column_dates": ["col1", "col2"],
+                    "delimiter": ";",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table2",
+                "delimiter": ";",
+                "already_exists": "replace",
+                "columns_read": "col1,col2",
+                "day_first": True,
+                "rows_to_read": "1",
+                "overwrite_duplicates": True,
+                "skip_blank_lines": True,
+                "skip_initial_space": True,
+                "skip_rows": "10",
+                "null_values": "None,N/A,''",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                {
+                    "already_exists": "replace",
+                    "columns_read": ["col1", "col2"],
+                    "null_values": ["None", "N/A", "''"],
+                    "day_first": True,
+                    "overwrite_duplicates": True,
+                    "rows_to_read": 1,
+                    "skip_blank_lines": True,
+                    "skip_initial_space": True,
+                    "skip_rows": 10,
+                    "delimiter": ";",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+    ],
+)
+def test_csv_upload(
+    payload: dict[str, Any],
+    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload success.
+    """
+    from superset.commands.database.csv_import import CSVImportCommand
+
+    init_mock = mocker.patch.object(CSVImportCommand, "__init__")
+    init_mock.return_value = None
+    _ = mocker.patch.object(CSVImportCommand, "run")
+    response = client.post(
+        f"/api/v1/database/1/csv_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert response.json == {"message": "OK"}
+    init_mock.assert_called_with(*cmd_called_with)
+
+
+@pytest.mark.parametrize(
+    "payload,expected_response",
+    [
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Missing data for required field."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "",
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Length must be between 1 and 10000."]}},
+        ),
+        (
+            {"table_name": "table1", "delimiter": ",", "already_exists": "fail"},
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": "xpto",
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+            },
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "xpto",
+            },
+            {"message": {"already_exists": ["Must be one of: fail, replace, append."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "day_first": "test1",
+            },
+            {"message": {"day_first": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "header_row": "test1",
+            },
+            {"message": {"header_row": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "overwrite_duplicates": "test1",
+            },
+            {"message": {"overwrite_duplicates": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_blank_lines": "test1",
+            },
+            {"message": {"skip_blank_lines": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_initial_space": "test1",
+            },
+            {"message": {"skip_initial_space": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "skip_rows": "test1",
+            },
+            {"message": {"skip_rows": ["Not a valid integer."]}},
+        ),
+    ],
+)
+def test_csv_upload_validation(
+    payload: Any,
+    expected_response: dict[str, str],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    from superset.commands.database.csv_import import CSVImportCommand
+
+    _ = mocker.patch.object(CSVImportCommand, "run")
+
+    response = client.post(
+        f"/api/v1/database/1/csv_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == expected_response

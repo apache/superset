@@ -100,8 +100,8 @@ class CSVImportCommand(BaseCommand):
                     nrows=self._options.get("rows_to_read"),
                     parse_dates=self._options.get("column_dates"),
                     sep=self._options.get("delimiter", ","),
-                    skip_blank_lines=self._options["skip_blank_lines"],
-                    skipinitialspace=self._options["skip_initial_space"],
+                    skip_blank_lines=self._options.get("skip_blank_lines", False),
+                    skipinitialspace=self._options.get("skip_initial_space", False),
                     skiprows=self._options.get("skip_rows", 0),
                 )
             )

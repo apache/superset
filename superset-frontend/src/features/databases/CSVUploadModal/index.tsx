@@ -352,10 +352,10 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
         antDModalStyles(theme),
       ]}
       name="database"
-      data-test="database-modal"
+      data-test="csvupload-modal"
       onHandledPrimaryAction={form.submit}
       onHide={onClose}
-      primaryButtonName="Save"
+      primaryButtonName="Upload"
       centered
       show={show}
       title={<h4>CSV Upload</h4>}
@@ -403,7 +403,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     // upload is handled by hook
                     customRequest={() => {}}
                   >
-                    <Button icon={<UploadOutlined />}>Upload</Button>
+                    <Button aria-label={t('Select')} icon={<UploadOutlined />}>
+                      {t('Select')}
+                    </Button>
                   </Upload>
                 </StyledFormItem>
               </Col>
@@ -466,7 +468,12 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row justify="space-between">
               <Col span={11}>
                 <StyledFormItem label={t('Schema')} name="schema">
-                  <Input type="text" />
+                  <Input
+                    aria-label={t('Schema')}
+                    name="table_name"
+                    data-test="properties-modal-name-input"
+                    type="text"
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Select a schema if the database supports this')}
@@ -475,6 +482,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               <Col span={11}>
                 <StyledFormItem label={t('Delimiter')} name="delimiter">
                   <Select
+                    ariaLabel={t('Choose a delimiter')}
                     options={delimiterOptions}
                     onChange={onChangeDelimiter}
                     allowNewOptions
@@ -503,7 +511,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('If Table Already Exists')}
                   name="already_exists"
                 >
-                  <Select options={tableAlreadyExistsOptions} />
+                  <Select
+                    ariaLabel={t('Choose already exists')}
+                    options={tableAlreadyExistsOptions}
+                    onChange={() => {}}
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('What should happen if the table already exists')}
@@ -516,7 +528,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Skip Initial Space')}
                   name="skip_initial_space"
                 >
-                  <Switch />
+                  <Switch data-test="skipInitialSpace" />
                 </StyledFormItem>
                 <p className="help-block">{t('Skip spaces after delimiter')}</p>
               </Col>
@@ -527,7 +539,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Skip Blank Lines')}
                   name="skip_blank_lines"
                 >
-                  <Switch />
+                  <Switch data-test="skipBlankLines" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -543,6 +555,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   name="column_dates"
                 >
                   <Select
+                    ariaLabel={t('Choose columns to be parsed as dates')}
                     mode="multiple"
                     options={columnsToOptions()}
                     allowClear
@@ -559,7 +572,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem label={t('Day First')} name="day_first">
-                  <Switch />
+                  <Switch data-test="dayFirst" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('DD/MM format dates, international and European format')}
@@ -610,6 +623,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               <Col span={24}>
                 <StyledFormItem label={t('Index Column')} name="index_column">
                   <Select
+                    ariaLabel={t('Choose index column')}
                     options={columns.map(column => ({
                       value: column,
                       label: column,
@@ -631,7 +645,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Dataframe Index')}
                   name="dataframe_index"
                 >
-                  <Switch />
+                  <Switch data-test="dataFrameIndex" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Write dataframe index as a column')}
@@ -644,7 +658,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Column Label(s)')}
                   name="column_labels"
                 >
-                  <Input type="text" />
+                  <Input aria-label={t('Column labels')} type="text" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -660,6 +674,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   name="columns_read"
                 >
                   <Select
+                    ariaLabel={t('Choose columns to read')}
                     mode="multiple"
                     options={columnsToOptions()}
                     allowClear
@@ -677,7 +692,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Overwrite Duplicate Columns')}
                   name="overwrite_duplicates"
                 >
-                  <Switch />
+                  <Switch data-test="overwriteDuplicates" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -692,7 +707,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Column Data Types')}
                   name="column_data_types"
                 >
-                  <Input type="text" />
+                  <Input aria-label={t('Column data types')} type="text" />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -714,7 +729,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem label={t('Header Row')} name="header_row">
-                  <Input type="text" defaultValue={0} />
+                  <Input
+                    aria-label={t('Header row')}
+                    type="text"
+                    defaultValue={0}
+                  />
                 </StyledFormItem>
                 <p className="help-block">
                   {t(
@@ -726,7 +745,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem label={t('Rows to Read')} name="rows_to_read">
-                  <InputNumber min={0} />
+                  <InputNumber aria-label={t('Rows to read')} min={0} />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Number of rows of file to read.')}
@@ -736,7 +755,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem label={t('Skip Rows')} name="skip_rows">
-                  <InputNumber min={0} />
+                  <InputNumber aria-label={t('Skip rows')} min={0} />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Number of rows to skip at start of file.')}
