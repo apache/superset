@@ -172,7 +172,7 @@ export const accessTokenField = ({
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.access_token}
-    placeholder={t('e.g. ********')}
+    placeholder={t('Paste your access token here')}
     label={t('Access token')}
     onChange={changeMethods.onParametersChange}
   />
