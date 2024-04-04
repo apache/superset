@@ -23,6 +23,7 @@ import builtins
 import json
 import logging
 import textwrap
+import threading
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
@@ -111,6 +112,32 @@ class CssTemplate(Model, AuditMixinNullable):
 class ConfigurationMethod(StrEnum):
     SQLALCHEMY_FORM = "sqlalchemy_form"
     DYNAMIC_FORM = "dynamic_form"
+
+
+class EngineManager:
+    """
+    Allocate an engine once per process as per API documentation
+    https://docs.sqlalchemy.org/en/20/core/connections.html
+
+    Quote:
+      The typical usage of create_engine() is once per particular database URL,
+      held globally for the lifetime of a single application process
+    """
+
+    _lock = threading.Lock()
+    _sqla_engines: dict[str, tuple[Engine, dict]] = {}
+
+    @classmethod
+    def create_engine(cls, sqlalchemy_url: str, **params) -> Engine:
+        with cls._lock:
+            tpl = cls._sqla_engines.get(sqlalchemy_url)
+            if tpl is not None:
+                engine, cparams = tpl
+                if cparams == params:
+                    return engine
+            engine = create_engine(sqlalchemy_url, **params)
+            cls._sqla_engines[sqlalchemy_url] = (engine, params)
+        return engine
 
 
 class Database(
@@ -376,9 +403,7 @@ class Database(
         return (
             username
             if (username := get_username())
-            else object_url.username
-            if self.impersonate_user
-            else None
+            else object_url.username if self.impersonate_user else None
         )
 
     @contextmanager
@@ -513,7 +538,7 @@ class Database(
                 source,
             )
         try:
-            return create_engine(sqlalchemy_url, **params)
+            return EngineManager.create_engine(sqlalchemy_url, **params)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
