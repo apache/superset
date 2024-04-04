@@ -69,16 +69,16 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
 
     with np.nditer(result, flags=["refs_ok"], op_flags=[["readwrite"]]) as it:
         for obj in it:
-            if na_obj := pd.isna(obj):
-                # pandas <NA> type cannot be converted to string
-                obj[na_obj] = None
+            if pd.isna(obj.item()):  # Correctly check for pandas NA or numpy NaN values
+                obj[...] = None  # Directly assign None to handle missing values appropriately
             else:
                 try:
-                    # for simple string conversions
-                    # this handles odd character types better
-                    obj[...] = obj.astype(str)
-                except ValueError:
-                    obj[...] = stringify(obj)
+                    # Convert only if the string is fully ASCII, otherwise leave as is
+                    if obj.item().encode('ascii', 'ignore').decode() == obj.item():
+                        obj[...] = obj.astype(str)
+                except (ValueError, UnicodeEncodeError):
+                    # Catch exceptions for non-ASCII or other conversion issues, leaving them unchanged
+                    continue
 
     return result
 

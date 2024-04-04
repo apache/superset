@@ -84,8 +84,8 @@ def test_stringify_with_null_integers():
 
     data = [
         ("foo", "bar", pd.NA, None),
-        ("foo", "bar", pd.NA, True),
-        ("foo", "bar", pd.NA, None),
+        ("你好", "bar", pd.NA, True),
+        ("foo", "你好", pd.NA, False),
     ]
     numpy_dtype = [
         ("id", "object"),
@@ -101,10 +101,10 @@ def test_stringify_with_null_integers():
 
     expected = np.array(
         [
-            array(["foo", "foo", "foo"], dtype=object),
-            array(["bar", "bar", "bar"], dtype=object),
+            array(["foo", "你好", "foo"], dtype=object),
+            array(["bar", "bar", "你好"], dtype=object),
             array([None, None, None], dtype=object),
-            array([None, "True", None], dtype=object),
+            array([None, "True", "False"], dtype=object),
         ]
     )
 
