@@ -116,11 +116,6 @@ def make_url_safe(raw_url: Union[str, URL]) -> Any:
         url = raw_url.strip()
         try:
             return make_url(url)  # noqa
-        except ValueError:
-            if "duckdb" in url:
-                from superset.db_engine_specs.duckdb import MDURI
-                return MDURI.from_str(url)
-            raise DatabaseInvalidError()
         except Exception:
             raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
 
