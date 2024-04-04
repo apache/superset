@@ -163,6 +163,7 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  default_value,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="access_token"
@@ -173,6 +174,7 @@ export const accessTokenField = ({
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.access_token}
     placeholder={t('Paste your access token here')}
+    get_url={default_value}
     label={t('Access token')}
     onChange={changeMethods.onParametersChange}
   />

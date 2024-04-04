@@ -19,31 +19,21 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TypedDict, TYPE_CHECKING
-
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
-from flask_babel import gettext as __
-from marshmallow import fields, Schema
-from sqlalchemy import types
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import URL
-
-from superset.config import VERSION_STRING
-from superset.constants import TimeGrain, USER_AGENT, PASSWORD_MASK
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.errors import SupersetErrorType
-from superset.errors import SupersetError
+from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
+from sqlalchemy import types, util
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
-from sqlalchemy import util
+
+from superset.config import VERSION_STRING
+from superset.constants import PASSWORD_MASK, TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -55,18 +45,20 @@ if TYPE_CHECKING:
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 
 
-class MDURI(util.namedtuple(
-        "MDURI",
+class DuckDBURI(
+    util.namedtuple(  # type: ignore
+        "DuckDBURI",
         [
             "password",
             "database",
             "motherduck_token",
             "query",
         ],
-    )):
+    )
+):
     drivername = "duckdb"
 
-    def __str__(self):
+    def __str__(self) -> str:
         query = ""
         if self.motherduck_token:
             query += f"?motherduck_token={self.motherduck_token}"
@@ -75,9 +67,8 @@ class MDURI(util.namedtuple(
         query += "&".join([f"{key}={value}" for key, value in self.query.items()])
         return f"{DuckDBEngineSpec.engine}:///{self.database}{query}"
 
-
     @classmethod
-    def from_str(cls, name: str):
+    def from_str(cls, name: str) -> DuckDBURI:
         pattern = re.compile(
             r"""
                 (?P<driver_name>[\w\+]+):///
@@ -88,11 +79,10 @@ class MDURI(util.namedtuple(
                 """,
             re.X,
         )
-        m = pattern.match(name)
-        if m is not None:
+        if (m := pattern.match(name)) is not None:
             components = m.groupdict()
             if components["query"] is not None:
-                query = {}
+                query: Any = {}
 
                 for key, value in util.parse_qsl(components["query"]):
                     if util.py2k:
@@ -115,78 +105,19 @@ class MDURI(util.namedtuple(
                 password=token,
                 database=components.get("database"),
                 motherduck_token=token,
-                query=query
+                query=query,
             )
+        else:
+            raise ValueError(f"Connection string {name} is not a valid DuckDB URI")
 
-    def strip(self):
-        return self
-    
-    def set(
-        self,
-        password=None,
-        database=None,
-        query=None,
-    ):
-        """return a new :class:`_engine.URL` object with modifications.
-
-        Values are used if they are non-None.  To set a value to ``None``
-        explicitly, use the :meth:`MDURI._replace` method adapted
-        from ``namedtuple``.
-
-        :param password: new password
-        :param database: new database
-        :param query: new query parameters, passed a dict of string keys
-         referring to string or sequence of string values.  Fully
-         replaces the previous list of arguments.
-
-        :return: new :class:`_engine.URL` object.
-
-        .. versionadded:: 1.4
-
-        .. seealso::
-
-            :meth:`_engine.URL.update_query_dict`
-
-        """
-
-        kw = {}
-        if password is not None:
-            kw["password"] = password
-        if database is not None:
-            kw["database"] = database
-        if query is not None:
-            kw["query"] = query
-
-        return self._replace(**kw)
-    
-    def get_backend_name(self):
-        """Return the backend name.
-
-        This is the name that corresponds to the database backend in
-        use, and is the portion of the :attr:`_engine.URL.drivername`
-        that is to the left of the plus sign.
-
-        """
-        return self.drivername
-
-    def get_driver_name(self):
-        """Return the backend name.
-
-        This is the name that corresponds to the DBAPI driver in
-        use, and is the portion of the :attr:`_engine.URL.drivername`
-        that is to the right of the plus sign.
-
-        If the :attr:`_engine.URL.drivername` does not include a plus sign,
-        then the default :class:`_engine.Dialect` for this :class:`_engine.URL`
-        is imported in order to get the driver name.
-
-        """
-        return self.drivername
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class DuckDBParametersSchema(Schema):
-    access_token = fields.String(allow_none=True, metadata={"description": __("MotherDuck token")}
+    access_token = fields.String(
+        allow_none=True,
+        metadata={"description": __("MotherDuck token")},
+        load_default="https://app.motherduck.com/token-request?appName=Superset&close=y",
     )
     database = fields.String(
         required=False, metadata={"description": __("Database name")}
@@ -245,8 +176,8 @@ class DuckDBParametersMixin:
         if database or token:
             database = "md:" + database
 
-        return str(MDURI(token, database, token, query))
-    
+        return str(DuckDBURI(token, database, token, query))
+
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
