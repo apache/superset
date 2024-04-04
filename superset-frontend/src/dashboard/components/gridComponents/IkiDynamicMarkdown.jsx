@@ -163,7 +163,9 @@ class IkiDynamicMarkdown extends React.PureComponent {
       !this.props.editMode &&
       this.props.editMode !== prevProps.editMode
     ) {
-      this.handleChangeEditorMode('preview');
+      setTimeout(() => {
+        this.handleChangeEditorMode('preview');
+      }, 500);
       // setTimeout(() => {
       //   const iframe = document.getElementById(
       //     `ikirunpipeline-widget-${this.props.component.id}`,
