@@ -192,7 +192,7 @@ protobuf==4.23.0
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
-psycopg2-binary==2.9.6
+psycopg2-binary==2.9.9
     # via apache-superset
 ptyprocess==0.7.0
     # via pexpect
