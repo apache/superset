@@ -99,6 +99,14 @@ SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 You can generate a strong secure key with `openssl rand -base64 42`.
 
+Alternatively, you can set the secret key using `SUPERSET_SECRET_KEY` environment variable:
+
+On a Unix-based system, such as Linux or macOS, you can do so by running the following command in your terminal:
+
+```bash
+export SUPERSET_SECRET_KEY=$(openssl rand -base64 42)
+```
+
 #### Rotating to a newer SECRET_KEY
 
 If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as
