@@ -16,9 +16,6 @@ concurrency:
 jobs:
   test-mysql:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -50,9 +47,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+<<<<<<< HEAD
         if: steps.check.outputs.python
         with:
           python-version: ${{ matrix.python-version }}
+=======
+        if: steps.check.outcome == 'failure'
+>>>>>>> a4e39cdaaf (chore: [proposal] de-matrix python-version in GHAs)
       - name: Setup MySQL
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
@@ -72,9 +73,6 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F mysql
   test-postgres:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -107,9 +105,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+<<<<<<< HEAD
         if: steps.check.outputs.python
         with:
           python-version: ${{ matrix.python-version }}
+=======
+        if: steps.check.outcome == 'failure'
+>>>>>>> a4e39cdaaf (chore: [proposal] de-matrix python-version in GHAs)
       - name: Setup Postgres
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
@@ -130,9 +132,6 @@ jobs:
 
   test-sqlite:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -160,8 +159,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
