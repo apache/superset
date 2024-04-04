@@ -292,6 +292,7 @@ export interface FieldPropTypes {
   dbModel?: DatabaseForm;
   field: string;
   default_value?: any;
+  description?: string;
   isEditMode?: boolean;
   sslForced?: boolean;
   defaultDBName?: string;

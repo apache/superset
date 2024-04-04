@@ -170,6 +170,7 @@ const DatabaseConnectionForm = ({
               key: field,
               field,
               default_value: parameters.properties[field]?.default,
+              description: parameters.properties[field]?.description,
               isEditMode,
               sslForced,
               editNewDb,
