@@ -186,9 +186,10 @@ class MDURI(util.namedtuple(
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class DuckDBParametersSchema(Schema):
-    access_token = fields.String(allow_none=True, metadata={"description": __("MotherDuck token")})
+    access_token = fields.String(allow_none=True, metadata={"description": __("MotherDuck token")}
+    )
     database = fields.String(
-        required=True, metadata={"description": __("Database name")}
+        required=False, metadata={"description": __("Database name")}
     )
     query = fields.Dict(
         keys=fields.Str(),
@@ -244,7 +245,7 @@ class DuckDBParametersMixin:
         if database or token:
             database = "md:" + database
 
-        return MDURI(token, database, token, query)
+        return str(MDURI(token, database, token, query))
     
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
