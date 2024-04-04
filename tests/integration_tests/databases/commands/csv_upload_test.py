@@ -105,6 +105,7 @@ def setup_csv_upload_with_context_schema1():
         yield from _setup_csv_upload(["public"])
 
 
+@only_postgresql
 @pytest.mark.parametrize(
     "csv_data,options, table_data",
     [
@@ -222,6 +223,7 @@ def test_csv_upload_options(csv_data, options, table_data):
             assert data == table_data
 
 
+@only_postgresql
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
 def test_csv_upload_database_not_found():
     admin_user = security_manager.find_user(username="admin")
@@ -266,6 +268,7 @@ def test_csv_upload_schema_not_allowed():
         ).run()
 
 
+@only_postgresql
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
 def test_csv_upload_broken_file():
     admin_user = security_manager.find_user(username="admin")
