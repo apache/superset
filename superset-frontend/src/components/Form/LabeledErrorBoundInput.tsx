@@ -110,6 +110,7 @@ const LabeledErrorBoundInput = ({
   className,
   visibilityToggle,
   get_url,
+  description,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -150,17 +151,16 @@ const LabeledErrorBoundInput = ({
       ) : (
         <StyledInput {...props} {...validationMethods} />
       )}
-      {props.name === 'access_token' ? (
+      {get_url && description ? (
         <Button
           type="link"
           htmlType="button"
           onClick={() => {
-            const href = get_url;
-            window.open(href);
+            window.open(get_url);
             return true;
           }}
         >
-          Get token
+          Get {description}
         </Button>
       ) : (
         <br />
