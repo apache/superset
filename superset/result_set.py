@@ -73,15 +73,20 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
             if pd.isna(item):  # Handle missing values by setting them to None
                 obj[...] = None
             else:
-                try:
-                    # Convert only if the string is fully ASCII, otherwise leave as is
-                    if obj.item().encode("ascii", "ignore").decode() == obj.item():
-                        obj[...] = str(item)
-                except (ValueError, UnicodeEncodeError):
-                    # Catch exceptions for non-ASCII or other conversion issues,
-                    # leaving them unchanged
-                    continue
-
+                if isinstance(item, str):  # Apply ASCII check only to strings
+                    try:
+                        if item.encode("ascii", "ignore").decode() == item:
+                            obj[...] = item  # It's fully ASCII, leave as is
+                        else:
+                            obj[...] = item  # It's a non-ASCII string, leave as is
+                    except UnicodeEncodeError:
+                        obj[...] = item  # Handle potential encoding issues
+                elif isinstance(
+                    item, (dict, list)
+                ):  # Serialize dicts and lists to JSON
+                    obj[...] = json.dumps(item)
+                else:
+                    obj[...] = str(item)  # Convert other types to string
     return result
 
 
