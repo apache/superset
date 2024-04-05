@@ -79,7 +79,8 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
                     if obj.item().encode("ascii", "ignore").decode() == obj.item():
                         obj[...] = obj.astype(str)
                 except (ValueError, UnicodeEncodeError):
-                    # Catch exceptions for non-ASCII or other conversion issues, leaving them unchanged
+                    # Catch exceptions for non-ASCII or other conversion issues,
+                    # leaving them unchanged
                     continue
 
     return result
