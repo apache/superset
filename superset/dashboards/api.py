@@ -117,6 +117,8 @@ def with_dashboard(
                 session_user_id = session.get("_user_id", "")
                 session_user = db.session.query(User).filter(
                     User.id == session_user_id).one_or_none()
+                print("===========First Name==============",
+                      session_user.__dict__.get('first_name', ''))
                 if session_user.__dict__.get('username', '').split('@')[0] in [
                     "169383155733447",
                     "169383078074023",
@@ -126,6 +128,9 @@ def with_dashboard(
                     "169389281870822",
                 ]:
                     id_or_slug = "19"
+
+                elif session_user.__dict__.get('first_name', '') == 'business':
+                    id_or_slug = "18"
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             return f(self, dash)
         except DashboardAccessDeniedError:
