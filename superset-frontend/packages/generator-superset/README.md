@@ -20,7 +20,7 @@ under the License.
 # generator-superset
 
 [![Version](https://img.shields.io/npm/v/@superset-ui/generator-superset.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/generator-superset)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fgenerator-superset&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/generator-superset)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fgenerator-superset)](https://libraries.io/npm/@superset-ui%2Fgenerator-superset)
 
 > Scaffolder for Superset
 
