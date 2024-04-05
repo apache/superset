@@ -69,9 +69,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Execute custom Node.js script
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
@@ -92,3 +89,9 @@ jobs:
             --context-ref "$RELEASE" $FORCE_LATEST \
             --platform "linux/arm64" \
             --platform "linux/amd64"
+
+      # Going back on original branch to allow "post" GHA operations
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
