@@ -92,30 +92,36 @@ def detect_changes(files: List[str], check_patterns: List) -> bool:  # type: ign
     return False
 
 
+def print_files(files: List[str]) -> None:
+    print("\n".join([f"- {s}" for s in files]))
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         files = fetch_changed_files_pr(repo, pr_number)
-        print(f"PR files:\n", "\n".join(files))
+        print(f"PR files:")
+        print_files(files)
+
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
-        print(f"Files touched since previous commit:\n", "\n".join(files))
+        print(f"Files touched since previous commit:")
+        print_files(files)
     else:
         raise ValueError("Unsupported event type")
 
     changes_detected = {}
-    for check, regex_patterns in PATTERNS.items():
+    for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[check] = detect_changes(files, patterns_compiled)
+        changes_detected[group] = detect_changes(files, patterns_compiled)
 
     # Output results
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
             if changed:
-                # f.write(f"{check}={str(changed).lower()}\n")
                 print(f"{check}={str(changed).lower()}", file=f)
                 print(f"Triggering group: {check}")
 
