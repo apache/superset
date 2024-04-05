@@ -27,7 +27,7 @@ superset.egg-info
 apache_superset.egg-info
 .idea
 .*sql
-*.mp4
+.*mp4
 .*zip
 .*lock
 # json and csv in general cannot have comments
