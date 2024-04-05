@@ -80,6 +80,7 @@ import papua_new_guinea from './countries/papua_new_guinea.geojson';
 import paraguay from './countries/paraguay.geojson';
 import peru from './countries/peru.geojson';
 import philippines from './countries/philippines.geojson';
+import philippines_regions from './countries/philippines_regions.geojson';
 import portugal from './countries/portugal.geojson';
 import poland from './countries/poland.geojson';
 import puerto_rico from './countries/puerto_rico.geojson';
@@ -178,6 +179,7 @@ export const countries = {
   paraguay,
   peru,
   philippines,
+  philippines_regions,
   portugal,
   poland,
   puerto_rico,
