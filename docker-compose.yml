@@ -14,6 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# -----------------------------------------------------------------------
+# We don't support docker-compose for production environments.
+# If you choose to use this type of deployment make sure to
+# create you own docker environment file (docker/.env) with your own
+# unique random secure passwords and SECRET_KEY.
+# -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
