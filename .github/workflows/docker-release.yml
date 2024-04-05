@@ -38,6 +38,9 @@ jobs:
   docker-release:
     needs: config
     if: needs.config.outputs.has-secrets
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     name: docker-release
     runs-on: ubuntu-latest
     strategy:
