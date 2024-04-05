@@ -38,9 +38,6 @@ jobs:
   docker-release:
     needs: config
     if: needs.config.outputs.has-secrets
-    env:
-      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     name: docker-release
     runs-on: ubuntu-latest
     strategy:
@@ -72,6 +69,9 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Execute custom Node.js script
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
