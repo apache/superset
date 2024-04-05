@@ -27,5 +27,5 @@ runs:
         python scripts/change_detector.py
       shell: bash
       env:
-        # GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
         GITHUB_OUTPUT: ${{ github.output }}
