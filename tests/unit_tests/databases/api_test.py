@@ -668,6 +668,11 @@ def test_oauth2_happy_path(
     )
     db.session.commit()
 
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_oauth2_config",
+        return_value={"id": "one", "secret": "two"},
+    )
     get_oauth2_token = mocker.patch.object(SqliteEngineSpec, "get_oauth2_token")
     get_oauth2_token.return_value = {
         "access_token": "YYY",
@@ -696,7 +701,7 @@ def test_oauth2_happy_path(
 
     assert response.status_code == 200
     decode_oauth2_state.assert_called_with("some%2Estate")
-    get_oauth2_token.assert_called_with("XXX", state)
+    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
@@ -731,6 +736,11 @@ def test_oauth2_multiple_tokens(
     )
     db.session.commit()
 
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_oauth2_config",
+        return_value={"id": "one", "secret": "two"},
+    )
     get_oauth2_token = mocker.patch.object(SqliteEngineSpec, "get_oauth2_token")
     get_oauth2_token.side_effect = [
         {

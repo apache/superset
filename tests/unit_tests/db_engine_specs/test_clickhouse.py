@@ -61,12 +61,13 @@ def test_execute_connection_error() -> None:
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 
+    database = Mock()
     cursor = Mock()
     cursor.execute.side_effect = NewConnectionError(
         HTTPConnection("localhost"), "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as excinfo:
-        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1", 1)
+        ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1", database)
     assert str(excinfo.value) == "Connection failed"
 
 

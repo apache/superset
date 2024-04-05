@@ -71,7 +71,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
@@ -466,9 +466,15 @@ class Database(
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        oauth2_config = self.get_oauth2_config()
         access_token = (
-            get_oauth2_access_token(self.id, g.user.id, self.db_engine_spec)
-            if hasattr(g, "user") and hasattr(g.user, "id")
+            get_oauth2_access_token(
+                oauth2_config,
+                self.id,
+                g.user.id,
+                self.db_engine_spec,
+            )
+            if hasattr(g, "user") and hasattr(g.user, "id") and oauth2_config
             else None
         )
         # If using MySQL or Presto for example, will set url.username
@@ -489,6 +495,7 @@ class Database(
                 connect_args,
                 str(sqlalchemy_url),
                 effective_username,
+                access_token,
             )
 
         if connect_args:
@@ -599,7 +606,7 @@ class Database(
                         database=None,
                     )
                 _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_, self.id)
+                self.db_engine_spec.execute(cursor, sql_, self)
                 cursor.fetchall()
 
             if mutate_after_split:
@@ -609,10 +616,10 @@ class Database(
                     database=None,
                 )
                 _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql, self.id)
+                self.db_engine_spec.execute(cursor, last_sql, self)
             else:
                 _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1], self.id)
+                self.db_engine_spec.execute(cursor, sqls[-1], self)
 
             data = self.db_engine_spec.fetch_data(cursor)
             result_set = SupersetResultSet(
@@ -982,6 +989,26 @@ class Database(
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
+
+    def is_oauth2_enabled(self) -> bool:
+        """
+        Is OAuth2 enabled in the database for authentication?
+
+        Currently this looks for a global config at the DB engine spec level, but in the
+        future we want to be allow admins to create custom OAuth2 clients from the
+        Superset UI, and assign them to specific databases.
+        """
+        return self.db_engine_spec.is_oauth2_enabled()
+
+    def get_oauth2_config(self) -> OAuth2ClientConfig | None:
+        """
+        Return OAuth2 client configuration.
+
+        This includes client ID, client secret, scope, redirect URI, endpointsm etc.
+        Currently this reads the global DB engine spec config, but in the future it
+        should first check if there's a custom client assigned to the database.
+        """
+        return self.db_engine_spec.get_oauth2_config()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

@@ -717,6 +717,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -724,6 +725,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
         url = make_url_safe(uri)
@@ -1271,7 +1273,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor = conn.cursor()
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
-                cls.execute(cursor, sql, database.id)
+                cls.execute(cursor, sql, database)
                 rows = cls.fetch_data(cursor, 1)
 
                 return rows[0][0]
@@ -1329,10 +1331,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if (  # pylint: disable=consider-using-min-builtin
-                        progress > query.progress
-                    ):
-                        query.progress = progress
+                    query.progress = max(query.progress, progress)
                     db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
