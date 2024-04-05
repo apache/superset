@@ -55,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          tags: true
           depth: 0
 
       - name: Setup supersetbot
