@@ -80,6 +80,9 @@ export type TableChartFormData = QueryFormData & {
   include_search?: boolean;
   query_mode?: QueryMode;
   page_length?: string | number | null; // null means auto-paginate
+  server_pagination?: boolean;
+  server_page_length?: number;
+  server_page_length_options?: Array<[number, string]>;
   metrics?: QueryFormMetric[] | null;
   percent_metrics?: QueryFormMetric[] | null;
   timeseries_limit_metric?: QueryFormMetric[] | QueryFormMetric | null;
@@ -98,6 +101,7 @@ export interface TableChartProps extends ChartProps {
     pageSize?: number;
     currentPage?: number;
   };
+  serverPageLengthOptions?: Array<[number, string]>;
   rawFormData: TableChartFormData;
   queriesData: ChartDataResponseResult[];
 }
@@ -109,6 +113,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   rowCount?: number;
   serverPagination: boolean;
   serverPaginationData: { pageSize?: number; currentPage?: number };
+  serverPageLengthOptions: Array<[number, string]>;
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];

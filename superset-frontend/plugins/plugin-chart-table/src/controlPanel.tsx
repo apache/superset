@@ -306,6 +306,14 @@ const config: ControlPanelConfig = {
             },
           },
           {
+            name: 'server_page_length_options',
+            config: {
+              type: 'HiddenControl',
+              hidden: true,
+              default: PAGE_SIZE_OPTIONS,
+            },
+          },
+          {
             name: 'server_page_length',
             config: {
               type: 'SelectControl',
@@ -313,9 +321,14 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: PAGE_SIZE_OPTIONS,
-              description: t('Rows per page, 0 means no pagination'),
+              description: t(
+                'Rows per page, 0 means no pagination. Maximum limit is 10,000 rows. Cannot be removed once set!',
+              ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
+              mapStateToProps: ({ controls }: ControlPanelState) => ({
+                choices: controls?.server_page_length_options?.value,
+              }),
             },
           },
         ],
