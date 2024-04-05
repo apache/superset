@@ -108,7 +108,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_range: str | None
     to_dttm: datetime | None
 
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         *,
         annotation_layers: list[dict[str, Any]] | None = None,

@@ -28,6 +28,7 @@ from superset.utils.pandas_postprocessing.geography import (
 )
 from superset.utils.pandas_postprocessing.pivot import pivot
 from superset.utils.pandas_postprocessing.prophet import prophet
+from superset.utils.pandas_postprocessing.rank import rank
 from superset.utils.pandas_postprocessing.rename import rename
 from superset.utils.pandas_postprocessing.resample import resample
 from superset.utils.pandas_postprocessing.rolling import rolling
@@ -50,6 +51,7 @@ __all__ = [
     "geodetic_parse",
     "pivot",
     "prophet",
+    "rank",
     "rename",
     "resample",
     "rolling",

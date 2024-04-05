@@ -369,3 +369,17 @@ Since metrics are aggregations, the resulting SQL expression will be grouped by 
 ```
 SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
 ```
+
+**Metrics**
+
+The `{{ metric('metric_key', dataset_id) }}` macro can be used to retrieve the metric SQL syntax from a dataset. This can be useful for different purposes:
+
+- Override the metric label in the chart level
+- Combine multiple metrics in a calculation
+- Retrieve a metric syntax in SQL lab
+- Re-use metrics across datasets
+
+This macro avoids copy/paste, allowing users to centralize the metric definition in the dataset layer.
+
+The `dataset_id` parameter is optional, and if not provided Superset will use the current dataset from context (for example, when using this macro in the Chart Builder, by default the `macro_key` will be searched in the dataset powering the chart).
+The parameter can be used in SQL Lab, or when fetching a metric from another dataset.

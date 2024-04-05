@@ -30,6 +30,17 @@ import {
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
+jest.mock(
+  'react-virtualized-auto-sizer',
+  () =>
+    ({
+      children,
+    }: {
+      children: (params: { height: number }) => React.ReactChild;
+    }) =>
+      children({ height: 500 }),
+);
+
 const datasource: IDatasource = {
   id: 1,
   type: DatasourceType.Table,
@@ -69,6 +80,7 @@ const props: DatasourcePanelProps = {
   actions: {
     setControlValue: jest.fn(),
   },
+  width: 300,
 };
 
 const search = (value: string, input: HTMLElement) => {

@@ -23,6 +23,8 @@ import {
   SupersetClient,
   t,
   isFeatureEnabled,
+  COMMON_ERR_MESSAGES,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { invert, mapKeys } from 'lodash';
 
@@ -33,8 +35,6 @@ import {
   addSuccessToast as addSuccessToastAction,
   addWarningToast as addWarningToastAction,
 } from 'src/components/MessageToasts/actions';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
@@ -1131,9 +1131,11 @@ export function removeTables(tables) {
     const sync = isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)
       ? Promise.all(
           tablesToRemove.map(table =>
-            SupersetClient.delete({
-              endpoint: encodeURI(`/tableschemaview/${table.id}`),
-            }),
+            table.initialized
+              ? SupersetClient.delete({
+                  endpoint: encodeURI(`/tableschemaview/${table.id}`),
+                })
+              : Promise.resolve(),
           ),
         )
       : Promise.resolve();

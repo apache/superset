@@ -159,6 +159,10 @@ const CONTENT_TYPE_OPTIONS = [
   },
 ];
 const FORMAT_OPTIONS = {
+  pdf: {
+    label: t('Send as PDF'),
+    value: 'PDF',
+  },
   png: {
     label: t('Send as PNG'),
     value: 'PNG',
@@ -427,11 +431,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
-    setIsScreenshot(
-      contentType === 'dashboard' ||
-        (contentType === 'chart' && reportFormat === 'PNG'),
-    );
-  }, [contentType, reportFormat]);
+    setIsScreenshot(reportFormat === 'PNG');
+  }, [reportFormat]);
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -487,8 +488,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const reportOrAlert = isReport ? 'report' : 'alert';
   const isEditMode = alert !== null;
   const formatOptionEnabled =
-    contentType === 'chart' &&
-    (isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport);
+    isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -614,15 +614,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
       ),
       recipients,
-      report_format:
-        contentType === 'dashboard'
-          ? DEFAULT_NOTIFICATION_FORMAT
-          : reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -892,7 +890,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
     if (value === 0) {
-      updateAlertState(target.name, null);
+      updateAlertState(target.name, undefined);
     } else {
       updateAlertState(
         target.name,
@@ -1135,11 +1133,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : 'active',
       );
       setContentType(resource.chart ? 'chart' : 'dashboard');
-      setReportFormat(
-        resource.chart
-          ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
-          : DEFAULT_NOTIFICATION_FORMAT,
-      );
+      setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -1446,7 +1440,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer css={noMarginBottom}>
                 <div className="control-label">
-                  {t('Value')} <span className="required">*</span>
+                  {t('Value')}{' '}
+                  {!conditionNotNull && <span className="required">*</span>}
                 </div>
                 <div className="input-container">
                   <input
@@ -1455,7 +1450,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     disabled={conditionNotNull}
                     value={
                       currentAlert?.validator_config_json?.threshold !==
-                      undefined
+                        undefined && !conditionNotNull
                         ? currentAlert.validator_config_json.threshold
                         : ''
                     }
@@ -1546,7 +1541,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             )}
           </StyledInputContainer>
           <StyledInputContainer
-            css={['TEXT', 'CSV'].includes(reportFormat) && noMarginBottom}
+            css={
+              ['PDF', 'TEXT', 'CSV'].includes(reportFormat) && noMarginBottom
+            }
           >
             {formatOptionEnabled && (
               <>
@@ -1559,11 +1556,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onFormatChange}
                   value={reportFormat}
                   options={
-                    /* If chart is of text based viz type: show text
+                    contentType === 'dashboard'
+                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                      : /* If chart is of text based viz type: show text
                   format option */
-                    TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
-                      ? Object.values(FORMAT_OPTIONS)
-                      : ['png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
+                        ? Object.values(FORMAT_OPTIONS)
+                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
                   }
                   placeholder={t('Select format')}
                 />

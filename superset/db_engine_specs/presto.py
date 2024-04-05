@@ -1271,7 +1271,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor = conn.cursor()
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, database.id)
                 rows = cls.fetch_data(cursor, 1)
 
                 return rows[0][0]
@@ -1329,7 +1329,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if progress > query.progress:
+                    if (  # pylint: disable=consider-using-min-builtin
+                        progress > query.progress
+                    ):
                         query.progress = progress
                     db.session.commit()
             time.sleep(poll_interval)

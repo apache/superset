@@ -35,6 +35,8 @@ import {
   styled,
   SuperChart,
   t,
+  ClientErrorObject,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
@@ -43,10 +45,6 @@ import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,

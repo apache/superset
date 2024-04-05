@@ -213,7 +213,7 @@ class ReportSchedulePostSchema(Schema):
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(
@@ -352,7 +352,7 @@ class ReportSchedulePutSchema(Schema):
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
-        dump_default=ReportDataFormat.VISUALIZATION,
+        dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
     extra = fields.Dict(dump_default=None)

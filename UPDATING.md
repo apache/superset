@@ -35,10 +35,16 @@ assists people when migrating to a new version.
   files for production use cases! While we never really supported
   or should have tried to support docker-compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
+- [24112](https://github.com/apache/superset/pull/24112): Python 3.10 is now the recommended python version to use, 3.9 still
+  supported but getting deprecated in the nearish future. CI/CD runs on py310 so you probably want to align. If you
+  use official dockers, upgrade should happen automatically.
+- [27697](https://github.com/apache/superset/pull/27697) [minor] flask-session bump leads to them
+  deprecating `SESSION_USE_SIGNER`, check your configs as this flag won't do anything moving
+  forward.
 
 ### Breaking Changes
 
-- [27130](https://github.com/apache/superset/pull/27130): Fixes the DELETE `/database/{id}/ssh_tunnel/`` endpoint to now correctly accept a database ID as a parameter, rather than an SSH tunnel ID.
+- [27130](https://github.com/apache/superset/pull/27130): Fixes the DELETE `/database/{id}/ssh_tunnel/` endpoint to now correctly accept a database ID as a parameter, rather than an SSH tunnel ID.
 - [27117](https://github.com/apache/superset/pull/27117): Removes the following deprecated endpoints: `/superset/sqllab`, `/superset/sqllab/history`, `/sqllab/my_queries` use `/sqllab`, `/sqllab/history`, `/savedqueryview/list/?_flt_0_user={get_user_id()}` instead.
 - [26347](https://github.com/apache/superset/issues/26347): Removes the deprecated `VERSIONED_EXPORT` feature flag. The previous value of the feature flag was `True` and now the feature is permanently enabled.
 - [26328](https://github.com/apache/superset/issues/26328): Removes the deprecated Filter Box code and it's associated dependencies `react-select` and `array-move`. It also removes the `DeprecatedSelect` and `AsyncSelect` components that were exclusively used by filter boxes. Existing filter boxes will be automatically migrated to native filters.
@@ -61,7 +67,7 @@ assists people when migrating to a new version.
 
 ### Potential Downtime
 
-- [26416](https://github.com/apache/superset/pull/26416): adds 2 database indexes to report_execution_log and 1 to report_recipient to improve performance, this may cause downtime on large deployments.
+- [26416](https://github.com/apache/superset/pull/26416): Adds two database indexes to the `report_execution_log` table and one database index to the `report_recipient` to improve performance. Scheduled downtime may be required for large deployments.
 
 ## 3.1.0
 

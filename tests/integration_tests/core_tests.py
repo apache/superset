@@ -1208,6 +1208,21 @@ class TestCore(SupersetTestCase):
             is True
         )
 
+    @mock.patch("superset.views.core.request")
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink(self, get_dashboard_permalink_mock, request_mock):
+        request_mock.query_string = b"standalone=3"
+        get_dashboard_permalink_mock.return_value = {"dashboardId": 1}
+        self.login()
+        resp = self.client.get("superset/dashboard/p/123/")
+
+        expected_url = "/superset/dashboard/1?permalink_key=123&standalone=3"
+
+        self.assertEqual(resp.headers["Location"], expected_url)
+        assert resp.status_code == 302
+
 
 if __name__ == "__main__":
     unittest.main()

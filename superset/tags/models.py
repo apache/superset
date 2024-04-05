@@ -19,8 +19,8 @@ from __future__ import annotations
 import enum
 from typing import TYPE_CHECKING
 
-from flask import escape
 from flask_appbuilder import Model
+from markupsafe import escape
 from sqlalchemy import (
     Column,
     Enum,
@@ -87,7 +87,6 @@ class ObjectType(enum.Enum):
 
 
 class Tag(Model, AuditMixinNullable):
-
     """A tag attached to an object (query, chart, dashboard, or dataset)."""
 
     __tablename__ = "tag"
@@ -106,7 +105,6 @@ class Tag(Model, AuditMixinNullable):
 
 
 class TaggedObject(Model, AuditMixinNullable):
-
     """An association between an object and a tag."""
 
     __tablename__ = "tagged_object"
