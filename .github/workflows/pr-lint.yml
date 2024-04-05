@@ -20,6 +20,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          lfs: false
       - uses: ./.github/actions/pr-lint-action
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)(\\(.+\\))?(\\!)?:\\s.+"

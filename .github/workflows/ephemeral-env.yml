@@ -114,6 +114,7 @@ jobs:
         with:
           ref: ${{ steps.get-sha.outputs.sha }}
           persist-credentials: false
+          lfs: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -162,6 +163,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+        lfs: false
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4

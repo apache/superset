@@ -32,6 +32,8 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         if: steps.check_queued.outputs.count >= 20
         uses: actions/checkout@v4
+        with:
+          lfs: false
 
       - name: Cancel duplicate workflow runs
         if: steps.check_queued.outputs.count >= 20

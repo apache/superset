@@ -57,6 +57,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
           ref: master
+          lfs: false
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
       - name: Import test data

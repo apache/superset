@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          lfs: false
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/

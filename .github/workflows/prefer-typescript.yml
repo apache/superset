@@ -31,6 +31,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          lfs: false
       - name: Get changed files
         id: changed
         uses: ./.github/actions/file-changes-action

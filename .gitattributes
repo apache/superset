@@ -1,1 +1,15 @@
 docker/**/*.sh text eol=lf
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+docs/static/img/hero-screenshot.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/sql_lab.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/dashboard.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/dashboard_card_view.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/data-point.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/explore.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/explore_ui.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/grid-background.jpg filter=lfs diff=lfs merge=lfs -text
+docs/static/img/github.png filter=lfs diff=lfs merge=lfs -text
+docs/static/img/roadmap.png filter=lfs diff=lfs merge=lfs -text
+docs/static/img/root-cert-example.png filter=lfs diff=lfs merge=lfs -text
+docs/static/img/applitools.png filter=lfs diff=lfs merge=lfs -text
+docs/static/img/github-dark.png filter=lfs diff=lfs merge=lfs -text

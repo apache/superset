@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@v4
+        with:
+          lfs: false
       - name: "Dependency Review"
         uses: actions/dependency-review-action@v4
         with:

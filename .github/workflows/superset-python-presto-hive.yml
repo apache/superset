@@ -52,6 +52,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          lfs: false
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
@@ -108,7 +109,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+<<<<<<< HEAD
       - name: Check for file changes
+=======
+          lfs: false
+      - name: Check if python changes are present
+>>>>>>> 7f66bfb2b1 (chore: set up git lfs for larger files)
         id: check
         uses: ./.github/actions/change-detector/
         with:

@@ -36,6 +36,7 @@ jobs:
         with:
           # pulls all commits (needed for lerna / semantic release to correctly version)
           fetch-depth: 0
+          lfs: false
       - name: Get tags and filter trigger tags
         run: |
           if ! git fetch --depth=1 origin "+refs/tags/*:refs/tags/*"; then

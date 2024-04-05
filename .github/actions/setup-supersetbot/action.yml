@@ -25,6 +25,7 @@ runs:
       with:
         repository: apache-superset/supersetbot
         path: supersetbot
+        lfs: false
 
     - name: Setup supersetbot from repo
       if: ${{ inputs.from-npm == 'false' }}

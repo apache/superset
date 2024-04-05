@@ -19,6 +19,7 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          lfs: false
       - name: Setup Java
         uses: actions/setup-java@v4
         with:

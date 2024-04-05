@@ -53,12 +53,14 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+          lfs: false
       - name: "Checkout (pull_request) ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
+          lfs: false
           submodules: recursive
       - name: Check for file changes
         id: check

@@ -16,6 +16,7 @@ jobs:
       with:
         persist-credentials: false
         submodules: recursive
+        lfs: false
 
     - name: Check for latest tag
       id: latest-tag
