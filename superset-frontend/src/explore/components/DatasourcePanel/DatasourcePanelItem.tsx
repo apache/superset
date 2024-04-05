@@ -139,6 +139,9 @@ const Box = styled.div`
     font-size: ${theme.typography.sizes.s}px;
     padding: ${theme.gridUnit}px;
     color: ${theme.colors.grayscale.light1};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   `}
 `;
 
@@ -213,7 +216,12 @@ const DatasourcePanelItem: React.FC<Props> = ({ index, style, data }) => {
             align-items: baseline;
           `}
         >
-          <div className="field-length">
+          <div
+            className="field-length"
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
             {isColumnSection
               ? t(`Showing %s of %s`, columnSlice?.length, totalColumns)
               : t(`Showing %s of %s`, metricSlice?.length, totalMetrics)}
