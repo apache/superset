@@ -981,14 +981,16 @@ class DatabaseConnectionSchema(Schema):
 
 
 class DelimitedListField(fields.List):
+    """
+    Special marshmallow field for handling delimited lists.
+    formData expects a string, so we need to deserialize it into a list.
+    """
+
     def _deserialize(
         self, value: str, attr: Any, data: Any, **kwargs: Any
     ) -> list[Any]:
         try:
-            if value:
-                values = value.split(",")
-            else:
-                values = []
+            values = value.split(",") if value else []
             return super()._deserialize(values, attr, data, **kwargs)
         except AttributeError as exc:
             raise ValidationError(
@@ -1114,8 +1116,10 @@ class CSVUploadPostSchema(Schema):
         if "column_data_types" in data:
             try:
                 data["column_data_types"] = json.loads(data["column_data_types"])
-            except json.JSONDecodeError:
-                raise ValidationError("Invalid JSON format for column_data_types")
+            except json.JSONDecodeError as ex:
+                raise ValidationError(
+                    "Invalid JSON format for column_data_types"
+                ) from ex
         return data
 
 

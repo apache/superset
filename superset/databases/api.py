@@ -1385,7 +1385,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
-            logger.info(parameters)
             CSVImportCommand(
                 pk,
                 parameters["table_name"],
