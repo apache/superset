@@ -61,6 +61,13 @@ jobs:
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
+      - name: Try to login to DockerHub
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Execute custom Node.js script
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
