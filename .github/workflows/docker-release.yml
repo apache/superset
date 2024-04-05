@@ -56,7 +56,7 @@ jobs:
         with:
           persist-credentials: false
           tags: true
-          depth: 0
+          fetch-depth: 0
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
