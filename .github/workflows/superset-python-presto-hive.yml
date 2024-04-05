@@ -60,11 +60,6 @@ jobs:
         uses: ./.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: ECHO ECHo ECho Echo echo
-        with:
-          run: |
-            echo "${{ steps.check.outputs.python }}"
-            echo "${{ steps.check.outputs }}"
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python == 'true'
