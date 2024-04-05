@@ -55,6 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          depth: 0
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
@@ -73,10 +74,7 @@ jobs:
             if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
-            # build_docker.py may not exist on that SHA, let's switcharoo to /tmp
-            cp ./scripts/build_docker.py /tmp
             git checkout "${{ github.event.inputs.git-ref }}"
-            cp /tmp/build_docker.py scripts/
             EVENT="release"
           fi
 
