@@ -36,7 +36,7 @@ PATTERNS = {
         r"^.pylintrc",
     ],
     "frontend": [
-        # r"^\.github/workflows/.*(bashlib|frontend|e2e)",
+        r"^\.github/workflows/.*(bashlib|frontend|e2e)",
         r"^superset-frontend/",
     ],
     "docker": [
