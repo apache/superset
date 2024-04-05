@@ -24,7 +24,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-          lfs: false
       - name: Set up Node.js 18
         uses: actions/setup-node@v4
         with:
