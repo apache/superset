@@ -22,13 +22,10 @@ import {
   NumberFormats,
   GenericDataType,
   getMetricLabel,
-  t,
-  smartDateVerboseFormatter,
-  TimeFormatter,
   getXAxisLabel,
   Metric,
-  ValueFormatter,
   getValueFormatter,
+  t,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -40,24 +37,7 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-
-const defaultNumberFormatter = getNumberFormatter();
-export function renderTooltipFactory(
-  formatDate: TimeFormatter = smartDateVerboseFormatter,
-  formatValue: ValueFormatter | TimeFormatter = defaultNumberFormatter,
-) {
-  return function renderTooltip(params: { data: TimeSeriesDatum }[]) {
-    return `
-      ${formatDate(params[0].data[0])}
-      <br />
-      <strong>
-        ${
-          params[0].data[1] === null ? t('N/A') : formatValue(params[0].data[1])
-        }
-      </strong>
-    `;
-  };
-}
+import TooltipRenderer, { Data } from '../../utils/TooltipRenderer';
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
@@ -249,7 +229,27 @@ export default function transformProps(
           ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
-          formatter: renderTooltipFactory(formatTime, headerFormatter),
+          formatter: (params: { data: TimeSeriesDatum }[]) => {
+            const data: Data = {
+              columns: [
+                { type: GenericDataType.String, formatter: String },
+                { type: GenericDataType.Numeric, formatter: headerFormatter },
+              ],
+              rows: [
+                [
+                  metricName,
+                  params[0].data[1] === null ? t('N/A') : params[0].data[1],
+                ],
+              ],
+            };
+            return new TooltipRenderer(
+              data,
+              0,
+              false,
+              false,
+              formatTime(params[0].data[0]),
+            ).renderHtml();
+          },
         },
         aria: {
           enabled: true,
