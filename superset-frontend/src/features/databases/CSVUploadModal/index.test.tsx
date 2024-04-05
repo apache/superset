@@ -96,7 +96,7 @@ describe('CSVUploadModal', () => {
     const inputTableName = screen.getByRole('textbox', {
       name: /table name/i,
     });
-    const inputSchema = screen.getByRole('textbox', {
+    const inputSchema = screen.getByRole('combobox', {
       name: /schema/i,
     });
 

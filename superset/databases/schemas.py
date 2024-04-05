@@ -23,7 +23,7 @@ from typing import Any
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import EXCLUDE, fields, pre_load, Schema, validates_schema
+from marshmallow import EXCLUDE, fields, post_load, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, OneOf, ValidationError
 from sqlalchemy import MetaData
 
@@ -1106,6 +1106,17 @@ class CSVUploadPostSchema(Schema):
         allow_none=False,
         metadata={"description": "The name of the table to be created/appended"},
     )
+
+    @post_load
+    def convert_column_data_types(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "column_data_types" in data:
+            try:
+                data["column_data_types"] = json.loads(data["column_data_types"])
+            except json.JSONDecodeError:
+                raise ValidationError("Invalid JSON format for column_data_types")
+        return data
 
 
 class OAuth2ProviderResponseSchema(Schema):

@@ -867,6 +867,7 @@ def test_oauth2_error(
                 "skip_initial_space": True,
                 "skip_rows": "10",
                 "null_values": "None,N/A,''",
+                "column_data_types": '{"col1": "str"}',
             },
             (
                 1,
@@ -884,6 +885,7 @@ def test_oauth2_error(
                     "skip_rows": 10,
                     "delimiter": ";",
                     "file": ANY,
+                    "column_data_types": {"col1": "str"},
                     "table_name": "table2",
                 },
             ),
@@ -1016,6 +1018,16 @@ def test_csv_upload(
                 "skip_rows": "test1",
             },
             {"message": {"skip_rows": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "column_data_types": "{test:1}",
+            },
+            {"message": {"_schema": ["Invalid JSON format for column_data_types"]}},
         ),
     ],
 )

@@ -18,6 +18,7 @@ import logging
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db
@@ -43,7 +44,7 @@ class CSVImportOptions(TypedDict, total=False):
     schema: str
     delimiter: str
     already_exists: str
-    column_data_types: str
+    column_data_types: dict[str, str]
     column_dates: list[str]
     column_labels: str
     columns_read: list[str]
@@ -79,7 +80,6 @@ class CSVImportCommand(BaseCommand):
         self.validate()
         if not self._model:
             return
-        # kwargs = {"dtype": json.loads(form.dtype.data)} if form.dtype.data else {}
         try:
             df = pd.concat(
                 pd.read_csv(
@@ -103,6 +103,9 @@ class CSVImportCommand(BaseCommand):
                     skip_blank_lines=self._options.get("skip_blank_lines", False),
                     skipinitialspace=self._options.get("skip_initial_space", False),
                     skiprows=self._options.get("skip_rows", 0),
+                    dtype=self._options.get("column_data_types")
+                    if self._options.get("column_data_types")
+                    else {},
                 )
             )
             csv_table = Table(table=self._table_name, schema=self._schema)
@@ -117,8 +120,14 @@ class CSVImportCommand(BaseCommand):
                     "index_label": self._options.get("column_labels"),
                 },
             )
+        except ValueError as ex:
+            raise DatabaseUploadFailed(
+                message=_(
+                    "Table already exists. You can change your"
+                    " 'if table already exists' strategy to append or replace."
+                )
+            ) from ex
         except Exception as ex:
-            logger.exception(ex)
             raise DatabaseUploadFailed(exception=ex) from ex
         sqla_table = (
             db.session.query(SqlaTable)
@@ -132,11 +141,13 @@ class CSVImportCommand(BaseCommand):
         if sqla_table:
             sqla_table.fetch_metadata()
         if not sqla_table:
-            sqla_table = SqlaTable(table_name=self._table_name)
-            sqla_table.database = self._model
-            sqla_table.database_id = self._model_id
-            sqla_table.owners = [get_user()]
-            sqla_table.schema = self._schema
+            sqla_table = SqlaTable(
+                table_name=self._table_name,
+                database=self._model,
+                database_id=self._model_id,
+                owners=[get_user()],
+                schema=self._schema,
+            )
             sqla_table.fetch_metadata()
             db.session.add(sqla_table)
         try:

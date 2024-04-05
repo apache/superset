@@ -109,11 +109,12 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 }) => {
   const [form] = AntdForm.useForm();
   // Declare states here
-  const [databaseId, setDatabaseId] = useState<number>(0);
+  const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = React.useState<string[]>([]);
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentSchema, setCurrentSchema] = useState<String>('');
 
   const nullValuesOptions = [
     {
@@ -173,7 +174,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   ];
 
   const onChangeDatabase = (database: { value: number; label: string }) => {
-    setDatabaseId(database?.value);
+    setCurrentDatabaseId(database?.value);
+  };
+
+  const onChangeSchema = (schema: { value: string; label: string }) => {
+    setCurrentSchema(schema?.value);
   };
 
   const onChangeDelimiter = (value: string) => {
@@ -183,6 +188,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   const clearModal = () => {
     setFileList([]);
     setColumns([]);
+    setCurrentSchema('');
+    setCurrentDatabaseId(0);
+    setIsLoading(false);
     form.resetFields();
   };
 
@@ -215,6 +223,25 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     [],
   );
 
+  const loadSchemaOptions = useMemo(
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        if (!currentDatabaseId) {
+          return Promise.resolve({ data: [], totalCount: 0 });
+        }
+        return SupersetClient.get({
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+        }).then(response => {
+          const list = response.json.result.map((item: string) => ({
+            value: item,
+            label: item,
+          }));
+          return { data: list, totalCount: response.json.count };
+        });
+      },
+    [currentDatabaseId],
+  );
+
   const onClose = () => {
     clearModal();
     onHide();
@@ -222,7 +249,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 
   const onFinish = () => {
     const fields = form.getFieldsValue();
-    fields.database_id = databaseId;
+    fields.database_id = currentDatabaseId;
+    fields.schema = currentSchema;
     const mergedValues = { ...defaultUploadInfo, ...fields };
     const formData = new FormData();
     const file = fileList[0]?.originFileObj;
@@ -254,7 +282,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
     formData.append('column_data_types', mergedValues.column_data_types);
     setIsLoading(true);
     return SupersetClient.post({
-      endpoint: `/api/v1/database/${databaseId}/csv_upload/`,
+      endpoint: `/api/v1/database/${currentDatabaseId}/csv_upload/`,
       body: formData,
       headers: { Accept: 'application/json' },
     })
@@ -343,7 +371,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   };
 
   const validateDatabase = (_: any, value: string) => {
-    if (!databaseId) {
+    if (!currentDatabaseId) {
       return Promise.reject(t('Selecting a database is required'));
     }
     return Promise.resolve();
@@ -473,11 +501,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row justify="space-between">
               <Col span={11}>
                 <StyledFormItem label={t('Schema')} name="schema">
-                  <Input
-                    aria-label={t('Schema')}
-                    name="table_name"
-                    data-test="properties-modal-name-input"
-                    type="text"
+                  <AsyncSelect
+                    ariaLabel={t('Select a schema')}
+                    options={loadSchemaOptions}
+                    onChange={onChangeSchema}
+                    allowClear
                   />
                 </StyledFormItem>
                 <p className="help-block">
