@@ -24,12 +24,12 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GH_PAT }}
 
     - name: Sync
       run: |
-        echo "Resetting origin to: https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
-        git remote set-url origin "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY"
+        echo "Resetting origin to: https://$GITHUB_ACTOR:$GH_PAT@github.com/$GITHUB_REPOSITORY"
+        git remote set-url origin "https://$GITHUB_ACTOR:$GH_PAT@github.com/$GITHUB_REPOSITORY"
         git fetch origin --quiet
 
         echo "Fetching upstream"
@@ -53,7 +53,7 @@ jobs:
       with:
         source_branch: ${{ env.SYNC_DEST_BRANCH }}
         destination_branch: ortege
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.GH_PAT }}
         pr_title: "Pulling Upstream ${{ env.LATEST_TAG }} into ortege"
         pr_body: |
           :crown: *An automated PR to sync with upstream*
