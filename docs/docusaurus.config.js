@@ -171,7 +171,7 @@ const config = {
       },
       algolia: {
         appId: 'WR5FASX5ED',
-        apiKey: '299e4601d2fc5d0031bf9a0223c7f0c5',
+        apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
         indexName: 'superset-apache',
       },
       navbar: {
