@@ -38,7 +38,7 @@ def test_odbc_impersonation() -> None:
 
     url = URL.create("drill+odbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["DelegationUID"] == username
 
 
@@ -54,7 +54,7 @@ def test_jdbc_impersonation() -> None:
 
     url = URL.create("drill+jdbc")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["impersonation_target"] == username
 
 
@@ -70,7 +70,7 @@ def test_sadrill_impersonation() -> None:
 
     url = URL.create("drill+sadrill")
     username = "DoAsUser"
-    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
     assert url.query["impersonation_target"] == username
 
 
@@ -90,7 +90,7 @@ def test_invalid_impersonation() -> None:
     username = "DoAsUser"
 
     with pytest.raises(SupersetDBAPIProgrammingError):
-        DrillEngineSpec.get_url_for_impersonation(url, True, username)
+        DrillEngineSpec.get_url_for_impersonation(url, True, username, None)
 
 
 @pytest.mark.parametrize(

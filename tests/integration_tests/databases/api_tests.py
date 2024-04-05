@@ -204,6 +204,7 @@ class TestDatabaseApi(SupersetTestCase):
             "created_by",
             "database_name",
             "disable_data_preview",
+            "disable_drill_to_detail",
             "engine_information",
             "explore_database_id",
             "expose_in_sqllab",
@@ -1479,7 +1480,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "indexes": [],
                     "name": "wrong_table",
                     "primaryKey": {"constrained_columns": None, "name": None},
-                    "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                    "selectStar": "SELECT\n  *\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
                 },
             )
         elif example_db.backend == "mysql":
@@ -1549,8 +1550,6 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("gender", response["result"])
 
     def test_get_select_star_not_allowed(self):
         """

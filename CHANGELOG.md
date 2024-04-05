@@ -38,3 +38,4 @@ under the License.
 - [3.0.4](./CHANGELOG/3.0.4.md)
 - [3.1.0](./CHANGELOG/3.1.0.md)
 - [3.1.1](./CHANGELOG/3.1.1.md)
+- [3.1.2](./CHANGELOG/3.1.2.md)

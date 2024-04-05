@@ -70,6 +70,7 @@ from superset.tasks.utils import get_executor
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context
+from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 
@@ -238,6 +239,16 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError()
         return [image]
 
+    def _get_pdf(self) -> bytes:
+        """
+        Get chart or dashboard pdf
+        :raises: ReportSchedulePdfFailedError
+        """
+        screenshots = self._get_screenshots()
+        pdf = build_pdf_from_screenshots(screenshots)
+
+        return pdf
+
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
@@ -342,22 +353,27 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        screenshot_data = []
+        pdf_data = None
         embedded_data = None
         error_text = None
-        screenshot_data = []
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
             or self._report_schedule.type == ReportScheduleType.REPORT
         ):
-            if self._report_schedule.report_format == ReportDataFormat.VISUALIZATION:
+            if self._report_schedule.report_format == ReportDataFormat.PNG:
                 screenshot_data = self._get_screenshots()
                 if not screenshot_data:
                     error_text = "Unexpected missing screenshot"
+            elif self._report_schedule.report_format == ReportDataFormat.PDF:
+                pdf_data = self._get_pdf()
+                if not pdf_data:
+                    error_text = "Unexpected missing pdf"
             elif (
                 self._report_schedule.chart
-                and self._report_schedule.report_format == ReportDataFormat.DATA
+                and self._report_schedule.report_format == ReportDataFormat.CSV
             ):
                 csv_data = self._get_csv_data()
                 if not csv_data:
@@ -390,6 +406,7 @@ class BaseReportState:
             name=name,
             url=url,
             screenshots=screenshot_data,
+            pdf=pdf_data,
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,

@@ -33,6 +33,10 @@ jobs:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
     steps:
 
       - name: Set up QEMU
@@ -41,24 +45,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Setup Node Env
-        uses: actions/setup-node@v4
+      - name: Try to login to DockerHub
+        continue-on-error: true
+        uses: docker/login-action@v3
         with:
-          node-version: '20'
-      - name: install supersetbot
-        run: |
-          npm install -g supersetbot
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
       - name: Build Docker Image
         shell: bash
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then

@@ -30,7 +30,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 import pytest
 
 import flask
-from flask import current_app
+from flask import current_app, has_app_context
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -473,19 +473,23 @@ def test_create_table_as():
 
 
 def test_in_app_context():
-    @celery_app.task()
-    def my_task():
-        assert current_app
+    @celery_app.task(bind=True)
+    def my_task(self):
+        # Directly check if an app context is present
+        return has_app_context()
 
-    # Make sure we can call tasks with an app already setup
-    my_task()
+    # Expect True within an app context
+    with app.app_context():
+        result = my_task.apply().get()
+        assert (
+            result is True
+        ), "Task should have access to current_app within app context"
 
-    # Make sure the app gets pushed onto the stack properly
-    try:
-        popped_app = flask._app_ctx_stack.pop()
-        my_task()
-    finally:
-        flask._app_ctx_stack.push(popped_app)
+    # Expect True outside of an app context
+    result = my_task.apply().get()
+    assert (
+        result is True
+    ), "Task should have access to current_app outside of app context"
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):

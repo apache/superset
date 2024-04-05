@@ -52,7 +52,6 @@ from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
-from superset import sql_parse
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -67,6 +66,8 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
+from superset.sql_parse import extract_tables_from_jinja_sql
+from superset.superset_typing import Metric
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -143,6 +144,13 @@ RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
 
 
+def freeze_metric(metric: Metric) -> str:
+    """
+    Used to compare metric sets.
+    """
+    return json.dumps(metric, sort_keys=True)
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -153,9 +161,9 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data
     stored_chart = query_context.slice_
 
-    # sanity checks
+    # native filter requests
     if form_data is None or stored_chart is None:
-        return True
+        return False
 
     # cannot request a different chart
     if form_data.get("slice_id") != stored_chart.id:
@@ -163,11 +171,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
 
     # compare form_data
     requested_metrics = {
-        frozenset(metric.items()) if isinstance(metric, dict) else metric
-        for metric in form_data.get("metrics") or []
+        freeze_metric(metric) for metric in form_data.get("metrics") or []
     }
     stored_metrics = {
-        frozenset(metric.items()) if isinstance(metric, dict) else metric
+        freeze_metric(metric)
         for metric in stored_chart.params_dict.get("metrics") or []
     }
     if not requested_metrics.issubset(stored_metrics):
@@ -175,7 +182,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
 
     # compare queries in query_context
     queries_metrics = {
-        frozenset(metric.items()) if isinstance(metric, dict) else metric
+        freeze_metric(metric)
         for query in query_context.queries
         for metric in query.metrics or []
     }
@@ -184,10 +191,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         stored_query_context = json.loads(cast(str, stored_chart.query_context))
         for query in stored_query_context.get("queries") or []:
             stored_metrics.update(
-                {
-                    frozenset(metric.items()) if isinstance(metric, dict) else metric
-                    for metric in query.get("metrics") or []
-                }
+                {freeze_metric(metric) for metric in query.get("metrics") or []}
             )
 
     return not queries_metrics.issubset(stored_metrics)
@@ -1959,10 +1963,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 default_schema = database.get_default_schema_for_query(query)
                 tables = {
                     Table(table_.table, table_.schema or default_schema)
-                    for table_ in sql_parse.ParsedQuery(
-                        query.sql,
-                        engine=database.db_engine_spec.engine,
-                    ).tables
+                    for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
                 tables = {table}

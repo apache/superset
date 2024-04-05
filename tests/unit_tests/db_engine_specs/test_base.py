@@ -23,6 +23,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy import types
 from sqlalchemy.dialects import sqlite
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
@@ -67,6 +68,25 @@ def test_parse_sql_multi_statement() -> None:
         "SELECT foo FROM tbl1",
         "SELECT bar FROM tbl2",
     ]
+
+
+def test_validate_db_uri(mocker: MockFixture) -> None:
+    """
+    Ensures that the `validate_database_uri` method invokes the validator correctly
+    """
+
+    def mock_validate(sqlalchemy_uri: URL) -> None:
+        raise ValueError("Invalid URI")
+
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        {"DB_SQLA_URI_VALIDATOR": mock_validate},
+    )
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    with pytest.raises(ValueError):
+        BaseEngineSpec.validate_database_uri(URL.create("sqlite"))
 
 
 @pytest.mark.parametrize(

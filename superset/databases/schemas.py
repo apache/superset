@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-lines
 
 import inspect
 import json
@@ -132,7 +132,9 @@ extra_description = markdown(
     "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
     "whether or not the Explore button in SQL Lab results is shown.<br/>"
     "6. The ``disable_data_preview`` field is a boolean specifying whether or not data "
-    "preview queries will be run when fetching table metadata in SQL Lab.",
+    "preview queries will be run when fetching table metadata in SQL Lab."
+    "7. The ``disable_drill_to_detail`` field is a boolean specifying whether or not"
+    "drill to detail is disabled for the database.",
     True,
 )
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -750,6 +752,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
+    disable_drill_to_detail = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
 
 
@@ -975,3 +978,38 @@ class DatabaseConnectionSchema(Schema):
         metadata={"description": sqlalchemy_uri_description},
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+
+
+class OAuth2ProviderResponseSchema(Schema):
+    """
+    Schema for the payload sent on OAuth2 redirect.
+    """
+
+    code = fields.String(
+        required=False,
+        metadata={"description": "The authorization code returned by the provider"},
+    )
+    state = fields.String(
+        required=False,
+        metadata={"description": "The state parameter originally passed by the client"},
+    )
+    scope = fields.String(
+        required=False,
+        metadata={
+            "description": "A space-separated list of scopes granted by the user"
+        },
+    )
+    error = fields.String(
+        required=False,
+        metadata={
+            "description": "In case of an error, this field contains the error code"
+        },
+    )
+    error_description = fields.String(
+        required=False,
+        metadata={"description": "Additional description of the error"},
+    )
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # Ignore unknown fields that might be sent by the OAuth2 provider
+        unknown = EXCLUDE

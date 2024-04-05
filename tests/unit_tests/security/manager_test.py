@@ -26,7 +26,8 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
-from superset.security.manager import SupersetSecurityManager
+from superset.security.manager import query_context_modified, SupersetSecurityManager
+from superset.sql_parse import Table
 from superset.superset_typing import AdhocMetric
 from superset.utils.core import override_user
 
@@ -202,6 +203,7 @@ def test_raise_for_access_query_default_schema(
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
     SqlaTable.query_datasources_by_name.return_value = []
 
@@ -242,6 +244,40 @@ def test_raise_for_access_query_default_schema(
         == """You need access to the following tables: `public.ab_user`,
             `all_database_access` or `all_datasource_access` permission"""
     )
+
+
+def test_raise_for_access_jinja_sql(mocker: MockFixture, app_context: None) -> None:
+    """
+    Test that Jinja gets rendered to SQL.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    get_table_access_error_object = mocker.patch.object(
+        sm, "get_table_access_error_object"
+    )
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.get_default_schema_for_query.return_value = "public"
+    query = mocker.MagicMock()
+    query.database = database
+    query.sql = "SELECT * FROM {% if True %}ab_user{% endif %} WHERE 1=1"
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(
+            database=None,
+            datasource=None,
+            query=query,
+            query_context=None,
+            table=None,
+            viz=None,
+        )
+
+    get_table_access_error_object.assert_called_with({Table("ab_user", "public")})
 
 
 def test_raise_for_access_chart_for_datasource_permission(
@@ -378,3 +414,120 @@ def test_raise_for_access_chart_owner(
         sm.raise_for_access(
             chart=slice,
         )
+
+
+def test_query_context_modified(
+    mocker: MockFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test the `query_context_modified` function.
+
+    The function is used to ensure guest users are not modifying the request payload on
+    embedded dashboard, preventing users from modifying it to access metrics different
+    from the ones stored in dashboard charts.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_tampered(
+    mocker: MockFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    Test the `query_context_modified` function when the request is tampered with.
+
+    The function is used to ensure guest users are not modifying the request payload on
+    embedded dashboard, preventing users from modifying it to access metrics different
+    from the ones stored in dashboard charts.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    tampered_metrics = [
+        {
+            "column": None,
+            "expressionType": "SQL",
+            "hasCustomLabel": False,
+            "label": "COUNT(*) + 2",
+            "sqlExpression": "COUNT(*) + 2",
+        }
+    ]
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": tampered_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=tampered_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_native_filter(mocker: MockFixture) -> None:
+    """
+    Test the `query_context_modified` function with a native filter request.
+
+    A native filter request has no chart (slice) associated with it.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_ = None
+
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_mixed_chart(mocker: MockFixture) -> None:
+    """
+    Test the `query_context_modified` function for a mixed chart request.
+
+    The metrics in the mixed chart are a nested dictionary (due to `columns`), and need
+    to be serialized to JSON with the keys sorted in order to compare the request
+    metrics with the chart metrics.
+    """
+    stored_metrics = [
+        {
+            "optionName": "metric_vgops097wej_g8uff99zhk7",
+            "label": "AVG(num)",
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "num", "type": "BIGINT(20)"},
+            "aggregate": "AVG",
+        }
+    ]
+    # different order (remember, dicts have order!)
+    requested_metrics = [
+        {
+            "aggregate": "AVG",
+            "column": {"column_name": "num", "type": "BIGINT(20)"},
+            "expressionType": "SIMPLE",
+            "label": "AVG(num)",
+            "optionName": "metric_vgops097wej_g8uff99zhk7",
+        }
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": requested_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=requested_metrics)]  # type: ignore
+    assert not query_context_modified(query_context)

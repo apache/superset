@@ -505,7 +505,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -524,6 +528,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -547,7 +552,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @staticmethod
     def execute(  # type: ignore
-        cursor, query: str, async_: bool = False
+        cursor,
+        query: str,
+        database: Database,
+        async_: bool = False,
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}
         cursor.execute(query, **kwargs)

@@ -215,6 +215,7 @@ class DatabaseSchema(Schema):
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
     disable_data_preview = fields.Bool()
+    disable_drill_to_detail = fields.Bool()
     explore_database_id = fields.Int()
 
 
