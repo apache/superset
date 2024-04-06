@@ -31,7 +31,7 @@ from jinja2 import nodes
 from sqlalchemy import and_
 from sqlglot import exp, parse, parse_one
 from sqlglot.dialects import Dialects
-from sqlglot.errors import SqlglotError
+from sqlglot.errors import ParseError, SqlglotError
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 from sqlparse import keywords
 from sqlparse.lexer import Lexer

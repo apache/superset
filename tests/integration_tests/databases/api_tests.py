@@ -1479,7 +1479,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "indexes": [],
                     "name": "wrong_table",
                     "primaryKey": {"constrained_columns": None, "name": None},
-                    "selectStar": "SELECT\n  *\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                    "selectStar": "SELECT *\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
                 },
             )
         elif example_db.backend == "mysql":
