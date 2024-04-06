@@ -33,9 +33,11 @@ from typing import (
     TypedDict,
     Union,
 )
+from urllib.parse import urlencode, urljoin
 from uuid import uuid4
 
 import pandas as pd
+import requests
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -62,11 +64,18 @@ from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql_parse import ParsedQuery, SQLScript, Table
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    OAuth2State,
+    OAuth2TokenResponse,
+    ResultSetColumnType,
+    SQLAColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -171,31 +180,6 @@ class MetricType(TypedDict, total=False):
     currency: str | None
     warning_text: str | None
     extra: str | None
-
-
-class OAuth2TokenResponse(TypedDict, total=False):
-    """
-    Type for an OAuth2 response when exchanging or refreshing tokens.
-    """
-
-    access_token: str
-    expires_in: int
-    scope: str
-    token_type: str
-
-    # only present when exchanging code for refresh/access tokens
-    refresh_token: str
-
-
-class OAuth2State(TypedDict):
-    """
-    Type for the state passed during OAuth2.
-    """
-
-    database_id: int
-    user_id: int
-    default_redirect_uri: str
-    tab_id: str
 
 
 class BaseEngineSpec:  # pylint: disable=too-many-public-methods
@@ -425,15 +409,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Can the catalog be changed on a per-query basis?
     supports_dynamic_catalog = False
 
+    # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
+    # the user impersonation methods to handle personal tokens.
+    supports_oauth2 = False
+    oauth2_scope = ""
+    oauth2_authorization_request_uri = ""  # pylint: disable=invalid-name
+    oauth2_token_request_uri = ""
+
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
 
-    @staticmethod
-    def is_oauth2_enabled() -> bool:
-        return False
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        return (
+            cls.supports_oauth2
+            and cls.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        )
 
     @classmethod
-    def start_oauth2_dance(cls, database_id: int) -> None:
+    def start_oauth2_dance(cls, database: Database) -> None:
         """
         Start the OAuth2 dance.
 
@@ -446,10 +440,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         tab_id = str(uuid4())
         default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
-        redirect_uri = current_app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            default_redirect_uri,
-        )
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -457,7 +447,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # belongs to.
         state: OAuth2State = {
             # Database ID and user ID are the primary key associated with the token.
-            "database_id": database_id,
+            "database_id": database.id,
             "user_id": g.user.id,
             # In multi-instance deployments there might be a single proxy handling
             # redirects, with a custom `DATABASE_OAUTH2_REDIRECT_URI`. Since the OAuth2
@@ -473,30 +463,114 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # message.
             "tab_id": tab_id,
         }
-        oauth_url = cls.get_oauth2_authorization_uri(state)
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
 
-        raise OAuth2RedirectError(oauth_url, tab_id, redirect_uri)
+        oauth_url = cls.get_oauth2_authorization_uri(oauth2_config, state)
 
-    @staticmethod
-    def get_oauth2_authorization_uri(state: OAuth2State) -> str:
+        raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
+
+    @classmethod
+    def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
+        """
+        Build the DB engine spec level OAuth2 client config.
+        """
+        oauth2_config = current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        if cls.engine_name not in oauth2_config:
+            return None
+
+        db_engine_spec_config = oauth2_config[cls.engine_name]
+        redirect_uri = current_app.config.get(
+            "DATABASE_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
+
+        config: OAuth2ClientConfig = {
+            "id": db_engine_spec_config["id"],
+            "secret": db_engine_spec_config["secret"],
+            "scope": db_engine_spec_config.get("scope") or cls.oauth2_scope,
+            "redirect_uri": redirect_uri,
+            "authorization_request_uri": db_engine_spec_config.get(
+                "authorization_request_uri",
+                cls.oauth2_authorization_request_uri,
+            ),
+            "token_request_uri": db_engine_spec_config.get(
+                "token_request_uri",
+                cls.oauth2_token_request_uri,
+            ),
+        }
+
+        return config
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: OAuth2ClientConfig,
+        state: OAuth2State,
+    ) -> str:
         """
         Return URI for initial OAuth2 request.
         """
-        raise OAuth2Error("Subclasses must implement `get_oauth2_authorization_uri`")
+        uri = config["authorization_request_uri"]
+        params = {
+            "scope": config["scope"],
+            "access_type": "offline",
+            "include_granted_scopes": "false",
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+            "prompt": "consent",
+        }
+        return urljoin(uri, "?" + urlencode(params))
 
-    @staticmethod
-    def get_oauth2_token(code: str, state: OAuth2State) -> OAuth2TokenResponse:
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: OAuth2ClientConfig,
+        code: str,
+    ) -> OAuth2TokenResponse:
         """
         Exchange authorization code for refresh/access tokens.
         """
-        raise OAuth2Error("Subclasses must implement `get_oauth2_token`")
+        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        uri = config["token_request_uri"]
+        response = requests.post(
+            uri,
+            json={
+                "code": code,
+                "client_id": config["id"],
+                "client_secret": config["secret"],
+                "redirect_uri": config["redirect_uri"],
+                "grant_type": "authorization_code",
+            },
+            timeout=timeout,
+        )
+        return response.json()
 
-    @staticmethod
-    def get_oauth2_fresh_token(refresh_token: str) -> OAuth2TokenResponse:
+    @classmethod
+    def get_oauth2_fresh_token(
+        cls,
+        config: OAuth2ClientConfig,
+        refresh_token: str,
+    ) -> OAuth2TokenResponse:
         """
         Refresh an access token that has expired.
         """
-        raise OAuth2Error("Subclasses must implement `get_oauth2_fresh_token`")
+        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        uri = config["token_request_uri"]
+        response = requests.post(
+            uri,
+            json={
+                "client_id": config["id"],
+                "client_secret": config["secret"],
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+            timeout=timeout,
+        )
+        return response.json()
 
     @classmethod
     def get_allows_alias_in_select(
@@ -1196,7 +1270,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         in a timely manner and facilitate operations such as query stop
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
-        cls.execute(cursor, sql, query.database.id, async_=True)
+        cls.execute(cursor, sql, query.database, async_=True)
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 
@@ -1667,6 +1741,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -1675,6 +1750,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param connect_args: config to be updated
         :param uri: URI
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
 
@@ -1683,7 +1759,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         cursor: Any,
         query: str,
-        database_id: int,
+        database: Database,
         **kwargs: Any,
     ) -> None:
         """
@@ -1703,8 +1779,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except cls.oauth2_exception as ex:
-            if cls.is_oauth2_enabled() and g.user:
-                cls.start_oauth2_dance(database_id)
+            if database.is_oauth2_enabled() and g and g.user:
+                cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex

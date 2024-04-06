@@ -62,12 +62,13 @@ def test_execute_connection_error() -> None:
     from superset.db_engine_specs.databend import DatabendEngineSpec
     from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 
+    database = Mock()
     cursor = Mock()
     cursor.execute.side_effect = NewConnectionError(
         HTTPConnection("Dummypool"), "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as excinfo:
-        DatabendEngineSpec.execute(cursor, "SELECT col1 from table1", 1)
+        DatabendEngineSpec.execute(cursor, "SELECT col1 from table1", database)
     assert str(excinfo.value) == "Connection failed"
 
 
