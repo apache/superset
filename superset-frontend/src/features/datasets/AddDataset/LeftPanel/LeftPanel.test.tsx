@@ -22,6 +22,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/features/datasets/AddDataset/LeftPanel';
 import { exampleDataset } from 'src/features/datasets/AddDataset/DatasetPanel/fixtures';
+import { MemoryRouter } from 'react-router-dom';
 
 const databasesEndpoint = 'glob:*/api/v1/database/?q*';
 const schemasEndpoint = 'glob:*/api/v1/database/*/schemas*';
@@ -154,16 +155,26 @@ afterEach(() => {
 const mockFun = jest.fn();
 
 test('should render', async () => {
-  render(<LeftPanel setDataset={mockFun} />, {
-    useRedux: true,
-  });
+  render(
+    <MemoryRouter>
+      <LeftPanel setDataset={mockFun} />
+    </MemoryRouter>,
+    {
+      useRedux: true,
+    },
+  );
   expect(
     await screen.findByText(/Select database or type to search databases/i),
   ).toBeInTheDocument();
 });
 
 test('should render schema selector, database selector container, and selects', async () => {
-  render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
+  render(
+    <MemoryRouter>
+      <LeftPanel setDataset={mockFun} />
+    </MemoryRouter>,
+    { useRedux: true },
+  );
 
   expect(
     await screen.findByText(/Select database or type to search databases/i),
@@ -180,7 +191,12 @@ test('should render schema selector, database selector container, and selects', 
 });
 
 test('does not render blank state if there is nothing selected', async () => {
-  render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
+  render(
+    <MemoryRouter>
+      <LeftPanel setDataset={mockFun} />{' '}
+    </MemoryRouter>,
+    { useRedux: true },
+  );
 
   expect(
     await screen.findByText(/Select database or type to search databases/i),
@@ -190,9 +206,14 @@ test('does not render blank state if there is nothing selected', async () => {
 });
 
 test('renders list of options when user clicks on schema', async () => {
-  render(<LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />, {
-    useRedux: true,
-  });
+  render(
+    <MemoryRouter>
+      <LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />
+    </MemoryRouter>,
+    {
+      useRedux: true,
+    },
+  );
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
@@ -212,9 +233,14 @@ test('renders list of options when user clicks on schema', async () => {
 });
 
 test('searches for a table name', async () => {
-  render(<LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />, {
-    useRedux: true,
-  });
+  render(
+    <MemoryRouter>
+      <LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />
+    </MemoryRouter>,
+    {
+      useRedux: true,
+    },
+  );
 
   // Click 'test-postgres' database to access schemas
   const databaseSelect = screen.getByRole('combobox', {
@@ -270,11 +296,13 @@ test('searches for a table name', async () => {
 
 test('renders a warning icon when a table name has a pre-existing dataset', async () => {
   render(
-    <LeftPanel
-      setDataset={mockFun}
-      dataset={exampleDataset[0]}
-      datasetNames={['Sheet2']}
-    />,
+    <MemoryRouter>
+      <LeftPanel
+        setDataset={mockFun}
+        dataset={exampleDataset[0]}
+        datasetNames={['Sheet2']}
+      />
+    </MemoryRouter>,
     {
       useRedux: true,
     },

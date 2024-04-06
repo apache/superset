@@ -125,7 +125,7 @@ export default function LeftPanel({
   const { addDangerToast } = useToasts();
   const location = useLocation();
 
-  const isAddingDataSet = location.pathname.includes('/dataset/add');
+  const isAddingDataSet = location.pathname.includes('/dataset/add') ?? false;
 
   const setDatabase = useCallback(
     (db: Partial<DatabaseObject>) => {
