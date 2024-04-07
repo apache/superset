@@ -106,7 +106,7 @@ class CategoricalColorScale extends ExtensibleFunction {
       this.forcedColors?.[cleanedValue] ||
       sharedColor;
 
-    if (isFeatureEnabled(FeatureFlag.UseAnalagousColors)) {
+    if (isFeatureEnabled(FeatureFlag.UseAnalogousColors)) {
       const multiple = Math.floor(
         this.domain().length / this.originColors.length,
       );

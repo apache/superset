@@ -83,7 +83,7 @@ describe('CategoricalColorScale', () => {
     });
     it('recycles colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: false,
+        [FeatureFlag.UseAnalogousColors]: false,
       };
       const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -109,7 +109,7 @@ describe('CategoricalColorScale', () => {
     });
     it('get analogous colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
       };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('pig');

@@ -149,7 +149,7 @@ describe('SharedLabelColor', () => {
 
     it('should use recycle colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: false,
+        [FeatureFlag.UseAnalogousColors]: false,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
@@ -162,9 +162,9 @@ describe('SharedLabelColor', () => {
       expect(getAnalogousColorsSpy).not.toBeCalled();
     });
 
-    it('should use analagous colors', () => {
+    it('should use analogous colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);

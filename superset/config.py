@@ -448,7 +448,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
     "ALLOW_ADHOC_SUBQUERY": False,
-    "USE_ANALAGOUS_COLORS": False,
+    "USE_ANALOGOUS_COLORS": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,

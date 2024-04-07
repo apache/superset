@@ -123,7 +123,7 @@ Time Series Charts now support stacking of both negative and positive values ([#
 	- Flag: `CACHE_IMPERSONATION`
 
 - Control behavior for how color palettes are chosen ([#19987](https://github.com/apache/superset/pull/19987))
-	- Flag: `USE_ANALAGOUS_COLORS`
+	- Flag: `USE_ANALOGOUS_COLORS`
 
 - Enabling non-time-series x-axis in some charts ([#20097](https://github.com/apache/superset/pull/20097))
 	- Flag: `GENERIC_CHART_AXES`
