@@ -35,10 +35,11 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
     }
     .helper {
       color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.s}px;
     }
   }
   h4 {
-    font-size: 16px;
+    font-size: ${theme.typography.sizes.l}px;
     margin-top: 0;
     margin-bottom: ${theme.gridUnit}px;
   }

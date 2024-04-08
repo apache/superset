@@ -391,7 +391,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
       primaryButtonName="Upload"
       centered
       show={show}
-      title={<h4>CSV Upload</h4>}
+      title={<h4>{t('CSV Upload')}</h4>}
     >
       <AntdForm
         form={form}
@@ -418,7 +418,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="general"
           >
             <Row>
-              <Col>
+              <Col span={6}>
                 <StyledFormItem
                   label={t('CSV File')}
                   name="upload"
@@ -442,9 +442,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   </Upload>
                 </StyledFormItem>
               </Col>
-              <Col>
+              <Col span={18}>
                 {columns.length > 0 && (
-                  <>
+                  <div>
                     <Typography.Text type="success">
                       Loaded {columns.length} column(s):
                     </Typography.Text>
@@ -453,11 +453,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                         {column}
                       </Typography.Text>
                     ))}
-                  </>
+                  </div>
                 )}
               </Col>
             </Row>
-            <Divider orientation="left">Basic</Divider>
+            <Divider orientation="left">{t('Target')}</Divider>
             <Row justify="space-between">
               <Col span={11}>
                 <StyledFormItem

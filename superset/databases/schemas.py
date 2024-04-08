@@ -1113,7 +1113,7 @@ class CSVUploadPostSchema(Schema):
     def convert_column_data_types(
         self, data: dict[str, Any], **kwargs: Any
     ) -> dict[str, Any]:
-        if "column_data_types" in data:
+        if "column_data_types" in data and data["column_data_types"]:
             try:
                 data["column_data_types"] = json.loads(data["column_data_types"])
             except json.JSONDecodeError as ex:
