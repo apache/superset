@@ -46,7 +46,7 @@ from superset.exceptions import (
     SupersetErrorException,
     SupersetErrorsException,
 )
-from superset.extensions import celery_app
+from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -281,21 +281,26 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
                 log_params,
             )
         db.session.commit()
-        with stats_timing("sqllab.query.time_executing_query", stats_logger):
-            db_engine_spec.execute_with_cursor(cursor, sql, query)
+        with event_logger.log_context(
+            action="execute_sql",
+            database=database,
+            object_ref=__name__,
+        ):
+            with stats_timing("sqllab.query.time_executing_query", stats_logger):
+                db_engine_spec.execute_with_cursor(cursor, sql, query)
 
-        with stats_timing("sqllab.query.time_fetching_results", stats_logger):
-            logger.debug(
-                "Query %d: Fetching data for query object: %s",
-                query.id,
-                str(query.to_dict()),
-            )
-            data = db_engine_spec.fetch_data(cursor, increased_limit)
-            if query.limit is None or len(data) <= query.limit:
-                query.limiting_factor = LimitingFactor.NOT_LIMITED
-            else:
-                # return 1 row less than increased_query
-                data = data[:-1]
+            with stats_timing("sqllab.query.time_fetching_results", stats_logger):
+                logger.debug(
+                    "Query %d: Fetching data for query object: %s",
+                    query.id,
+                    str(query.to_dict()),
+                )
+                data = db_engine_spec.fetch_data(cursor, increased_limit)
+                if query.limit is None or len(data) <= query.limit:
+                    query.limiting_factor = LimitingFactor.NOT_LIMITED
+                else:
+                    # return 1 row less than increased_query
+                    data = data[:-1]
     except SoftTimeLimitExceeded as ex:
         query.status = QueryStatus.TIMED_OUT
 

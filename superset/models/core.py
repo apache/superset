@@ -66,6 +66,7 @@ from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
+    event_logger,
     security_manager,
     ssh_manager_factory,
 )
@@ -564,6 +565,20 @@ class Database(
         """
         return self.db_engine_spec.get_default_schema_for_query(self, query)
 
+    @staticmethod
+    def post_process_df(df: pd.DataFrame) -> pd.DataFrame:
+        def column_needs_conversion(df_series: pd.Series) -> bool:
+            return (
+                not df_series.empty
+                and isinstance(df_series, pd.Series)
+                and isinstance(df_series[0], (list, dict))
+            )
+
+        for col, coltype in df.dtypes.to_dict().items():
+            if coltype == numpy.object_ and column_needs_conversion(df[col]):
+                df[col] = df[col].apply(utils.json_dumps_w_dates)
+        return df
+
     @property
     def quote_identifier(self) -> Callable[[str], str]:
         """Add quotes to potential identifier expressions if needed"""
@@ -581,15 +596,15 @@ class Database(
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(schema) as engine:
             engine_url = engine.url
-        mutate_after_split = config["MUTATE_AFTER_SPLIT"]
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
 
-        def needs_conversion(df_series: pd.Series) -> bool:
-            return (
-                not df_series.empty
-                and isinstance(df_series, pd.Series)
-                and isinstance(df_series[0], (list, dict))
-            )
+        def _mutate_sql_if_needed(sql_: str) -> str:
+            if config["MUTATE_AFTER_SPLIT"]:
+                return config["SQL_QUERY_MUTATOR"](
+                    sql_,
+                    security_manager=security_manager,
+                    database=None,
+                )
+            return sql_
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -603,42 +618,30 @@ class Database(
 
         with self.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()
-            for sql_ in sqls[:-1]:
-                if mutate_after_split:
-                    sql_ = sql_query_mutator(
-                        sql_,
-                        security_manager=security_manager,
-                        database=None,
-                    )
+            df = None
+            for i, sql_ in enumerate(sqls):
+                sql_ = _mutate_sql_if_needed(sql_)
                 _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_, self)
-                cursor.fetchall()
-
-            if mutate_after_split:
-                last_sql = sql_query_mutator(
-                    sqls[-1],
-                    security_manager=security_manager,
-                    database=None,
-                )
-                _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql, self)
-            else:
-                _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1], self)
-
-            data = self.db_engine_spec.fetch_data(cursor)
-            result_set = SupersetResultSet(
-                data, cursor.description, self.db_engine_spec
-            )
-            df = result_set.to_pandas_df()
+                with event_logger.log_context(
+                    action="execute_sql",
+                    database=self,
+                    object_ref=__name__,
+                ):
+                    self.db_engine_spec.execute(cursor, sql_, self)
+                    if i < len(sqls) - 1:
+                        # If it's not the last, we don't keep the results
+                        cursor.fetchall()
+                    else:
+                        # Last query, fetch and process the results
+                        data = self.db_engine_spec.fetch_data(cursor)
+                        result_set = SupersetResultSet(
+                            data, cursor.description, self.db_engine_spec
+                        )
+                        df = result_set.to_pandas_df()
             if mutator:
                 df = mutator(df)
 
-            for col, coltype in df.dtypes.to_dict().items():
-                if coltype == numpy.object_ and needs_conversion(df[col]):
-                    df[col] = df[col].apply(utils.json_dumps_w_dates)
-
-            return df
+            return self.post_process_df(df)
 
     def compile_sqla_query(self, qry: Select, schema: str | None = None) -> str:
         with self.get_sqla_engine(schema) as engine:

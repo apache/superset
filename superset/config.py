@@ -74,6 +74,9 @@ if TYPE_CHECKING:
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
+
+# By default will log events to the metadata database with `DBEventLogger`
+# Note that you can use `StdOutEventLogger` for debugging
 EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
