@@ -58,7 +58,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClau
 from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
-from superset import security_manager, sql_parse
+from superset import sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType

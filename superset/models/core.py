@@ -610,7 +610,7 @@ class Database(
             )
         return sql_
 
-    def get_df(  # pylint: disable=too-many-locals
+    def get_df(
         self,
         sql: str,
         schema: str | None = None,

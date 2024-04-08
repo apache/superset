@@ -51,7 +51,8 @@ def collect_request_payload() -> dict[str, Any]:
     payload.update(**request.form.to_dict())
     payload.update(**request.args.to_dict())
     if request.is_json:
-        payload.update(request.get_json(cache=True))
+        json_payload = request.get_json(cache=True, silent=True)
+        payload.update(json_payload)
 
     # save URL match pattern in addition to the request path
     url_rule = str(request.url_rule)
@@ -131,7 +132,7 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_with_context(  # pylint: disable=too-many-locals
+    def log_with_context(  # pylint: disable=too-many-locals,too-many-arguments
         self,
         action: str,
         duration: timedelta | None = None,
@@ -163,14 +164,14 @@ class AbstractEventLogger(ABC):
 
         payload = collect_request_payload()
         if object_ref:
-            payload["object_ref"] = str(object_ref)
+            payload["object_ref"] = object_ref
         if payload_override:
             payload.update(payload_override)
 
         dashboard_id = to_int(payload.get("dashboard_id"))
 
         database_params = {"database_id": payload.get("database_id")}
-        if database:
+        if database and type(database).__name__ == "Database":
             database_params = {
                 "database_id": database.id,
                 "engine": database.backend,
@@ -204,7 +205,6 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
-            object_ref=object_ref,
             **database_params,
         )
 
@@ -370,7 +370,7 @@ class DBEventLogger(AbstractEventLogger):
 class StdOutEventLogger(AbstractEventLogger):
     """Event logger that prints to stdout for debugging purposes"""
 
-    def log(  # pylint: disable=too-many-arguments,too-many-locals
+    def log(  # pylint: disable=too-many-arguments
         self,
         user_id: int | None,
         action: str,
@@ -381,8 +381,7 @@ class StdOutEventLogger(AbstractEventLogger):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        print("-=" * 20)
-        d = dict(
+        data = dict(  # pylint: disable=use-dict-literal
             user_id=user_id,
             action=action,
             dashboard_id=dashboard_id,
@@ -391,4 +390,4 @@ class StdOutEventLogger(AbstractEventLogger):
             referrer=referrer,
             **kwargs,
         )
-        print("StdOutEventLogger: ", d)
+        print("StdOutEventLogger: ", data)
