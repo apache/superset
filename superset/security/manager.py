@@ -242,7 +242,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CSS Templates",
         "ColumnarToDatabaseView",
         "CssTemplate",
-        "CsvToDatabaseView",
         "ExcelToDatabaseView",
         "Import dashboards",
         "ImportExportRestApi",
@@ -250,7 +249,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Queries",
         "ReportSchedule",
         "TableSchemaView",
-        "Upload a CSV",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -268,6 +266,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata",
         "can_external_metadata_by_name",
         "can_read",
+        "can_csv_upload",
     }
 
     ALPHA_ONLY_PERMISSIONS = {

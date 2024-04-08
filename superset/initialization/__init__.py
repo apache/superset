@@ -172,7 +172,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.database.views import (
             ColumnarToDatabaseView,
-            CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
         )
@@ -295,7 +294,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-        appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
         appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)

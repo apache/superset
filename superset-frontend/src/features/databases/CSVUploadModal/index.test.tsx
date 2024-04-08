@@ -16,9 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-// TODO: These tests should be made atomic in separate files
-
 import React from 'react';
 import fetchMock from 'fetch-mock';
 import CSVUploadModal from 'src/features/databases/CSVUploadModal';
@@ -283,7 +280,7 @@ describe('CSVUploadModal', () => {
       const file = new File(['test'], 'test.csv', { type: 'text' });
       const inputElement = document.querySelector('input[type="file"]');
 
-      if (inputElement?.files) {
+      if (inputElement) {
         userEvent.upload(inputElement, file);
       }
 

@@ -234,19 +234,12 @@ function DatabaseList({
       label: t('Upload file to database'),
       childs: [
         {
-          label: t('New Upload CSV'),
+          label: t('Upload CSV'),
           name: 'Upload CSV file',
           url: '#',
           onClick: () => {
             setCsvUploadModalOpen(true);
           },
-          perm: canUploadCSV && showUploads,
-          disable: isDisabled,
-        },
-        {
-          label: t('Upload CSV'),
-          name: 'Upload CSV file',
-          url: '/csvtodatabaseview/form',
           perm: canUploadCSV && showUploads,
           disable: isDisabled,
         },
