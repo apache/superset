@@ -150,7 +150,7 @@ export default function PopKPI(props: PopKPIProps) {
       {
         symbol: '#',
         value: prevNumber,
-        tooltipText: t('Data for %s', comparatorText),
+        tooltipText: t('Data for comparison range', comparatorText),
       },
       {
         symbol: '△',

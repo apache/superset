@@ -18,50 +18,42 @@
  */
 import {
   buildQueryContext,
-  getComparisonInfo,
-  ComparisonTimeRangeType,
   QueryFormData,
+  PostProcessingRule,
 } from '@superset-ui/core';
+import {
+  isTimeComparison,
+  timeCompareOperator,
+} from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  const {
-    cols: groupby,
-    time_comparison: timeComparison,
-    extra_form_data: extraFormData,
-  } = formData;
+  const { cols: groupby, time_grain_sqla } = formData;
 
-  const queryContextA = buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      groupby,
-    },
-  ]);
-
-  const comparisonFormData = getComparisonInfo(
-    formData,
-    timeComparison,
-    extraFormData,
-  );
-
-  const queryContextB = buildQueryContext(
-    comparisonFormData,
-    baseQueryObject => [
+  const queryContextA = buildQueryContext(formData, baseQueryObject => {
+    const postProcessing: PostProcessingRule[] = [];
+    postProcessing.push(timeCompareOperator(formData, baseQueryObject));
+    return [
       {
         ...baseQueryObject,
+        columns: [
+          {
+            timeGrain: time_grain_sqla || 'P1Y', // Group by year by default
+            columnType: 'BASE_AXIS',
+            sqlExpression: baseQueryObject.filters?.[0]?.col.toString() || '',
+            label: baseQueryObject.filters?.[0]?.col.toString() || '',
+            expressionType: 'SQL',
+          },
+        ],
         groupby,
-        extras: {
-          ...baseQueryObject.extras,
-          instant_time_comparison_range:
-            timeComparison !== ComparisonTimeRangeType.Custom
-              ? timeComparison
-              : undefined,
-        },
+        post_processing: postProcessing,
+        time_offsets: isTimeComparison(formData, baseQueryObject)
+          ? formData.time_compare
+          : [],
       },
-    ],
-  );
+    ];
+  });
 
   return {
     ...queryContextA,
-    queries: [...queryContextA.queries, ...queryContextB.queries],
   };
 }
