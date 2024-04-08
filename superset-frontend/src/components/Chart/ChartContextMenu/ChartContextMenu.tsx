@@ -112,6 +112,8 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+
   const menuItems = [];
 
   const showDrillToDetail =
@@ -228,6 +230,8 @@ const ChartContextMenu = (
         contextMenuY={clientY}
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
+        showModal={drillModalIsOpen}
+        setShowModal={setDrillModalIsOpen}
         {...(additionalConfig?.drillToDetail || {})}
       />,
     );
