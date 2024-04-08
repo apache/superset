@@ -23,7 +23,7 @@ import pandas as pd
 import pytest
 from pandas import DateOffset
 
-from superset import db
+from superset import app, db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
@@ -723,6 +723,10 @@ class TestQueryContext(SupersetTestCase):
         sqls = [
             sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
         ]
+        row_limit_value = app.config["ROW_LIMIT"]
+        row_limit_pattern_with_config_value = r"LIMIT " + re.escape(
+            str(row_limit_value)
+        )
         self.assertEqual(len(sqls), 3)
         # Original range query
         assert re.search(r"1990-01-01.+1991-01-01", sqls[0], re.S)
@@ -733,11 +737,13 @@ class TestQueryContext(SupersetTestCase):
         assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
         assert not re.search(r"LIMIT 100", sqls[1], re.S)
         assert not re.search(r"OFFSET 10", sqls[1], re.S)
+        assert re.search(row_limit_pattern_with_config_value, sqls[1], re.S)
 
         # 1 year later
         assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
         assert not re.search(r"LIMIT 100", sqls[2], re.S)
         assert not re.search(r"OFFSET 10", sqls[2], re.S)
+        assert re.search(row_limit_pattern_with_config_value, sqls[2], re.S)
 
 
 def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):

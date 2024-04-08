@@ -459,7 +459,7 @@ class QueryContextProcessor:
             # to the subquery so we prevent data inconsistency due to missing records
             # in the dataframes when performing the join
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = None
+                query_object_clone_dct["row_limit"] = config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             if isinstance(self._qc_datasource, Query):
