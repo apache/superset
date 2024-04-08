@@ -37,7 +37,7 @@ import tests.integration_tests.test_app
 from superset import app, db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
-from superset.models.core import Database
+from superset.models.core import Database, EngineManager
 from superset.models.slice import Slice
 from superset.utils.database import get_example_database
 
@@ -52,6 +52,10 @@ class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
     )
+    def tearDown(self):
+        EngineManager._sqla_engines.clear()
+        super().tearDown()
+
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
