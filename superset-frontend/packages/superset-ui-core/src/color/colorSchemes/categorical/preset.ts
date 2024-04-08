@@ -18,11 +18,13 @@
  */
 
 import CategoricalScheme from '../../CategoricalScheme';
+import { ColorSchemeGroup } from '../../types';
 
 const schemes = [
   {
     id: 'presetColors',
     label: 'Preset Colors',
+    group: ColorSchemeGroup.Featured,
     colors: [
       // Full color
       '#6BD3B3',

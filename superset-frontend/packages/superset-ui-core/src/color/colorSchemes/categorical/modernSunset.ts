@@ -17,43 +17,29 @@
  * under the License.
  */
 
-import { ColorSchemeGroup } from './types';
+import CategoricalScheme from '../../CategoricalScheme';
+import { ColorSchemeGroup } from '../../types';
 
-export interface ColorSchemeConfig {
-  colors: string[];
-  description?: string;
-  id: string;
-  label?: string;
-  isDefault?: boolean;
-  group?: ColorSchemeGroup;
-}
+const schemes = [
+  {
+    id: 'modernSunset',
+    label: 'Modern sunset',
+    group: ColorSchemeGroup.Featured,
+    colors: [
+      '#0080F6',
+      '#254081',
+      '#6C4592',
+      '#A94693',
+      '#DC4180',
+      '#F35193',
+      '#FF7582',
+      '#FF4C5D',
+      '#FF824E',
+      '#FFAD2A',
+      '#FFDB04',
+      '#F3F700',
+    ],
+  },
+].map(s => new CategoricalScheme(s));
 
-export default class ColorScheme {
-  colors: string[];
-
-  description: string;
-
-  id: string;
-
-  label: string;
-
-  isDefault?: boolean;
-
-  group?: ColorSchemeGroup;
-
-  constructor({
-    colors,
-    description = '',
-    id,
-    label,
-    isDefault,
-    group,
-  }: ColorSchemeConfig) {
-    this.id = id;
-    this.label = label ?? id;
-    this.colors = colors;
-    this.description = description;
-    this.isDefault = isDefault;
-    this.group = group;
-  }
-}
+export default schemes;

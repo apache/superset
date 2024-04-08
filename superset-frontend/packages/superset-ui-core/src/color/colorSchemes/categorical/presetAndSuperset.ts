@@ -17,43 +17,29 @@
  * under the License.
  */
 
-import { ColorSchemeGroup } from './types';
+import CategoricalScheme from '../../CategoricalScheme';
+import { ColorSchemeGroup } from '../../types';
 
-export interface ColorSchemeConfig {
-  colors: string[];
-  description?: string;
-  id: string;
-  label?: string;
-  isDefault?: boolean;
-  group?: ColorSchemeGroup;
-}
+const schemes = [
+  {
+    id: 'presetAndSupersetColors',
+    label: 'Preset + Superset',
+    group: ColorSchemeGroup.Featured,
+    colors: [
+      '#004960',
+      '#2893B3',
+      '#20A7C9',
+      '#5CC0DA',
+      '#7DCDE1',
+      '#A9D3E1',
+      '#C6ECE1',
+      '#AAE2D2',
+      '#71CFB4',
+      '#2FC096',
+      '#178F7A',
+      '#067162',
+    ],
+  },
+].map(s => new CategoricalScheme(s));
 
-export default class ColorScheme {
-  colors: string[];
-
-  description: string;
-
-  id: string;
-
-  label: string;
-
-  isDefault?: boolean;
-
-  group?: ColorSchemeGroup;
-
-  constructor({
-    colors,
-    description = '',
-    id,
-    label,
-    isDefault,
-    group,
-  }: ColorSchemeConfig) {
-    this.id = id;
-    this.label = label ?? id;
-    this.colors = colors;
-    this.description = description;
-    this.isDefault = isDefault;
-    this.group = group;
-  }
-}
+export default schemes;

@@ -57,6 +57,7 @@ export const StyledSelect = styled(AntdSelect, {
     }
     .ant-select-item.ant-select-item-group {
       padding-left: ${theme.gridUnit}px;
+      font-size: ${theme.typography.sizes.m}px;
     }
     .ant-select-item-option-grouped {
       padding-left: ${theme.gridUnit * 3}px;

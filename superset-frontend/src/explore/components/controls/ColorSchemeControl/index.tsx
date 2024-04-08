@@ -17,12 +17,23 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { ColorScheme, SequentialScheme, styled, t } from '@superset-ui/core';
-import { isFunction } from 'lodash';
+import {
+  ColorScheme,
+  ColorSchemeGroup,
+  SequentialScheme,
+  styled,
+  t,
+} from '@superset-ui/core';
+import { isFunction, sortBy } from 'lodash';
 import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import {
+  LabeledValue,
+  OptGroupValue,
+  SelectOptionsType,
+} from 'src/components/Select/types';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 export interface ColorSchemes {
@@ -130,30 +141,66 @@ const ColorSchemeControl = ({
       return isValidColorOption;
     });
 
-    return filteredColorOptions.map(([value]) => {
-      const currentScheme = schemesObject[value];
+    const groups = filteredColorOptions.reduce(
+      (acc, [value]) => {
+        const currentScheme = schemesObject[value];
 
-      // For categorical scheme, display all the colors
-      // For sequential scheme, show 10 or interpolate to 10.
-      // Sequential schemes usually have at most 10 colors.
-      let colors: string[] = [];
-      if (currentScheme) {
-        colors = isLinear
-          ? (currentScheme as SequentialScheme).getColors(10)
-          : currentScheme.colors;
-      }
-      return {
-        customLabel: (
-          <ColorSchemeLabel
-            id={currentScheme.id}
-            label={currentScheme.label}
-            colors={colors}
-          />
-        ),
-        label: schemesObject?.[value]?.label || value,
-        value,
-      };
-    });
+        // For categorical scheme, display all the colors
+        // For sequential scheme, show 10 or interpolate to 10.
+        // Sequential schemes usually have at most 10 colors.
+        let colors: string[] = [];
+        if (currentScheme) {
+          colors = isLinear
+            ? (currentScheme as SequentialScheme).getColors(10)
+            : currentScheme.colors;
+        }
+        const option = {
+          customLabel: (
+            <ColorSchemeLabel
+              id={currentScheme.id}
+              label={currentScheme.label}
+              colors={colors}
+            />
+          ) as React.ReactNode,
+          label: schemesObject?.[value]?.label || value,
+          value,
+        };
+        acc[currentScheme.group ?? ColorSchemeGroup.Other].options.push(option);
+        return acc;
+      },
+      {
+        [ColorSchemeGroup.Custom]: {
+          title: ColorSchemeGroup.Custom,
+          label: t('Custom color palettes'),
+          options: [] as LabeledValue[],
+        },
+        [ColorSchemeGroup.Featured]: {
+          title: ColorSchemeGroup.Featured,
+          label: t('Featured color palettes'),
+          options: [] as LabeledValue[],
+        },
+        [ColorSchemeGroup.Other]: {
+          title: ColorSchemeGroup.Other,
+          label: t('Other color palettes'),
+          options: [] as LabeledValue[],
+        },
+      },
+    );
+    const nonEmptyGroups = Object.values(groups)
+      .filter(group => group.options.length > 0)
+      .map(group => ({
+        ...group,
+        options: sortBy(group.options, opt => opt.label),
+      }));
+
+    // if there are no featured or custom color schemes, return the ungrouped options
+    if (
+      nonEmptyGroups.length === 1 &&
+      nonEmptyGroups[0].title === ColorSchemeGroup.Other
+    ) {
+      return nonEmptyGroups[0].options;
+    }
+    return nonEmptyGroups;
   }, [choices, dashboardId, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
@@ -179,7 +226,7 @@ const ColorSchemeControl = ({
       disabled={!!dashboardId}
       name={`select-${name}`}
       onChange={handleOnChange}
-      options={[{ title: 'test', label: 'test', options }]}
+      options={options}
       placeholder={t('Select scheme')}
       value={currentScheme}
     />

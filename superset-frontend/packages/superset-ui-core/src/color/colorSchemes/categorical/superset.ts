@@ -18,11 +18,13 @@
  */
 
 import CategoricalScheme from '../../CategoricalScheme';
+import { ColorSchemeGroup } from '../../types';
 
 const schemes = [
   {
     id: 'supersetColors',
     label: 'Superset Colors',
+    group: ColorSchemeGroup.Featured,
     colors: [
       // Full color
       '#1FA8C9',
