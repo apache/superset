@@ -22,6 +22,7 @@ import {
   getMetricLabel,
   getValueFormatter,
   getNumberFormatter,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
@@ -89,6 +90,10 @@ export default function transformProps(chartProps: ChartProps) {
   const data = dataA;
   const metricName = getMetricLabel(metric);
   const timeComparison = chartProps.rawFormData?.time_compare?.[0];
+  const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
+    (adhoc_filter: SimpleAdhocFilter) =>
+      adhoc_filter.operator === 'TEMPORAL_RANGE',
+  )?.[0];
 
   const { value1, value2 } = data.reduce(
     (acc: { value1: number; value2: number }, curr: { [x: string]: any }) => {
@@ -161,5 +166,7 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorEnabled,
     comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
+    currentTimeRangeFilter,
+    shift: timeComparison,
   };
 }
