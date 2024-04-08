@@ -22,11 +22,11 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
+import { Menu } from 'src/components/Menu';
 import SliceHeaderControls, {
   SliceHeaderControlsProps,
   handleDropdownNavigation,
 } from '.';
-import { Menu } from 'src/components/Menu';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
