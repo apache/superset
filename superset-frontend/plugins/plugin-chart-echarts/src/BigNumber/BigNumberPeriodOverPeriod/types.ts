@@ -61,4 +61,10 @@ export type PopKPIProps = PopKPIStylesProps &
     compType: string;
     percentDifferenceNumber: number;
     comparatorText: string;
+    comparisonColorScheme?: string;
   };
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}

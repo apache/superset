@@ -112,6 +112,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -119,6 +120,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
         url = make_url_safe(uri)
@@ -132,7 +134,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -191,7 +197,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         super().handle_cursor(cursor=cursor, query=query)
 
     @classmethod
-    def execute_with_cursor(cls, cursor: Cursor, sql: str, query: Query) -> None:
+    def execute_with_cursor(
+        cls,
+        cursor: Cursor,
+        sql: str,
+        query: Query,
+    ) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
 
@@ -210,7 +221,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             logger.debug("Query %d: Running query: %s", query_id, sql)
 
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, query.database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:

@@ -255,3 +255,19 @@ test('should render an extension component if one is supplied', () => {
     screen.getByText('welcome.banner extension component'),
   ).toBeInTheDocument();
 });
+
+test('should render a submenu extension component if one is supplied', () => {
+  const extensionsRegistry = getExtensionsRegistry();
+
+  extensionsRegistry.set('home.submenu', () => <>submenu extension</>);
+
+  setupExtensions();
+
+  render(
+    <Provider store={store}>
+      <Welcome {...mockedProps} />
+    </Provider>,
+  );
+
+  expect(screen.getByText('submenu extension')).toBeInTheDocument();
+});

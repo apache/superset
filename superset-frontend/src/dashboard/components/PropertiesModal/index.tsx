@@ -34,6 +34,7 @@ import {
   styled,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -41,7 +42,6 @@ import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import {

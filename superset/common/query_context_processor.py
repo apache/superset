@@ -194,6 +194,7 @@ class QueryContextProcessor:
             "status": cache.status,
             "stacktrace": cache.stacktrace,
             "rowcount": len(cache.df.index),
+            "sql_rowcount": cache.sql_rowcount,
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,

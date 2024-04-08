@@ -17,8 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import { fetchTimeRange } from 'src/explore/components/controls/DateFilterControl';
+import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
 import { Operators } from 'src/explore/constants';
 import AdhocFilter from '../AdhocFilter';
 import { ExpressionTypes } from '../types';

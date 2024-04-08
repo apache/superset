@@ -308,6 +308,7 @@ export default function transformProps(
         sliceId,
         isHorizontal,
         lineStyle,
+        timeCompare: array,
       },
     );
     if (transformedSeries) {
@@ -575,7 +576,6 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
-          yAxisIndex: false,
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -590,6 +590,7 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            yAxisIndex: isHorizontal ? 0 : undefined,
           },
         ]
       : [],

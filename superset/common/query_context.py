@@ -61,7 +61,7 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         datasource: BaseDatasource,

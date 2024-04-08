@@ -197,7 +197,7 @@ def test_get_from_permalink_unknown_key(test_client, login_as_admin):
 
 
 @patch("superset.security.SupersetSecurityManager.can_access_datasource")
-def test_get_dataset_access_denied(
+def test_get_dataset_access_denied_with_form_data_key(
     mock_can_access_datasource, test_client, login_as_admin, dataset
 ):
     message = "Dataset access denied"
@@ -206,6 +206,24 @@ def test_get_dataset_access_denied(
     )
     resp = test_client.get(
         f"api/v1/explore/?form_data_key={FORM_DATA_KEY}&datasource_id={dataset.id}&datasource_type={dataset.type}"
+    )
+    data = json.loads(resp.data.decode("utf-8"))
+    assert resp.status_code == 403
+    assert data["datasource_id"] == dataset.id
+    assert data["datasource_type"] == dataset.type
+    assert data["message"] == message
+
+
+@patch("superset.security.SupersetSecurityManager.can_access_datasource")
+def test_get_dataset_access_denied(
+    mock_can_access_datasource, test_client, login_as_admin, dataset
+):
+    message = "Dataset access denied"
+    mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
+        message=message, datasource_id=dataset.id, datasource_type=dataset.type
+    )
+    resp = test_client.get(
+        f"api/v1/explore/?datasource_id={dataset.id}&datasource_type={dataset.type}"
     )
     data = json.loads(resp.data.decode("utf-8"))
     assert resp.status_code == 403

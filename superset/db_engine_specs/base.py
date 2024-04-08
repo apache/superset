@@ -33,13 +33,16 @@ from typing import (
     TypedDict,
     Union,
 )
+from urllib.parse import urlencode, urljoin
+from uuid import uuid4
 
 import pandas as pd
+import requests
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app
+from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -59,17 +62,26 @@ from superset import security_manager, sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.sql_parse import ParsedQuery, SQLScript, Table
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    OAuth2State,
+    OAuth2TokenResponse,
+    ResultSetColumnType,
+    SQLAColumnType,
+)
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.oauth2 import encode_oauth2_state
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.models.core import Database
     from superset.models.sql_lab import Query
+
 
 ColumnTypeMapping = tuple[
     Pattern[str],
@@ -396,6 +408,169 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # Can the catalog be changed on a per-query basis?
     supports_dynamic_catalog = False
+
+    # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
+    # the user impersonation methods to handle personal tokens.
+    supports_oauth2 = False
+    oauth2_scope = ""
+    oauth2_authorization_request_uri = ""  # pylint: disable=invalid-name
+    oauth2_token_request_uri = ""
+
+    # Driver-specific exception that should be mapped to OAuth2RedirectError
+    oauth2_exception = OAuth2RedirectError
+
+    @classmethod
+    def is_oauth2_enabled(cls) -> bool:
+        return (
+            cls.supports_oauth2
+            and cls.engine_name in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        )
+
+    @classmethod
+    def start_oauth2_dance(cls, database: Database) -> None:
+        """
+        Start the OAuth2 dance.
+
+        This method will raise a custom exception that is captured by the frontend to
+        start the OAuth2 authentication. The frontend will open a new tab where the user
+        can authorize Superset to access the database. Once the user has authorized, the
+        tab sends a message to the original tab informing that authorization was
+        successful (or not), and then closes. The original tab will automatically
+        re-run the query after authorization.
+        """
+        tab_id = str(uuid4())
+        default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+
+        # The state is passed to the OAuth2 provider, and sent back to Superset after
+        # the user authorizes the access. The redirect endpoint in Superset can then
+        # inspect the state to figure out to which user/database the access token
+        # belongs to.
+        state: OAuth2State = {
+            # Database ID and user ID are the primary key associated with the token.
+            "database_id": database.id,
+            "user_id": g.user.id,
+            # In multi-instance deployments there might be a single proxy handling
+            # redirects, with a custom `DATABASE_OAUTH2_REDIRECT_URI`. Since the OAuth2
+            # application requires every redirect URL to be registered a priori, this
+            # allows OAuth2 to be used where new instances are being constantly
+            # deployed. The proxy can extract `default_redirect_uri` from the state and
+            # then forward the token to the instance that initiated the authentication.
+            "default_redirect_uri": default_redirect_uri,
+            # When OAuth2 is complete the browser tab where OAuth2 happened will send a
+            # message to the original browser tab informing that the process was
+            # successful. To allow cross-tab commmunication in a safe way we assign a
+            # UUID to the original tab, and the second tab will use it when sending the
+            # message.
+            "tab_id": tab_id,
+        }
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
+
+        oauth_url = cls.get_oauth2_authorization_uri(oauth2_config, state)
+
+        raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
+
+    @classmethod
+    def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
+        """
+        Build the DB engine spec level OAuth2 client config.
+        """
+        oauth2_config = current_app.config["DATABASE_OAUTH2_CLIENTS"]
+        if cls.engine_name not in oauth2_config:
+            return None
+
+        db_engine_spec_config = oauth2_config[cls.engine_name]
+        redirect_uri = current_app.config.get(
+            "DATABASE_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
+
+        config: OAuth2ClientConfig = {
+            "id": db_engine_spec_config["id"],
+            "secret": db_engine_spec_config["secret"],
+            "scope": db_engine_spec_config.get("scope") or cls.oauth2_scope,
+            "redirect_uri": redirect_uri,
+            "authorization_request_uri": db_engine_spec_config.get(
+                "authorization_request_uri",
+                cls.oauth2_authorization_request_uri,
+            ),
+            "token_request_uri": db_engine_spec_config.get(
+                "token_request_uri",
+                cls.oauth2_token_request_uri,
+            ),
+        }
+
+        return config
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: OAuth2ClientConfig,
+        state: OAuth2State,
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request.
+        """
+        uri = config["authorization_request_uri"]
+        params = {
+            "scope": config["scope"],
+            "access_type": "offline",
+            "include_granted_scopes": "false",
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+            "prompt": "consent",
+        }
+        return urljoin(uri, "?" + urlencode(params))
+
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: OAuth2ClientConfig,
+        code: str,
+    ) -> OAuth2TokenResponse:
+        """
+        Exchange authorization code for refresh/access tokens.
+        """
+        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        uri = config["token_request_uri"]
+        response = requests.post(
+            uri,
+            json={
+                "code": code,
+                "client_id": config["id"],
+                "client_secret": config["secret"],
+                "redirect_uri": config["redirect_uri"],
+                "grant_type": "authorization_code",
+            },
+            timeout=timeout,
+        )
+        return response.json()
+
+    @classmethod
+    def get_oauth2_fresh_token(
+        cls,
+        config: OAuth2ClientConfig,
+        refresh_token: str,
+    ) -> OAuth2TokenResponse:
+        """
+        Refresh an access token that has expired.
+        """
+        timeout = current_app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
+        uri = config["token_request_uri"]
+        response = requests.post(
+            uri,
+            json={
+                "client_id": config["id"],
+                "client_secret": config["secret"],
+                "refresh_token": refresh_token,
+                "grant_type": "refresh_token",
+            },
+            timeout=timeout,
+        )
+        return response.json()
 
     @classmethod
     def get_allows_alias_in_select(
@@ -1079,7 +1254,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # TODO: Fix circular import error caused by importing sql_lab.Query
 
     @classmethod
-    def execute_with_cursor(cls, cursor: Any, sql: str, query: Query) -> None:
+    def execute_with_cursor(
+        cls,
+        cursor: Any,
+        sql: str,
+        query: Query,
+    ) -> None:
         """
         Trigger execution of a query and handle the resulting cursor.
 
@@ -1090,7 +1270,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         in a timely manner and facilitate operations such as query stop
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
-        cls.execute(cursor, sql, async_=True)
+        cls.execute(cursor, sql, query.database, async_=True)
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 
@@ -1448,7 +1628,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 qry = partition_query
         sql = database.compile_sqla_query(qry)
         if indent:
-            sql = sqlparse.format(sql, reindent=True)
+            sql = SQLScript(sql, engine=cls.engine).format()
         return sql
 
     @classmethod
@@ -1536,7 +1716,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_url_for_impersonation(
-        cls, url: URL, impersonate_user: bool, username: str | None
+        cls,
+        url: URL,
+        impersonate_user: bool,
+        username: str | None,
+        access_token: str | None,  # pylint: disable=unused-argument
     ) -> URL:
         """
         Return a modified URL with the username set.
@@ -1544,6 +1728,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
+        :param access_token: Personal access token
         """
         if impersonate_user and username is not None:
             url = url.set(username=username)
@@ -1556,6 +1741,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -1564,6 +1750,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param connect_args: config to be updated
         :param uri: URI
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
 
@@ -1572,6 +1759,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         cursor: Any,
         query: str,
+        database: Database,
         **kwargs: Any,
     ) -> None:
         """
@@ -1579,6 +1767,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param cursor: Cursor instance
         :param query: Query to execute
+        :param database_id: ID of the database where the query will run
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
@@ -1589,6 +1778,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor.arraysize = cls.arraysize
         try:
             cursor.execute(query)
+        except cls.oauth2_exception as ex:
+            if database.is_oauth2_enabled() and g and g.user:
+                cls.start_oauth2_dance(database)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
@@ -1956,6 +2149,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
+        if db_engine_uri_validator := current_app.config["DB_SQLA_URI_VALIDATOR"]:
+            db_engine_uri_validator(sqlalchemy_uri)
+
         if existing_disallowed := cls.disallow_uri_query_params.get(
             sqlalchemy_uri.get_driver_name(), set()
         ).intersection(sqlalchemy_uri.query):

@@ -40,6 +40,7 @@ import {
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
+  getTimeCompareStackId,
 } from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
@@ -1039,5 +1040,35 @@ test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () 
   ).toEqual({
     max: 100,
     scale: true,
+  });
+});
+
+describe('getTimeCompareStackId', () => {
+  it('returns the defaultId when timeCompare is empty', () => {
+    const result = getTimeCompareStackId('default', []);
+    expect(result).toEqual('default');
+  });
+
+  it('returns the defaultId when no value in timeCompare is included in name', () => {
+    const result = getTimeCompareStackId(
+      'default',
+      ['compare1', 'compare2'],
+      'test__name',
+    );
+    expect(result).toEqual('default');
+  });
+
+  it('returns the first value in timeCompare that is included in name', () => {
+    const result = getTimeCompareStackId(
+      'default',
+      ['compare1', 'compare2'],
+      'test__compare1',
+    );
+    expect(result).toEqual('compare1');
+  });
+
+  it('handles name being a number', () => {
+    const result = getTimeCompareStackId('default', ['123', '456'], 123);
+    expect(result).toEqual('123');
   });
 });
