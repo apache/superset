@@ -125,12 +125,11 @@ class EngineManager:  # pylint: disable=R0903
     """
 
     _lock = threading.Lock()
-    _sqla_engines: dict[tuple[str, tuple], Engine] = {}
+    _sqla_engines: dict[tuple[str, tuple[Any, ...]], Engine] = {}
 
     @classmethod
-    def create_engine(cls, sqlalchemy_url: str, **params) -> Engine:
-
-        def dict_to_sortedtuple(cparams: dict[str, Any]) -> tuple:
+    def create_engine(cls, sqlalchemy_url: str, **params: Any) -> Engine:
+        def dict_to_sortedtuple(cparams: dict[str, Any]) -> tuple[Any, ...]:
             return tuple(
                 (k, dict_to_sortedtuple(v) if isinstance(v, dict) else v)
                 for k, v in sorted(cparams.items())
