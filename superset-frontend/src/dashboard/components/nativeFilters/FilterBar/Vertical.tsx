@@ -207,15 +207,14 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
+          role="button"
           offset={offset}
         >
           <StyledCollapseIcon
-            role="button"
             {...getFilterBarTestId('expand-button')}
             iconSize="l"
           />
           <StyledFilterIcon
-            role="button"
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />
