@@ -18,13 +18,14 @@
 import logging
 import re
 
-from flask import flash, Markup, redirect
+from flask import flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose, permission_name
 from flask_appbuilder.fields import QuerySelectField
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
+from markupsafe import Markup
 from wtforms.validators import DataRequired, Regexp
 
 from superset import db

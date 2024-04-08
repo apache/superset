@@ -71,10 +71,11 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
+from superset.utils.oauth2 import get_oauth2_access_token
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -91,7 +92,6 @@ DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
 
 class KeyValue(Model):  # pylint: disable=too-few-public-methods
-
     """Used for any type of key-value store"""
 
     __tablename__ = "keyvalue"
@@ -116,7 +116,6 @@ class ConfigurationMethod(StrEnum):
 class Database(
     Model, AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
-
     """An ORM object that stores Database related information"""
 
     __tablename__ = "dbs"
@@ -230,6 +229,11 @@ class Database(
         return self.get_extra().get("disable_data_preview", False) is True
 
     @property
+    def disable_drill_to_detail(self) -> bool:
+        # this will prevent any 'trash value' strings from going through
+        return self.get_extra().get("disable_drill_to_detail", False) is True
+
+    @property
     def schema_options(self) -> dict[str, Any]:
         """Additional schema display config for engines with complex schemas"""
         return self.get_extra().get("schema_options", {})
@@ -248,6 +252,7 @@ class Database(
             "schema_options": self.schema_options,
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
+            "disable_drill_to_detail": self.disable_drill_to_detail,
             "parameters_schema": self.parameters_schema,
             "engine_information": self.engine_information,
         }
@@ -461,6 +466,17 @@ class Database(
         )
 
         effective_username = self.get_effective_user(sqlalchemy_url)
+        oauth2_config = self.get_oauth2_config()
+        access_token = (
+            get_oauth2_access_token(
+                oauth2_config,
+                self.id,
+                g.user.id,
+                self.db_engine_spec,
+            )
+            if hasattr(g, "user") and hasattr(g.user, "id") and oauth2_config
+            else None
+        )
         # If using MySQL or Presto for example, will set url.username
         # If using Hive, will not do anything yet since that relies on a
         # configuration parameter instead.
@@ -468,6 +484,7 @@ class Database(
             sqlalchemy_url,
             self.impersonate_user,
             effective_username,
+            access_token,
         )
 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
@@ -478,6 +495,7 @@ class Database(
                 connect_args,
                 str(sqlalchemy_url),
                 effective_username,
+                access_token,
             )
 
         if connect_args:
@@ -588,7 +606,7 @@ class Database(
                         database=None,
                     )
                 _log_query(sql_)
-                self.db_engine_spec.execute(cursor, sql_)
+                self.db_engine_spec.execute(cursor, sql_, self)
                 cursor.fetchall()
 
             if mutate_after_split:
@@ -598,10 +616,10 @@ class Database(
                     database=None,
                 )
                 _log_query(last_sql)
-                self.db_engine_spec.execute(cursor, last_sql)
+                self.db_engine_spec.execute(cursor, last_sql, self)
             else:
                 _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1])
+                self.db_engine_spec.execute(cursor, sqls[-1], self)
 
             data = self.db_engine_spec.fetch_data(cursor)
             result_set = SupersetResultSet(
@@ -972,10 +990,59 @@ class Database(
         sqla_col.key = label_expected
         return sqla_col
 
+    def is_oauth2_enabled(self) -> bool:
+        """
+        Is OAuth2 enabled in the database for authentication?
+
+        Currently this looks for a global config at the DB engine spec level, but in the
+        future we want to be allow admins to create custom OAuth2 clients from the
+        Superset UI, and assign them to specific databases.
+        """
+        return self.db_engine_spec.is_oauth2_enabled()
+
+    def get_oauth2_config(self) -> OAuth2ClientConfig | None:
+        """
+        Return OAuth2 client configuration.
+
+        This includes client ID, client secret, scope, redirect URI, endpointsm etc.
+        Currently this reads the global DB engine spec config, but in the future it
+        should first check if there's a custom client assigned to the database.
+        """
+        return self.db_engine_spec.get_oauth2_config()
+
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)
 sqla.event.listen(Database, "after_update", security_manager.database_after_update)
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
+
+
+class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
+    """
+    Store OAuth2 tokens, for authenticating to DBs using user personal tokens.
+    """
+
+    __tablename__ = "database_user_oauth2_tokens"
+    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+
+    database_id = Column(
+        Integer,
+        ForeignKey("dbs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    database = relationship("Database", foreign_keys=[database_id])
+
+    access_token = Column(encrypted_field_factory.create(Text), nullable=True)
+    access_token_expiration = Column(DateTime, nullable=True)
+    refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
 
 
 class Log(Model):  # pylint: disable=too-few-public-methods

@@ -373,11 +373,12 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
+
         assert "SELECT" in sql_text
-        assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
+        assert re.search(r'NOT [`"\[]?num[`"\]]? IS NULL', sql_text)
         assert re.search(
-            r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
-            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)\)""",
+            r"""NOT \([\s\n]*[`"\[]?name[`"\]]? IS NULL[\s\n]* """
+            r"""OR [`"\[]?name[`"\]]? IN \('"abc"'\)[\s\n]*\)""",
             sql_text,
         )
 
@@ -396,7 +397,7 @@ class TestQueryContext(SupersetTestCase):
             # the alias should be in ORDER BY
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
-            assert re.search(r'ORDER BY [`"\[]?sum__num[`"\]]? DESC', sql_text)
+            assert re.search(r'ORDER BY[\s\n]* [`"\[]?sum__num[`"\]]? DESC', sql_text)
 
         sql_text = get_sql_text(
             get_query_context("birth_names:only_orderby_has_metric")
@@ -407,7 +408,9 @@ class TestQueryContext(SupersetTestCase):
             assert "ORDER BY `sum__num` DESC" in sql_text
         else:
             assert re.search(
-                r'ORDER BY SUM\([`"\[]?num[`"\]]?\) DESC', sql_text, re.IGNORECASE
+                r'ORDER BY[\s\n]* SUM\([`"\[]?num[`"\]]?\) DESC',
+                sql_text,
+                re.IGNORECASE,
             )
 
         sql_text = get_sql_text(get_query_context("birth_names:orderby_dup_alias"))
@@ -438,7 +441,7 @@ class TestQueryContext(SupersetTestCase):
             assert "sum(`num_girls`) AS `SUM(num_girls)`" not in sql_text
 
             # Should reference all ORDER BY columns by aliases
-            assert "ORDER BY `num_girls` DESC," in sql_text
+            assert "ORDER BY[\\s\n]* `num_girls` DESC," in sql_text
             assert "`AVG(num_boys)` DESC," in sql_text
             assert "`MAX(CASE WHEN...` ASC" in sql_text
         else:
@@ -446,14 +449,14 @@ class TestQueryContext(SupersetTestCase):
                 # since the selected `num_boys` is renamed to `num_boys__`
                 # it must be references as expression
                 assert re.search(
-                    r'ORDER BY SUM\([`"\[]?num_girls[`"\]]?\) DESC',
+                    r'ORDER BY[\s\n]* SUM\([`"\[]?num_girls[`"\]]?\) DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
             else:
                 # Should reference the adhoc metric by alias when possible
                 assert re.search(
-                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC',
+                    r'ORDER BY[\s\n]* [`"\[]?num_girls[`"\]]? DESC',
                     sql_text,
                     re.IGNORECASE,
                 )
@@ -1075,27 +1078,41 @@ def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
 
     sqls = query_payload["query"].split(";")
     """
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2002-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2003-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+    SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2002-01-01 00:00:00' AND col6 < '2003-01-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
 
-    SELECT DATE_TRUNC('quarter', col6) AS col6,
-           SUM(col1) AS "SUM(col1)"
-    FROM physical_dataset
-    WHERE col6 >= TO_TIMESTAMP('2001-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-      AND col6 < TO_TIMESTAMP('2002-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    GROUP BY DATE_TRUNC('quarter', col6)
-    LIMIT 10000;
+SELECT
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3)) AS col6,
+  SUM(col1) AS "SUM(col1)"
+FROM physical_dataset
+WHERE
+  col6 >= '2001-10-01 00:00:00' AND col6 < '2002-10-01 00:00:00'
+GROUP BY
+  DATETIME(col6, 'start of month', PRINTF('-%d month', (
+    STRFTIME('%m', col6) - 1
+  ) % 3))
+LIMIT 10000
+OFFSET 0
     """
     assert (
-        re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
+        re.search(r"WHERE\n  col6 >= .*2002-01-01", sqls[0])
         and re.search(r"AND col6 < .*2003-01-01", sqls[0])
     ) is not None
     assert (
-        re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
+        re.search(r"WHERE\n  col6 >= .*2001-10-01", sqls[1])
         and re.search(r"AND col6 < .*2002-10-01", sqls[1])
     ) is not None

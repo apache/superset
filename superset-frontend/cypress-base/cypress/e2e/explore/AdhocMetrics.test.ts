@@ -25,7 +25,7 @@ describe('AdhocMetrics', () => {
   });
 
   it('Clear metric and set simple adhoc metric', () => {
-    const metric = 'sum(num_girls)';
+    const metric = 'SUM(num_girls)';
     const metricName = 'Sum Girls';
     cy.get('[data-test=metrics]')
       .find('[data-test="remove-control-button"]')

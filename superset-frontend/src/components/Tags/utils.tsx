@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import { SupersetClient, t } from '@superset-ui/core';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 
 const localCache = new Map<string, any>();
 

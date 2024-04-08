@@ -39,7 +39,6 @@ export default class EchartsGraphChartPlugin extends EchartsChartPlugin {
         exampleGallery: [{ url: example }],
         name: t('Graph Chart'),
         tags: [
-          t('Aesthetic'),
           t('Circular'),
           t('Comparison'),
           t('Directional'),

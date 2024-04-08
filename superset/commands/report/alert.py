@@ -171,7 +171,7 @@ class AlertCommand(BaseCommand):
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
-            logger.exception("An error occurred when running alert query")
+            logger.warning("An error occurred when running alert query")
             # The exception message here can reveal to much information to malicious
             # users, so we raise a generic message.
             raise AlertQueryError(

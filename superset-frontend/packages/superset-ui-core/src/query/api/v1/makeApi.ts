@@ -115,11 +115,11 @@ export default function makeApi<
         jsonPayload: undefined as JsonObject | undefined,
       };
       if (requestType === 'search') {
-        requestConfig.searchParams = payload as URLSearchParams;
+        requestConfig.searchParams = payload as unknown as URLSearchParams;
       } else if (requestType === 'rison') {
         requestConfig.endpoint = `${endpoint}?q=${rison.encode(payload)}`;
       } else if (requestType === 'form') {
-        requestConfig.postPayload = payload as FormData;
+        requestConfig.postPayload = payload as unknown as FormData;
       } else {
         requestConfig.jsonPayload = payload as JsonObject;
       }

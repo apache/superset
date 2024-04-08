@@ -18,6 +18,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime
+from textwrap import dedent
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -461,6 +462,63 @@ class TestSqlLab(SupersetTestCase):
 
         db.session.commit()
 
+    def test_query_api_can_access_sql_editor_id_associated_queries(self) -> None:
+        """
+        Test query api with sql_editor_id filter to
+        gamma and make sure sql editor associated queries show up.
+        """
+        username = "gamma_sqllab"
+        self.login("gamma_sqllab")
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "title": "Untitled Query 1",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        # run a query in the created tab
+        self.run_sql(
+            "SELECT 1",
+            "client_id_1",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        self.run_sql(
+            "SELECT 2",
+            "client_id_2",
+            username=username,
+            raise_on_error=True,
+            sql_editor_id=str(tab_state_id),
+        )
+        # run an orphan query (no tab)
+        self.run_sql(
+            "SELECT 3",
+            "client_id_3",
+            username=username,
+            raise_on_error=True,
+        )
+
+        arguments = {
+            "filters": [
+                {"col": "sql_editor_id", "opr": "eq", "value": str(tab_state_id)}
+            ]
+        }
+        url = f"/api/v1/query/?q={prison.dumps(arguments)}"
+        self.assertEqual(
+            {"SELECT 1", "SELECT 2"},
+            {r.get("sql") for r in self.get_json_resp(url)["result"]},
+        )
+
     def test_query_admin_can_access_all_queries(self) -> None:
         """
         Test query api with all_query_access perm added to
@@ -582,12 +640,13 @@ class TestSqlLab(SupersetTestCase):
         mock_get_query,
         mock_db,
     ):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_db = mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
@@ -610,14 +669,14 @@ class TestSqlLab(SupersetTestCase):
         mock_execute_sql_statement.assert_has_calls(
             [
                 mock.call(
-                    "SET @value = 42",
+                    "-- comment\nSET @value = 42",
                     mock_query,
                     mock_cursor,
                     None,
                     False,
                 ),
                 mock.call(
-                    "SELECT @value AS foo",
+                    "SELECT /*+ hint */ @value AS foo",
                     mock_query,
                     mock_cursor,
                     None,
@@ -632,12 +691,13 @@ class TestSqlLab(SupersetTestCase):
     def test_execute_sql_statements_no_results_backend(
         self, mock_execute_sql_statement, mock_get_query
     ):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
         mock_cursor = mock.MagicMock()
@@ -684,12 +744,13 @@ class TestSqlLab(SupersetTestCase):
         mock_get_query,
         mock_db,
     ):
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         mock_db = mock.MagicMock()
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
@@ -716,14 +777,14 @@ class TestSqlLab(SupersetTestCase):
         mock_execute_sql_statement.assert_has_calls(
             [
                 mock.call(
-                    "SET @value = 42",
+                    "-- comment\nSET @value = 42",
                     mock_query,
                     mock_cursor,
                     None,
                     False,
                 ),
                 mock.call(
-                    "SELECT @value AS foo",
+                    "SELECT /*+ hint */ @value AS foo",
                     mock_query,
                     mock_cursor,
                     None,
@@ -760,12 +821,13 @@ class TestSqlLab(SupersetTestCase):
 
         # try invalid CVAS
         mock_query.ctas_method = CtasMethod.VIEW
-        sql = """
+        sql = dedent(
+            """
             -- comment
             SET @value = 42;
-            SELECT @value AS foo;
-            -- comment
+            SELECT /*+ hint */ @value AS foo;
         """
+        )
         with pytest.raises(SupersetErrorException) as excinfo:
             execute_sql_statements(
                 query_id=1,

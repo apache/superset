@@ -22,10 +22,10 @@ import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,
-  RowCount,
 } from 'src/explore/components/DataTableControl';
 import { applyFormattingToTabularData } from 'src/utils/common';
 import { getTimeColumns } from 'src/explore/components/DataTableControl/utils';
+import RowCountLabel from 'src/explore/components/RowCountLabel';
 import { TableControlsProps } from '../types';
 
 export const TableControlsWrapper = styled.div`
@@ -47,6 +47,7 @@ export const TableControls = ({
   onInputChange,
   columnNames,
   columnTypes,
+  rowcount,
   isLoading,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
@@ -74,7 +75,7 @@ export const TableControls = ({
           align-items: center;
         `}
       >
-        <RowCount data={data} loading={isLoading} />
+        <RowCountLabel rowcount={rowcount} loading={isLoading} />
         <CopyToClipboardButton data={formattedData} columns={columnNames} />
       </div>
     </TableControlsWrapper>

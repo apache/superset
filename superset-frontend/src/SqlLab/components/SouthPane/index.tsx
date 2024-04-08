@@ -144,14 +144,12 @@ const SouthPane = ({
         animated={false}
       >
         <Tabs.TabPane tab={t('Results')} key="Results">
-          {latestQueryId && (
-            <Results
-              height={innerTabContentHeight}
-              latestQueryId={latestQueryId}
-              displayLimit={displayLimit}
-              defaultQueryLimit={defaultQueryLimit}
-            />
-          )}
+          <Results
+            height={innerTabContentHeight}
+            latestQueryId={latestQueryId}
+            displayLimit={displayLimit}
+            defaultQueryLimit={defaultQueryLimit}
+          />
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory

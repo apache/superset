@@ -403,7 +403,7 @@ const config = {
         },
         type: 'asset',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       {
@@ -431,7 +431,7 @@ const config = {
         test: /\.(jpg|gif)$/,
         type: 'asset/resource',
         generator: {
-          filename: '[name].[contenthash:8].[ext]',
+          filename: '[name].[contenthash:8][ext]',
         },
       },
       /* for font-awesome */

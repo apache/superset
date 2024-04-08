@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -33,6 +34,7 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
+    SSHTunnelDatabasePortError,
     SSHTunnelingNotEnabledError,
     SSHTunnelInvalidError,
 )
@@ -57,7 +59,11 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except (SupersetErrorsException, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SupersetErrorsException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
+        ) as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
@@ -103,6 +109,7 @@ class CreateDatabaseCommand(BaseCommand):
             SSHTunnelInvalidError,
             SSHTunnelCreateFailedError,
             SSHTunnelingNotEnabledError,
+            SSHTunnelDatabasePortError,
         ) as ex:
             db.session.rollback()
             event_logger.log_with_context(
@@ -140,6 +147,7 @@ class CreateDatabaseCommand(BaseCommand):
             # Check database_name uniqueness
             if not DatabaseDAO.validate_uniqueness(database_name):
                 exceptions.append(DatabaseExistsValidationError())
+
         if exceptions:
             exception = DatabaseInvalidError()
             exception.extend(exceptions)

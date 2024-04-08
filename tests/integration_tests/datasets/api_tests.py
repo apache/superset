@@ -833,12 +833,66 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 422
         assert data == {"message": "Dataset could not be created."}
 
+    def test_update_dataset_preserve_ownership(self):
+        """
+        Dataset API: Test update dataset preserves owner list (if un-changed)
+        """
+
+        dataset = self.insert_default_dataset()
+        current_owners = dataset.owners
+        self.login(username="admin")
+        dataset_data = {"description": "new description"}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+        model = db.session.query(SqlaTable).get(dataset.id)
+        assert model.owners == current_owners
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_update_dataset_clear_owner_list(self):
+        """
+        Dataset API: Test update dataset admin can clear ownership config
+        """
+
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        dataset_data = {"owners": []}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+        model = db.session.query(SqlaTable).get(dataset.id)
+        assert model.owners == []
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_update_dataset_populate_owner(self):
+        """
+        Dataset API: Test update admin can update dataset with
+        no owners to a different owner
+        """
+        self.login(username="admin")
+        gamma = self.get_user("gamma")
+        dataset = self.insert_dataset("ab_permission", [], get_main_database())
+        dataset_data = {"owners": [gamma.id]}
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+        model = db.session.query(SqlaTable).get(dataset.id)
+        assert model.owners == [gamma]
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_item(self):
         """
         Dataset API: Test update dataset item
         """
 
         dataset = self.insert_default_dataset()
+        current_owners = dataset.owners
         self.login(username="admin")
         dataset_data = {"description": "changed_description"}
         uri = f"api/v1/dataset/{dataset.id}"
@@ -846,6 +900,7 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
         model = db.session.query(SqlaTable).get(dataset.id)
         assert model.description == dataset_data["description"]
+        assert model.owners == current_owners
 
         db.session.delete(dataset)
         db.session.commit()

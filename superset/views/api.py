@@ -40,7 +40,15 @@ from superset.views.base import api, BaseSupersetView, handle_api_exception
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
 
-get_time_range_schema = {"type": "string"}
+get_time_range_schema = {
+    "type": ["string", "array"],
+    "items": {
+        "type": "object",
+        "properties": {
+            "timeRange": {"type": "string"},
+        },
+    },
+}
 
 
 class Api(BaseSupersetView):
@@ -95,15 +103,22 @@ class Api(BaseSupersetView):
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human-readable string or datetime expression."""
-        time_range = kwargs["rison"]
+        time_ranges = kwargs["rison"]
         try:
-            since, until = get_since_until(time_range)
-            result = {
-                "since": since.isoformat() if since else "",
-                "until": until.isoformat() if until else "",
-                "timeRange": time_range,
-            }
-            return self.json_response({"result": result})
+            if isinstance(time_ranges, str):
+                time_ranges = [{"timeRange": time_ranges}]
+
+            rv = []
+            for time_range in time_ranges:
+                since, until = get_since_until(time_range["timeRange"])
+                rv.append(
+                    {
+                        "since": since.isoformat() if since else "",
+                        "until": until.isoformat() if until else "",
+                        "timeRange": time_range["timeRange"],
+                    }
+                )
+            return self.json_response({"result": rv})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)

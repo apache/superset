@@ -18,11 +18,11 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.9-slim-bookworm
+ARG PY_VER=3.10-slim-bookworm
 
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-FROM --platform=${BUILDPLATFORM} node:16-bookworm-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
@@ -61,7 +61,7 @@ ENV LANG=C.UTF-8 \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
 
-RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+RUN mkdir -p ${PYTHONPATH} superset/static requirements superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -79,11 +79,10 @@ RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
-    --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
-    --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
-    --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/local.txt
+COPY --chown=superset:superset requirements/base.txt requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade setuptools pip && \
+    pip install -r requirements/base.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 ## Lastly, let's install superset itself
@@ -120,6 +119,7 @@ RUN apt-get update -qq \
         libasound2 \
         libxtst6 \
         wget \
+        pkg-config \
     # Install GeckoDriver WebDriver
     && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
     # Install Firefox
@@ -127,10 +127,10 @@ RUN apt-get update -qq \
     && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
     && apt-get autoremove -yqq --purge wget && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*
 # Cache everything for dev purposes...
-RUN --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
-    --mount=type=bind,target=./requirements/docker.txt,src=./requirements/docker.txt \
-    --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/docker.txt
+
+COPY --chown=superset:superset requirements/development.txt requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements/development.txt
 
 USER superset
 ######################################################################

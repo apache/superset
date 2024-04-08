@@ -117,6 +117,13 @@ describe('Dashboards list', () => {
       orderAlphabetical();
       cy.getBySel('styled-card').first().contains('Supported Charts Dashboard');
     });
+
+    it('should preserve other filters when sorting', () => {
+      cy.getBySel('styled-card').should('have.length', 5);
+      setFilter('Status', 'Published');
+      setFilter('Sort', 'Least recently modified');
+      cy.getBySel('styled-card').should('have.length', 3);
+    });
   });
 
   describe('common actions', () => {
