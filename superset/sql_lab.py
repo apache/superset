@@ -73,7 +73,6 @@ SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -264,11 +263,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    sql = SQL_QUERY_MUTATOR(
-        sql,
-        security_manager=security_manager,
-        database=database,
-    )
+    sql = database.mutate_sql_based_on_config(sql)
     try:
         query.executed_sql = sql
         if log_query:

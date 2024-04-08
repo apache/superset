@@ -587,6 +587,19 @@ class Database(
     def get_reserved_words(self) -> set[str]:
         return self.get_dialect().preparer.reserved_words
 
+    def mutate_sql_based_on_config(self, sql_: str, is_splitted: bool = False) -> str:
+        sql_mutator = config["SQL_QUERY_MUTATOR"]
+        if sql_mutator and (
+            (is_splitted and config["MUTATE_AFTER_SPLIT"])
+            or (not is_splitted and not config["MUTATE_AFTER_SPLIT"])
+        ):
+            return sql_mutator(
+                sql_,
+                security_manager=security_manager,
+                database=self,
+            )
+        return sql_
+
     def get_df(  # pylint: disable=too-many-locals
         self,
         sql: str,
@@ -596,15 +609,6 @@ class Database(
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(schema) as engine:
             engine_url = engine.url
-
-        def _mutate_sql_if_needed(sql_: str) -> str:
-            if config["MUTATE_AFTER_SPLIT"]:
-                return config["SQL_QUERY_MUTATOR"](
-                    sql_,
-                    security_manager=security_manager,
-                    database=None,
-                )
-            return sql_
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -620,7 +624,7 @@ class Database(
             cursor = conn.cursor()
             df = None
             for i, sql_ in enumerate(sqls):
-                sql_ = _mutate_sql_if_needed(sql_)
+                sql_ = self.mutate_sql_based_on_config(sql_, is_splitted=True)
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
