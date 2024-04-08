@@ -27,6 +27,7 @@ from typing import Any, Callable, cast
 
 import simplejson as json
 import yaml
+from babel import Locale
 from flask import (
     abort,
     flash,
@@ -365,9 +366,11 @@ def menu_data(user: User) -> dict[str, Any]:
             "languages": languages,
             "show_language_picker": len(languages) > 1,
             "user_is_anonymous": user.is_anonymous,
-            "user_info_url": None
-            if is_feature_enabled("MENU_HIDE_USER_INFO")
-            else appbuilder.get_url_for_userinfo,
+            "user_info_url": (
+                None
+                if is_feature_enabled("MENU_HIDE_USER_INFO")
+                else appbuilder.get_url_for_userinfo
+            ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "locale": session.get("locale", "en"),
@@ -377,7 +380,7 @@ def menu_data(user: User) -> dict[str, Any]:
 
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: str
+    user_id: int | None, locale: Locale | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -405,10 +408,12 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     available_specs = get_available_engine_specs()
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
+    language = locale.language if locale else "en"
+
     bootstrap_data = {
         "conf": frontend_config,
-        "locale": locale,
-        "language_pack": get_language_pack(locale),
+        "locale": language,
+        "language_pack": get_language_pack(language),
         "d3_format": conf.get("D3_FORMAT"),
         "currencies": conf.get("CURRENCIES"),
         "feature_flags": get_feature_flags(),
