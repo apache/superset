@@ -199,12 +199,12 @@ class AbstractEventLogger(ABC):
         self.log(
             user_id,
             action,
-            dashboard_id=dashboard_id,
             records=records,
-            object_ref=object_ref,
+            dashboard_id=dashboard_id,
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
+            object_ref=object_ref,
             **database_params,
         )
 

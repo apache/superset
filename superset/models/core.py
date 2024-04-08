@@ -588,6 +588,16 @@ class Database(
         return self.get_dialect().preparer.reserved_words
 
     def mutate_sql_based_on_config(self, sql_: str, is_splitted: bool = False) -> str:
+        """
+        Mutates the SQL query based on the app configuration.
+
+        Two config params here affect the behavior of the SQL query mutator:
+        - `SQL_QUERY_MUTATOR`: A user-provided function that mutates the SQL query.
+        - `MUTATE_AFTER_SPLIT`: If True, the SQL query mutator is only called after the
+          sql is broken down into smaller queries. If False, the SQL query mutator applies
+          on the group of queries as a whole. Here the called passes the context
+          as to whether the SQL is split or already.
+        """
         sql_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_mutator and (
             (is_splitted and config["MUTATE_AFTER_SPLIT"])
