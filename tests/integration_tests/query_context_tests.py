@@ -692,6 +692,53 @@ class TestQueryContext(SupersetTestCase):
                     == df_3_years_later.loc[index]["sum__num"]
                 )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_time_offsets_in_query_object_no_limit(self):
+        """
+        Ensure that time_offsets can generate the correct query and
+        it doesnt use the row_limit nor row_offset from teh original
+        query object
+        """
+        self.login(username="admin")
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["columns"] = [
+            {
+                "timeGrain": "P1D",
+                "columnType": "BASE_AXIS",
+                "sqlExpression": "ds",
+                "label": "ds",
+                "expressionType": "SQL",
+            }
+        ]
+        payload["queries"][0]["metrics"] = ["sum__num"]
+        payload["queries"][0]["groupby"] = ["name"]
+        payload["queries"][0]["is_timeseries"] = True
+        payload["queries"][0]["time_offsets"] = ["1 year ago", "1 year later"]
+        payload["queries"][0]["row_limit"] = 100
+        payload["queries"][0]["row_offset"] = 10
+        payload["queries"][0]["time_range"] = "1990 : 1991"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+
+        sqls = [
+            sql for sql in responses["queries"][0]["query"].split(";") if sql.strip()
+        ]
+        self.assertEqual(len(sqls), 3)
+        # Original range query
+        assert re.search(r"1990-01-01.+1991-01-01", sqls[0], re.S)
+        assert re.search(r"LIMIT 100", sqls[0], re.S)
+        assert re.search(r"OFFSET 10", sqls[0], re.S)
+
+        # 1 year ago
+        assert re.search(r"1989-01-01.+1990-01-01", sqls[1], re.S)
+        assert not re.search(r"LIMIT 100", sqls[1], re.S)
+        assert not re.search(r"OFFSET 10", sqls[1], re.S)
+
+        # 1 year later
+        assert re.search(r"1991-01-01.+1992-01-01", sqls[2], re.S)
+        assert not re.search(r"LIMIT 100", sqls[2], re.S)
+        assert not re.search(r"OFFSET 10", sqls[2], re.S)
+
 
 def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
     qc = QueryContextFactory().create(
