@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime
 from re import Pattern
@@ -43,72 +44,7 @@ if TYPE_CHECKING:
 
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
-
-
-class DuckDBURI(
-    util.namedtuple(  # type: ignore
-        "DuckDBURI",
-        [
-            "password",
-            "database",
-            "motherduck_token",
-            "query",
-        ],
-    )
-):
-    drivername = "duckdb"
-
-    def __str__(self) -> str:
-        query = ""
-        if self.motherduck_token:
-            query += f"?motherduck_token={self.motherduck_token}"
-        else:
-            query += "?"
-        query += "&".join([f"{key}={value}" for key, value in self.query.items()])
-        return f"{DuckDBEngineSpec.engine}:///{self.database}{query}"
-
-    @classmethod
-    def from_str(cls, name: str) -> DuckDBURI:
-        pattern = re.compile(
-            r"""
-                (?P<driver_name>[\w\+]+):///
-                (?:
-                    (md:(?P<database>[^/\?]*))?
-                )?
-                (?:\?(?P<query>.*))?
-                """,
-            re.X,
-        )
-        if (m := pattern.match(name)) is not None:
-            components = m.groupdict()
-            if components["query"] is not None:
-                query: Any = {}
-
-                for key, value in util.parse_qsl(components["query"]):
-                    if util.py2k:
-                        key = key.encode("ascii")
-                    if key in query:
-                        query[key] = util.to_list(query[key])
-                        query[key].append(value)
-                    else:
-                        query[key] = value
-            else:
-                query = None
-            if query is not None:
-                token = query.pop("motherduck_token")
-            else:
-                token = None
-
-            components["query"] = query
-
-            return cls(
-                password=token,
-                database=components.get("database"),
-                motherduck_token=token,
-                query=query,
-            )
-        else:
-            raise ValueError(f"Connection string {name} is not a valid DuckDB URI")
+DEFAULT_ACCESS_TOKEN_URL = "https://app.motherduck.com/token-request?appName=Superset&close=y"
 
 
 # schema for adding a database by providing parameters instead of the
@@ -117,7 +53,7 @@ class DuckDBParametersSchema(Schema):
     access_token = fields.String(
         allow_none=True,
         metadata={"description": __("MotherDuck token")},
-        load_default="https://app.motherduck.com/token-request?appName=Superset&close=y",
+        load_default=DEFAULT_ACCESS_TOKEN_URL,
     )
     database = fields.String(
         required=False, metadata={"description": __("Database name")}
@@ -162,21 +98,24 @@ class DuckDBParametersMixin:
     # for Postgres this would be `{"sslmode": "verify-ca"}`, eg.
     encryption_parameters: dict[str, str] = {}
 
+    @staticmethod
+    def _is_motherduck(database: str) -> bool:
+        return "md:" in database
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
         parameters: DuckDBParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
-        # make a copy so that we don't update the original
-        query = parameters.get("query", {}).copy()
-        token = parameters.get("access_token", "")
+        query = parameters.get("query", {})
         database = parameters.get("database", "")
+        token = parameters.get("access_token")
 
-        if database or token:
-            database = "md:" + database
+        if cls._is_motherduck(database) or (token and token != DEFAULT_ACCESS_TOKEN_URL):
+            return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        return str(DuckDBURI(token, database, token, query))
+        return str(URL(drivername=cls.engine, database=database, query=query))
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -188,11 +127,9 @@ class DuckDBParametersMixin:
             for (key, value) in url.query.items()
             if (key, value) not in cls.encryption_parameters.items()
         }
-        encryption = all(
-            item in url.query.items() for item in cls.encryption_parameters.items()
-        )
+        access_token = query.pop("motherduck_token", "")
         return {
-            "access_token": url.access_token,
+            "access_token": access_token,
             "database": url.database,
             "query": query,
         }
@@ -206,8 +143,11 @@ class DuckDBParametersMixin:
         """
         errors: list[SupersetError] = []
 
-        required = {"access_token"}
         parameters = properties.get("parameters", {})
+        if cls._is_motherduck(parameters.get("database", "")):
+            required = {"access_token"}
+        else:
+            required = set()
         present = {key for key in parameters if parameters.get(key, ())}
 
         if missing := sorted(required - present):
@@ -306,9 +246,31 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
-    engine = "duckdb"
+    engine = "motherduck"
     engine_name = "MotherDuck"
+    engine_aliases: set[str] = {"duckdb"}
 
     sqlalchemy_uri_placeholder = (
         "duckdb:///md:{database_name}?motherduck_token={SERVICE_TOKEN}"
     )
+
+    @staticmethod
+    def _is_motherduck(database: str) -> bool:
+        return True
+
+    @classmethod
+    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+        cls,
+        parameters: DuckDBParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        # make a copy so that we don't update the original
+        query = parameters.get("query", {}).copy()
+        database = parameters.get("database", "")
+        token = parameters.get("access_token")
+
+        if not database.startswith("md:"):
+            database = f"md:{database}"
+        query["motherduck_token"] = token
+
+        return str(URL(drivername=DuckDBEngineSpec.engine, database=database, query=query))
