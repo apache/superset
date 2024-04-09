@@ -45,15 +45,12 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-<<<<<<< HEAD
+          lfs: false
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-=======
-          lfs: false
->>>>>>> 7f66bfb2b1 (chore: set up git lfs for larger files)
       - name: Setup Python
         if: steps.check.outputs.python
         uses: ./.github/actions/setup-backend/
