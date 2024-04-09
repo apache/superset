@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "3.1.0",
+  "version": "3.1.2",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -44,7 +44,6 @@
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "build-storybook",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
-    "chromatic": "npx chromatic --skip 'dependabot/**'  --only-changed",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
     "core:cover": "cross-env NODE_ENV=test jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-ui-demo/**/*\"]' packages",
     "cover": "cross-env NODE_ENV=test jest --coverage",
@@ -56,7 +55,6 @@
     "plugins:build": "node ./scripts/build.js",
     "plugins:build-assets": "node ./scripts/copyAssets.js",
     "plugins:build-storybook": "cd packages/superset-ui-demo && npm run build-storybook",
-    "plugins:chromatic": "cd packages/superset-ui-demo && npm run chromatic",
     "plugins:create-conventional-version": "npm run prune && lerna version --conventional-commits --create-release github --no-private --yes",
     "plugins:create-minor-version": "npm run prune && lerna version minor --no-private --yes",
     "plugins:create-patch-version": "npm run prune && lerna version patch --no-private --yes",
@@ -287,7 +285,6 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^2.1.3",
     "babel-plugin-lodash": "^3.3.4",
-    "chromatic": "^6.7.4",
     "copy-webpack-plugin": "^9.1.0",
     "cross-env": "^5.2.1",
     "css-loader": "^6.8.1",

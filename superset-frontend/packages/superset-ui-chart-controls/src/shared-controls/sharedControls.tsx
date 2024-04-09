@@ -207,7 +207,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
-    if (!hasGenericChartAxes) {
+    if (!hasGenericChartAxes || !controls?.x_axis) {
       return true;
     }
 
@@ -245,10 +245,10 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   freeForm: true,
   label: t('Row limit'),
   clearable: false,
+  mapStateToProps: state => ({ maxValue: state?.common?.conf?.SQL_MAX_ROW }),
   validators: [
     legacyValidateInteger,
-    (v, state) =>
-      validateMaxValue(v, state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+    (v, state) => validateMaxValue(v, state?.maxValue || DEFAULT_MAX_ROW),
   ],
   default: 10000,
   choices: formatSelectOptions(ROW_LIMIT_OPTIONS),

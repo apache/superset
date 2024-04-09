@@ -23,8 +23,6 @@ export interface SortColumn {
   desc?: boolean;
 }
 
-export type SortColumns = SortColumn[];
-
 export interface SelectOption {
   label: string;
   value: any;
@@ -84,7 +82,7 @@ export interface FilterValue {
 export interface FetchDataConfig {
   pageIndex: number;
   pageSize: number;
-  sortBy: SortColumns;
+  sortBy: SortColumn[];
   filters: FilterValue[];
 }
 

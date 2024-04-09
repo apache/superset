@@ -36,7 +36,7 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
-import { Input } from 'src/components/Input';
+import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
 import TimezoneSelector from 'src/components/TimezoneSelector';
@@ -628,6 +628,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       chart: contentType === 'chart' ? currentAlert?.chart?.value : null,
       dashboard:
         contentType === 'dashboard' ? currentAlert?.dashboard?.value : null,
+      custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value || owner.id,
@@ -890,6 +891,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(name, parsedValue);
   };
 
+  const onCustomWidthChange = (value: number | null | undefined) => {
+    updateAlertState('custom_width', value);
+  };
+
   const onTimeoutVerifyChange = (
     event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
@@ -898,7 +903,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
     if (value === 0) {
-      updateAlertState(target.name, null);
+      updateAlertState(target.name, undefined);
     } else {
       updateAlertState(
         target.name,
@@ -1358,7 +1363,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
+              value={currentAlert?.crontab || ''}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
@@ -1504,14 +1509,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
                 </div>
                 <div className="input-container">
-                  <Input
+                  <InputNumber
                     type="number"
                     name="custom_width"
-                    value={currentAlert?.custom_width || ''}
+                    value={currentAlert?.custom_width || undefined}
+                    min={600}
+                    max={2400}
                     placeholder={
                       TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT
                     }
-                    onChange={onInputChange}
+                    onChange={onCustomWidthChange}
                   />
                 </div>
               </StyledInputContainer>

@@ -111,7 +111,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
-    parsed_query = ParsedQuery(sql)
+    parsed_query = ParsedQuery(sql, engine=db_engine_spec.engine)
     if not db_engine_spec.is_readonly_query(parsed_query):
         raise SupersetSecurityException(
             SupersetError(

@@ -349,9 +349,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   />
                 )}
                 {titleLink}
-                {description && (
-                  <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
-                )}
+                {description && <InfoTooltip tooltip={description} />}
               </FlexRowContainer>
             );
           } catch {

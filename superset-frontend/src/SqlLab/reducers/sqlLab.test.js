@@ -75,6 +75,25 @@ describe('sqlLabReducer', () => {
         initialState.queryEditors.length,
       );
     });
+    it('should select the latest query editor when tabHistory is empty', () => {
+      const currentQE = newState.queryEditors[0];
+      newState = {
+        ...initialState,
+        tabHistory: [initialState.queryEditors[0]],
+      };
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: currentQE,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length - 1,
+      );
+      expect(newState.queryEditors.map(qe => qe.id)).not.toContainEqual(
+        currentQE.id,
+      );
+      expect(newState.tabHistory).toEqual([initialState.queryEditors[2].id]);
+    });
     it('should remove a query editor including unsaved changes', () => {
       expect(newState.queryEditors).toHaveLength(
         initialState.queryEditors.length + 1,

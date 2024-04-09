@@ -518,6 +518,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   debounceDelay?: number;
 } & (T extends 'Select'
   ? {
+      allowNewOptions?: boolean;
       options: any;
       value?: string;
       defaultValue?: string;

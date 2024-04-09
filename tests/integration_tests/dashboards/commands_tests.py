@@ -486,7 +486,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.commands.dashboard.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     def test_import_v1_dashboard(self, sm_g, utils_g):
         """Test that we can import a dashboard"""

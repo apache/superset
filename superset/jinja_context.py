@@ -24,7 +24,7 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Unio
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined
+from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -36,7 +36,7 @@ from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
-    get_user_id,
+    get_user,
     merge_extra_filters,
 )
 
@@ -110,11 +110,10 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if hasattr(g, "user") and g.user:
-            id_ = get_user_id()
+        if user := get_user():
             if add_to_cache_keys:
-                self.cache_key_wrapper(id_)
-            return id_
+                self.cache_key_wrapper(user.id)
+            return user.id
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -463,11 +462,11 @@ class BaseTemplateProcessor:
         self._applied_filters = applied_filters
         self._removed_filters = removed_filters
         self._context: dict[str, Any] = {}
-        self._env = SandboxedEnvironment(undefined=DebugUndefined)
+        self.env: Environment = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
         # custom filters
-        self._env.filters["where_in"] = WhereInMacro(database.get_dialect())
+        self.env.filters["where_in"] = WhereInMacro(database.get_dialect())
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
@@ -480,7 +479,7 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self._env.from_string(sql)
+        template = self.env.from_string(sql)
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
@@ -624,7 +623,7 @@ class TrinoTemplateProcessor(PrestoTemplateProcessor):
     engine = "trino"
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
-        template = self._env.from_string(sql)
+        template = self.env.from_string(sql)
         kwargs.update(self._context)
 
         # Backwards compatibility if migrating from Presto.

@@ -40,11 +40,16 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
     def _export(
         model: SavedQuery, export_related: bool = True
     ) -> Iterator[tuple[str, str]]:
-        # build filename based on database, optional schema, and label
+        # build filename based on database, optional schema, and label.
+        # we call secure_filename() multiple times and join the directories afterwards,
+        # as secure_filename() replaces "/" with "_".
         database_slug = secure_filename(model.database.database_name)
-        schema_slug = secure_filename(model.schema)
         query_slug = secure_filename(model.label) or str(model.uuid)
-        file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
+        if model.schema is None:
+            file_name = f"queries/{database_slug}/{query_slug}.yaml"
+        else:
+            schema_slug = secure_filename(model.schema)
+            file_name = f"queries/{database_slug}/{schema_slug}/{query_slug}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,

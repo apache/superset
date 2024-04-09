@@ -95,6 +95,7 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
   getYAxisFormatter,
@@ -253,7 +254,7 @@ export default function transformProps(
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
-  const percentFormatter = getNumberFormatter(',.0%');
+  const percentFormatter = getPercentFormatter(yAxisFormat);
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
@@ -437,6 +438,7 @@ export default function transformProps(
     yAxisTitlePosition,
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
+    isHorizontal,
   );
 
   const legendData = rawSeries
@@ -485,6 +487,7 @@ export default function transformProps(
         forcePercentFormatter,
         customFormatters,
         defaultFormatter,
+        yAxisFormat,
       ),
     },
     scale: truncateYAxis,
@@ -572,7 +575,6 @@ export default function transformProps(
       right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
-          yAxisIndex: false,
           title: {
             zoom: t('zoom area'),
             back: t('restore zoom'),
@@ -587,6 +589,7 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            yAxisIndex: isHorizontal ? 0 : undefined,
           },
         ]
       : [],

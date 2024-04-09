@@ -344,7 +344,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     assert QUERY == query.sql
 
     assert query.rows == (1 if backend() == "presto" else 0)
-    assert query.limit == 10000
+    assert query.limit == 50000
     assert query.select_as_cta
     assert query.select_as_cta_used
 

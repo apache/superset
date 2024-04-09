@@ -16,25 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { addToast } from './actions';
-import { ToastType } from './types';
-
-export default function toastsFromPyFlashMessages(flashMessages = []) {
-  const toasts = [];
-
-  flashMessages.forEach(([messageType, message]) => {
-    const toastType =
-      messageType === 'danger'
-        ? ToastType.DANGER
-        : (messageType === 'success' && ToastType.SUCCESS) || ToastType.INFO;
-
-    const toast = addToast({
-      text: message,
-      toastType,
-    }).payload;
-
-    toasts.push(toast);
-  });
-
-  return toasts;
-}
+declare module 'ace-builds/src-noconflict/worker-css';

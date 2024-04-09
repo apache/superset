@@ -123,7 +123,8 @@ export const DataTablesPane = ({
     if (
       panelOpen &&
       activeTabKey.startsWith(ResultTypes.Results) &&
-      chartStatus === 'rendered'
+      chartStatus &&
+      chartStatus !== 'loading'
     ) {
       setIsRequest({
         results: true,

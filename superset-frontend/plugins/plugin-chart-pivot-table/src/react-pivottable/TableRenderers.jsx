@@ -24,7 +24,11 @@ import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
 const parseLabel = value => {
-  if (typeof value === 'number' || typeof value === 'string') {
+  if (typeof value === 'string') {
+    if (value === 'metric') return t('metric');
+    return value;
+  }
+  if (typeof value === 'number') {
     return value;
   }
   return String(value);

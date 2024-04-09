@@ -205,6 +205,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "changed_by",
         "database_name",
         "expose_in_sqllab",
+        "uuid",
     ]
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
     allowed_rel_fields = {"changed_by", "created_by"}

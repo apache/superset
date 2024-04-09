@@ -29,6 +29,7 @@ from flask.cli import with_appcontext
 from superset import security_manager
 from superset.cli.lib import feature_flags
 from superset.extensions import db
+from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
@@ -133,12 +134,13 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @click.option(
         "--path",
         "-p",
+        required=True,
         help="Path to a single ZIP file",
     )
     @click.option(
         "--username",
         "-u",
-        default=None,
+        required=True,
         help="Specify the user name to assign dashboards to",
     )
     def import_dashboards(path: str, username: Optional[str]) -> None:
@@ -173,26 +175,34 @@ if feature_flags.get("VERSIONED_EXPORT"):
         "-p",
         help="Path to a single ZIP file",
     )
-    def import_datasources(path: str) -> None:
+    @click.option(
+        "--username",
+        "-u",
+        required=False,
+        default="admin",
+        help="Specify the user name to assign datasources to",
+    )
+    def import_datasources(path: str, username: Optional[str] = "admin") -> None:
         """Import datasources from ZIP file"""
         # pylint: disable=import-outside-toplevel
         from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
         from superset.commands.importers.v1.utils import get_contents_from_bundle
 
-        if is_zipfile(path):
-            with ZipFile(path) as bundle:
-                contents = get_contents_from_bundle(bundle)
-        else:
-            with open(path) as file:
-                contents = {path: file.read()}
-        try:
-            ImportDatasetsCommand(contents, overwrite=True).run()
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "There was an error when importing the dataset(s), please check the "
-                "exception traceback in the log"
-            )
-            sys.exit(1)
+        with override_user(user=security_manager.find_user(username=username)):
+            if is_zipfile(path):
+                with ZipFile(path) as bundle:
+                    contents = get_contents_from_bundle(bundle)
+            else:
+                with open(path) as file:
+                    contents = {path: file.read()}
+            try:
+                ImportDatasetsCommand(contents, overwrite=True).run()
+            except Exception:  # pylint: disable=broad-except
+                logger.exception(
+                    "There was an error when importing the dataset(s), please check the "
+                    "exception traceback in the log"
+                )
+                sys.exit(1)
 
 else:
 

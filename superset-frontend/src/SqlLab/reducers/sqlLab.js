@@ -152,7 +152,10 @@ export default function sqlLabReducer(state = {}, action) {
 
       newState = {
         ...newState,
-        tabHistory,
+        tabHistory:
+          tabHistory.length === 0 && newState.queryEditors.length > 0
+            ? newState.queryEditors.slice(-1).map(qe => qe.id)
+            : tabHistory,
         tables,
         queries,
         unsavedQueryEditor: {

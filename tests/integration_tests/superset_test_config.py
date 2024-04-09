@@ -36,7 +36,6 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
     DATA_DIR, "unittests.integration_tests.db"
 )
 DEBUG = False
-SUPERSET_WEBSERVER_PORT = 8081
 SILENCE_FAB = False
 # Allowing SQLALCHEMY_DATABASE_URI and SQLALCHEMY_EXAMPLES_URI to be defined as an env vars for
 # continuous integration
@@ -60,7 +59,7 @@ if "sqlite" in SQLALCHEMY_DATABASE_URI:
 PRESTO_POLL_INTERVAL = 0.1
 HIVE_POLL_INTERVAL = 0.1
 
-SQL_MAX_ROW = 10000
+SQL_MAX_ROW = 50000
 SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA queries
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,

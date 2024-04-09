@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 from typing import Optional
+from unittest.mock import Mock
 
 import pytest
 import sqlparse
@@ -25,10 +26,14 @@ from sqlalchemy import text
 from sqlparse.sql import Identifier, Token, TokenList
 from sqlparse.tokens import Name
 
-from superset.exceptions import QueryClauseValidationException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetSecurityException,
+)
 from superset.sql_parse import (
     add_table_name,
     extract_table_references,
+    extract_tables_from_jinja_sql,
     get_rls_for_table,
     has_table_query,
     insert_rls_as_subquery,
@@ -40,11 +45,11 @@ from superset.sql_parse import (
 )
 
 
-def extract_tables(query: str) -> set[Table]:
+def extract_tables(query: str, engine: Optional[str] = None) -> set[Table]:
     """
     Helper function to extract tables referenced in a query.
     """
-    return ParsedQuery(query).tables
+    return ParsedQuery(query, engine=engine).tables
 
 
 def test_table() -> None:
@@ -96,8 +101,13 @@ def test_extract_tables() -> None:
         Table("left_table")
     }
 
-    # reverse select
-    assert extract_tables("FROM t1 SELECT field") == {Table("t1")}
+    assert extract_tables(
+        "SELECT FROM (SELECT FROM forbidden_table) AS forbidden_table;"
+    ) == {Table("forbidden_table")}
+
+    assert extract_tables(
+        "select * from (select * from forbidden_table) forbidden_table"
+    ) == {Table("forbidden_table")}
 
 
 def test_extract_tables_subselect() -> None:
@@ -260,17 +270,41 @@ def test_extract_tables_illdefined() -> None:
     """
     Test that ill-defined tables return an empty set.
     """
-    assert extract_tables("SELECT * FROM schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname.schemaname.") == set()
-    assert extract_tables("SELECT * FROM catalogname..") == set()
-    assert extract_tables("SELECT * FROM catalogname..tbname") == set()
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM schemaname.")
+    assert (
+        str(excinfo.value) == "Unable to parse SQL (generic): SELECT * FROM schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname.schemaname.")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.schemaname."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables("SELECT * FROM catalogname..")
+    assert (
+        str(excinfo.value)
+        == "Unable to parse SQL (generic): SELECT * FROM catalogname.."
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        extract_tables('SELECT * FROM "tbname')
+    assert str(excinfo.value) == 'Unable to parse SQL (generic): SELECT * FROM "tbname'
+
+    # odd edge case that works
+    assert extract_tables("SELECT * FROM catalogname..tbname") == {
+        Table(table="tbname", schema=None, catalog="catalogname")
+    }
 
 
 def test_extract_tables_show_tables_from() -> None:
     """
     Test ``SHOW TABLES FROM``.
     """
-    assert extract_tables("SHOW TABLES FROM s1 like '%order%'") == set()
+    assert extract_tables("SHOW TABLES FROM s1 like '%order%'", "mysql") == set()
 
 
 def test_extract_tables_show_columns_from() -> None:
@@ -311,7 +345,7 @@ WHERE regionkey IN (SELECT regionkey FROM t2)
             """
 SELECT name
 FROM t1
-WHERE regionkey EXISTS (SELECT regionkey FROM t2)
+WHERE EXISTS (SELECT 1 FROM t2 WHERE t1.regionkey = t2.regionkey);
 """
         )
         == {Table("t1"), Table("t2")}
@@ -526,6 +560,18 @@ select * from (select key from q1) a
         == {Table("src")}
     )
 
+    # weird query with circular dependency
+    assert (
+        extract_tables(
+            """
+with src as ( select key from q2 where key = '5'),
+q2 as ( select key from src where key = '5')
+select * from (select key from src) a
+"""
+        )
+        == set()
+    )
+
 
 def test_extract_tables_multistatement() -> None:
     """
@@ -539,6 +585,10 @@ def test_extract_tables_multistatement() -> None:
         Table("t1"),
         Table("t2"),
     }
+    assert extract_tables(
+        "ADD JAR file:///hive.jar; SELECT * FROM t1;",
+        engine="hive",
+    ) == {Table("t1")}
 
 
 def test_extract_tables_complex() -> None:
@@ -665,7 +715,8 @@ def test_extract_tables_nested_select() -> None:
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(TABLE_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
-"""
+""",
+            "mysql",
         )
         == {Table("COLUMNS", "INFORMATION_SCHEMA")}
     )
@@ -676,7 +727,8 @@ WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
 from INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME="bi_achievement_daily"),0x7e)));
-"""
+""",
+            "mysql",
         )
         == {Table("COLUMNS", "INFORMATION_SCHEMA")}
     )
@@ -1306,6 +1358,14 @@ def test_sqlparse_issue_652():
             "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
             True,
         ),
+        (
+            "SELECT FROM (SELECT FROM forbidden_table) AS forbidden_table;",
+            True,
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM forbidden_table) forbidden_table",
+            True,
+        ),
     ],
 )
 def test_has_table_query(sql: str, expected: bool) -> None:
@@ -1787,16 +1847,17 @@ def test_extract_table_references(mocker: MockerFixture) -> None:
     # test falling back to sqlparse
     logger = mocker.patch("superset.sql_parse.logger")
     sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
-    assert extract_table_references(
-        sql,
-        "trino",
-    ) == {Table(table="other_table", schema=None, catalog=None)}
+    assert extract_table_references(sql, "trino") == {
+        Table(table="table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
+    }
     logger.warning.assert_called_once()
 
     logger = mocker.patch("superset.migrations.shared.utils.logger")
     sql = "SELECT * FROM table UNION ALL SELECT * FROM other_table"
     assert extract_table_references(sql, "trino", show_warning=False) == {
-        Table(table="other_table", schema=None, catalog=None)
+        Table(table="table", schema=None, catalog=None),
+        Table(table="other_table", schema=None, catalog=None),
     }
     logger.warning.assert_not_called()
 
@@ -1816,3 +1877,46 @@ WITH t AS (
 )
 SELECT * FROM t"""
     ).is_select()
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "hive",
+        "presto",
+        "trino",
+    ],
+)
+@pytest.mark.parametrize(
+    "macro",
+    [
+        "latest_partition('foo.bar')",
+        "latest_sub_partition('foo.bar', baz='qux')",
+    ],
+)
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        (
+            "SELECT '{{{{ {engine}.{macro} }}}}'",
+            {Table(table="bar", schema="foo")},
+        ),
+        (
+            "SELECT * FROM foo.baz WHERE quux = '{{{{ {engine}.{macro} }}}}'",
+            {Table(table="bar", schema="foo"), Table(table="baz", schema="foo")},
+        ),
+    ],
+)
+def test_extract_tables_from_jinja_sql(
+    engine: str,
+    macro: str,
+    sql: str,
+    expected: set[Table],
+) -> None:
+    assert (
+        extract_tables_from_jinja_sql(
+            sql=sql.format(engine=engine, macro=macro),
+            database=Mock(),
+        )
+        == expected
+    )

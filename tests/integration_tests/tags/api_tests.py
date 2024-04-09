@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import prison
 from datetime import datetime
 
 from flask import g
@@ -30,6 +31,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.tags.models import user_favorite_tag_table
 from unittest.mock import patch
+from urllib import parse
 
 
 import tests.integration_tests.test_app
@@ -174,6 +176,50 @@ class TestTagApi(SupersetTestCase):
         assert data["count"] == TAGS_FIXTURE_COUNT
         # check expected columns
         assert data["list_columns"] == TAGS_LIST_COLUMNS
+
+    def test_get_list_tag_filtered(self):
+        """
+        Query API: Test get list query applying filters for
+        type == "custom" and type != "custom"
+        """
+        tags = [
+            {"name": "Test custom Tag", "type": "custom"},
+            {"name": "type:dashboard", "type": "type"},
+            {"name": "owner:1", "type": "owner"},
+            {"name": "Another Tag", "type": "custom"},
+            {"name": "favorited_by:1", "type": "favorited_by"},
+        ]
+
+        for tag in tags:
+            self.insert_tag(
+                name=tag["name"],
+                tag_type=tag["type"],
+            )
+        self.login(username="admin")
+
+        # Only user-created tags
+        query = {
+            "filters": [
+                {
+                    "col": "type",
+                    "opr": "custom_tag",
+                    "value": True,
+                }
+            ],
+        }
+        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 2
+
+        # Only system tags
+        query["filters"][0]["value"] = False
+        uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 3
 
     # test add tagged objects
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

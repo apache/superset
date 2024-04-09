@@ -356,9 +356,7 @@ function ChartList(props: ChartListProps) {
               )}
               {sliceName}
             </Link>
-            {description && (
-              <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
-            )}
+            {description && <InfoTooltip tooltip={description} />}
           </FlexRowContainer>
         ),
         Header: t('Name'),

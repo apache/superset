@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,too-many-lines
 from __future__ import annotations
 
 import contextlib
@@ -46,6 +46,7 @@ from superset import (
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.importers.v0 import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -880,6 +881,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")
+        except DashboardAccessDeniedError as ex:
+            flash(__("Error: %(msg)s", msg=ex.message), "danger")
+            return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
@@ -887,6 +891,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
+        if original_params := request.query_string.decode():
+            url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)

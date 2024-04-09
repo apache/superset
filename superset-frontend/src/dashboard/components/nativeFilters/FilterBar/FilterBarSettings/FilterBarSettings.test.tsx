@@ -50,7 +50,6 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     filterBarOrientation: FilterBarOrientation.VERTICAL,
     common: {
       conf: {},
-      flash_messages: [],
     },
     crossFiltersEnabled: true,
   },

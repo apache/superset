@@ -52,7 +52,6 @@ from sqlalchemy.orm import eagerload, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
-from superset import sql_parse
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -67,6 +66,8 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
+from superset.sql_parse import extract_tables_from_jinja_sql
+from superset.superset_typing import Metric
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
@@ -86,6 +87,7 @@ if TYPE_CHECKING:
     )
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
@@ -141,6 +143,59 @@ ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 RoleModelView.list_columns = ["name"]
 RoleModelView.edit_columns = ["name", "permissions", "user"]
 RoleModelView.related_views = []
+
+
+def freeze_metric(metric: Metric) -> str:
+    """
+    Used to compare metric sets.
+    """
+    return json.dumps(metric, sort_keys=True)
+
+
+def query_context_modified(query_context: "QueryContext") -> bool:
+    """
+    Check if a query context has been modified.
+
+    This is used to ensure guest users don't modify the payload and fetch data
+    different from what was shared with them in dashboards.
+    """
+    form_data = query_context.form_data
+    stored_chart = query_context.slice_
+
+    # native filter requests
+    if form_data is None or stored_chart is None:
+        return False
+
+    # cannot request a different chart
+    if form_data.get("slice_id") != stored_chart.id:
+        return True
+
+    # compare form_data
+    requested_metrics = {
+        freeze_metric(metric) for metric in form_data.get("metrics") or []
+    }
+    stored_metrics = {
+        freeze_metric(metric)
+        for metric in stored_chart.params_dict.get("metrics") or []
+    }
+    if not requested_metrics.issubset(stored_metrics):
+        return True
+
+    # compare queries in query_context
+    queries_metrics = {
+        freeze_metric(metric)
+        for query in query_context.queries
+        for metric in query.metrics or []
+    }
+
+    if stored_chart.query_context:
+        stored_query_context = json.loads(cast(str, stored_chart.query_context))
+        for query in stored_query_context.get("queries") or []:
+            stored_metrics.update(
+                {freeze_metric(metric) for metric in query.get("metrics") or []}
+            )
+
+    return not queries_metrics.issubset(stored_metrics)
 
 
 class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
@@ -424,6 +479,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    def can_access_chart(self, chart: "Slice") -> bool:
+        """
+        Return True if the user can access the specified chart, False otherwise.
+        :param chart: The chart
+        :return: Whether the user can access the chart
+        """
+        try:
+            self.raise_for_access(chart=chart)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
@@ -438,6 +506,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return SupersetError(
             error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
             message="You don't have access to this dashboard.",
+            level=ErrorLevel.ERROR,
+        )
+
+    def get_chart_access_error_object(
+        self,
+        dashboard: "Dashboard",  # pylint: disable=unused-argument
+    ) -> SupersetError:
+        """
+        Return the error object for the denied Superset dashboard.
+
+        :param dashboard: The denied Superset dashboard
+        :returns: The error object
+        """
+
+        return SupersetError(
+            error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
+            message="You don't have access to this chart.",
             level=ErrorLevel.ERROR,
         )
 
@@ -1821,15 +1906,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return []
 
     def raise_for_access(
-        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
+        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
+        chart: Optional["Slice"] = None,
         database: Optional["Database"] = None,
         datasource: Optional["BaseDatasource"] = None,
         query: Optional["Query"] = None,
         query_context: Optional["QueryContext"] = None,
         table: Optional["Table"] = None,
         viz: Optional["BaseViz"] = None,
+        sql: Optional[str] = None,
+        schema: Optional[str] = None,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -1840,6 +1928,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param query_context: The query context
         :param table: The Superset table (requires database)
         :param viz: The visualization
+        :param sql: The SQL string (requires database)
+        :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
@@ -1848,7 +1938,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.models.sql_lab import Query
         from superset.sql_parse import Table
+        from superset.utils.core import shortid
+
+        if sql and database:
+            query = Query(
+                database=database,
+                sql=sql,
+                schema=schema,
+                client_id=shortid()[:10],
+                user_id=get_user_id(),
+            )
+            self.get_session.expunge(query)
 
         if database and table or query:
             if query:
@@ -1863,7 +1965,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 default_schema = database.get_default_schema_for_query(query)
                 tables = {
                     Table(table_.table, table_.schema or default_schema)
-                    for table_ in sql_parse.ParsedQuery(query.sql).tables
+                    for table_ in extract_tables_from_jinja_sql(query.sql, database)
                 }
             elif table:
                 tables = {table}
@@ -1891,6 +1993,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_table_access_error_object(denied)
                 )
+
+        # Guest users MUST not modify the payload so it's requesting a
+        # different chart or different ad-hoc metrics from what's saved.
+        if (
+            query_context
+            and self.is_guest_user()
+            and query_context_modified(query_context)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                    message=_("Guest user cannot modify chart payload"),
+                    level=ErrorLevel.ERROR,
+                )
+            )
 
         if datasource or query_context or viz:
             form_data = None
@@ -1977,31 +2094,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if self.is_admin() or self.is_owner(dashboard):
                 return
 
-            # RBAC and legacy (datasource inferred) access controls.
+            # TODO: Once a better sharing flow is in place, we should move the
+            # dashboard.published check here so that it's applied to both
+            # regular RBAC and DASHBOARD_RBAC
+
+            # DASHBOARD_RBAC logic - Manage dashboard access through roles.
+            # Only applicable in case the dashboard has roles set.
             if is_feature_enabled("DASHBOARD_RBAC") and dashboard.roles:
                 if dashboard.published and {role.id for role in dashboard.roles} & {
                     role.id for role in self.get_user_roles()
                 }:
                     return
-            elif (
-                # To understand why we rely on status and give access to draft dashboards
-                # without roles take a look at:
-                #
-                #   - https://github.com/apache/superset/pull/24350#discussion_r1225061550
-                #   - https://github.com/apache/superset/pull/17511#issuecomment-975870169
-                #
-                not dashboard.published
-                or not dashboard.datasources
-                or any(
-                    self.can_access_datasource(datasource)
-                    for datasource in dashboard.datasources
-                )
+
+            # REGULAR RBAC logic
+            # User can only acess the dashboard in case:
+            #    It doesn't have any datasets; OR
+            #    They have access to at least one dataset used.
+            # We currently don't check if the dashboard is published,
+            # to allow creators to share a WIP dashboard with a viewer
+            # to collect feedback.
+            elif not dashboard.datasources or any(
+                self.can_access_datasource(datasource)
+                for datasource in dashboard.datasources
             ):
                 return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
             )
+
+        if chart:
+            if self.is_admin() or self.is_owner(chart):
+                return
+
+            if chart.datasource and self.can_access_datasource(chart.datasource):
+                return
+
+            raise SupersetSecurityException(self.get_chart_access_error_object(chart))
 
     def get_user_by_username(
         self, username: str, session: Session = None

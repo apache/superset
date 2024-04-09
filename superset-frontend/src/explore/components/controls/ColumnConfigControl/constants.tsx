@@ -42,6 +42,7 @@ export type SharedColumnConfigProp =
   | 'currencyFormat';
 
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
+  allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_FORMAT_DOCS,

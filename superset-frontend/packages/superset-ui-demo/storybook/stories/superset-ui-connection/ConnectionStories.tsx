@@ -41,7 +41,7 @@ export default {
   ],
 };
 
-export const configureCORS = () => {
+export const ConfigureCORS = () => {
   const host = text('Superset App host for CORS request', 'localhost:8088');
   const selectEndpoint = select('Endpoint', ENDPOINTS, '');
   const customEndpoint = text('Custom Endpoint (override above)', '');
@@ -79,8 +79,4 @@ export const configureCORS = () => {
       </VerifyCORS>
     </div>
   );
-};
-
-configureCORS.parameters = {
-  chromatic: { disable: true },
 };

@@ -29,6 +29,46 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
+def test_filter_by_uuid(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that we can filter databases by UUID.
+
+    Note: this functionality is not used by the Superset UI, but is needed by 3rd
+    party tools that use the Superset API. If this tests breaks, please make sure
+    that the functionality is properly deprecated between major versions with
+    enough warning so that tools can be adapted.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel.session = session
+
+    # create table for databases
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    session.add(
+        Database(
+            database_name="my_db",
+            sqlalchemy_uri="sqlite://",
+            uuid=UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"),
+        )
+    )
+    session.commit()
+
+    response = client.get(
+        "/api/v1/database/?q=(filters:!((col:uuid,opr:eq,value:"
+        "%277c1b7880-a59d-47cd-8bf1-f1eb8d2863cb%27)))"
+    )
+    assert response.status_code == 200
+
+    payload = response.json
+    assert len(payload["result"]) == 1
+    assert payload["result"][0]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
+
+
 def test_post_with_uuid(
     session: Session,
     client: Any,

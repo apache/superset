@@ -466,6 +466,7 @@ export function getChartPadding(
   orientation: LegendOrientation,
   margin?: string | number | null,
   padding?: { top?: number; bottom?: number; left?: number; right?: number },
+  isHorizontal?: boolean,
 ): {
   bottom: number;
   left: number;
@@ -486,6 +487,19 @@ export function getChartPadding(
   }
 
   const { bottom = 0, left = 0, right = 0, top = 0 } = padding || {};
+
+  if (isHorizontal) {
+    return {
+      left:
+        left + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+      right:
+        right + (orientation === LegendOrientation.Right ? legendMargin : 0),
+      top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
+      bottom:
+        bottom + (orientation === LegendOrientation.Left ? legendMargin : 0),
+    };
+  }
+
   return {
     left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
     right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),

@@ -288,7 +288,10 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                         form_data={
                             "dashboardId": self.dash.id,
                             "slice_id": self.chart.id,
+                            "metrics": self.chart.params_dict["metrics"],
                         },
+                        slice_=self.chart,
+                        queries=[],
                     )
                 }
             )
@@ -304,7 +307,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                             "dashboardId": self.dash.id,
                             "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
                             "type": "NATIVE_FILTER",
+                            "slice_id": self.chart.id,
+                            "metrics": self.chart.params_dict["metrics"],
                         },
+                        slice_=self.chart,
+                        queries=[],
                     )
                 }
             )
@@ -382,7 +389,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                             form_data={
                                 "dashboardId": self.dash.id,
                                 "type": "NATIVE_FILTER",
+                                "slice_id": self.chart.id,
+                                "metrics": self.chart.params_dict["metrics"],
                             },
+                            slice_=self.chart,
+                            queries=[],
                         )
                     }
                 )
@@ -399,7 +410,11 @@ class TestGuestUserDatasourceAccess(SupersetTestCase):
                                 "dashboardId": self.dash.id,
                                 "native_filter_id": "NATIVE_FILTER-ABCDEFGH",
                                 "type": "NATIVE_FILTER",
+                                "slice_id": self.chart.id,
+                                "metrics": self.chart.params_dict["metrics"],
                             },
+                            slice_=self.chart,
+                            queries=[],
                         )
                     }
                 )
