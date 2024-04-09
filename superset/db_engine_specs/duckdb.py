@@ -203,9 +203,6 @@ class DuckDBParametersMixin:
     ) -> list[SupersetError]:
         """
         Validates any number of parameters, for progressive validation.
-
-        If only the hostname is present it will check if the name is resolvable. As more
-        parameters are present in the request, more validation is done.
         """
         errors: list[SupersetError] = []
 
