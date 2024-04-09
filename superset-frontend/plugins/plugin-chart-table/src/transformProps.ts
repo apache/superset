@@ -303,7 +303,11 @@ const processComparisonColumns = (
       const config = columnConfig[col.key] || {};
       const savedFormat = columnFormats?.[col.key];
       const numberFormat = config.d3NumberFormat || savedFormat;
-      if (col.isNumeric && !col.key.includes(comparisonSuffix)) {
+      if (
+        (col.isMetric || col.isPercentMetric) &&
+        !col.key.includes(comparisonSuffix) &&
+        col.isNumeric
+      ) {
         return [
           {
             ...col,
