@@ -135,7 +135,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertFalse(rehydrated_qc.force)
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # construct baseline query_cache_key
@@ -163,7 +162,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key_new)
 
     def test_query_cache_key_changes_when_metric_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names")
 
         # make temporary change and revert it to refresh the changed_on property
@@ -198,7 +196,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key_new)
 
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
         del payload["queries"][0]["granularity"]
 
@@ -214,7 +211,6 @@ class TestQueryContext(SupersetTestCase):
         assert query_context.query_cache_key(query_object) == cache_key_original
 
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
         # construct baseline query_cache_key from query_context with post processing operation
@@ -237,7 +233,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertNotEqual(cache_key_original, cache_key)
 
     def test_query_cache_key_changes_when_time_offsets_is_updated(self):
-        self.login(username="admin")
         payload = get_query_context("birth_names", add_time_offsets=True)
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -254,7 +249,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Should support both predefined and adhoc metrics.
         """
-        self.login(username="admin")
         adhoc_metric = {
             "expressionType": "SIMPLE",
             "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
@@ -272,7 +266,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that deprecated fields are converted correctly
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         columns = payload["queries"][0]["columns"]
         payload["queries"][0]["groupby"] = columns
@@ -294,7 +287,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that CSV result format works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
@@ -309,7 +301,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid columns names in groupby are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -320,7 +311,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in columns are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
@@ -333,7 +323,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that calling invalid column names in filters are caught
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["metrics"] = [
@@ -353,7 +342,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that samples result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
@@ -370,7 +358,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that query result type works
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
 
@@ -387,7 +374,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Should properly handle sort by metrics in various scenarios.
         """
-        self.login(username="admin")
 
         sql_text = get_sql_text(get_query_context("birth_names"))
         if backend() == "hive":
@@ -476,7 +462,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that fetch values predicate is added to query if needed
         """
-        self.login(username="admin")
 
         payload = get_query_context("birth_names")
         sql_text = get_sql_text(payload)
@@ -491,7 +476,6 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query objects with unknown fields don't raise an Exception and
         have an identical cache key as one without the unknown field
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
@@ -507,7 +491,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         payload["queries"][0]["groupby"] = ["name"]
@@ -545,7 +528,6 @@ class TestQueryContext(SupersetTestCase):
         """
         Ensure that time_offsets can generate the correct query
         """
-        self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["metrics"] = ["sum__num"]
         # should process empty dateframe correctly
