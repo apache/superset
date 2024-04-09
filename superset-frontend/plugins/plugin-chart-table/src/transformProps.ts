@@ -412,7 +412,7 @@ const transformProps = (
         arrow: '',
         arrowColor: '',
         // eslint-disable-next-line theme-colors/no-literal-colors
-        backgroundColor: '#FFBFA133',
+        backgroundColor: 'rgba(0,0,0,0.2)',
       };
     }
     const isPositive = percentDifferenceNum > 0;
