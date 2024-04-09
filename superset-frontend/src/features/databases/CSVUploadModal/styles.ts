@@ -26,6 +26,13 @@ export const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
+export const StyledSwitchContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 10px;
+`;
+
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-header {
     padding-top: ${theme.gridUnit * 3.5}px;
@@ -54,6 +61,13 @@ export const antDModalNoPaddingStyles = css`
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
+  }
+`;
+
+export const formStyles = (theme: SupersetTheme) => css`
+  .switch-label {
+    color: ${theme.colors.grayscale.base};
+    margin-left: 10px;
   }
 `;
 

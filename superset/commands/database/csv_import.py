@@ -123,8 +123,9 @@ class CSVImportCommand(BaseCommand):
         except ValueError as ex:
             raise DatabaseUploadFailed(
                 message=_(
-                    "Table already exists. You can change your"
-                    " 'if table already exists' strategy to append or replace."
+                    "Table already exists. You can change your "
+                    "'if table already exists' strategy to append or "
+                    "replace or provide a different Table Name to use."
                 )
             ) from ex
         except Exception as ex:

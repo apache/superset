@@ -162,6 +162,7 @@ const StyledHeader = styled.div`
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
+  cursor: not-allowed;
 
   .ant-menu-item-active {
     color: ${theme.colors.grayscale.light1};

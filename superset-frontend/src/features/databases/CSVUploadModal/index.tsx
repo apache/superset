@@ -24,18 +24,18 @@ import {
   t,
 } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
+import Button from 'src/components/Button';
+import { Switch } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
 import {
   Upload,
   AntdForm,
   Col,
   Row,
-  AntdButton as Button,
   AsyncSelect,
   Select,
   Typography,
 } from 'src/components';
-import { Divider, Switch } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
@@ -45,7 +45,9 @@ import {
   antDModalStyles,
   antDModalNoPaddingStyles,
   antdCollapseStyles,
+  formStyles,
   StyledFormItem,
+  StyledSwitchContainer,
 } from './styles';
 
 interface CSVUploadModalProps {
@@ -382,12 +384,14 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
       css={(theme: SupersetTheme) => [
         antDModalNoPaddingStyles,
         antDModalStyles(theme),
+        formStyles(theme),
       ]}
       primaryButtonLoading={isLoading}
       name="database"
       data-test="csvupload-modal"
       onHandledPrimaryAction={form.submit}
       onHide={onClose}
+      width="500px"
       primaryButtonName="Upload"
       centered
       show={show}
@@ -457,9 +461,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                 )}
               </Col>
             </Row>
-            <Divider orientation="left">{t('Target')}</Divider>
-            <Row justify="space-between">
-              <Col span={11}>
+            <Row>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Database')}
                   name="database"
@@ -477,7 +480,24 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   {t('Select a database to upload the file to')}
                 </p>
               </Col>
-              <Col span={11}>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem label={t('Schema')} name="schema">
+                  <AsyncSelect
+                    ariaLabel={t('Select a schema')}
+                    options={loadSchemaOptions}
+                    onChange={onChangeSchema}
+                    allowClear
+                  />
+                </StyledFormItem>
+                <p className="help-block">
+                  {t('Select a schema if the database supports this')}
+                </p>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('Table Name')}
                   name="table_name"
@@ -498,21 +518,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                 </p>
               </Col>
             </Row>
-            <Row justify="space-between">
-              <Col span={11}>
-                <StyledFormItem label={t('Schema')} name="schema">
-                  <AsyncSelect
-                    ariaLabel={t('Select a schema')}
-                    options={loadSchemaOptions}
-                    onChange={onChangeSchema}
-                    allowClear
-                  />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('Select a schema if the database supports this')}
-                </p>
-              </Col>
-              <Col span={11}>
+            <Row>
+              <Col span={24}>
                 <StyledFormItem label={t('Delimiter')} name="delimiter">
                   <Select
                     ariaLabel={t('Choose a delimiter')}
@@ -532,7 +539,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               <div>
                 <h4>{t('File Settings')}</h4>
                 <p className="helper">
-                  {t('Adjust how the file will be imported.')}
+                  {t(
+                    'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
+                  )}
                 </p>
               </div>
             }
@@ -557,28 +566,28 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
-                  label={t('Skip Initial Space')}
-                  name="skip_initial_space"
-                >
-                  <Switch data-test="skipInitialSpace" />
+                <StyledFormItem name="skip_initial_space">
+                  <StyledSwitchContainer>
+                    <Switch data-test="skipInitialSpace" />
+                    <div className="switch-label">
+                      {t('Skip spaces after delimiter')}
+                    </div>
+                  </StyledSwitchContainer>
                 </StyledFormItem>
-                <p className="help-block">{t('Skip spaces after delimiter')}</p>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
-                  label={t('Skip Blank Lines')}
-                  name="skip_blank_lines"
-                >
-                  <Switch data-test="skipBlankLines" />
+                <StyledFormItem name="skip_blank_lines">
+                  <StyledSwitchContainer>
+                    <Switch data-test="skipBlankLines" />
+                    <div className="switch-label">
+                      {t(
+                        'Skip blank lines rather than interpreting them as Not A Number values',
+                      )}
+                    </div>
+                  </StyledSwitchContainer>
                 </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'Skip blank lines rather than interpreting them as Not A Number values',
-                  )}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -604,12 +613,16 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Day First')} name="day_first">
-                  <Switch data-test="dayFirst" />
+                <StyledFormItem name="day_first">
+                  <StyledSwitchContainer>
+                    <Switch data-test="dayFirst" />
+                    <div className="switch-label">
+                      {t(
+                        'DD/MM format dates, international and European format',
+                      )}
+                    </div>
+                  </StyledSwitchContainer>
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('DD/MM format dates, international and European format')}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -647,7 +660,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             header={
               <div>
                 <h4>{t('Columns')}</h4>
-                <p className="helper">{t('Adjust column settings.')}</p>
+                <p className="helper">
+                  {t(
+                    'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
+                  )}
+                </p>
               </div>
             }
             key="3"
@@ -674,15 +691,14 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
-                  label={t('Dataframe Index')}
-                  name="dataframe_index"
-                >
-                  <Switch data-test="dataFrameIndex" />
+                <StyledFormItem name="dataframe_index">
+                  <StyledSwitchContainer>
+                    <Switch data-test="dataFrameIndex" />
+                    <div className="switch-label">
+                      {t('Write dataframe index as a column')}
+                    </div>
+                  </StyledSwitchContainer>
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('Write dataframe index as a column')}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -721,17 +737,16 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
-                  label={t('Overwrite Duplicate Columns')}
-                  name="overwrite_duplicates"
-                >
-                  <Switch data-test="overwriteDuplicates" />
+                <StyledFormItem name="overwrite_duplicates">
+                  <StyledSwitchContainer>
+                    <Switch data-test="overwriteDuplicates" />
+                    <div className="switch-label">
+                      {t(
+                        'Overwrite Duplicate Columns. If duplicate columns are not overridden, they will be presented as "X.1, X.2 ...X.x"',
+                      )}
+                    </div>
+                  </StyledSwitchContainer>
                 </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'If duplicate columns are not overridden, they will be presented as "X.1, X.2 ...X.x"',
-                  )}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -754,7 +769,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             header={
               <div>
                 <h4>{t('Rows')}</h4>
-                <p className="helper">{t('Adjust row settings.')}</p>
+                <p className="helper">
+                  {t('Set header rows and the number of rows to read or skip.')}
+                </p>
               </div>
             }
             key="4"

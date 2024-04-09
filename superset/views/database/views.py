@@ -41,7 +41,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
+from .forms import ColumnarToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
