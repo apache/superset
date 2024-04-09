@@ -13,3 +13,8 @@
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+# Ortege specific packages
+apache-superset[databricks]
+prophet==1.1.3
+postmarker==1.0

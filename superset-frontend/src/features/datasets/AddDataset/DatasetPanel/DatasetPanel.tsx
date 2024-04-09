@@ -23,10 +23,11 @@ import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
-import LOADING_GIF from 'src/assets/images/loading.gif';
+import LOADING_GIF from 'src/assets/images/ortege-logo.png';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
+import 'animate.css';
 
 /**
  * Enum defining CSS position options
@@ -172,6 +173,12 @@ const StyledAlert = styled(Alert)`
   `}
 `;
 
+const Loader = styled.img`
+  height: 100px;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+`;
+
 export const REFRESHING = t('Refreshing columns');
 export const COLUMN_TITLE = t('Table columns');
 export const ALT_LOADING = t('Loading');
@@ -274,7 +281,11 @@ const DatasetPanel = ({
     loader = (
       <LoaderContainer>
         <StyledLoader>
-          <img alt={ALT_LOADING} src={LOADING_GIF} />
+          <Loader
+            alt={ALT_LOADING}
+            src={LOADING_GIF}
+            className="animate__animated animate__pulse"
+          />
           <div>{REFRESHING}</div>
         </StyledLoader>
       </LoaderContainer>

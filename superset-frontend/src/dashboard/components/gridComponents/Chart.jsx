@@ -42,6 +42,7 @@ import { slicePropShape, chartPropShape } from '../../util/propShapes';
 
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
+import watermarkImage from '../../../assets/images/ortege-logo-horiz.png';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -117,6 +118,27 @@ const ChartOverlay = styled.div`
   top: 0;
   left: 0;
   z-index: 5;
+`;
+
+const ChartWaterMark = styled.div`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: min(50%, 20rem);
+  max-height: min(25%, 20rem);
+  margin: auto;
+  pointer-events: none;
+  opacity: 0.2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const WatermarkImage = styled.img`
+  max-width: 100%;
+  max-height: 100%;
 `;
 
 const SliceContainer = styled.div`
@@ -505,6 +527,10 @@ class Chart extends React.Component {
               }}
             />
           )}
+
+          <ChartWaterMark>
+            <WatermarkImage src={watermarkImage} />
+          </ChartWaterMark>
 
           <ChartContainer
             width={width}

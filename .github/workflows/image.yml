@@ -1,0 +1,62 @@
+name: Build and Push Agent Image
+on:
+  pull_request:
+  push:
+    branches: [ortege]
+    tags:
+      - '**'
+
+concurrency:
+  group: build-push-agents-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip-action]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate tag data
+        id: taggen
+        run: |
+          echo "TAG_DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          echo "TAG_SHA=$(echo '${{ github.sha }}' | cut -b 1-7)" >> $GITHUB_OUTPUT
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ secrets.CR_ENDPOINT }}/ortege/studio
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=ref,event=tag
+            type=raw,value=${{ steps.taggen.outputs.TAG_SHA }}-${{ steps.taggen.outputs.TAG_DATE }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log into registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.CR_ENDPOINT }}
+          username: ${{ secrets.CR_USERNAME }}
+          password: ${{ secrets.CR_PASSWORD }}
+
+
+      - name: Set container registry token
+        if: github.event_name == 'push'
+        run: |
+          echo "DOCKERHUB_TOKEN=${{ secrets.CR_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Build and push images
+        shell: bash
+        env:
+          DOCKERHUB_USER: ${{ secrets.CR_USERNAME }}
+        run: |
+          GITHUB_RELEASE_TAG_NAME="${{ github.event.release.tag_name }}"
+          ./scripts/docker_build_push.sh "$GITHUB_RELEASE_TAG_NAME"  "${{ secrets.CR_ENDPOINT }}/ortege/studio" "${{ secrets.CR_ENDPOINT }}"

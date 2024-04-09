@@ -76,6 +76,7 @@ from superset.utils.core import (
 )
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
+from .register import OrtegeRegisterView
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -329,6 +330,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     guest_user_cls = GuestUser
     pyjwt_for_guest_token = _jwt_global_obj
+    registeruserdbview = OrtegeRegisterView
 
     def create_login_manager(self, app: Flask) -> LoginManager:
         lm = super().create_login_manager(app)
