@@ -68,7 +68,7 @@ export const Icon = (props: IconProps) => {
     };
   }, [fileName, ImportedSVG]);
 
-  const whatRole = props?.onClick ? 'button' : iconProps?.role || 'img';
+  const whatRole = props?.onClick ? 'button' : 'img';
 
   return (
     <StyledIcon
