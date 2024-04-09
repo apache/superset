@@ -52,7 +52,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
+import { kebabCase, isEqual } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -283,7 +283,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
-    state => state.common?.conf?.DEFAULT_TIME_FILTER,
+    state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
   );
 
   const { form_data, actions } = props;
@@ -317,7 +317,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                 clause: Clauses.Where,
                 subject: x_axis,
                 operator: Operators.TemporalRange,
-                comparator: defaultTimeFilter || NO_TIME_RANGE,
+                comparator: defaultTimeFilter,
                 expressionType: 'SIMPLE',
               },
             ]);
@@ -494,9 +494,26 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
-            return t(
-              `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+            // if temporal filter's value is "No filter", prevent deletion
+            // otherwise reset the value to "No filter"
+            if (valueToBeDeleted.comparator === defaultTimeFilter) {
+              return t(
+                `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+              );
+            }
+            props.actions.setControlValue(
+              name,
+              values.map(val => {
+                if (isEqual(val, valueToBeDeleted)) {
+                  return {
+                    ...val,
+                    comparator: defaultTimeFilter,
+                  };
+                }
+                return val;
+              }),
             );
+            return false;
           }
         }
         return true;
