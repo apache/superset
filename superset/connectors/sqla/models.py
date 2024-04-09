@@ -1492,13 +1492,19 @@ class SqlaTable(
         shifted_sqlaq = self.get_sqla_query(**query_obj_clone)
         # We JOIN only over columns, not metrics or anything else since those cannot be
         # joined
-        join_columns = query_obj_clone.get("columns") or []
+        columns_set = set()
+        if query_obj_clone.get("columns"):
+            for col in query_obj_clone["columns"]:
+                if isinstance(col, dict) and "sqlExpression" in col:
+                    columns_set.add(col["sqlExpression"])
+                elif isinstance(col, str):
+                    columns_set.add(col)
+        join_columns = columns_set
         original_query_a = sqlaq.sqla_query
         shifted_query_b = shifted_sqlaq.sqla_query
         shifted_query_b_subquery = shifted_query_b.subquery()
         query_a_cte = original_query_a.cte("query_a_results")
         column_names_a = [column.key for column in original_query_a.c]
-        exclude_columns_b = set(query_obj_clone.get("columns") or [])
         # Let's prepare the columns set to be used in query A and B
         # We need to use the label form the CTE in order to guarantee that
         # the columns are correctly selected by the UI later on
@@ -1521,7 +1527,7 @@ class SqlaTable(
         selected_columns_b = [
             shifted_query_b_subquery.c[col].label(f"prev_{col}")
             for col in shifted_query_b_subquery.c.keys()
-            if col not in exclude_columns_b
+            if col not in columns_set
         ]
         # Combine selected columns from both queries
         final_selected_columns = selected_columns_a + selected_columns_b
