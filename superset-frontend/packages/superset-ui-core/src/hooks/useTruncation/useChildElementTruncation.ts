@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useLayoutEffect, useState, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * This hook encapsulates logic to support truncation of child HTML
@@ -27,92 +27,68 @@ import { RefObject, useLayoutEffect, useState, useRef } from 'react';
  * (including those completely hidden) and whether any elements
  * are completely hidden.
  */
-const useChildElementTruncation = (
-  elementRef: RefObject<HTMLElement>,
-  plusRef?: RefObject<HTMLElement>,
-) => {
+const useChildElementTruncation = () => {
   const [elementsTruncated, setElementsTruncated] = useState(0);
   const [hasHiddenElements, setHasHiddenElements] = useState(false);
-
-  const previousEffectInfoRef = useRef({
-    scrollWidth: 0,
-    parentElementWidth: 0,
-    plusRefWidth: 0,
-  });
+  const elementRef = useRef<HTMLDivElement>(null);
+  const plusRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const currentElement = elementRef.current;
-    const plusRefElement = plusRef?.current;
-
-    if (!currentElement) {
-      return;
-    }
-
-    const { scrollWidth, clientWidth, childNodes } = currentElement;
-
-    // By using the result of this effect to truncate content
-    // we're effectively changing it's size.
-    // That will trigger another pass at this effect.
-    // Depending on the content elements width, that second rerender could
-    // yield a different truncate count, thus potentially leading to a
-    // rendering loop.
-    // There's only a need to recompute if the parent width or the width of
-    // the child nodes changes.
-    const previousEffectInfo = previousEffectInfoRef.current;
-    const parentElementWidth = currentElement.parentElement?.clientWidth || 0;
-    const plusRefWidth = plusRefElement?.offsetWidth || 0;
-    previousEffectInfoRef.current = {
-      scrollWidth,
-      parentElementWidth,
-      plusRefWidth,
-    };
-
-    if (
-      previousEffectInfo.parentElementWidth === parentElementWidth &&
-      previousEffectInfo.scrollWidth === scrollWidth &&
-      previousEffectInfo.plusRefWidth === plusRefWidth
-    ) {
-      return;
-    }
-
-    if (scrollWidth > clientWidth) {
-      // "..." is around 6px wide
-      const truncationWidth = 6;
-      const plusSize = plusRefElement?.offsetWidth || 0;
-      const maxWidth = clientWidth - truncationWidth;
-      const elementsCount = childNodes.length;
-
-      let width = 0;
-      let hiddenElements = 0;
-      for (let i = 0; i < elementsCount; i += 1) {
-        const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
-        const remainingWidth = maxWidth - truncationWidth - width - plusSize;
-
-        // assures it shows +{number} only when the item is not visible
-        if (remainingWidth <= 0) {
-          hiddenElements += 1;
-        }
-        width += itemWidth;
+    const onResize = () => {
+      const currentElement = elementRef.current;
+      if (!currentElement) {
+        return;
       }
+      const plusRefElement = plusRef.current;
+      const { scrollWidth, clientWidth, childNodes } = currentElement;
 
-      if (elementsCount > 1 && hiddenElements) {
-        setHasHiddenElements(true);
-        setElementsTruncated(hiddenElements);
+      if (scrollWidth > clientWidth) {
+        // "..." is around 6px wide
+        const truncationWidth = 6;
+        const plusSize = plusRefElement?.offsetWidth || 0;
+        const maxWidth = clientWidth - truncationWidth;
+        const elementsCount = childNodes.length;
+
+        let width = 0;
+        let hiddenElements = 0;
+        for (let i = 0; i < elementsCount; i += 1) {
+          const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
+          const remainingWidth = maxWidth - width - plusSize;
+
+          // assures it shows +{number} only when the item is not visible
+          if (remainingWidth <= 0) {
+            hiddenElements += 1;
+          }
+          width += itemWidth;
+        }
+
+        if (elementsCount > 1 && hiddenElements) {
+          setHasHiddenElements(true);
+          setElementsTruncated(hiddenElements);
+        } else {
+          setHasHiddenElements(false);
+          setElementsTruncated(1);
+        }
       } else {
         setHasHiddenElements(false);
-        setElementsTruncated(1);
+        setElementsTruncated(0);
       }
-    } else {
-      setHasHiddenElements(false);
-      setElementsTruncated(0);
-    }
-  }, [
-    elementRef.current?.offsetWidth,
-    elementRef.current?.clientWidth,
-    elementRef,
-  ]);
+    };
+    const obs = new ResizeObserver(onResize);
 
-  return [elementsTruncated, hasHiddenElements];
+    const element = elementRef.current?.parentElement;
+    if (element) {
+      obs.observe(element);
+    }
+
+    onResize();
+
+    return () => {
+      obs.disconnect();
+    };
+  }, [plusRef.current]); // plus is rendered dynamically - the component rerenders the hook when plus appears, this makes sure that useLayoutEffect is rerun
+
+  return [elementRef, plusRef, elementsTruncated, hasHiddenElements] as const;
 };
 
 export default useChildElementTruncation;
