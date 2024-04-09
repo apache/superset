@@ -103,6 +103,7 @@ const ColumnSelectPopoverTrigger = ({
           setDatasetModal={setDatasetModal}
           onClose={handleClosePopover}
           onChange={onColumnEdit}
+          hasCustomLabel={hasCustomLabel}
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
@@ -114,6 +115,7 @@ const ColumnSelectPopoverTrigger = ({
       columns,
       editedColumn,
       getCurrentTab,
+      hasCustomLabel,
       handleClosePopover,
       isTemporal,
       onColumnEdit,
@@ -121,10 +123,13 @@ const ColumnSelectPopoverTrigger = ({
     ],
   );
 
-  const onLabelChange = useCallback((e: any) => {
-    setPopoverLabel(e.target.value);
-    setHasCustomLabel(true);
-  }, []);
+  const onLabelChange = useCallback(
+    (e: any) => {
+      setPopoverLabel(e.target.value);
+      setHasCustomLabel(true);
+    },
+    [setPopoverLabel, setHasCustomLabel],
+  );
 
   const popoverTitle = useMemo(
     () => (

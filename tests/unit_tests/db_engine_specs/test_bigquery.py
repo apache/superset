@@ -148,7 +148,7 @@ def test_select_star(mocker: MockFixture) -> None:
     # mock the database so we can compile the query
     database = mocker.MagicMock()
     database.compile_sqla_query = lambda query: str(
-        query.compile(dialect=BigQueryDialect())
+        query.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )
 
     engine = mocker.MagicMock()
@@ -167,9 +167,10 @@ def test_select_star(mocker: MockFixture) -> None:
     )
     assert (
         sql
-        == """SELECT `trailer` AS `trailer`
+        == """SELECT
+  `trailer` AS `trailer`
 FROM `my_table`
-LIMIT :param_1"""
+LIMIT 100"""
     )
 
 

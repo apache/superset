@@ -119,11 +119,13 @@ If you decide to join the [Community Slack](http://bit.ly/join-superset-slack), 
 
 **3. Ask thoughtful questions.**
 
-- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [GitHub issues](https://github.com/apache/superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
+- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in the [Superset documentation](https://superset.apache.org/faq.html) or on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset). You can also check GitHub trackers to see if your inquiry has been submitted before: [GitHub discussions](https://github.com/apache/superset/discussions) for questions and feature requests and [GitHub issues](https://github.com/apache/superset/issues) for bug reports. Then, use Slack search to see if your question has already been asked and answered in the past.
 
-- The steps you’ve already taken
-- Relevant details presented cleanly (text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone)
-- The specific question you have or the specific type of help you're seeking
+If you still feel the need to ask a question, make sure you include:
+
+- The steps you’ve already taken.
+- Relevant details presented cleanly: text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone.
+- The specific question you have or the specific type of help you're seeking.
 
 **4. Avoid double posting**
 

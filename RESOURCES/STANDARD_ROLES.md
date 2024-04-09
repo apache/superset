@@ -1,6 +1,25 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
 ||Admin|Alpha|Gamma|SQL_LAB|
 |---|---|---|---|---|
-|Permission/role description|Admins have all possible rights, including granting or revoking rights from other users and altering other people’s slices and dashboards.| Alpha users have access to all data sources, but they cannot grant or revoke access from other users. They are also limited to altering the objects that they own. Alpha users can add and alter data sources.|Gamma users have limited access. They can only consume data coming from data sources they have been given access to through another complementary role. They only have access to view the slices and dashboards made from data sources that they have access to. Currently Gamma users are not able to alter or add data sources. We assume that they are mostly content consumers, though they can create slices and dashboards.|The sql_lab role grants access to SQL Lab. Note that while Admin users have access to all databases by default, both Alpha and Gamma users need to be given access on a per database basis.||
+|Permission/role description|Admins have all possible rights, including granting or revoking rights from other users and altering other people’s slices and dashboards.|Alpha users have access to all data sources, but they cannot grant or revoke access from other users. They are also limited to altering the objects that they own. Alpha users can add and alter data sources.|Gamma users have limited access. They can only consume data coming from data sources they have been given access to through another complementary role. They only have access to view the slices and dashboards made from data sources that they have access to. Currently Gamma users are not able to alter or add data sources. We assume that they are mostly content consumers, though they can create slices and dashboards.|The sql_lab role grants access to SQL Lab. Note that while Admin users have access to all databases by default, both Alpha and Gamma users need to be given access on a per database basis.||
 |can read on SavedQuery|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can write on SavedQuery|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can read on CssTemplate|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -57,7 +76,6 @@
 |can external metadata on Datasource|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can save on Datasource|:heavy_check_mark:|:heavy_check_mark:|O|O|
 |can get on Datasource|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can shortner on R|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can my queries on SqlLab|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 |can log on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can schemas access for csv upload on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -77,7 +95,6 @@
 |can select star on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can warm up cache on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can sqllab table viz on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-|can profile on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can available domains on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can request access on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -175,10 +192,6 @@
 |menu access on Scan New Datasources|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can share dashboard on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can share chart on Superset|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can list on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can add on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can delete on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-|can edit on FilterSets|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can this form get on ColumnarToDatabaseView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |can this form post on ColumnarToDatabaseView|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 |menu access on Upload a Columnar file|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|

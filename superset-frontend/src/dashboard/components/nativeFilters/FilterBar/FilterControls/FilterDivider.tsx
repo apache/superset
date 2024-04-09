@@ -147,10 +147,10 @@ const HorizontalOverflowDivider = ({
 const FilterDivider = ({
   title,
   description,
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   overflow = false,
 }: FilterDividerProps) => {
-  if (orientation === FilterBarOrientation.HORIZONTAL) {
+  if (orientation === FilterBarOrientation.Horizontal) {
     if (overflow) {
       return (
         <HorizontalOverflowDivider title={title} description={description} />

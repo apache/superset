@@ -31,7 +31,6 @@ from superset.daos.chart import ChartDAO
 from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -45,9 +44,6 @@ class DeleteChartCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
         assert self._models
-
-        for model_id in self._model_ids:
-            Dashboard.clear_cache_for_slice(slice_id=model_id)
 
         try:
             ChartDAO.delete(self._models)
@@ -64,7 +60,10 @@ class DeleteChartCommand(BaseCommand):
         if reports := ReportScheduleDAO.find_by_chart_ids(self._model_ids):
             report_names = [report.name for report in reports]
             raise ChartDeleteFailedReportsExistError(
-                _(f"There are associated alerts or reports: {','.join(report_names)}")
+                _(
+                    "There are associated alerts or reports: %(report_names)s",
+                    report_names=",".join(report_names),
+                )
             )
         # Check ownership
         for model in self._models:

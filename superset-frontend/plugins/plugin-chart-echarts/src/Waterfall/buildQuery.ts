@@ -19,15 +19,14 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getXAxisColumn,
-  isXAxisSet,
   QueryFormData,
 } from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
+  const { x_axis, granularity_sqla, groupby } = formData;
   const columns = [
-    ...(isXAxisSet(formData) ? ensureIsArray(getXAxisColumn(formData)) : []),
-    ...ensureIsArray(formData.groupby),
+    ...ensureIsArray(x_axis || granularity_sqla),
+    ...ensureIsArray(groupby),
   ];
   return buildQueryContext(formData, baseQueryObject => [
     {

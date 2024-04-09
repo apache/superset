@@ -42,6 +42,7 @@ export type EchartsFunnelFormData = QueryFormData &
     gap: number;
     sort: 'descending' | 'ascending' | 'none' | undefined;
     orient: 'vertical' | 'horizontal' | undefined;
+    percentCalculationType: PercentCalcType;
   };
 
 export enum EchartsFunnelLabelTypeType {
@@ -51,6 +52,7 @@ export enum EchartsFunnelLabelTypeType {
   KeyValue,
   KeyPercent,
   KeyValuePercent,
+  ValuePercent,
 }
 
 export interface EchartsFunnelChartProps
@@ -78,3 +80,9 @@ export type FunnelChartTransformedProps =
   BaseTransformedProps<EchartsFunnelFormData> &
     CrossFilterTransformedProps &
     ContextMenuTransformedProps;
+
+export enum PercentCalcType {
+  Total = 'total',
+  PreviousStep = 'prev_step',
+  FirstStep = 'first_step',
+}

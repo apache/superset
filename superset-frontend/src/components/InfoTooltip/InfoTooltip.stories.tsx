@@ -69,11 +69,3 @@ InteractiveInfoTooltip.argTypes = {
     },
   },
 };
-
-InteractiveInfoTooltip.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

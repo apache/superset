@@ -22,6 +22,7 @@ from typing import Union
 
 import backoff
 import pandas as pd
+from flask import g
 from flask_babel import gettext as __
 from slack_sdk import WebClient
 from slack_sdk.errors import (
@@ -44,6 +45,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationUnprocessableException,
 )
+from superset.utils.core import get_email_address_list
 from superset.utils.decorators import statsd_gauge
 
 logger = logging.getLogger(__name__)
@@ -60,7 +62,15 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     type = ReportRecipientType.SLACK
 
     def _get_channel(self) -> str:
-        return json.loads(self._recipient.recipient_config_json)["target"]
+        """
+        Get the recipient's channel(s).
+        Note Slack SDK uses "channel" to refer to one or more
+        channels. Multiple channels are demarcated by a comma.
+        :returns: The comma separated list of channel(s)
+        """
+        recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+
+        return ",".join(get_email_address_list(recipient_str))
 
     def _message_template(self, table: str = "") -> str:
         return __(
@@ -151,21 +161,25 @@ Error: %(text)s
 
         return self._message_template(table)
 
-    def _get_inline_files(self) -> Sequence[Union[str, IOBase, bytes]]:
+    def _get_inline_files(
+        self,
+    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
-            return [self._content.csv]
+            return ("csv", [self._content.csv])
         if self._content.screenshots:
-            return self._content.screenshots
-        return []
+            return ("png", self._content.screenshots)
+        if self._content.pdf:
+            return ("pdf", [self._content.pdf])
+        return (None, [])
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
     def send(self) -> None:
-        files = self._get_inline_files()
+        file_type, files = self._get_inline_files()
         title = self._content.name
         channel = self._get_channel()
         body = self._get_body()
-        file_type = "csv" if self._content.csv else "png"
+        global_logs_context = getattr(g, "logs_context", {}) or {}
         try:
             token = app.config["SLACK_API_TOKEN"]
             if callable(token):
@@ -183,7 +197,12 @@ Error: %(text)s
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)
-            logger.info("Report sent to slack")
+            logger.info(
+                "Report sent to slack",
+                extra={
+                    "execution_id": global_logs_context.get("execution_id"),
+                },
+            )
         except (
             BotUserAccessError,
             SlackRequestError,

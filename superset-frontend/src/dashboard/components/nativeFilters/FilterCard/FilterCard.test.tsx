@@ -49,7 +49,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
       'NATIVE_FILTER-2': {
@@ -71,7 +71,7 @@ const baseInitialState = {
           rootPath: [DASHBOARD_ROOT_ID],
           excluded: [],
         },
-        type: NativeFilterType.NATIVE_FILTER,
+        type: NativeFilterType.NativeFilter,
         description: '',
       },
     },
@@ -188,7 +188,7 @@ const baseFilter: Filter = {
     rootPath: [DASHBOARD_ROOT_ID],
     excluded: [],
   },
-  type: NativeFilterType.NATIVE_FILTER,
+  type: NativeFilterType.NativeFilter,
   description: '',
 };
 

@@ -248,7 +248,7 @@ except ImportError:  # ClickHouse Connect not installed, do nothing
     pass
 
 
-class ClickHouseConnectEngineSpec(ClickHouseEngineSpec, BasicParametersMixin):
+class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     """Engine spec for clickhouse-connect connector"""
 
     engine = "clickhousedb"

@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from flask_appbuilder import SQLA
-
+from superset import db
 from superset.models.dashboard import Dashboard
 
 
-def get_dashboards_ids(db: SQLA, dashboard_slugs: list[str]) -> list[int]:
+def get_dashboards_ids(dashboard_slugs: list[str]) -> list[int]:
     result = (
         db.session.query(Dashboard.id).filter(Dashboard.slug.in_(dashboard_slugs)).all()
     )

@@ -20,8 +20,8 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require('prism-react-renderer/themes/github');
-const darkCodeTheme = require('prism-react-renderer/themes/dracula');
+const lightCodeTheme = require("prism-react-renderer").themes.github;
+const darkCodeTheme = require("prism-react-renderer").themes.vsDark;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -139,7 +139,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs',
+          editUrl: 'https://github.com/apache/superset/edit/master/docs',
         },
         blog: {
           showReadingTime: true,
@@ -171,7 +171,7 @@ const config = {
       },
       algolia: {
         appId: 'WR5FASX5ED',
-        apiKey: '299e4601d2fc5d0031bf9a0223c7f0c5',
+        apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
         indexName: 'superset-apache',
       },
       navbar: {
@@ -215,7 +215,7 @@ const config = {
               },
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/superset+apache-superset',
+                href: 'https://stackoverflow.com/questions/tagged/apache-superset',
               },
             ],
           },
@@ -246,7 +246,7 @@ const config = {
           <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
           <p>
             <small>
-              <a href="https://superset.apache.org/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;

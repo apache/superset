@@ -83,7 +83,7 @@ describe('CategoricalColorScale', () => {
     });
     it('recycles colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
+        [FeatureFlag.UseAnalagousColors]: false,
       };
       const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -109,7 +109,7 @@ describe('CategoricalColorScale', () => {
     });
     it('get analogous colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
+        [FeatureFlag.UseAnalagousColors]: true,
       };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('pig');
@@ -123,7 +123,7 @@ describe('CategoricalColorScale', () => {
 
     it('should remove shared color from range if avoid colors collision enabled', () => {
       window.featureFlags = {
-        [FeatureFlag.AVOID_COLORS_COLLISION]: true,
+        [FeatureFlag.AvoidColorsCollision]: true,
       };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const color1 = scale.getColor('a', 1);
@@ -136,7 +136,7 @@ describe('CategoricalColorScale', () => {
       expect(scale.range()).toHaveLength(1);
     });
     window.featureFlags = {
-      [FeatureFlag.AVOID_COLORS_COLLISION]: false,
+      [FeatureFlag.AvoidColorsCollision]: false,
     };
   });
   describe('.setColor(value, forcedColor)', () => {

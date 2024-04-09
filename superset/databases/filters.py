@@ -86,8 +86,8 @@ class DatabaseUploadEnabledFilter(BaseFilter):  # pylint: disable=too-few-public
 
         if hasattr(g, "user"):
             allowed_schemas = [
-                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](db, g.user)
-                for db in datasource_access_databases
+                app.config["ALLOWED_USER_CSV_SCHEMA_FUNC"](database, g.user)
+                for database in datasource_access_databases
             ]
 
             if len(allowed_schemas):

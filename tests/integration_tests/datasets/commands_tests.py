@@ -38,7 +38,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -82,7 +82,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
             "databases/examples.yaml",
         ]
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
 
         # sort columns for deterministic comparison
         metadata["columns"] = sorted(metadata["columns"], key=itemgetter("column_name"))
@@ -216,7 +216,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"])
+        metadata = yaml.safe_load(contents["datasets/examples/energy_usage.yaml"]())
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
@@ -339,7 +339,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    @patch("superset.commands.dataset.importers.v1.utils.g")
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_v1_dataset(self, sm_g, utils_g):
@@ -509,6 +509,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
         }
+
         command = ImportDatabasesCommand(contents)
         command.run()
 
@@ -544,25 +545,23 @@ def _get_table_from_list_by_name(name: str, tables: list[Any]):
 
 
 class TestCreateDatasetCommand(SupersetTestCase):
-    def test_database_not_found(self):
-        self.login(username="admin")
+    @patch("superset.commands.utils.g")
+    def test_database_not_found(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
         with self.assertRaises(DatasetInvalidError):
             CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
+    @patch("superset.commands.utils.g")
     @patch("superset.models.core.Database.get_table")
-    def test_get_table_from_database_error(self, get_table_mock):
-        self.login(username="admin")
+    def test_get_table_from_database_error(self, get_table_mock, mock_g):
         get_table_mock.side_effect = SQLAlchemyError
+        mock_g.user = security_manager.find_user("admin")
         with self.assertRaises(DatasetInvalidError):
             CreateDatasetCommand(
                 {"table_name": "table", "database": get_example_database().id}
             ).run()
 
-    @patch("superset.security.manager.g")
-    @patch("superset.commands.utils.g")
-    def test_create_dataset_command(self, mock_g, mock_g2):
-        mock_g.user = security_manager.find_user("admin")
-        mock_g2.user = mock_g.user
+    def test_create_dataset_command(self):
         examples_db = get_example_database()
         with examples_db.get_sqla_engine_with_context() as engine:
             engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
@@ -570,21 +569,37 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
             )
 
-        table = CreateDatasetCommand(
-            {"table_name": "test_create_dataset_command", "database": examples_db.id}
-        ).run()
-        fetched_table = (
-            db.session.query(SqlaTable)
-            .filter_by(table_name="test_create_dataset_command")
-            .one()
-        )
-        self.assertEqual(table, fetched_table)
-        self.assertEqual([owner.username for owner in table.owners], ["admin"])
+        with override_user(security_manager.find_user("admin")):
+            table = CreateDatasetCommand(
+                {
+                    "table_name": "test_create_dataset_command",
+                    "database": examples_db.id,
+                }
+            ).run()
+            fetched_table = (
+                db.session.query(SqlaTable)
+                .filter_by(table_name="test_create_dataset_command")
+                .one()
+            )
+            self.assertEqual(table, fetched_table)
+            self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
         db.session.delete(table)
         with examples_db.get_sqla_engine_with_context() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
+
+    def test_create_dataset_command_not_allowed(self):
+        examples_db = get_example_database()
+        with override_user(security_manager.find_user("gamma")):
+            with self.assertRaises(DatasetInvalidError):
+                _ = CreateDatasetCommand(
+                    {
+                        "sql": "select * from ab_user",
+                        "database": examples_db.id,
+                        "table_name": "exp1",
+                    }
+                ).run()
 
 
 class TestDatasetWarmUpCacheCommand(SupersetTestCase):

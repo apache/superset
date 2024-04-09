@@ -35,7 +35,7 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsBubble'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.InteractiveChart],
         category: t('Correlation'),
         credits: ['https://echarts.apache.org'],
         description: t(
@@ -45,7 +45,6 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
         name: t('Bubble Chart'),
         tags: [
           t('Multi-Dimensions'),
-          t('Aesthetic'),
           t('Comparison'),
           t('Scatter'),
           t('Time'),

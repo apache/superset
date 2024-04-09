@@ -64,7 +64,7 @@ DATA_CACHE_CONFIG = {
 
 The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or
 database. Each of these configurations will be checked in order before falling back to the default
-value defined in `DATA_CACHE_CONFIG.
+value defined in `DATA_CACHE_CONFIG`.
 
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
@@ -81,7 +81,7 @@ See [Async Queries via Celery](/docs/installation/async-queries-celery) for deta
 
 ### Caching Thumbnails
 
-This is an optional feature that can be turned on by activating it’s [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) on config:
+This is an optional feature that can be turned on by activating it’s [feature flag](/docs/installation/configuring-superset#feature-flags) on config:
 
 ```
 FEATURE_FLAGS = {

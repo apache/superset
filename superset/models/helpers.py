@@ -36,23 +36,24 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import escape, g, Markup
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
+from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, Session, validates
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm import Mapper, validates
 from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, is_feature_enabled, security_manager
+from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -64,6 +65,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -73,6 +75,8 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
+    SQLScript,
+    SQLStatement,
 )
 from superset.superset_typing import (
     AdhocMetric,
@@ -89,6 +93,7 @@ from superset.utils.core import (
     get_column_name,
     get_user_id,
     is_adhoc_column,
+    MediumText,
     remove_duplicates,
 )
 from superset.utils.dates import datetime_to_epoch
@@ -245,7 +250,6 @@ class ImportExportMixin:
     def import_from_dict(
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         cls,
-        session: Session,
         dict_rep: dict[Any, Any],
         parent: Optional[Any] = None,
         recursive: bool = True,
@@ -303,7 +307,7 @@ class ImportExportMixin:
 
         # Check if object already exists in DB, break if more than one is found
         try:
-            obj_query = session.query(cls).filter(and_(*filters))
+            obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
         except MultipleResultsFound as ex:
             logger.error(
@@ -322,7 +326,7 @@ class ImportExportMixin:
             logger.info("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
-            session.add(obj)
+            db.session.add(obj)
         else:
             is_new_obj = False
             logger.info("Updating %s %s", obj.__tablename__, str(obj))
@@ -341,7 +345,7 @@ class ImportExportMixin:
                 for c_obj in new_children.get(child, []):
                     added.append(
                         child_class.import_from_dict(
-                            session=session, dict_rep=c_obj, parent=obj, sync=sync
+                            dict_rep=c_obj, parent=obj, sync=sync
                         )
                     )
                 # If children should get synced, delete the ones that did not
@@ -353,11 +357,11 @@ class ImportExportMixin:
                         for k in back_refs.keys()
                     ]
                     to_delete = set(
-                        session.query(child_class).filter(and_(*delete_filters))
+                        db.session.query(child_class).filter(and_(*delete_filters))
                     ).difference(set(added))
                     for o in to_delete:
                         logger.info("Deleting %s %s", child, str(obj))
-                        session.delete(o)
+                        db.session.delete(o)
 
         return obj
 
@@ -461,11 +465,10 @@ class ImportExportMixin:
         return json_to_dict(self.template_params)  # type: ignore
 
 
-def _user_link(user: User) -> Union[Markup, str]:
+def _user(user: User) -> str:
     if not user:
         return ""
-    url = f"/superset/profile/{user.username}/"
-    return Markup(f"<a href=\"{url}\">{escape(user) or ''}</a>")
+    return escape(user)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -512,11 +515,11 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("created_by")
     def creator(self) -> Union[Markup, str]:
-        return _user_link(self.created_by)
+        return _user(self.created_by)
 
     @property
     def changed_by_(self) -> Union[Markup, str]:
-        return _user_link(self.changed_by)
+        return _user(self.changed_by)
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
@@ -581,12 +584,13 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
 class ExtraJSONMixin:
     """Mixin to add an `extra` column (JSON) and utility methods"""
 
-    extra_json = sa.Column(sa.Text, default="{}")
+    extra_json = sa.Column(MediumText(), default="{}")
 
     @property
     def extra(self) -> dict[str, Any]:
@@ -792,7 +796,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
             BaseTemplateProcessor
-        ] = None,  # pylint: disable=unused-argument
+        ] = None,
     ) -> TextClause:
         return self.fetch_values_predicate
 
@@ -902,12 +906,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return sql
 
     def get_query_str_extended(
-        self, query_obj: QueryObjectDict, mutate: bool = True
+        self,
+        query_obj: QueryObjectDict,
+        mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        sql = sqlparse.format(sql, reindent=True)
+        try:
+            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
+        except SupersetParseError:
+            logger.warning("Unable to parse SQL to format it, passing it as-is")
+
         if mutate:
             sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -1055,7 +1065,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
     def get_rendered_sql(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> str:
         """
         Render sql with template engine (Jinja).
@@ -1072,13 +1083,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
+
+        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
+
+        sql = script.statements[0].format(comments=False)
+        if not sql:
+            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
 
     def text(self, clause: str) -> TextClause:
@@ -1094,7 +1108,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
 
         from_sql = self.get_rendered_sql(template_processor)
-        parsed_query = ParsedQuery(from_sql)
+        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
         if not (
             parsed_query.is_unknown()
             or self.db_engine_spec.is_readonly_query(parsed_query)
@@ -1340,19 +1354,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> list[Any]:
-        # always denormalize column name before querying for values
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,
+    ) -> list[Any]:
+        # denormalize column name before querying for values
+        # unless disabled in the dataset configuration
         db_dialect = self.database.get_dialect()
-        denormalized_col_name = self.database.db_engine_spec.denormalize_name(
-            db_dialect, column_name
+        column_name_ = (
+            self.database.db_engine_spec.denormalize_name(db_dialect, column_name)
+            if denormalize_column
+            else column_name
         )
         cols = {col.column_name: col for col in self.columns}
-        target_col = cols[denormalized_col_name]
+        target_col = cols[column_name_]
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
         qry = (
-            sa.select([target_col.get_sqla_col(template_processor=tp)])
+            sa.select(
+                # The alias (label) here is important because some dialects will
+                # automatically add a random alias to the projection because of the
+                # call to DISTINCT; others will uppercase the column names. This
+                # gives us a deterministic column name in the dataframe.
+                [target_col.get_sqla_col(template_processor=tp).label("column_values")]
+            )
             .select_from(tbl)
             .distinct()
         )
@@ -1368,7 +1396,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             sql = self.mutate_query_from_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
-            return df[denormalized_col_name].to_list()
+            # replace NaN with None to ensure it can be serialized to JSON
+            df = df.replace({np.nan: None})
+            return df["column_values"].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1749,10 +1779,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
             filter_grain = flt.get("grain")
 
-            if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if get_column_name(flt_col) in removed_filters:
-                    # Skip generating SQLA filter when the jinja template handles it.
-                    continue
+            if get_column_name(flt_col) in removed_filters:
+                # Skip generating SQLA filter when the jinja template handles it.
+                continue
 
             if col_obj or sqla_col is not None:
                 if sqla_col is not None:
@@ -1963,7 +1992,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                col = literal_column(col.name)
+                with self.database.get_sqla_engine_with_context() as engine:
+                    quote = engine.dialect.identifier_preparer.quote
+                    col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc
             qry = qry.order_by(direction(col))
 

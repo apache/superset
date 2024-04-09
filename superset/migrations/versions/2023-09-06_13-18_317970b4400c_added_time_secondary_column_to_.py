@@ -32,7 +32,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
 from superset import db
-from superset.migrations.shared.utils import paginated_update
+from superset.migrations.shared.utils import paginated_update, table_has_column
 
 Base = declarative_base()
 
@@ -45,23 +45,25 @@ class SqlaTable(Base):
 
 
 def upgrade():
-    op.add_column(
-        "tables",
-        sa.Column(
-            "always_filter_main_dttm",
-            sa.Boolean(),
-            nullable=True,
-            default=False,
-            server_default=sa.false(),
-        ),
-    )
+    if not table_has_column("tables", "always_filter_main_dttm"):
+        op.add_column(
+            "tables",
+            sa.Column(
+                "always_filter_main_dttm",
+                sa.Boolean(),
+                nullable=True,
+                default=False,
+                server_default=sa.false(),
+            ),
+        )
 
-    bind = op.get_bind()
-    session = db.Session(bind=bind)
+        bind = op.get_bind()
+        session = db.Session(bind=bind)
 
-    for table in paginated_update(session.query(SqlaTable)):
-        table.always_filter_main_dttm = False
+        for table in paginated_update(session.query(SqlaTable)):
+            table.always_filter_main_dttm = False
 
 
 def downgrade():
-    op.drop_column("tables", "always_filter_main_dttm")
+    if table_has_column("tables", "always_filter_main_dttm"):
+        op.drop_column("tables", "always_filter_main_dttm")

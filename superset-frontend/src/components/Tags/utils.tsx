@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import { SupersetClient, t } from '@superset-ui/core';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+  SupersetClient,
+  t,
+} from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 
 const localCache = new Map<string, any>();
 
@@ -56,7 +57,10 @@ export const loadTags = async (
 ) => {
   const searchColumn = 'name';
   const query = rison.encode({
-    filters: [{ col: searchColumn, opr: 'ct', value: search }],
+    filters: [
+      { col: searchColumn, opr: 'ct', value: search },
+      { col: 'type', opr: 'custom_tag', value: true },
+    ],
     page,
     page_size: pageSize,
     order_column: searchColumn,
@@ -78,9 +82,7 @@ export const loadTags = async (
       const data: {
         label: string;
         value: string | number;
-      }[] = response.json.result
-        .filter((item: Tag & { table_name: string }) => item.type === 1)
-        .map(tagToSelectOption);
+      }[] = response.json.result.map(tagToSelectOption);
       return {
         data,
         totalCount: response.json.count,

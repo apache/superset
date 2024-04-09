@@ -883,7 +883,7 @@ describe('async actions', () => {
       it('updates the table schema state in the backend', () => {
         expect.assertions(2);
 
-        const table = { id: 1 };
+        const table = { id: 1, initialized: true };
         const store = mockStore({});
         const expectedActions = [
           {
@@ -900,7 +900,10 @@ describe('async actions', () => {
       it('deletes multiple tables and updates the table schema state in the backend', () => {
         expect.assertions(2);
 
-        const tables = [{ id: 1 }, { id: 2 }];
+        const tables = [
+          { id: 1, initialized: true },
+          { id: 2, initialized: true },
+        ];
         const store = mockStore({});
         const expectedActions = [
           {
@@ -911,6 +914,23 @@ describe('async actions', () => {
         return store.dispatch(actions.removeTables(tables)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(2);
+        });
+      });
+
+      it('only updates the initialized table schema state in the backend', () => {
+        expect.assertions(2);
+
+        const tables = [{ id: 1 }, { id: 2, initialized: true }];
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.REMOVE_TABLES,
+            tables,
+          },
+        ];
+        return store.dispatch(actions.removeTables(tables)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1);
         });
       });
     });
@@ -937,12 +957,17 @@ describe('async actions', () => {
           { ...query, id: 'previewTwo' },
         ];
         const store = mockStore({});
+        const oldQueryEditor = { ...queryEditor, inLocalStorage: true };
         const expectedActions = [
           {
             type: actions.MIGRATE_QUERY_EDITOR,
-            oldQueryEditor: queryEditor,
+            oldQueryEditor,
             // new qe has a different id
-            newQueryEditor: { ...queryEditor, id: '1' },
+            newQueryEditor: {
+              ...oldQueryEditor,
+              id: '1',
+              inLocalStorage: false,
+            },
           },
           {
             type: actions.MIGRATE_TAB_HISTORY,
@@ -975,7 +1000,7 @@ describe('async actions', () => {
         return store
           .dispatch(
             actions.migrateQueryEditorFromLocalStorage(
-              queryEditor,
+              oldQueryEditor,
               tables,
               queries,
             ),

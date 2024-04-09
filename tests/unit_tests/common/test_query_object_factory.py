@@ -39,11 +39,6 @@ def app_config() -> dict[str, Any]:
 
 
 @fixture
-def session_factory() -> Mock:
-    return Mock()
-
-
-@fixture
 def connector_registry() -> Mock:
     return Mock(spec=["get_datasource"])
 
@@ -58,12 +53,12 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
 
 @fixture
 def query_object_factory(
-    app_config: dict[str, Any], connector_registry: Mock, session_factory: Mock
+    app_config: dict[str, Any], connector_registry: Mock
 ) -> QueryObjectFactory:
     import superset.common.query_object_factory as mod
 
     mod.apply_max_row_limit = apply_max_row_limit
-    return QueryObjectFactory(app_config, connector_registry, session_factory)
+    return QueryObjectFactory(app_config, connector_registry)
 
 
 @fixture

@@ -29,15 +29,15 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
         metrics=[],
-        database=db,
+        database=database,
     )
 
-    session.add(db)
+    session.add(database)
     session.add(sqla_table)
     session.flush()
     yield session
@@ -50,7 +50,6 @@ def test_datasource_find_by_id_skip_base_filter(session_with_data: Session) -> N
 
     result = DatasetDAO.find_by_id(
         1,
-        session=session_with_data,
         skip_base_filter=True,
     )
 
@@ -67,7 +66,6 @@ def test_datasource_find_by_id_skip_base_filter_not_found(
 
     result = DatasetDAO.find_by_id(
         125326326,
-        session=session_with_data,
         skip_base_filter=True,
     )
     assert result is None
@@ -79,7 +77,6 @@ def test_datasource_find_by_ids_skip_base_filter(session_with_data: Session) -> 
 
     result = DatasetDAO.find_by_ids(
         [1, 125326326],
-        session=session_with_data,
         skip_base_filter=True,
     )
 
@@ -96,7 +93,6 @@ def test_datasource_find_by_ids_skip_base_filter_not_found(
 
     result = DatasetDAO.find_by_ids(
         [125326326, 125326326125326326],
-        session=session_with_data,
         skip_base_filter=True,
     )
 

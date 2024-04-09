@@ -47,10 +47,6 @@ export const URL_PARAMS = {
     name: 'native_filters_key',
     type: 'string',
   },
-  filterSet: {
-    name: 'filter_set',
-    type: 'string',
-  },
   showFilters: {
     name: 'show_filters',
     type: 'boolean',
@@ -179,7 +175,6 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
       user_info_url: '',
       user_login_url: '',
       user_logout_url: '',
-      user_profile_url: '',
       locale: '',
     },
     settings: [],
@@ -194,3 +189,11 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
   common: DEFAULT_COMMON_BOOTSTRAP_DATA,
 };
+
+export enum FilterPlugins {
+  Select = 'filter_select',
+  Range = 'filter_range',
+  Time = 'filter_time',
+  TimeColumn = 'filter_timecolumn',
+  TimeGrain = 'filter_timegrain',
+}

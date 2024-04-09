@@ -33,7 +33,6 @@ const metadata = new ChartMetadata({
   name: t('World Map'),
   tags: [
     t('2D'),
-    t('Aesthetic'),
     t('Comparison'),
     t('Intensity'),
     t('Legacy'),
@@ -46,9 +45,9 @@ const metadata = new ChartMetadata({
   thumbnail,
   useLegacyApi: true,
   behaviors: [
-    Behavior.INTERACTIVE_CHART,
-    Behavior.DRILL_TO_DETAIL,
-    Behavior.DRILL_BY,
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
   ],
 });
 

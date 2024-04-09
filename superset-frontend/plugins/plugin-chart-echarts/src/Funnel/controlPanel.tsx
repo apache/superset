@@ -20,16 +20,19 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlStateMapping,
   ControlSubSectionHeader,
+  D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
-  sections,
-  sharedControls,
-  ControlStateMapping,
   getStandardizedControls,
-  D3_FORMAT_DOCS,
+  sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
+import {
+  DEFAULT_FORM_DATA,
+  EchartsFunnelLabelTypeType,
+  PercentCalcType,
+} from './types';
 import { legendSection } from '../controls';
 
 const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
@@ -40,7 +43,6 @@ funnelLegendSection.splice(2, 1);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -67,6 +69,28 @@ const config: ControlPanelConfig = {
               description: t(
                 'Whether to sort results by the selected metric in descending order.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'percent_calculation_type',
+            config: {
+              type: 'SelectControl',
+              label: t('% calculation'),
+              description: t(
+                'Display percents in the label and tooltip as the percent of the total value, from the first step of the funnel, or from the previous step in the funnel.',
+              ),
+              choices: [
+                [PercentCalcType.FirstStep, t('Calculate from first step')],
+                [
+                  PercentCalcType.PreviousStep,
+                  t('Calculate from previous step'),
+                ],
+                [PercentCalcType.Total, t('Percent of total')],
+              ],
+              default: PercentCalcType.FirstStep,
+              renderTrigger: true,
             },
           },
         ],
@@ -100,6 +124,10 @@ const config: ControlPanelConfig = {
                 [
                   EchartsFunnelLabelTypeType.KeyValuePercent,
                   t('Category, Value and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.ValuePercent,
+                  t('Value and Percentage'),
                 ],
               ],
               description: t('What should be shown as the label'),

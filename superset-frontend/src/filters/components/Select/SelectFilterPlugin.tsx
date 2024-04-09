@@ -31,7 +31,7 @@ import {
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
 import { SLOW_DEBOUNCE } from 'src/constants';
@@ -147,7 +147,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
                 .join(', ')}${suffix}`
             : undefined,
           value:
-            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
+            appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
         },
@@ -168,7 +168,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
 
   const isDisabled =
-    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
+    appSection === AppSection.FilterConfigModal && defaultToFirstItem;
 
   const onSearch = useMemo(
     () =>
@@ -316,7 +316,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
+          oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
           invertSelection={inverseSelection}
           options={options}
           sortComparator={sortComparator}

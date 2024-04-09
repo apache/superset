@@ -53,11 +53,3 @@ InteractiveFormRow.argTypes = {
     },
   },
 };
-
-InteractiveFormRow.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
-};

@@ -26,7 +26,7 @@
     "d3": "^3.5.17",
     "d3-svg-legend": "^1.x",
     "d3-tip": "^0.9.1",
-    "prop-types": "^15.6.2"
+    "prop-types": "^15.8.1"
   },
   "peerDependencies": {
     "@emotion/react": "^11.4.1",

@@ -62,7 +62,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
+class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"
     max_column_name_length = 64

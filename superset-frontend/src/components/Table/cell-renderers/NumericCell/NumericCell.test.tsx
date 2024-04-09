@@ -26,7 +26,7 @@ test('renders with French locale and Euro currency format', () => {
       value={5678943}
       locale={LocaleCode.fr}
       options={{
-        style: Style.CURRENCY,
+        style: Style.Currency,
         currency: CurrencyCode.EUR,
       }}
     />,
@@ -40,7 +40,7 @@ test('renders with English US locale and USD currency format', () => {
       value={5678943}
       locale={LocaleCode.en_US}
       options={{
-        style: Style.CURRENCY,
+        style: Style.Currency,
         currency: CurrencyCode.USD,
       }}
     />,

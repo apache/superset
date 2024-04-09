@@ -17,14 +17,15 @@
  * under the License.
  */
 import {
-  t,
-  QueryMode,
   DTTM_ALIAS,
   GenericDataType,
   QueryColumn,
-  DatasourceType,
+  QueryMode,
+  t,
 } from '@superset-ui/core';
 import { ColumnMeta, SortSeriesData, SortSeriesType } from './types';
+
+export const DEFAULT_MAX_ROW = 100000;
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
@@ -41,7 +42,8 @@ export const COLUMN_NAME_ALIASES: Record<string, string> = {
 export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
   verbose_name: COLUMN_NAME_ALIASES[DTTM_ALIAS],
   column_name: DTTM_ALIAS,
-  type_generic: GenericDataType.TEMPORAL,
+  type: 'TIMESTAMP',
+  type_generic: GenericDataType.Temporal,
   description: t(
     'A reference to the [Time] configuration, taking granularity into account',
   ),
@@ -49,13 +51,14 @@ export const DATASET_TIME_COLUMN_OPTION: ColumnMeta = {
 
 export const QUERY_TIME_COLUMN_OPTION: QueryColumn = {
   column_name: DTTM_ALIAS,
-  type: DatasourceType.Query,
-  is_dttm: false,
+  is_dttm: true,
+  type: 'TIMESTAMP',
+  type_generic: GenericDataType.Temporal,
 };
 
 export const QueryModeLabel = {
-  [QueryMode.aggregate]: t('Aggregate'),
-  [QueryMode.raw]: t('Raw records'),
+  [QueryMode.Aggregate]: t('Aggregate'),
+  [QueryMode.Raw]: t('Raw records'),
 };
 
 export const DEFAULT_SORT_SERIES_DATA: SortSeriesData = {

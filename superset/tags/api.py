@@ -40,6 +40,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.tag import TagDAO
 from superset.exceptions import MissingUserContextException
 from superset.extensions import event_logger
+from superset.tags.filters import UserCreatedTagTypeFilter
 from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
@@ -117,7 +118,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
+
+    search_filters = {"type": [UserCreatedTagTypeFilter]}
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
@@ -584,12 +587,21 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        tag_ids = [
+            tag_id for tag_id in request.args.get("tagIds", "").split(",") if tag_id
+        ]
         tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
         # filter types
         types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
-            tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+            if tag_ids:
+                # priotize using ids for lookups vs. names mainly using this
+                # for backward compatibility
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
+            else:
+                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+
             result = [
                 self.object_entity_response_schema.dump(tagged_object)
                 for tagged_object in tagged_objects
@@ -609,11 +621,11 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
-        """Favorite Stars for Dashboards
+        """Favorite Stars for Tags
         ---
         get:
           description: >-
-            Check favorited dashboards for current user
+            Get favorited tags for current user
           parameters:
           - in: query
             name: q

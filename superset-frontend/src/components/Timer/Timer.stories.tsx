@@ -59,13 +59,8 @@ InteractiveTimer.argTypes = {
   },
 };
 
-InteractiveTimer.story = {
-  parameters: {
-    actions: {
-      disabled: true,
-    },
-    knobs: {
-      disabled: true,
-    },
+InteractiveTimer.parameters = {
+  actions: {
+    disabled: true,
   },
 };

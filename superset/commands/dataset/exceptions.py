@@ -144,6 +144,13 @@ class OwnersNotFoundValidationError(ValidationError):
         super().__init__([_("Owners are invalid")], field_name="owners")
 
 
+class DatasetDataAccessIsNotAllowed(ValidationError):
+    status = 422
+
+    def __init__(self, message: str) -> None:
+        super().__init__([_(message)], field_name="sql")
+
+
 class DatasetNotFoundError(CommandException):
     status = 404
     message = _("Dataset does not exist")

@@ -262,6 +262,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "data": payload["df"].to_dict(orient="records"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
         }
 
     @deprecated(deprecated_in="3.0")
@@ -1352,55 +1354,6 @@ class DistributionBarViz(BaseViz):
         return chart_data
 
 
-class SunburstViz(BaseViz):
-
-    """A multi level sunburst chart"""
-
-    viz_type = "sunburst"
-    verbose_name = _("Sunburst")
-    is_timeseries = False
-    credits = (
-        "Kerry Rodden "
-        '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>'
-    )
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-        form_data = copy.deepcopy(self.form_data)
-        cols = get_column_names(form_data.get("groupby"))
-        cols.extend(["m1", "m2"])
-        metric = utils.get_metric_name(form_data["metric"])
-        secondary_metric = (
-            utils.get_metric_name(form_data["secondary_metric"])
-            if form_data.get("secondary_metric")
-            else None
-        )
-        if metric == secondary_metric or secondary_metric is None:
-            df.rename(columns={df.columns[-1]: "m1"}, inplace=True)
-            df["m2"] = df["m1"]
-        else:
-            df.rename(columns={df.columns[-2]: "m1"}, inplace=True)
-            df.rename(columns={df.columns[-1]: "m2"}, inplace=True)
-
-        # Re-order the columns as the query result set column ordering may differ from
-        # that listed in the hierarchy.
-        df = df[cols]
-        return df.to_numpy().tolist()
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        query_obj = super().query_obj()
-        query_obj["metrics"] = [self.form_data["metric"]]
-        secondary_metric = self.form_data.get("secondary_metric")
-        if secondary_metric and secondary_metric != self.form_data["metric"]:
-            query_obj["metrics"].append(secondary_metric)
-        if self.form_data.get("sort_by_metric", False):
-            query_obj["orderby"] = [(query_obj["metrics"][0], False)]
-        return query_obj
-
-
 class SankeyViz(BaseViz):
 
     """A Sankey diagram that requires a parent-child dataset"""
@@ -1615,85 +1568,6 @@ class WorldMapViz(BaseViz):
             else:
                 row["country"] = "XXX"
         return data
-
-
-class FilterBoxViz(BaseViz):
-
-    """A multi filter, multi-choice filter box to make dashboards interactive"""
-
-    query_context_factory: QueryContextFactory | None = None
-    viz_type = "filter_box"
-    verbose_name = _("Filters")
-    is_timeseries = False
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
-    cache_type = "get_data"
-    filter_row_limit = 1000
-
-    @deprecated(deprecated_in="3.0")
-    def query_obj(self) -> QueryObjectDict:
-        return {}
-
-    @deprecated(deprecated_in="3.0")
-    def run_extra_queries(self) -> None:
-        query_obj = super().query_obj()
-        filters = self.form_data.get("filter_configs") or []
-        query_obj["row_limit"] = self.filter_row_limit
-        self.dataframes = {}  # pylint: disable=attribute-defined-outside-init
-        for flt in filters:
-            col = flt.get("column")
-            if not col:
-                raise QueryObjectValidationError(
-                    _("Invalid filter configuration, please select a column")
-                )
-            query_obj["groupby"] = [col]
-            metric = flt.get("metric")
-            query_obj["metrics"] = [metric] if metric else []
-            asc = flt.get("asc")
-            if metric and asc is not None:
-                query_obj["orderby"] = [(metric, asc)]
-            self.get_query_context_factory().create(
-                datasource={"id": self.datasource.id, "type": self.datasource.type},
-                form_data=self.form_data,
-                queries=[query_obj],
-            ).raise_for_access()
-            df = self.get_df_payload(query_obj=query_obj).get("df")
-            self.dataframes[col] = df
-
-    @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        filters = self.form_data.get("filter_configs") or []
-        data = {}
-        for flt in filters:
-            col = flt.get("column")
-            metric = flt.get("metric")
-            df = self.dataframes.get(col)
-            if df is not None and not df.empty:
-                if metric:
-                    df = df.sort_values(
-                        utils.get_metric_name(metric), ascending=flt.get("asc", False)
-                    )
-                    data[col] = [
-                        {"id": row[0], "text": row[0], "metric": row[1]}
-                        for row in df.itertuples(index=False)
-                    ]
-                else:
-                    df = df.sort_values(col, ascending=flt.get("asc", False))
-                    data[col] = [
-                        {"id": row[0], "text": row[0]}
-                        for row in df.itertuples(index=False)
-                    ]
-            else:
-                data[col] = []
-        return data
-
-    @deprecated(deprecated_in="3.0")
-    def get_query_context_factory(self) -> QueryContextFactory:
-        if self.query_context_factory is None:
-            # pylint: disable=import-outside-toplevel
-            from superset.common.query_context_factory import QueryContextFactory
-
-            self.query_context_factory = QueryContextFactory()
-        return self.query_context_factory
 
 
 class ParallelCoordinatesViz(BaseViz):
@@ -2027,7 +1901,7 @@ class BaseDeckGLViz(BaseViz):
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _(f"Invalid spatial point encountered: {latlong}")
+                _("Invalid spatial point encountered: %(latlong)s", latlong=latlong)
             ) from ex
 
     @staticmethod

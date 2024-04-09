@@ -1,0 +1,39 @@
+name: Docs Testing
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: yarn install
+        run: |
+          yarn install --check-cache
+      - name: yarn typecheck
+        run: |
+          yarn typecheck
+      - name: yarn build
+        run: |
+          yarn build

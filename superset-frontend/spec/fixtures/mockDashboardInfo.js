@@ -38,5 +38,5 @@ export default {
     flash_messages: [],
     conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 },
   },
-  filterBarOrientation: FilterBarOrientation.VERTICAL,
+  filterBarOrientation: FilterBarOrientation.Vertical,
 };

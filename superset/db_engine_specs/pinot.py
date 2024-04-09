@@ -62,7 +62,7 @@ class PinotEngineSpec(BaseEngineSpec):
         )
 
     @classmethod
-    def epoch_ms_to_dttm_(cls) -> str:
+    def epoch_ms_to_dttm(cls) -> str:
         return (
             "DATETIMECONVERT({col}, '1:MILLISECONDS:EPOCH', "
             + "'1:MILLISECONDS:EPOCH', '1:MILLISECONDS')"

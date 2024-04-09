@@ -218,8 +218,8 @@ test('sort the options by label if no sort comparator is provided', async () => 
 
 test('sort the options using a custom sort comparator', async () => {
   const sortComparator = (
-    option1: typeof OPTIONS[0],
-    option2: typeof OPTIONS[0],
+    option1: (typeof OPTIONS)[0],
+    option2: (typeof OPTIONS)[0],
   ) => option1.gender.localeCompare(option2.gender);
   render(<AsyncSelect {...defaultProps} sortComparator={sortComparator} />);
   await open();
@@ -937,6 +937,18 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
   fireEvent(input, paste);
   // Only Peter should be added
   expect(await findAllSelectOptions()).toHaveLength(4);
+});
+
+test('does not fire onChange if the same value is selected in single mode', async () => {
+  const onChange = jest.fn();
+  render(<AsyncSelect {...defaultProps} onChange={onChange} />);
+  const optionText = 'Emma';
+  await open();
+  expect(onChange).toHaveBeenCalledTimes(0);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
+  userEvent.click(await findSelectOption(optionText));
+  expect(onChange).toHaveBeenCalledTimes(1);
 });
 
 /*

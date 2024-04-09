@@ -64,7 +64,7 @@ table_column_association_table = sa.Table(
 )
 
 
-class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
+class Table(AuditMixinNullable, ExtraJSONMixin, ImportExportMixin, Model):
     """
     A table/view in a database.
     """
@@ -169,7 +169,7 @@ class Table(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             )
 
         default_props = default_props or {}
-        session: Session = inspect(database).session
+        session: Session = inspect(database).session  # pylint: disable=disallowed-name
         # load existing tables
         predicate = or_(
             *[

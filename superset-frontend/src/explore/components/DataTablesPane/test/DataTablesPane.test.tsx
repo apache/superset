@@ -93,6 +93,8 @@ describe('DataTablesPane', () => {
             data: [{ __timestamp: 1230768000000, genre: 'Action' }],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
           },
         ],
       },
@@ -125,6 +127,8 @@ describe('DataTablesPane', () => {
             ],
             colnames: ['__timestamp', 'genre'],
             coltypes: [2, 1],
+            rowcount: 2,
+            sql_rowcount: 2,
           },
         ],
       },
@@ -135,6 +139,7 @@ describe('DataTablesPane', () => {
     });
     userEvent.click(screen.getByText('Results'));
     expect(await screen.findByText('2 rows')).toBeVisible();
+
     expect(screen.getByText('Action')).toBeVisible();
     expect(screen.getByText('Horror')).toBeVisible();
 
@@ -149,10 +154,10 @@ describe('DataTablesPane', () => {
   test('Displaying the data pane is under featureflag', () => {
     // @ts-ignore
     global.featureFlags = {
-      [FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT]: true,
+      [FeatureFlag.DatapanelClosedByDefault]: true,
     };
     const props = createDataTablesPaneProps(0);
-    setItem(LocalStorageKeys.is_datapanel_open, true);
+    setItem(LocalStorageKeys.IsDatapanelOpen, true);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
     });

@@ -39,10 +39,9 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import cache_manager, is_feature_enabled
+from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -718,6 +717,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -725,6 +725,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
+        :param access_token: Personal access token for OAuth2
         :return: None
         """
         url = make_url_safe(uri)
@@ -1272,7 +1273,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor = conn.cursor()
             sql = f"SHOW CREATE VIEW {schema}.{table}"
             try:
-                cls.execute(cursor, sql)
+                cls.execute(cursor, sql, database)
                 rows = cls.fetch_data(cursor, 1)
 
                 return rows[0][0]
@@ -1288,11 +1289,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return None
 
     @classmethod
-    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+    def handle_cursor(cls, cursor: Cursor, query: Query) -> None:
         """Updates progress information"""
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
-            session.commit()
+            db.session.commit()
 
         query_id = query.id
         poll_interval = query.database.connect_args.get(
@@ -1308,7 +1309,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # Update the object and wait for the kill signal.
             stats = polled.get("stats", {})
 
-            query = session.query(type(query)).filter_by(id=query_id).one()
+            query = db.session.query(type(query)).filter_by(id=query_id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
@@ -1330,9 +1331,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                         completed_splits,
                         total_splits,
                     )
-                    if progress > query.progress:
-                        query.progress = progress
-                    session.commit()
+                    query.progress = max(query.progress, progress)
+                    db.session.commit()
             time.sleep(poll_interval)
             logger.info("Query %i: Polling the cursor for progress", query_id)
             polled = cursor.poll()

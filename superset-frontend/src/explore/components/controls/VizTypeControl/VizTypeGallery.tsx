@@ -18,6 +18,7 @@
  */
 import React, {
   ChangeEventHandler,
+  ReactElement,
   useCallback,
   useEffect,
   useMemo,
@@ -58,11 +59,11 @@ type VizEntry = {
   value: ChartMetadata;
 };
 
-enum SECTIONS {
-  ALL_CHARTS = 'ALL_CHARTS',
-  CATEGORY = 'CATEGORY',
-  TAGS = 'TAGS',
-  RECOMMENDED_TAGS = 'RECOMMENDED_TAGS',
+enum Sections {
+  AllCharts = 'ALL_CHARTS',
+  Featured = 'FEATURED',
+  Category = 'CATEGORY',
+  Tags = 'TAGS',
 }
 
 const DEFAULT_ORDER = [
@@ -77,7 +78,6 @@ const DEFAULT_ORDER = [
   'echarts_timeseries_scatter',
   'pie',
   'mixed_timeseries',
-  'filter_box',
   'dist_bar',
   'area',
   'bar',
@@ -89,11 +89,11 @@ const DEFAULT_ORDER = [
   'time_pivot',
   'deck_arc',
   'heatmap',
+  'heatmap_v2',
   'deck_grid',
   'deck_screengrid',
   'treemap_v2',
   'box_plot',
-  'sunburst',
   'sankey',
   'word_cloud',
   'mapbox',
@@ -125,6 +125,8 @@ export const MAX_ADVISABLE_VIZ_GALLERY_WIDTH = 1090;
 const OTHER_CATEGORY = t('Other');
 
 const ALL_CHARTS = t('All charts');
+
+const FEATURED = t('Featured');
 
 const RECOMMENDED_TAGS = [t('Popular'), t('ECharts'), t('Advanced-Analytics')];
 
@@ -239,8 +241,8 @@ const SelectorLabel = styled.button`
       }
     }
 
-    & span:first-of-type svg {
-      margin-top: ${theme.gridUnit * 1.5}px;
+    & > span[role="img"] {
+      margin-right: ${theme.gridUnit * 2}px;
     }
 
     .cancel {
@@ -451,7 +453,7 @@ const ThumbnailGallery: React.FC<ThumbnailGalleryProps> = ({
 const Selector: React.FC<{
   selector: string;
   sectionId: string;
-  icon: JSX.Element;
+  icon: ReactElement;
   isSelected: boolean;
   onClick: (selector: string, sectionId: string) => void;
   className?: string;
@@ -570,13 +572,11 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   );
 
   const [activeSelector, setActiveSelector] = useState<string>(
-    () => selectedVizMetadata?.category || RECOMMENDED_TAGS[0],
+    () => selectedVizMetadata?.category || FEATURED,
   );
 
   const [activeSection, setActiveSection] = useState<string>(() =>
-    selectedVizMetadata?.category
-      ? SECTIONS.CATEGORY
-      : SECTIONS.RECOMMENDED_TAGS,
+    selectedVizMetadata?.category ? Sections.Category : Sections.Featured,
   );
 
   // get a fuse instance for fuzzy search
@@ -668,19 +668,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
 
   const sectionMap = useMemo(
     () => ({
-      [SECTIONS.RECOMMENDED_TAGS]: {
-        title: t('Recommended tags'),
-        icon: <Icons.Tags />,
-        selectors: RECOMMENDED_TAGS,
-      },
-      [SECTIONS.CATEGORY]: {
+      [Sections.Category]: {
         title: t('Category'),
-        icon: <Icons.Category />,
+        icon: <Icons.Category iconSize="m" />,
         selectors: categories,
       },
-      [SECTIONS.TAGS]: {
+      [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags />,
+        icon: <Icons.Tags iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -691,23 +686,23 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (isActivelySearching) {
       return searchResults;
     }
-    if (
-      activeSelector === ALL_CHARTS &&
-      activeSection === SECTIONS.ALL_CHARTS
-    ) {
+    if (activeSelector === ALL_CHARTS && activeSection === Sections.AllCharts) {
       return sortedMetadata;
     }
     if (
-      activeSection === SECTIONS.CATEGORY &&
+      activeSelector === FEATURED &&
+      activeSection === Sections.Featured &&
+      chartsByTags[t('Popular')]
+    ) {
+      return chartsByTags[t('Popular')];
+    }
+    if (
+      activeSection === Sections.Category &&
       chartsByCategory[activeSelector]
     ) {
       return chartsByCategory[activeSelector];
     }
-    if (
-      (activeSection === SECTIONS.TAGS ||
-        activeSection === SECTIONS.RECOMMENDED_TAGS) &&
-      chartsByTags[activeSelector]
-    ) {
+    if (activeSection === Sections.Tags && chartsByTags[activeSelector]) {
       return chartsByTags[activeSelector];
     }
     return [];
@@ -727,20 +722,38 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
               margin-bottom: 0;
             `
           }
-          sectionId={SECTIONS.ALL_CHARTS}
+          sectionId={Sections.AllCharts}
           selector={ALL_CHARTS}
-          icon={<Icons.Ballot />}
+          icon={<Icons.Ballot iconSize="m" />}
           isSelected={
             !isActivelySearching &&
             ALL_CHARTS === activeSelector &&
-            SECTIONS.ALL_CHARTS === activeSection
+            Sections.AllCharts === activeSection
+          }
+          onClick={clickSelector}
+        />
+        <Selector
+          css={({ gridUnit }) =>
+            // adjust style for not being inside a collapse
+            css`
+              margin: ${gridUnit * 2}px;
+              margin-bottom: 0;
+            `
+          }
+          sectionId={Sections.Featured}
+          selector={FEATURED}
+          icon={<Icons.FireOutlined iconSize="m" />}
+          isSelected={
+            !isActivelySearching &&
+            FEATURED === activeSelector &&
+            Sections.Featured === activeSection
           }
           onClick={clickSelector}
         />
         <AntdCollapse
           expandIconPosition="right"
           ghost
-          defaultActiveKey={Object.keys(sectionMap)}
+          defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
             const section = sectionMap[sectionId];
@@ -849,10 +862,18 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                 grid-area: examples-header;
               `}
             >
-              {!!selectedVizMetadata?.exampleGallery?.length && t('Examples')}
+              {t('Examples')}
             </SectionTitle>
             <Examples>
-              {(selectedVizMetadata?.exampleGallery || []).map(example => (
+              {(selectedVizMetadata?.exampleGallery?.length
+                ? selectedVizMetadata.exampleGallery
+                : [
+                    {
+                      url: selectedVizMetadata?.thumbnail,
+                      caption: selectedVizMetadata?.name,
+                    },
+                  ]
+              ).map(example => (
                 <img
                   key={example.url}
                   src={example.url}

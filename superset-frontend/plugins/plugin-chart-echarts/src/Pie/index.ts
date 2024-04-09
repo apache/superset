@@ -49,9 +49,9 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsPie'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
@@ -67,7 +67,6 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
         ],
         name: t('Pie Chart'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Circular'),
           t('Comparison'),
