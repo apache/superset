@@ -40,6 +40,7 @@ import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
+import { TitleLabel } from 'src/DodoExtensions/Common';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -237,21 +238,29 @@ function ColumnCollectionTable({
             )}
             <Field
               fieldKey="verbose_name"
-              label={t('Label')}
+              label={
+                <div className="f16">
+                  Label <i className="flag gb" />
+                </div>
+              }
               control={
                 <TextControl
                   controlId="verbose_name"
-                  placeholder={t('Label')}
+                  placeholder={t('Label (ENG)')}
                 />
               }
             />
             <Field
-              fieldKey="verbose_name_2nd_lang"
-              label={t('Label 2nd Language')}
+              fieldKey="verbose_name_RU"
+              label={
+                <div className="f16">
+                  Label <i className="flag ru" />
+                </div>
+              }
               control={
                 <TextControl
-                  controlId="verbose_name_2nd_lang"
-                  placeholder={t('Label 2nd Language')}
+                  controlId="verbose_name_RU"
+                  placeholder={t('LABEL (RUS)')}
                 />
               }
             />
@@ -262,16 +271,6 @@ function ColumnCollectionTable({
                 <TextControl
                   controlId="description"
                   placeholder={t('Description')}
-                />
-              }
-            />
-            <Field
-              fieldKey="description_2nd_language"
-              label={t('Description 2nd Language')}
-              control={
-                <TextControl
-                  controlId="description_2nd_language"
-                  placeholder={t('Description 2nd Language')}
                 />
               }
             />
@@ -667,16 +666,30 @@ class DatasourceEditor extends React.PureComponent {
     this.setState({ datasource }, callback);
   }
 
+  // DODO changed
   onDatasourcePropChange(attr, value) {
     if (value === undefined) return; // if value is undefined do not update state
     const datasource = { ...this.state.datasource, [attr]: value };
+
+    const alteredDatasource = {
+      ...datasource,
+      metrics: datasource.metrics.map(v => ({
+        ...v,
+        verbose_name_EN: v.verbose_name || null,
+      })),
+    };
+
+
     this.setState(
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
       }),
       attr === 'table_name'
-        ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
-        : this.onDatasourceChange(datasource, this.validateAndChange),
+        ? this.onDatasourceChange(
+            alteredDatasource,
+            this.tableChangeAndSyncMetadata,
+          )
+        : this.onDatasourceChange(alteredDatasource, this.validateAndChange),
     );
   }
 
@@ -684,9 +697,33 @@ class DatasourceEditor extends React.PureComponent {
     this.setState({ datasourceType });
   }
 
+  // DODO changed
   setColumns(obj) {
+    console.log('setColumnsXXX', obj)
     // update calculatedColumns or databaseColumns
-    this.setState(obj, this.validateAndChange);
+    let alteredObj = {
+      ...obj,
+    };
+    if (alteredObj && alteredObj.databaseColumns) {
+      alteredObj = {
+        ...alteredObj,
+        databaseColumns: alteredObj.databaseColumns.map(c => ({
+          ...c,
+          verbose_name_EN: c.verbose_name || null,
+        })),
+      };
+    }
+    if (alteredObj && alteredObj.calculatedColumns) {
+      alteredObj = {
+        ...alteredObj,
+        calculatedColumns: alteredObj.calculatedColumns.map(c => ({
+          ...c,
+          verbose_name_EN: c.verbose_name || null,
+        })),
+      };
+    }
+
+    this.setState(alteredObj, this.validateAndChange);
   }
 
   validateAndChange() {
@@ -894,16 +931,6 @@ class DatasourceEditor extends React.PureComponent {
               language="markdown"
               offerEditInModal={false}
               resize="vertical"
-            />
-          }
-        />
-        <Field
-          fieldKey="description_2nd_lang"
-          label={t('Description 2nd Language')}
-          control={
-            <TextControl
-              controlId="description_2nd_lang"
-              placeholder={t('Description 2nd Language')}
             />
           }
         />
@@ -1241,11 +1268,22 @@ class DatasourceEditor extends React.PureComponent {
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
     return (
       <CollectionTable
-        tableColumns={['metric_name', 'verbose_name', 'expression']}
-        sortColumns={['metric_name', 'verbose_name', 'expression']}
+        tableColumns={[
+          'metric_name',
+          'verbose_name',
+          'verbose_name_RU',
+          'expression',
+        ]}
+        sortColumns={[
+          'metric_name',
+          'verbose_name',
+          'verbose_name_RU',
+          'expression',
+        ]}
         columnLabels={{
-          metric_name: t('Metric Key'),
-          verbose_name: t('Label'),
+          metric_name: t('Metric'),
+          verbose_name: t('Label EN'),
+          verbose_name_RU: t('Label RU'),
           expression: t('SQL expression'),
         }}
         columnLabelTooltips={{
@@ -1335,7 +1373,7 @@ class DatasourceEditor extends React.PureComponent {
         itemGenerator={() => ({
           metric_name: t('<new metric>'),
           verbose_name: '',
-          verbose_name_2nd_lang: '',
+          verbose_name_RU: '',
           expression: '',
         })}
         itemCellProps={{
@@ -1363,7 +1401,7 @@ class DatasourceEditor extends React.PureComponent {
           verbose_name: (v, onChange) => (
             <TextControl canEdit value={v} onChange={onChange} />
           ),
-          verbose_name_2nd_lang: (v, onChange) => (
+          verbose_name_RU: (v, onChange) => (
             <TextControl canEdit value={v} onChange={onChange} />
           ),
           expression: (v, onChange) => (

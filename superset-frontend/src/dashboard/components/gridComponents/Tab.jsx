@@ -12,6 +12,7 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
+import { LanguageIndicator, LanguageIndicatorWrapper } from 'src/DodoExtensions/Common';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -63,31 +64,6 @@ const TabTitleContainer = styled.div`
       isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
     }
   `}
-`;
-
-// DODO added
-const TitleWrapper = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  flex-direction: row;
-  margin-bottom: 8px;
-  min-height: 31px;
-
-  span {
-    margin-left: 12px;
-
-    &:first-child {
-      margin-left: 0;
-    }
-  }
-`;
-const TitleLabel = styled.span`
-  display: inline-block;
-  padding: 0;
-`;
-const StyledFlag = styled.i`
-  margin-top: 2px;
 `;
 
 const renderDraggableContentBottom = dropProps =>
@@ -309,13 +285,9 @@ class Tab extends React.PureComponent {
             ref={dragSourceRef}
           >
             {editMode && (
-              <TitleWrapper>
+              <LanguageIndicatorWrapper>
                 {/* DODO changed */}
-                <TitleLabel>
-                  <div className="f16">
-                    <StyledFlag className="flag gb" />
-                  </div>
-                </TitleLabel>
+                <LanguageIndicator language="gb" canEdit />
                 <EditableTitle
                   title={component.meta.text}
                   defaultTitle={component.meta.defaultText}
@@ -325,16 +297,12 @@ class Tab extends React.PureComponent {
                   showTooltip={false}
                   editing={editMode && isFocused}
                 />
-              </TitleWrapper>
+              </LanguageIndicatorWrapper>
             )}
             {/* DODO added */}
             {editMode && (
-              <TitleWrapper>
-                <TitleLabel>
-                  <div className="f16">
-                    <StyledFlag className="flag ru" />
-                  </div>
-                </TitleLabel>
+              <LanguageIndicatorWrapper>
+                <LanguageIndicator language="ru" canEdit />
                 <EditableTitle
                   title={component.meta.textRU}
                   defaultTitle={component.meta.defaultText}
@@ -344,7 +312,7 @@ class Tab extends React.PureComponent {
                   showTooltip={false}
                   editing={editMode && isFocused}
                 />
-              </TitleWrapper>
+              </LanguageIndicatorWrapper>
             )}
             {!editMode && (
               <EditableTitle

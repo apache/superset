@@ -20,6 +20,10 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import {
+  LanguageIndicatorWrapper,
+  LanguageIndicator,
+} from 'src/DodoExtensions/Common/index';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
@@ -187,42 +191,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
-  // DODO added
-  const TitleWrapper = styled.div`
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    flex-direction: row;
-    margin-bottom: 8px;
-    min-height: 31px;
-
-    span {
-      margin-left: 12px;
-
-      &:first-child {
-        margin-left: 0;
-      }
-    }
-  `;
-  const TitleLabel = styled.span`
-    display: inline-block;
-    padding: 0;
-  `;
-  const StyledFlag = styled.i`
-    margin-top: 2px;
-  `;
-
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
         {editMode && (
           <>
-            <TitleWrapper>
-              <TitleLabel>
-                <div className="f16">
-                  <StyledFlag className="flag gb" />
-                </div>
-              </TitleLabel>
+            <LanguageIndicatorWrapper>
+              <LanguageIndicator language="gb" canEdit />
               <Tooltip title={headerTooltip}>
                 <EditableTitle
                   title={
@@ -237,13 +212,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                   showTooltip={false}
                 />
               </Tooltip>
-            </TitleWrapper>
-            <TitleWrapper>
-              <TitleLabel>
-                <div className="f16">
-                  <StyledFlag className="flag ru" />
-                </div>
-              </TitleLabel>
+            </LanguageIndicatorWrapper>
+            <LanguageIndicatorWrapper>
+              <LanguageIndicator language="ru" canEdit />
               <Tooltip title={headerTooltip}>
                 <EditableTitle
                   title={
@@ -258,7 +229,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                   showTooltip={false}
                 />
               </Tooltip>
-            </TitleWrapper>
+            </LanguageIndicatorWrapper>
           </>
         )}
 

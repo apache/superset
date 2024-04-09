@@ -158,6 +158,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       id: number;
       url: string;
       dashboard_title: string;
+      // DODO added
       dashboard_title_RU: string;
     };
 
@@ -289,11 +290,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           value: search,
         },
         {
-          col: 'dashboard_title_RU',
-          opr: 'ct',
-          value: search,
-        },
-        {
           col: 'owners',
           opr: 'rel_m_m',
           value: this.props.user.userId,
@@ -313,10 +309,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         (dashboard: {
           id: number;
           dashboard_title: string;
+          // DODO added
           dashboard_title_RU: string;
         }) => ({
           value: dashboard.id,
           label: dashboard.dashboard_title,
+          // DODO added
           labelRU: dashboard.dashboard_title_RU,
         }),
       ),

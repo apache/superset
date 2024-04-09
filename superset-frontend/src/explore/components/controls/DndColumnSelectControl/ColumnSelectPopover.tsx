@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint-disable camelcase */
 import React, {
   Dispatch,
@@ -69,8 +52,14 @@ interface ColumnSelectPopoverProps {
   onChange: (column: ColumnMeta | AdhocColumn) => void;
   onClose: () => void;
   setLabel: (title: string) => void;
+  // DODO added
+  setLabelEN: (title: string) => void;
+  setLabelRU: (title: string) => void;
   getCurrentTab: (tab: string) => void;
   label: string;
+  // DODO added
+  labelEN: string;
+  labelRU: string;
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
 }
@@ -100,11 +89,26 @@ const ColumnSelectPopover = ({
   getCurrentTab,
   label,
   isTemporal,
+  // DODO added
+  labelEN,
+  labelRU,
+  setLabelEN,
+  setLabelRU,
 }: ColumnSelectPopoverProps) => {
+  console.groupCollapsed('Column Select Popover');
+  console.log('label', label);
+  console.log('labelEN', labelEN);
+  console.log('labelRU', labelRU);
+  console.groupEnd();
+
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
   const [initialLabel] = useState(label);
+  // DODO added
+  const [initialLabelEN] = useState(labelEN);
+  const [initialLabelRU] = useState(labelRU);
+
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
 
@@ -141,43 +145,90 @@ const ColumnSelectPopover = ({
     [columns],
   );
 
+  // DODO changed
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
-      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+      setAdhocColumn({
+        label,
+        labelEN,
+        labelRU,
+        sqlExpression,
+        expressionType: 'SQL',
+      });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
     },
-    [label],
+    [label, labelRU, labelEN],
   );
 
+  // DODO changed
   const onCalculatedColumnChange = useCallback(
     selectedColumnName => {
       const selectedColumn = calculatedColumns.find(
         col => col.column_name === selectedColumnName,
       );
-      setSelectedCalculatedColumn(selectedColumn);
+      const alteredSelectedColumn = selectedColumn
+        ? {
+            ...selectedColumn,
+            verbose_name_EN: selectedColumn?.verbose_name,
+          }
+        : undefined;
+
+      setSelectedCalculatedColumn(alteredSelectedColumn);
       setSelectedSimpleColumn(undefined);
       setAdhocColumn(undefined);
       setLabel(
-        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelEN(
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelRU(
+        alteredSelectedColumn?.verbose_name_RU ||
+          alteredSelectedColumn?.column_name ||
+          '',
       );
     },
-    [calculatedColumns, setLabel],
+    [calculatedColumns, setLabel, setLabelEN, setLabelRU],
   );
 
+  // DODO changed
   const onSimpleColumnChange = useCallback(
     selectedColumnName => {
       const selectedColumn = simpleColumns.find(
         col => col.column_name === selectedColumnName,
       );
+      const alteredSelectedColumn = selectedColumn
+        ? {
+            ...selectedColumn,
+            verbose_name_EN: selectedColumn?.verbose_name,
+          }
+        : undefined;
+
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
       setAdhocColumn(undefined);
       setLabel(
-        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelEN(
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelRU(
+        alteredSelectedColumn?.verbose_name_RU ||
+          alteredSelectedColumn?.column_name ||
+          '',
       );
     },
-    [setLabel, simpleColumns],
+    [setLabel, setLabelEN, setLabelRU, simpleColumns],
   );
 
   const defaultActiveTabKey = initialAdhocColumn
@@ -193,7 +244,15 @@ const ColumnSelectPopover = ({
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
       adhocColumn.label = label;
+      // DODO added
+      adhocColumn.labelEN = label;
     }
+
+    // DODO added
+    if (adhocColumn && adhocColumn.labelRU !== labelRU) {
+      adhocColumn.labelRU = labelRU;
+    }
+
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
     if (!selectedColumn) {
@@ -204,6 +263,8 @@ const ColumnSelectPopover = ({
   }, [
     adhocColumn,
     label,
+    // DODO added
+    labelRU,
     onChange,
     onClose,
     selectedCalculatedColumn,
@@ -245,8 +306,12 @@ const ColumnSelectPopover = ({
 
   const stateIsValid =
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
+
+  // DODO changed
   const hasUnsavedChanges =
     initialLabel !== label ||
+    initialLabelRU !== labelRU ||
+    initialLabelEN !== labelEN ||
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||

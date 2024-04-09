@@ -1,4 +1,5 @@
-// DODO was here (TODO)
+// DODO was here
+
 import React, {
   ChangeEventHandler,
   FocusEvent,
@@ -6,104 +7,131 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import { t, styled } from '@superset-ui/core';
-import { Input } from 'src/components/Input';
-import { Tooltip } from 'src/components/Tooltip';
-
-const TitleLabel = styled.span`
-  display: inline-block;
-  padding: 2px 0;
-`;
-
-const StyledInput = styled(Input)`
-  border-radius: ${({ theme }) => theme.borderRadius};
-  height: 26px;
-  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
-`;
+import { t } from '@superset-ui/core';
+import {
+  AdHocMetricTitleEditDisabled,
+  InformativeInputs,
+  InformativeInputs2,
+  SYSTEM_LANGUAGES,
+} from 'src/DodoExtensions/AdhocMetricEditPopoverTitle';
 
 export interface AdhocMetricEditPopoverTitleProps {
   title?: {
     label?: string;
+    labelRU?: string;
+    labelEN?: string;
     hasCustomLabel?: boolean;
   };
   isEditDisabled?: boolean;
-  onChange: ChangeEventHandler<HTMLInputElement>;
+  // onChange: ChangeEventHandler<HTMLInputElement>;
+  onChangeEN: ChangeEventHandler<HTMLInputElement>;
+  onChangeRU: ChangeEventHandler<HTMLInputElement>;
 }
 
 const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
-  ({ title, isEditDisabled, onChange }) => {
-    const [isHovered, setIsHovered] = useState(false);
+  ({ title, isEditDisabled, /* onChange, */ onChangeEN, onChangeRU }) => {
+    const [isHoveredEN, setIsHoveredEN] = useState(false);
+    const [isHoveredRU, setIsHoveredRU] = useState(false);
+
     const [isEditMode, setIsEditMode] = useState(false);
+    const [editLang, setEditLang] = useState(SYSTEM_LANGUAGES.en);
 
     const defaultLabel = t('My metric');
+    const defaultLabelRU = t('Моя метрика');
 
-    const handleMouseOver = useCallback(() => setIsHovered(true), []);
-    const handleMouseOut = useCallback(() => setIsHovered(false), []);
-    const handleClick = useCallback(() => setIsEditMode(true), []);
-    const handleBlur = useCallback(() => setIsEditMode(false), []);
+    const handleMouseOverEN = useCallback(() => setIsHoveredEN(true), []);
+    const handleMouseOutEN = useCallback(() => setIsHoveredEN(false), []);
 
-    const handleKeyPress = useCallback(
+    const handleMouseOverRU = useCallback(() => setIsHoveredRU(true), []);
+    const handleMouseOutRU = useCallback(() => setIsHoveredRU(false), []);
+
+    const handleClick = useCallback((lang: string) => {
+      setEditLang(lang);
+      setIsEditMode(true);
+    }, []);
+
+    const handleBlurEN = useCallback(() => setIsEditMode(false), []);
+    const handleBlurRU = useCallback(() => setIsEditMode(false), []);
+
+    const handleKeyPressEN = useCallback(
       (ev: KeyboardEvent<HTMLInputElement>) => {
         if (ev.key === 'Enter') {
           ev.preventDefault();
-          handleBlur();
+          handleBlurEN();
         }
       },
-      [handleBlur],
+      [handleBlurEN],
     );
 
-    const handleInputBlur = useCallback(
+    const handleKeyPressRU = useCallback(
+      (ev: KeyboardEvent<HTMLInputElement>) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          handleBlurRU();
+        }
+      },
+      [handleBlurRU],
+    );
+
+    const handleInputBlurEN = useCallback(
       (e: FocusEvent<HTMLInputElement>) => {
         if (e.target.value === '') {
-          onChange(e);
+          onChangeEN(e);
         }
 
-        handleBlur();
+        handleBlurEN();
       },
-      [onChange, handleBlur],
+      [onChangeEN, handleBlurEN],
+    );
+
+    const handleInputBlurRU = useCallback(
+      (e: FocusEvent<HTMLInputElement>) => {
+        if (e.target.value === '') {
+          onChangeRU(e);
+        }
+
+        handleBlurRU();
+      },
+      [onChangeRU, handleBlurRU],
     );
 
     if (isEditDisabled) {
       return (
-        <span data-test="AdhocMetricTitle">{title?.label || defaultLabel}</span>
+        <AdHocMetricTitleEditDisabled
+          title={title}
+          defaultLabel={defaultLabel}
+        />
       );
     }
 
-    if (isEditMode) {
+    if (isEditMode && editLang) {
       return (
-        <StyledInput
-          type="text"
-          placeholder={title?.label}
-          value={title?.hasCustomLabel ? title.label : ''}
-          autoFocus
-          onChange={onChange}
-          onBlur={handleInputBlur}
-          onKeyPress={handleKeyPress}
-          data-test="AdhocMetricEditTitle#input"
+        <InformativeInputs
+          editLang={editLang}
+          title={title}
+          defaultLabel={defaultLabel}
+          onChangeEN={onChangeEN}
+          handleInputBlurEN={handleInputBlurEN}
+          handleKeyPressEN={handleKeyPressEN}
+          defaultLabelRU={defaultLabelRU}
+          onChangeRU={onChangeRU}
+          handleInputBlurRU={handleInputBlurRU}
+          handleKeyPressRU={handleKeyPressRU}
         />
       );
     }
 
     return (
-      <Tooltip placement="top" title={t('Click to edit label')}>
-        <span
-          className="AdhocMetricEditPopoverTitle inline-editable"
-          data-test="AdhocMetricEditTitle#trigger"
-          onMouseOver={handleMouseOver}
-          onMouseOut={handleMouseOut}
-          onClick={handleClick}
-          onBlur={handleBlur}
-          role="button"
-          tabIndex={0}
-        >
-          <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
-          &nbsp;
-          <i
-            className="fa fa-pencil"
-            style={{ color: isHovered ? 'black' : 'grey' }}
-          />
-        </span>
-      </Tooltip>
+      <InformativeInputs2
+        title={title}
+        defaultLabel={defaultLabel}
+        defaultLabelRU={defaultLabelRU}
+        handleClick={handleClick}
+        handleBlurEN={handleBlurEN}
+        handleMouseOverRU={handleMouseOverRU}
+        handleMouseOutRU={handleMouseOutRU}
+        handleBlurRU={handleBlurRU}
+      />
     );
   };
 
