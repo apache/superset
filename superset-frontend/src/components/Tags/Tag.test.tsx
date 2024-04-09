@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';
 
@@ -53,4 +53,33 @@ test('should render longname properly', () => {
   expect(screen.getByTestId('tag')).toHaveTextContent(
     `${longNameProps.name.slice(0, 20)}...`,
   );
+});
+
+test('should render with role="button" when onClick is defined, editable=false, and id=undefined', () => {
+  const onClickMock = jest.fn();
+  render(
+    <Tag
+      {...mockedProps}
+      onClick={onClickMock}
+      editable={false}
+      id={undefined}
+    />,
+  );
+  const tagElement = screen.getByTestId('tag');
+  expect(tagElement).toBeInTheDocument();
+  expect(tagElement).toHaveAttribute('role', 'button');
+  fireEvent.click(tagElement);
+  expect(onClickMock).toHaveBeenCalledTimes(1);
+});
+
+test('should render with role="link" when onClick is defined, editable=false, and id is defined', () => {
+  const onClickMock = jest.fn();
+  render(
+    <Tag {...mockedProps} onClick={onClickMock} editable={false} id={1} />,
+  );
+  const tagElement = screen.getByTestId('tag');
+  expect(tagElement).toBeInTheDocument();
+  expect(tagElement).toHaveAttribute('role', 'link');
+  fireEvent.click(tagElement);
+  expect(onClickMock).toHaveBeenCalledTimes(1);
 });

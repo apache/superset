@@ -93,7 +93,6 @@ export default function Label(props: LabelProps) {
   return (
     <Tag
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
       {...rest}
       css={{
         transition: `background-color ${transitionTiming}s`,
