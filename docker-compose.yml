@@ -142,9 +142,7 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      BUILD_SUPERSET_FRONTEND_IN_DOCKER: ${BUILD_SUPERSET_FRONTEND_IN_DOCKER:-true}
       SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
-      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: ${BUILD_SUPERSET_FRONTEND_IN_DOCKER:-false}
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
