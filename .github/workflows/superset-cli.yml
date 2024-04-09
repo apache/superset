@@ -41,8 +41,8 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check for file changes
           lfs: false
+      - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
         with:
