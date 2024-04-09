@@ -47,19 +47,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-<<<<<<< HEAD
         if: steps.check.outputs.python
-        with:
-          python-version: ${{ matrix.python-version }}
-=======
-        if: steps.check.outcome == 'failure'
->>>>>>> a4e39cdaaf (chore: [proposal] de-matrix python-version in GHAs)
       - name: Setup MySQL
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            setup-mysql
+          run: setup-mysql
       - name: Run celery
         if: steps.check.outputs.python
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
@@ -105,13 +98,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-<<<<<<< HEAD
         if: steps.check.outputs.python
-        with:
-          python-version: ${{ matrix.python-version }}
-=======
-        if: steps.check.outcome == 'failure'
->>>>>>> a4e39cdaaf (chore: [proposal] de-matrix python-version in GHAs)
       - name: Setup Postgres
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
