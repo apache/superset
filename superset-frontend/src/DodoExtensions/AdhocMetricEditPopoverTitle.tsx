@@ -127,8 +127,6 @@ interface InformativeInputs2Props {
   handleClick: Function;
   handleBlurEN: React.FocusEventHandler<HTMLSpanElement> | undefined;
   handleBlurRU: React.FocusEventHandler<HTMLSpanElement> | undefined;
-  handleMouseOverRU: React.MouseEventHandler<HTMLSpanElement> | undefined;
-  handleMouseOutRU: React.MouseEventHandler<HTMLSpanElement> | undefined;
 }
 
 const InformativeInputs2 = ({
@@ -136,8 +134,6 @@ const InformativeInputs2 = ({
   handleBlurEN,
   title,
   defaultLabel,
-  handleMouseOverRU,
-  handleMouseOutRU,
   handleBlurRU,
   defaultLabelRU,
 }: InformativeInputs2Props) => (
@@ -169,8 +165,6 @@ const InformativeInputs2 = ({
         <span
           className="AdhocMetricEditPopoverTitle inline-editable"
           data-test="AdhocMetricEditTitle#trigger"
-          onMouseOver={handleMouseOverRU}
-          onMouseOut={handleMouseOutRU}
           onClick={() => handleClick(SYSTEM_LANGUAGES.ru)}
           onBlur={handleBlurRU}
           role="button"

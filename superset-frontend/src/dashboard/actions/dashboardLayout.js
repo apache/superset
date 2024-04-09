@@ -81,7 +81,7 @@ export function dashboardTitleChanged(text, textRU) {
   return {
     type: DASHBOARD_TITLE_CHANGED,
     text,
-    textRU
+    textRU,
   };
 }
 

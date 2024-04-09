@@ -40,7 +40,6 @@ import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
-import { TitleLabel } from 'src/DodoExtensions/Common';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -679,7 +678,6 @@ class DatasourceEditor extends React.PureComponent {
       })),
     };
 
-
     this.setState(
       prevState => ({
         datasource: { ...prevState.datasource, [attr]: value },
@@ -699,7 +697,7 @@ class DatasourceEditor extends React.PureComponent {
 
   // DODO changed
   setColumns(obj) {
-    console.log('setColumnsXXX', obj)
+    console.log('setColumnsXXX', obj);
     // update calculatedColumns or databaseColumns
     let alteredObj = {
       ...obj,

@@ -12,7 +12,10 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
-import { LanguageIndicator, LanguageIndicatorWrapper } from 'src/DodoExtensions/Common';
+import {
+  LanguageIndicator,
+  LanguageIndicatorWrapper,
+} from 'src/DodoExtensions/Common';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -316,7 +319,7 @@ class Tab extends React.PureComponent {
             )}
             {!editMode && (
               <EditableTitle
-              // DODO changed
+                // DODO changed
                 title={
                   userLanguage === 'ru'
                     ? component.meta.textRU || component.meta.text

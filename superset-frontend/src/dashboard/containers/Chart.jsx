@@ -55,8 +55,9 @@ function mapStateToProps(
 
   // DODO added
   // ENRTYPOINT DASHBOARD LANGUAGE
-  const userLanguage = (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
-  'en';
+  const userLanguage =
+    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+    'en';
 
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||

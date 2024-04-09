@@ -108,6 +108,8 @@ const ColumnSelectPopoverTrigger = ({
         };
 
   const getCurrentTab = useCallback((tab: string) => {
+    // DODO added
+    console.log('isTitleEditDisabled', isTitleEditDisabled);
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
 

@@ -30,20 +30,11 @@ export interface AdhocMetricEditPopoverTitleProps {
 
 const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
   ({ title, isEditDisabled, /* onChange, */ onChangeEN, onChangeRU }) => {
-    const [isHoveredEN, setIsHoveredEN] = useState(false);
-    const [isHoveredRU, setIsHoveredRU] = useState(false);
-
     const [isEditMode, setIsEditMode] = useState(false);
     const [editLang, setEditLang] = useState(SYSTEM_LANGUAGES.en);
 
     const defaultLabel = t('My metric');
     const defaultLabelRU = t('Моя метрика');
-
-    const handleMouseOverEN = useCallback(() => setIsHoveredEN(true), []);
-    const handleMouseOutEN = useCallback(() => setIsHoveredEN(false), []);
-
-    const handleMouseOverRU = useCallback(() => setIsHoveredRU(true), []);
-    const handleMouseOutRU = useCallback(() => setIsHoveredRU(false), []);
 
     const handleClick = useCallback((lang: string) => {
       setEditLang(lang);
@@ -128,8 +119,6 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
         defaultLabelRU={defaultLabelRU}
         handleClick={handleClick}
         handleBlurEN={handleBlurEN}
-        handleMouseOverRU={handleMouseOverRU}
-        handleMouseOutRU={handleMouseOutRU}
         handleBlurRU={handleBlurRU}
       />
     );
