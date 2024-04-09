@@ -33,6 +33,10 @@ export type AdhocMetricPopoverTriggerProps = {
 export type AdhocMetricPopoverTriggerState = {
   adhocMetric: AdhocMetric;
   popoverVisible: boolean;
+  currentLabel: string;
+  labelModified: boolean;
+  isTitleEditDisabled: boolean;
+  showSaveDatasetModal: boolean;
   // DODO changed
   title: {
     label: string;
@@ -40,12 +44,8 @@ export type AdhocMetricPopoverTriggerState = {
     labelEN: string;
     hasCustomLabel: boolean;
   };
-  currentLabel: string;
   // DODO added
   currentLabelRU: string;
-  labelModified: boolean;
-  isTitleEditDisabled: boolean;
-  showSaveDatasetModal: boolean;
 };
 
 class AdhocMetricPopoverTrigger extends React.PureComponent<
@@ -72,6 +72,11 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.state = {
       adhocMetric: props.adhocMetric,
       popoverVisible: false,
+      currentLabel: '',
+      labelModified: false,
+      isTitleEditDisabled: false,
+      showSaveDatasetModal: false,
+      // DODO changed
       title: {
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
@@ -79,13 +84,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         labelEN: props.adhocMetric.labelEN,
         labelRU: props.adhocMetric.labelRU,
       },
-      currentLabel: '',
       // DODO added
       currentLabelRU: '',
-
-      labelModified: false,
-      isTitleEditDisabled: false,
-      showSaveDatasetModal: false,
     };
   }
 
@@ -131,6 +131,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       title: {
         hasCustomLabel: !!label,
         label: finalLabelEN,
+        // DODO added
         labelEN: finalLabelEN,
         labelRU: finalLabelRU,
       },
@@ -202,6 +203,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }: {
     savedMetricLabel: string;
     adhocMetricLabel: string;
+    // DODO added
     adhocMetricLabelRU: string;
   }) {
     const currentLabel = savedMetricLabel || adhocMetricLabel;

@@ -28,19 +28,23 @@ export interface AdhocMetricEditPopoverTitleProps {
   onChangeRU: ChangeEventHandler<HTMLInputElement>;
 }
 
+// DODO changed
 const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
   ({ title, isEditDisabled, /* onChange, */ onChangeEN, onChangeRU }) => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [editLang, setEditLang] = useState(SYSTEM_LANGUAGES.en);
 
     const defaultLabel = t('My metric');
+    // DODO added
     const defaultLabelRU = t('Моя метрика');
 
+    // DODO added
     const handleClick = useCallback((lang: string) => {
       setEditLang(lang);
       setIsEditMode(true);
     }, []);
 
+    // DODO added
     const handleBlurEN = useCallback(() => setIsEditMode(false), []);
     const handleBlurRU = useCallback(() => setIsEditMode(false), []);
 
@@ -54,6 +58,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
       [handleBlurEN],
     );
 
+    // DODO added
     const handleKeyPressRU = useCallback(
       (ev: KeyboardEvent<HTMLInputElement>) => {
         if (ev.key === 'Enter') {
@@ -64,6 +69,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
       [handleBlurRU],
     );
 
+    // DODO added
     const handleInputBlurEN = useCallback(
       (e: FocusEvent<HTMLInputElement>) => {
         if (e.target.value === '') {
@@ -75,6 +81,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
       [onChangeEN, handleBlurEN],
     );
 
+    // DODO added
     const handleInputBlurRU = useCallback(
       (e: FocusEvent<HTMLInputElement>) => {
         if (e.target.value === '') {
@@ -95,6 +102,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
       );
     }
 
+    // DODO added
     if (isEditMode && editLang) {
       return (
         <InformativeInputs

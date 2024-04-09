@@ -308,6 +308,12 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 '--'
               }
               updateSliceName={handleUpdateSliceName}
+              isComponentVisible={isComponentVisible}
+              handleToggleFullSize={handleToggleFullSize}
+              isFullSize={isFullSize}
+              setControlValue={handleExtraControl}
+              extraControls={extraControls}
+              isInView={isInView}
               // DODO added
               sliceNameRU={
                 component.meta.sliceNameOverrideRU ||
@@ -315,14 +321,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 component.meta.sliceName ||
                 '--'
               }
-              // DODO added
               updateSliceNameRU={handleUpdateSliceNameRU}
-              isComponentVisible={isComponentVisible}
-              handleToggleFullSize={handleToggleFullSize}
-              isFullSize={isFullSize}
-              setControlValue={handleExtraControl}
-              extraControls={extraControls}
-              isInView={isInView}
             />
             {editMode && (
               <HoverMenu position="top">

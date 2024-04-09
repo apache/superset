@@ -79,6 +79,7 @@ const getInitialColumnValues = (
   return [undefined, undefined, editedColumn];
 };
 
+// DODO changed
 const ColumnSelectPopover = ({
   columns,
   editedColumn,
@@ -150,10 +151,11 @@ const ColumnSelectPopover = ({
     sqlExpression => {
       setAdhocColumn({
         label,
-        labelEN,
-        labelRU,
         sqlExpression,
         expressionType: 'SQL',
+        // DODO added
+        labelEN,
+        labelRU,
       });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
@@ -182,11 +184,13 @@ const ColumnSelectPopover = ({
           alteredSelectedColumn?.column_name ||
           '',
       );
+      // DODO added
       setLabelEN(
         alteredSelectedColumn?.verbose_name ||
           alteredSelectedColumn?.column_name ||
           '',
       );
+      // DODO added
       setLabelRU(
         alteredSelectedColumn?.verbose_name_RU ||
           alteredSelectedColumn?.column_name ||
@@ -217,11 +221,13 @@ const ColumnSelectPopover = ({
           alteredSelectedColumn?.column_name ||
           '',
       );
+      // DODO added
       setLabelEN(
         alteredSelectedColumn?.verbose_name ||
           alteredSelectedColumn?.column_name ||
           '',
       );
+      // DODO added
       setLabelRU(
         alteredSelectedColumn?.verbose_name_RU ||
           alteredSelectedColumn?.column_name ||
@@ -263,12 +269,12 @@ const ColumnSelectPopover = ({
   }, [
     adhocColumn,
     label,
-    // DODO added
-    labelRU,
     onChange,
     onClose,
     selectedCalculatedColumn,
     selectedSimpleColumn,
+    // DODO added
+    labelRU,
   ]);
 
   const onResetStateAndClose = useCallback(() => {

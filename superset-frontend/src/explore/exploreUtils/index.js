@@ -191,6 +191,7 @@ export const getQuerySettings = formData => {
   ];
 };
 
+// DODO changed
 export const buildV1ChartDataPayload = ({
   formData,
   force,
@@ -198,6 +199,8 @@ export const buildV1ChartDataPayload = ({
   resultType,
   setDataMask,
   ownState,
+  // DODO added
+  language,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -207,7 +210,7 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  return buildQuery(
+  const builtQueryFunc = buildQuery(
     {
       ...formData,
       force,
@@ -221,6 +224,11 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
+
+  return {
+    ...builtQueryFunc,
+    language,
+  };
 };
 
 export const getCSV = async (url, payload, isLegacy, resultFormat) => {
@@ -251,13 +259,15 @@ export const getCSV = async (url, payload, isLegacy, resultFormat) => {
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-// DODO-changed (added)
+// DODO added
 export const exportChartPlugin = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
   force = false,
   ownState = {},
+  // DODO added
+  language = 'en',
 }) => {
   let url;
   let payload;
@@ -277,8 +287,8 @@ export const exportChartPlugin = ({
 
     const updatedUrl =
       resultFormat === XLSX
-        ? `${fixedUrl}&${XLSX}=true` // &language=${language}`
-        : `${fixedUrl}`; // &language=${language}`;
+        ? `${fixedUrl}&${XLSX}=true&language=${language}`
+        : `${fixedUrl}&language=${language}`;
 
     console.groupCollapsed('EXPORT CSV/XLSX legacy');
     console.log('url', url);
@@ -299,6 +309,8 @@ export const exportChartPlugin = ({
     resultType,
     ownState,
     parseMethod,
+    // DODO added
+    language,
   });
 
   console.groupCollapsed('EXPORT CSV/XLSX');
@@ -326,6 +338,7 @@ const getExportedChartName = (slice = {}, extension) => {
   );
 };
 
+// DODO changed
 export const exportChart = ({
   formData,
   resultFormat = 'json',
@@ -333,15 +346,18 @@ export const exportChart = ({
   force = false,
   ownState = {},
   slice = {},
+  // DODO added
+  language = 'en',
 }) => {
   console.log('slice', slice);
+  console.log('language here', language);
   const exportResultPromise = exportChartPlugin({
     formData,
     resultFormat,
     resultType,
     force,
     ownState,
-    // language,
+    language,
   });
 
   return exportResultPromise

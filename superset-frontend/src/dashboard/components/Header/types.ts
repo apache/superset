@@ -12,7 +12,13 @@ interface DashboardInfo {
   common?: { conf: Record<string, any> };
 }
 
-export interface HeaderDropdownProps {
+// DODO added
+interface HeaderDropdownPropsDodoExtended {
+  dashboardTitleRU: string;
+}
+
+// DODO changed
+export interface HeaderDropdownProps extends HeaderDropdownPropsDodoExtended {
   addSuccessToast: () => void;
   addDangerToast: () => void;
   customCss: string;
@@ -21,8 +27,6 @@ export interface HeaderDropdownProps {
   dashboardId: number;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
-  // DODO added
-  dashboardTitleRU: string;
   editMode: boolean;
   expandedSlices: Record<number, boolean>;
   forceRefreshAllCharts: () => void;
@@ -42,7 +46,13 @@ export interface HeaderDropdownProps {
   lastModifiedTime: number;
 }
 
-export interface HeaderProps {
+// DODO added
+interface HeaderPropsDodoExtended {
+  dashboardTitleRU: string;
+}
+
+// DODO changed
+export interface HeaderProps extends HeaderPropsDodoExtended {
   addSuccessToast: () => void;
   addDangerToast: () => void;
   addWarningToast: () => void;
@@ -53,8 +63,6 @@ export interface HeaderProps {
   user: Object | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
-  // DODO added
-  dashboardTitleRU: string;
   setColorScheme: () => void;
   setUnsavedChanges: () => void;
   isStarred: boolean;

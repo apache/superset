@@ -3,12 +3,16 @@
 import { GenericDataType } from './QueryResponse';
 import { QueryFormColumn } from './QueryFormData';
 
-export interface AdhocColumn {
-  hasCustomLabel?: boolean;
-  label?: string;
-  // DODO added
+// DODO added
+interface AdhocColumnDodoExtended {
   labelEN?: string;
   labelRU?: string;
+}
+
+// DODO changed
+export interface AdhocColumn extends AdhocColumnDodoExtended {
+  hasCustomLabel?: boolean;
+  label?: string;
   optionName?: string;
   sqlExpression: string;
   expressionType: 'SQL';
@@ -25,7 +29,13 @@ export type PhysicalColumn = string;
 /**
  * Column information defined in datasource.
  */
-export interface Column {
+// DODO added
+interface ColumnDodoExtended {
+  verbose_name_RU?: string | null;
+  verbose_name_EN?: string | null;
+}
+// DODO changed
+export interface Column extends ColumnDodoExtended {
   id?: number;
   type?: string;
   type_generic?: GenericDataType;
@@ -34,14 +44,10 @@ export interface Column {
   is_dttm?: boolean;
   filterable?: boolean;
   verbose_name?: string | null;
-  // DODO added
-  verbose_name_RU?: string | null;
-  verbose_name_EN?: string | null;
   description?: string | null;
   expression?: string | null;
   database_expression?: string | null;
   python_date_format?: string | null;
-
   // used for advanced_data_type
   optionName?: string;
   filterBy?: string;

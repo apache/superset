@@ -196,6 +196,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
       <div className="header-title" ref={headerRef}>
         {editMode && (
           <>
+            {/* DODO added */}
             <LanguageIndicatorWrapper>
               <LanguageIndicator language="gb" canEdit />
               <Tooltip title={headerTooltip}>
@@ -233,6 +234,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
           </>
         )}
 
+        {/* DODO added */}
         {!editMode && userLanguage !== 'ru' && (
           <Tooltip title={headerTooltip}>
             <EditableTitle
@@ -251,6 +253,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
           </Tooltip>
         )}
 
+        {/* DODO added */}
         {!editMode && userLanguage === 'ru' && (
           <Tooltip title={headerTooltip}>
             <EditableTitle

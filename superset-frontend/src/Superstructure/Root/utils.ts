@@ -202,7 +202,6 @@ const defineNavigation = (
       certification_details = '',
       certified_by = '',
       dashboard_title = '',
-      // DODO added
       dashboard_title_RU = '',
       id,
     } = dashboard;

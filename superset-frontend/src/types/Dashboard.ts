@@ -2,13 +2,17 @@
 import Owner from './Owner';
 import Role from './Role';
 
-export interface Dashboard {
+// DODO added
+interface DashboardDodoExtended {
+  dashboard_title_RU: string;
+}
+
+// DODO changed
+export interface Dashboard extends DashboardDodoExtended {
   id: number;
   slug?: string | null;
   url: string;
   dashboard_title: string;
-  // DODO added
-  dashboard_title_RU: string;
   thumbnail_url: string;
   published: boolean;
   css?: string | null;

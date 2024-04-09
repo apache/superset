@@ -100,6 +100,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currentDatasource.schema;
 
     setIsSaving(true);
+    // DODO changed
     SupersetClient.put({
       endpoint: `/api/v1/dataset/${currentDatasource.id}`,
       jsonPayload: {
@@ -135,12 +136,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? null
                 : JSON.stringify(metric.currency),
               verbose_name: metric.verbose_name,
-              // DODO added
-              verbose_name_EN: metric.verbose_name,
-              verbose_name_RU: metric.verbose_name_RU,
               warning_text: metric.warning_text,
               uuid: metric.uuid,
               extra: buildExtraJsonObject(metric),
+              // DODO added
+              verbose_name_EN: metric.verbose_name,
+              verbose_name_RU: metric.verbose_name_RU,
             };
             if (!Number.isNaN(Number(metric.id))) {
               metricBody.id = metric.id;
@@ -155,9 +156,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             type: column.type,
             advanced_data_type: column.advanced_data_type,
             verbose_name: column.verbose_name,
-            // DODO was here
-            verbose_name_EN: column.verbose_name_EN,
-            verbose_name_RU: column.verbose_name_RU,
             description: column.description,
             expression: column.expression,
             filterable: column.filterable,
@@ -167,6 +165,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             python_date_format: column.python_date_format || null,
             uuid: column.uuid,
             extra: buildExtraJsonObject(column),
+            // DODO added
+            verbose_name_EN: column.verbose_name_EN,
+            verbose_name_RU: column.verbose_name_RU,
           }),
         ),
         owners: currentDatasource.owners.map(

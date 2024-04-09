@@ -157,13 +157,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
+  // DODO changed
   const {
     dashboard_title,
-    // DODO added
-    dashboard_title_RU,
     css,
     metadata,
     id = 0,
+    // DODO added
+    dashboard_title_RU,
   } = dashboard || {};
 
   // Filter sets depend on native filters

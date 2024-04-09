@@ -42,7 +42,6 @@ async function getDashboardsResult(
       'created_on_delta_humanized',
       'changed_on_delta_humanized',
       'dashboard_title',
-      // DODO added
       'dashboard_title_RU',
       'id',
       'certification_details',

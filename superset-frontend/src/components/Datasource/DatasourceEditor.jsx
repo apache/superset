@@ -245,10 +245,12 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="verbose_name"
+                  // DODO changed
                   placeholder={t('Label (ENG)')}
                 />
               }
             />
+            {/* DODO added */}
             <Field
               fieldKey="verbose_name_RU"
               label={
@@ -697,7 +699,6 @@ class DatasourceEditor extends React.PureComponent {
 
   // DODO changed
   setColumns(obj) {
-    console.log('setColumnsXXX', obj);
     // update calculatedColumns or databaseColumns
     let alteredObj = {
       ...obj,
@@ -1269,18 +1270,21 @@ class DatasourceEditor extends React.PureComponent {
         tableColumns={[
           'metric_name',
           'verbose_name',
+          // DODO added
           'verbose_name_RU',
           'expression',
         ]}
         sortColumns={[
           'metric_name',
           'verbose_name',
+          // DODO added
           'verbose_name_RU',
           'expression',
         ]}
         columnLabels={{
           metric_name: t('Metric'),
           verbose_name: t('Label EN'),
+          // DODO added
           verbose_name_RU: t('Label RU'),
           expression: t('SQL expression'),
         }}
@@ -1371,6 +1375,7 @@ class DatasourceEditor extends React.PureComponent {
         itemGenerator={() => ({
           metric_name: t('<new metric>'),
           verbose_name: '',
+          // DODO added
           verbose_name_RU: '',
           expression: '',
         })}

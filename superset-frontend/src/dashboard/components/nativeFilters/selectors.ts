@@ -140,15 +140,19 @@ const getRejectedColumns = (chart: any): Set<string> =>
     ),
   );
 
-export type Indicator = {
+// DODO added
+export type IndicatorDodoExtended = {
+  nameRU?: string;
+};
+
+// DODO changed
+export interface Indicator extends IndicatorDodoExtended {
   column?: QueryFormColumn;
   name: string;
-  // DODO added
-  nameRU?: string;
   value?: any;
   status?: IndicatorStatus;
   path?: string[];
-};
+}
 
 export type CrossFilterIndicator = Indicator & { emitterId: number };
 
@@ -173,16 +177,16 @@ export const getCrossFilterIndicator = (
       dashboardLayoutItem?.meta?.sliceNameOverride ||
       dashboardLayoutItem?.meta?.sliceName ||
       '',
-    // DODO added
-    nameRU:
-      dashboardLayoutItem?.meta?.sliceNameOverrideRU ||
-      dashboardLayoutItem?.meta?.sliceNameRU ||
-      '',
     path: [
       ...(dashboardLayoutItem?.parents ?? []),
       dashboardLayoutItem?.id || '',
     ],
     value: label,
+    // DODO added
+    nameRU:
+      dashboardLayoutItem?.meta?.sliceNameOverrideRU ||
+      dashboardLayoutItem?.meta?.sliceNameRU ||
+      '',
   };
   return filterObject;
 };

@@ -30,8 +30,6 @@ const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardId: PropTypes.number,
   dashboardTitle: PropTypes.string,
-  // DODO added
-  dashboardTitleRU: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
   customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
@@ -58,6 +56,8 @@ const propTypes = {
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
   lastModifiedTime: PropTypes.number.isRequired,
+  // DODO added
+  dashboardTitleRU: PropTypes.string,
 };
 
 const defaultProps = {
@@ -192,8 +192,6 @@ class HeaderActionsDropdown extends React.PureComponent {
   render() {
     const {
       dashboardTitle,
-      // DODO added
-      dashboardTitleRU,
       dashboardId,
       dashboardInfo,
       refreshFrequency,
@@ -217,6 +215,8 @@ class HeaderActionsDropdown extends React.PureComponent {
       addDangerToast,
       setIsDropdownVisible,
       isDropdownVisible,
+      // DODO added
+      dashboardTitleRU,
       ...rest
     } = this.props;
 
@@ -278,13 +278,12 @@ class HeaderActionsDropdown extends React.PureComponent {
         <Menu.Divider />
         {userCanSave && (
           <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
+            {/* DODO changed */}
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
               dashboardId={dashboardId}
               dashboardTitle={dashboardTitle}
-              // DODO added
-              dashboardTitleRU={dashboardTitleRU}
               dashboardInfo={dashboardInfo}
               saveType={SAVE_TYPE_NEWDASHBOARD}
               layout={layout}
@@ -300,6 +299,8 @@ class HeaderActionsDropdown extends React.PureComponent {
                 <span data-test="save-as-menu-item">{t('Save as')}</span>
               }
               canOverwrite={userCanEdit}
+              // DODO added
+              dashboardTitleRU={dashboardTitleRU}
             />
           </Menu.Item>
         )}

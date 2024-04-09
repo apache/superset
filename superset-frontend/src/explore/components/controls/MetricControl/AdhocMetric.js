@@ -60,12 +60,12 @@ export default class AdhocMetric {
       this.aggregate = null;
     }
     this.datasourceWarning = !!adhocMetric.datasourceWarning;
-    // DODO added
-    this.isNew = !!adhocMetric.isNew;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
       ? adhocMetric.label
       : this.getDefaultLabel();
+    // DODO added
+    this.isNew = !!adhocMetric.isNew;
     this.labelEN = this.hasCustomLabel
       ? adhocMetric.labelEN
       : this.getDefaultLabel();

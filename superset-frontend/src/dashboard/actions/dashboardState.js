@@ -235,6 +235,7 @@ export function saveDashboardRequest(data, id, saveType) {
     const hasId = item => item.id !== undefined;
     const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     // making sure the data is what the backend expects
+    // DODO changed
     const cleanedData = {
       ...data,
       certified_by: certified_by || '',
@@ -242,8 +243,6 @@ export function saveDashboardRequest(data, id, saveType) {
         certified_by && certification_details ? certification_details : '',
       css: css || '',
       dashboard_title: dashboard_title || '[ untitled dashboard ]',
-      // DODO added
-      dashboard_title_RU: dashboard_title_RU || '[ безымянный дашборд ]',
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
       roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
         ? undefined
@@ -265,6 +264,8 @@ export function saveDashboardRequest(data, id, saveType) {
           metadataCrossFiltersEnabled,
         ),
       },
+      // DODO added
+      dashboard_title_RU: dashboard_title_RU || '[ безымянный дашборд ]',
     };
 
     const handleChartConfiguration = () => {
@@ -366,6 +367,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ({ chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration());
       }
+      // DODO changed
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
           ? data
@@ -374,8 +376,6 @@ export function saveDashboardRequest(data, id, saveType) {
               certification_details: cleanedData.certification_details,
               css: cleanedData.css,
               dashboard_title: cleanedData.dashboard_title,
-              // DODO added
-              dashboard_title_RU: cleanedData.dashboard_title_RU,
               slug: cleanedData.slug,
               owners: cleanedData.owners,
               roles: cleanedData.roles,
@@ -386,6 +386,8 @@ export function saveDashboardRequest(data, id, saveType) {
                 chart_configuration: chartConfiguration,
                 global_chart_configuration: globalChartConfiguration,
               }),
+              // DODO added
+              dashboard_title_RU: cleanedData.dashboard_title_RU,
             };
 
       const updateDashboard = () =>
@@ -448,13 +450,14 @@ export function saveDashboardRequest(data, id, saveType) {
     }
     cleanedData.metadata.default_filters = safeStringify(serializedFilters);
     cleanedData.metadata.filter_scopes = serializedFilterScopes;
+    // DODO changed
     const copyPayload = {
       dashboard_title: cleanedData.dashboard_title,
-      // DODO added
-      dashboard_title_RU: cleanedData.dashboard_title_RU,
       css: cleanedData.css,
       duplicate_slices: cleanedData.duplicate_slices,
       json_metadata: JSON.stringify(cleanedData.metadata),
+      // DODO added
+      dashboard_title_RU: cleanedData.dashboard_title_RU,
     };
 
     return SupersetClient.post({

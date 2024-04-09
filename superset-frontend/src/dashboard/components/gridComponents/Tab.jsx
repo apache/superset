@@ -287,9 +287,9 @@ class Tab extends React.PureComponent {
             className="dragdroppable-tab"
             ref={dragSourceRef}
           >
+            {/* DODO changed */}
             {editMode && (
               <LanguageIndicatorWrapper>
-                {/* DODO changed */}
                 <LanguageIndicator language="gb" canEdit />
                 <EditableTitle
                   title={component.meta.text}

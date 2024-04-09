@@ -66,16 +66,20 @@ type Owners = {
   first_name?: string;
   last_name?: string;
 }[];
-type DashboardInfo = {
+
+// DODO added
+type DashboardInfoDodoExtended = {
+  titleRU: string;
+};
+
+interface DashboardInfo extends DashboardInfoDodoExtended {
   id: number;
   title: string;
-  // DODO added
-  titleRU: string;
   slug: string;
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
-};
+}
 
 const PropertiesModal = ({
   addSuccessToast,
@@ -84,8 +88,6 @@ const PropertiesModal = ({
   dashboardId,
   dashboardInfo: currentDashboardInfo,
   dashboardTitle,
-  // DODO added
-  dashboardTitleRU,
   onHide = () => {},
   onlyApply = false,
   onSubmit = () => {},
@@ -156,13 +158,12 @@ const PropertiesModal = ({
     [],
   );
 
+  // DODO changed
   const handleDashboardData = useCallback(
     dashboardData => {
       const {
         id,
         dashboard_title,
-        // DODO added
-        dashboard_title_RU,
         slug,
         certified_by,
         certification_details,
@@ -170,16 +171,18 @@ const PropertiesModal = ({
         roles,
         metadata,
         is_managed_externally,
+        // DODO added
+        dashboard_title_RU,
       } = dashboardData;
       const dashboardInfo = {
         id,
         title: dashboard_title,
-        // DODO added
-        titleRU: dashboard_title_RU || '[ Безымянный Дашборд ]',
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
+        // DODO added
+        titleRU: dashboard_title_RU || '[ Безымянный Дашборд ]',
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -339,8 +342,8 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    // DODO added
-    const { title, titleRU, slug, certifiedBy, certificationDetails } =
+    // DODO changed
+    const { title, slug, certifiedBy, certificationDetails, titleRU } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
@@ -421,11 +424,10 @@ const PropertiesModal = ({
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
+    // DODO changed
     const onSubmitProps = {
       id: dashboardId,
       title,
-      // DODO added
-      titleRU,
       slug,
       jsonMetadata: currentJsonMetadata,
       owners,
@@ -433,6 +435,8 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
+      // DODO added
+      titleRU,
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
@@ -441,19 +445,20 @@ const PropertiesModal = ({
       addSuccessToast(t('Dashboard properties updated'));
     } else {
       // Используется при сохранении через модалку в списке дашбордов
+      // DODO changed
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dashboard_title: title,
-          // DODO added
-          dashboard_title_RU: titleRU,
           slug: slug || null,
           json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
+          // DODO added
+          dashboard_title_RU: titleRU,
           ...morePutProps,
         }),
       }).then(() => {
@@ -690,6 +695,7 @@ const PropertiesModal = ({
               />
             </FormItem>
           </Col>
+          {/* DODO added */}
           <Col xs={24} md={12}>
             <FormItem label={t('Title RU')} name="titleRU">
               <Input

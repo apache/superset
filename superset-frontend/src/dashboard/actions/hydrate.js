@@ -250,6 +250,7 @@ export const hydrateDashboard =
     });
 
     // store the header as a layout component so we can undo/redo changes
+    // DODO changed
     layout[DASHBOARD_HEADER_ID] = {
       id: DASHBOARD_HEADER_ID,
       type: DASHBOARD_HEADER_TYPE,

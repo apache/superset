@@ -373,8 +373,6 @@ class Header extends React.PureComponent {
       certification_details: dashboardInfo.certification_details,
       css: customCss,
       dashboard_title: dashboardTitle,
-      // DODO added
-      dashboard_title_RU: dashboardTitleRU,
       last_modified_time: lastModifiedTime,
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
@@ -387,6 +385,8 @@ class Header extends React.PureComponent {
         refresh_frequency: refreshFrequency,
         shared_label_colors: currentSharedLabelColors,
       },
+      // DODO added
+      dashboard_title_RU: dashboardTitleRU,
     };
 
     // make sure positions data less than DB storage limitation:
@@ -428,8 +428,6 @@ class Header extends React.PureComponent {
   render() {
     const {
       dashboardTitle,
-      // DODO added
-      dashboardTitleRU,
       layout,
       expandedSlices,
       customCss,
@@ -456,6 +454,8 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
       logEvent,
+      // DODO added
+      dashboardTitleRU,
     } = this.props;
 
     const userCanEdit =
@@ -501,6 +501,7 @@ class Header extends React.PureComponent {
         data-test-id={dashboardInfo.id}
         className="dashboard-header-container"
       >
+        {/* DODO changed */}
         <PageHeaderWithActions
           editableTitleProps={{
             title:
@@ -643,13 +644,12 @@ class Header extends React.PureComponent {
             onVisibleChange: this.setIsDropdownVisible,
           }}
           additionalActionsMenu={
+            // DODO changed
             <HeaderActionsDropdown
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
               dashboardId={dashboardInfo.id}
               dashboardTitle={dashboardTitle}
-              // DODO added
-              dashboardTitleRU={dashboardTitleRU}
               dashboardInfo={dashboardInfo}
               dataMask={dataMask}
               layout={layout}
@@ -680,23 +680,26 @@ class Header extends React.PureComponent {
               isDropdownVisible={this.state.isDropdownVisible}
               setIsDropdownVisible={this.setIsDropdownVisible}
               logEvent={logEvent}
+              // DODO added
+              dashboardTitleRU={dashboardTitleRU}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
           showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
+          // DODO changed
           <PropertiesModal
             dashboardId={dashboardInfo.id}
             dashboardInfo={dashboardInfo}
             dashboardTitle={dashboardTitle}
-            // DODO added
-            dashboardTitleRU={dashboardTitleRU}
             show={this.state.showingPropertiesModal}
             onHide={this.hidePropertiesModal}
             colorScheme={this.props.colorScheme}
             onSubmit={handleOnPropertiesChange}
             onlyApply
+            // DODO added
+            dashboardTitleRU={dashboardTitleRU}
           />
         )}
 

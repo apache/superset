@@ -68,8 +68,6 @@ const undefinedUser: UndefinedUser = {};
 const dashboard: Dashboard = {
   id: 1,
   dashboard_title: 'Test Dash',
-  // DODO added
-  dashboard_title_RU: 'Тестовый дашборд',
   url: 'https://dashboard.example.com/1',
   thumbnail_url: 'https://dashboard.example.com/1/thumbnail.png',
   published: true,
@@ -80,6 +78,8 @@ const dashboard: Dashboard = {
   charts: [],
   owners: [owner],
   roles: [],
+  // DODO added
+  dashboard_title_RU: 'Тестовый дашборд',
 };
 
 let isFeatureEnabledMock: jest.MockInstance<

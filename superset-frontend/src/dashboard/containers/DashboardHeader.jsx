@@ -59,10 +59,6 @@ function mapStateToProps({
     dashboardTitle: (
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,
-    // DODO added
-    dashboardTitleRU: (
-      (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
-    ).textRU,
     expandedSlices: dashboardState.expandedSlices,
     refreshFrequency: dashboardState.refreshFrequency,
     shouldPersistRefreshFrequency:
@@ -86,6 +82,10 @@ function mapStateToProps({
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,
     reports,
+    // DODO added
+    dashboardTitleRU: (
+      (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
+    ).textRU,
   };
 }
 
