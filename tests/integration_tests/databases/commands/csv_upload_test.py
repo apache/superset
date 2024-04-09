@@ -100,7 +100,7 @@ def setup_csv_upload_with_context():
 
 
 @pytest.fixture(scope="function")
-def setup_csv_upload_with_context_schema1():
+def setup_csv_upload_with_context_schema():
     with app.app_context():
         yield from _setup_csv_upload(["public"])
 
@@ -239,7 +239,7 @@ def test_csv_upload_database_not_found():
 
 
 @only_postgresql
-@pytest.mark.usefixtures("setup_csv_upload_with_context_schema1")
+@pytest.mark.usefixtures("setup_csv_upload_with_context_schema")
 def test_csv_upload_schema_not_allowed():
     admin_user = security_manager.find_user(username="admin")
     upload_db_id = get_upload_db().id

@@ -1104,7 +1104,7 @@ class CSVUploadPostSchema(Schema):
     )
     table_name = fields.String(
         required=True,
-        validate=Length(min=1, max=10000),
+        validate=[Length(min=1, max=10000)],
         allow_none=False,
         metadata={"description": "The name of the table to be created/appended"},
     )
