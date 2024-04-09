@@ -112,7 +112,7 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(1).contains('Name');
       cy.getBySel('sort-header').eq(2).contains('Type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
-      cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
+      cy.getBySel('sort-header').eq(4).contains('On dashboards');
       cy.getBySel('sort-header').eq(5).contains('Owners');
       cy.getBySel('sort-header').eq(6).contains('Last modified');
       cy.getBySel('sort-header').eq(7).contains('Actions');

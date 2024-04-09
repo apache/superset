@@ -390,7 +390,7 @@ function ChartList(props: ChartListProps) {
             original: { dashboards },
           },
         }: any) => <DashboardCrossLinks dashboards={dashboards} />,
-        Header: t('Dashboards added to'),
+        Header: t('On dashboards'),
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
