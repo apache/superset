@@ -60,47 +60,46 @@ jobs:
           ref: "refs/pull/${{ github.event.number }}/merge"
           persist-credentials: false
           submodules: recursive
-      - name: Check if python or frontend changes are present
+      - name: Check for file changes
         id: check
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh python frontend
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
           node-version: "16"
       - name: Install npm dependencies
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        if: steps.check.outcome == 'failure'
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
@@ -109,7 +108,7 @@ jobs:
           run: cypress-run-all
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: steps.check.outputs.python || steps.check.outputs.frontend
         with:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots

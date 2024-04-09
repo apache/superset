@@ -45,6 +45,7 @@ export interface ModalTriggerRef {
   current: {
     close: Function;
     open: Function;
+    showModal: boolean;
   };
 }
 
@@ -83,7 +84,7 @@ const ModalTrigger = React.forwardRef(
     };
 
     if (ref) {
-      ref.current = { close, open }; // eslint-disable-line
+      ref.current = { close, open, showModal }; // eslint-disable-line
     }
 
     /* eslint-disable jsx-a11y/interactive-supports-focus */
