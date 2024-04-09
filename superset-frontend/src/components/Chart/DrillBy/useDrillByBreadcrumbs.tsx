@@ -81,21 +81,23 @@ export const useDrillByBreadcrumbs = (
           margin: ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
         `}
       >
-        {breadcrumbsData.map((breadcrumb, index) => (
-          <BreadcrumbItem
-            key={index}
-            isClickable={isClickable(index)}
-            isHidden={isHidden(breadcrumb)}
-            onClick={
-              isClickable(index)
-                ? () => onBreadcrumbClick(breadcrumb, index)
-                : noOp
-            }
-            data-test="drill-by-breadcrumb-item"
-          >
-            {getBreadcrumbText(breadcrumb)}
-          </BreadcrumbItem>
-        ))}
+        {breadcrumbsData
+          .map((breadcrumb, index) => (
+            <BreadcrumbItem
+              key={index}
+              isClickable={isClickable(index)}
+              isHidden={isHidden(breadcrumb)}
+              onClick={
+                isClickable(index)
+                  ? () => onBreadcrumbClick(breadcrumb, index)
+                  : noOp
+              }
+              data-test="drill-by-breadcrumb-item"
+            >
+              {getBreadcrumbText(breadcrumb)}
+            </BreadcrumbItem>
+          ))
+          .filter(item => item.props.isHidden === false)}
       </AntdBreadcrumb>
     );
   }, [breadcrumbsData, onBreadcrumbClick]);
