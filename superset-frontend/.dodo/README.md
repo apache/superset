@@ -1,5 +1,14 @@
 # DODO SUPERSET FRONTEND
 
+## Local requirements for backend
+
+Create a file  `docker/requirements-local.txt` with this content:
+```
+sqlalchemy-kusto==2.0.1
+flask-http-middleware==0.4.2
+marshmallow-enum==1.5.1
+
+```
 ## Start docker
 In order to start development in the root directory perform
 ```
@@ -41,6 +50,11 @@ password: admin
 "DASHBOARD_NATIVE_FILTERS": False
 =>
 "DASHBOARD_NATIVE_FILTERS": True
+# add languages
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "ru": {"flag": "ru", "name": "Russian"},
+}
 ```
 
 ## How to release this to the dev stage (https://superset.dodois.ru/) and PROD (https://analytics.dodois.io/)?
@@ -51,9 +65,9 @@ password: admin
 
 > `Superset frontend branch`
 ```
-2.0-dodo
+3.0-dodo
 ```
-
+!Deprecated
 > `Superset UI branch`
 ```
 dodo-plugins-0.17.41

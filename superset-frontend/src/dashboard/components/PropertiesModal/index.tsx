@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
@@ -64,6 +47,8 @@ const StyledJsonEditor = styled(JsonEditor)`
 type PropertiesModalProps = {
   dashboardId: number;
   dashboardTitle?: string;
+  // DODO added
+  dashboardTitleRU?: string;
   dashboardInfo?: Record<string, any>;
   show?: boolean;
   onHide?: () => void;
@@ -81,14 +66,20 @@ type Owners = {
   first_name?: string;
   last_name?: string;
 }[];
-type DashboardInfo = {
+
+// DODO added
+type DashboardInfoDodoExtended = {
+  titleRU: string;
+};
+
+interface DashboardInfo extends DashboardInfoDodoExtended {
   id: number;
   title: string;
   slug: string;
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
-};
+}
 
 const PropertiesModal = ({
   addSuccessToast,
@@ -167,6 +158,7 @@ const PropertiesModal = ({
     [],
   );
 
+  // DODO changed
   const handleDashboardData = useCallback(
     dashboardData => {
       const {
@@ -179,6 +171,8 @@ const PropertiesModal = ({
         roles,
         metadata,
         is_managed_externally,
+        // DODO added
+        dashboard_title_RU,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -187,6 +181,8 @@ const PropertiesModal = ({
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
+        // DODO added
+        titleRU: dashboard_title_RU || '[ Безымянный Дашборд ]',
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -206,6 +202,7 @@ const PropertiesModal = ({
     [form],
   );
 
+  // Используется при открытии модалки из списка дашбордов
   const fetchDashboardDetails = useCallback(() => {
     setIsLoading(true);
     // We fetch the dashboard details because not all code
@@ -345,7 +342,8 @@ const PropertiesModal = ({
   };
 
   const onFinish = () => {
-    const { title, slug, certifiedBy, certificationDetails } =
+    // DODO changed
+    const { title, slug, certifiedBy, certificationDetails, titleRU } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
@@ -426,6 +424,7 @@ const PropertiesModal = ({
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
     }
+    // DODO changed
     const onSubmitProps = {
       id: dashboardId,
       title,
@@ -436,6 +435,8 @@ const PropertiesModal = ({
       colorNamespace,
       certifiedBy,
       certificationDetails,
+      // DODO added
+      titleRU,
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
@@ -443,6 +444,8 @@ const PropertiesModal = ({
       onHide();
       addSuccessToast(t('Dashboard properties updated'));
     } else {
+      // Используется при сохранении через модалку в списке дашбордов
+      // DODO changed
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
@@ -454,6 +457,8 @@ const PropertiesModal = ({
           certified_by: certifiedBy || null,
           certification_details:
             certifiedBy && certificationDetails ? certificationDetails : null,
+          // DODO added
+          dashboard_title_RU: titleRU,
           ...morePutProps,
         }),
       }).then(() => {
@@ -595,6 +600,7 @@ const PropertiesModal = ({
       dashboardInfo &&
       dashboardInfo.title !== dashboardTitle
     ) {
+      console.log('call here 2', dashboardInfo);
       form.setFieldsValue({
         ...dashboardInfo,
         title: dashboardTitle,
@@ -689,6 +695,18 @@ const PropertiesModal = ({
               />
             </FormItem>
           </Col>
+          {/* DODO added */}
+          <Col xs={24} md={12}>
+            <FormItem label={t('Title RU')} name="titleRU">
+              <Input
+                data-test="dashboard-title-ru-input"
+                type="text"
+                disabled={isLoading}
+              />
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('URL slug')} name="slug">
               <Input type="text" disabled={isLoading} />

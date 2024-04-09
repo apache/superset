@@ -1,4 +1,4 @@
-// DODO was here (TODO)
+// DODO was here
 import React, {
   FC,
   ReactNode,
@@ -20,20 +20,29 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import {
+  LanguageIndicatorWrapper,
+  LanguageIndicator,
+} from 'src/DodoExtensions/Common/index';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
   innerRef?: string;
   updateSliceName?: (arg0: string) => void;
+  // DODO added
   updateSliceNameRU?: (arg0: string) => void;
   editMode?: boolean;
   annotationQuery?: object;
   annotationError?: object;
   sliceName?: string;
+  // DODO added
+  sliceNameRU?: string;
   filters: object;
   handleToggleFullSize: () => void;
   formData: object;
   width: number;
   height: number;
+  // DODO added
+  userLanguage: string;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -115,7 +124,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   innerRef = null,
   forceRefresh = () => ({}),
   updateSliceName = () => ({}),
-  // updateSliceNameRU = () => ({}),
+  // DODO added
+  updateSliceNameRU = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
   logEvent,
@@ -128,8 +138,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updatedDttm = null,
   isCached = [],
   isExpanded = false,
+  // DODO added
   sliceName = '---',
-  // sliceNameRU = '---',
+  sliceNameRU = '---',
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
@@ -146,6 +157,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   formData,
   width,
   height,
+  // DODO added
+  userLanguage,
 }) => {
   const uiConfig = useUiConfig();
   const dashboardPageId = useContext(DashboardPageIdContext);
@@ -181,20 +194,85 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={headerTooltip}>
-          <EditableTitle
-            title={
-              sliceName ||
-              (editMode
-                ? '---' // this makes an empty title clickable
-                : '')
-            }
-            canEdit={editMode}
-            onSaveTitle={updateSliceName}
-            showTooltip={false}
-            url={canExplore ? exploreUrl : undefined}
-          />
-        </Tooltip>
+        {editMode && (
+          <>
+            {/* DODO added */}
+            <LanguageIndicatorWrapper>
+              <LanguageIndicator language="gb" canEdit />
+              <Tooltip title={headerTooltip}>
+                <EditableTitle
+                  title={
+                    sliceName ||
+                    (editMode
+                      ? '---' // this makes an empty title clickable
+                      : '')
+                  }
+                  canEdit={editMode}
+                  emptyText=""
+                  onSaveTitle={updateSliceName}
+                  showTooltip={false}
+                />
+              </Tooltip>
+            </LanguageIndicatorWrapper>
+            <LanguageIndicatorWrapper>
+              <LanguageIndicator language="ru" canEdit />
+              <Tooltip title={headerTooltip}>
+                <EditableTitle
+                  title={
+                    sliceNameRU ||
+                    (editMode
+                      ? '---' // this makes an empty title clickable
+                      : '')
+                  }
+                  canEdit={editMode}
+                  emptyText=""
+                  onSaveTitle={updateSliceNameRU}
+                  showTooltip={false}
+                />
+              </Tooltip>
+            </LanguageIndicatorWrapper>
+          </>
+        )}
+
+        {/* DODO added */}
+        {!editMode && userLanguage !== 'ru' && (
+          <Tooltip title={headerTooltip}>
+            <EditableTitle
+              title={
+                sliceName ||
+                (editMode
+                  ? '---' // this makes an empty title clickable
+                  : '')
+              }
+              canEdit={editMode}
+              emptyText=""
+              onSaveTitle={updateSliceName}
+              showTooltip={false}
+              url={canExplore ? exploreUrl : undefined}
+            />
+          </Tooltip>
+        )}
+
+        {/* DODO added */}
+        {!editMode && userLanguage === 'ru' && (
+          <Tooltip title={headerTooltip}>
+            <EditableTitle
+              title={
+                sliceNameRU ||
+                sliceName ||
+                (editMode
+                  ? 'RU ---' // this makes an empty title clickable
+                  : '')
+              }
+              canEdit={editMode}
+              emptyText=""
+              onSaveTitle={updateSliceNameRU}
+              showTooltip={false}
+              url={canExplore ? exploreUrl : undefined}
+            />
+          </Tooltip>
+        )}
+
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"

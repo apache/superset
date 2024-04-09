@@ -201,6 +201,7 @@ class DashboardGetResponseSchema(Schema):
     tags = fields.Nested(TagSchema, many=True)
     changed_on_humanized = fields.String(data_key="changed_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+    dashboard_title_RU = fields.String(description=dashboard_title_description)
 
 
 class DatabaseSchema(Schema):
@@ -311,6 +312,7 @@ class DashboardCopySchema(Schema):
             "description": "Whether or not to also copy all charts on the dashboard"
         }
     )
+    dashboard_title_RU = fields.String(description=dashboard_title_description)
 
 
 class DashboardPutSchema(BaseDashboardSchema):
@@ -352,6 +354,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    dashboard_title_RU = fields.String(description=dashboard_title_description)
 
 
 class ChartFavStarResponseResult(Schema):

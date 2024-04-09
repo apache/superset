@@ -17,6 +17,8 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { BootstrapUser, User } from './types/bootstrapTypes';
 import getBootstrapData from './utils/getBootstrapData';
+// DODO added
+import { redefineLocale } from './utils/bootstrapHelpers';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -41,9 +43,10 @@ bootstrapData = {
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-  bootstrapData = root
-    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
-    : {};
+  // DODO changed
+  bootstrapData = redefineLocale(
+    root ? JSON.parse(root.getAttribute('data-bootstrap') || '{}') : {},
+  );
   // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;

@@ -69,13 +69,17 @@ interface DashboardListProps {
   };
 }
 
-interface Dashboard {
+// DODO added
+interface DashboardDodoExtended {
+  dashboard_title_RU: string;
+}
+
+// DODO changed
+interface Dashboard extends DashboardDodoExtended {
   changed_by_name: string;
   changed_on_delta_humanized: string;
   changed_by: string;
   dashboard_title: string;
-  // DODO added
-  dashboard_title_RU: string;
   id: number;
   published: boolean;
   url: string;
@@ -186,8 +190,6 @@ function DashboardList(props: DashboardListProps) {
                 changed_by_name,
                 changed_by,
                 dashboard_title = '',
-                // DODO added
-                dashboard_title_RU = '',
                 slug = '',
                 json_metadata = '',
                 changed_on_delta_humanized,
@@ -196,14 +198,14 @@ function DashboardList(props: DashboardListProps) {
                 certification_details = '',
                 owners,
                 tags,
+                // DODO added
+                dashboard_title_RU = '',
               } = json.result;
               return {
                 ...dashboard,
                 changed_by_name,
                 changed_by,
                 dashboard_title,
-                // DODO added
-                dashboard_title_RU,
                 slug,
                 json_metadata,
                 changed_on_delta_humanized,
@@ -212,6 +214,8 @@ function DashboardList(props: DashboardListProps) {
                 certification_details,
                 owners,
                 tags,
+                // DODO added
+                dashboard_title_RU,
               };
             }
             return dashboard;

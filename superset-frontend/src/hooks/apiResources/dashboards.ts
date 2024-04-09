@@ -16,30 +16,33 @@ export const useDashboard = (idOrSlug: string | number) =>
     }),
   );
 
-// gets the chart definitions for a dashboard
+// DODO changed
+// check this => (export default async function callApi({) => you need to send ?language
 export const useDashboardCharts = (
   idOrSlug: string | number,
   language?: string,
 ) =>
-  // DODO added
   useApiV1Resource<Chart[]>(
-    language
-      ? `/api/v1/dashboard/${idOrSlug}/charts?language=${language}`
-      : `/api/v1/dashboard/${idOrSlug}/charts`,
+    // DODO added
+    !language
+      ? `/api/v1/dashboard/${idOrSlug}/charts`
+      : `/api/v1/dashboard/${idOrSlug}/charts?language=${language}`,
   );
 
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset
 // that are necessary for rendering the given dashboard
+// DODO changed
+// check this => (export default async function callApi({) => you need to send ?language
 export const useDashboardDatasets = (
   idOrSlug: string | number,
   language?: string,
 ) =>
-  // DODO added
   useApiV1Resource<Datasource[]>(
-    language
-      ? `/api/v1/dashboard/${idOrSlug}/datasets?language=${language}`
-      : `/api/v1/dashboard/${idOrSlug}/datasets`,
+    // DODO added
+    !language
+      ? `/api/v1/dashboard/${idOrSlug}/datasets`
+      : `/api/v1/dashboard/${idOrSlug}/datasets?language=${language}`,
   );
 
 export const useEmbeddedDashboard = (idOrSlug: string | number) =>

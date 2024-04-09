@@ -38,10 +38,10 @@ const typeToDefaultMetaData = {
   [TABS_TYPE]: null,
   [TAB_TYPE]: {
     text: '',
-    // DODO added
-    textRU: '',
     defaultText: t('Tab title'),
     placeholder: t('Tab title'),
+    // DODO added
+    textRU: '',
   },
   [DYNAMIC_TYPE]: {
     width: GRID_COLUMN_COUNT,

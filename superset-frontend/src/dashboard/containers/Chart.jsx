@@ -1,6 +1,7 @@
-// DODO was here (TODO)
+// DODO was here
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { bootstrapData } from 'src/preamble';
 import {
   toggleExpandSlice,
   setFocusedFilterField,
@@ -39,12 +40,41 @@ function mapStateToProps(
 ) {
   const { id, extraControls, setControlValue } = ownProps;
   const chart = chartQueries[id] || EMPTY_OBJECT;
+
+  // DODO added
+  const currentSlice = sliceEntities
+    ? sliceEntities.slices
+      ? sliceEntities.slices[id]
+      : null
+    : null;
+
+  // DODO added
+  const currentSliceName = currentSlice
+    ? `EN: ${currentSlice.slice_name} | RU: ${currentSlice.slice_name_RU}`
+    : null;
+
+  // DODO added
+  // ENRTYPOINT DASHBOARD LANGUAGE
+  const userLanguage =
+    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+    'en';
+
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
     PLACEHOLDER_DATASOURCE;
   const { colorScheme, colorNamespace, datasetsStatus } = dashboardState;
   const labelColors = dashboardInfo?.metadata?.label_colors || {};
   const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
+
+  // DODO added
+  if (chart && chart.chartStatus === 'success') {
+    console.groupCollapsed('Altered Chart', '[', currentSliceName, ']');
+    console.log('queriesResponse', chart.queriesResponse);
+    console.log('alteredQueriesResponse' /* alteredQueriesResponse */);
+    console.log('chart', chart);
+    console.groupEnd();
+    console.log('');
+  }
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     chart,
@@ -84,6 +114,8 @@ function mapStateToProps(
     setControlValue,
     datasetsStatus,
     emitCrossFilters: !!dashboardInfo.crossFiltersEnabled,
+    // DODO added
+    userLanguage,
   };
 }
 

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -93,10 +76,13 @@ export function updateDashboardTitle(text) {
 export const DASHBOARD_TITLE_CHANGED = 'DASHBOARD_TITLE_CHANGED';
 
 // call this one when it's not an undo-able action
-export function dashboardTitleChanged(text) {
+// DODO changed
+export function dashboardTitleChanged(text, textRU) {
   return {
     type: DASHBOARD_TITLE_CHANGED,
     text,
+    // DODO added
+    textRU,
   };
 }
 

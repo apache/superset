@@ -71,6 +71,8 @@ const propTypes = {
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
   emitCrossFilters: PropTypes.bool,
+  // DODO added
+  updateSliceNameRU: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -111,33 +113,9 @@ const SliceContainer = styled.div`
 `;
 
 // DODO added
-function getPageLanguage() {
-  if (!document) {
-    return null;
-  }
-  const select = document.querySelector('#changeLanguage select');
-  const selectedLanguage = select ? select.value : null;
-  return selectedLanguage;
-}
-
-const getLocaleForSuperset = () => {
-  const dodoisLanguage = getPageLanguage();
-  if (dodoisLanguage) {
-    if (dodoisLanguage === 'ru-RU') return 'ru';
-    return 'en';
-  }
-  return 'en';
-};
-
-let userLanguage = 'en';
-
-if (process.env.type === undefined) {
-  userLanguage =
-    (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
-    'en';
-} else {
-  userLanguage = getLocaleForSuperset();
-}
+const userLanguage =
+  (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+  'en';
 
 class Chart extends React.Component {
   constructor(props) {
@@ -369,11 +347,11 @@ class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: format,
-      // DODO added
-      language: userLanguage,
       force: true,
       ownState: this.props.ownState,
       slice: this.props.slice,
+      // DODO added
+      language: userLanguage,
     });
   }
 
@@ -423,7 +401,9 @@ class Chart extends React.Component {
       emitCrossFilters,
       logEvent,
       // DODO added
-      dashboardLanguage,
+      userLanguage,
+      sliceNameRU,
+      updateSliceNameRU,
     } = this.props;
 
     const { width } = this.state;
@@ -456,6 +436,7 @@ class Chart extends React.Component {
         data-test-viz-type={slice.viz_type}
         data-test-chart-name={slice.slice_name}
       >
+        {/* DODO changed */}
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
@@ -491,7 +472,9 @@ class Chart extends React.Component {
           width={width}
           height={this.getHeaderHeight()}
           // DODO added
-          dashboardLanguage={dashboardLanguage}
+          userLanguage={userLanguage}
+          updateSliceNameRU={updateSliceNameRU}
+          sliceNameRU={sliceNameRU}
         />
 
         {/*
@@ -525,6 +508,7 @@ class Chart extends React.Component {
             />
           )}
 
+          {/* DODO changed */}
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -553,7 +537,7 @@ class Chart extends React.Component {
             isInView={isInView}
             emitCrossFilters={emitCrossFilters}
             // DODO added
-            dashboardLanguage={dashboardLanguage}
+            userLanguage={userLanguage}
           />
         </ChartWrapper>
       </SliceContainer>

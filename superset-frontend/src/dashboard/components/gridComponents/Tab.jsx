@@ -12,6 +12,10 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
+import {
+  LanguageIndicator,
+  LanguageIndicatorWrapper,
+} from 'src/DodoExtensions/Common';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -79,7 +83,6 @@ class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
     this.handleChangeText = this.handleChangeText.bind(this);
-    // DODO added
     this.handleChangeTextRU = this.handleChangeTextRU.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
     this.handleOnHover = this.handleOnHover.bind(this);
@@ -255,24 +258,6 @@ class Tab extends React.PureComponent {
   }
 
   renderTab() {
-    // DODO added
-    const TitleWrapper = styled.div`
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      flex-direction: row;
-      span {
-        margin-left: 12px;
-        &:first-child {
-          margin-left: 0;
-        }
-      }
-    `;
-    const TitleLabel = styled.span`
-      display: inline-block;
-      padding: 0;
-    `;
-
     const {
       component,
       parentComponent,
@@ -281,6 +266,8 @@ class Tab extends React.PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      // DODO added
+      userLanguage,
     } = this.props;
 
     return (
@@ -300,68 +287,58 @@ class Tab extends React.PureComponent {
             className="dragdroppable-tab"
             ref={dragSourceRef}
           >
+            {/* DODO changed */}
+            {editMode && (
+              <LanguageIndicatorWrapper>
+                <LanguageIndicator language="gb" canEdit />
+                <EditableTitle
+                  title={component.meta.text}
+                  defaultTitle={component.meta.defaultText}
+                  placeholder={component.meta.placeholder}
+                  canEdit={editMode && isFocused}
+                  onSaveTitle={this.handleChangeText}
+                  showTooltip={false}
+                  editing={editMode && isFocused}
+                />
+              </LanguageIndicatorWrapper>
+            )}
             {/* DODO added */}
             {editMode && (
-              <>
-                <TitleWrapper>
-                  <TitleLabel>EN:</TitleLabel>
-                  <EditableTitle
-                    title={component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeText}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                </TitleWrapper>
-                <TitleWrapper>
-                  <TitleLabel>RU:</TitleLabel>
-                  <EditableTitle
-                    title={component.meta.textRU}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeTextRU}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                </TitleWrapper>
-              </>
+              <LanguageIndicatorWrapper>
+                <LanguageIndicator language="ru" canEdit />
+                <EditableTitle
+                  title={component.meta.textRU}
+                  defaultTitle={component.meta.defaultText}
+                  placeholder={component.meta.placeholder}
+                  canEdit={editMode && isFocused}
+                  onSaveTitle={this.handleChangeTextRU}
+                  showTooltip={false}
+                  editing={editMode && isFocused}
+                />
+              </LanguageIndicatorWrapper>
             )}
             {!editMode && (
-              <div style={{ position: 'relative' }}>
-                <div style={{ right: '-4px', position: 'absolute' }}>
-                  <AnchorLink
-                    id={component.id}
-                    dashboardId={this.props.dashboardId}
-                    placement={index >= 5 ? 'left' : 'right'}
-                  />
-                </div>
-
-                {this.props.userLanguage === 'en' && (
-                  <EditableTitle
-                    title={component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeText}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                )}
-                {this.props.userLanguage === 'ru' && (
-                  <EditableTitle
-                    title={component.meta.textRU || component.meta.text}
-                    defaultTitle={component.meta.defaultText}
-                    placeholder={component.meta.placeholder}
-                    canEdit={editMode && isFocused}
-                    onSaveTitle={this.handleChangeTextRU}
-                    showTooltip={false}
-                    editing={editMode && isFocused}
-                  />
-                )}
-              </div>
+              <EditableTitle
+                // DODO changed
+                title={
+                  userLanguage === 'ru'
+                    ? component.meta.textRU || component.meta.text
+                    : component.meta.text
+                }
+                defaultTitle={component.meta.defaultText}
+                placeholder={component.meta.placeholder}
+                canEdit={editMode && isFocused}
+                onSaveTitle={this.handleChangeText}
+                showTooltip={false}
+                editing={editMode && isFocused}
+              />
+            )}
+            {!editMode && (
+              <AnchorLink
+                id={component.id}
+                dashboardId={this.props.dashboardId}
+                placement={index >= 5 ? 'left' : 'right'}
+              />
             )}
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}

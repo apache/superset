@@ -99,6 +99,7 @@ from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
 )
+from superset.common.chart_data import ChartDataResultLanguage
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +188,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "dashboard_title_RU",
     ]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
@@ -401,11 +403,39 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        language = request.args.get('language')
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
+            if language == ChartDataResultLanguage.RU:
+                for dataset in result:
+                    verbose_map = dataset.get("verbose_map")
+                    columns = dataset.get("columns")
+                    if columns:
+                        for column in columns:
+                            if isinstance(column, dict) and column.get(
+                                    "verbose_name_RU"):
+                                column["verbose_name"] = column.get(
+                                    "verbose_name_RU")
+                                if isinstance(verbose_map, dict) and \
+                                        verbose_map.get(column.get("column_name")):
+                                    verbose_map[
+                                        column.get("column_name")] = column.get(
+                                        "verbose_name_RU")
+                    metrics = dataset.get("metrics")
+                    if metrics:
+                        for metric in metrics:
+                            if isinstance(metric, dict) and metric.get(
+                                    "verbose_name_RU"):
+                                metric["verbose_name"] = metric.get(
+                                    "verbose_name_RU")
+                                if isinstance(verbose_map, dict) and \
+                                        verbose_map.get(metric.get("metric_name")):
+                                    verbose_map[
+                                        metric.get("metric_name")] = metric.get(
+                                        "verbose_name_RU")
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(
@@ -468,6 +498,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        language = request.args.get('language')
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
@@ -478,7 +509,28 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 for chart in result:
                     form_data = chart.get("form_data")
                     form_data.pop("label_colors", None)
+            if language == ChartDataResultLanguage.RU:
+                for chart in result:
+                    all_columns = chart.get("form_data").get("all_columns", [])
+                    for column in all_columns:
+                        if isinstance(column, dict) and column.get("labelRU"):
+                            column["label"] = column.get("labelRU")
 
+                    groupby = chart.get("form_data", {}).get("groupby", [])
+                    for column in groupby:
+                        if isinstance(column, dict) and column.get("labelRU"):
+                            column["label"] = column.get("labelRU")
+
+                    metrics = chart.get("form_data").get("metrics")
+                    if metrics:
+                        for metric in metrics:
+                            if isinstance(metric, dict) and metric.get("labelRU"):
+                                metric["label"] = metric.get("labelRU")
+                                column = metric.get("column")
+                                if isinstance(column, dict) and column.get(
+                                        "verbose_name_RU"):
+                                    column["verbose_name"] = column.get(
+                                        "verbose_name_RU")
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

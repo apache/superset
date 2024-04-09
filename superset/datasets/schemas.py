@@ -50,6 +50,8 @@ class DatasetColumnsPutSchema(Schema):
     type = fields.String(allow_none=True)
     advanced_data_type = fields.String(allow_none=True, validate=Length(1, 255))
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_RU = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_EN = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
@@ -73,6 +75,8 @@ class DatasetMetricsPutSchema(Schema):
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
     currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_RU = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_EN = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 

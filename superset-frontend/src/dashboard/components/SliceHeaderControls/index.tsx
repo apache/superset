@@ -6,12 +6,7 @@ import React, {
   useState,
   useCallback,
 } from 'react';
-import {
-  Link,
-  RouteComponentProps,
-  useHistory,
-  withRouter,
-} from 'react-router-dom';
+import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom';
 import moment from 'moment';
 import {
   Behavior,
@@ -388,11 +383,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
 
       {props.supersetCanExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-          <Link to={props.exploreUrl}>
+          {/* DODO changed */}
+          <a href={props.exploreUrl} target="_blank" rel="noreferrer">
             <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
               {t('Edit chart')}
             </Tooltip>
-          </Link>
+          </a>
         </Menu.Item>
       )}
 

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint-env browser */
 import moment from 'moment';
 import React from 'react';
@@ -30,6 +13,7 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
+import { bootstrapData } from 'src/preamble';
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -67,6 +51,8 @@ const propTypes = {
   user: PropTypes.object, // UserWithPermissionsAndRoles,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string,
+  // DODO added
+  dashboardTitleRU: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
@@ -356,6 +342,8 @@ class Header extends React.PureComponent {
   overwriteDashboard() {
     const {
       dashboardTitle,
+      // DODO added
+      dashboardTitleRU,
       layout: positions,
       colorScheme,
       colorNamespace,
@@ -397,6 +385,8 @@ class Header extends React.PureComponent {
         refresh_frequency: refreshFrequency,
         shared_label_colors: currentSharedLabelColors,
       },
+      // DODO added
+      dashboard_title_RU: dashboardTitleRU,
     };
 
     // make sure positions data less than DB storage limitation:
@@ -464,6 +454,8 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
       logEvent,
+      // DODO added
+      dashboardTitleRU,
     } = this.props;
 
     const userCanEdit =
@@ -492,10 +484,15 @@ class Header extends React.PureComponent {
         roles: updates.roles,
       });
       setUnsavedChanges(true);
-      dashboardTitleChanged(updates.title);
+      // DODO changed
+      dashboardTitleChanged(updates.title, updates.titleRU);
     };
 
     const NavExtension = extensionsRegistry.get('dashboard.nav.right');
+    // DODO added
+    const userLanguage =
+      (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
+      'en';
 
     return (
       <div
@@ -504,9 +501,13 @@ class Header extends React.PureComponent {
         data-test-id={dashboardInfo.id}
         className="dashboard-header-container"
       >
+        {/* DODO changed */}
         <PageHeaderWithActions
           editableTitleProps={{
-            title: dashboardTitle,
+            title:
+              userLanguage === 'ru'
+                ? dashboardTitleRU || dashboardTitle
+                : dashboardTitle,
             canEdit: userCanEdit && editMode,
             onSave: this.handleChangeText,
             placeholder: t('Add the name of the dashboard'),
@@ -643,6 +644,7 @@ class Header extends React.PureComponent {
             onVisibleChange: this.setIsDropdownVisible,
           }}
           additionalActionsMenu={
+            // DODO changed
             <HeaderActionsDropdown
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
@@ -678,12 +680,15 @@ class Header extends React.PureComponent {
               isDropdownVisible={this.state.isDropdownVisible}
               setIsDropdownVisible={this.setIsDropdownVisible}
               logEvent={logEvent}
+              // DODO added
+              dashboardTitleRU={dashboardTitleRU}
             />
           }
           showFaveStar={user?.userId && dashboardInfo?.id}
           showTitlePanelItems
         />
         {this.state.showingPropertiesModal && (
+          // DODO changed
           <PropertiesModal
             dashboardId={dashboardInfo.id}
             dashboardInfo={dashboardInfo}
@@ -693,6 +698,8 @@ class Header extends React.PureComponent {
             colorScheme={this.props.colorScheme}
             onSubmit={handleOnPropertiesChange}
             onlyApply
+            // DODO added
+            dashboardTitleRU={dashboardTitleRU}
           />
         )}
 

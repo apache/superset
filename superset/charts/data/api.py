@@ -256,6 +256,44 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
+        language = json_body.get("language")
+
+        if language == "ru":
+            for column in query_context.datasource.columns:
+                if column.verbose_name_RU:
+                    column.verbose_name_EN = column.verbose_name
+                    column.verbose_name = column.verbose_name_RU
+
+            for metric in query_context.datasource.metrics:
+                if metric.verbose_name_RU:
+                    metric.verbose_name_EN = metric.verbose_name
+                    metric.verbose_name = metric.verbose_name_RU
+
+            if query_context.result_format == ChartDataResultFormat.XLSX:
+                bytes_stream = self._get_data_response(command, form_data=form_data,
+                                                       datasource=query_context.datasource
+                                                       )
+
+                for column in query_context.datasource.columns:
+                    column.verbose_name = column.verbose_name_EN
+                for metric in query_context.datasource.metrics:
+                    metric.verbose_name = metric.verbose_name_EN
+
+                return send_file(path_or_file=bytes_stream,
+                                 mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 as_attachment=True,
+                                 download_name="data.xlsx"
+                                 )
+
+            response_csv = self._get_data_response(
+                command, form_data=form_data, datasource=query_context.datasource
+            )
+            for column in query_context.datasource.columns:
+                column.verbose_name = column.verbose_name_EN
+            for metric in query_context.datasource.metrics:
+                metric.verbose_name = metric.verbose_name_EN
+            return response_csv
+
         if query_context.result_format == ChartDataResultFormat.XLSX:
             bytes_stream = self._get_data_response(
                 command, form_data=form_data, datasource=query_context.datasource

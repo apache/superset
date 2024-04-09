@@ -47,8 +47,8 @@ import {
   filterCardPopoverStyle,
   headerStyles,
 } from 'src/dashboard/styles';
-
-// import { bootstrapData } from 'src/preamble';
+// DODO added
+import { bootstrapData } from 'src/preamble';
 
 export const DashboardPageIdContext = React.createContext('');
 
@@ -71,28 +71,8 @@ type PageProps = {
   idOrSlug: string;
 };
 
-// TODO: duplicated logic from the store
-// const getUserLocaleForPlugin = () => {
-//   function getPageLanguage() {
-//     if (!document) {
-//       return null;
-//     }
-//     const select = document.querySelector('#changeLanguage select');
-//     // @ts-ignore
-//     const selectedLanguage = select ? select.value : null;
-//     return selectedLanguage;
-//   }
-//   const getLocaleForSuperset = () => {
-//     const dodoisLanguage = getPageLanguage();
-//     if (dodoisLanguage) {
-//       if (dodoisLanguage === 'ru-RU') return 'ru';
-//       return 'en';
-//     }
-//     return 'en';
-//   };
-
-//   return getLocaleForSuperset();
-// };
+// DODO added
+const userLanguage = bootstrapData?.common?.locale || 'en';
 
 const getDashboardContextLocalStorage = () => {
   const dashboardsContexts = getItem(
@@ -164,30 +144,19 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dashboardPageId = useSyncDashboardStateWithLocalStorage();
   const { addDangerToast } = useToasts();
 
-  const finalDashboardLanguage = 'en';
-  // let finalDashboardLanguage = 'en';
-
-  // if (process.env.type === undefined) {
-  //   finalDashboardLanguage =
-  //     (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
-  //     'en';
-  // } else {
-  //   finalDashboardLanguage = getUserLocaleForPlugin();
-  // }
-
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
 
   const { result: charts, error: chartsApiError } = useDashboardCharts(
     idOrSlug,
-    finalDashboardLanguage,
+    userLanguage,
   );
 
   const {
     result: datasets,
     error: datasetsApiError,
     status,
-  } = useDashboardDatasets(idOrSlug, finalDashboardLanguage);
+  } = useDashboardDatasets(idOrSlug, userLanguage);
   const isDashboardHydrated = useRef(false);
   console.log('here dashboard', dashboard);
   console.log('here charts', charts);
@@ -196,7 +165,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
-  const { dashboard_title, css, metadata, id = 0 } = dashboard || {};
+  const {
+    dashboard_title,
+    dashboard_title_RU,
+    css,
+    metadata,
+    id = 0,
+  } = dashboard || {};
 
   // Filter sets depend on native filters
   const filterSetEnabled =
@@ -273,14 +248,27 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // DODO changed
   useEffect(() => {
-    if (dashboard_title) {
-      document.title = dashboard_title;
+    const fallBackPageTitle = dashboard_title || 'Superset dashboard';
+
+    if (userLanguage === 'ru') {
+      if (dashboard_title_RU || dashboard_title) {
+        document.title =
+          dashboard_title_RU || dashboard_title || fallBackPageTitle;
+      }
+    } else if (userLanguage === 'en') {
+      if (dashboard_title) {
+        document.title = dashboard_title || fallBackPageTitle;
+      }
+    } else {
+      document.title = fallBackPageTitle;
     }
+
     return () => {
       document.title = originalDocumentTitle;
     };
-  }, [dashboard_title]);
+  }, [dashboard_title, dashboard_title_RU]);
 
   useEffect(() => {
     if (typeof css === 'string') {

@@ -157,6 +157,7 @@ type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = typeof componentTypes[ComponentTypesKeys];
 
 /** State of dashboardLayout item in redux */
+// DODO changed
 export type LayoutItem = {
   children: string[];
   parents: string[];
@@ -168,13 +169,13 @@ export type LayoutItem = {
     height: number;
     placeholder?: string;
     sliceName?: string;
-    // DODO added
-    sliceNameRU?: string;
-    sliceNameOverrideRU?: string;
     sliceNameOverride?: string;
     text?: string;
     uuid: string;
     width: number;
+    // DODO added
+    sliceNameRU?: string;
+    sliceNameOverrideRU?: string;
   };
 };
 

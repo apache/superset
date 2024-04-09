@@ -446,6 +446,13 @@ export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
 }
 
+// DODO added
+export function isAdhocColumn(
+  column: AdhocColumn | ColumnMeta,
+): column is AdhocColumn {
+  return 'label' in column && 'sqlExpression' in column;
+}
+
 export function isSavedExpression(
   column: AdhocColumn | ColumnMeta,
 ): column is ColumnMeta {

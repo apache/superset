@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint camelcase: 0 */
 import React from 'react';
 import { Dispatch } from 'redux';
@@ -71,7 +54,7 @@ type SaveModalState = {
   isLoading: boolean;
   saveStatus?: string | null;
   vizType?: string;
-  dashboard?: { label: string; value: string | number };
+  dashboard?: { label: string; labelRU: string; value: string | number };
 };
 
 export const StyledModal = styled(Modal)`
@@ -127,7 +110,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         const result = (await this.loadDashboard(dashboardId)) as Dashboard;
         if (canUserEditDashboard(result, this.props.user)) {
           this.setState({
-            dashboard: { label: result.dashboard_title, value: result.id },
+            dashboard: {
+              label: result.dashboard_title,
+              labelRU: result.dashboard_title_RU,
+              value: result.id,
+            },
           });
         }
       } catch (error) {
@@ -147,7 +134,11 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange(dashboard: { label: string; value: string | number }) {
+  onDashboardChange(dashboard: {
+    label: string;
+    labelRU: string;
+    value: string | number;
+  }) {
     this.setState({ dashboard });
   }
 
@@ -167,6 +158,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       id: number;
       url: string;
       dashboard_title: string;
+      // DODO added
+      dashboard_title_RU: string;
     };
 
     try {
@@ -232,6 +225,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           dashboard
             ? {
                 title: dashboard.dashboard_title,
+                titleRU: dashboard.dashboard_title_RU,
                 new: this.isNewDashboard(),
               }
             : null,
@@ -243,6 +237,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           dashboard
             ? {
                 title: dashboard.dashboard_title,
+                titleRU: dashboard.dashboard_title_RU,
                 new: this.isNewDashboard(),
               }
             : null,
@@ -287,7 +282,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   loadDashboards = async (search: string, page: number, pageSize: number) => {
     const queryParams = rison.encode({
-      columns: ['id', 'dashboard_title'],
+      columns: ['id', 'dashboard_title', 'dashboard_title_RU'],
       filters: [
         {
           col: 'dashboard_title',
@@ -311,9 +306,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     const { result, count } = json;
     return {
       data: result.map(
-        (dashboard: { id: number; dashboard_title: string }) => ({
+        (dashboard: {
+          id: number;
+          dashboard_title: string;
+          // DODO added
+          dashboard_title_RU: string;
+        }) => ({
           value: dashboard.id,
           label: dashboard.dashboard_title,
+          // DODO added
+          labelRU: dashboard.dashboard_title_RU,
         }),
       ),
       totalCount: count,

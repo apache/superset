@@ -47,6 +47,7 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
 fi
 # Initialize the database
 echo_step "1" "Starting" "Applying DB migrations"
+sleep 60
 superset db upgrade
 echo_step "1" "Complete" "Applying DB migrations"
 
@@ -66,6 +67,7 @@ echo_step "3" "Complete" "Setting up roles and perms"
 
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
+    sleep 60
     echo_step "4" "Starting" "Loading examples"
     # If Cypress run which consumes superset_test_config – load required data for tests
     if [ "$CYPRESS_CONFIG" == "true" ]; then
