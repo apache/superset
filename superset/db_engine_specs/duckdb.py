@@ -110,7 +110,7 @@ class DuckDBParametersMixin:
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
         query = parameters.get("query", {})
-        database = parameters.get("database", "")
+        database = parameters.get("database", ":memory:")
         token = parameters.get("access_token")
 
         if cls._is_motherduck(database) or (
