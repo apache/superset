@@ -73,6 +73,8 @@ jobs:
       - name: Build Docker Image
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then

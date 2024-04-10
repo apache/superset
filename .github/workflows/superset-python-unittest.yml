@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["current", "next"]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:

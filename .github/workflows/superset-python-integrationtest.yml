@@ -16,9 +16,6 @@ concurrency:
 jobs:
   test-mysql:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -51,14 +48,11 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Setup MySQL
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
-          run: |
-            setup-mysql
+          run: setup-mysql
       - name: Run celery
         if: steps.check.outputs.python
         run: celery --app=superset.tasks.celery_app:app worker -Ofair -c 2 &
@@ -74,7 +68,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["current", "next"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -130,9 +124,6 @@ jobs:
 
   test-sqlite:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -160,8 +151,6 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies

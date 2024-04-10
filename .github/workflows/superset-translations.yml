@@ -47,9 +47,6 @@ jobs:
 
   babel-extract:
     runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -65,8 +62,6 @@ jobs:
       - name: Setup Python
         if: steps.check.outputs.python
         uses: ./.github/actions/setup-backend/
-        with:
-          python-version: ${{ matrix.python-version }}
       - name: Test babel extraction
         if: steps.check.outputs.python
         run: ./scripts/babel_update.sh
