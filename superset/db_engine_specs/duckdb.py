@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import os
 import re
 from datetime import datetime
 from re import Pattern
@@ -26,17 +25,15 @@ from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
-from marshmallow.validate import Range
-from sqlalchemy import types, util
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
 from superset.config import VERSION_STRING
-from superset.constants import PASSWORD_MASK, TimeGrain, USER_AGENT
+from superset.constants import TimeGrain, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -44,7 +41,9 @@ if TYPE_CHECKING:
 
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
-DEFAULT_ACCESS_TOKEN_URL = "https://app.motherduck.com/token-request?appName=Superset&close=y"
+DEFAULT_ACCESS_TOKEN_URL = (
+    "https://app.motherduck.com/token-request?appName=Superset&close=y"
+)
 
 
 # schema for adding a database by providing parameters instead of the
@@ -88,6 +87,8 @@ class DuckDBParametersMixin:
 
     """
 
+    engine = "duckdb"
+
     # schema describing the parameters used to configure the DB
     parameters_schema = DuckDBParametersSchema()
 
@@ -112,7 +113,9 @@ class DuckDBParametersMixin:
         database = parameters.get("database", "")
         token = parameters.get("access_token")
 
-        if cls._is_motherduck(database) or (token and token != DEFAULT_ACCESS_TOKEN_URL):
+        if cls._is_motherduck(database) or (
+            token and token != DEFAULT_ACCESS_TOKEN_URL
+        ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
         return str(URL(drivername=cls.engine, database=database, query=query))
@@ -259,7 +262,7 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         return True
 
     @classmethod
-    def build_sqlalchemy_uri(  # pylint: disable=unused-argument
+    def build_sqlalchemy_uri(
         cls,
         parameters: DuckDBParametersType,
         encrypted_extra: dict[str, str] | None = None,
@@ -273,4 +276,6 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
             database = f"md:{database}"
         query["motherduck_token"] = token
 
-        return str(URL(drivername=DuckDBEngineSpec.engine, database=database, query=query))
+        return str(
+            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
+        )
