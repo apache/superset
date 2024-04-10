@@ -265,6 +265,17 @@ class DashboardDatasetSchema(Schema):
         return serialized
 
 
+class TabSchema(Schema):
+    children = fields.List(fields.Nested(lambda: TabSchema()))
+    value = fields.Str()
+    title = fields.Str()
+
+
+class TabsPayloadSchema(Schema):
+    all_tabs = fields.Dict(keys=fields.String(), values=fields.String())
+    tab_tree = fields.List(fields.Nested(lambda: TabSchema))
+
+
 class BaseDashboardSchema(Schema):
     # pylint: disable=unused-argument
     @post_load
