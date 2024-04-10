@@ -66,6 +66,9 @@ jobs:
           bash .github/workflows/codecov.sh -c -F python -F mysql
   test-postgres:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+      python-version: ["current", "future"]
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -99,6 +102,8 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         if: steps.check.outputs.python
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
         if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies

@@ -70,7 +70,8 @@ github:
           - pre-commit
           - python-lint
           - test-mysql
-          - test-postgres
+          - test-postgres (current)
+          - test-postgres (future)
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
