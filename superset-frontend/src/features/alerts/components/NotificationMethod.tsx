@@ -20,7 +20,7 @@ import React, { FunctionComponent, useState } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
-import { NotificationMethodOption } from '../types';
+import { NotificationMethodOption, NotificationSetting } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
 
 const StyledNotificationMethod = styled.div`
@@ -45,12 +45,6 @@ const StyledNotificationMethod = styled.div`
     }
   }
 `;
-
-type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
-};
 
 interface NotificationMethodProps {
   setting?: NotificationSetting | null;
@@ -130,7 +124,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               value={method}
             />
-            {method !== undefined && index !== 0 && !!onRemove ? (
+            {index !== 0 && !!onRemove ? (
               <span
                 role="button"
                 tabIndex={0}
