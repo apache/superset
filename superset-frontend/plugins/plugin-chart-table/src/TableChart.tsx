@@ -168,6 +168,7 @@ function SearchInput({ count, value, onChange }: SearchInputProps) {
         className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
+        aria-label={t('Search %s records', count)}
         onChange={onChange}
       />
     </span>
