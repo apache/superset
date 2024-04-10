@@ -33,8 +33,6 @@ jobs:
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
-        with:
-          from-npm: 'false'
 
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
