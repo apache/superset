@@ -49,6 +49,7 @@ import {
   StyledSwitchContainer,
 } from './styles';
 import ColumnsPreview from './ColumnsPreview';
+import StyledFormItemWithTip from './StyledFormItemWithTip';
 
 interface CSVUploadModalProps {
   addDangerToast: (msg: string) => void;
@@ -465,11 +466,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     options={loadDatabaseOptions}
                     onChange={onChangeDatabase}
                     allowClear
+                    placeholder={t('Select a database to upload the file to')}
                   />
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('Select a database to upload the file to')}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -480,11 +479,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     options={loadSchemaOptions}
                     onChange={onChangeSchema}
                     allowClear
+                    placeholder={t(
+                      'Select a schema if the database supports this',
+                    )}
                   />
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('Select a schema if the database supports this')}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -502,26 +501,25 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     name="table_name"
                     data-test="properties-modal-name-input"
                     type="text"
+                    placeholder={t('Name of table to be created with CSV file')}
                   />
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('Name of table to be created with CSV file')}
-                </p>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Delimiter')} name="delimiter">
+                <StyledFormItemWithTip
+                  label={t('Delimiter')}
+                  tip={t('Select a delimiter for this data')}
+                  name="delimiter"
+                >
                   <Select
                     ariaLabel={t('Choose a delimiter')}
                     options={delimiterOptions}
                     onChange={onChangeDelimiter}
                     allowNewOptions
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('Select a delimiter for this data')}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
           </Collapse.Panel>
@@ -540,8 +538,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
           >
             <Row>
               <Col span={24}>
-                <StyledFormItem
+                <StyledFormItemWithTip
                   label={t('If Table Already Exists')}
+                  tip={t('What should happen if the table already exists')}
                   name="already_exists"
                 >
                   <Select
@@ -549,10 +548,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     options={tableAlreadyExistsOptions}
                     onChange={() => {}}
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('What should happen if the table already exists')}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
@@ -593,13 +589,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     options={columnsToOptions()}
                     allowClear
                     allowNewOptions
+                    placeholder={t(
+                      'A comma separated list of columns that should be parsed as dates',
+                    )}
                   />
                 </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'A comma separated list of columns that should be parsed as dates',
-                  )}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -618,32 +612,31 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
+                <StyledFormItemWithTip
                   label={t('Decimal Character')}
+                  tip={t('Character to interpret as decimal point')}
                   name="decimal_character"
                 >
                   <Input type="text" defaultValue="." />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('Character to interpret as decimal point')}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Null Values')} name="null_values">
+                <StyledFormItemWithTip
+                  label={t('Null Values')}
+                  tip={t(
+                    'Choose values that should be treated as null. Warning: Hive database supports only a single value',
+                  )}
+                  name="null_values"
+                >
                   <Select
                     mode="multiple"
                     options={nullValuesOptions}
                     allowClear
                     allowNewOptions
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'Json list of the values that should be treated as null. Examples: [""] for empty strings, ["None", "N/A"], ["nan", "null"]. Warning: Hive database supports only a single value',
-                  )}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
           </Collapse.Panel>
@@ -662,7 +655,13 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
           >
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Index Column')} name="index_column">
+                <StyledFormItemWithTip
+                  label={t('Index Column')}
+                  tip={t(
+                    'Column to use as the row labels of the dataframe. Leave empty if no index column',
+                  )}
+                  name="index_column"
+                >
                   <Select
                     ariaLabel={t('Choose index column')}
                     options={columns.map(column => ({
@@ -672,12 +671,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     allowClear
                     allowNewOptions
                   />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'Column to use as the row labels of the dataframe. Leave empty if no index column',
-                  )}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
@@ -694,17 +688,15 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
+                <StyledFormItemWithTip
                   label={t('Column Label(s)')}
+                  tip={t(
+                    'Column label for index column(s). If None is given and Dataframe Index is checked, Index Names are used',
+                  )}
                   name="column_labels"
                 >
                   <Input aria-label={t('Column labels')} type="text" />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'Column label for index column(s). If None is given and Dataframe Index is checked, Index Names are used',
-                  )}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
@@ -719,11 +711,11 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     options={columnsToOptions()}
                     allowClear
                     allowNewOptions
+                    placeholder={t(
+                      'List of the column names that should be read',
+                    )}
                   />
                 </StyledFormItem>
-                <p className="help-block">
-                  {t('List of the column names that should be read')}
-                </p>
               </Col>
             </Row>
             <Row>
@@ -742,17 +734,15 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem
+                <StyledFormItemWithTip
                   label={t('Column Data Types')}
+                  tip={t(
+                    'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
+                  )}
                   name="column_data_types"
                 >
                   <Input aria-label={t('Column data types')} type="text" />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
-                    'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
-                  )}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
           </Collapse.Panel>
@@ -769,38 +759,41 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
           >
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Header Row')} name="header_row">
-                  <Input
-                    aria-label={t('Header row')}
-                    type="text"
-                    defaultValue={0}
-                  />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t(
+                <StyledFormItemWithTip
+                  label={t('Header Row')}
+                  tip={t(
                     'Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.',
                   )}
-                </p>
+                  name="header_row"
+                >
+                  <InputNumber
+                    aria-label={t('Header row')}
+                    type="text"
+                    min={0}
+                  />
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Rows to Read')} name="rows_to_read">
+                <StyledFormItemWithTip
+                  label={t('Rows to Read')}
+                  tip={t('Number of rows of file to read.')}
+                  name="rows_to_read"
+                >
                   <InputNumber aria-label={t('Rows to read')} min={1} />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('Number of rows of file to read.')}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem label={t('Skip Rows')} name="skip_rows">
+                <StyledFormItemWithTip
+                  label={t('Skip Rows')}
+                  tip={t('Number of rows to skip at start of file.')}
+                  name="skip_rows"
+                >
                   <InputNumber aria-label={t('Skip rows')} min={0} />
-                </StyledFormItem>
-                <p className="help-block">
-                  {t('Number of rows to skip at start of file.')}
-                </p>
+                </StyledFormItemWithTip>
               </Col>
             </Row>
           </Collapse.Panel>

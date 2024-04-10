@@ -204,7 +204,7 @@ test('renders the rows elements correctly', () => {
     name: /rows/i,
   });
   userEvent.click(panelHeader);
-  const inputHeaderRow = screen.getByRole('textbox', {
+  const inputHeaderRow = screen.getByRole('spinbutton', {
     name: /header row/i,
   });
   const inputRowsToRead = screen.getByRole('spinbutton', {

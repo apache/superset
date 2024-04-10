@@ -23,7 +23,7 @@ const MODAL_BODY_HEIGHT = 180.5;
 const anticonHeight = 12;
 
 export const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0;
+  margin-bottom: 0px;
 `;
 
 export const StyledSwitchContainer = styled.div`
