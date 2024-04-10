@@ -242,7 +242,8 @@ const config = {
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
-              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>&nbsp;|&nbsp;
+              <a href="https://privacy.apache.org/policies/privacy-policy-public.html" target="_blank" rel="noreferrer">Privacy</a>
             </small>
           </p>
           <!-- telemetry/analytics pixel: -->
