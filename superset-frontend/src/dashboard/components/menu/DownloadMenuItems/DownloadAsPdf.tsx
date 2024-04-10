@@ -36,8 +36,13 @@ export default function DownloadAsPdf({
 }) {
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
   const onDownloadPdf = async (e: SyntheticEvent) => {
+    downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+  };
+  const handleMenuItemClick: MenuClickEventHandler = async (
+    e: SyntheticEvent,
+  ) => {
     try {
-      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      onDownloadPdf(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -46,10 +51,14 @@ export default function DownloadAsPdf({
   };
 
   return (
-    <Menu.Item key="download-pdf" {...rest}>
-      <div role="button" onClick={onDownloadPdf} tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-pdf"
+      {...rest}
+      role="button"
+      onClick={handleMenuItemClick}
+      tabIndex={0}
+    >
+      {text}
     </Menu.Item>
   );
 }

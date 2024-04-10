@@ -35,9 +35,9 @@ const renderComponent = () => {
 test('Should render menu items', () => {
   renderComponent();
   expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
+    screen.getByRole('button', { name: 'Export to PDF' }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
+    screen.getByRole('button', { name: 'Download as Image' }),
   ).toBeInTheDocument();
 });

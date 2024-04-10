@@ -36,8 +36,13 @@ export default function DownloadAsImage({
 }) {
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
   const onDownloadImage = async (e: SyntheticEvent) => {
+    downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+  };
+  const handleMenuItemClick: MenuClickEventHandler = async (
+    e: SyntheticEvent,
+  ) => {
     try {
-      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      onDownloadImage(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -46,10 +51,14 @@ export default function DownloadAsImage({
   };
 
   return (
-    <Menu.Item key="download-image" {...rest}>
-      <div role="button" onClick={onDownloadImage} tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-image"
+      {...rest}
+      role="button"
+      onClick={handleMenuItemClick}
+      tabIndex={0}
+    >
+      {text}
     </Menu.Item>
   );
 }
