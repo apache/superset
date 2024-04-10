@@ -64,6 +64,7 @@ jobs:
           supersetbot bump-python \
             --verbose \
             --use-current-repo \
+            --include-subpackages \
             --limit ${{ github.event.inputs.limit }} \
             $PACKAGE_OPT \
             $GROUP_OPT
