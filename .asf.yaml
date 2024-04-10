@@ -75,7 +75,8 @@ github:
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
-          - unit-tests
+          - unit-tests (current)
+          - unit-tests (netxt)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
