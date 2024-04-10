@@ -581,9 +581,9 @@ export default function transformProps(
         const showTotal = Boolean(isMultiSeries) && richTooltip && isNumeric;
         return new TooltipRenderer(
           data,
-          focusedIndex,
           showPercentage,
           showTotal,
+          focusedIndex,
           tooltipFormatter(xValue),
         ).renderHtml();
       },

@@ -244,9 +244,9 @@ export default function transformProps(
             };
             return new TooltipRenderer(
               data,
+              false,
+              false,
               0,
-              false,
-              false,
               formatTime(params[0].data[0]),
             ).renderHtml();
           },

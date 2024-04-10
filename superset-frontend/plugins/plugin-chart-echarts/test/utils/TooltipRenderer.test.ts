@@ -43,12 +43,12 @@ test('calculates the total even if data has non-numeric values', () => {
       ['d', 'x'],
     ],
   };
-  const tooltipRenderer = new TooltipRenderer(data, 0, false, true);
+  const tooltipRenderer = new TooltipRenderer(data, false, true);
   expect(tooltipRenderer.calculateTotal()).toEqual(3);
 });
 
 test('renderCell should align text based on column type', () => {
-  const tooltipRenderer = new TooltipRenderer(defaultData, 0, false, true);
+  const tooltipRenderer = new TooltipRenderer(defaultData, false, true);
   const stringCell = tooltipRenderer.renderCell('a', defaultData.columns[0], 0);
   const numericCell = tooltipRenderer.renderCell(1, defaultData.columns[1], 0);
   expect(stringCell).toContain('text-align: left');
@@ -66,44 +66,51 @@ test('does not render the total if column type is not numeric even if showTotal 
       ['b', '2'],
     ],
   };
-  const tooltipRenderer = new TooltipRenderer(data, 0, false, true);
+  const tooltipRenderer = new TooltipRenderer(data, false, true);
   expect(tooltipRenderer.renderHtml()).not.toContain('Total');
 });
 
 test('renders title', () => {
   const tooltipRenderer = new TooltipRenderer(
     defaultData,
-    0,
     false,
     true,
+    undefined,
     'Title',
   );
   expect(tooltipRenderer.renderHtml()).toContain('Title');
 });
 
 test('renders total with percentage', () => {
-  const tooltipRenderer = new TooltipRenderer(defaultData, 0, true, true);
-  expect(tooltipRenderer.renderHtml()).toContain('Total');
-  expect(tooltipRenderer.renderHtml()).toContain('100%');
+  const tooltipRenderer = new TooltipRenderer(defaultData, true, true);
+  const html = tooltipRenderer.renderHtml();
+  expect(html).toContain('Total');
+  expect(html).toContain('100.00%');
 });
 
 test('renders total without percentage', () => {
-  const tooltipRenderer = new TooltipRenderer(defaultData, 0, false, true);
-  expect(tooltipRenderer.renderHtml()).toContain('Total');
-  expect(tooltipRenderer.renderHtml()).not.toContain('%');
+  const tooltipRenderer = new TooltipRenderer(defaultData, false, true);
+  const html = tooltipRenderer.renderHtml();
+  expect(html).toContain('Total');
+  expect(html).not.toContain('%');
 });
 
 test('renders a percentage column', () => {
-  const tooltipRenderer = new TooltipRenderer(defaultData, 0, true, true);
-  expect(tooltipRenderer.renderHtml()).toContain('50%');
-  expect(tooltipRenderer.renderHtml()).toContain('50%');
+  const tooltipRenderer = new TooltipRenderer(defaultData, true, true);
+  expect(tooltipRenderer.renderHtml()).toContain('50.00%');
 });
 
 test('renders focused row', () => {
-  const tooltipRenderer = new TooltipRenderer(defaultData, 0, false, true);
+  const tooltipRenderer = new TooltipRenderer(defaultData, false, true, 0);
   const html = tooltipRenderer.renderHtml();
   expect(html).toContain('<tr style="font-weight: 700;">');
   expect(html).toContain('<tr>');
+});
+
+test('renders no focused row if focusedRow is not set', () => {
+  const tooltipRenderer = new TooltipRenderer(defaultData, false, true);
+  const html = tooltipRenderer.renderHtml();
+  expect(html).not.toContain('<tr style="font-weight: 700;">');
 });
 
 test('renders percentage column only when the second column is numeric even if showPercentage is true', () => {
@@ -117,7 +124,7 @@ test('renders percentage column only when the second column is numeric even if s
       ['b', '2'],
     ],
   };
-  const tooltipRenderer = new TooltipRenderer(data, 0, true, true);
+  const tooltipRenderer = new TooltipRenderer(data, true, true);
   expect(tooltipRenderer.renderHtml()).not.toContain('%');
 });
 
@@ -135,7 +142,7 @@ test('renders a formatted column', () => {
       ['b', 2000],
     ],
   };
-  const tooltipRenderer = new TooltipRenderer(data, 0, false, true);
+  const tooltipRenderer = new TooltipRenderer(data, false, true);
   const html = tooltipRenderer.renderHtml();
   expect(html).toContain('1000.00');
   expect(html).toContain('2000.00');

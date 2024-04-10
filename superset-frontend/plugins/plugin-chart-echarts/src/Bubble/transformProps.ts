@@ -24,6 +24,7 @@ import {
   AxisType,
   getMetricLabel,
   NumberFormatter,
+  GenericDataType,
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
@@ -35,6 +36,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { NULL_STRING } from '../constants';
+import TooltipRenderer, { Data } from '../utils/TooltipRenderer';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -60,13 +62,22 @@ export function formatTooltip(
   tooltipSizeFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
-    ? `${params.data[3]} </br> ${params.data[4]}`
+    ? `${params.data[4]} (${params.data[3]})`
     : params.data[3];
 
-  return `<p>${title}</p>
-        ${xAxisLabel}: ${xAxisFormatter(params.data[0])} <br/>
-        ${yAxisLabel}: ${yAxisFormatter(params.data[1])} <br/>
-        ${sizeLabel}: ${tooltipSizeFormatter(params.data[2])}`;
+  const data: Data = {
+    columns: [
+      { type: GenericDataType.String, formatter: String },
+      { type: GenericDataType.Numeric, formatter: String },
+    ],
+    rows: [
+      [xAxisLabel, xAxisFormatter(params.data[0])],
+      [yAxisLabel, yAxisFormatter(params.data[1])],
+      [sizeLabel, tooltipSizeFormatter(params.data[2])],
+    ],
+  };
+
+  return new TooltipRenderer(data, false, false, undefined, title).renderHtml();
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {

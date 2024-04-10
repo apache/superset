@@ -36,6 +36,7 @@ export type Data = {
   rows: [string, DataRecordValue][];
 };
 
+// TODO: Maybe rename to TooltipFormatter?
 export default class TooltipRenderer {
   static COLUMN_PADDING = 16;
 
@@ -55,9 +56,9 @@ export default class TooltipRenderer {
 
   constructor(
     data: Data,
-    focusedRow: number,
     showPercentage: boolean,
     showTotal: boolean,
+    focusedRow?: number,
     title?: string,
     percentageFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT),
   ) {
