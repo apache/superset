@@ -33,6 +33,8 @@ jobs:
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
+        with:
+          from-npm: 'false'
 
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
@@ -44,7 +46,7 @@ jobs:
 
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
