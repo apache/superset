@@ -37,5 +37,4 @@ runs:
 
     - name: echo supersetbot version
       shell: bash
-      working-directory: supersetbot
       run: supersetbot version
