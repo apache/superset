@@ -2,7 +2,7 @@ name: 'Setup Python Environment'
 description: 'Set up Python and install dependencies with optional configurations.'
 inputs:
   python-version:
-    description: 'Python version to set up. Accepts a version number, "current", or "future".'
+    description: 'Python version to set up. Accepts a version number, "current", or "next".'
     required: true
     default: 'current'
   cache:
@@ -27,7 +27,7 @@ runs:
       run: |
         if [ "${{ inputs.python-version }}" = "current" ]; then
           echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
-        elif [ "${{ inputs.python-version }}" = "future" ]; then
+        elif [ "${{ inputs.python-version }}" = "next" ]; then
           echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
         else
           echo "PYTHON_VERSION=${{ inputs.python-version }}" >> $GITHUB_ENV

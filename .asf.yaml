@@ -71,7 +71,7 @@ github:
           - python-lint
           - test-mysql
           - test-postgres (current)
-          - test-postgres (future)
+          - test-postgres (next)
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
