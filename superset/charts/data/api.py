@@ -351,6 +351,7 @@ class ChartDataRestApi(ChartRestApi):
         form_data: dict[str, Any] | None = None,
         datasource: BaseDatasource | Query | None = None,
     ) -> Response:
+        print("=========data for dowwnload==========")
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
 
