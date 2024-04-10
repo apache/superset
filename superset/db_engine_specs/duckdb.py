@@ -270,7 +270,7 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         # make a copy so that we don't update the original
         query = parameters.get("query", {}).copy()
         database = parameters.get("database", "")
-        token = parameters.get("access_token")
+        token = parameters.get("access_token", "")
 
         if not database.startswith("md:"):
             database = f"md:{database}"
