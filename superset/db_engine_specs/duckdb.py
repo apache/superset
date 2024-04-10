@@ -277,7 +277,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         if token and token != DEFAULT_ACCESS_TOKEN_URL:
             query["motherduck_token"] = token
         else:
-            raise ValueError(f"Need MotherDuck token to connect to database '{database}'.")
+            raise ValueError(
+                f"Need MotherDuck token to connect to database '{database}'."
+            )
 
         return str(
             URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
