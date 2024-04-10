@@ -109,6 +109,8 @@ class DuckDBParametersMixin:
         parameters: DuckDBParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
+        if parameters is None:
+            parameters = {}
         query = parameters.get("query", {})
         database = parameters.get("database", ":memory:")
         token = parameters.get("access_token")
