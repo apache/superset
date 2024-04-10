@@ -33,7 +33,6 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional, Rege
 from superset import app, db, security_manager
 from superset.forms import (
     CommaSeparatedListField,
-    FileSizeLimit,
     filter_not_empty_values,
     JsonListField,
 )

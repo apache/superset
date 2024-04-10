@@ -818,7 +818,6 @@ def test_oauth2_error(
                 "file": (create_csv_file(), "out.csv"),
                 "table_name": "table1",
                 "delimiter": ",",
-                "already_exists": "fail",
             },
             (
                 1,
@@ -988,6 +987,16 @@ def test_csv_upload(
                 "overwrite_duplicates": "test1",
             },
             {"message": {"overwrite_duplicates": ["Not a valid boolean."]}},
+        ),
+        (
+            {
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "already_exists": "fail",
+                "rows_to_read": 0,
+            },
+            {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
         ),
         (
             {

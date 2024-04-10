@@ -24,7 +24,7 @@ from typing import Any
 from flask import current_app
 from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, post_load, pre_load, Schema, validates_schema
-from marshmallow.validate import Length, OneOf, ValidationError
+from marshmallow.validate import Length, OneOf, Range, ValidationError
 from sqlalchemy import MetaData
 
 from superset import db, is_feature_enabled
@@ -1009,7 +1009,7 @@ class CSVUploadPostSchema(Schema):
     )
     delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
     already_exists = fields.String(
-        required=True,
+        load_default="fail",
         validate=OneOf(choices=("fail", "replace", "append")),
         metadata={
             "description": "What to do if the table already "
@@ -1088,7 +1088,9 @@ class CSVUploadPostSchema(Schema):
         metadata={
             "description": "Number of rows to read from the file. "
             "If None, reads all rows."
-        }
+        },
+        allow_none=True,
+        validate=Range(min=1),
     )
     schema = fields.String(
         metadata={"description": "The schema to upload the CSV file to."}

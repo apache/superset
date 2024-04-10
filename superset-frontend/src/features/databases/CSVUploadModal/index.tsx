@@ -34,7 +34,6 @@ import {
   Row,
   AsyncSelect,
   Select,
-  Typography,
 } from 'src/components';
 import { UploadOutlined } from '@ant-design/icons';
 import { Input, InputNumber } from 'src/components/Input';
@@ -49,6 +48,7 @@ import {
   StyledFormItem,
   StyledSwitchContainer,
 } from './styles';
+import ColumnsPreview from './ColumnsPreview';
 
 interface CSVUploadModalProps {
   addDangerToast: (msg: string) => void;
@@ -422,7 +422,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="general"
           >
             <Row>
-              <Col span={6}>
+              <Col span={24}>
                 <StyledFormItem
                   label={t('CSV File')}
                   name="upload"
@@ -446,19 +446,10 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   </Upload>
                 </StyledFormItem>
               </Col>
-              <Col span={18}>
-                {columns.length > 0 && (
-                  <div>
-                    <Typography.Text type="success">
-                      Loaded {columns.length} column(s):
-                    </Typography.Text>
-                    {columns.map((column, index) => (
-                      <Typography.Text key={index} code type="success">
-                        {column}
-                      </Typography.Text>
-                    ))}
-                  </div>
-                )}
+            </Row>
+            <Row>
+              <Col span={24}>
+                <ColumnsPreview columns={columns} />
               </Col>
             </Row>
             <Row>
@@ -795,7 +786,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem label={t('Rows to Read')} name="rows_to_read">
-                  <InputNumber aria-label={t('Rows to read')} min={0} />
+                  <InputNumber aria-label={t('Rows to read')} min={1} />
                 </StyledFormItem>
                 <p className="help-block">
                   {t('Number of rows of file to read.')}
