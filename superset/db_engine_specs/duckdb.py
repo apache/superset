@@ -109,6 +109,10 @@ class DuckDBParametersMixin:
         parameters: DuckDBParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
+        """
+        Build SQLAlchemy URI for connecting to a DuckDB database.
+        If an access token is specified, return a URI to connect to a MotherDuck database.
+        """
         if parameters is None:
             parameters = {}
         query = parameters.get("query", {})
@@ -269,6 +273,9 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         parameters: DuckDBParametersType,
         encrypted_extra: dict[str, str] | None = None,
     ) -> str:
+        """
+        Build SQLAlchemy URI for connecting to a MotherDuck database
+        """
         # make a copy so that we don't update the original
         query = parameters.get("query", {}).copy()
         database = parameters.get("database", "")
