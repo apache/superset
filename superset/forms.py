@@ -19,8 +19,7 @@ import json
 from typing import Any, Optional
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
-from flask_babel import gettext as _
-from wtforms import Field, ValidationError
+from wtforms import Field
 
 
 class JsonListField(Field):
