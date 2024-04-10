@@ -1940,7 +1940,7 @@
     "@docusaurus/utils-validation" "2.4.3"
     tslib "^2.4.0"
 
-"@docusaurus/plugin-google-gtag@2.4.3", "@docusaurus/plugin-google-gtag@^2.4.1":
+"@docusaurus/plugin-google-gtag@2.4.3":
   version "2.4.3"
   resolved "https://registry.yarnpkg.com/@docusaurus/plugin-google-gtag/-/plugin-google-gtag-2.4.3.tgz#e1a80b0696771b488562e5b60eff21c9932d9e1c"
   integrity sha512-5FMg0rT7sDy4i9AGsvJC71MQrqQZwgLNdDetLEGDHLfSHLvJhQbTCUGbGXknUgWXQJckcV/AILYeJy+HhxeIFA==
@@ -8933,7 +8933,7 @@ react-syntax-highlighter@^15.4.5:
     "@babel/runtime" "^7.3.1"
     highlight.js "^10.4.1"
     lowlight "^1.17.0"
-    prismjs "^1.28.0"
+    prismjs "^1.25.0"
     refractor "^3.2.0"
 
 react-textarea-autosize@^8.3.2:
@@ -9020,7 +9020,7 @@ refractor@^3.2.0:
   dependencies:
     hastscript "^6.0.0"
     parse-entities "^2.0.0"
-    prismjs "~1.28.0"
+    prismjs "~1.25.0"
 
 regenerate-unicode-properties@^10.1.0:
   version "10.1.0"
