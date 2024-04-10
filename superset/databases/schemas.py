@@ -23,9 +23,18 @@ from typing import Any
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import EXCLUDE, fields, post_load, pre_load, Schema, validates_schema
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    pre_load,
+    Schema,
+    validates,
+    validates_schema,
+)
 from marshmallow.validate import Length, OneOf, Range, ValidationError
 from sqlalchemy import MetaData
+from werkzeug.datastructures import FileStorage
 
 from superset import db, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -1005,7 +1014,11 @@ class CSVUploadPostSchema(Schema):
 
     file = fields.Raw(
         required=True,
-        metadata={"description": "The CSV file to upload"},
+        metadata={
+            "description": "The CSV file to upload",
+            "type": "string",
+            "format": "text/csv",
+        },
     )
     delimiter = fields.String(metadata={"description": "The delimiter of the CSV file"})
     already_exists = fields.String(
@@ -1123,6 +1136,16 @@ class CSVUploadPostSchema(Schema):
                     "Invalid JSON format for column_data_types"
                 ) from ex
         return data
+
+    @validates("file")
+    def validate_file(self, file: FileStorage) -> None:
+        content = file.read()
+        if (
+            current_app.config["CSV_UPLOAD_MAX_SIZE"] is not None
+            and len(content) > current_app.config["CSV_UPLOAD_MAX_SIZE"]
+        ):
+            raise ValidationError("File size exceeds the maximum allowed size.")
+        file.seek(0)
 
 
 class OAuth2ProviderResponseSchema(Schema):
