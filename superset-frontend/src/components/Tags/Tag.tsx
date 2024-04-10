@@ -47,16 +47,6 @@ const Tag = ({
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
-  let whatRole;
-
-  if (onClick) {
-    if (!id) {
-      whatRole = 'button';
-    } else {
-      whatRole = 'link';
-    }
-  }
-
   const tagElem = (
     <>
       {editable ? (
@@ -72,7 +62,7 @@ const Tag = ({
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
+          <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
