@@ -72,6 +72,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
