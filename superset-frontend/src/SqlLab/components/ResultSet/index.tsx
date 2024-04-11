@@ -582,7 +582,7 @@ const ResultSet = ({
         : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        true,
+        false,
       );
       return (
         <ResultContainer>
