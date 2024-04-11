@@ -237,6 +237,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
+    allowRenderHtml = true,
     onContextMenu,
     emitCrossFilters,
   } = props;
@@ -469,7 +470,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
-          const html = isHtml ? { __html: text } : undefined;
+          const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
           if (hasColumnColorFormatters) {
