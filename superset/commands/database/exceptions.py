@@ -103,6 +103,11 @@ class DatabaseUploadFailed(CommandException):
     message = _("Database upload file failed")
 
 
+class DatabaseUploadSaveMetadataFailed(CommandException):
+    status = 500
+    message = _("Database upload file failed, while saving metadata")
+
+
 class DatabaseCreateFailedError(CreateFailedError):
     message = _("Database could not be created.")
 
