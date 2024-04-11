@@ -96,10 +96,10 @@ class CSVImportCommand(BaseCommand):
                     iterator=True,
                     keep_default_na=not self._options.get("null_values"),
                     usecols=self._options.get("columns_read")
-                    if self._options.get("columns_read")
+                    if self._options.get("columns_read")  # None if an empty list
                     else None,
                     na_values=self._options.get("null_values")
-                    if self._options.get("null_values")
+                    if self._options.get("null_values")  # None if an empty list
                     else None,
                     nrows=self._options.get("rows_to_read"),
                     parse_dates=self._options.get("column_dates"),
@@ -107,9 +107,7 @@ class CSVImportCommand(BaseCommand):
                     skip_blank_lines=self._options.get("skip_blank_lines", False),
                     skipinitialspace=self._options.get("skip_initial_space", False),
                     skiprows=self._options.get("skip_rows", 0),
-                    dtype=self._options.get("column_data_types")
-                    if self._options.get("column_data_types")
-                    else {},
+                    dtype=self._options.get("column_data_types", {})
                 )
             )
         except (
