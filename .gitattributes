@@ -13,3 +13,6 @@ docs/static/img/roadmap.png filter=lfs diff=lfs merge=lfs -text
 docs/static/img/root-cert-example.png filter=lfs diff=lfs merge=lfs -text
 docs/static/img/applitools.png filter=lfs diff=lfs merge=lfs -text
 docs/static/img/github-dark.png filter=lfs diff=lfs merge=lfs -text
+RELEASING/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+RELEASING/**/*.png filter=lfs diff=lfs merge=lfs -text
+RELEASING/**/*.gif filter=lfs diff=lfs merge=lfs -text
