@@ -20,6 +20,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { css, fetchTimeRange, styled, t, useTheme } from '@superset-ui/core';
 import { Tooltip } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
+import moment from 'moment';
 import {
   ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
@@ -71,19 +72,24 @@ export default function PopKPI(props: PopKPIProps) {
     comparisonColorScheme,
     percentDifferenceNumber,
     currentTimeRangeFilter,
+    startDateOffset,
     shift,
   } = props;
 
   const [comparisonRange, setComparisonRange] = useState<string>('');
 
   useEffect(() => {
-    if (!currentTimeRangeFilter || !shift) {
+    if (!currentTimeRangeFilter || (!shift && !startDateOffset)) {
       setComparisonRange('');
-    } else if (!isEmpty(shift)) {
+    } else if (!isEmpty(shift) || startDateOffset) {
+      const startDateShift = moment(
+        (currentTimeRangeFilter as any).comparator.split(' : ')[0],
+      ).diff(moment(startDateOffset), 'days');
+      const newshift = startDateShift ? `${startDateShift} days ago` : shift;
       const promise: any = fetchTimeRange(
         (currentTimeRangeFilter as any).comparator,
         currentTimeRangeFilter.subject,
-        shift ? [shift] : [],
+        newshift ? [newshift] : [],
       );
       Promise.resolve(promise).then((res: any) => {
         const response: string[] = res.value;
@@ -91,7 +97,7 @@ export default function PopKPI(props: PopKPIProps) {
         setComparisonRange(firstRange.split('vs\n')[1].trim());
       });
     }
-  }, [currentTimeRangeFilter, shift]);
+  }, [currentTimeRangeFilter, shift, startDateOffset]);
 
   const theme = useTheme();
   const flexGap = theme.gridUnit * 5;

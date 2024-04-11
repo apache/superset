@@ -63,6 +63,7 @@ export type PopKPIProps = PopKPIStylesProps &
     percentDifferenceNumber: number;
     comparisonColorScheme?: string;
     currentTimeRangeFilter?: SimpleAdhocFilter;
+    startDateOffset?: string;
     shift: string;
   };
 

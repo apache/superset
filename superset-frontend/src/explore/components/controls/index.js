@@ -34,6 +34,7 @@ import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
+import TimeOffsetControl from './TimeOffsetControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
@@ -82,6 +83,7 @@ const controlMap = {
   XAxisSortControl,
   ContourControl,
   ComparisonRangeLabel,
+  TimeOffsetControl,
   ...sharedControlComponents,
 };
 export default controlMap;

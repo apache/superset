@@ -90,6 +90,7 @@ export default function transformProps(chartProps: ChartProps) {
   const data = dataA;
   const metricName = getMetricLabel(metric);
   const timeComparison = chartProps.rawFormData?.time_compare?.[0];
+  const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
@@ -167,6 +168,7 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorScheme,
     percentDifferenceNumber: percentDifferenceNum,
     currentTimeRangeFilter,
+    startDateOffset,
     shift: timeComparison,
   };
 }
