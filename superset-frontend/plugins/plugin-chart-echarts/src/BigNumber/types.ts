@@ -50,7 +50,7 @@ export type BigNumberWithTrendlineChartProps =
 
 export type TimeSeriesDatum = [number, number | null];
 
-export type BigNumberVizProps = {
+export type BigNumberVizProps = BigNumberVizPropsDodo & {
   className?: string;
   width: number;
   height: number;
@@ -79,6 +79,12 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+};
+
+// DODO added
+type BigNumberVizPropsDodo = {
+  percentChange?: number;
+  percentChangeFormatter?: ColorFormatters;
 };
 
 // DODO added

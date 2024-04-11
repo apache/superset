@@ -61,7 +61,7 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
     // DODO changed
-    isFixedColor,
+    isFixedColor = true,
   }: ConditionalFormattingConfig,
   columnValues: number[],
   alpha?: boolean,
@@ -217,6 +217,35 @@ export const getColorFormatters = memoizeOne(
               data.map(row => row[config.column!] as number),
               alpha,
             ),
+          });
+        }
+        return acc;
+      },
+      [],
+    ) ?? [],
+);
+
+// DODO added
+// Add function that based on getColorFormatters
+// and customized for percentChange
+export const getColorFormattersDodoPercentChange = memoizeOne(
+  (
+    columnConfig: ConditionalFormattingConfig[] | undefined,
+    percentChange: number,
+  ) =>
+    columnConfig?.reduce(
+      (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        if (
+          config?.operator === COMPARATOR.NONE ||
+          (config?.operator !== undefined &&
+            (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
+              ? config?.targetValueLeft !== undefined &&
+                config?.targetValueRight !== undefined
+              : config?.targetValue !== undefined))
+        ) {
+          acc.push({
+            column: '',
+            getColorFromValue: getColorFunction(config, [percentChange], false),
           });
         }
         return acc;

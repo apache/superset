@@ -1,26 +1,21 @@
 // DODO was here
+
 import React, { useState, useEffect } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { Switch } from 'src/components/Switch';
-import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
+
 import {
   COMPARATOR,
   ConditionalFormattingConfig,
   MULTIPLE_VALUE_COMPARATORS,
-} from './types';
+} from 'src/explore/components/controls/ConditionalFormattingControl';
+import { FormatingPopoverRenderFormContent } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
-`;
-
-const JustifyEnd = styled.div`
-  display: flex;
-  justify-content: flex-end;
 `;
 
 const colorSchemeOptions = (theme: SupersetTheme) => [
@@ -81,7 +76,8 @@ const isOperatorNone = (operator?: COMPARATOR) =>
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
-type GetFieldValue = Pick<Required<FormProps>['form'], 'getFieldValue'>;
+export type GetFieldValue = Pick<Required<FormProps>['form'], 'getFieldValue'>;
+
 const rulesTargetValueLeft = [
   { required: true, message: t('Required') },
   ({ getFieldValue }: GetFieldValue) => ({
@@ -167,20 +163,22 @@ const renderOperatorFields = ({ getFieldValue }: GetFieldValue) =>
     </Row>
   );
 
-export const FormattingPopoverContent = ({
+// DODO changed
+export const FormattingPopoverContentDodoWrapper = ({
   config,
   onChange,
   columns = [],
+  renderFormContent,
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
+  renderFormContent: FormatingPopoverRenderFormContent;
 }) => {
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
 
   // DODO added
-  const [control, setControl] = useState(config?.isFixedColor);
   const [loaded, setLoaded] = useState(false);
   const [chosenColor, setChosenColor] = useState<string>(
     config?.colorScheme || '#000',
@@ -236,80 +234,17 @@ export const FormattingPopoverContent = ({
           requiredMark="optional"
           layout="vertical"
         >
-          <Row gutter={12}>
-            <Col span={12}>
-              <FormItem
-                name="column"
-                label={t('Column')}
-                rules={rulesRequired}
-                initialValue={columns[0]?.value}
-              >
-                <Select ariaLabel={t('Select column')} options={columns} />
-              </FormItem>
-            </Col>
-            <Col span={12}>
-              <FormItem
-                name="colorScheme"
-                label={t('Color scheme')}
-                rules={rulesRequired}
-                initialValue={colorScheme[0].value}
-              >
-                {/* DODO changed */}
-                <Select
-                  ariaLabel={t('Color scheme')}
-                  options={colorsValues}
-                  onChange={value => {
-                    // @ts-ignore
-                    parseColorValue(value);
-                  }}
-                />
-              </FormItem>
-            </Col>
-          </Row>
-          {/* DODO added */}
-          <Row gutter={12}>
-            <Col span={12}>
-              <FormItem
-                name="isFixedColor"
-                label={t('No gradient')}
-                initialValue={control}
-              >
-                <Switch
-                  data-test="toggle-active"
-                  checked={control}
-                  onClick={(checked: boolean) => {
-                    setControl(checked);
-                  }}
-                  size="default"
-                />
-              </FormItem>
-            </Col>
-            <Col span={12}>
-              <FormItem
-                name="colorScheme"
-                label={t('Color')}
-                initialValue={chosenColor}
-              >
-                <ColorPickerControl
-                  onChange={(picked: string) => {
-                    setChosenColor(picked);
-                  }}
-                  value={chosenColor}
-                  isHex
-                />
-              </FormItem>
-            </Col>
-          </Row>
-          <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-            {renderOperatorFields}
-          </FormItem>
-          <FormItem>
-            <JustifyEnd>
-              <Button htmlType="submit" buttonStyle="primary">
-                {t('Apply')}
-              </Button>
-            </JustifyEnd>
-          </FormItem>
+          {renderFormContent({
+            rulesRequired,
+            columns,
+            colorScheme,
+            colorsValues,
+            chosenColor,
+            setChosenColor,
+            shouldFormItemUpdate,
+            renderOperatorFields,
+            parseColorValue,
+          })}
         </Form> // DODO addded
       ) : (
         'Loading...'

@@ -1,36 +1,29 @@
 // DODO was here
-import React from 'react';
+import React, { MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
-  // NumberFormatter,
   smartDateVerboseFormatter,
-  // TimeFormatter,
   computeMaxFontSize,
   BRAND_COLOR,
-  POSITIVE_COLOR,
-  NAGATIVE_COLOR,
   styled,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
-// import { EChartsCoreOption } from 'echarts';
-import {
-  PROPORTION,
-  NO_DATA_OR_HASNT_LANDED,
-  NO_DATA,
-  DEFAULT_COLOR,
-} from './constants';
-import { calculateColor, getColors } from './utils';
 import Echart from '../components/Echart';
-import {
-  // BigNumberVizProps,
-  // TimeSeriesDatum,
-  ConditionalFormattingConfig,
-  BigNumberVizProps,
-} from './types';
+import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
+import { bigNumberVizGetColorDodo } from '../DodoExtensions/BigNumber/BigNumberViz';
 
 const defaultNumberFormatter = getNumberFormatter();
+
+const PROPORTION = {
+  // text size: proportion of the chart container sans trendline
+  KICKER: 0.1,
+  HEADER: 0.3,
+  SUBHEADER: 0.125,
+  // trendline size: proportion of the whole chart container
+  TRENDLINE: 0.3,
+};
 
 class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
   static defaultProps = {
@@ -40,16 +33,12 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     headerFontSize: PROPORTION.HEADER,
     kickerFontSize: PROPORTION.KICKER,
     mainColor: BRAND_COLOR,
-    positiveColor: POSITIVE_COLOR,
-    negativeColor: NAGATIVE_COLOR,
     showTimestamp: false,
     showTrendLine: false,
     startYAxisAtZero: true,
     subheader: '',
-    comparison: '',
     subheaderFontSize: PROPORTION.SUBHEADER,
     timeRangeFixed: false,
-    conditionalFormatting: [] as ConditionalFormattingConfig[],
   };
 
   getClassName() {
@@ -71,14 +60,13 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
   renderFallbackWarning() {
     const { bigNumberFallback, formatTime, showTimestamp } = this.props;
-    if (!bigNumberFallback || showTimestamp) return null;
+    if (!formatTime || !bigNumberFallback || showTimestamp) return null;
     return (
       <span
         className="alert alert-warning"
         role="alert"
         title={t(
           `Last available value seen on %s`,
-          // @ts-ignore
           formatTime(bigNumberFallback[0]),
         )}
       >
@@ -89,9 +77,14 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
   renderKicker(maxHeight: number) {
     const { timestamp, showTimestamp, formatTime, width } = this.props;
-    if (!showTimestamp) return null;
+    if (
+      !formatTime ||
+      !showTimestamp ||
+      typeof timestamp === 'string' ||
+      typeof timestamp === 'boolean'
+    )
+      return null;
 
-    // @ts-ignore
     const text = timestamp === null ? '' : formatTime(timestamp);
 
     const container = this.createTemporaryContainer();
@@ -118,31 +111,29 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     );
   }
 
-  // DODO changed
-  renderHeader(maxHeight: number, textColor: string) {
-    const { bigNumber, headerFormatter, width /* colorThresholdFormatters */ } =
+  renderHeader(maxHeight: number) {
+    const { bigNumber, headerFormatter, width, colorThresholdFormatters } =
       this.props;
     // @ts-ignore
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
-    // DODO changed
-    // const hasThresholdColorFormatter =
-    //   Array.isArray(colorThresholdFormatters) &&
-    //   colorThresholdFormatters.length > 0;
+    const hasThresholdColorFormatter =
+      Array.isArray(colorThresholdFormatters) &&
+      colorThresholdFormatters.length > 0;
 
-    // let numberColor;
-    // if (hasThresholdColorFormatter) {
-    //   colorThresholdFormatters!.forEach(formatter => {
-    //     const formatterResult = bigNumber
-    //       ? formatter.getColorFromValue(bigNumber as number)
-    //       : false;
-    //     if (formatterResult) {
-    //       numberColor = formatterResult;
-    //     }
-    //   });
-    // } else {
-    //   numberColor = 'black';
-    // }
+    let numberColor;
+    if (hasThresholdColorFormatter) {
+      colorThresholdFormatters!.forEach(formatter => {
+        const formatterResult = bigNumber
+          ? formatter.getColorFromValue(bigNumber as number)
+          : false;
+        if (formatterResult) {
+          numberColor = formatterResult;
+        }
+      });
+    } else {
+      numberColor = 'black';
+    }
 
     const container = this.createTemporaryContainer();
     document.body.append(container);
@@ -155,7 +146,6 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     });
     container.remove();
 
-    // @ts-ignore
     const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
       if (this.props.onContextMenu) {
         e.preventDefault();
@@ -169,7 +159,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
         style={{
           fontSize,
           height: maxHeight,
-          color: textColor,
+          color: numberColor,
         }}
         onContextMenu={onContextMenu}
       >
@@ -178,8 +168,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     );
   }
 
-  // DODO changed
-  renderSubheader(maxHeight: number, textColor: string) {
+  renderSubheader(maxHeight: number) {
     const { bigNumber, subheader, width, bigNumberFallback } = this.props;
     let fontSize = 0;
 
@@ -193,54 +182,12 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     if (bigNumber === null) {
       text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
     }
-    if (text) {
-      const container = this.createTemporaryContainer();
-      document.body.append(container);
-      fontSize = computeMaxFontSize({
-        text,
-        maxWidth: width,
-        maxHeight,
-        className: 'subheader-line',
-        container,
-      });
-      container.remove();
 
-      return (
-        <div
-          className="subheader-line"
-          style={{
-            fontSize,
-            height: maxHeight,
-            color: textColor,
-          }}
-        >
-          {text}
-        </div>
-      );
-    }
-    return null;
-  }
-
-  // DODO added
-  renderComparison(maxHeight: number) {
-    const {
+    // DODO added
+    const { numberColor, colorPercentChange } = bigNumberVizGetColorDodo(
+      this.props,
       bigNumber,
-      // @ts-ignore
-      comparison,
-      width,
-      bigNumberFallback,
-      className,
-      // @ts-ignore
-      positiveColor,
-      // @ts-ignore
-      negativeColor,
-    } = this.props;
-    let fontSize = 0;
-
-    let text = comparison;
-    if (bigNumber === null) {
-      text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
-    }
+    );
 
     if (text) {
       const container = this.createTemporaryContainer();
@@ -260,8 +207,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
           style={{
             fontSize,
             height: maxHeight,
-            color: calculateColor(className, positiveColor, negativeColor),
-            marginTop: '50px',
+            color: colorPercentChange ?? numberColor, // DODO add line
           }}
         >
           {text}
@@ -324,21 +270,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
-      // @ts-ignore
-      conditionalFormatting,
-      bigNumber,
     } = this.props;
-
-    // @ts-ignore
-    const allColors = getColors(conditionalFormatting, bigNumber);
-    const finalColors = allColors.filter(
-      (color: any) => color !== DEFAULT_COLOR,
-    );
-    const finalColor = !finalColors.length
-      ? DEFAULT_COLOR
-      : finalColors[finalColors.length - 1];
-
-    const textColor: string = finalColor;
     const className = this.getClassName();
 
     if (showTrendLine) {
@@ -350,20 +282,14 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
           <div className="text-container" style={{ height: allTextHeight }}>
             {this.renderFallbackWarning()}
             {this.renderKicker(
-              // @ts-ignore
-              Math.ceil(kickerFontSize * (1 - PROPORTION.TRENDLINE) * height),
+              Math.ceil(
+                (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
+              ),
             )}
             {this.renderHeader(
               Math.ceil(headerFontSize * (1 - PROPORTION.TRENDLINE) * height),
-              textColor,
             )}
             {this.renderSubheader(
-              Math.ceil(
-                subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
-              ),
-              textColor,
-            )}
-            {this.renderComparison(
               Math.ceil(
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
@@ -377,11 +303,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     return (
       <div className={className} style={{ height }}>
         {this.renderFallbackWarning()}
-        {/* @ts-ignore */}
-        {this.renderKicker(kickerFontSize * height)}
-        {this.renderHeader(Math.ceil(headerFontSize * height), textColor)}
-        {this.renderSubheader(Math.ceil(subheaderFontSize * height), textColor)}
-        {this.renderComparison(Math.ceil(subheaderFontSize * height))}
+        {this.renderKicker((kickerFontSize || 0) * height)}
+        {this.renderHeader(Math.ceil(headerFontSize * height))}
+        {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
       </div>
     );
   }
@@ -394,6 +318,7 @@ export default styled(BigNumberVis)`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: flex-start;
 
     &.no-trendline .subheader-line {
       padding-bottom: 0.3em;

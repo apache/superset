@@ -14,3 +14,4 @@ xlsxwriter==3.0.7
 flask-http-middleware==0.3.1
 sshtunnel==0.4.0
 Flask-SQLAlchemy==2.5.1
+marshmallow-enum==1.5.1
