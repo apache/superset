@@ -124,7 +124,7 @@ RUN apt-get update -qq \
 
 RUN pip install playwright
 RUN playwright install-deps
-RUN playright install chromium
+RUN playwright install chromium
 
 # Install GeckoDriver WebDriver
 RUN wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
