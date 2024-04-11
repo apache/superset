@@ -302,27 +302,29 @@ It is used to assign roles to users who authenticate using LDAP or OAuth.
 
 #### Mapping OAUTH groups to Superset roles
 
-The following AUTH_ROLES_MAPPING dictionary would map the OAUTH group "superset_users" to the Superset roles "Gamma" as well as "Alpha", and the OAUTH group "superset_admins" to the Superset role "Admin".
+The following `AUTH_ROLES_MAPPING` dictionary would map the OAUTH group "superset_users" to the Superset roles "Gamma" as well as "Alpha", and the OAUTH group "superset_admins" to the Superset role "Admin".
 
+```python
 AUTH_ROLES_MAPPING = {
 "superset_users": ["Gamma","Alpha"],
 "superset_admins": ["Admin"],
 }
-
+```
 #### Mapping LDAP groups to Superset roles
 
-The following AUTH_ROLES_MAPPING dictionary would map the LDAP DN "cn=superset_users,ou=groups,dc=example,dc=com" to the Superset roles "Gamma" as well as "Alpha", and the LDAP DN "cn=superset_admins,ou=groups,dc=example,dc=com" to the Superset role "Admin".
+The following `AUTH_ROLES_MAPPING` dictionary would map the LDAP DN "cn=superset_users,ou=groups,dc=example,dc=com" to the Superset roles "Gamma" as well as "Alpha", and the LDAP DN "cn=superset_admins,ou=groups,dc=example,dc=com" to the Superset role "Admin".
 
+```python
 AUTH_ROLES_MAPPING = {
 "cn=superset_users,ou=groups,dc=example,dc=com": ["Gamma","Alpha"],
 "cn=superset_admins,ou=groups,dc=example,dc=com": ["Admin"],
 }
-
-Note: This requires AUTH_LDAP_SEARCH to be set. For more details, Please refer (FAB Security documentation)[https://flask-appbuilder.readthedocs.io/en/latest/security.html].
+```
+Note: This requires `AUTH_LDAP_SEARCH` to be set. For more details, please see the [FAB Security documentation](https://flask-appbuilder.readthedocs.io/en/latest/security.html).
 
 #### Syncing roles at login
 
-You can also use the AUTH_ROLES_SYNC_AT_LOGIN configuration variable to control how often Flask-AppBuilder syncs the user's roles with the LDAP/OAUTH groups. If AUTH_ROLES_SYNC_AT_LOGIN is set to True, Flask-AppBuilder will sync the user's roles each time they log in. If AUTH_ROLES_SYNC_AT_LOGIN is set to False, Flask-AppBuilder will only sync the user's roles when they first register.
+You can also use the `AUTH_ROLES_SYNC_AT_LOGIN` configuration variable to control how often Flask-AppBuilder syncs the user's roles with the LDAP/OAUTH groups. If `AUTH_ROLES_SYNC_AT_LOGIN` is set to True, Flask-AppBuilder will sync the user's roles each time they log in. If `AUTH_ROLES_SYNC_AT_LOGIN` is set to False, Flask-AppBuilder will only sync the user's roles when they first register.
 
 ### Flask app Configuration Hook
 
