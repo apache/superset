@@ -59,7 +59,7 @@ class CrateEngineSpec(BaseEngineSpec):
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"{dttm.timestamp() * 1000}"
+            return f"CAST('{dttm.isoformat()}' AS TIMESTAMP)"
         return None
 
     @classmethod

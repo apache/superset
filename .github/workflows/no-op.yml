@@ -19,7 +19,7 @@
 # - Ensure that the job names in this workflow match exactly the names of the corresponding jobs in the main workflows.
 # - This workflow should be kept as-is, without path-specific conditions.
 
-name: No Operation Checks
+name: no-op Checks
 on: pull_request
 
 jobs:
@@ -27,28 +27,70 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: No-op for frontend-build
-        run: |
-          echo "This is a no-op step for frontend-build to ensure a successful status."
-          exit 0
+        run: exit 0
 
   pre-commit:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for pre-commit
-        run: |
-          echo "This is a no-op step for pre-commit to ensure a successful status."
-          exit 0
+        run: exit 0
 
   python-lint:
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     runs-on: ubuntu-latest
     steps:
       - name: No-op for python-lint
-        run: |
-          echo "This is a no-op step for python-lint to ensure a successful status."
-          exit 0
+        run: exit 0
+  test-postgres-hive:
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: exit 0
+  test-postgres-presto:
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: exit 0
+  unit-tests:
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for frontend-build
+        run: exit 0
+  test-mysql:
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-mysql
+        run: exit 0
+  test-postgres:
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-postgres
+        run: exit 0
+  test-sqlite:
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op for test-sqlite
+        run: exit 0

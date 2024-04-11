@@ -78,7 +78,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(
-            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
 
         # remove chart UUIDs from metadata so we can compare
@@ -269,7 +269,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         contents = dict(command.run())
 
         metadata = yaml.safe_load(
-            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]
+            contents[f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml"]()
         )
         assert list(metadata.keys()) == [
             "dashboard_title",

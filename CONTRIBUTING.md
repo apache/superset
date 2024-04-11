@@ -466,7 +466,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-pypi#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
@@ -477,7 +477,7 @@ python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
-pip install -r requirements/testing.txt
+pip install -r requirements/development.txt
 
 # Install Superset in editable (development) mode
 pip install -e .
@@ -531,7 +531,7 @@ If you add a new requirement or update an existing requirement (per the `install
 ```bash
 $ python3 -m venv venv
 $ source venv/bin/activate
-$ python3 -m pip install -r requirements/integration.txt
+$ python3 -m pip install -r requirements/development.txt
 $ pip-compile-multi --no-upgrade
 ```
 
@@ -584,8 +584,8 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 16
-- `npm`: Version 7
+- `Node.js`: Version 18
+- `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
@@ -749,7 +749,7 @@ The current status of the usability of each flag (stable vs testing, etc) can be
 Superset uses Git pre-commit hooks courtesy of [pre-commit](https://pre-commit.com/). To install run the following:
 
 ```bash
-pip3 install -r requirements/integration.txt
+pip3 install -r requirements/development.txt
 pre-commit install
 ```
 

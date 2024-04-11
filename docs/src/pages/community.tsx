@@ -247,14 +247,6 @@ const Community = () => {
             scrolling="no"
           />
         </BlurredSection>
-        <BlurredSection>
-          <SectionHeader level="h2" title="Newsletter Archive" />
-          <StyledNewsletterIframe
-            src="https://preset.io/embed/newsletter/"
-            frameBorder="0"
-            scrolling="no"
-          />
-        </BlurredSection>
       </main>
     </Layout>
   );

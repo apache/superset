@@ -262,6 +262,8 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "data": payload["df"].to_dict(orient="records"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
         }
 
     @deprecated(deprecated_in="3.0")
@@ -1899,8 +1901,7 @@ class BaseDeckGLViz(BaseViz):
             return (point.latitude, point.longitude)
         except Exception as ex:
             raise SpatialException(
-                _("Invalid spatial point encountered: %(latlong)s")
-                % {"latlong": latlong}
+                _("Invalid spatial point encountered: %(latlong)s", latlong=latlong)
             ) from ex
 
     @staticmethod

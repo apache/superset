@@ -30,7 +30,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 import pytest
 
 import flask
-from flask import current_app
+from flask import current_app, has_app_context
 
 from superset import db, sql_lab
 from superset.common.db_query_status import QueryStatus
@@ -138,8 +138,8 @@ def get_select_star(table: str, limit: int, schema: Optional[str] = None):
         schema = quote_f(schema)
         table = quote_f(table)
     if schema:
-        return f"SELECT *\nFROM {schema}.{table}\nLIMIT {limit}"
-    return f"SELECT *\nFROM {table}\nLIMIT {limit}"
+        return f"SELECT\n  *\nFROM {schema}.{table}\nLIMIT {limit}"
+    return f"SELECT\n  *\nFROM {table}\nLIMIT {limit}"
 
 
 @pytest.mark.usefixtures("login_as_admin")
@@ -333,9 +333,9 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     query = wait_for_success(result)
     assert QueryStatus.SUCCESS == query.status
 
-    sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
+    sqlite_select_sql = f"SELECT\n  *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
     assert query.select_sql == (
-        sqllite_select_sql
+        sqlite_select_sql
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
@@ -473,19 +473,23 @@ def test_create_table_as():
 
 
 def test_in_app_context():
-    @celery_app.task()
-    def my_task():
-        assert current_app
+    @celery_app.task(bind=True)
+    def my_task(self):
+        # Directly check if an app context is present
+        return has_app_context()
 
-    # Make sure we can call tasks with an app already setup
-    my_task()
+    # Expect True within an app context
+    with app.app_context():
+        result = my_task.apply().get()
+        assert (
+            result is True
+        ), "Task should have access to current_app within app context"
 
-    # Make sure the app gets pushed onto the stack properly
-    try:
-        popped_app = flask._app_ctx_stack.pop()
-        my_task()
-    finally:
-        flask._app_ctx_stack.push(popped_app)
+    # Expect True outside of an app context
+    result = my_task.apply().get()
+    assert (
+        result is True
+    ), "Task should have access to current_app outside of app context"
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):

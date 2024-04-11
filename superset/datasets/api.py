@@ -529,7 +529,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)

@@ -37,6 +37,7 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
 from superset.explore.exceptions import WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
+from superset.extensions import security_manager
 from superset.utils import core as utils
 from superset.views.utils import (
     get_datasource_info,
@@ -61,7 +62,6 @@ class GetExploreCommand(BaseCommand, ABC):
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def run(self) -> Optional[dict[str, Any]]:
         initial_form_data = {}
-
         if self._permalink_key is not None:
             command = GetExplorePermalinkCommand(self._permalink_key)
             permalink_value = command.run()
@@ -110,12 +110,19 @@ class GetExploreCommand(BaseCommand, ABC):
             self._datasource_type = SqlaTable.type
 
         datasource: Optional[BaseDatasource] = None
+
         if self._datasource_id is not None:
             with contextlib.suppress(DatasourceNotFound):
                 datasource = DatasourceDAO.get_datasource(
                     cast(str, self._datasource_type), self._datasource_id
                 )
-        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
+
+        datasource_name = _("[Missing Dataset]")
+
+        if datasource:
+            datasource_name = datasource.name
+            security_manager.can_access_datasource(datasource)
+
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
             raise WrongEndpointError(redirect=datasource.default_endpoint)

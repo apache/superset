@@ -67,7 +67,6 @@ export default class EchartsPieChartPlugin extends EchartsChartPlugin<
         ],
         name: t('Pie Chart'),
         tags: [
-          t('Aesthetic'),
           t('Categorical'),
           t('Circular'),
           t('Comparison'),

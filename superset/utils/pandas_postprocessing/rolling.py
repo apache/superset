@@ -97,5 +97,5 @@ def rolling(  # pylint: disable=too-many-arguments
     df_rolling = _append_columns(df, df_rolling, columns)
 
     if min_periods:
-        df_rolling = df_rolling[min_periods:]
+        df_rolling = df_rolling[min_periods - 1 :]
     return df_rolling

@@ -14,13 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel, protected-access
+# pylint: disable=import-outside-toplevel, protected-access
 
 from textwrap import dedent
 from typing import Any, Optional
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy import types
+from sqlalchemy.dialects import sqlite
+from sqlalchemy.engine.url import URL
+from sqlalchemy.sql import sqltypes
 
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
@@ -64,6 +68,25 @@ def test_parse_sql_multi_statement() -> None:
         "SELECT foo FROM tbl1",
         "SELECT bar FROM tbl2",
     ]
+
+
+def test_validate_db_uri(mocker: MockFixture) -> None:
+    """
+    Ensures that the `validate_database_uri` method invokes the validator correctly
+    """
+
+    def mock_validate(sqlalchemy_uri: URL) -> None:
+        raise ValueError("Invalid URI")
+
+    mocker.patch(
+        "superset.db_engine_specs.base.current_app.config",
+        {"DB_SQLA_URI_VALIDATOR": mock_validate},
+    )
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    with pytest.raises(ValueError):
+        BaseEngineSpec.validate_database_uri(URL.create("sqlite"))
 
 
 @pytest.mark.parametrize(
@@ -168,3 +191,75 @@ def test_convert_inspector_columns(
     from superset.db_engine_specs.base import convert_inspector_columns
 
     assert convert_inspector_columns(cols) == expected_result
+
+
+def test_select_star(mocker: MockFixture) -> None:
+    """
+    Test the ``select_star`` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class NoLimitDBEngineSpec(BaseEngineSpec):
+        allow_limit_clause = False
+
+    cols: list[ResultSetColumnType] = [
+        {
+            "column_name": "a",
+            "name": "a",
+            "type": sqltypes.String(),
+            "nullable": True,
+            "comment": None,
+            "default": None,
+            "precision": None,
+            "scale": None,
+            "max_length": None,
+            "is_dttm": False,
+        },
+    ]
+
+    # mock the database so we can compile the query
+    database = mocker.MagicMock()
+    database.compile_sqla_query = lambda query: str(
+        query.compile(dialect=sqlite.dialect())
+    )
+
+    engine = mocker.MagicMock()
+    engine.dialect = sqlite.dialect()
+
+    sql = BaseEngineSpec.select_star(
+        database=database,
+        table_name="my_table",
+        engine=engine,
+        schema=None,
+        limit=100,
+        show_cols=True,
+        indent=True,
+        latest_partition=False,
+        cols=cols,
+    )
+    assert (
+        sql
+        == """SELECT
+  a
+FROM my_table
+LIMIT ?
+OFFSET ?"""
+    )
+
+    sql = NoLimitDBEngineSpec.select_star(
+        database=database,
+        table_name="my_table",
+        engine=engine,
+        schema=None,
+        limit=100,
+        show_cols=True,
+        indent=True,
+        latest_partition=False,
+        cols=cols,
+    )
+    assert (
+        sql
+        == """SELECT
+  a
+FROM my_table"""
+    )

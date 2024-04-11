@@ -36,13 +36,14 @@ import pytz
 import sqlalchemy as sa
 import sqlparse
 import yaml
-from flask import escape, g, Markup
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
+from markupsafe import escape, Markup
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
@@ -64,6 +65,7 @@ from superset.exceptions import (
     ColumnNotFoundException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
@@ -73,6 +75,8 @@ from superset.sql_parse import (
     insert_rls_in_predicate,
     ParsedQuery,
     sanitize_clause,
+    SQLScript,
+    SQLStatement,
 )
 from superset.superset_typing import (
     AdhocMetric,
@@ -580,6 +584,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
 class ExtraJSONMixin:
@@ -901,11 +906,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return sql
 
     def get_query_str_extended(
-        self, query_obj: QueryObjectDict, mutate: bool = True
+        self,
+        query_obj: QueryObjectDict,
+        mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
+        try:
+            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
+        except SupersetParseError:
+            logger.warning("Unable to parse SQL to format it, passing it as-is")
+
         if mutate:
             sql = self.mutate_query_from_config(sql)
         return QueryStringExtended(
@@ -1053,7 +1065,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
 
     def get_rendered_sql(
-        self, template_processor: Optional[BaseTemplateProcessor] = None
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> str:
         """
         Render sql with template engine (Jinja).
@@ -1070,13 +1083,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=ex.message,
                     )
                 ) from ex
-        sql = sqlparse.format(sql.strip("\t\r\n; "), strip_comments=True)
-        if not sql:
-            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
-        if len(sqlparse.split(sql)) > 1:
+
+        script = SQLScript(sql.strip("\t\r\n; "), engine=self.db_engine_spec.engine)
+        if len(script.statements) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
             )
+
+        sql = script.statements[0].format(comments=False)
+        if not sql:
+            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         return sql
 
     def text(self, clause: str) -> TextClause:

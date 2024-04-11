@@ -3,7 +3,8 @@ name: release-workflow
 on:
   push:
     branches:
-      - 'master'
+      - "master"
+      - "[0-9].[0-9]"
 
 jobs:
   config:
@@ -28,7 +29,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16]
+        node-version: [18]
 
     steps:
       - uses: actions/checkout@v4

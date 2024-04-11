@@ -47,6 +47,7 @@ const TelemetryPixel = ({
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
   return process.env.SCARF_ANALYTICS === 'false' ? null : (
     <img
+      // @ts-ignore
       referrerPolicy="no-referrer-when-downgrade"
       src={pixelPath}
       width={0}

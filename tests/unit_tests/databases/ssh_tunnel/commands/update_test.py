@@ -20,11 +20,14 @@ from collections.abc import Iterator
 import pytest
 from sqlalchemy.orm.session import Session
 
-from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelInvalidError
+from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
+    SSHTunnelInvalidError,
+)
 
 
 @pytest.fixture
-def session_with_data(session: Session) -> Iterator[Session]:
+def session_with_data(request, session: Session) -> Iterator[Session]:
     from superset.connectors.sqla.models import SqlaTable
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
@@ -32,7 +35,8 @@ def session_with_data(session: Session) -> Iterator[Session]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    sqlalchemy_uri = getattr(request, "param", "postgresql://u:p@localhost:5432/db")
+    database = Database(database_name="my_database", sqlalchemy_uri=sqlalchemy_uri)
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
         columns=[],
@@ -93,3 +97,28 @@ def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
     with pytest.raises(SSHTunnelInvalidError) as excinfo:
         command.run()
     assert str(excinfo.value) == ("SSH Tunnel parameters are invalid.")
+
+
+@pytest.mark.parametrize(
+    "session_with_data", ["postgresql://u:p@localhost/testdb"], indirect=True
+)
+def test_update_shh_tunnel_no_port(session_with_data: Session) -> None:
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+    from superset.daos.database import DatabaseDAO
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+
+    result = DatabaseDAO.get_ssh_tunnel(1)
+
+    assert result
+    assert isinstance(result, SSHTunnel)
+    assert 1 == result.database_id
+    assert "Test" == result.server_address
+
+    update_payload = {"server_address": "Test update"}
+    command = UpdateSSHTunnelCommand(1, update_payload)
+
+    with pytest.raises(SSHTunnelDatabasePortError) as excinfo:
+        command.run()
+    assert str(excinfo.value) == (
+        "A database port is required when connecting via SSH Tunnel."
+    )

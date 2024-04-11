@@ -90,9 +90,6 @@ export default function createQueryStory({
       </div>
     );
   };
-  story.parameters = {
-    chromatic: { disable: true },
-  };
   story.args = {
     host: 'localhost:8088',
     mode: keys[0],

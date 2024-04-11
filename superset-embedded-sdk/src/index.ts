@@ -42,6 +42,9 @@ export type UiConfigType = {
     visible?: boolean
     expanded?: boolean
   }
+  urlParams?: {
+    [key: string]: any
+  }
 }
 
 export type EmbedDashboardParams = {
@@ -112,14 +115,15 @@ export async function embedDashboard({
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
-      const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
+      const dashboardConfigUrlParams = dashboardUiConfig ? {uiConfig: `${calculateConfig()}`} : undefined;
       const filterConfig = dashboardUiConfig?.filters || {}
       const filterConfigKeys = Object.keys(filterConfig)
-      const filterConfigUrlParams = filterConfigKeys.length > 0
-        ? "&"
-        + filterConfigKeys
-          .map(key => DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key] + '=' + filterConfig[key]).join('&')
-        : ""
+      const filterConfigUrlParams = Object.fromEntries(filterConfigKeys.map(
+        key => [DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key], filterConfig[key]]))
+
+      // Allow url query parameters from dashboardUiConfig.urlParams to override the ones from filterConfig
+      const urlParams = {...dashboardConfigUrlParams, ...filterConfigUrlParams, ...dashboardUiConfig?.urlParams}
+      const urlParamsString = Object.keys(urlParams).length ? '?' + new URLSearchParams(urlParams).toString() : ''
 
       // set up the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
@@ -153,7 +157,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
+      iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')

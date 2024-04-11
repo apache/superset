@@ -41,7 +41,11 @@ from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetErrorException,
+    SupersetErrorsException,
+)
 from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -188,7 +192,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             return handle_query_error(ex, query)
 
 
-def execute_sql_statement(
+def execute_sql_statement(  # pylint: disable=too-many-statements
     sql_statement: str,
     query: Query,
     cursor: Any,
@@ -308,6 +312,9 @@ def execute_sql_statement(
                 level=ErrorLevel.ERROR,
             )
         ) from ex
+    except OAuth2RedirectError as ex:
+        # user needs to authenticate with OAuth2 in order to run query
+        raise ex
     except Exception as ex:
         # query is stopped in another thread/worker
         # stopping raises expected exceptions which we should skip

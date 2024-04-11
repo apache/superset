@@ -1,18 +1,26 @@
 ---
 title: Installing on Kubernetes
 hide_title: true
-sidebar_position: 3
+sidebar_position: 1
 version: 1
 ---
 
 ## Installing on Kubernetes
 
-Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
+Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
+found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
 ### Prerequisites
 
 - A Kubernetes cluster
 - Helm installed
+
+:::note
+For simpler, single host environments, we recommend using
+[minikube](https://minikube.sigs.k8s.io/docs/start/) which is easy to setup on many platforms
+and works fantastically well with the Helm chart referenced here.
+:::
+
 
 ### Running
 
@@ -85,7 +93,7 @@ Depending how you configured external access, the URL will vary. Once you've ide
 
 #### Security settings
 
-Default security settings and passwords are included but you **SHOULD** override those with your own, in particular:
+Default security settings and passwords are included but you **MUST** update them to run `prod` instances, in particular:
 
 ```yaml
 postgresql:

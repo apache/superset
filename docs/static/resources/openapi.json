@@ -3613,6 +3613,9 @@
           "disable_data_preview": {
             "type": "boolean"
           },
+          "disable_drill_to_detail": {
+            "type": "boolean"
+          },
           "explore_database_id": {
             "type": "integer"
           },

@@ -35,6 +35,7 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
+from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -49,6 +50,7 @@ from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -182,7 +184,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get items
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -203,6 +205,7 @@ class TestDatabaseApi(SupersetTestCase):
             "created_by",
             "database_name",
             "disable_data_preview",
+            "disable_drill_to_detail",
             "engine_information",
             "explore_database_id",
             "expose_in_sqllab",
@@ -225,7 +228,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
         dbs = db.session.query(Database).filter_by(expose_in_sqllab=True).all()
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         arguments = {
             "keys": ["none"],
             "filters": [{"col": "expose_in_sqllab", "opr": "eq", "value": True}],
@@ -248,7 +251,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get items not allowed
         """
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         uri = "api/v1/database/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -266,7 +269,7 @@ class TestDatabaseApi(SupersetTestCase):
             "schemas_allowed_for_file_upload": [],
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -305,7 +308,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test create with SSH Tunnel
         """
         mock_create_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -340,6 +343,58 @@ class TestDatabaseApi(SupersetTestCase):
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_create_database_with_missing_port_raises_error(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test that missing port raises SSHTunnelDatabaseError
+        """
+        mock_create_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        modified_sqlalchemy_uri = "postgresql://foo:bar@localhost/test-db"
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
     @mock.patch("superset.commands.database.update.is_feature_enabled")
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
@@ -356,7 +411,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         mock_create_is_feature_enabled.return_value = True
         mock_update_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -405,6 +460,154 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.models.core.Database.get_all_schema_names",
     )
+    def test_update_database_with_missing_port_raises_error(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_update_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test that missing port raises SSHTunnelDatabaseError
+        """
+        mock_create_is_feature_enabled.return_value = True
+        mock_update_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        modified_sqlalchemy_uri = "postgresql://foo:bar@localhost/test-db"
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": modified_sqlalchemy_uri,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response_create = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        uri = "api/v1/database/{}".format(response_create.get("id"))
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(
+            response.get("message"),
+            "A database port is required when connecting via SSH Tunnel.",
+        )
+
+        # Cleanup
+        model = db.session.query(Database).get(response_create.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
+    @mock.patch("superset.commands.database.ssh_tunnel.delete.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_delete_ssh_tunnel(
+        self,
+        mock_test_connection_database_command_run,
+        mock_create_is_feature_enabled,
+        mock_update_is_feature_enabled,
+        mock_delete_is_feature_enabled,
+        mock_get_all_schema_names,
+    ):
+        """
+        Database API: Test deleting a SSH tunnel via Database update
+        """
+        mock_create_is_feature_enabled.return_value = True
+        mock_update_is_feature_enabled.return_value = True
+        mock_delete_is_feature_enabled.return_value = True
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+        }
+        database_data_with_ssh_tunnel = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+
+        uri = "api/v1/database/{}".format(response.get("id"))
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel)
+        response_update = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response_update.get("id"))
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+
+        database_data_with_ssh_tunnel_null = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": None,
+        }
+
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel_null)
+        response_update = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response_update.get("id"))
+            .one_or_none()
+        )
+
+        assert model_ssh_tunnel is None
+
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    @mock.patch("superset.commands.database.create.is_feature_enabled")
+    @mock.patch("superset.commands.database.update.is_feature_enabled")
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
     def test_update_ssh_tunnel_via_database_api(
         self,
         mock_test_connection_database_command_run,
@@ -417,7 +620,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         mock_create_is_feature_enabled.return_value = True
         mock_update_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
 
         if example_db.backend == "sqlite":
@@ -494,7 +697,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: SSH Tunnel gets deleted if Database gets deleted
         """
         mock_create_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -550,7 +753,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test rollback is called if SSH Tunnel creation fails
         """
         mock_create_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -597,7 +800,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test GET Database returns its related SSH Tunnel
         """
         mock_create_is_feature_enabled.return_value = True
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -649,7 +852,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test raises SSHTunneling feature flag not enabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -695,7 +898,7 @@ class TestDatabaseApi(SupersetTestCase):
         with database.get_sqla_engine_with_context() as engine:
             engine.execute(query)
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{database.id}/table/{table_name}/null/"
         rv = self.client.get(uri)
 
@@ -712,7 +915,7 @@ class TestDatabaseApi(SupersetTestCase):
             "schemas_allowed_for_file_upload": [],
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -747,7 +950,7 @@ class TestDatabaseApi(SupersetTestCase):
             "schemas_allowed_for_file_upload": [],
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         if example_db.backend == "sqlite":
             return
@@ -772,7 +975,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-create-database-invalid-cert",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -795,7 +998,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -836,7 +1039,7 @@ class TestDatabaseApi(SupersetTestCase):
             "metadata_cache_timeout": {},
             "schemas_allowed_for_file_upload": [],
         }
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-create-database-invalid-extra",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -866,7 +1069,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "examples",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
@@ -888,7 +1091,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create fail validate sqlalchemy uri
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-database-invalid-uri",
             "sqlalchemy_uri": "wrong_uri",
@@ -919,7 +1122,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         uri = "api/v1/database/"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
         expected_response = {
@@ -948,7 +1151,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         uri = "api/v1/database/"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
         superset_error_mysql = SupersetError(
@@ -1009,7 +1212,7 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-database-updated",
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
@@ -1039,7 +1242,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         uri = f"api/v1/database/{test_database.id}"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
@@ -1064,7 +1267,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database2", example_db.sqlalchemy_uri_decrypted
         )
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {"database_name": "test-database2"}
         uri = f"api/v1/database/{test_database1.id}"
         rv = self.client.put(uri, json=database_data)
@@ -1085,7 +1288,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test update invalid request
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {"database_name": "test-database-updated"}
         uri = "api/v1/database/invalid"
         rv = self.client.put(uri, json=database_data)
@@ -1100,7 +1303,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-database-updated",
             "sqlalchemy_uri": "wrong_uri",
@@ -1125,7 +1328,7 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-database-updated",
             "configuration_method": "BAD_FORM",
@@ -1153,7 +1356,7 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database_data = {
             "database_name": "test-database-updated",
         }
@@ -1169,7 +1372,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test delete
         """
         database_id = self.insert_database("test-database", "test_uri").id
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{database_id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
@@ -1181,7 +1384,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test delete not found
         """
         max_id = db.session.query(func.max(Database.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{max_id + 1}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 404)
@@ -1191,7 +1394,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test delete fails because it has depending datasets
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{self._database.id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 422)
@@ -1201,7 +1404,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test delete with associated report
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = (
             db.session.query(Database)
             .filter(Database.database_name == "database_with_report")
@@ -1222,7 +1425,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get table metadata info
         """
         example_db = get_example_database()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/table/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -1236,7 +1439,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test info security
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
         uri = f"api/v1/database/_info?q={prison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
@@ -1249,7 +1452,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get invalid database from table metadata
         """
         database_id = 1000
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{database_id}/table/some_table/some_schema/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -1264,7 +1467,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/table/wrong_table/null/"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         if example_db.backend == "sqlite":
@@ -1278,7 +1481,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "indexes": [],
                     "name": "wrong_table",
                     "primaryKey": {"constrained_columns": None, "name": None},
-                    "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                    "selectStar": "SELECT\n  *\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
                 },
             )
         elif example_db.backend == "mysql":
@@ -1292,7 +1495,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get table metadata from not permitted db
         """
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
         rv = self.client.get(uri)
@@ -1304,7 +1507,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get table extra metadata info
         """
         example_db = get_example_database()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/table_extra/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -1316,7 +1519,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get invalid database from table extra metadata
         """
         database_id = 1000
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{database_id}/table_extra/some_table/some_schema/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -1331,7 +1534,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/table_extra/wrong_table/null/"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
 
@@ -1343,19 +1546,17 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertIn("gender", response["result"])
 
     def test_get_select_star_not_allowed(self):
         """
         Database API: Test get select star not allowed
         """
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/select_star/birth_names/"
         rv = self.client.get(uri)
@@ -1377,7 +1578,7 @@ class TestDatabaseApi(SupersetTestCase):
         gamma_role = security_manager.find_role("Gamma")
         security_manager.add_permission_role(gamma_role, tmp_table_perm)
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         main_db = get_main_database()
         uri = f"api/v1/database/{main_db.id}/select_star/ab_permission/"
         rv = self.client.get(uri)
@@ -1393,7 +1594,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star not found database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         max_id = db.session.query(func.max(Database.id)).scalar()
         uri = f"api/v1/database/{max_id + 1}/select_star/birth_names/"
         rv = self.client.get(uri)
@@ -1403,7 +1604,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test get select star not found database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         # sqlite will not raise a NoSuchTableError
         if example_db.backend == "sqlite":
@@ -1426,7 +1627,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": ["public"],
             }
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1467,7 +1668,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": [],
             }
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1508,7 +1709,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": ["public"],
             }
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1549,7 +1750,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": [],
             }
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1583,7 +1784,7 @@ class TestDatabaseApi(SupersetTestCase):
         with self.create_app().app_context():
             example_db = get_example_database()
 
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1629,7 +1830,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": [],
             }
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1668,7 +1869,7 @@ class TestDatabaseApi(SupersetTestCase):
         Both databases have false allow_file_upload
         """
         with self.create_app().app_context():
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             arguments = {
                 "columns": ["allow_file_upload"],
                 "filters": [
@@ -1697,7 +1898,7 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_cache_timeout": {},
                 "schemas_allowed_for_file_upload": ["public"],
             }
-            self.login(username="gamma")
+            self.login(GAMMA_USERNAME)
             database = self.insert_database(
                 "database_with_upload",
                 example_db.sqlalchemy_uri_decrypted,
@@ -1745,7 +1946,7 @@ class TestDatabaseApi(SupersetTestCase):
             gamma_role = security_manager.find_role("Gamma")
             security_manager.add_permission_role(gamma_role, tmp_table_perm)
 
-            self.login(username="gamma")
+            self.login(GAMMA_USERNAME)
 
             arguments = {
                 "columns": ["allow_file_upload"],
@@ -1772,7 +1973,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database schemas
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = db.session.query(Database).filter_by(database_name="examples").one()
         schemas = database.get_all_schema_names()
 
@@ -1790,8 +1991,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database schemas not found
         """
-        self.logout()
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/schemas/"
         rv = self.client.get(uri)
@@ -1801,7 +2001,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database schemas with invalid query
         """
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         database = db.session.query(Database).first()
         rv = self.client.get(
             f"api/v1/database/{database.id}/schemas/?q={prison.dumps({'force': 'nop'})}"
@@ -1812,7 +2012,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database tables
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = db.session.query(Database).filter_by(database_name="examples").one()
 
         schema_name = self.default_schema_backend_map[database.backend]
@@ -1836,8 +2036,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database tables not found
         """
-        self.logout()
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/tables/?q={prison.dumps({'schema_name': 'non_existent'})}"
         rv = self.client.get(uri)
@@ -1847,7 +2046,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database tables with invalid query
         """
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         database = db.session.query(Database).first()
         rv = self.client.get(
             f"api/v1/database/{database.id}/tables/?q={prison.dumps({'force': 'nop'})}"
@@ -1859,7 +2058,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test database tables with unexpected error
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = db.session.query(Database).filter_by(database_name="examples").one()
         mock_can_access_database.side_effect = Exception("Test Error")
 
@@ -1880,7 +2079,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         # need to temporarily allow sqlite dbs, teardown will undo this
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         example_db = get_example_database()
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
@@ -1912,7 +2111,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test test connection failed
         """
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         data = {
             "sqlalchemy_uri": "broken://url",
@@ -1977,7 +2176,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test test connection with unsafe uri
         """
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
         data = {
@@ -2038,7 +2237,7 @@ class TestDatabaseApi(SupersetTestCase):
             superset_error
         ]
 
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
         data = {
             "sqlalchemy_uri": "postgres://username:password@locahost:12345/db",
             "database_name": "examples",
@@ -2065,7 +2264,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get chart and dashboard count related to a database
         :return:
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = get_example_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.get_assert_metric(uri, "related_objects")
@@ -2082,11 +2281,11 @@ class TestDatabaseApi(SupersetTestCase):
         # id does not exist and we get 404
         invalid_id = max_id + 1
         uri = f"api/v1/database/{invalid_id}/related_objects/"
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         rv = self.get_assert_metric(uri, "related_objects")
         self.assertEqual(rv.status_code, 404)
         self.logout()
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         database = get_example_database()
         uri = f"api/v1/database/{database.id}/related_objects/"
         rv = self.get_assert_metric(uri, "related_objects")
@@ -2096,7 +2295,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test export database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         database = get_example_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
@@ -2110,7 +2309,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test export database not allowed
         """
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         database = get_example_database()
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
@@ -2125,7 +2324,7 @@ class TestDatabaseApi(SupersetTestCase):
         # id does not exist and we get 404
         invalid_id = max_id + 1
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         argument = [invalid_id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.get_assert_metric(uri, "export")
@@ -2135,7 +2334,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         buf = self.create_database_import()
@@ -2167,7 +2366,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import existing database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         buf = self.create_database_import()
@@ -2237,7 +2436,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import invalid database
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         buf = BytesIO()
@@ -2287,7 +2486,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked password
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         masked_database_config = database_config.copy()
@@ -2344,7 +2543,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked password provided
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         masked_database_config = database_config.copy()
@@ -2392,7 +2591,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked password
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2450,7 +2649,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked password provided
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2498,7 +2697,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked private_key
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2559,7 +2758,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with masked password provided
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2608,7 +2807,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with ssh_tunnel and feature flag disabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
         masked_database_config = database_with_ssh_tunnel_config_private_key.copy()
@@ -2662,7 +2861,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2717,7 +2916,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2772,7 +2971,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test import database with ssh_tunnel that has no credentials
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
         mock_schema_is_feature_enabled.return_value = True
 
@@ -2838,7 +3037,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/1/function_names/"
 
         rv = self.client.get(uri)
@@ -2852,7 +3051,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend != "sqlite":
             return
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/1/function_names/"
 
         rv = self.client.get(uri)
@@ -2990,7 +3189,7 @@ class TestDatabaseApi(SupersetTestCase):
             HanaEngineSpec: {""},
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/available/"
 
         rv = self.client.get(uri)
@@ -3232,7 +3431,7 @@ class TestDatabaseApi(SupersetTestCase):
             HanaEngineSpec: {""},
         }
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/database/available/"
 
         rv = self.client.get(uri)
@@ -3267,7 +3466,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     def test_validate_parameters_invalid_payload_format(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         rv = self.client.post(url, data="INVALID", content_type="text/plain")
         response = json.loads(rv.data.decode("utf-8"))
@@ -3292,7 +3491,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     def test_validate_parameters_invalid_payload_schema(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {"foo": "bar"}
         rv = self.client.post(url, json=payload)
@@ -3336,7 +3535,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
     def test_validate_parameters_missing_fields(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
@@ -3387,7 +3586,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = True
         is_port_open.return_value = True
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
@@ -3411,7 +3610,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {"message": "OK"}
 
     def test_validate_parameters_invalid_port(self):
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
@@ -3470,7 +3669,7 @@ class TestDatabaseApi(SupersetTestCase):
     def test_validate_parameters_invalid_host(self, is_hostname_valid):
         is_hostname_valid.return_value = False
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
@@ -3530,7 +3729,7 @@ class TestDatabaseApi(SupersetTestCase):
     def test_validate_parameters_invalid_port_range(self, is_hostname_valid):
         is_hostname_valid.return_value = True
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
@@ -3586,7 +3785,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_get_related_objects(self):
         example_db = get_example_database()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/related_objects/"
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -3613,7 +3812,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend not in ("presto", "postgresql"):
             pytest.skip("Only presto and PG are implemented")
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -3639,7 +3838,7 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend not in ("presto", "postgresql"):
             pytest.skip("Only presto and PG are implemented")
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -3670,7 +3869,7 @@ class TestDatabaseApi(SupersetTestCase):
             "schema": None,
             "template_params": None,
         }
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = (
             f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
@@ -3691,7 +3890,7 @@ class TestDatabaseApi(SupersetTestCase):
             "schema": None,
             "template_params": None,
         }
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = (
             f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
@@ -3714,7 +3913,7 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": None,
         }
 
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         example_db = get_example_database()
 
@@ -3761,13 +3960,13 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": None,
         }
 
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         validator = MagicMock()
         get_validator_by_name.return_value = validator
         validator.validate.side_effect = Exception("Kaboom!")
 
-        self.login("admin")
+        self.login(ADMIN_USERNAME)
 
         example_db = get_example_database()
 
@@ -3789,7 +3988,7 @@ class TestDatabaseApi(SupersetTestCase):
         Then, we're adding the patch for the config to add the filter function
         and testing it's being applied.
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         extra = {
             "metadata_params": {},
             "engine_params": {},

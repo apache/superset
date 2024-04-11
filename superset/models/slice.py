@@ -51,7 +51,7 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.sqla.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -139,14 +139,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[BaseDatasource]:
+    def cls_model(self) -> type[SqlaTable]:
         # pylint: disable=import-outside-toplevel
         from superset.daos.datasource import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> BaseDatasource | None:
+    def datasource(self) -> SqlaTable | None:
         return self.get_datasource
 
     def clone(self) -> Slice:
@@ -163,7 +163,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
-    def get_datasource(self) -> BaseDatasource | None:
+    def get_datasource(self) -> SqlaTable | None:
         return (
             db.session.query(self.cls_model)
             .filter_by(id=self.datasource_id)
@@ -172,20 +172,17 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.link if datasource else None
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
         return datasource.explore_url if datasource else None
 
     def datasource_name_text(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             if self.table.schema:
                 return f"{self.table.schema}.{self.table.table_name}"
@@ -198,7 +195,6 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.url if datasource else None
 

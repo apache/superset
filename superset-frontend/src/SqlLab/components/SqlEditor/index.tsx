@@ -54,7 +54,7 @@ import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { AntdDropdown, AntdSwitch } from 'src/components';
+import { AntdDropdown, AntdSwitch, Skeleton } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -77,6 +77,7 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
+  switchQueryEditor,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -494,6 +495,16 @@ const SqlEditor: React.FC<Props> = ({
     }
   });
 
+  const shouldLoadQueryEditor =
+    isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+    !queryEditor.loaded;
+
+  const loadQueryEditor = useEffectEvent(() => {
+    if (shouldLoadQueryEditor) {
+      dispatch(switchQueryEditor(queryEditor, displayLimit));
+    }
+  });
+
   useEffect(() => {
     // We need to measure the height of the sql editor post render to figure the height of
     // the south pane so it gets rendered properly
@@ -503,6 +514,7 @@ const SqlEditor: React.FC<Props> = ({
       WINDOW_RESIZE_THROTTLE_MS,
     );
     if (isActive) {
+      loadQueryEditor();
       window.addEventListener('resize', handleWindowResizeWithThrottle);
       window.addEventListener('beforeunload', onBeforeUnload);
     }
@@ -512,7 +524,7 @@ const SqlEditor: React.FC<Props> = ({
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
     // TODO: Remove useEffectEvent deps once https://github.com/facebook/react/pull/25881 is released
-  }, [onBeforeUnload, isActive]);
+  }, [onBeforeUnload, loadQueryEditor, isActive]);
 
   useEffect(() => {
     if (!database || isEmpty(database)) {
@@ -847,7 +859,17 @@ const SqlEditor: React.FC<Props> = ({
           )}
         </ResizableSidebar>
       </CSSTransition>
-      {showEmptyState ? (
+      {shouldLoadQueryEditor ? (
+        <div
+          data-test="sqlEditor-loading"
+          css={css`
+            flex: 1;
+            padding: ${theme.gridUnit * 4}px;
+          `}
+        >
+          <Skeleton active />
+        </div>
+      ) : showEmptyState ? (
         <EmptyStateBig
           image="vector.svg"
           title={t('Select a database to write a query')}
