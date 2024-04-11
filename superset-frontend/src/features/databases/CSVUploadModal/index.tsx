@@ -582,32 +582,6 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem name="skip_initial_space">
-                  <StyledSwitchContainer>
-                    <Switch data-test="skipInitialSpace" />
-                    <div className="switch-label">
-                      {t('Skip spaces after delimiter')}
-                    </div>
-                  </StyledSwitchContainer>
-                </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItem name="skip_blank_lines">
-                  <StyledSwitchContainer>
-                    <Switch data-test="skipBlankLines" />
-                    <div className="switch-label">
-                      {t(
-                        'Skip blank lines rather than interpreting them as Not A Number values',
-                      )}
-                    </div>
-                  </StyledSwitchContainer>
-                </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
                 <StyledFormItem
                   label={t('Columns To Be Parsed as Dates')}
                   name="column_dates"
@@ -622,20 +596,6 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                       'A comma separated list of columns that should be parsed as dates',
                     )}
                   />
-                </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItem name="day_first">
-                  <StyledSwitchContainer>
-                    <Switch data-test="dayFirst" />
-                    <div className="switch-label">
-                      {t(
-                        'DD/MM format dates, international and European format',
-                      )}
-                    </div>
-                  </StyledSwitchContainer>
                 </StyledFormItem>
               </Col>
             </Row>
@@ -666,6 +626,46 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     allowNewOptions
                   />
                 </StyledFormItemWithTip>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem name="skip_initial_space">
+                  <StyledSwitchContainer>
+                    <Switch data-test="skipInitialSpace" />
+                    <div className="switch-label">
+                      {t('Skip spaces after delimiter')}
+                    </div>
+                  </StyledSwitchContainer>
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem name="skip_blank_lines">
+                  <StyledSwitchContainer>
+                    <Switch data-test="skipBlankLines" />
+                    <div className="switch-label">
+                      {t(
+                        'Skip blank lines rather than interpreting them as Not A Number values',
+                      )}
+                    </div>
+                  </StyledSwitchContainer>
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem name="day_first">
+                  <StyledSwitchContainer>
+                    <Switch data-test="dayFirst" />
+                    <div className="switch-label">
+                      {t(
+                        'DD/MM format dates, international and European format',
+                      )}
+                    </div>
+                  </StyledSwitchContainer>
+                </StyledFormItem>
               </Col>
             </Row>
           </Collapse.Panel>
@@ -705,18 +705,6 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
-                <StyledFormItem name="dataframe_index">
-                  <StyledSwitchContainer>
-                    <Switch data-test="dataFrameIndex" />
-                    <div className="switch-label">
-                      {t('Write dataframe index as a column')}
-                    </div>
-                  </StyledSwitchContainer>
-                </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
                 <StyledFormItemWithTip
                   label={t('Column Label(s)')}
                   tip={t(
@@ -749,6 +737,31 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             </Row>
             <Row>
               <Col span={24}>
+                <StyledFormItemWithTip
+                  label={t('Column Data Types')}
+                  tip={t(
+                    'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
+                  )}
+                  name="column_data_types"
+                >
+                  <Input aria-label={t('Column data types')} type="text" />
+                </StyledFormItemWithTip>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <StyledFormItem name="dataframe_index">
+                  <StyledSwitchContainer>
+                    <Switch data-test="dataFrameIndex" />
+                    <div className="switch-label">
+                      {t('Write dataframe index as a column')}
+                    </div>
+                  </StyledSwitchContainer>
+                </StyledFormItem>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
                 <StyledFormItem name="overwrite_duplicates">
                   <StyledSwitchContainer>
                     <Switch data-test="overwriteDuplicates" />
@@ -759,19 +772,6 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     </div>
                   </StyledSwitchContainer>
                 </StyledFormItem>
-              </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
-                <StyledFormItemWithTip
-                  label={t('Column Data Types')}
-                  tip={t(
-                    'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
-                  )}
-                  name="column_data_types"
-                >
-                  <Input aria-label={t('Column data types')} type="text" />
-                </StyledFormItemWithTip>
               </Col>
             </Row>
           </Collapse.Panel>
@@ -787,7 +787,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             key="4"
           >
             <Row>
-              <Col span={24}>
+              <Col span={8}>
                 <StyledFormItemWithTip
                   label={t('Header Row')}
                   tip={t(
@@ -802,9 +802,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   />
                 </StyledFormItemWithTip>
               </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
+              <Col span={8}>
                 <StyledFormItemWithTip
                   label={t('Rows to Read')}
                   tip={t('Number of rows of file to read.')}
@@ -813,9 +811,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   <InputNumber aria-label={t('Rows to read')} min={1} />
                 </StyledFormItemWithTip>
               </Col>
-            </Row>
-            <Row>
-              <Col span={24}>
+              <Col span={8}>
                 <StyledFormItemWithTip
                   label={t('Skip Rows')}
                   tip={t('Number of rows to skip at start of file.')}

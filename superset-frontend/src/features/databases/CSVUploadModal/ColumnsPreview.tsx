@@ -20,6 +20,7 @@ import React, { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import { Typography } from 'src/components';
+import { Tag } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
 
@@ -56,9 +57,7 @@ const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
           {expanded ? (
             <>
               {columns.map((column, index) => (
-                <Typography.Text key={index} code type="success">
-                  {column}
-                </Typography.Text>
+                <Tag key={index} name={column} />
               ))}
               {columns.length > maxColumnsToShow && (
                 <Tooltip title={t('Collapse')}>
@@ -69,9 +68,7 @@ const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
           ) : (
             <>
               {columns.slice(0, maxColumnsToShow).map((column, index) => (
-                <Typography.Text key={index} code type="success">
-                  {column}
-                </Typography.Text>
+                <Tag key={index} name={column} />
               ))}
               {columns.length > maxColumnsToShow && (
                 <Tooltip title={t('Display all')}>
