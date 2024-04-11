@@ -451,7 +451,10 @@ yarn start  # Starts development server at http://localhost:3000
 
 #### Build
 
-To create and serve a production build of the documentation site:
+First, note that you'll need [git-lfs](https://git-lfs.com/) to build the docs. As
+larger media files needed for the docs.
+
+Once setup, here's how you build and serve the documentation site:
 
 ```shell
 yarn build
