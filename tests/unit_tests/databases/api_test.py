@@ -28,6 +28,7 @@ from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.commands.database.csv_import import CSVImportCommand
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from tests.unit_tests.fixtures.common import create_csv_file
 
@@ -901,8 +902,6 @@ def test_csv_upload(
     """
     Test CSV Upload success.
     """
-    from superset.commands.database.csv_import import CSVImportCommand
-
     init_mock = mocker.patch.object(CSVImportCommand, "__init__")
     init_mock.return_value = None
     _ = mocker.patch.object(CSVImportCommand, "run")
@@ -1050,8 +1049,6 @@ def test_csv_upload_validation(
     """
     Test CSV Upload validation fails.
     """
-    from superset.commands.database.csv_import import CSVImportCommand
-
     _ = mocker.patch.object(CSVImportCommand, "run")
 
     response = client.post(
@@ -1071,8 +1068,6 @@ def test_csv_upload_file_size_validation(
     """
     Test CSV Upload validation fails.
     """
-    from superset.commands.database.csv_import import CSVImportCommand
-
     _ = mocker.patch.object(CSVImportCommand, "run")
     current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
     response = client.post(
@@ -1088,3 +1083,77 @@ def test_csv_upload_file_size_validation(
     assert response.json == {
         "message": {"file": ["File size exceeds the maximum allowed size."]}
     }
+    current_app.config["CSV_UPLOAD_MAX_SIZE"] = None
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.xpto",
+        "out.exe",
+        "out",
+        "out csv",
+        "",
+        "out.csv.exe",
+        ".csv",
+        "out.",
+        ".",
+        "out csv a.exe",
+    ],
+)
+def test_csv_upload_file_extension_invalid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(CSVImportCommand, "run")
+    response = client.post(
+        f"/api/v1/database/1/csv_upload/",
+        data={
+            "file": (create_csv_file(), filename),
+            "table_name": "table1",
+            "delimiter": ",",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.csv",
+        "out.txt",
+        "out.tsv",
+        "spaced name.csv",
+        "spaced name.txt",
+        "spaced name.tsv",
+        "out.exe.csv",
+        "out.csv.csv",
+    ],
+)
+def test_csv_upload_file_extension_valid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test CSV Upload validation fails.
+    """
+    _ = mocker.patch.object(CSVImportCommand, "run")
+    response = client.post(
+        f"/api/v1/database/1/csv_upload/",
+        data={
+            "file": (create_csv_file(), filename),
+            "table_name": "table1",
+            "delimiter": ",",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200

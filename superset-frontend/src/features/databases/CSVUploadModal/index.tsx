@@ -56,6 +56,7 @@ interface CSVUploadModalProps {
   addSuccessToast: (msg: string) => void;
   onHide: () => void;
   show: boolean;
+  allowedExtensions: string[];
 }
 
 interface UploadInfo {
@@ -104,11 +105,31 @@ const defaultUploadInfo: UploadInfo = {
   column_data_types: '',
 };
 
+// Allowed extensions to accept for file upload, users can always override this
+// by selecting all file extensions on the OS file picker. Also ".txt" will
+// allow all files to be selected.
+const allowedExtensionsToAccept = '.csv, .tsv';
+const READ_HEADER_SIZE = 10000;
+
+export const validateUploadFileExtension = (
+  file: UploadFile<any>,
+  allowedExtensions: string[],
+) => {
+  const extensionMatch = file.name.match(/.+\.([^.]+)$/);
+  if (!extensionMatch) {
+    return false;
+  }
+
+  const fileType = extensionMatch[1];
+  return allowedExtensions.includes(fileType);
+};
+
 const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   addDangerToast,
   addSuccessToast,
   onHide,
   show,
+  allowedExtensions,
 }) => {
   const [form] = AntdForm.useForm();
   // Declare states here
@@ -330,7 +351,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
       reader.onerror = () => {
         reject(new Error('Failed to read file content'));
       };
-      reader.readAsText(file.slice(0, 10000)); // Read only first 10000 bytes to get the first line
+      reader.readAsText(file.slice(0, READ_HEADER_SIZE));
     });
 
   const processFileContent = async (file: File) => {
@@ -369,6 +390,14 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
+    }
+    if (!validateUploadFileExtension(fileList[0], allowedExtensions)) {
+      return Promise.reject(
+        t(
+          'Upload a file with a valid extension. Valid: [%s]',
+          allowedExtensions.join(','),
+        ),
+      );
     }
     return Promise.resolve();
   };
@@ -434,7 +463,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                     name="modelFile"
                     id="modelFile"
                     data-test="model-file-input"
-                    accept=".csv"
+                    accept={allowedExtensionsToAccept}
                     fileList={fileList}
                     onChange={onChangeFile}
                     onRemove={onRemoveFile}

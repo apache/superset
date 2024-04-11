@@ -18,10 +18,14 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import CSVUploadModal from 'src/features/databases/CSVUploadModal';
+import CSVUploadModal, {
+  validateUploadFileExtension,
+} from 'src/features/databases/CSVUploadModal';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
+import { UploadFile } from 'antd/lib/upload/interface';
+import { forEach } from 'lodash';
 
 fetchMock.post('glob:*api/v1/database/1/csv_upload/', {});
 
@@ -52,6 +56,7 @@ fetchMock.get('glob:*api/v1/database/2/schemas/', {
 const csvProps = {
   show: true,
   onHide: () => {},
+  allowedExtensions: ['csv', 'tsv'],
 };
 
 test('renders the general information elements correctly', () => {
@@ -321,4 +326,30 @@ test('form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
+});
+
+test('validate file extension returns false', () => {
+  const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv'];
+  forEach(invalidFileNames, fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['csv', 'tsv'])).toBe(false);
+  });
+});
+
+test('validate file extension returns true', () => {
+  const invalidFileNames = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
+  forEach(invalidFileNames, fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['csv', 'tsv'])).toBe(true);
+  });
 });

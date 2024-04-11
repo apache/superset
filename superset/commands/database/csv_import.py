@@ -108,6 +108,18 @@ class CSVImportCommand(BaseCommand):
                     else {},
                 )
             )
+        except (
+            pd.errors.ParserError,
+            pd.errors.EmptyDataError,
+            UnicodeDecodeError,
+            ValueError,
+        ) as ex:
+            raise DatabaseUploadFailed(
+                message=_("Parsing error: %(error)s", error=str(ex))
+            ) from ex
+        except Exception as ex:
+            raise DatabaseUploadFailed(_("Error reading CSV file")) from ex
+        try:
             csv_table = Table(table=self._table_name, schema=self._schema)
             self._model.db_engine_spec.df_to_sql(
                 self._model,

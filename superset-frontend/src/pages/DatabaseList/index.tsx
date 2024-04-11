@@ -570,6 +570,7 @@ function DatabaseList({
           setCsvUploadModalOpen(false);
         }}
         show={csvUploadModalOpen}
+        allowedExtensions={CSV_EXTENSIONS}
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

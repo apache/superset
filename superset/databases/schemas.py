@@ -19,6 +19,8 @@
 
 import inspect
 import json
+import os
+import re
 from typing import Any
 
 from flask import current_app
@@ -1138,14 +1140,26 @@ class CSVUploadPostSchema(Schema):
         return data
 
     @validates("file")
-    def validate_file(self, file: FileStorage) -> None:
-        content = file.read()
+    def validate_file_size(self, file: FileStorage) -> None:
+        file.flush()
+        size = os.fstat(file.fileno()).st_size
         if (
             current_app.config["CSV_UPLOAD_MAX_SIZE"] is not None
-            and len(content) > current_app.config["CSV_UPLOAD_MAX_SIZE"]
+            and size > current_app.config["CSV_UPLOAD_MAX_SIZE"]
         ):
-            raise ValidationError("File size exceeds the maximum allowed size.")
-        file.seek(0)
+            raise ValidationError([_("File size exceeds the maximum allowed size.")])
+
+    @validates("file")
+    def validate_file_extension(self, file: FileStorage) -> None:
+        allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"].intersection(
+            current_app.config["CSV_EXTENSIONS"]
+        )
+        matches = re.match(r".+\.([^.]+)$", file.filename)
+        if not matches:
+            raise ValidationError([_("File extension is not allowed.")])
+        extension = matches.group(1)
+        if extension not in allowed_extensions:
+            raise ValidationError([_("File extension is not allowed.")])
 
 
 class OAuth2ProviderResponseSchema(Schema):
