@@ -37,6 +37,7 @@ jobs:
           brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: |
+          pip install pre-commit
           if ! pre-commit run --all-files; then
             git status
             git diff
