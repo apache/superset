@@ -109,7 +109,6 @@
     "@superset-ui/legacy-preset-chart-nvd3": "file:./plugins/legacy-preset-chart-nvd3",
     "@superset-ui/plugin-chart-echarts": "file:./plugins/plugin-chart-echarts",
     "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
-    "@superset-ui/plugin-chart-period-over-period-kpi": "file:./plugins/plugin-chart-period-over-period-kpi",
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
