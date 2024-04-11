@@ -23,10 +23,10 @@ import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import {
   LabeledValue,
-  OptGroupValue,
   RawValue,
   SelectOptionsType,
   V,
+  OptionGroup,
 } from './types';
 
 const { Option, OptGroup } = AntdSelect;
@@ -64,7 +64,7 @@ export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
   return actualA == actualB;
 }
 
-export function isOptGroup(option: V | LabeledValue): option is OptGroupValue {
+export function isOptGroup(option: V | LabeledValue): option is OptionGroup {
   return isObject(option) && 'options' in option;
 }
 

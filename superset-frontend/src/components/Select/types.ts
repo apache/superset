@@ -28,17 +28,13 @@ import {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { TagProps } from 'antd/lib/tag';
+import type * as React from 'react';
 
 export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = {
-  label?: ReactNode;
-  value?: V;
-};
-
-export type OptGroupValue = LabeledValue & { options: SelectOptionsType };
+export type LabeledValue = { label?: ReactNode; value?: V };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
@@ -73,6 +69,14 @@ export type AntdExposedProps = Pick<
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
+
+export type OptionData = SelectOptionsType[number]['options'][number];
+
+export type OptionGroup = {
+  label?: React.ReactNode;
+  title?: string;
+  options: OptionData[];
+};
 
 export interface BaseSelectProps extends AntdExposedProps {
   /**

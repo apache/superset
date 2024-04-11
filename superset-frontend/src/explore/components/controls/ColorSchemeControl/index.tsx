@@ -29,11 +29,7 @@ import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import {
-  LabeledValue,
-  OptGroupValue,
-  SelectOptionsType,
-} from 'src/components/Select/types';
+import { OptionData } from 'src/components/Select/types';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 export interface ColorSchemes {
@@ -172,17 +168,17 @@ const ColorSchemeControl = ({
         [ColorSchemeGroup.Custom]: {
           title: ColorSchemeGroup.Custom,
           label: t('Custom color palettes'),
-          options: [] as LabeledValue[],
+          options: [] as OptionData,
         },
         [ColorSchemeGroup.Featured]: {
           title: ColorSchemeGroup.Featured,
           label: t('Featured color palettes'),
-          options: [] as LabeledValue[],
+          options: [] as OptionData,
         },
         [ColorSchemeGroup.Other]: {
           title: ColorSchemeGroup.Other,
           label: t('Other color palettes'),
-          options: [] as LabeledValue[],
+          options: [] as OptionData,
         },
       },
     );

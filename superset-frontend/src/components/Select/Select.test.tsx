@@ -28,6 +28,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import Select from 'src/components/Select/Select';
 import { SELECT_ALL_VALUE } from './utils';
+import { SelectOptionsType } from './types';
 
 type Option = {
   label: string;
@@ -1077,6 +1078,37 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('correctly renders options group', async () => {
+  const groupedOptions = Object.values(
+    OPTIONS.slice(0, 10).reduce((acc, opt) => {
+      if (Array.isArray(acc[opt.gender]?.options)) {
+        acc[opt.gender].options.push(opt);
+      } else {
+        acc[opt.gender] = {
+          options: [opt],
+          title: opt.gender,
+          label: opt.gender,
+        };
+      }
+      return acc;
+    }, {}),
+  ) as SelectOptionsType;
+
+  render(<Select {...defaultProps} options={groupedOptions} />);
+  await open();
+
+  expect(
+    getElementsByClassName('.ant-select-item-option-grouped'),
+  ).toHaveLength(10);
+  expect(getElementsByClassName('.ant-select-item-group')).toHaveLength(2);
+  expect(getElementsByClassName('.ant-select-item-group')[0]).toHaveTextContent(
+    'Male',
+  );
+  expect(getElementsByClassName('.ant-select-item-group')[1]).toHaveTextContent(
+    'Female',
+  );
 });
 
 /*

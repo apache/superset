@@ -55,6 +55,7 @@ import {
   getOption,
   isObject,
   isEqual as utilsIsEqual,
+  isOptGroup,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -224,6 +225,17 @@ const AsyncSelect = forwardRef(
         : selectOptions;
     }, [selectOptions, selectValue]);
 
+    const flattenedOptions = useMemo(
+      () =>
+        fullSelectOptions.reduce((acc, option) => {
+          if (isOptGroup(option)) {
+            return [...acc, ...option.options];
+          }
+          return [...acc, option];
+        }, []),
+      [fullSelectOptions],
+    );
+
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
         // on select is fired in single value mode if the same value is selected
@@ -330,6 +342,7 @@ const AsyncSelect = forwardRef(
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
+            console.log(data);
             const mergedData = mergeData(data);
             fetchedQueries.current.set(key, totalCount);
             setTotalCount(totalCount);
@@ -448,7 +461,7 @@ const AsyncSelect = forwardRef(
         originNode,
         isDropdownVisible,
         isLoading,
-        fullSelectOptions.length,
+        flattenedOptions.length,
         helperText,
         error ? <Error error={error} /> : undefined,
       );

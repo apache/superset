@@ -54,6 +54,7 @@ import {
   getOption,
   isObject,
   isEqual as utilsIsEqual,
+  isOptGroup,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -192,17 +193,28 @@ const Select = forwardRef(
       return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
     }, [selectOptions, selectValue]);
 
-    const enabledOptions = useMemo(
-      () => fullSelectOptions.filter(option => !option.disabled),
+    const flattenedOptions = useMemo(
+      () =>
+        fullSelectOptions.reduce((acc, option) => {
+          if (isOptGroup(option)) {
+            return [...acc, ...option.options];
+          }
+          return [...acc, option];
+        }, []),
       [fullSelectOptions],
+    );
+
+    const enabledOptions = useMemo(
+      () => flattenedOptions.filter(option => !option.disabled),
+      [flattenedOptions],
     );
 
     const selectAllEligible = useMemo(
       () =>
-        fullSelectOptions.filter(
+        flattenedOptions.filter(
           option => hasOption(option.value, selectValue) || !option.disabled,
         ),
-      [fullSelectOptions, selectValue],
+      [flattenedOptions, selectValue],
     );
 
     const selectAllEnabled = useMemo(
@@ -279,7 +291,7 @@ const Select = forwardRef(
         setSelectValue(undefined);
       } else {
         setSelectValue(
-          fullSelectOptions
+          flattenedOptions
             .filter(
               option => option.disabled && hasOption(option.value, selectValue),
             )
@@ -372,7 +384,7 @@ const Select = forwardRef(
         originNode,
         isDropdownVisible,
         isLoading,
-        fullSelectOptions.length,
+        flattenedOptions.length,
         helperText,
       );
 
