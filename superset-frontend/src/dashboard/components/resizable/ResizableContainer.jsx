@@ -24,6 +24,7 @@ import { css, styled } from '@superset-ui/core';
 
 import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
+import { handleScroll } from './handleScroll';
 import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
 
 const proxyToInfinity = Number.MAX_VALUE;
@@ -174,12 +175,33 @@ class ResizableContainer extends React.PureComponent {
 
     this.state = {
       isResizing: false,
+      mouseY: 0,
     };
 
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
-    this.handleScroll = this.handleScroll.bind(this);
+    this.scrollTimerCleanup = null;
+  }
+
+  // componentDidMount() {
+  //   this.scrollTimerCleanup = handleScroll(
+  //     this.state.isResizing,
+  //     this.state.mouseY,
+  //   );
+  // }
+
+  componentDidUpdate() {
+    // Update the interval when state changes
+    this.scrollTimerCleanup = handleScroll(
+      this.state.isResizing,
+      this.state.mouseY,
+    );
+  }
+
+  componentWillUnmount() {
+    // Clean up the interval when the component is unmounted
+    this.scrollTimerCleanup();
   }
 
   handleResizeStart(event, direction, ref) {
@@ -190,13 +212,26 @@ class ResizableContainer extends React.PureComponent {
     }
 
     this.setState(() => ({ isResizing: true }));
-
-    document.addEventListener('mousemove', this.handleMouseMove);
-    document.addEventListener('scroll', this.handleScroll);
   }
 
-  handleResize(event, direction, ref) {
+  handleResize(event, direction, ref, delta) {
     const { onResize, id } = this.props;
+    const { isResizing } = this.state;
+
+    console.log(direction);
+
+    if (direction === 'bottom' && isResizing) {
+      this.setState(() => ({ mouseY: event.clientY }));
+      handleScroll(isResizing, ref, event.clientY);
+      this.handleResizeStop(event, direction, ref, delta);
+    }
+
+    // const { scrollHeight, scrollTop } = ref;
+
+    // this.Resizable.updateSize({
+    //   height: ref.clientHeight + (delta + ref.scrollTop),
+    // });
+
     if (onResize) {
       onResize({ id, direction, ref });
     }
@@ -228,35 +263,8 @@ class ResizableContainer extends React.PureComponent {
       });
 
       this.setState(() => ({ isResizing: false }));
-
-      document.removeEventListener('mousemove', this.handleMouseMove);
-      document.removeEventListener('scroll', this.handleScroll);
     }
   }
-
-  handleMouseMove = e => {
-    if (this.state.isResizing) {
-      const windowHeight = window.innerHeight;
-      const bottomThreshold = windowHeight - 100;
-      if (e.clientY > bottomThreshold) {
-        window.scrollBy(0, 1);
-        console.log('scrolling down', {
-          windowHeight,
-          bottomThreshold,
-          clientY: e.clientY,
-        });
-      }
-    }
-  };
-
-  handleScroll = () => {
-    const { isResizing } = this.state;
-    if (isResizing) {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
-        window.scrollBy(0, 1); // Scroll down by 1 pixel
-      }
-    }
-  };
 
   render() {
     const {
@@ -305,10 +313,6 @@ class ResizableContainer extends React.PureComponent {
     const { isResizing } = this.state;
 
     return (
-      // <div
-      //   onMouseMove={this.handleMouseMove}
-      //   className="window-scroll-detector"
-      // >
       <StyledResizable
         enable={enableConfig}
         grid={SNAP_TO_GRID}
@@ -352,7 +356,6 @@ class ResizableContainer extends React.PureComponent {
       >
         {children}
       </StyledResizable>
-      // </div>
     );
   }
 }
@@ -361,3 +364,10 @@ ResizableContainer.propTypes = propTypes;
 ResizableContainer.defaultProps = defaultProps;
 
 export default ResizableContainer;
+
+/*
+- Allow scrolling when resizing
+- Add diff of mouse position unless scrolling then add scroll offset
+- Update the the height of the component with the offset of the mouse
+-
+*/
