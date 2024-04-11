@@ -27,6 +27,7 @@ These features are considered **unfinished** and should only be used on developm
 
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
+- ALERT_REPORT_TABS
 - ENABLE_ADVANCED_DATA_TYPES
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE

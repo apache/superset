@@ -107,9 +107,7 @@ export const DrillByMenuItems = ({
     setSearchInput('');
   }, [columns.length]);
 
-  const hasDrillBy =
-    ensureIsArray(drillByConfig?.filters).length &&
-    drillByConfig?.groupbyFieldName;
+  const hasDrillBy = drillByConfig?.groupbyFieldName;
 
   const handlesDimensionContextMenu = useMemo(
     () =>

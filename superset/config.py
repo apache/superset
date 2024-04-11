@@ -435,6 +435,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
+    "ALERT_REPORT_TABS": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message

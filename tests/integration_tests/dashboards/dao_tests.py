@@ -39,7 +39,6 @@ class TestDashboardDAO(SupersetTestCase):
     def test_get_dashboard_changed_on(self, mock_sm_g, mock_g):
         mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
         with self.client.application.test_request_context():
-            self.login(username="admin")
             dashboard = (
                 db.session.query(Dashboard).filter_by(slug="world_health").first()
             )

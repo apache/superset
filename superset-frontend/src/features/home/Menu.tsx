@@ -306,11 +306,15 @@ export function Menu({
             arrowPointAtCenter
           >
             {isFrontendRoute(window.location.pathname) ? (
-              <GenericLink className="navbar-brand" to={brand.path}>
+              <GenericLink
+                className="navbar-brand"
+                to={brand.path}
+                tabIndex={-1}
+              >
                 <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
             ) : (
-              <a className="navbar-brand" href={brand.path}>
+              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
                 <img src={brand.icon} alt={brand.alt} />
               </a>
             )}

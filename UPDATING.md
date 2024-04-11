@@ -23,15 +23,12 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+
 - [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
   `development.txt` becomes a bigger set, incorporating the now defunct local,testing,integration, and docker
-- [27119](https://github.com/apache/superset/pull/27119): Updates various database columns to use the `MediumText` type, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
-
-- [26450](https://github.com/apache/superset/pull/26450): Deprecates the `KV_STORE` feature flag and its related assets such as the API endpoint and `keyvalue` table. The main dependency of this feature is the `SHARE_QUERIES_VIA_KV_STORE` feature flag which allows sharing SQL Lab queries without the necessity of saving the query. Our intention is to use the permalink feature to implement this use case before 5.0 and that's why we are deprecating the feature flag now.
-
-- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker-compose.*
+- [27434](https://github.com/apache/superset/pull/27434/files): DO NOT USE our docker-compose.\*
   files for production use cases! While we never really supported
   or should have tried to support docker-compose for production use cases, we now actively
   have taken a stance against supporting it. See the PR for details.
@@ -41,6 +38,12 @@ assists people when migrating to a new version.
 - [27697](https://github.com/apache/superset/pull/27697) [minor] flask-session bump leads to them
   deprecating `SESSION_USE_SIGNER`, check your configs as this flag won't do anything moving
   forward.
+
+## 4.0.0
+
+- [27119](https://github.com/apache/superset/pull/27119): Updates various database columns to use the `MediumText` type, potentially requiring a table lock on MySQL dbs or taking some time to complete on large deployments.
+
+- [26450](https://github.com/apache/superset/pull/26450): Deprecates the `KV_STORE` feature flag and its related assets such as the API endpoint and `keyvalue` table. The main dependency of this feature is the `SHARE_QUERIES_VIA_KV_STORE` feature flag which allows sharing SQL Lab queries without the necessity of saving the query. Our intention is to use the permalink feature to implement this use case before 5.0 and that's why we are deprecating the feature flag now.
 
 ### Breaking Changes
 

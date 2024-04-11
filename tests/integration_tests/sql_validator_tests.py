@@ -44,9 +44,6 @@ class TestPrestoValidator(SupersetTestCase):
         self.database_cursor = self.database_conn.cursor.return_value
         self.database_cursor.poll.return_value = None
 
-    def tearDown(self):
-        self.logout()
-
     PRESTO_ERROR_TEMPLATE = {
         "errorLocation": {"lineNumber": 10, "columnNumber": 20},
         "message": "your query isn't how I like it",
