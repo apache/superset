@@ -50,7 +50,7 @@ function SelectFilter(
 ) {
   const [selectedOption, setSelectedOption] = useState(initialValue);
 
-  const onChange = (selected: SelectOption) => {
+  const handleOnSelect = (selected: SelectOption) => {
     onSelect(
       selected ? { label: selected.label, value: selected.value } : undefined,
     );
@@ -93,7 +93,7 @@ function SelectFilter(
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
           header={<FormLabel>{Header}</FormLabel>}
-          onChange={onChange}
+          onSelect={handleOnSelect}
           onClear={onClear}
           options={fetchAndFormatSelects}
           placeholder={t('Select or type a value')}
@@ -107,7 +107,7 @@ function SelectFilter(
           data-test="filters-select"
           header={<FormLabel>{Header}</FormLabel>}
           labelInValue
-          onChange={onChange}
+          onSelect={handleOnSelect}
           onClear={onClear}
           options={selects}
           placeholder={t('Select or type a value')}
