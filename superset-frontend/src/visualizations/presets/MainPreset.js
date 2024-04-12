@@ -92,7 +92,9 @@ import { SupersetPluginsChartLiquidProgress } from 'superset-plugin-chart-liquid
 import { SupersetPluginsChartTimeline } from 'superset-plugin-chart-timeline';
 import { SupersetPluginsChartHeatTree } from 'superset-plugin-chart-heat-tree';
 import { SupersetPluginsChartCheckTable } from 'superset-plugin-chart-check-table';
+import { SupersetPluginsChartTinyProgressBar } from 'superset-plugin-chart-tiny-progress-bar';
 import { SupersetPluginsChartViolin } from 'superset-plugin-chart-violin';
+import { SupersetPluginsChartRadar } from 'superset-plugin-chart-radar';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
 
@@ -205,7 +207,9 @@ export default class MainPreset extends Preset {
           key: 'ext-check-table',
         }),
         new SupersetPluginsChartDendogram().configure({ key: 'ext-dendogram' }),
+        new SupersetPluginsChartTinyProgressBar().configure({ key: 'ext-tiny-progress-bar' }),
         new SupersetPluginsChartViolin().configure({ key: 'ext-violin' }),
+        new SupersetPluginsChartRadar().configure({ key: 'ext-radar' }),
         ...experimentalplugins,
       ],
     });
