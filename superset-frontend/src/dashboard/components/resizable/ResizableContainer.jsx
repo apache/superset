@@ -198,15 +198,12 @@ const ResizableContainer = ({
   const scrollTimer = useRef(null);
   const initialScrollTop = useRef(0);
   const scrollDirection = useRef(null);
-  // const updatedSize = useRef({ width: 0, height: 0 });
 
   const handleScroll = mouseY => {
     if (mouseY < THRESHOLD * 2) {
       scrollDirection.current = 'up';
-      // window.scrollBy(0, -1);
     } else if (mouseY > window.innerHeight - THRESHOLD) {
       scrollDirection.current = 'down';
-      // window.scrollBy(0, 1);
     } else {
       scrollDirection.current = null;
     }
@@ -232,8 +229,6 @@ const ResizableContainer = ({
       onResize({ id, direction, ref });
     }
     handleScroll(event.clientY);
-    // const { width, height } = resizableRef.current.state;
-    // updatedSize.current = { width, height };
     const scrollDelta = window.scrollY - initialScrollTop.current;
     resizableRef.current.updateSize({
       height: resizableRef.current.state.height + scrollDelta,
@@ -241,7 +236,6 @@ const ResizableContainer = ({
   };
 
   const handleResizeStop = (event, direction, ref, delta) => {
-    // const { width, height } = resizableRef.current.state;
     if (onResizeStop) {
       const nextWidthMultiple =
         widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
