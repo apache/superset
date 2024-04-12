@@ -26,6 +26,7 @@ interface StyledFormItemWithTipProps {
   tip: string;
   name: string;
   children: React.ReactNode;
+  rules?: any[];
 }
 
 const StyledFormItemWithTip: React.FC<StyledFormItemWithTipProps> = ({
@@ -33,6 +34,7 @@ const StyledFormItemWithTip: React.FC<StyledFormItemWithTipProps> = ({
   tip,
   children,
   name,
+  rules,
 }) => (
   <StyledFormItem
     label={
@@ -42,6 +44,7 @@ const StyledFormItemWithTip: React.FC<StyledFormItemWithTipProps> = ({
       </div>
     }
     name={name}
+    rules={rules}
   >
     {children}
   </StyledFormItem>

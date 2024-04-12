@@ -620,7 +620,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   tip={t('Character to interpret as decimal point')}
                   name="decimal_character"
                 >
-                  <Input type="text" defaultValue="." />
+                  <Input type="text" />
                 </StyledFormItemWithTip>
               </Col>
             </Row>
@@ -795,9 +795,12 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                 <StyledFormItemWithTip
                   label={t('Header Row')}
                   tip={t(
-                    'Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.',
+                    'Row containing the headers to use as column names (0 is first line of data).',
                   )}
                   name="header_row"
+                  rules={[
+                    { required: true, message: 'Header row is required' },
+                  ]}
                 >
                   <InputNumber
                     aria-label={t('Header row')}
@@ -809,7 +812,9 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
               <Col span={8}>
                 <StyledFormItemWithTip
                   label={t('Rows to Read')}
-                  tip={t('Number of rows of file to read.')}
+                  tip={t(
+                    'Number of rows of file to read. Leave empty (default) to read all rows',
+                  )}
                   name="rows_to_read"
                 >
                   <InputNumber aria-label={t('Rows to read')} min={1} />
@@ -820,6 +825,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
                   label={t('Skip Rows')}
                   tip={t('Number of rows to skip at start of file.')}
                   name="skip_rows"
+                  rules={[{ required: true, message: 'Skip rows is required' }]}
                 >
                   <InputNumber aria-label={t('Skip rows')} min={0} />
                 </StyledFormItemWithTip>
