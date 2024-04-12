@@ -245,8 +245,8 @@ test('database and schema are correctly populated', async () => {
   screen.getByText('database1').click();
   userEvent.click(selectSchema);
   // make sure the schemas for database1 are displayed
-  await waitFor(() => screen.getByText('information_schema'));
-  await waitFor(() => screen.getByText('public'));
+  await waitFor(() => screen.getAllByText('information_schema'));
+  await waitFor(() => screen.getAllByText('public'));
 
   screen.getByText('database2').click();
   userEvent.click(selectSchema);
@@ -301,8 +301,8 @@ test('form post', async () => {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getByText('public'));
-  screen.getByText('public').click();
+  await waitFor(() => screen.getAllByText('public'));
+  screen.getAllByText('public')[1].click();
 
   // Fill out form fields
   const inputTableName = screen.getByRole('textbox', {

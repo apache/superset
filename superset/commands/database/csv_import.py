@@ -107,7 +107,9 @@ class CSVImportCommand(BaseCommand):
                     skip_blank_lines=self._options.get("skip_blank_lines", False),
                     skipinitialspace=self._options.get("skip_initial_space", False),
                     skiprows=self._options.get("skip_rows", 0),
-                    dtype=self._options.get("column_data_types", {})
+                    dtype=self._options.get("column_data_types")
+                    if self._options.get("column_data_types")
+                    else None,
                 )
             )
         except (

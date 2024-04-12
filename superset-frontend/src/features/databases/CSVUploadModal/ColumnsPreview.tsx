@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import { Typography } from 'src/components';
-import { Tag } from 'src/components/Tags';
-import { Tooltip } from 'src/components/Tooltip';
-import { ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import TagsList from 'src/components/Tags/TagsList';
+import TagType from 'src/types/TagType';
 
 interface ColumnsPreviewProps {
   columns: string[];
@@ -38,11 +37,7 @@ const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
   columns,
   maxColumnsToShow = 4,
 }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  const toggleExpand = () => {
-    setExpanded(!expanded);
-  };
+  const tags: TagType[] = columns.map(column => ({ name: column }));
 
   return (
     <StyledDivContainer>
@@ -50,34 +45,7 @@ const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
       {columns.length === 0 ? (
         <p className="help-block">{t('Upload CSV file to preview columns')}</p>
       ) : (
-        <div>
-          <Typography.Text type="secondary">
-            Loaded {columns.length} column(s):
-          </Typography.Text>
-          {expanded ? (
-            <>
-              {columns.map((column, index) => (
-                <Tag key={index} name={column} />
-              ))}
-              {columns.length > maxColumnsToShow && (
-                <Tooltip title={t('Collapse')}>
-                  <ArrowLeftOutlined onClick={toggleExpand} type="secondary" />
-                </Tooltip>
-              )}
-            </>
-          ) : (
-            <>
-              {columns.slice(0, maxColumnsToShow).map((column, index) => (
-                <Tag key={index} name={column} />
-              ))}
-              {columns.length > maxColumnsToShow && (
-                <Tooltip title={t('Display all')}>
-                  <ArrowRightOutlined onClick={toggleExpand} type="secondary" />
-                </Tooltip>
-              )}
-            </>
-          )}
-        </div>
+        <TagsList tags={tags} maxTags={maxColumnsToShow} />
       )}
     </StyledDivContainer>
   );

@@ -124,6 +124,18 @@ export const validateUploadFileExtension = (
   return allowedExtensions.includes(fileType);
 };
 
+const SwitchContainer: React.FC<{ label: string; dataTest: string }> = ({
+  label,
+  dataTest,
+  children,
+}) => (
+  <StyledSwitchContainer>
+    <Switch data-test={dataTest} />
+    <div className="switch-label">{label}</div>
+    {children}
+  </StyledSwitchContainer>
+);
+
 const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -138,7 +150,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
   const [columns, setColumns] = React.useState<string[]>([]);
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [currentSchema, setCurrentSchema] = useState<String>('');
+  const [currentSchema, setCurrentSchema] = useState<string | undefined>();
 
   const nullValuesOptions = [
     {
@@ -199,6 +211,8 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
 
   const onChangeDatabase = (database: { value: number; label: string }) => {
     setCurrentDatabaseId(database?.value);
+    setCurrentSchema(undefined);
+    form.setFieldsValue({ schema: undefined });
   };
 
   const onChangeSchema = (schema: { value: string; label: string }) => {
@@ -383,7 +397,7 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
       fileList[0].originFileObj &&
       fileList[0].originFileObj instanceof File
     ) {
-      processFileContent(fileList[0].originFileObj);
+      processFileContent(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
 
@@ -631,40 +645,34 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem name="skip_initial_space">
-                  <StyledSwitchContainer>
-                    <Switch data-test="skipInitialSpace" />
-                    <div className="switch-label">
-                      {t('Skip spaces after delimiter')}
-                    </div>
-                  </StyledSwitchContainer>
+                  <SwitchContainer
+                    label={t('Skip spaces after delimiter')}
+                    dataTest="skipInitialSpace"
+                  />
                 </StyledFormItem>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
                 <StyledFormItem name="skip_blank_lines">
-                  <StyledSwitchContainer>
-                    <Switch data-test="skipBlankLines" />
-                    <div className="switch-label">
-                      {t(
-                        'Skip blank lines rather than interpreting them as Not A Number values',
-                      )}
-                    </div>
-                  </StyledSwitchContainer>
+                  <SwitchContainer
+                    label={t(
+                      'Skip blank lines rather than interpreting them as Not A Number values',
+                    )}
+                    dataTest="skipBlankLines"
+                  />
                 </StyledFormItem>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
                 <StyledFormItem name="day_first">
-                  <StyledSwitchContainer>
-                    <Switch data-test="dayFirst" />
-                    <div className="switch-label">
-                      {t(
-                        'DD/MM format dates, international and European format',
-                      )}
-                    </div>
-                  </StyledSwitchContainer>
+                  <SwitchContainer
+                    label={t(
+                      'DD/MM format dates, international and European format',
+                    )}
+                    dataTest="dayFirst"
+                  />
                 </StyledFormItem>
               </Col>
             </Row>
@@ -751,26 +759,22 @@ const CSVUploadModal: FunctionComponent<CSVUploadModalProps> = ({
             <Row>
               <Col span={24}>
                 <StyledFormItem name="dataframe_index">
-                  <StyledSwitchContainer>
-                    <Switch data-test="dataFrameIndex" />
-                    <div className="switch-label">
-                      {t('Write dataframe index as a column')}
-                    </div>
-                  </StyledSwitchContainer>
+                  <SwitchContainer
+                    label={t('Write dataframe index as a column')}
+                    dataTest="dataFrameIndex"
+                  />
                 </StyledFormItem>
               </Col>
             </Row>
             <Row>
               <Col span={24}>
                 <StyledFormItem name="overwrite_duplicates">
-                  <StyledSwitchContainer>
-                    <Switch data-test="overwriteDuplicates" />
-                    <div className="switch-label">
-                      {t(
-                        'Overwrite Duplicate Columns. If duplicate columns are not overridden, they will be presented as "X.1, X.2 ...X.x"',
-                      )}
-                    </div>
-                  </StyledSwitchContainer>
+                  <SwitchContainer
+                    label={t(
+                      'Overwrite Duplicate Columns. If duplicate columns are not overridden, they will be presented as "X.1, X.2 ...X.x"',
+                    )}
+                    dataTest="overwriteDuplicates"
+                  />
                 </StyledFormItem>
               </Col>
             </Row>

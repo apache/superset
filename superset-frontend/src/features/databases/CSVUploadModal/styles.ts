@@ -89,4 +89,18 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   .ant-modal-footer {
     height: ${theme.gridUnit * 16.25}px;
   }
+
+  .success-checkmark {
+    width: ${theme.gridUnit * 4}px;
+    height: ${theme.gridUnit * 4}px;
+    margin-left: ${theme.gridUnit}px;
+    color: ${theme.colors.success.base};
+  }
+
+  .error-checkmark {
+    width: ${theme.gridUnit * 4}px;
+    height: ${theme.gridUnit * 4}px;
+    margin-left: ${theme.gridUnit}px;
+    color: ${theme.colors.error.base};
+  }
 `;
