@@ -1,8 +1,8 @@
-ARG PY_VER=3.9-slim-bookworm
+ARG PY_VER=3.10-slim-bookworm
 
 # if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
-FROM --platform=${BUILDPLATFORM} node:16-bookworm-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:18-bullseye-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 
@@ -36,11 +36,11 @@ ENV LANG=C.UTF-8 \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
-    SUPERSET_PORT=8088
+    SUPERSET_PORT=8088 \
+    MYSQLCLIENT_CFLAGS="-I/usr/include/mysql" \
+    MYSQLCLIENT_LDFLAGS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient"
 
-RUN --mount=target=/var/lib/apt/lists,type=cache \
-    --mount=target=/var/cache/apt,type=cache \
-    mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
+RUN mkdir -p ${PYTHONPATH} superset/static superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         build-essential \
@@ -51,22 +51,23 @@ RUN --mount=target=/var/lib/apt/lists,type=cache \
         libpq-dev \
         libecpg-dev \
         libldap2-dev \
+        pkg-config \
     && touch superset/static/version_info.json \
-    && chown -R superset:superset ./*
+    && chown -R superset:superset ./* \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=superset:superset setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-RUN --mount=type=bind,target=./requirements/local.txt,src=./requirements/local.txt \
-    --mount=type=bind,target=./requirements/development.txt,src=./requirements/development.txt \
-    --mount=type=bind,target=./requirements/base.txt,src=./requirements/base.txt \
-    --mount=type=bind,target=./requirements/cloudadmin.txt,src=./requirements/cloudadmin.txt \
-    --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements/local.txt \
+COPY --chown=superset:superset requirements/base.txt requirements/
+COPY --chown=superset:superset requirements/cloudadmin.txt requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade setuptools pip && \
+    pip install -r requirements/base.txt \
     pip install -r requirements/cloudadmin.txt
 
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
-## Install superset itself
+# Install superset itself
 COPY --chown=superset:superset superset superset
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -e . \

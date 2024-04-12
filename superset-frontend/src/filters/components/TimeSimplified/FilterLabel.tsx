@@ -16,11 +16,9 @@ import { noOp } from 'src/utils/common';
 import ControlPopover from 'src/explore/components/controls/ControlPopover/ControlPopover';
 import { DateLabel } from 'src/explore/components/controls/DateFilterControl/components/DateLabel';
 import { DateFilterControlProps } from 'src/explore/components/controls/DateFilterControl/types';
-import {
-  DATE_FILTER_TEST_KEY,
-  fetchTimeRange,
-  useDefaultTimeFilter,
-} from 'src/explore/components/controls/DateFilterControl';
+import { useDefaultTimeFilter } from 'src/explore/components/controls/DateFilterControl';
+import { DateFilterTestKey } from 'src/explore/components/controls/DateFilterControl/utils/constants';
+import { fetchTimeRange } from '@superset-ui/core';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import moment, { Moment } from 'moment';
@@ -257,7 +255,7 @@ export default function FilterLabel(props: DateFilterControlProps) {
           label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
+          data-test={DateFilterTestKey.PopoverOverlay}
           ref={labelRef}
         />
       </Tooltip>
@@ -276,7 +274,7 @@ export default function FilterLabel(props: DateFilterControlProps) {
           label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DATE_FILTER_TEST_KEY.modalOverlay}
+          data-test={DateFilterTestKey.ModalOverlay}
           ref={labelRef}
         />
       </Tooltip>
