@@ -24,8 +24,6 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        with:
-          install-superset: 'false'
       - name: Enable brew and helm-docs
         # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
         run: |
@@ -37,7 +35,6 @@ jobs:
           brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: |
-          pip install pre-commit
           if ! pre-commit run --all-files; then
             git status
             git diff
