@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Resizable } from 're-resizable';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
-
 import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
-import { handleScroll } from './handleScroll';
 import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
 
 const proxyToInfinity = Number.MAX_VALUE;
@@ -169,87 +167,81 @@ const StyledResizable = styled(Resizable)`
   }
 `;
 
-class ResizableContainer extends React.PureComponent {
-  constructor(props) {
-    super(props);
+const ResizableContainer = ({
+  id,
+  children,
+  adjustableWidth,
+  adjustableHeight,
+  widthStep,
+  heightStep,
+  widthMultiple,
+  heightMultiple,
+  staticHeight,
+  staticHeightMultiple,
+  staticWidth,
+  staticWidthMultiple,
+  minWidthMultiple,
+  maxWidthMultiple,
+  minHeightMultiple,
+  maxHeightMultiple,
+  gutterWidth,
+  editMode,
+  onResizeStop,
+  onResize,
+  onResizeStart,
+}) => {
+  const THRESHOLD = 70;
 
-    this.state = {
-      isResizing: false,
-      mouseY: 0,
-    };
+  const [isResizing, setIsResizing] = useState(false);
 
-    this.handleResizeStart = this.handleResizeStart.bind(this);
-    this.handleResize = this.handleResize.bind(this);
-    this.handleResizeStop = this.handleResizeStop.bind(this);
-    this.scrollTimerCleanup = null;
-  }
+  const resizableRef = useRef(null);
+  const scrollTimer = useRef(null);
+  const initialScrollTop = useRef(0);
+  const scrollDirection = useRef(null);
+  // const updatedSize = useRef({ width: 0, height: 0 });
 
-  // componentDidMount() {
-  //   this.scrollTimerCleanup = handleScroll(
-  //     this.state.isResizing,
-  //     this.state.mouseY,
-  //   );
-  // }
+  const handleScroll = mouseY => {
+    if (mouseY < THRESHOLD * 2) {
+      scrollDirection.current = 'up';
+      // window.scrollBy(0, -1);
+    } else if (mouseY > window.innerHeight - THRESHOLD) {
+      scrollDirection.current = 'down';
+      // window.scrollBy(0, 1);
+    } else {
+      scrollDirection.current = null;
+    }
+  };
 
-  componentDidUpdate() {
-    // Update the interval when state changes
-    this.scrollTimerCleanup = handleScroll(
-      this.state.isResizing,
-      this.state.mouseY,
-    );
-  }
-
-  componentWillUnmount() {
-    // Clean up the interval when the component is unmounted
-    this.scrollTimerCleanup();
-  }
-
-  handleResizeStart(event, direction, ref) {
-    const { id, onResizeStart } = this.props;
-
+  const handleResizeStart = (event, direction, ref) => {
     if (onResizeStart) {
       onResizeStart({ id, direction, ref });
     }
+    setIsResizing(true);
 
-    this.setState(() => ({ isResizing: true }));
-  }
+    initialScrollTop.current = window.scrollY;
 
-  handleResize(event, direction, ref, delta) {
-    const { onResize, id } = this.props;
-    const { isResizing } = this.state;
+    scrollTimer.current = setInterval(() => {
+      if (scrollDirection.current) {
+        window.scrollBy(0, scrollDirection.current === 'down' ? 1 : -1);
+      }
+    }, 1);
+  };
 
-    console.log(direction);
-
-    if (direction === 'bottom' && isResizing) {
-      this.setState(() => ({ mouseY: event.clientY }));
-      handleScroll(isResizing, ref, event.clientY);
-      this.handleResizeStop(event, direction, ref, delta);
-    }
-
-    // const { scrollHeight, scrollTop } = ref;
-
-    // this.Resizable.updateSize({
-    //   height: ref.clientHeight + (delta + ref.scrollTop),
-    // });
-
+  const handleResize = (event, direction, ref) => {
     if (onResize) {
       onResize({ id, direction, ref });
     }
-  }
+    handleScroll(event.clientY);
+    // const { width, height } = resizableRef.current.state;
+    // updatedSize.current = { width, height };
+    const scrollDelta = window.scrollY - initialScrollTop.current;
+    resizableRef.current.updateSize({
+      height: resizableRef.current.state.height + scrollDelta,
+    });
+  };
 
-  handleResizeStop(event, direction, ref, delta) {
-    const {
-      id,
-      onResizeStop,
-      widthStep,
-      heightStep,
-      widthMultiple,
-      heightMultiple,
-      adjustableHeight,
-      adjustableWidth,
-      gutterWidth,
-    } = this.props;
-
+  const handleResizeStop = (event, direction, ref, delta) => {
+    // const { width, height } = resizableRef.current.state;
     if (onResizeStop) {
       const nextWidthMultiple =
         widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
@@ -262,112 +254,82 @@ class ResizableContainer extends React.PureComponent {
         heightMultiple: adjustableHeight ? nextHeightMultiple : null,
       });
 
-      this.setState(() => ({ isResizing: false }));
-    }
-  }
-
-  render() {
-    const {
-      children,
-      adjustableWidth,
-      adjustableHeight,
-      widthStep,
-      heightStep,
-      widthMultiple,
-      heightMultiple,
-      staticHeight,
-      staticHeightMultiple,
-      staticWidth,
-      staticWidthMultiple,
-      minWidthMultiple,
-      maxWidthMultiple,
-      minHeightMultiple,
-      maxHeightMultiple,
-      gutterWidth,
-      editMode,
-    } = this.props;
-
-    const size = {
-      width: adjustableWidth
-        ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
-        : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
-          staticWidth ||
-          undefined,
-      height: adjustableHeight
-        ? heightStep * heightMultiple
-        : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
-          staticHeight ||
-          undefined,
-    };
-
-    let enableConfig = resizableConfig.notAdjustable;
-
-    if (editMode && adjustableWidth && adjustableHeight) {
-      enableConfig = resizableConfig.widthAndHeight;
-    } else if (editMode && adjustableWidth) {
-      enableConfig = resizableConfig.widthOnly;
-    } else if (editMode && adjustableHeight) {
-      enableConfig = resizableConfig.heightOnly;
+      setIsResizing(false);
     }
 
-    const { isResizing } = this.state;
+    if (scrollTimer.current) clearInterval(scrollTimer.current);
+  };
 
-    return (
-      <StyledResizable
-        enable={enableConfig}
-        grid={SNAP_TO_GRID}
-        minWidth={
-          adjustableWidth
-            ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
-            : undefined
-        }
-        minHeight={
-          adjustableHeight ? minHeightMultiple * heightStep : undefined
-        }
-        maxWidth={
-          adjustableWidth
-            ? Math.max(
-                size.width,
-                Math.min(
-                  proxyToInfinity,
-                  maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
-                ),
-              )
-            : undefined
-        }
-        maxHeight={
-          adjustableHeight
-            ? Math.max(
-                size.height,
-                Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
-              )
-            : undefined
-        }
-        size={size}
-        onResizeStart={this.handleResizeStart}
-        onResize={this.handleResize}
-        onResizeStop={this.handleResizeStop}
-        handleComponent={ResizableHandle}
-        className={cx(
-          'resizable-container',
-          isResizing && 'resizable-container--resizing',
-        )}
-        handleClasses={HANDLE_CLASSES}
-      >
-        {children}
-      </StyledResizable>
-    );
+  const size = {
+    width: adjustableWidth
+      ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
+      : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
+        staticWidth ||
+        undefined,
+    height: adjustableHeight
+      ? heightStep * heightMultiple
+      : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
+        staticHeight ||
+        undefined,
+  };
+
+  let enableConfig = resizableConfig.notAdjustable;
+
+  if (editMode && adjustableWidth && adjustableHeight) {
+    enableConfig = resizableConfig.widthAndHeight;
+  } else if (editMode && adjustableWidth) {
+    enableConfig = resizableConfig.widthOnly;
+  } else if (editMode && adjustableHeight) {
+    enableConfig = resizableConfig.heightOnly;
   }
-}
+
+  return (
+    <StyledResizable
+      ref={resizableRef}
+      enable={enableConfig}
+      grid={SNAP_TO_GRID}
+      minWidth={
+        adjustableWidth
+          ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
+          : undefined
+      }
+      minHeight={adjustableHeight ? minHeightMultiple * heightStep : undefined}
+      maxWidth={
+        adjustableWidth
+          ? Math.max(
+              size.width,
+              Math.min(
+                proxyToInfinity,
+                maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+              ),
+            )
+          : undefined
+      }
+      maxHeight={
+        adjustableHeight
+          ? Math.max(
+              size.height,
+              Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
+            )
+          : undefined
+      }
+      size={size}
+      onResizeStart={handleResizeStart}
+      onResize={handleResize}
+      onResizeStop={handleResizeStop}
+      handleComponent={ResizableHandle}
+      className={cx(
+        'resizable-container',
+        isResizing && 'resizable-container--resizing',
+      )}
+      handleClasses={HANDLE_CLASSES}
+    >
+      {children}
+    </StyledResizable>
+  );
+};
 
 ResizableContainer.propTypes = propTypes;
 ResizableContainer.defaultProps = defaultProps;
 
 export default ResizableContainer;
-
-/*
-- Allow scrolling when resizing
-- Add diff of mouse position unless scrolling then add scroll offset
-- Update the the height of the component with the offset of the mouse
--
-*/
