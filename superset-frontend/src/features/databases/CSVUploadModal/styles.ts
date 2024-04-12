@@ -20,17 +20,21 @@ import { FormItem } from 'src/components/Form';
 import { css, styled, SupersetTheme } from '@superset-ui/core';
 
 const MODAL_BODY_HEIGHT = 180.5;
-const anticonHeight = 12;
+const antIconHeight = 12;
 
 export const StyledFormItem = styled(FormItem)`
-  margin-bottom: 0px;
+  ${({ theme }) => css`
+    flex: 1;
+    margin-top: 0;
+    margin-bottom: ${theme.gridUnit * 2.5}px;
+  }
+  `}
 `;
 
 export const StyledSwitchContainer = styled.div`
   display: flex;
   align-items: center;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin-top: 0;
 `;
 
 export const antdCollapseStyles = (theme: SupersetTheme) => css`
@@ -38,7 +42,7 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
     padding-top: ${theme.gridUnit * 3.5}px;
     padding-bottom: ${theme.gridUnit * 2.5}px;
     .anticon.ant-collapse-arrow {
-      top: calc(50% - ${anticonHeight / 2}px);
+      top: calc(50% - ${antIconHeight / 2}px);
     }
     .helper {
       color: ${theme.colors.grayscale.base};
@@ -67,7 +71,7 @@ export const antDModalNoPaddingStyles = css`
 export const formStyles = (theme: SupersetTheme) => css`
   .switch-label {
     color: ${theme.colors.grayscale.base};
-    margin-left: 10px;
+    margin-left: ${theme.gridUnit * 4}px;
   }
 `;
 
@@ -90,17 +94,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     height: ${theme.gridUnit * 16.25}px;
   }
 
-  .success-checkmark {
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-    margin-left: ${theme.gridUnit}px;
-    color: ${theme.colors.success.base};
-  }
-
-  .error-checkmark {
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
-    margin-left: ${theme.gridUnit}px;
-    color: ${theme.colors.error.base};
+  .info-solid-small {
+    vertical-align: bottom;
   }
 `;

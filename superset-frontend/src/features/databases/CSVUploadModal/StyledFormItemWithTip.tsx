@@ -19,7 +19,6 @@
 
 import React from 'react';
 import InfoTooltip from 'src/components/InfoTooltip';
-
 import { StyledFormItem } from './styles';
 
 interface StyledFormItemWithTipProps {
@@ -37,7 +36,7 @@ const StyledFormItemWithTip: React.FC<StyledFormItemWithTipProps> = ({
 }) => (
   <StyledFormItem
     label={
-      <div className="control-label">
+      <div>
         {label}
         <InfoTooltip tooltip={tip} />
       </div>
