@@ -387,7 +387,7 @@ describe('ListView', () => {
         .find('[data-test="filters-select"]')
         .first()
         .props()
-        .onChange({ label: 'bar', value: 'bar' });
+        .onSelect({ label: 'bar', value: 'bar' });
     });
 
     act(() => {
@@ -395,7 +395,7 @@ describe('ListView', () => {
         .find('[data-test="filters-search"]')
         .first()
         .props()
-        .onChange({
+        .onSelect({
           currentTarget: { label: 'something', value: 'something' },
         });
     });
