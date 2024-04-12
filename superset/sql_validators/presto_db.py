@@ -160,9 +160,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         logger.info("Validating %i statement(s)", len(statements))
         # todo(hughhh): update this to use new database.get_raw_connection()
         # this function keeps stalling CI
-        with database.get_sqla_engine_with_context(
-            schema, source=QuerySource.SQL_LAB
-        ) as engine:
+        with database.get_sqla_engine(schema, source=QuerySource.SQL_LAB) as engine:
             # Sharing a single connection and cursor across the
             # execution of all statements (if many)
             annotations: list[SQLValidationAnnotation] = []

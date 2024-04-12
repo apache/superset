@@ -315,7 +315,7 @@ class SupersetShillelaghAdapter(Adapter):
 
         # store this callable for later whenever we need an engine
         self.engine_context = partial(
-            database.get_sqla_engine_with_context,
+            database.get_sqla_engine,
             self.schema,
         )
 

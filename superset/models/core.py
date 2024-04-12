@@ -382,7 +382,7 @@ class Database(
         )
 
     @contextmanager
-    def get_sqla_engine_with_context(
+    def get_sqla_engine(
         self,
         schema: str | None = None,
         nullpool: bool = True,
@@ -423,6 +423,11 @@ class Database(
                 source=source,
                 sqlalchemy_uri=sqlalchemy_uri,
             )
+
+    # The `get_sqla_engine_with_context` was renamed to `get_sqla_engine`, but we kept a
+    # reference to the old method to prevent breaking third-party applications.
+    # TODO (betodealmeida): Remove in 5.0
+    get_sqla_engine_with_context = get_sqla_engine
 
     def _get_sqla_engine(
         self,
@@ -531,7 +536,7 @@ class Database(
         nullpool: bool = True,
         source: utils.QuerySource | None = None,
     ) -> Connection:
-        with self.get_sqla_engine_with_context(
+        with self.get_sqla_engine(
             schema=schema, nullpool=nullpool, source=source
         ) as engine:
             with closing(engine.raw_connection()) as conn:
@@ -574,7 +579,7 @@ class Database(
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
-        with self.get_sqla_engine_with_context(schema) as engine:
+        with self.get_sqla_engine(schema) as engine:
             engine_url = engine.url
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
@@ -636,7 +641,7 @@ class Database(
             return df
 
     def compile_sqla_query(self, qry: Select, schema: str | None = None) -> str:
-        with self.get_sqla_engine_with_context(schema) as engine:
+        with self.get_sqla_engine(schema) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
 
             # pylint: disable=protected-access
@@ -656,7 +661,7 @@ class Database(
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        with self.get_sqla_engine_with_context(schema) as engine:
+        with self.get_sqla_engine(schema) as engine:
             return self.db_engine_spec.select_star(
                 self,
                 table_name,
@@ -753,9 +758,7 @@ class Database(
     def get_inspector_with_context(
         self, ssh_tunnel: SSHTunnel | None = None
     ) -> Inspector:
-        with self.get_sqla_engine_with_context(
-            override_ssh_tunnel=ssh_tunnel
-        ) as engine:
+        with self.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
@@ -835,7 +838,7 @@ class Database(
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
         extra = self.get_extra()
         meta = MetaData(**extra.get("metadata_params", {}))
-        with self.get_sqla_engine_with_context() as engine:
+        with self.get_sqla_engine() as engine:
             return Table(
                 table_name,
                 meta,
@@ -939,11 +942,11 @@ class Database(
         return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
-        with self.get_sqla_engine_with_context() as engine:
+        with self.get_sqla_engine() as engine:
             return engine.has_table(table.table_name, table.schema or None)
 
     def has_table_by_name(self, table_name: str, schema: str | None = None) -> bool:
-        with self.get_sqla_engine_with_context() as engine:
+        with self.get_sqla_engine() as engine:
             return engine.has_table(table_name, schema)
 
     @classmethod
@@ -962,7 +965,7 @@ class Database(
         return view_name in view_names
 
     def has_view(self, view_name: str, schema: str | None = None) -> bool:
-        with self.get_sqla_engine_with_context(schema) as engine:
+        with self.get_sqla_engine(schema) as engine:
             return engine.run_callable(
                 self._has_view, engine.dialect, view_name, schema
             )

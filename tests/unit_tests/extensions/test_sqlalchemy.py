@@ -59,7 +59,7 @@ def database1(session: Session) -> Iterator["Database"]:
 
 @pytest.fixture
 def table1(session: Session, database1: "Database") -> Iterator[None]:
-    with database1.get_sqla_engine_with_context() as engine:
+    with database1.get_sqla_engine() as engine:
         conn = engine.connect()
         conn.execute("CREATE TABLE table1 (a INTEGER NOT NULL PRIMARY KEY, b INTEGER)")
         conn.execute("INSERT INTO table1 (a, b) VALUES (1, 10), (2, 20)")
@@ -92,7 +92,7 @@ def database2(session: Session) -> Iterator["Database"]:
 
 @pytest.fixture
 def table2(session: Session, database2: "Database") -> Iterator[None]:
-    with database2.get_sqla_engine_with_context() as engine:
+    with database2.get_sqla_engine() as engine:
         conn = engine.connect()
         conn.execute("CREATE TABLE table2 (a INTEGER NOT NULL PRIMARY KEY, b TEXT)")
         conn.execute("INSERT INTO table2 (a, b) VALUES (1, 'ten'), (2, 'twenty')")

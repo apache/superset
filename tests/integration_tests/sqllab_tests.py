@@ -212,7 +212,7 @@ class TestSqlLab(SupersetTestCase):
             # assertions
             db.session.commit()
             examples_db = get_example_database()
-            with examples_db.get_sqla_engine_with_context() as engine:
+            with examples_db.get_sqla_engine() as engine:
                 data = engine.execute(
                     f"SELECT * FROM admin_database.{tmp_table_name}"
                 ).fetchall()
@@ -296,7 +296,7 @@ class TestSqlLab(SupersetTestCase):
             "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
         )
 
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute(
                 f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
             )
@@ -325,7 +325,7 @@ class TestSqlLab(SupersetTestCase):
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
         db.session.commit()
 

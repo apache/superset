@@ -30,7 +30,7 @@ def load_sf_population_polygons(
 ) -> None:
     tbl_name = "sf_population_polygons"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 

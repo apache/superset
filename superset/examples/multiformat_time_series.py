@@ -39,7 +39,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     """Loading time series data from a zip file in the repo"""
     tbl_name = "multiformat_time_series"
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 

@@ -718,7 +718,7 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         example_db = get_example_database()
-        with example_db.get_sqla_engine_with_context() as engine:
+        with example_db.get_sqla_engine() as engine:
             engine.execute(
                 f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
             )
@@ -739,7 +739,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = f'api/v1/dataset/{data.get("id")}'
         rv = self.client.delete(uri)
         assert rv.status_code == 200
-        with example_db.get_sqla_engine_with_context() as engine:
+        with example_db.get_sqla_engine() as engine:
             engine.execute(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names")
 
     def test_create_dataset_validate_database(self):
@@ -800,7 +800,7 @@ class TestDatasetApi(SupersetTestCase):
         mock_get_table.return_value = None
 
         example_db = get_example_database()
-        with example_db.get_sqla_engine_with_context() as engine:
+        with example_db.get_sqla_engine() as engine:
             engine = engine
             dialect = engine.dialect
 
@@ -2389,7 +2389,7 @@ class TestDatasetApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS test_create_sqla_table_api")
             engine.execute("CREATE TABLE test_create_sqla_table_api AS SELECT 2 as col")
 
@@ -2415,7 +2415,7 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(table)
         db.session.commit()
 
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_sqla_table_api")
 
     @pytest.mark.usefixtures(

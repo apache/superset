@@ -456,7 +456,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         In BigQuery, a catalog is called a "project".
         """
         engine: Engine
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             client = cls._get_client(engine)
             projects = client.list_projects()
 

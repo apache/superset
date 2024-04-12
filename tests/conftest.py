@@ -72,7 +72,7 @@ def example_db_provider() -> Callable[[], Database]:
 @fixture(scope="session")
 def example_db_engine(example_db_provider: Callable[[], Database]) -> Engine:
     with app.app_context():
-        with example_db_provider().get_sqla_engine_with_context() as engine:
+        with example_db_provider().get_sqla_engine() as engine:
             return engine
 
 

@@ -56,22 +56,22 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/default", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
@@ -79,11 +79,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("prod", db)
 
-        with model.get_sqla_engine_with_context(schema="foo") as engine:
+        with model.get_sqla_engine(schema="foo") as engine:
             db = make_url(engine.url).database
             self.assertEqual("prod", db)
 
@@ -97,11 +97,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("default", db)
 
-        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+        with model.get_sqla_engine(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("core_db", db)
 
@@ -112,11 +112,11 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "mysql://root@localhost/superset"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_with_context() as engine:
+        with model.get_sqla_engine() as engine:
             db = make_url(engine.url).database
             self.assertEqual("superset", db)
 
-        with model.get_sqla_engine_with_context(schema="staging") as engine:
+        with model.get_sqla_engine(schema="staging") as engine:
             db = make_url(engine.url).database
             self.assertEqual("staging", db)
 
@@ -130,12 +130,12 @@ class TestDatabaseModel(SupersetTestCase):
 
         with override_user(example_user):
             model.impersonate_user = True
-            with model.get_sqla_engine_with_context() as engine:
+            with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
                 self.assertEqual(example_user.username, username)
 
             model.impersonate_user = False
-            with model.get_sqla_engine_with_context() as engine:
+            with model.get_sqla_engine() as engine:
                 username = make_url(engine.url).username
                 self.assertNotEqual(example_user.username, username)
 
@@ -295,7 +295,7 @@ class TestDatabaseModel(SupersetTestCase):
         db = get_example_database()
         table_name = "energy_usage"
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
-        with db.get_sqla_engine_with_context() as engine:
+        with db.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote_identifier
 
         source = quote(table_name) if db.backend in {"presto", "hive"} else table_name

@@ -71,7 +71,7 @@ def _setup_csv_upload():
     yield
 
     upload_db = get_upload_db()
-    with upload_db.get_sqla_engine_with_context() as engine:
+    with upload_db.get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
@@ -268,7 +268,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
         table=CSV_UPLOAD_TABLE_W_SCHEMA,
     )
 
-    with get_upload_db().get_sqla_engine_with_context() as engine:
+    with get_upload_db().get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {ADMIN_SCHEMA_NAME}.{CSV_UPLOAD_TABLE_W_SCHEMA} ORDER BY b"
         ).fetchall()
@@ -294,7 +294,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
     assert success_msg in resp
 
     # Clean up
-    with get_upload_db().get_sqla_engine_with_context() as engine:
+    with get_upload_db().get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE {full_table_name}")
 
 
@@ -380,7 +380,7 @@ def test_import_csv(mock_event_logger):
         extra={"null_values": '["", "john"]', "if_exists": "replace"},
     )
     # make sure that john and empty string are replaced with None
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY c").fetchall()
         assert data == [(None, 1, "x"), ("paul", 2, None)]
         # default null values
@@ -390,7 +390,7 @@ def test_import_csv(mock_event_logger):
         assert data == [("john", 1, "x"), ("paul", 2, None)]
 
     # cleanup
-    with get_upload_db().get_sqla_engine_with_context() as engine:
+    with get_upload_db().get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE {full_table_name}")
 
     # with dtype
@@ -403,12 +403,12 @@ def test_import_csv(mock_event_logger):
     # you can change the type to something compatible, like an object to string
     # or an int to a float
     # file upload should work as normal
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE} ORDER BY b").fetchall()
         assert data == [("john", 1), ("paul", 2)]
 
     # cleanup
-    with get_upload_db().get_sqla_engine_with_context() as engine:
+    with get_upload_db().get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE {full_table_name}")
 
     # with dtype - wrong type
@@ -475,7 +475,7 @@ def test_import_excel(mock_event_logger):
         table=EXCEL_UPLOAD_TABLE,
     )
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()
@@ -541,7 +541,7 @@ def test_import_parquet(mock_event_logger):
     )
     assert success_msg_f1 in resp
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()
@@ -554,7 +554,7 @@ def test_import_parquet(mock_event_logger):
     success_msg_f2 = f"Columnar file {escaped_parquet(ZIP_FILENAME)} uploaded to table {escaped_double_quotes(full_table_name)}"
     assert success_msg_f2 in resp
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()

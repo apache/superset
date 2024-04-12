@@ -563,7 +563,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS test_create_dataset_command")
             engine.execute(
                 "CREATE TABLE test_create_dataset_command AS SELECT 2 as col"
@@ -585,7 +585,7 @@ class TestCreateDatasetCommand(SupersetTestCase):
             self.assertEqual([owner.username for owner in table.owners], ["admin"])
 
         db.session.delete(table)
-        with examples_db.get_sqla_engine_with_context() as engine:
+        with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_dataset_command")
         db.session.commit()
 

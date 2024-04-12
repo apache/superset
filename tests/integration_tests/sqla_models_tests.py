@@ -313,7 +313,7 @@ class TestDatabaseModel(SupersetTestCase):
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
 
         database = table.database
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote_identifier
 
         for metric_label in {"metric using jinja macro", "same but different"}:

@@ -217,7 +217,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     @property
     def sqla_metadata(self) -> None:
         # pylint: disable=no-member
-        with self.get_sqla_engine_with_context() as engine:
+        with self.get_sqla_engine() as engine:
             meta = MetaData(bind=engine)
             meta.reflect()
 

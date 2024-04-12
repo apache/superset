@@ -47,7 +47,7 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         engine.execute(
             f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
         )
@@ -56,7 +56,7 @@ def create_test_table_context(database: Database):
 
     yield db.session
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE {full_table_name}")
 
 
