@@ -895,7 +895,7 @@ class TestDatabaseApi(SupersetTestCase):
         if database.backend == "mysql":
             query = query.replace('"', "`")
 
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             engine.execute(query)
 
         self.login(ADMIN_USERNAME)

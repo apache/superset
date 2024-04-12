@@ -1390,7 +1390,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
-        with self.database.get_sqla_engine_with_context() as engine:
+        with self.database.get_sqla_engine() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
             sql = self.mutate_query_from_config(sql)
@@ -1992,7 +1992,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 and db_engine_spec.allows_hidden_cc_in_orderby
                 and col.name in [select_col.name for select_col in select_exprs]
             ):
-                with self.database.get_sqla_engine_with_context() as engine:
+                with self.database.get_sqla_engine() as engine:
                     quote = engine.dialect.identifier_preparer.quote
                     col = literal_column(quote(col.name))
             direction = sa.asc if ascending else sa.desc

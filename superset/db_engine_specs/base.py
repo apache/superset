@@ -771,7 +771,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             ...     connection.execute(sql)
 
         """
-        return database.get_sqla_engine_with_context(schema=schema, source=source)
+        return database.get_sqla_engine(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
