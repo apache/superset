@@ -57,7 +57,7 @@ These features are **finished** but currently being tested. They are usable, but
 
 ## Stable
 
-These features flags are **safe for production**. They have been tested and will be supported for the foreseeable future.
+These features flags are **safe for production**. They have been tested and will be supported for the at least the current major version cycle.
 
 [//]: # "PLEASE KEEP THESE LISTS SORTED ALPHABETICALLY"
 
