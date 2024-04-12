@@ -207,7 +207,9 @@ export default class MainPreset extends Preset {
           key: 'ext-check-table',
         }),
         new SupersetPluginsChartDendogram().configure({ key: 'ext-dendogram' }),
-        new SupersetPluginsChartTinyProgressBar().configure({ key: 'ext-tiny-progress-bar' }),
+        new SupersetPluginsChartTinyProgressBar().configure({
+          key: 'ext-tiny-progress-bar',
+        }),
         new SupersetPluginsChartViolin().configure({ key: 'ext-violin' }),
         new SupersetPluginsChartRadar().configure({ key: 'ext-radar' }),
         ...experimentalplugins,
