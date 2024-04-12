@@ -24,6 +24,7 @@ import {
   ConditionalFormattingConfig,
   MULTIPLE_VALUE_COMPARATORS,
 } from '../types';
+import { addGradientDodo } from '../DodoExtensions/utils/getColorFormattersDodo';
 
 export const round = (num: number, precision = 0) =>
   Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
@@ -184,6 +185,22 @@ export const getColorFunction = (
     if (isFixedColor) return colorScheme;
 
     if (alpha === undefined || alpha) {
+      // DODO added
+      // DODO start fragment
+      const opacity = getOpacity(
+        value,
+        cutoffValue,
+        extremeValue,
+        minOpacity,
+        maxOpacity,
+      );
+
+      const colorSchemeWithGradient = addGradientDodo(colorScheme, opacity);
+      if (colorSchemeWithGradient) {
+        return colorSchemeWithGradient;
+      }
+      // DODO stop fragment
+
       return addAlpha(
         colorScheme,
         getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),

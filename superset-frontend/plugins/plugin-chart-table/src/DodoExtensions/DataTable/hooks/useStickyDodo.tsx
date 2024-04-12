@@ -3,100 +3,35 @@ import React, {
   useRef,
   useMemo,
   useLayoutEffect,
-  useCallback,
-  ReactNode,
   ReactElement,
-  ComponentPropsWithRef,
-  CSSProperties,
   UIEventHandler,
 } from 'react';
-import { TableInstance, Hooks } from 'react-table';
-import getScrollBarSize from '../utils/getScrollBarSize';
-import needScrollBar from '../utils/needScrollBar';
-import useMountedMemo from '../utils/useMountedMemo';
-import { StickyWrapDodo } from '../../DodoExtensions/DataTable/hooks/useStickyDodo';
-
-export type ReactElementWithChildren<
-  T extends keyof JSX.IntrinsicElements,
-  C extends ReactNode = ReactNode,
-> = ReactElement<ComponentPropsWithRef<T> & { children: C }, T>;
-
-export type Th = ReactElementWithChildren<'th'>;
-export type Td = ReactElementWithChildren<'td'>;
-export type TrWithTh = ReactElementWithChildren<'tr', Th[]>;
-export type TrWithTd = ReactElementWithChildren<'tr', Td[]>;
-export type Thead = ReactElementWithChildren<'thead', TrWithTh>;
-export type Tbody = ReactElementWithChildren<'tbody', TrWithTd>;
-export type Tfoot = ReactElementWithChildren<'tfoot', TrWithTd>;
-export type Col = ReactElementWithChildren<'col', null>;
-export type ColGroup = ReactElementWithChildren<'colgroup', Col>;
-
-export type Table = ReactElementWithChildren<
-  'table',
-  (Thead | Tbody | Tfoot | ColGroup)[]
->;
-export type TableRenderer = () => Table;
-export type GetTableSize = () => Partial<StickyState> | undefined;
-export type SetStickyState = (size?: Partial<StickyState>) => void;
-
-export enum ReducerActions {
-  init = 'init', // this is from global reducer
-  setStickyState = 'setStickyState',
-}
-
-export type ReducerAction<
-  T extends string,
-  P extends Record<string, unknown>,
-> = P & { type: T };
-
-export type ColumnWidths = number[];
-
-export interface StickyState {
-  width?: number; // maximum full table width
-  height?: number; // maximum full table height
-  realHeight?: number; // actual table viewport height (header + scrollable area)
-  bodyHeight?: number; // scrollable area height
-  tableHeight?: number; // the full table height
-  columnWidths?: ColumnWidths;
-  hasHorizontalScroll?: boolean;
-  hasVerticalScroll?: boolean;
-  rendering?: boolean;
-  setStickyState?: SetStickyState;
-}
-
-export interface UseStickyTableOptions {
-  getTableSize?: GetTableSize;
-}
-
-export interface UseStickyInstanceProps {
-  // manipulate DOMs in <table> to make the header sticky
-  wrapStickyTable: (renderer: TableRenderer) => ReactNode;
-  // update or recompute the sticky table size
-  setStickyState: SetStickyState;
-}
-
-export type UseStickyState = {
-  sticky: StickyState;
-};
-
-export const sum = (a: number, b: number) => a + b;
-export const mergeStyleProp = (
-  node: ReactElement<{ style?: CSSProperties }>,
-  style: CSSProperties,
-) => ({
-  style: {
-    ...node.props.style,
-    ...style,
-  },
-});
-export const fixedTableLayout: CSSProperties = { tableLayout: 'fixed' };
+import getScrollBarSize from '../../../DataTable/utils/getScrollBarSize';
+import needScrollBar from '../../../DataTable/utils/needScrollBar';
+import {
+  fixedTableLayout,
+  mergeStyleProp,
+  SetStickyState,
+  StickyState,
+  sum,
+  Table,
+  Tbody,
+  Tfoot,
+  Thead,
+  TrWithTh,
+} from '../../../DataTable';
 
 /**
  * An HOC for generating sticky header and fixed-height scrollable area
  */
-// @ts-ignore
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function StickyWrap({
+
+// DODO added - fragment start
+export const WidthContext = React.createContext<{ colWidths: Array<number> }>({
+  colWidths: [],
+});
+// DODO fragment stop
+
+export function StickyWrapDodo({
   sticky = {},
   width: maxWidth,
   height: maxHeight,
@@ -296,113 +231,21 @@ function StickyWrap({
     );
   }
 
+  /* DODO added - add provider */
   return (
-    <div
-      style={{
-        width: maxWidth,
-        height: sticky.realHeight || maxHeight,
-        overflow: 'hidden',
-      }}
-    >
-      {headerTable}
-      {bodyTable}
-      {footerTable}
-      {sizerTable}
-    </div>
-  );
-}
-
-function useInstance<D extends object>(instance: TableInstance<D>) {
-  const {
-    dispatch,
-    state: { sticky },
-    data,
-    page,
-    rows,
-    allColumns,
-    getTableSize = () => undefined,
-  } = instance;
-
-  const setStickyState = useCallback(
-    (size?: Partial<StickyState>) => {
-      dispatch({
-        type: ReducerActions.setStickyState,
-        size,
-      });
-    },
-    // turning pages would also trigger a resize
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dispatch, getTableSize, page, rows],
-  );
-
-  const useStickyWrap = (renderer: TableRenderer) => {
-    const { width, height } =
-      useMountedMemo(getTableSize, [getTableSize]) || sticky;
-    // only change of data should trigger re-render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const table = useMemo(renderer, [page, rows, allColumns]);
-
-    useLayoutEffect(() => {
-      if (!width || !height) {
-        setStickyState();
-      }
-    }, [width, height]);
-
-    if (!width || !height) {
-      return null;
-    }
-    if (data.length === 0) {
-      return table;
-    }
-    // DODO changed StickyWrap to StickyWrapDodo
-    return (
-      <StickyWrapDodo
-        width={width}
-        height={height}
-        sticky={sticky}
-        setStickyState={setStickyState}
+    <WidthContext.Provider value={{ colWidths: colWidths ?? [] }}>
+      <div
+        style={{
+          width: maxWidth,
+          height: sticky.realHeight || maxHeight,
+          overflow: 'hidden',
+        }}
       >
-        {table}
-      </StickyWrapDodo>
-    );
-  };
-
-  Object.assign(instance, {
-    setStickyState,
-    wrapStickyTable: useStickyWrap,
-  });
+        {headerTable}
+        {bodyTable}
+        {footerTable}
+        {sizerTable}
+      </div>
+    </WidthContext.Provider>
+  );
 }
-
-export default function useSticky<D extends object>(hooks: Hooks<D>) {
-  hooks.useInstance.push(useInstance);
-  hooks.stateReducers.push((newState, action_, prevState) => {
-    const action = action_ as ReducerAction<
-      ReducerActions,
-      { size: StickyState }
-    >;
-    if (action.type === ReducerActions.init) {
-      return {
-        ...newState,
-        sticky: {
-          ...prevState?.sticky,
-        },
-      };
-    }
-    if (action.type === ReducerActions.setStickyState) {
-      const { size } = action;
-      if (!size) {
-        return { ...newState };
-      }
-      return {
-        ...newState,
-        sticky: {
-          ...prevState?.sticky,
-          ...newState?.sticky,
-          ...action.size,
-        },
-      };
-    }
-    return newState;
-  });
-}
-useSticky.pluginName = 'useSticky';

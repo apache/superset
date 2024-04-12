@@ -6,193 +6,85 @@ import React, {
   useMemo,
   useState,
   MouseEvent,
+  useContext,
 } from 'react';
-import {
-  ColumnInstance,
-  ColumnWithLooseAccessor,
-  DefaultSortTypes,
-  Row,
-} from 'react-table';
+import { ColumnWithLooseAccessor, Row } from 'react-table';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+
+import { AiFillPushpin } from '@react-icons/all-files/ai/AiFillPushpin';
+
 import cx from 'classnames';
 import {
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
-  GenericDataType,
   getSelectedText,
   getTimeFormatterForGranularity,
   BinaryQueryObjectFilterClause,
   styled,
   css,
   t,
-  tn,
 } from '@superset-ui/core';
+import { DataColumnMeta, TableChartTransformedProps } from '../types';
+import DataTable, { DataTableProps, SizeOption } from '../DataTable';
+import { PAGE_SIZE_OPTIONS } from '../consts';
+import { formatColumnValue } from '../utils/formatValue';
+import { updateExternalFormData } from '../DataTable/utils/externalAPIs';
+import getScrollBarSize from '../DataTable/utils/getScrollBarSize';
+import Styles from '../Styles';
+import { WidthContext } from './DataTable/hooks/useStickyDodo';
+import {
+  getSortTypeByDataType,
+  cellWidth,
+  cellOffset,
+  cellBackground,
+  SortIcon,
+  SearchInput,
+  getNoResultsMessage,
+  SelectPageSize,
+  TableSize,
+  ValueRange,
+} from '../TableChart';
 
-import { DataColumnMeta, TableChartTransformedProps } from './types';
-import DataTable, {
-  DataTableProps,
-  SearchInputProps,
-  SelectPageSizeRendererProps,
-  SizeOption,
-} from './DataTable';
+// DODO added
+// DODO start block
+const StyledStickIcon = styled(AiFillPushpin)<{ $isSticky: boolean }>`
+  fill: ${props => (props.$isSticky ? '#666666' : `#b7b7b7`)};
+  flex-shrink: 0;
+`;
 
-import Styles from './Styles';
-import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
-import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-
-export type ValueRange = [number, number];
-
-export interface TableSize {
-  width: number;
-  height: number;
-}
-
-/**
- * Return sortType based on data type
- */
-export function getSortTypeByDataType(
-  dataType: GenericDataType,
-): DefaultSortTypes {
-  if (dataType === GenericDataType.TEMPORAL) {
-    return 'datetime';
-  }
-  if (dataType === GenericDataType.STRING) {
-    return 'alphanumeric';
-  }
-  return 'basic';
-}
-
-/**
- * Cell background width calculation for horizontal bar chart
- */
-export function cellWidth({
-  value,
-  valueRange,
-  alignPositiveNegative,
+function StickIcon({
+  isColumnSticky,
+  columnIndex,
+  setStickedColumns,
 }: {
-  value: number;
-  valueRange: ValueRange;
-  alignPositiveNegative: boolean;
+  isColumnSticky: boolean;
+  columnIndex: number;
+  setStickedColumns: React.Dispatch<React.SetStateAction<number[]>>;
 }) {
-  const [minValue, maxValue] = valueRange;
-  if (alignPositiveNegative) {
-    const perc = Math.abs(Math.round((value / maxValue) * 100));
-    return perc;
-  }
-  const posExtent = Math.abs(Math.max(maxValue, 0));
-  const negExtent = Math.abs(Math.min(minValue, 0));
-  const tot = posExtent + negExtent;
-  const perc2 = Math.round((Math.abs(value) / tot) * 100);
-  return perc2;
-}
+  const toggleStick = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (isColumnSticky) {
+      setStickedColumns((v: Array<number>) =>
+        v.filter(item => item !== columnIndex),
+      );
+    } else {
+      setStickedColumns((v: Array<number>) => [...v, columnIndex]);
+    }
+  };
 
-/**
- * Cell left margin (offset) calculation for horizontal bar chart elements
- * when alignPositiveNegative is not set
- */
-export function cellOffset({
-  value,
-  valueRange,
-  alignPositiveNegative,
-}: {
-  value: number;
-  valueRange: ValueRange;
-  alignPositiveNegative: boolean;
-}) {
-  if (alignPositiveNegative) {
-    return 0;
-  }
-  const [minValue, maxValue] = valueRange;
-  const posExtent = Math.abs(Math.max(maxValue, 0));
-  const negExtent = Math.abs(Math.min(minValue, 0));
-  const tot = posExtent + negExtent;
-  return Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
-}
-
-/**
- * Cell background color calculation for horizontal bar chart
- */
-export function cellBackground({
-  value,
-  colorPositiveNegative = false,
-}: {
-  value: number;
-  colorPositiveNegative: boolean;
-}) {
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
-  return `rgba(${r},0,0,0.2)`;
-}
-
-export function SortIcon<D extends object>({
-  column,
-}: {
-  column: ColumnInstance<D>;
-}) {
-  const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
-  if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
-  }
-  return sortIcon;
-}
-
-export function SearchInput({ count, value, onChange }: SearchInputProps) {
   return (
-    <span className="dt-global-filter">
-      {t('Search')}{' '}
-      <input
-        className="form-control input-sm"
-        placeholder={tn('search.num_records', count)}
-        value={value}
-        onChange={onChange}
-      />
-    </span>
+    <StyledStickIcon
+      style={{ marginRight: '0.5rem' }}
+      $isSticky={isColumnSticky}
+      onClick={toggleStick}
+    />
   );
 }
+// DODO stop block
 
-export function SelectPageSize({
-  options,
-  current,
-  onChange,
-}: SelectPageSizeRendererProps) {
-  return (
-    <span className="dt-select-page-size form-inline">
-      {t('page_size.show')}{' '}
-      <select
-        className="form-control input-sm"
-        value={current}
-        onBlur={() => {}}
-        onChange={e => {
-          onChange(Number((e.target as HTMLSelectElement).value));
-        }}
-      >
-        {options.map(option => {
-          const [size, text] = Array.isArray(option)
-            ? option
-            : [option, option];
-          return (
-            <option key={size} value={size}>
-              {text}
-            </option>
-          );
-        })}
-      </select>{' '}
-      {t('page_size.entries')}
-    </span>
-  );
-}
-
-export const getNoResultsMessage = (filter: string) =>
-  filter ? t('No matching records found') : t('No records found');
-
-export default function TableChart<D extends DataRecord = DataRecord>(
+export default function TableChartDodo<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
   },
@@ -222,6 +114,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
   } = props;
+
+  // DODO added new state
+  const [stickedColumns, setStickedColumns] = useState<Array<number>>([]);
+
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
@@ -435,6 +331,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         className += ' dt-is-filter';
       }
 
+      // DODO added
+      // DODO started fragment
+      const isColumnSticked = stickedColumns.includes(i);
+
+      const getStickyWidth = (colWidths: Array<number>) =>
+        i === 0
+          ? '0px'
+          : `${stickedColumns.reduce((acc, item) => {
+              if (item < i) {
+                return acc + colWidths[item];
+              }
+              return acc;
+            }, 0)}px`;
+      // DODO stop fragment
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -445,7 +356,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const [isHtml, text] = formatColumnValue(column, value);
           const html = isHtml ? { __html: text } : undefined;
 
-          let backgroundColor;
+          let backgroundColor: string | undefined;
           if (hasColumnColorFormatters) {
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
@@ -460,11 +371,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
           }
 
+          // DODO added line
+          const { colWidths } = useContext(WidthContext);
+
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
             background: ${backgroundColor || undefined};
+            // DODO added
+            // DODO fragment start
+            ${() => {
+              if (isColumnSticked) {
+                return css`
+                  position: sticky;
+                  z-index: 4;
+                  left: ${getStickyWidth(colWidths)};
+                  background: ${backgroundColor ?? 'white'};
+                `;
+              }
+              return undefined;
+              // DODO fragment stop
+            }}
           `;
 
           const cellBarStyles = css`
@@ -521,6 +449,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
           };
+
           if (html) {
             if (truncateLongCells) {
               // eslint-disable-next-line react/no-danger
@@ -564,46 +493,67 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </StyledCell>
           );
         },
-        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
-          <th
-            title={t('Shift + Click to sort by multiple columns')}
-            className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
-            style={{
-              ...sharedStyle,
-              ...style,
-            }}
-            onClick={onClick}
-            data-column-name={col.id}
-            {...(allowRearrangeColumns && {
-              draggable: 'true',
-              onDragStart,
-              onDragOver: e => e.preventDefault(),
-              onDragEnter: e => e.preventDefault(),
-              onDrop,
-            })}
-          >
-            {/* can't use `columnWidth &&` because it may also be zero */}
-            {config.columnWidth ? (
-              // column width hint
-              <div
-                style={{
-                  width: columnWidth,
-                  height: 0.01,
-                }}
-              />
-            ) : null}
-            <div
-              data-column-name={col.id}
-              css={{
-                display: 'inline-flex',
-                alignItems: 'flex-end',
+        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => {
+          // DODO added line
+          const { colWidths } = useContext(WidthContext);
+
+          return (
+            <th
+              title={t('Shift + Click to sort by multiple columns')}
+              className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
+              style={{
+                ...sharedStyle,
+                ...style,
+                // DODO added start
+                ...(isColumnSticked
+                  ? {
+                      position: 'sticky',
+                      zIndex: 4,
+                      left: getStickyWidth(colWidths),
+                    }
+                  : {}),
+                // DODO added stop
               }}
+              onClick={onClick}
+              data-column-name={col.id}
+              {...(allowRearrangeColumns && {
+                draggable: 'true',
+                onDragStart,
+                onDragOver: e => e.preventDefault(),
+                onDragEnter: e => e.preventDefault(),
+                onDrop,
+              })}
             >
-              <span data-column-name={col.id}>{label}</span>
-              <SortIcon column={col} />
-            </div>
-          </th>
-        ),
+              {/* can't use `columnWidth &&` because it may also be zero */}
+              {config.columnWidth ? (
+                // column width hint
+                <div
+                  style={{
+                    width: columnWidth,
+                    height: 0.01,
+                  }}
+                />
+              ) : null}
+              <div
+                data-column-name={col.id}
+                css={{
+                  display: 'inline-flex',
+                  alignItems: 'flex-end',
+                }}
+              >
+                {/* DODO added start */}
+                <StickIcon
+                  isColumnSticky={isColumnSticked}
+                  columnIndex={i}
+                  setStickedColumns={setStickedColumns}
+                />
+                {/* DODO added stop */}
+                <span data-column-name={col.id}>{label}</span>
+                <SortIcon column={col} />
+              </div>
+            </th>
+          );
+        },
         Footer: totals ? (
           i === 0 ? (
             <th>{t('Totals')}</th>

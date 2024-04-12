@@ -45,9 +45,9 @@ import SelectPageSize, {
   SizeOption,
 } from './components/SelectPageSize';
 import SimplePagination from './components/Pagination';
-import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
+import useSticky from './hooks/useSticky';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
