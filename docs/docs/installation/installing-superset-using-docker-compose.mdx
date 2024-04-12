@@ -112,7 +112,6 @@ with docker compose will store that data in a PostgreSQL database contained in a
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
 Again **DO NOT USE THIS FOR PRODUCTION**
-
 :::
 
 You should see a wall of logging output from the containers being launched on your machine. Once
@@ -127,10 +126,10 @@ can skip to the next section.
 You can install additional python packages and apply config overrides by following the steps
 mentioned in [docker/README.md](https://github.com/apache/superset/tree/master/docker#configuration)
 
-You can configure the Docker Compose environment variables for dev and non-dev mode with
-`docker/.env`. This environment file sets the environment
-for most containers in the Docker Compose setup, and some variables affect multiple containers and
-others only single ones.
+Note that `docker/.env` sets the default environment variables for all the docker images
+used by `docker-compose`, and that `docker/.env-local` can be used to override those defaults.
+Also note that `docker/.env-local` is referenced in our `.gitignore`,
+preventing developers from risking committing potentially sensitive configuration to the repository.
 
 One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the `superset_init`
 container will populate example data and visualizations into the metadata database. These examples

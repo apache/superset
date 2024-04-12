@@ -18,8 +18,8 @@
 set -e
 
 # Packages needed for puppeteer:
-apt update
 if [ "$PUPPETEER_SKIP_CHROMIUM_DOWNLOAD" = "false" ]; then
+    apt update
     apt install -y chromium
 fi
 
