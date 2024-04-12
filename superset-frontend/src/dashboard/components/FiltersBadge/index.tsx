@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
@@ -25,6 +31,7 @@ import {
   Filters,
   JsonObject,
   styled,
+  t,
   usePrevious,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -126,6 +133,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const [dashboardIndicators, setDashboardIndicators] = useState<Indicator[]>(
     indicatorsInitialState,
   );
+  const [popoverVisible, setPopoverVisible] = useState(false);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
+  const popoverTriggerRef = useRef<HTMLDivElement>(null);
 
   const onHighlightFilterSource = useCallback(
     (path: string[]) => {
@@ -134,12 +144,26 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     [dispatch],
   );
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') {
+      setPopoverVisible(true);
+    }
+  };
+
   const prevChart = usePrevious(chart);
   const prevChartStatus = prevChart?.chartStatus;
   const prevDashboardFilters = usePrevious(dashboardFilters);
   const prevDatasources = usePrevious(datasources);
   const showIndicators =
     chart?.chartStatus && ['rendered', 'success'].includes(chart.chartStatus);
+
+  useEffect(() => {
+    if (popoverVisible) {
+      setTimeout(() => {
+        popoverContentRef?.current?.focus();
+      });
+    }
+  }, [popoverVisible]);
 
   useEffect(() => {
     if (!showIndicators && dashboardIndicators.length > 0) {
@@ -180,6 +204,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevDashboardLayout = usePrevious(present);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
+
   useEffect(() => {
     if (!showIndicators && nativeIndicators.length > 0) {
       setNativeIndicators(indicatorsInitialState);
@@ -250,6 +275,8 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       ),
     [indicators],
   );
+  const filterCount =
+    appliedIndicators.length + appliedCrossFilterIndicators.length;
 
   if (!appliedCrossFilterIndicators.length && !appliedIndicators.length) {
     return null;
@@ -260,18 +287,28 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       appliedCrossFilterIndicators={appliedCrossFilterIndicators}
       appliedIndicators={appliedIndicators}
       onHighlightFilterSource={onHighlightFilterSource}
+      setPopoverVisible={setPopoverVisible}
+      popoverVisible={popoverVisible}
+      popoverContentRef={popoverContentRef}
+      popoverTriggerRef={popoverTriggerRef}
     >
       <StyledFilterCount
+        aria-label={t('Applied filters (%s)', filterCount)}
+        aria-haspopup="true"
+        role="button"
+        ref={popoverTriggerRef}
         className={cx(
           'filter-counts',
           !!appliedCrossFilterIndicators.length && 'has-cross-filters',
         )}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
       >
         <Icons.Filter iconSize="m" />
         <StyledBadge
           data-test="applied-filter-count"
           className="applied-count"
-          count={appliedIndicators.length + appliedCrossFilterIndicators.length}
+          count={filterCount}
           showZero
         />
       </StyledFilterCount>

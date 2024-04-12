@@ -936,6 +936,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           id={`slice_${slice.slice_id}-controls`}
           role="button"
           aria-label="More Options"
+          aria-haspopup="true"
           tabIndex={0}
         >
           <VerticalDotsTrigger />
