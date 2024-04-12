@@ -248,7 +248,7 @@ export async function getChartDataRequest({
 
 export function runAnnotationQuery({
   annotation,
-  timeout = 60,
+  timeout = 300,
   formData = null,
   key,
   isDashboardRequest = false,
@@ -396,7 +396,7 @@ export function handleChartDataResponse(response, json, useLegacyApi) {
 export function exploreJSON(
   formData,
   force = false,
-  timeout = 60,
+  timeout = 300,
   key,
   dashboardId,
   ownState,
@@ -519,7 +519,7 @@ export const POST_CHART_FORM_DATA = 'POST_CHART_FORM_DATA';
 export function postChartFormData(
   formData,
   force = false,
-  timeout = 60,
+  timeout = 300,
   key,
   dashboardId,
   ownState,
