@@ -48,6 +48,7 @@ import {
   EchartsMixedTimeseriesChartPlugin,
   EchartsTreeChartPlugin,
   EchartsSunburstChartPlugin,
+  EchartsPieChartPluginDodo,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -144,6 +145,10 @@ export default class MainPreset extends Preset {
         new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         // new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         ...experimentalplugins,
+        // DODO added
+        new EchartsPieChartPluginDodo().configure({
+          key: 'echarts_bar',
+        }),
       ],
     });
   }
