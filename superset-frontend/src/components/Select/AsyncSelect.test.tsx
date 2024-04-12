@@ -384,12 +384,14 @@ test('removes duplicated values', async () => {
     },
   });
   fireEvent(input, paste);
-  const values = await findAllSelectValues();
-  expect(values.length).toBe(4);
-  expect(values[0]).toHaveTextContent('a');
-  expect(values[1]).toHaveTextContent('b');
-  expect(values[2]).toHaveTextContent('c');
-  expect(values[3]).toHaveTextContent('d');
+  await waitFor(async () => {
+    const values = await findAllSelectValues();
+    expect(values.length).toBe(4);
+    expect(values[0]).toHaveTextContent('a');
+    expect(values[1]).toHaveTextContent('b');
+    expect(values[2]).toHaveTextContent('c');
+    expect(values[3]).toHaveTextContent('d');
+  });
 });
 
 test('renders a custom label', async () => {
@@ -879,7 +881,7 @@ test('fires onChange when pasting a selection', async () => {
     },
   });
   fireEvent(input, paste);
-  expect(onChange).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
 });
 
 test('does not duplicate options when using numeric values', async () => {
@@ -935,8 +937,30 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     },
   });
   fireEvent(input, paste);
-  // Only Peter should be added
-  expect(await findAllSelectOptions()).toHaveLength(4);
+  await waitFor(async () =>
+    // Only Peter should be added
+    expect(await findAllSelectOptions()).toHaveLength(4),
+  );
+});
+
+test('onChange is called with the value property when pasting an option that was not loaded yet', async () => {
+  const onChange = jest.fn();
+  render(<AsyncSelect {...defaultProps} onChange={onChange} />);
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const lastOption = OPTIONS[OPTIONS.length - 1];
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => lastOption.label,
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: lastOption.value }),
+      expect.anything(),
+    ),
+  );
 });
 
 test('does not fire onChange if the same value is selected in single mode', async () => {
