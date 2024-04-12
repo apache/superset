@@ -41,7 +41,7 @@ from superset.initialization import SupersetAppInitializer
 @pytest.fixture
 def get_session(mocker: MockFixture) -> Callable[[], Session]:
     """
-    Create an in-memory SQLite session to test models.
+    Create an in-memory SQLite db.session.to test models.
     """
     engine = create_engine("sqlite://")
 
@@ -49,7 +49,7 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name
         in_memory_session = Session_()
 
-        # flask calls session.remove()
+        # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
@@ -89,6 +89,15 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["TESTING"] = True
 
     # loop over extra configs passed in by tests
+    # and update the app config
+    # to override the default configs use:
+    #
+    # @pytest.mark.parametrize(
+    #     "app",
+    #     [{"SOME_CONFIG": "SOME_VALUE"}],
+    #     indirect=True,
+    # )
+    # def test_some_test(app_context: None) -> None:
     if request and hasattr(request, "param"):
         for key, val in request.param.items():
             app.config[key] = val
@@ -163,7 +172,6 @@ def dummy_query_object(request, app_context):
             "ROW_LIMIT": 100,
         },
         _datasource_dao=unittest.mock.Mock(),
-        session_maker=unittest.mock.Mock(),
     ).create(parent_result_type=result_type, **query_object)
 
 

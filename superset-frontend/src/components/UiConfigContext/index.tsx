@@ -39,19 +39,20 @@ export const UiConfigContext = createContext<UiConfigType>({
 
 export const useUiConfig = () => useContext(UiConfigContext);
 
-export const EmbeddedUiConfigProvider: React.FC<EmbeddedUiConfigProviderProps> =
-  ({ children }) => {
-    const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
-    const [embeddedConfig] = useState({
-      hideTitle: (config & 1) !== 0,
-      hideTab: (config & 2) !== 0,
-      hideNav: (config & 4) !== 0,
-      hideChartControls: (config & 8) !== 0,
-    });
+export const EmbeddedUiConfigProvider: React.FC<
+  EmbeddedUiConfigProviderProps
+> = ({ children }) => {
+  const config = getUrlParam(URL_PARAMS.uiConfig) || 0;
+  const [embeddedConfig] = useState({
+    hideTitle: (config & 1) !== 0,
+    hideTab: (config & 2) !== 0,
+    hideNav: (config & 4) !== 0,
+    hideChartControls: (config & 8) !== 0,
+  });
 
-    return (
-      <UiConfigContext.Provider value={embeddedConfig}>
-        {children}
-      </UiConfigContext.Provider>
-    );
-  };
+  return (
+    <UiConfigContext.Provider value={embeddedConfig}>
+      {children}
+    </UiConfigContext.Provider>
+  );
+};

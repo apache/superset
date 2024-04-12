@@ -21,7 +21,7 @@ import yaml
 from freezegun import freeze_time
 
 from superset import security_manager
-from superset.databases.commands.export import ExportDatabasesCommand
+from superset.commands.database.export import ExportDatabasesCommand
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
 
@@ -38,7 +38,7 @@ class TestExportModelsCommand(SupersetTestCase):
             command = ExportDatabasesCommand([example_db.id])
             contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["metadata.yaml"])
+        metadata = yaml.safe_load(contents["metadata.yaml"]())
         assert metadata == (
             {
                 "version": "1.0.0",

@@ -18,7 +18,7 @@ from typing import Any, Optional, Union
 
 from sqlalchemy.engine.url import make_url, URL
 
-from superset.databases.commands.exceptions import DatabaseInvalidError
+from superset.commands.database.exceptions import DatabaseInvalidError
 
 
 def get_foreign_keys_metadata(
@@ -92,7 +92,6 @@ def get_table_metadata(
         "selectStar": database.select_star(
             table_name,
             schema=schema_name,
-            show_cols=True,
             indent=True,
             cols=columns,
             latest_partition=True,

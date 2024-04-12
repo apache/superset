@@ -32,9 +32,9 @@ export * from './types';
 
 const metadata = new ChartMetadata({
   behaviors: [
-    Behavior.INTERACTIVE_CHART,
-    Behavior.DRILL_TO_DETAIL,
-    Behavior.DRILL_BY,
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
   ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],
@@ -51,7 +51,6 @@ const metadata = new ChartMetadata({
     t('Report'),
     t('Sequential'),
     t('Tabular'),
-    t('Description'),
   ],
   thumbnail,
 });

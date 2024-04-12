@@ -44,7 +44,10 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { checkIsApplyDisabled } from './utils';
 import { FiltersBarProps } from './types';
 import {
@@ -125,7 +128,7 @@ const publishDataMask = debounce(
 
 export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
-  orientation = FilterBarOrientation.VERTICAL,
+  orientation = FilterBarOrientation.Vertical,
   verticalConfig,
   hidden = false,
 }) => {
@@ -147,6 +150,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const user: UserWithPermissionsAndRoles = useSelector<
+    RootState,
+    UserWithPermissionsAndRoles
+  >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
 
@@ -218,11 +225,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [dataMaskAppliedText, setDataMaskSelected]);
 
   useEffect(() => {
-    publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
+    // embedded users can't persist filter combinations
+    if (user?.userId) {
+      publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
 
   const handleApply = useCallback(() => {
+    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     const filterIds = Object.keys(dataMaskSelected);
     setUpdateKey(1);
     filterIds.forEach(filterId => {
@@ -275,7 +286,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const filterBarComponent =
-    orientation === FilterBarOrientation.HORIZONTAL ? (
+    orientation === FilterBarOrientation.Horizontal ? (
       <Horizontal
         actions={actions}
         canEdit={canEdit}
@@ -293,7 +304,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         filtersOpen={verticalConfig.filtersOpen}
         filterValues={filterValues}
         isInitialized={isInitialized}
-        isDisabled={isApplyDisabled}
         height={verticalConfig.height}
         offset={verticalConfig.offset}
         onSelectionChange={handleFilterSelectionChange}

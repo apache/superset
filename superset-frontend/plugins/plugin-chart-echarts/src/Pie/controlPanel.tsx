@@ -26,7 +26,6 @@ import {
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  sections,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -45,7 +44,6 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -107,6 +105,7 @@ const config: ControlPanelConfig = {
                 ['key_value', t('Category and Value')],
                 ['key_percent', t('Category and Percentage')],
                 ['key_value_percent', t('Category, Value and Percentage')],
+                ['value_percent', t('Value and Percentage')],
               ],
               description: t('What should be shown on the label?'),
             },

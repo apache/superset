@@ -1,0 +1,103 @@
+name: Bug report
+description: Report a bug to improve Superset's stability
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hello Superset Community member! Please keep things tidy by putting your post in the proper place:
+
+        🐛 Reporting a bug: use this form.
+        🙏 Asking a question or getting help: post in the [Superset Slack chat](http://bit.ly/join-superset-slack) or [GitHub Discussions](https://github.com/apache/superset/discussions) under "Q&A / Help".
+        💡 Requesting a new feature: Search [GitHub Discussions](https://github.com/apache/superset/discussions) to see if it exists already. If not, add a new post there under "Ideas".
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: repro-steps
+    attributes:
+      label: How to reproduce the bug
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots-recordings
+    attributes:
+      label: Screenshots/recordings
+      description: If applicable, add screenshots or recordings to help explain your problem.
+  - type: markdown
+    attributes:
+      value: |
+        ### Environment
+
+        Please specify your environment. If your environment does not match the alternatives, you need to upgrade your environment before submitting the issue as it may have already been fixed. For additional information about the releases, see [Release Process](https://github.com/apache/superset/wiki/Release-Process).
+  - type: dropdown
+    id: superset-version
+    attributes:
+      label: Superset version
+      options:
+        - master / latest-dev
+        - "4.0.0"
+        - "3.1.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python version
+      options:
+        - "3.9"
+        - "3.10"
+        - "3.11"
+        - Not applicable
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
+    id: node-version
+    attributes:
+      label: Node version
+      options:
+        - "16"
+        - "17"
+        - "18 or greater"
+        - Not applicable
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: |
+        Add any other context about the problem here such as the feature flags that you have enabled, any customizations you have made, the data source you are querying, etc.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Make sure to follow these steps before submitting your issue - thank you!
+      options:
+        - label: I have searched Superset docs and Slack and didn't find a solution to my problem.
+        - label: I have searched the GitHub issue tracker and didn't find a similar bug report.
+        - label: I have checked Superset's logs for errors and if I found a relevant Python stacktrace, I included it here as text in the "additional context" section.
+    validations:
+      required: true

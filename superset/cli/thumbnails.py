@@ -62,7 +62,7 @@ def compute_thumbnails(
     dashboards_only: bool,
     charts_only: bool,
     force: bool,
-    model_id: int,
+    model_id: list[int],
 ) -> None:
     """Compute thumbnails"""
     # pylint: disable=import-outside-toplevel
@@ -76,12 +76,12 @@ def compute_thumbnails(
     def compute_generic_thumbnail(
         friendly_type: str,
         model_cls: Union[type[Dashboard], type[Slice]],
-        model_id: int,
+        model_ids: list[int],
         compute_func: CallableTask,
     ) -> None:
         query = db.session.query(model_cls)
-        if model_id:
-            query = query.filter(model_cls.id.in_(model_id))
+        if model_ids:
+            query = query.filter(model_cls.id.in_(model_ids))
         dashboards = query.all()
         count = len(dashboards)
         for i, model in enumerate(dashboards):

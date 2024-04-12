@@ -1,0 +1,26 @@
+---
+title: Apache Doris
+hide_title: true
+sidebar_position: 5
+version: 1
+---
+
+## Doris
+
+The [sqlalchemy-doris](https://pypi.org/project/pydoris/) library is the recommended way to connect to Apache Doris through SQLAlchemy.
+
+You'll need the following setting values to form the connection string:
+
+- **User**: User Name
+- **Password**: Password
+- **Host**: Doris FE Host
+- **Port**: Doris FE port
+- **Catalog**: Catalog Name
+- **Database**: Database Name
+
+
+Here's what the connection string looks like:
+
+```
+doris://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
+```

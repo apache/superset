@@ -34,6 +34,7 @@ import {
   SupersetClient,
   t,
   withTheme,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
@@ -46,7 +47,6 @@ import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import EditableTitle from 'src/components/EditableTitle';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -191,7 +191,7 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       tableColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -211,7 +211,7 @@ function ColumnCollectionTable({
             ]
       }
       sortColumns={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? [
               'column_name',
               'advanced_data_type',
@@ -287,7 +287,7 @@ function ColumnCollectionTable({
                 }
               />
             )}
-            {isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES) ? (
+            {isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes) ? (
               <Field
                 fieldKey="advanced_data_type"
                 label={t('Advanced data type')}
@@ -329,7 +329,7 @@ function ColumnCollectionTable({
               control={
                 <TextControl
                   controlId="python_date_format"
-                  placeholder="%Y/%m/%d"
+                  placeholder="%Y-%m-%d"
                 />
               }
             />
@@ -359,7 +359,7 @@ function ColumnCollectionTable({
         </FormContainer>
       }
       columnLabels={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: t('Column'),
               advanced_data_type: t('Advanced data type'),
@@ -380,7 +380,7 @@ function ColumnCollectionTable({
       }
       onChange={onColumnsChange}
       itemRenderers={
-        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: (v, onItemChange, _, record) =>
                 editableColumnName ? (
@@ -629,9 +629,6 @@ class DatasourceEditor extends React.PureComponent {
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.allowEditSource = !isFeatureEnabled(
-      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
-    );
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -1050,23 +1047,21 @@ class DatasourceEditor extends React.PureComponent {
     const { datasource } = this.state;
     return (
       <div>
-        {this.allowEditSource && (
-          <EditLockContainer>
-            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
-              {this.state.isEditMode ? (
-                <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
-              ) : (
-                <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
-              )}
-            </span>
-            {!this.state.isEditMode && (
-              <div>{t('Click the lock to make changes.')}</div>
+        <EditLockContainer>
+          <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
+            {this.state.isEditMode ? (
+              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+            ) : (
+              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
             )}
-            {this.state.isEditMode && (
-              <div>{t('Click the lock to prevent further changes.')}</div>
-            )}
-          </EditLockContainer>
-        )}
+          </span>
+          {!this.state.isEditMode && (
+            <div>{t('Click the lock to make changes.')}</div>
+          )}
+          {this.state.isEditMode && (
+            <div>{t('Click the lock to prevent further changes.')}</div>
+          )}
+        </EditLockContainer>
         <div className="m-l-10 m-t-20 m-b-10">
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
@@ -1114,7 +1109,7 @@ class DatasourceEditor extends React.PureComponent {
                     <div css={{ width: 'calc(100% - 34px)', marginTop: -16 }}>
                       <Field
                         fieldKey="table_name"
-                        label={t('Dataset name')}
+                        label={t('Name')}
                         control={
                           <TextControl
                             controlId="table_name"
@@ -1141,7 +1136,7 @@ class DatasourceEditor extends React.PureComponent {
                         language="sql"
                         offerEditInModal={false}
                         minLines={20}
-                        maxLines={20}
+                        maxLines={Infinity}
                         readOnly={!this.state.isEditMode}
                         resize="both"
                       />
@@ -1396,7 +1391,7 @@ class DatasourceEditor extends React.PureComponent {
     const { theme } = this.props;
 
     return (
-      <DatasourceContainer>
+      <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
           css={theme => ({ marginBottom: theme.gridUnit * 4 })}

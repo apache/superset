@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset import app, db
+from superset import app
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -29,7 +29,6 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         "select 1 as foo;",
         store_results=False,
         return_results=True,
-        session=db.session,
         start_time=now_as_float(),
         expand_data=True,
         log_params=dict(),

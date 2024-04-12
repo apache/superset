@@ -187,8 +187,8 @@ describe('RuleList RTL', () => {
     const searchFilters = screen.queryAllByTestId('filters-search');
     expect(searchFilters).toHaveLength(2);
 
-    const typeFilter = await screen.findByTestId('filters-select');
-    expect(typeFilter).toBeInTheDocument();
+    const typeFilter = screen.queryAllByTestId('filters-select');
+    expect(typeFilter).toHaveLength(2);
   });
 
   it('renders correct list columns', async () => {
@@ -201,7 +201,7 @@ describe('RuleList RTL', () => {
     const fitlerTypeColumn = await within(table).findByText('Filter Type');
     const groupKeyColumn = await within(table).findByText('Group Key');
     const clauseColumn = await within(table).findByText('Clause');
-    const modifiedColumn = await within(table).findByText('Modified');
+    const modifiedColumn = await within(table).findByText('Last modified');
     const actionsColumn = await within(table).findByText('Actions');
 
     expect(nameColumn).toBeInTheDocument();

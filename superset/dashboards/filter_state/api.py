@@ -19,10 +19,10 @@ import logging
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset.dashboards.filter_state.commands.create import CreateFilterStateCommand
-from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCommand
-from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
-from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
+from superset.commands.dashboard.filter_state.create import CreateFilterStateCommand
+from superset.commands.dashboard.filter_state.delete import DeleteFilterStateCommand
+from superset.commands.dashboard.filter_state.get import GetFilterStateCommand
+from superset.commands.dashboard.filter_state.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
 from superset.temporary_cache.api import TemporaryCacheRestApi
 

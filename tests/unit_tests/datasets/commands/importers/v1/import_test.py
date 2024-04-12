@@ -28,11 +28,12 @@ from flask import current_app
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset.datasets.commands.exceptions import (
+from superset import db
+from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
     ImportFailedError,
 )
-from superset.datasets.commands.importers.v1.utils import validate_data_uri
+from superset.commands.dataset.importers.v1.utils import validate_data_uri
 
 
 def test_import_dataset(mocker: MockFixture, session: Session) -> None:
@@ -40,18 +41,18 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
     Test importing a dataset.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     config = {
@@ -108,7 +109,7 @@ def test_import_dataset(mocker: MockFixture, session: Session) -> None:
         "database_id": database.id,
     }
 
-    sqla_table = import_dataset(session, config)
+    sqla_table = import_dataset(config)
     assert sqla_table.table_name == "my_table"
     assert sqla_table.main_dttm_col == "ds"
     assert sqla_table.description == "This is the description"
@@ -156,29 +157,29 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
     """
     from superset import security_manager
     from superset.columns.models import Column as NewColumn
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     dataset_uuid = uuid.uuid4()
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset = SqlaTable(
         uuid=dataset_uuid, table_name="existing_dataset", database_id=database.id
     )
     column = TableColumn(column_name="existing_column")
-    session.add(dataset)
-    session.add(column)
-    session.flush()
+    db.session.add(dataset)
+    db.session.add(column)
+    db.session.flush()
 
     config = {
         "table_name": dataset.table_name,
@@ -234,7 +235,7 @@ def test_import_dataset_duplicate_column(mocker: MockFixture, session: Session) 
         "database_id": database.id,
     }
 
-    sqla_table = import_dataset(session, config, overwrite=True)
+    sqla_table = import_dataset(config, overwrite=True)
     assert sqla_table.table_name == dataset.table_name
     assert sqla_table.main_dttm_col == "ds"
     assert sqla_table.description == "This is the description"
@@ -281,19 +282,19 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     Test importing a dataset when the column extra is a string.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -352,7 +353,7 @@ def test_import_column_extra_is_string(mocker: MockFixture, session: Session) ->
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    sqla_table = import_dataset(session, dataset_config)
+    sqla_table = import_dataset(dataset_config)
 
     assert sqla_table.metrics[0].extra == '{"warning_markdown": null}'
     assert sqla_table.columns[0].extra == '{"certified_by": "User"}'
@@ -366,19 +367,19 @@ def test_import_dataset_extra_empty_string(
     Test importing a dataset when the extra field is an empty string.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -417,12 +418,12 @@ def test_import_dataset_extra_empty_string(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    sqla_table = import_dataset(session, dataset_config)
+    sqla_table = import_dataset(dataset_config)
 
     assert sqla_table.extra == None
 
 
-@patch("superset.datasets.commands.importers.v1.utils.request")
+@patch("superset.commands.dataset.importers.v1.utils.request")
 def test_import_column_allowed_data_url(
     request: Mock,
     mocker: MockFixture,
@@ -434,8 +435,8 @@ def test_import_column_allowed_data_url(
     import io
 
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.datasets.schemas import ImportV1DatasetSchema
     from superset.models.core import Database
 
@@ -443,12 +444,12 @@ def test_import_column_allowed_data_url(
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     dataset_uuid = uuid.uuid4()
     yaml_config: dict[str, Any] = {
@@ -495,9 +496,8 @@ def test_import_column_allowed_data_url(
     schema = ImportV1DatasetSchema()
     dataset_config = schema.load(yaml_config)
     dataset_config["database_id"] = database.id
-    _ = import_dataset(session, dataset_config, force_data=True)
-    session.connection()
-    assert [("value1",), ("value2",)] == session.execute(
+    _ = import_dataset(dataset_config, force_data=True)
+    assert [("value1",), ("value2",)] == db.session.execute(
         "SELECT * FROM my_table"
     ).fetchall()
 
@@ -510,26 +510,26 @@ def test_import_dataset_managed_externally(
     Test importing a dataset that is managed externally.
     """
     from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
     from superset.connectors.sqla.models import SqlaTable
-    from superset.datasets.commands.importers.v1.utils import import_dataset
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import dataset_config
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
-    engine = session.get_bind()
+    engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    session.add(database)
-    session.flush()
+    db.session.add(database)
+    db.session.flush()
 
     config = copy.deepcopy(dataset_config)
     config["is_managed_externally"] = True
     config["external_url"] = "https://example.org/my_table"
     config["database_id"] = database.id
 
-    sqla_table = import_dataset(session, config)
+    sqla_table = import_dataset(config)
     assert sqla_table.is_managed_externally is True
     assert sqla_table.external_url == "https://example.org/my_table"
 

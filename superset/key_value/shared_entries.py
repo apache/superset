@@ -28,7 +28,7 @@ CODEC = JsonKeyValueCodec()
 
 def get_shared_value(key: SharedKey) -> Optional[Any]:
     # pylint: disable=import-outside-toplevel
-    from superset.key_value.commands.get import GetKeyValueCommand
+    from superset.commands.key_value.get import GetKeyValueCommand
 
     uuid_key = uuid3(NAMESPACE, key)
     return GetKeyValueCommand(RESOURCE, key=uuid_key, codec=CODEC).run()
@@ -36,7 +36,7 @@ def get_shared_value(key: SharedKey) -> Optional[Any]:
 
 def set_shared_value(key: SharedKey, value: Any) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.key_value.commands.create import CreateKeyValueCommand
+    from superset.commands.key_value.create import CreateKeyValueCommand
 
     uuid_key = uuid3(NAMESPACE, key)
     CreateKeyValueCommand(

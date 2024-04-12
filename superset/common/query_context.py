@@ -30,7 +30,7 @@ from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import BaseDatasource
     from superset.models.helpers import QueryResult
 
 
@@ -61,7 +61,7 @@ class QueryContext:
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         *,
         datasource: BaseDatasource,

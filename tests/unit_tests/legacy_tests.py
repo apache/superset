@@ -80,20 +80,9 @@ def test_update_time_range_since_until() -> None:
     assert form_data == {"time_range": "yesterday : tomorrow"}
 
 
-@with_feature_flags(GENERIC_CHART_AXES=False)
-def test_update_time_range_granularity_sqla_no_feature_flag() -> None:
-    """
-    Tests for the unfiltered `granularity_sqla` when `GENERIC_CHART_AXES` is off.
-    """
-    form_data = copy.deepcopy(original_form_data)
-    update_time_range(form_data)
-    assert form_data == original_form_data
-
-
-@with_feature_flags(GENERIC_CHART_AXES=True)
 def test_update_time_range_granularity_sqla_with_feature_flag() -> None:
     """
-    Tests for the unfiltered `granularity_sqla` when `GENERIC_CHART_AXES` is on.
+    Tests for the unfiltered `granularity_sqla`.
     """
     form_data = copy.deepcopy(original_form_data)
     update_time_range(form_data)

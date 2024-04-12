@@ -20,7 +20,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
+import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
 import * as uiCore from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -38,9 +38,6 @@ import ListViewCard from 'src/components/ListViewCard';
 import FaveStar from 'src/components/FaveStar';
 import TableCollection from 'src/components/TableCollection';
 import CardCollection from 'src/components/ListView/CardCollection';
-// store needed for withToasts(ChartTable)
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
 
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartsOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
@@ -99,6 +96,29 @@ fetchMock.get(datasetEndpoint, {});
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
+const user = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: {
+    Admin: [
+      ['can_sqllab', 'Superset'],
+      ['can_write', 'Dashboard'],
+      ['can_write', 'Chart'],
+    ],
+  },
+  userId: 1,
+  username: 'admin',
+};
+
+// store needed for withToasts(DatabaseList)
+const mockStore = configureStore([thunk]);
+const store = mockStore({ user });
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+
 describe('ChartList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(uiCore, 'isFeatureEnabled')
@@ -107,6 +127,12 @@ describe('ChartList', () => {
   afterAll(() => {
     isFeatureEnabledMock.restore();
   });
+
+  beforeEach(() => {
+    // setup a DOM element as a render target
+    useSelectorMock.mockClear();
+  });
+
   const mockedProps = {};
 
   let wrapper;
@@ -114,9 +140,9 @@ describe('ChartList', () => {
   beforeAll(async () => {
     wrapper = mount(
       <MemoryRouter>
-        <Provider store={store}>
+        <reactRedux.Provider store={store}>
           <ChartList {...mockedProps} user={mockUser} />
-        </Provider>
+        </reactRedux.Provider>
       </MemoryRouter>,
     );
 
@@ -231,9 +257,9 @@ describe('ChartList - anonymous view', () => {
     fetchMock.resetHistory();
     wrapper = mount(
       <MemoryRouter>
-        <Provider store={store}>
+        <reactRedux.Provider store={store}>
           <ChartList {...mockedProps} user={mockUserLoggedOut} />
-        </Provider>
+        </reactRedux.Provider>
       </MemoryRouter>,
     );
 

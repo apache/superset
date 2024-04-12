@@ -48,8 +48,8 @@ if TYPE_CHECKING:
 if feature_flag_manager.is_feature_enabled("PLAYWRIGHT_REPORTS_AND_THUMBNAILS"):
     from playwright.sync_api import (
         BrowserContext,
-        ElementHandle,
-        Error,
+        Error as PlaywrightError,
+        Locator,
         Page,
         sync_playwright,
         TimeoutError as PlaywrightTimeout,
@@ -105,14 +105,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 alert_div.get_by_role("button").click()
 
                 # wait for modal to show up
-                page.wait_for_selector(
-                    ".ant-modal-content",
-                    timeout=current_app.config[
-                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"
-                    ]
-                    * 1000,
-                    state="visible",
-                )
+                page.locator(".ant-modal-content").wait_for(state="visible")
                 err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
                 #
                 # # collect error message
@@ -125,14 +118,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 page.locator(".ant-modal-content .ant-modal-close").click()
                 #
                 # # wait until the modal becomes invisible
-                page.wait_for_selector(
-                    ".ant-modal-content",
-                    timeout=current_app.config[
-                        "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"
-                    ]
-                    * 1000,
-                    state="detached",
-                )
+                page.locator(".ant-modal-content").wait_for(state="detached")
                 try:
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
@@ -140,16 +126,19 @@ class WebDriverPlaywright(WebDriverProxy):
                         "(node, error_html) => node.innerHtml = error_html",
                         [error_as_html],
                     )
-                except Error:
+                except PlaywrightError:
                     logger.exception("Failed to update error messages using alert_div")
-        except Error:
+        except PlaywrightError:
             logger.exception("Failed to capture unexpected errors")
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements
+        self, url: str, element_name: str, user: User
+    ) -> bytes | None:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser_args = current_app.config["WEBDRIVER_OPTION_ARGS"]
+            browser = playwright.chromium.launch(args=browser_args)
             pixel_density = current_app.config["WEBDRIVER_WINDOW"].get(
                 "pixel_density", 1
             )
@@ -161,24 +150,36 @@ class WebDriverPlaywright(WebDriverProxy):
                 },
                 device_scale_factor=pixel_density,
             )
+            context.set_default_timeout(
+                current_app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
+            )
             self.auth(user, context)
             page = context.new_page()
-            page.goto(url)
+            try:
+                page.goto(
+                    url,
+                    wait_until=current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                )
+            except PlaywrightTimeout:
+                logger.exception(
+                    "Web event %s not detected. Page %s might not have been fully loaded",
+                    current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                    url,
+                )
+
             img: bytes | None = None
             selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
             logger.debug("Sleeping for %i seconds", selenium_headstart)
             page.wait_for_timeout(selenium_headstart * 1000)
-            element: ElementHandle
+            element: Locator
             try:
                 try:
                     # page didn't load
                     logger.debug(
                         "Wait for the presence of %s at url: %s", element_name, url
                     )
-                    element = page.wait_for_selector(
-                        f".{element_name}",
-                        timeout=self._screenshot_locate_wait * 1000,
-                    )
+                    element = page.locator(f".{element_name}")
+                    element.wait_for()
                 except PlaywrightTimeout as ex:
                     logger.exception("Timed out requesting url %s", url)
                     raise ex
@@ -186,9 +187,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 try:
                     # chart containers didn't render
                     logger.debug("Wait for chart containers to draw at url: %s", url)
-                    page.wait_for_selector(
-                        ".slice_container", timeout=self._screenshot_locate_wait * 1000
-                    )
+                    slice_container_locator = page.locator(".slice_container")
+                    slice_container_locator.first.wait_for()
+                    for slice_container_elem in slice_container_locator.all():
+                        slice_container_elem.wait_for()
                 except PlaywrightTimeout as ex:
                     logger.exception(
                         "Timed out waiting for chart containers to draw at url %s",
@@ -200,11 +202,8 @@ class WebDriverPlaywright(WebDriverProxy):
                     logger.debug(
                         "Wait for loading element of charts to be gone at url: %s", url
                     )
-                    page.wait_for_selector(
-                        ".loading",
-                        timeout=self._screenshot_locate_wait * 1000,
-                        state="detached",
-                    )
+                    for loading_element in page.locator(".loading").all():
+                        loading_element.wait_for(state="detached")
                 except PlaywrightTimeout as ex:
                     logger.exception(
                         "Timed out waiting for charts to load at url %s", url
@@ -236,14 +235,9 @@ class WebDriverPlaywright(WebDriverProxy):
             except PlaywrightTimeout:
                 # raise again for the finally block, but handled above
                 pass
-            except StaleElementReferenceException:
+            except PlaywrightError:
                 logger.exception(
-                    "Selenium got a stale element while requesting url %s",
-                    url,
-                )
-            except WebDriverException:
-                logger.exception(
-                    "Encountered an unexpected error when requeating url %s", url
+                    "Encountered an unexpected error when requesting url %s", url
                 )
             return img
 

@@ -20,26 +20,29 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlStateMapping,
   ControlSubSectionHeader,
+  D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
-  sections,
-  sharedControls,
-  ControlStateMapping,
   getStandardizedControls,
-  D3_FORMAT_DOCS,
+  sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA, EchartsFunnelLabelTypeType } from './types';
+import {
+  DEFAULT_FORM_DATA,
+  EchartsFunnelLabelTypeType,
+  PercentCalcType,
+} from './types';
 import { legendSection } from '../controls';
 
-const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
+const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
+  DEFAULT_FORM_DATA;
 
 const funnelLegendSection = [...legendSection];
 funnelLegendSection.splice(2, 1);
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -69,6 +72,28 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'percent_calculation_type',
+            config: {
+              type: 'SelectControl',
+              label: t('% calculation'),
+              description: t(
+                'Display percents in the label and tooltip as the percent of the total value, from the first step of the funnel, or from the previous step in the funnel.',
+              ),
+              choices: [
+                [PercentCalcType.FirstStep, t('Calculate from first step')],
+                [
+                  PercentCalcType.PreviousStep,
+                  t('Calculate from previous step'),
+                ],
+                [PercentCalcType.Total, t('Percent of total')],
+              ],
+              default: PercentCalcType.FirstStep,
+              renderTrigger: true,
+            },
+          },
+        ],
       ],
     },
     {
@@ -84,7 +109,7 @@ const config: ControlPanelConfig = {
             name: 'label_type',
             config: {
               type: 'SelectControl',
-              label: t('Label Type'),
+              label: t('Label Contents'),
               default: labelType,
               renderTrigger: true,
               choices: [
@@ -100,8 +125,38 @@ const config: ControlPanelConfig = {
                   EchartsFunnelLabelTypeType.KeyValuePercent,
                   t('Category, Value and Percentage'),
                 ],
+                [
+                  EchartsFunnelLabelTypeType.ValuePercent,
+                  t('Value and Percentage'),
+                ],
               ],
-              description: t('What should be shown on the label?'),
+              description: t('What should be shown as the label'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'tooltip_label_type',
+            config: {
+              type: 'SelectControl',
+              label: t('Tooltip Contents'),
+              default: defaultTooltipLabel,
+              renderTrigger: true,
+              choices: [
+                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
+                [EchartsFunnelLabelTypeType.Value, t('Value')],
+                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
+                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [
+                  EchartsFunnelLabelTypeType.KeyPercent,
+                  t('Category and Percentage'),
+                ],
+                [
+                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  t('Category, Value and Percentage'),
+                ],
+              ],
+              description: t('What should be shown as the tooltip label'),
             },
           },
         ],
@@ -129,6 +184,18 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: showLabels,
               description: t('Whether to display the labels.'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_tooltip_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Tooltip Labels'),
+              renderTrigger: true,
+              default: showLabels,
+              description: t('Whether to display the tooltip labels.'),
             },
           },
         ],

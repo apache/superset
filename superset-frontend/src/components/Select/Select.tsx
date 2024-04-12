@@ -53,6 +53,7 @@ import {
   hasCustomLabels,
   getOption,
   isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -73,8 +74,6 @@ import { customTagRender } from './CustomTag';
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -229,7 +228,16 @@ const Select = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -261,8 +269,8 @@ const Select = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
@@ -281,8 +289,8 @@ const Select = forwardRef(
                 : option.value,
             ),
         );
-        fireOnChange();
       }
+      fireOnChange();
     };
 
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
@@ -571,6 +579,7 @@ const Select = forwardRef(
           ]);
         }
       }
+      fireOnChange();
     };
 
     return (

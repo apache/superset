@@ -69,8 +69,8 @@ interface ChartPluginConfig<
  * Loaders of the form `() => import('foo')` may return esmodules
  * which require the value to be extracted as `module.default`
  * */
-function sanitizeLoader<T>(
-  loader: PromiseOrValueLoader<ValueOrModuleWithValue<any>>,
+function sanitizeLoader<T extends object>(
+  loader: PromiseOrValueLoader<ValueOrModuleWithValue<T>>,
 ): PromiseOrValueLoader<T> {
   return () => {
     const loaded = loader();

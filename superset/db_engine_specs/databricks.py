@@ -145,7 +145,7 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
         return HiveEngineSpec.epoch_to_dttm()
 
 
-class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin):
+class DatabricksNativeEngineSpec(BasicParametersMixin, DatabricksODBCEngineSpec):
     engine_name = "Databricks"
 
     engine = "databricks"

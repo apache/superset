@@ -48,7 +48,7 @@ import AdhocFilterOption from 'src/explore/components/controls/FilterControl/Adh
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
 import columnType from 'src/explore/components/controls/FilterControl/columnType';
-import { CLAUSES, EXPRESSION_TYPES } from '../types';
+import { Clauses, ExpressionTypes } from '../types';
 
 const { warning } = Modal;
 
@@ -258,33 +258,33 @@ class AdhocFilterControl extends React.Component {
     // via datasource saved metric
     if (option.saved_metric_name) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
         subject: this.getMetricExpression(option.saved_metric_name),
         operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: CLAUSES.HAVING,
+        clause: Clauses.Having,
       });
     }
     // has a custom label, meaning it's custom column
     if (option.label) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SQL,
+        expressionType: ExpressionTypes.Sql,
         subject: new AdhocMetric(option).translateToSql(),
         operator:
-          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
+          OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
         comparator: 0,
-        clause: CLAUSES.HAVING,
+        clause: Clauses.Having,
       });
     }
     // add a new filter item
     if (option.column_name) {
       return new AdhocFilter({
-        expressionType: EXPRESSION_TYPES.SIMPLE,
+        expressionType: ExpressionTypes.Simple,
         subject: option.column_name,
-        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
         comparator: '',
-        clause: CLAUSES.WHERE,
+        clause: Clauses.Where,
         isNew: true,
       });
     }

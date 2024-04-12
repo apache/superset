@@ -48,17 +48,17 @@ function setTooltipContent(
         <TooltipRow
           // eslint-disable-next-line prefer-template
           label={t('Longitude and Latitude') + ': '}
-          value={`${o.object.position[0]}, ${o.object.position[1]}`}
+          value={`${o.object?.position?.[0]}, ${o.object?.position?.[1]}`}
         />
-        {o.object.cat_color && (
+        {o.object?.cat_color && (
           <TooltipRow
             // eslint-disable-next-line prefer-template
             label={t('Category') + ': '}
-            value={`${o.object.cat_color}`}
+            value={`${o.object?.cat_color}`}
           />
         )}
-        {o.object.metric && (
-          <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />
+        {o.object?.metric && (
+          <TooltipRow label={`${label}: `} value={`${o.object?.metric}`} />
         )}
       </div>
     );

@@ -251,7 +251,7 @@ class BaseSupersetApi(BaseSupersetApiMixin, BaseApi):
     ...
 
 
-class BaseSupersetModelRestApi(ModelRestApi, BaseSupersetApiMixin):
+class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
     """

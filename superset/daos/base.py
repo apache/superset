@@ -16,13 +16,12 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, cast, Generic, get_args, TypeVar
+from typing import Any, Generic, get_args, TypeVar
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError, StatementError
-from sqlalchemy.orm import Session
 
 from superset.daos.exceptions import (
     DAOCreateFailedError,
@@ -30,7 +29,6 @@ from superset.daos.exceptions import (
     DAOUpdateFailedError,
 )
 from superset.extensions import db
-from superset.utils.core import as_list
 
 T = TypeVar("T", bound=Model)
 
@@ -51,7 +49,7 @@ class BaseDAO(Generic[T]):
     """
     id_column_name = "id"
 
-    def __init_subclass__(cls) -> None:  # pylint: disable=arguments-differ
+    def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
             cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
         )[0]
@@ -60,16 +58,14 @@ class BaseDAO(Generic[T]):
     def find_by_id(
         cls,
         model_id: str | int,
-        session: Session = None,
         skip_base_filter: bool = False,
-    ) -> Model | None:
+    ) -> T | None:
         """
         Find a model by id, if defined applies `base_filter`
         """
-        session = session or db.session
-        query = session.query(cls.model_cls)
+        query = db.session.query(cls.model_cls)
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, session)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -84,7 +80,6 @@ class BaseDAO(Generic[T]):
     def find_by_ids(
         cls,
         model_ids: list[str] | list[int],
-        session: Session = None,
         skip_base_filter: bool = False,
     ) -> list[T]:
         """
@@ -93,10 +88,9 @@ class BaseDAO(Generic[T]):
         id_col = getattr(cls.model_cls, cls.id_column_name, None)
         if id_col is None:
             return []
-        session = session or db.session
-        query = session.query(cls.model_cls).filter(id_col.in_(model_ids))
+        query = db.session.query(cls.model_cls).filter(id_col.in_(model_ids))
         if cls.base_filter and not skip_base_filter:
-            data_model = SQLAInterface(cls.model_cls, session)
+            data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
             ).apply(query, None)
@@ -197,9 +191,9 @@ class BaseDAO(Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, item_or_items: T | list[T], commit: bool = True) -> None:
+    def delete(cls, items: list[T], commit: bool = True) -> None:
         """
-        Delete the specified item(s) including their associated relationships.
+        Delete the specified items including their associated relationships.
 
         Note that bulk deletion via `delete` is not invoked in the base class as this
         does not dispatch the ORM `after_delete` event which may be required to augment
@@ -209,12 +203,12 @@ class BaseDAO(Generic[T]):
         Subclasses may invoke bulk deletion but are responsible for instrumenting any
         post-deletion logic.
 
-        :param items: The item(s) to delete
+        :param items: The items to delete
         :param commit: Whether to commit the transaction
         :raises DAODeleteFailedError: If the deletion failed
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-        items = cast(list[T], as_list(item_or_items))
+
         try:
             for item in items:
                 db.session.delete(item)

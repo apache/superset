@@ -133,7 +133,7 @@ describe('Header Report Dropdown', () => {
       .spyOn(featureFlags, 'isFeatureEnabled')
       .mockImplementation(
         (featureFlag: featureFlags.FeatureFlag) =>
-          featureFlag === featureFlags.FeatureFlag.ALERT_REPORTS,
+          featureFlag === featureFlags.FeatureFlag.AlertReports,
       );
   });
 

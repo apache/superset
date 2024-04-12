@@ -30,24 +30,30 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
-from superset.charts.commands.exceptions import (
-    ChartDataCacheLoadError,
-    ChartDataQueryFailedError,
-)
-from superset.charts.data.commands.create_async_job_command import (
-    CreateAsyncChartDataJobCommand,
-)
-from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.commands.chart.data.create_async_job_command import (
+    CreateAsyncChartDataJobCommand,
+)
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.exceptions import (
+    ChartDataCacheLoadError,
+    ChartDataQueryFailedError,
+)
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
-from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
+from superset.utils.core import (
+    create_zip,
+    DatasourceType,
+    get_user_id,
+    json_int_dttm_ser,
+)
+from superset.utils.decorators import logs_context
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -475,6 +481,20 @@ class ChartDataRestApi(ChartRestApi):
     def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
         return QueryContextCacheLoader.load(cache_key)
 
+    def _map_form_data_datasource_to_dataset_id(
+        self, form_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
+            "dataset_id": form_data.get("datasource", {}).get("id")
+            if isinstance(form_data.get("datasource"), dict)
+            and form_data.get("datasource", {}).get("type")
+            == DatasourceType.TABLE.value
+            else None,
+            "slice_id": form_data.get("form_data", {}).get("slice_id"),
+        }
+
+    @logs_context(context_func=_map_form_data_datasource_to_dataset_id)
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:

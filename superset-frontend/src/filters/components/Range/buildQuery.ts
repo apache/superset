@@ -50,7 +50,7 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 1,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,
@@ -61,7 +61,7 @@ export default function buildQuery(formData: QueryFormData) {
           column: {
             column_name: column,
             id: 2,
-            type_generic: GenericDataType.NUMERIC,
+            type_generic: GenericDataType.Numeric,
           },
           expressionType: 'SIMPLE',
           hasCustomLabel: true,

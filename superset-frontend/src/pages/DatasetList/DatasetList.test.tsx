@@ -285,56 +285,41 @@ describe('RTL', () => {
 });
 
 describe('Prevent unsafe URLs', () => {
+  const columnCount = 8;
+  const exploreUrlIndex = 1;
+  const getTdIndex = (rowNumber: number): number =>
+    rowNumber * columnCount + exploreUrlIndex;
+
   const mockedProps = {};
   let wrapper: any;
 
   it('Check prevent unsafe is on renders relative links', async () => {
-    const tdColumnsNumber = 9;
     useSelectorMock.mockReturnValue(true);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
-    expect(
-      tdElements
-        .at(0 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('/https://www.google.com?0');
-    expect(
-      tdElements
-        .at(1 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('/https://www.google.com?1');
-    expect(
-      tdElements
-        .at(2 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('/https://www.google.com?2');
+    expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
+      '/https://www.google.com?0',
+    );
+    expect(tdElements.at(getTdIndex(1)).find('a').prop('href')).toBe(
+      '/https://www.google.com?1',
+    );
+    expect(tdElements.at(getTdIndex(2)).find('a').prop('href')).toBe(
+      '/https://www.google.com?2',
+    );
   });
 
   it('Check prevent unsafe is off renders absolute links', async () => {
-    const tdColumnsNumber = 9;
     useSelectorMock.mockReturnValue(false);
     wrapper = await mountAndWait(mockedProps);
     const tdElements = wrapper.find(ListView).find('td');
-    expect(
-      tdElements
-        .at(0 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('https://www.google.com?0');
-    expect(
-      tdElements
-        .at(1 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('https://www.google.com?1');
-    expect(
-      tdElements
-        .at(2 * tdColumnsNumber + 1)
-        .find('a')
-        .prop('href'),
-    ).toBe('https://www.google.com?2');
+    expect(tdElements.at(getTdIndex(0)).find('a').prop('href')).toBe(
+      'https://www.google.com?0',
+    );
+    expect(tdElements.at(getTdIndex(1)).find('a').prop('href')).toBe(
+      'https://www.google.com?1',
+    );
+    expect(tdElements.at(getTdIndex(2)).find('a').prop('href')).toBe(
+      'https://www.google.com?2',
+    );
   });
 });

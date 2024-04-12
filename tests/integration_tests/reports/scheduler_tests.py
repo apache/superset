@@ -154,11 +154,11 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled, owners):
 
 
 @pytest.mark.usefixtures("owners")
-@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
-@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
 @patch("superset.tasks.scheduler.execute.update_state")
 def test_execute_task(update_state_mock, command_mock, init_mock, owners):
-    from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
+    from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 
     with app.app_context():
         report_schedule = insert_report_schedule(
@@ -179,8 +179,8 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
 
 
 @pytest.mark.usefixtures("owners")
-@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
-@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
 @patch("superset.tasks.scheduler.execute.update_state")
 @patch("superset.utils.log.logger")
 def test_execute_task_with_command_exception(

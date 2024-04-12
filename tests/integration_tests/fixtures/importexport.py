@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from typing import Any
 
 # example V0 import/export format
@@ -575,6 +576,40 @@ chart_config: dict[str, Any] = {
     "version": "1.0.0",
     "dataset_uuid": "10808100-158b-42c4-842e-f32b99d88dfb",
 }
+chart_config_with_mixed_annotations: dict[str, Any] = deepcopy(chart_config)
+chart_config_with_mixed_annotations["params"]["annotation_layers"] = [
+    {
+        "name": "Formula test layer",
+        "annotationType": "FORMULA",
+        "color": None,
+        "descriptionColumns": [],
+        "hideLine": False,
+        "opacity": "",
+        "overrides": {"time_range": None},
+        "show": True,
+        "showLabel": False,
+        "showMarkers": False,
+        "style": "solid",
+        "value": "100000",
+        "width": 1,
+    },
+    {
+        "name": "Native layer to be removed on import",
+        "annotationType": "EVENT",
+        "sourceType": "NATIVE",
+        "color": None,
+        "opacity": "",
+        "style": "solid",
+        "width": 1,
+        "showMarkers": False,
+        "hideLine": False,
+        "value": 2,
+        "overrides": {"time_range": None},
+        "show": True,
+        "showLabel": False,
+        "descriptionColumns": [],
+    },
+]
 
 dashboard_config: dict[str, Any] = {
     "dashboard_title": "Test dash",

@@ -50,8 +50,8 @@ def test_extras_without_ssl() -> None:
     from superset.db_engine_specs.pinot import PinotEngineSpec as spec
     from tests.integration_tests.fixtures.database import default_db_extra
 
-    db = mock.Mock()
-    db.extra = default_db_extra
-    db.server_cert = None
-    extras = spec.get_extra_params(db)
+    database = mock.Mock()
+    database.extra = default_db_extra
+    database.server_cert = None
+    extras = spec.get_extra_params(database)
     assert "connect_args" not in extras["engine_params"]

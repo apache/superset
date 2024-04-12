@@ -19,7 +19,7 @@
 import { useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
-import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { DashboardState, RootState } from 'src/dashboard/types';
 
 const selectFocusedFilterScope = (
@@ -78,7 +78,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     }
   } else if (
     chartId === focusedFilterScope?.chartId ||
-    getChartIdsInFilterBoxScope({
+    getChartIdsInFilterScope({
       filterScope: focusedFilterScope?.scope,
     }).includes(chartId)
   ) {

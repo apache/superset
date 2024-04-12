@@ -17,17 +17,16 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { sections } from '@superset-ui/chart-controls';
 import { viewport, mapboxStyle } from '../utilities/Shared_DeckGL';
 
 export default {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
-        [mapboxStyle, viewport],
+        [mapboxStyle],
+        [viewport],
         [
           {
             name: 'deck_slices',

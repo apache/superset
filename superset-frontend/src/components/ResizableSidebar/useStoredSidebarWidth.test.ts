@@ -48,7 +48,7 @@ describe('useStoredSidebarWidth', () => {
   it('returns a stored filterBar width from localStorage', () => {
     const id = '123';
     const expectedWidth = 378;
-    setItem(LocalStorageKeys.common__resizable_sidebar_widths, {
+    setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
       [id]: expectedWidth,
       '456': 250,
     });
@@ -66,7 +66,7 @@ describe('useStoredSidebarWidth', () => {
     const expectedWidth = 378;
     const otherDashboardId = '456';
     const otherDashboardWidth = 253;
-    setItem(LocalStorageKeys.common__resizable_sidebar_widths, {
+    setItem(LocalStorageKeys.CommonResizableSidebarWidths, {
       [id]: 300,
       [otherDashboardId]: otherDashboardWidth,
     });
@@ -81,7 +81,7 @@ describe('useStoredSidebarWidth', () => {
 
     const updatedWidth = result.current[0];
     const widthsMap = getItem(
-      LocalStorageKeys.common__resizable_sidebar_widths,
+      LocalStorageKeys.CommonResizableSidebarWidths,
       {},
     );
     expect(widthsMap[id]).toEqual(expectedWidth);

@@ -60,9 +60,7 @@ class ImportModelsCommand(BaseCommand):
         self._configs: dict[str, Any] = {}
 
     @staticmethod
-    def _import(
-        session: Session, configs: dict[str, Any], overwrite: bool = False
-    ) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
     @classmethod
@@ -74,7 +72,7 @@ class ImportModelsCommand(BaseCommand):
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite)
             db.session.commit()
         except CommandException as ex:
             db.session.rollback()

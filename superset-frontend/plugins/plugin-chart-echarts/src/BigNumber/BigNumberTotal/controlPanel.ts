@@ -23,13 +23,11 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   Dataset,
   getStandardizedControls,
-  sections,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
   controlPanelSections: [
-    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -115,7 +113,7 @@ export default {
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.NUMERIC,
+                            coltypes[index] === GenericDataType.Numeric,
                         )
                         .map(colname => ({
                           value: colname,

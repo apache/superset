@@ -17,28 +17,22 @@
 # pylint: disable=too-many-lines
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from deprecation import deprecated
+from flask import make_response, render_template, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.importers.exceptions import (
-    IncorrectFormatError,
-    NoValidFilesFoundError,
-)
-from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.database import DatabaseDAO
-from superset.databases.commands.create import CreateDatabaseCommand
-from superset.databases.commands.delete import DeleteDatabaseCommand
-from superset.databases.commands.exceptions import (
+from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
     DatabaseDeleteDatasetsExistFailedError,
@@ -49,14 +43,27 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
     InvalidParametersError,
 )
-from superset.databases.commands.export import ExportDatabasesCommand
-from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
-from superset.databases.commands.tables import TablesDatabaseCommand
-from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.commands.update import UpdateDatabaseCommand
-from superset.databases.commands.validate import ValidateDatabaseParametersCommand
-from superset.databases.commands.validate_sql import ValidateSQLCommand
-from superset.databases.decorators import check_datasource_access
+from superset.commands.database.export import ExportDatabasesCommand
+from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
+from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
+from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
+    SSHTunnelDeleteFailedError,
+    SSHTunnelingNotEnabledError,
+)
+from superset.commands.database.tables import TablesDatabaseCommand
+from superset.commands.database.test_connection import TestConnectionDatabaseCommand
+from superset.commands.database.update import UpdateDatabaseCommand
+from superset.commands.database.validate import ValidateDatabaseParametersCommand
+from superset.commands.database.validate_sql import ValidateSQLCommand
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
+from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
+from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     database_schemas_query_schema,
@@ -71,6 +78,7 @@ from superset.databases.schemas import (
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
     get_export_ids_schema,
+    OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
     SchemasResponseSchema,
     SelectStarResponseSchema,
@@ -79,20 +87,15 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
-from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
-from superset.databases.ssh_tunnel.commands.exceptions import (
-    SSHTunnelDeleteFailedError,
-    SSHTunnelingNotEnabledError,
-    SSHTunnelNotFoundError,
-)
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorsException, SupersetException
+from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base import json_errors_response
 from superset.views.base_api import (
@@ -105,12 +108,14 @@ from superset.views.base_api import (
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-public-methods
 class DatabaseRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Database)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
+        RouteMethod.RELATED,
         "tables",
         "table_metadata",
         "table_extra_metadata",
@@ -125,7 +130,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
+        "oauth2",
     }
+
     resource_name = "database"
     class_permission_name = "Database"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -162,6 +169,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "backend",
         "changed_on",
         "changed_on_delta_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
         "created_by.first_name",
         "created_by.last_name",
         "database_name",
@@ -172,6 +181,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "id",
         "uuid",
         "disable_data_preview",
+        "disable_drill_to_detail",
         "engine_information",
     ]
     add_columns = [
@@ -194,7 +204,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     edit_columns = add_columns
 
+    search_columns = [
+        "allow_file_upload",
+        "allow_dml",
+        "allow_run_async",
+        "created_by",
+        "changed_by",
+        "database_name",
+        "expose_in_sqllab",
+        "uuid",
+    ]
     search_filters = {"allow_file_upload": [DatabaseUploadEnabledFilter]}
+    allowed_rel_fields = {"changed_by", "created_by"}
 
     list_select_columns = list_columns + ["extra", "sqlalchemy_uri", "password"]
     order_columns = [
@@ -401,7 +422,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -486,7 +507,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
@@ -673,7 +694,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -736,7 +757,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -799,7 +820,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
     @expose("/<int:pk>/select_star/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -850,7 +871,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.select_star.__name__)
         try:
             result = database.select_star(
-                table_name, schema_name, latest_partition=True, show_cols=True
+                table_name, schema_name, latest_partition=True
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)
@@ -904,7 +925,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
-        except SSHTunnelingNotEnabledError as ex:
+        except (SSHTunnelingNotEnabledError, SSHTunnelDatabasePortError) as ex:
             return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=("GET",))
@@ -1034,6 +1055,102 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseNotFoundError:
             return self.response_404()
 
+    @expose("/oauth2/", methods=["GET"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
+        log_to_statsd=True,
+    )
+    def oauth2(self) -> FlaskResponse:
+        """
+        ---
+        get:
+          summary: >-
+            Receive personal access tokens from OAuth2
+          description: ->
+            Receive and store personal access tokens from OAuth for user-level
+            authorization
+          parameters:
+          - in: query
+            name: state
+            schema:
+              type: string
+          - in: query
+            name: code
+            schema:
+              type: string
+          - in: query
+            name: scope
+            schema:
+              type: string
+          - in: query
+            name: error
+            schema:
+              type: string
+          responses:
+            200:
+              description: A dummy self-closing HTML page
+              content:
+                text/html:
+                  schema:
+                    type: string
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        parameters = OAuth2ProviderResponseSchema().load(request.args)
+
+        if "error" in parameters:
+            raise OAuth2Error(parameters["error"])
+
+        # note that when decoding the state we will perform JWT validation, preventing a
+        # malicious payload that would insert a bogus database token, or delete an
+        # existing one.
+        state = decode_oauth2_state(parameters["state"])
+
+        # exchange code for access/refresh tokens
+        database = DatabaseDAO.find_by_id(state["database_id"])
+        if database is None:
+            return self.response_404()
+
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
+
+        token_response = database.db_engine_spec.get_oauth2_token(
+            oauth2_config,
+            parameters["code"],
+        )
+
+        # delete old tokens
+        existing = DatabaseUserOAuth2TokensDAO.find_one_or_none(
+            user_id=state["user_id"],
+            database_id=state["database_id"],
+        )
+        if existing:
+            DatabaseUserOAuth2TokensDAO.delete([existing], commit=True)
+
+        # store tokens
+        expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
+        DatabaseUserOAuth2TokensDAO.create(
+            attributes={
+                "user_id": state["user_id"],
+                "database_id": state["database_id"],
+                "access_token": token_response["access_token"],
+                "access_token_expiration": expiration,
+                "refresh_token": token_response.get("refresh_token"),
+            },
+            commit=True,
+        )
+
+        # return blank page that closes itself
+        return make_response(
+            render_template("superset/oauth2.html", tab_id=state["tab_id"]),
+            200,
+        )
+
     @expose("/export/", methods=("GET",))
     @protect()
     @safe
@@ -1082,7 +1199,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                     requested_ids
                 ).run():
                     with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content.encode())
+                        fp.write(file_content().encode())
             except DatabaseNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1433,6 +1550,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
     @protect()
     @statsd_metrics
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".delete_ssh_tunnel",
@@ -1469,10 +1587,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
         try:
-            DeleteSSHTunnelCommand(pk).run()
-            return self.response(200, message="OK")
-        except SSHTunnelNotFoundError:
+            existing_ssh_tunnel_model = database.ssh_tunnels
+            if existing_ssh_tunnel_model:
+                DeleteSSHTunnelCommand(existing_ssh_tunnel_model.id).run()
+                return self.response(200, message="OK")
             return self.response_404()
         except SSHTunnelDeleteFailedError as ex:
             logger.error(

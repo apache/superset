@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines, invalid-name
+# pylint: disable=invalid-name
 from __future__ import annotations
 
 import contextlib
@@ -44,27 +44,25 @@ from superset import (
     security_manager,
 )
 from superset.async_events.async_query_manager import AsyncQueryTokenException
-from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.charts.commands.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.chart.exceptions import ChartNotFoundError
+from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.explore.form_data.create import CreateFormDataCommand
+from superset.commands.explore.form_data.get import GetFormDataCommand
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
-from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
-from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import (
     CacheLoadError,
-    DatabaseNotFound,
     SupersetException,
     SupersetSecurityException,
 )
-from superset.explore.form_data.commands.create import CreateFormDataCommand
-from superset.explore.form_data.commands.get import GetFormDataCommand
-from superset.explore.form_data.commands.parameters import CommandParameters
-from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.models.core import Database
@@ -124,7 +122,7 @@ PARAMETER_MISSING_ERR = __(
 SqlResults = dict[str, Any]
 
 
-class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
+class Superset(BaseSupersetView):
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
@@ -169,6 +167,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "data": payload["df"].to_dict("records"),
                 "colnames": payload.get("colnames"),
                 "coltypes": payload.get("coltypes"),
+                "rowcount": payload.get("rowcount"),
+                "sql_rowcount": payload.get("sql_rowcount"),
             },
         )
 
@@ -239,19 +239,24 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    EXPLORE_JSON_METHODS = ["POST"]
-    if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
-        EXPLORE_JSON_METHODS.append("GET")
-
     @api
     @has_access_api
     @handle_api_exception
     @event_logger.log_this
     @expose(
         "/explore_json/<datasource_type>/<int:datasource_id>/",
-        methods=EXPLORE_JSON_METHODS,
+        methods=(
+            "GET",
+            "POST",
+        ),
     )
-    @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
+    @expose(
+        "/explore_json/",
+        methods=(
+            "GET",
+            "POST",
+        ),
+    )
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="4.0.0")
@@ -339,55 +344,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return self.generate_json(viz_obj, response_type)
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
-
-    @has_access
-    @event_logger.log_this
-    @expose(
-        "/import_dashboards/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    def import_dashboards(self) -> FlaskResponse:
-        """Overrides the dashboards using json instances from the file."""
-        import_file = request.files.get("file")
-        if request.method == "POST" and import_file:
-            success = False
-            database_id = request.form.get("db_id")
-            try:
-                ImportDashboardsCommand(
-                    {import_file.filename: import_file.read()}, database_id
-                ).run()
-                success = True
-            except DatabaseNotFound as ex:
-                logger.exception(ex)
-                flash(
-                    _(
-                        "Cannot import dashboard: %(db_error)s.\n"
-                        "Make sure to create the database before "
-                        "importing the dashboard.",
-                        db_error=ex,
-                    ),
-                    "danger",
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                logger.exception(ex)
-                flash(
-                    _(
-                        "An unknown error occurred. "
-                        "Please contact your Superset administrator"
-                    ),
-                    "danger",
-                )
-            if success:
-                flash("Dashboard(s) have been imported", "success")
-                return redirect("/dashboard/list/")
-
-        databases = db.session.query(Database).all()
-        return self.render_template(
-            "superset/import_dashboards.html", databases=databases
-        )
 
     @staticmethod
     def get_redirect_url() -> str:
@@ -511,7 +467,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if datasource_id is not None:
             with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(
-                    db.session,
                     DatasourceType("table"),
                     datasource_id,
                 )
@@ -605,7 +560,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         if slc:
             title = slc.slice_name
@@ -752,7 +707,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         In terms of the `extra_filters` these can be obtained from records in the JSON
         encoded `logs.json` column associated with the `explore_json` action.
         """
-        session = db.session()
         slice_id = request.args.get("slice_id")
         dashboard_id = request.args.get("dashboard_id")
         table_name = request.args.get("table_name")
@@ -769,14 +723,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 status=400,
             )
         if slice_id:
-            slices = session.query(Slice).filter_by(id=slice_id).all()
+            slices = db.session.query(Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(
                     __("Chart %(id)s not found", id=slice_id), status=404
                 )
         elif table_name and db_name:
             table = (
-                session.query(SqlaTable)
+                db.session.query(SqlaTable)
                 .join(Database)
                 .filter(
                     Database.database_name == db_name
@@ -793,7 +747,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     status=404,
                 )
             slices = (
-                session.query(Slice)
+                db.session.query(Slice)
                 .filter_by(datasource_id=table.id, datasource_type=table.type)
                 .all()
             )
@@ -863,7 +817,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             bootstrap_data=json.dumps(
                 {
                     "user": bootstrap_user_data(g.user, include_perms=True),
-                    "common": common_bootstrap_payload(g.user),
+                    "common": common_bootstrap_payload(),
                 },
                 default=utils.pessimistic_json_iso_dttm_ser,
             ),
@@ -881,6 +835,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")
+        except DashboardAccessDeniedError as ex:
+            flash(__("Error: %(msg)s", msg=ex.message), "danger")
+            return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
@@ -888,6 +845,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if url_params := state.get("urlParams"):
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
+        if original_params := request.query_string.decode():
+            url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
         return redirect(url)
@@ -920,7 +879,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
         datasource = DatasourceDAO.get_datasource(
-            db.session, DatasourceType(datasource_type), int(datasource_id)
+            DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
@@ -954,7 +913,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
 
         return self.render_template(
@@ -964,31 +923,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
         )
-
-    @has_access
-    @event_logger.log_this
-    @expose("/profile/")
-    @deprecated(new_target="/profile")
-    def profile(self) -> FlaskResponse:
-        return redirect("/profile/")
-
-    @has_access
-    @event_logger.log_this
-    @expose(
-        "/sqllab/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="/sqllab")
-    def sqllab(self) -> FlaskResponse:
-        """SQL Editor"""
-        url = "/sqllab"
-        if url_params := request.args:
-            params = parse.urlencode(url_params)
-            url = f"{url}?{params}"
-        return redirect(url)
 
     @has_access
     @event_logger.log_this

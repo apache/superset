@@ -56,7 +56,6 @@ export function getInitialDataMask(
   }
   return {
     ...otherProps,
-    __cache: {},
     extraFormData: {},
     filterState: {},
     ownState: {},
@@ -117,7 +116,7 @@ const dataMaskReducer = produce(
       // TODO: update hydrate to .ts
       // @ts-ignore
       case HYDRATE_DASHBOARD:
-        if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+        if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
           Object.keys(
             // @ts-ignore
             action.data.dashboardInfo?.metadata?.chart_configuration,

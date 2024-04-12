@@ -22,16 +22,12 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.daos.tag import TagDAO
-from superset.exceptions import MissingUserContextException
-from superset.extensions import event_logger
-from superset.tags.commands.create import (
+from superset.commands.tag.create import (
     CreateCustomTagCommand,
     CreateCustomTagWithRelationshipsCommand,
 )
-from superset.tags.commands.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
-from superset.tags.commands.exceptions import (
+from superset.commands.tag.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
+from superset.commands.tag.exceptions import (
     TagDeleteFailedError,
     TaggedObjectDeleteFailedError,
     TaggedObjectNotFoundError,
@@ -39,8 +35,13 @@ from superset.tags.commands.exceptions import (
     TagNotFoundError,
     TagUpdateFailedError,
 )
-from superset.tags.commands.update import UpdateTagCommand
-from superset.tags.models import ObjectTypes, Tag
+from superset.commands.tag.update import UpdateTagCommand
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.tag import TagDAO
+from superset.exceptions import MissingUserContextException
+from superset.extensions import event_logger
+from superset.tags.filters import UserCreatedTagTypeFilter
+from superset.tags.models import ObjectType, Tag
 from superset.tags.schemas import (
     delete_tags_schema,
     openapi_spec_methods_override,
@@ -117,7 +118,9 @@ class TagRestApi(BaseSupersetModelRestApi):
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"created_by"}
+    allowed_rel_fields = {"created_by", "changed_by"}
+
+    search_filters = {"type": [UserCreatedTagTypeFilter]}
 
     add_model_schema = TagPostSchema()
     edit_model_schema = TagPutSchema()
@@ -258,6 +261,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
+            all_tagged_objects: set[tuple[str, int]] = set()
+            all_skipped_tagged_objects: set[tuple[str, int]] = set()
             for tag in item.get("tags"):
                 tagged_item: dict[str, Any] = self.add_model_schema.load(
                     {
@@ -265,10 +270,25 @@ class TagRestApi(BaseSupersetModelRestApi):
                         "objects_to_tag": tag.get("objects_to_tag"),
                     }
                 )
-                CreateCustomTagWithRelationshipsCommand(
+                (
+                    objects_tagged,
+                    objects_skipped,
+                ) = CreateCustomTagWithRelationshipsCommand(
                     tagged_item, bulk_create=True
                 ).run()
-            return self.response(201)
+                all_tagged_objects = all_tagged_objects | objects_tagged
+                all_skipped_tagged_objects = (
+                    all_skipped_tagged_objects | objects_skipped
+                )
+            return self.response(
+                200,
+                result={
+                    "objects_tagged": list(
+                        all_tagged_objects - all_skipped_tagged_objects
+                    ),
+                    "objects_skipped": list(all_skipped_tagged_objects),
+                },
+            )
         except TagNotFoundError:
             return self.response_404()
         except TagInvalidError as ex:
@@ -347,7 +367,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_objects",
         log_to_statsd=False,
     )
-    def add_objects(self, object_type: ObjectTypes, object_id: int) -> Response:
+    def add_objects(self, object_type: ObjectType, object_id: int) -> Response:
         """Add tags to an object. Create new tags if they do not already exist.
         ---
         post:
@@ -412,7 +432,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=True,
     )
     def delete_object(
-        self, object_type: ObjectTypes, object_id: int, tag: str
+        self, object_type: ObjectType, object_id: int, tag: str
     ) -> Response:
         """Delete a tagged object.
         ---
@@ -567,12 +587,21 @@ class TagRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        tag_ids = [
+            tag_id for tag_id in request.args.get("tagIds", "").split(",") if tag_id
+        ]
         tags = [tag for tag in request.args.get("tags", "").split(",") if tag]
         # filter types
         types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         try:
-            tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+            if tag_ids:
+                # priotize using ids for lookups vs. names mainly using this
+                # for backward compatibility
+                tagged_objects = TagDAO.get_tagged_objects_by_tag_id(tag_ids, types)
+            else:
+                tagged_objects = TagDAO.get_tagged_objects_for_tags(tags, types)
+
             result = [
                 self.object_entity_response_schema.dump(tagged_object)
                 for tagged_object in tagged_objects
@@ -592,11 +621,11 @@ class TagRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
-        """Favorite Stars for Dashboards
+        """Favorite Stars for Tags
         ---
         get:
           description: >-
-            Check favorited dashboards for current user
+            Get favorited tags for current user
           parameters:
           - in: query
             name: q

@@ -25,7 +25,6 @@ const apiData = {
   common: DEFAULT_COMMON_BOOTSTRAP_DATA,
   tab_state_ids: [],
   databases: [],
-  queries: {},
   user: {
     userId: 1,
     username: 'some name',
@@ -54,6 +53,10 @@ const apiDataWithTabState = {
   },
 };
 describe('getInitialState', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('should output the user that is passed in', () => {
     expect(getInitialState(apiData).user?.userId).toEqual(1);
   });
@@ -134,10 +137,6 @@ describe('getInitialState', () => {
   });
 
   describe('dedupe tables schema', () => {
-    afterEach(() => {
-      localStorage.clear();
-    });
-
     it('should dedupe the table schema', () => {
       localStorage.setItem(
         'redux',
@@ -220,18 +219,20 @@ describe('getInitialState', () => {
         }),
       );
 
+      const latestQuery = {
+        ...runningQuery,
+        id: 'latestPersisted',
+        startDttm: Number(startDttmInStr),
+        endDttm: Number(endDttmInStr),
+      };
       const initializedQueries = getInitialState({
-        ...apiData,
-        queries: {
-          backendPersisted: {
-            ...runningQuery,
-            id: 'backendPersisted',
-            startDttm: startDttmInStr,
-            endDttm: endDttmInStr,
-          },
+        ...apiDataWithTabState,
+        active_tab: {
+          ...apiDataWithTabState.active_tab,
+          latest_query: latestQuery,
         },
       }).sqlLab.queries;
-      expect(initializedQueries.backendPersisted).toEqual(
+      expect(initializedQueries.latestPersisted).toEqual(
         expect.objectContaining({
           startDttm: Number(startDttmInStr),
           endDttm: Number(endDttmInStr),
@@ -241,6 +242,111 @@ describe('getInitialState', () => {
         expect.objectContaining({
           startDttm: Number(startDttmInStr),
           endDttm: Number(endDttmInStr),
+        }),
+      );
+    });
+  });
+
+  describe('restore unsaved changes for PERSISTENCE mode', () => {
+    const lastUpdatedTime = Date.now();
+    const expectedValue = 'updated editor value';
+    beforeEach(() => {
+      localStorage.setItem(
+        'redux',
+        JSON.stringify({
+          sqlLab: {
+            queryEditors: [
+              {
+                // restore cached value since updates are after server update time
+                id: '1',
+                name: expectedValue,
+                updatedAt: lastUpdatedTime + 100,
+              },
+              {
+                // no update required given that last updated time comes before server update time
+                id: '2',
+                name: expectedValue,
+                updatedAt: lastUpdatedTime - 100,
+              },
+              {
+                // no update required given that there's no updatedAt
+                id: '3',
+                name: expectedValue,
+              },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('restore unsaved changes for PERSISTENCE mode', () => {
+      const apiDataWithLocalStorage = {
+        ...apiData,
+        active_tab: {
+          ...apiDataWithTabState.active_tab,
+          id: 1,
+          label: 'persisted tab',
+          table_schemas: [],
+          extra_json: {
+            updatedAt: lastUpdatedTime,
+          },
+        },
+        tab_state_ids: [{ id: 1, label: '' }],
+      };
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[0],
+      ).toEqual(
+        expect.objectContaining({
+          id: '1',
+          name: expectedValue,
+        }),
+      );
+    });
+
+    it('skip unsaved changes for expired data', () => {
+      const apiDataWithLocalStorage = {
+        ...apiData,
+        active_tab: {
+          ...apiDataWithTabState.active_tab,
+          id: 2,
+          label: 'persisted tab',
+          table_schemas: [],
+          extra_json: {
+            updatedAt: lastUpdatedTime,
+          },
+        },
+        tab_state_ids: [{ id: 2, label: '' }],
+      };
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[1],
+      ).toEqual(
+        expect.objectContaining({
+          id: '2',
+          name: apiDataWithLocalStorage.active_tab.label,
+        }),
+      );
+    });
+
+    it('skip unsaved changes for legacy cache data', () => {
+      const apiDataWithLocalStorage = {
+        ...apiData,
+        active_tab: {
+          ...apiDataWithTabState.active_tab,
+          id: 3,
+          label: 'persisted tab',
+          table_schemas: [],
+          extra_json: {
+            updatedAt: lastUpdatedTime,
+          },
+        },
+        tab_state_ids: [{ id: 3, label: '' }],
+      };
+      expect(
+        getInitialState(apiDataWithLocalStorage).sqlLab.queryEditors[2],
+      ).toEqual(
+        expect.objectContaining({
+          id: '3',
+          name: apiDataWithLocalStorage.active_tab.label,
         }),
       );
     });

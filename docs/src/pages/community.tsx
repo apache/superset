@@ -217,7 +217,6 @@ const Community = () => {
                     </a>
                   }
                   description={<p className="description">{description}</p>}
-                  role="group"
                   aria-label="Community link"
                 />
               </List.Item>
@@ -244,14 +243,6 @@ const Community = () => {
           />
           <StyledCalendarIframe
             src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"
-            frameBorder="0"
-            scrolling="no"
-          />
-        </BlurredSection>
-        <BlurredSection>
-          <SectionHeader level="h2" title="Newsletter Archive" />
-          <StyledNewsletterIframe
-            src="https://preset.io/embed/newsletter/"
             frameBorder="0"
             scrolling="no"
           />

@@ -24,7 +24,7 @@ export const NUM_METRIC: AdhocMetric = {
   column: {
     id: 336,
     type: 'BIGINT',
-    type_generic: GenericDataType.NUMERIC,
+    type_generic: GenericDataType.Numeric,
     column_name: 'num',
     verbose_name: null,
     description: null,

@@ -37,6 +37,8 @@ import {
   styled,
   SupersetApiError,
   t,
+  ClientErrorObject,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 import React, {
@@ -73,15 +75,12 @@ import {
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import {
-  ClientErrorObject,
-  getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import {
   getFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
+import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -374,9 +373,7 @@ const FiltersConfigForm = (
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
     // @ts-ignore
-    .filter(([, { value }]) =>
-      value.behaviors?.includes(Behavior.NATIVE_FILTER),
-    )
+    .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
     .map(([key]) => key);
 
   const loadedDatasets = useSelector<RootState, DatasourcesState>(
@@ -497,7 +494,7 @@ const FiltersConfigForm = (
         force,
       })
         .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
 
@@ -810,7 +807,7 @@ const FiltersConfigForm = (
           <StyledFormItem
             name={['filters', filterId, 'type']}
             hidden
-            initialValue={NativeFilterType.NATIVE_FILTER}
+            initialValue={NativeFilterType.NativeFilter}
           >
             <Input />
           </StyledFormItem>
@@ -840,7 +837,7 @@ const FiltersConfigForm = (
                 const isDisabled =
                   FILTER_SUPPORTED_TYPES[filterType]?.length === 1 &&
                   FILTER_SUPPORTED_TYPES[filterType]?.includes(
-                    GenericDataType.TEMPORAL,
+                    GenericDataType.Temporal,
                   ) &&
                   !doLoadedDatasetsHaveTemporalColumns;
                 return {
@@ -883,7 +880,15 @@ const FiltersConfigForm = (
                 initialValue={
                   datasetDetails
                     ? {
-                        label: datasetDetails.table_name,
+                        label: DatasetSelectLabel({
+                          id: datasetDetails.id,
+                          table_name: datasetDetails.table_name,
+                          schema: datasetDetails.schema,
+                          database: {
+                            database_name:
+                              datasetDetails.database.database_name,
+                          },
+                        }),
                         value: datasetDetails.id,
                       }
                     : undefined

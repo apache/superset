@@ -48,9 +48,9 @@ export default class EchartsRadarChartPlugin extends EchartsChartPlugin<
       loadChart: () => import('./EchartsRadar'),
       metadata: {
         behaviors: [
-          Behavior.INTERACTIVE_CHART,
-          Behavior.DRILL_TO_DETAIL,
-          Behavior.DRILL_BY,
+          Behavior.InteractiveChart,
+          Behavior.DrillToDetail,
+          Behavior.DrillBy,
         ],
         category: t('Ranking'),
         credits: ['https://echarts.apache.org'],
@@ -62,7 +62,6 @@ export default class EchartsRadarChartPlugin extends EchartsChartPlugin<
         tags: [
           t('Business'),
           t('Comparison'),
-          t('Coordinates'),
           t('Multi-Variables'),
           t('Report'),
           t('Web'),

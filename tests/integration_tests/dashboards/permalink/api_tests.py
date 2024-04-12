@@ -23,7 +23,7 @@ from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
 from superset import db
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
@@ -42,10 +42,8 @@ STATE = {
 
 @pytest.fixture
 def dashboard_id(load_world_bank_dashboard_with_slices) -> int:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        dashboard = session.query(Dashboard).filter_by(slug="world_health").one()
-        return dashboard.id
+    dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+    return dashboard.id
 
 
 @pytest.fixture

@@ -96,7 +96,7 @@ describe('DatasourceEditor', () => {
 
     const inputLabel = screen.getByPlaceholderText('Label');
     const inputDescription = screen.getByPlaceholderText('Description');
-    const inputDtmFormat = screen.getByPlaceholderText('%Y/%m/%d');
+    const inputDtmFormat = screen.getByPlaceholderText('%Y-%m-%d');
     const inputCertifiedBy = screen.getByPlaceholderText('Certified by');
     const inputCertDetails = screen.getByPlaceholderText(
       'Certification details',
@@ -188,22 +188,6 @@ describe('DatasourceEditor', () => {
       });
       expect(physicalRadioBtn).toBeDisabled();
       expect(virtualRadioBtn).toBeDisabled();
-    });
-  });
-
-  describe('render editor with feature flag false', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
-    });
-
-    it('disable edit Source tab', async () => {
-      await asyncRender(props);
-      expect(
-        screen.queryByRole('img', { name: /lock-locked/i }),
-      ).not.toBeInTheDocument();
-      isFeatureEnabledMock.mockRestore();
     });
   });
 });

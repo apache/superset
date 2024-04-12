@@ -26,6 +26,7 @@ import {
   getSharedLabelColor,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import {
   addChart,
@@ -34,7 +35,6 @@ import {
 } from 'src/components/Chart/chartAction';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
@@ -61,11 +61,7 @@ import {
   SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
 import { fetchDatasourceMetadata } from './datasources';
-import {
-  addFilter,
-  removeFilter,
-  updateDirectPathToFilter,
-} from './dashboardFilters';
+import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 
@@ -259,7 +255,7 @@ export function saveDashboardRequest(data, id, saveType) {
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners).map(o => (hasId(o) ? o.id : o)),
-      roles: !isFeatureEnabled(FeatureFlag.DASHBOARD_RBAC)
+      roles: !isFeatureEnabled(FeatureFlag.DashboardRbac)
         ? undefined
         : ensureIsArray(roles).map(r => (hasId(r) ? r.id : r)),
       slug: slug || null,
@@ -299,7 +295,7 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         const { chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration();
         dispatch(
@@ -376,7 +372,7 @@ export function saveDashboardRequest(data, id, saveType) {
     ) {
       let chartConfiguration = {};
       let globalChartConfiguration = {};
-      if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
         ({ chartConfiguration, globalChartConfiguration } =
           handleChartConfiguration());
       }
@@ -410,7 +406,7 @@ export function saveDashboardRequest(data, id, saveType) {
           .catch(response => onError(response));
       return new Promise((resolve, reject) => {
         if (
-          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
           saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
         ) {
           // skip overwrite precheck
@@ -554,7 +550,7 @@ export function showBuilderPane() {
   return { type: SHOW_BUILDER_PANE };
 }
 
-export function addSliceToDashboard(id, component) {
+export function addSliceToDashboard(id) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
     const selectedSlice = sliceEntities.slices[id];
@@ -580,21 +576,12 @@ export function addSliceToDashboard(id, component) {
       dispatch(fetchDatasourceMetadata(form_data.datasource)),
     ]).then(() => {
       dispatch(addSlice(selectedSlice));
-
-      if (selectedSlice && selectedSlice.viz_type === 'filter_box') {
-        dispatch(addFilter(id, component, selectedSlice.form_data));
-      }
     });
   };
 }
 
 export function removeSliceFromDashboard(id) {
-  return (dispatch, getState) => {
-    const sliceEntity = getState().sliceEntities.slices[id];
-    if (sliceEntity && sliceEntity.viz_type === 'filter_box') {
-      dispatch(removeFilter(id));
-    }
-
+  return dispatch => {
     dispatch(removeSlice(id));
     dispatch(removeChart(id));
     getSharedLabelColor().removeSlice(id);
@@ -611,9 +598,14 @@ export function setDirectPathToChild(path) {
   return { type: SET_DIRECT_PATH, path };
 }
 
+export const SET_ACTIVE_TAB = 'SET_ACTIVE_TAB';
+export function setActiveTab(tabId, prevTabId) {
+  return { type: SET_ACTIVE_TAB, tabId, prevTabId };
+}
+
 export const SET_ACTIVE_TABS = 'SET_ACTIVE_TABS';
-export function setActiveTabs(tabId, prevTabId) {
-  return { type: SET_ACTIVE_TABS, tabId, prevTabId };
+export function setActiveTabs(activeTabs) {
+  return { type: SET_ACTIVE_TABS, activeTabs };
 }
 
 export const SET_FOCUSED_FILTER_FIELD = 'SET_FOCUSED_FILTER_FIELD';

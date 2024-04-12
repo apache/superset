@@ -26,15 +26,13 @@ import {
   Metric,
   styled,
   SupersetClient,
+  getClientErrorObject,
   t,
+  SupersetError,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
-import {
-  genericSupersetError,
-  SupersetError,
-} from 'src/components/ErrorMessage/types';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useSelector } from 'react-redux';
@@ -207,16 +205,24 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       })
       .catch(response => {
         setIsSaving(false);
-        response.json().then((errorJson: { errors: SupersetError[] }) => {
+        getClientErrorObject(response).then(error => {
+          let errorResponse: SupersetError | undefined;
+          let errorText: string | undefined;
+          // sip-40 error response
+          if (error?.errors?.length) {
+            errorResponse = error.errors[0];
+          } else if (typeof error.error === 'string') {
+            // backward compatible with old error messages
+            errorText = error.error;
+          }
           modal.error({
             title: t('Error saving dataset'),
             okButtonProps: { danger: true, className: 'btn-danger' },
             content: (
               <ErrorMessageWithStackTrace
-                error={
-                  errorJson?.errors?.[0] || genericSupersetError(errorJson)
-                }
+                error={errorResponse}
                 source="crud"
+                fallback={errorText}
               />
             ),
           });
@@ -266,7 +272,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   };
 
   const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+    FeatureFlag.DisableLegacyDatasourceEditor,
   );
 
   return (

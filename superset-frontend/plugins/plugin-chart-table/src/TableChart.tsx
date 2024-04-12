@@ -71,14 +71,20 @@ interface TableSize {
   height: number;
 }
 
+const ACTION_KEYS = {
+  enter: 'Enter',
+  spacebar: 'Spacebar',
+  space: ' ',
+};
+
 /**
  * Return sortType based on data type
  */
 function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
-  if (dataType === GenericDataType.TEMPORAL) {
+  if (dataType === GenericDataType.Temporal) {
     return 'datetime';
   }
-  if (dataType === GenericDataType.STRING) {
+  if (dataType === GenericDataType.String) {
     return 'alphanumeric';
   }
   return 'basic';
@@ -162,6 +168,7 @@ function SearchInput({ count, value, onChange }: SearchInputProps) {
         className="form-control input-sm"
         placeholder={tn('search.num_records', count)}
         value={value}
+        aria-label={t('Search %s records', count)}
         onChange={onChange}
       />
     </span>
@@ -230,6 +237,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
+    allowRenderHtml = true,
     onContextMenu,
     emitCrossFilters,
   } = props;
@@ -355,8 +363,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const textAlign = config.horizontalAlign
       ? config.horizontalAlign
       : isNumeric
-      ? 'right'
-      : 'left';
+        ? 'right'
+        : 'left';
     return {
       textAlign,
     };
@@ -409,7 +417,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, isNumeric, dataType, isMetric, config = {} } = column;
+      const {
+        key,
+        label,
+        isNumeric,
+        dataType,
+        isMetric,
+        isPercentMetric,
+        config = {},
+      } = column;
       const columnWidth = Number.isNaN(Number(config.columnWidth))
         ? config.columnWidth
         : Number(config.columnWidth);
@@ -438,7 +454,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
-        (isMetric || isRawRecords) &&
+        (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
@@ -454,7 +470,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         accessor: ((datum: D) => datum[key]) as never,
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
-          const html = isHtml ? { __html: text } : undefined;
+          const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
           let backgroundColor;
           if (hasColumnColorFormatters) {
@@ -582,6 +598,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             style={{
               ...sharedStyle,
               ...style,
+            }}
+            tabIndex={0}
+            onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
+              // programatically sort column on keypress
+              if (Object.values(ACTION_KEYS).includes(e.key)) {
+                col.toggleSortBy();
+              }
             }}
             onClick={onClick}
             data-column-name={col.id}

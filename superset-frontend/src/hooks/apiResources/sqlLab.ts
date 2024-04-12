@@ -50,7 +50,7 @@ export type InitialState = {
     template_params: string | null;
     hide_left_bar?: boolean;
     saved_query: { id: number } | null;
-    extra_json?: object;
+    extra_json?: Record<string, any>;
   };
   databases: object[];
   queries: Record<

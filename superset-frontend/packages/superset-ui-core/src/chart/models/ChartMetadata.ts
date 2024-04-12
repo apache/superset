@@ -36,7 +36,6 @@ export interface ChartMetadataConfig {
   description?: string;
   datasourceCount?: number;
   enableNoResults?: boolean;
-  show?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
   useLegacyApi?: boolean;
@@ -63,8 +62,6 @@ export default class ChartMetadata {
   credits: string[];
 
   description: string;
-
-  show: boolean;
 
   supportedAnnotationTypes: string[];
 
@@ -100,7 +97,6 @@ export default class ChartMetadata {
       canBeAnnotationTypes = [],
       credits = [],
       description = '',
-      show = true,
       supportedAnnotationTypes = [],
       thumbnail,
       useLegacyApi = false,
@@ -120,7 +116,6 @@ export default class ChartMetadata {
     this.name = name;
     this.credits = credits;
     this.description = description;
-    this.show = show;
     this.canBeAnnotationTypes = canBeAnnotationTypes;
     this.canBeAnnotationTypesLookup = canBeAnnotationTypes.reduce(
       (prev: LookupTable, type: string) => {

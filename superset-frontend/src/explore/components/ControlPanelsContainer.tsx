@@ -52,7 +52,7 @@ import {
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
+import { kebabCase, isEqual } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -70,7 +70,7 @@ import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
-import { CLAUSES } from './controls/FilterControl/types';
+import { Clauses } from './controls/FilterControl/types';
 
 const { confirm } = Modal;
 
@@ -190,9 +190,7 @@ const ControlPanelsTabs = styled(Tabs)`
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
-  !!section.label &&
-  (sections.legacyRegularTime.label === section.label ||
-    sections.legacyTimeseriesTime.label === section.label);
+  !!section.label && sections.legacyTimeseriesTime.label === section.label;
 
 const hasTimeColumn = (datasource: Dataset): boolean =>
   datasource?.columns?.some(c => c.is_dttm);
@@ -285,7 +283,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
-    state => state.common?.conf?.DEFAULT_TIME_FILTER,
+    state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
   );
 
   const { form_data, actions } = props;
@@ -303,7 +301,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       const noFilter = !adhoc_filters?.find(
         filter =>
           filter.expressionType === 'SIMPLE' &&
-          filter.operator === Operators.TEMPORAL_RANGE &&
+          filter.operator === Operators.TemporalRange &&
           filter.subject === x_axis,
       );
       if (noFilter) {
@@ -316,10 +314,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             setControlValue('adhoc_filters', [
               ...(adhoc_filters || []),
               {
-                clause: CLAUSES.WHERE,
+                clause: Clauses.Where,
                 subject: x_axis,
-                operator: Operators.TEMPORAL_RANGE,
-                comparator: defaultTimeFilter || NO_TIME_RANGE,
+                operator: Operators.TemporalRange,
+                comparator: defaultTimeFilter,
                 expressionType: 'SIMPLE',
               },
             ]);
@@ -492,13 +490,30 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         values: Record<string, any>[],
       ) => {
         const isTemporalRange = (filter: Record<string, any>) =>
-          filter.operator === Operators.TEMPORAL_RANGE;
+          filter.operator === Operators.TemporalRange;
         if (!controls?.time_range?.value && isTemporalRange(valueToBeDeleted)) {
           const count = values.filter(isTemporalRange).length;
           if (count === 1) {
-            return t(
-              `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+            // if temporal filter's value is "No filter", prevent deletion
+            // otherwise reset the value to "No filter"
+            if (valueToBeDeleted.comparator === defaultTimeFilter) {
+              return t(
+                `You cannot delete the last temporal filter as it's used for time range filters in dashboards.`,
+              );
+            }
+            props.actions.setControlValue(
+              name,
+              values.map(val => {
+                if (isEqual(val, valueToBeDeleted)) {
+                  return {
+                    ...val,
+                    comparator: defaultTimeFilter,
+                  };
+                }
+                return val;
+              }),
             );
+            return false;
           }
         }
         return true;
@@ -541,8 +556,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           typeof item === 'string'
             ? item
             : item && 'name' in item
-            ? item.name
-            : null;
+              ? item.name
+              : null;
         return (
           controlName &&
           controlName in controls &&

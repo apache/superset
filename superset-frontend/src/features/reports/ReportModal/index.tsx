@@ -23,9 +23,8 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
-import { t, SupersetTheme } from '@superset-ui/core';
+import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   addReport,
   editReport,
@@ -42,13 +41,10 @@ import { ChartState } from 'src/explore/types';
 import {
   ReportCreationMethod,
   ReportObject,
-  NOTIFICATION_FORMATS,
+  NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
-import {
-  TRANSLATIONS,
-  StyledInputContainer,
-} from 'src/features/alerts/AlertReportModal';
+import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
   antDErrorAlertStyles,
@@ -120,8 +116,8 @@ function ReportModal({
   const isTextBasedChart =
     isChart && vizType && TEXT_BASED_VISUALIZATION_TYPES.includes(vizType);
   const defaultNotificationFormat = isTextBasedChart
-    ? NOTIFICATION_FORMATS.TEXT
-    : NOTIFICATION_FORMATS.PNG;
+    ? NotificationFormats.Text
+    : NotificationFormats.PNG;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -156,8 +152,8 @@ function ReportModal({
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const resourceType = dashboardId
-      ? CreationMethod.DASHBOARDS
-      : CreationMethod.CHARTS;
+      ? CreationMethod.Dashboards
+      : CreationMethod.Charts;
     return (
       reportSelector(state, resourceType, dashboardId || chart?.id) ||
       EMPTY_OBJECT
@@ -253,14 +249,14 @@ function ReportModal({
           value={currentReport.report_format || defaultNotificationFormat}
         >
           {isTextBasedChart && (
-            <StyledRadio value={NOTIFICATION_FORMATS.TEXT}>
+            <StyledRadio value={NotificationFormats.Text}>
               {t('Text embedded in email')}
             </StyledRadio>
           )}
-          <StyledRadio value={NOTIFICATION_FORMATS.PNG}>
+          <StyledRadio value={NotificationFormats.PNG}>
             {t('Image (PNG) embedded in email')}
           </StyledRadio>
-          <StyledRadio value={NOTIFICATION_FORMATS.CSV}>
+          <StyledRadio value={NotificationFormats.CSV}>
             {t('Formatted CSV attached in email')}
           </StyledRadio>
         </StyledRadioGroup>
@@ -270,14 +266,14 @@ function ReportModal({
   const renderCustomWidthSection = (
     <StyledInputContainer>
       <div className="control-label" css={CustomWidthHeaderStyle}>
-        {TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_TEXT}
+        {t('Screenshot width')}
       </div>
       <div className="input-container">
         <Input
           type="number"
           name="custom_width"
           value={currentReport?.custom_width || ''}
-          placeholder={TRANSLATIONS.CUSTOM_SCREENSHOT_WIDTH_PLACEHOLDER_TEXT}
+          placeholder={t('Input custom width in pixels')}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             setCurrentReport({
               custom_width: parseInt(event.target.value, 10) || null,
@@ -334,9 +330,7 @@ function ReportModal({
           <h4 css={(theme: SupersetTheme) => SectionHeaderStyle(theme)}>
             {t('Schedule')}
           </h4>
-          <p>
-            {t('A screenshot of the dashboard will be sent to your email at')}
-          </p>
+          <p>{t('The report will be sent to your email at')}</p>
         </StyledScheduleTitle>
 
         <StyledCronPicker

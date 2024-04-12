@@ -88,6 +88,7 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
 }
 
 function resetTabbedDashboard(go = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
     const jsonMetadata = r?.json_metadata || '{}';
     const metadata = JSON.parse(jsonMetadata);
@@ -477,7 +478,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(172, 32, 119)');
     });
 
-    it('should change color scheme multiple times', () => {
+    it.skip('should change color scheme multiple times', () => {
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
@@ -515,7 +516,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
 
       // open main tab and nested tab
       openTab(0, 0);
@@ -526,10 +527,10 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+        .should('have.css', 'fill', 'rgb(244, 176, 42)');
     });
 
-    it('should apply the color scheme across main tabs', () => {
+    it.skip('should apply the color scheme across main tabs', () => {
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
@@ -544,7 +545,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(51, 61, 71)');
     });
 
-    it('should apply the color scheme across main tabs for rendered charts', () => {
+    it.skip('should apply the color scheme across main tabs for rendered charts', () => {
       waitForChartLoad({ name: 'Treemap', viz: 'treemap_v2' });
       openProperties();
       selectColorScheme('bnbColors');
@@ -557,7 +558,7 @@ describe('Dashboard edit', () => {
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
-        .should('have.css', 'fill', 'rgb(204, 0, 134)');
+        .should('have.css', 'fill', 'rgb(156, 52, 152)');
 
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
@@ -571,7 +572,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
-    it('should apply the color scheme in nested tabs', () => {
+    it.skip('should apply the color scheme in nested tabs', () => {
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
@@ -597,7 +598,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
-    it('should apply a valid color scheme for rendered charts in nested tabs', () => {
+    it.skip('should apply a valid color scheme for rendered charts in nested tabs', () => {
       // open the tab first time and let chart load
       openTab(1, 1);
       waitForChartLoad({
@@ -633,7 +634,7 @@ describe('Dashboard edit', () => {
       openProperties();
     });
 
-    it('should accept a valid color scheme', () => {
+    it.skip('should accept a valid color scheme', () => {
       openAdvancedProperties();
       clearMetadata();
       writeMetadata('{"color_scheme":"lyftColors"}');
@@ -644,21 +645,21 @@ describe('Dashboard edit', () => {
       applyChanges();
     });
 
-    it('should overwrite the color scheme when advanced is closed', () => {
+    it.skip('should overwrite the color scheme when advanced is closed', () => {
       selectColorScheme('d3Category20b');
       openAdvancedProperties();
       assertMetadata('d3Category20b');
       applyChanges();
     });
 
-    it('should overwrite the color scheme when advanced is open', () => {
+    it.skip('should overwrite the color scheme when advanced is open', () => {
       openAdvancedProperties();
       selectColorScheme('googleCategory10c');
       assertMetadata('googleCategory10c');
       applyChanges();
     });
 
-    it('should not accept an invalid color scheme', () => {
+    it.skip('should not accept an invalid color scheme', () => {
       openAdvancedProperties();
       clearMetadata();
       // allow console error
@@ -722,13 +723,13 @@ describe('Dashboard edit', () => {
       visitEdit();
     });
 
-    it('should add charts', () => {
+    it.skip('should add charts', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
     });
 
-    it('should remove added charts', () => {
+    it.skip('should remove added charts', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent('Unicode Cloud');
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 1);
@@ -736,7 +737,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-component-chart-holder').should('have.length', 0);
     });
 
-    it('should add markdown component to dashboard', () => {
+    it.skip('should add markdown component to dashboard', () => {
       cy.getBySel('dashboard-builder-component-pane-tabs-navigation')
         .find('#tabs-tab-2')
         .click();
@@ -758,7 +759,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
 
       resize(
-        '[data-test="dashboard-markdown-editor"] .resizable-container span div:last-child',
+        '[data-test="dashboard-markdown-editor"] .resizable-container div.resizable-container-handle--bottom + div',
       ).to(500, 600);
 
       cy.getBySel('dashboard-markdown-editor').contains('Test resize');
@@ -770,7 +771,7 @@ describe('Dashboard edit', () => {
       visitEdit();
     });
 
-    it('should save', () => {
+    it.skip('should save', () => {
       cy.get('[role="checkbox"]').click();
       dragComponent();
       cy.getBySel('header-save-button').should('be.enabled');

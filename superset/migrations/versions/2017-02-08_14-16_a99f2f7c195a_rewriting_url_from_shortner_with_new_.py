@@ -80,7 +80,6 @@ def upgrade():
                 "/".join(split[:-1]) + "/?form_data=" + parse.quote_plus(json.dumps(d))
             )
             url.url = newurl
-            session.merge(url)
             session.commit()
         print(f"Updating url ({i}/{urls_len})")
     session.close()

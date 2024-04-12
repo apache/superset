@@ -146,7 +146,8 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         description=_(
             "A dictionary with column names and their data types"
             " if you need to change the defaults."
-            ' Example: {"user_id":"integer"}'
+            ' Example: {"user_id":"int"}. '
+            "Check Python's Pandas library for supported data types."
         ),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
@@ -356,10 +357,6 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
         ),
         validators=[Optional(), NumberRange(min=0)],
         widget=BS3TextFieldWidget(),
-    )
-    mangle_dupe_cols = BooleanField(
-        _("Mangle Duplicate Columns"),
-        description=_('Specify duplicate columns as "X.0, X.1".'),
     )
     skiprows = IntegerField(
         _("Skip Rows"),

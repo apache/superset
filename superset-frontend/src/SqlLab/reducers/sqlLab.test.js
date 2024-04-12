@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { table, initialState as mockState } from '../fixtures';
@@ -73,6 +74,25 @@ describe('sqlLabReducer', () => {
       expect(newState.queryEditors).toHaveLength(
         initialState.queryEditors.length,
       );
+    });
+    it('should select the latest query editor when tabHistory is empty', () => {
+      const currentQE = newState.queryEditors[0];
+      newState = {
+        ...initialState,
+        tabHistory: [initialState.queryEditors[0]],
+      };
+      const action = {
+        type: actions.REMOVE_QUERY_EDITOR,
+        queryEditor: currentQE,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.queryEditors).toHaveLength(
+        initialState.queryEditors.length - 1,
+      );
+      expect(newState.queryEditors.map(qe => qe.id)).not.toContainEqual(
+        currentQE.id,
+      );
+      expect(newState.tabHistory).toEqual([initialState.queryEditors[2].id]);
     });
     it('should remove a query editor including unsaved changes', () => {
       expect(newState.queryEditors).toHaveLength(
@@ -386,6 +406,40 @@ describe('sqlLabReducer', () => {
     });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
+    });
+  });
+  describe('CLEAR_INACTIVE_QUERIES', () => {
+    let newState;
+    let query;
+    beforeEach(() => {
+      query = {
+        id: 'abcd',
+        changed_on: Date.now(),
+        startDttm: Date.now(),
+        state: QueryState.Fetching,
+        progress: 100,
+        resultsKey: 'fa3dccc4-c549-4fbf-93c8-b4fb5a6fb8b7',
+        cached: false,
+      };
+    });
+    it('updates queries that have already been completed', () => {
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: {
+            abcd: {
+              ...query,
+              results: {
+                query_id: 1234,
+                status: QueryState.Success,
+                data: [],
+              },
+            },
+          },
+        },
+        actions.clearInactiveQueries(Date.now()),
+      );
+      expect(newState.queries.abcd.state).toBe(QueryState.Success);
     });
   });
 });

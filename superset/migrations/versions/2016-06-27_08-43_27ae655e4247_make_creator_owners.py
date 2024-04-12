@@ -79,7 +79,7 @@ class AuditMixin:
         )
 
 
-class Slice(Base, AuditMixin):
+class Slice(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "slices"
@@ -87,7 +87,7 @@ class Slice(Base, AuditMixin):
     owners = relationship("User", secondary=slice_user)
 
 
-class Dashboard(Base, AuditMixin):
+class Dashboard(AuditMixin, Base):
     """Declarative class to do query in upgrade"""
 
     __tablename__ = "dashboards"

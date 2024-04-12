@@ -90,6 +90,14 @@ const ChartContextMenu = (
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
+  const canWriteExploreFormData = useSelector((state: RootState) =>
+    findPermission('can_write', 'ExploreFormDataRestApi', state.user?.roles),
+  );
+  const canDatasourceSamples = useSelector((state: RootState) =>
+    findPermission('can_samples', 'Datasource', state.user?.roles),
+  );
+  const canDrillBy = canExplore && canWriteExploreFormData;
+  const canDrillToDetail = canExplore && canDatasourceSamples;
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -104,25 +112,27 @@ const ChartContextMenu = (
     filters?: ContextMenuFilters;
   }>({ clientX: 0, clientY: 0 });
 
+  const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+
   const menuItems = [];
 
   const showDrillToDetail =
-    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-    canExplore &&
+    isFeatureEnabled(FeatureFlag.DrillToDetail) &&
+    canDrillToDetail &&
     isDisplayed(ContextMenuItem.DrillToDetail);
 
   const showDrillBy =
-    isFeatureEnabled(FeatureFlag.DRILL_BY) &&
-    canExplore &&
+    isFeatureEnabled(FeatureFlag.DrillBy) &&
+    canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy);
 
   const showCrossFilters =
-    isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     isDisplayed(ContextMenuItem.CrossFilter);
 
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
-    ?.behaviors?.includes(Behavior.INTERACTIVE_CHART);
+    ?.behaviors?.includes(Behavior.InteractiveChart);
 
   let itemsCount = 0;
   if (showCrossFilters) {
@@ -220,6 +230,8 @@ const ChartContextMenu = (
         contextMenuY={clientY}
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
+        showModal={drillModalIsOpen}
+        setShowModal={setDrillModalIsOpen}
         {...(additionalConfig?.drillToDetail || {})}
       />,
     );

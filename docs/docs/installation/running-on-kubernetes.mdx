@@ -1,18 +1,26 @@
 ---
 title: Installing on Kubernetes
 hide_title: true
-sidebar_position: 3
+sidebar_position: 1
 version: 1
 ---
 
 ## Installing on Kubernetes
 
-Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
+Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
+found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
 
 ### Prerequisites
 
 - A Kubernetes cluster
 - Helm installed
+
+:::note
+For simpler, single host environments, we recommend using
+[minikube](https://minikube.sigs.k8s.io/docs/start/) which is easy to setup on many platforms
+and works fantastically well with the Helm chart referenced here.
+:::
+
 
 ### Running
 
@@ -85,7 +93,7 @@ Depending how you configured external access, the URL will vary. Once you've ide
 
 #### Security settings
 
-Default security settings and passwords are included but you **SHOULD** override those with your own, in particular:
+Default security settings and passwords are included but you **MUST** update them to run `prod` instances, in particular:
 
 ```yaml
 postgresql:
@@ -310,15 +318,17 @@ supersetWorker:
     - |
       # Install chrome webdriver
       # See https://github.com/apache/superset/blob/4fa3b6c7185629b87c27fc2c0e5435d458f7b73d/docs/src/pages/docs/installation/email_reports.mdx
-      apt update
+      apt-get update
+      apt-get install -y wget
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
+      apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb
       wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip
+      apt-get install -y zip
       unzip chromedriver_linux64.zip
       chmod +x chromedriver
       mv chromedriver /usr/bin
-      apt autoremove -yqq --purge
-      apt clean
+      apt-get autoremove -yqq --purge
+      apt-get clean
       rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
 
       # Run
@@ -367,37 +377,35 @@ configOverrides:
   celery_conf: |
     from celery.schedules import crontab
 
-    class CeleryConfig(object):
+    class CeleryConfig:
       broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      imports = (
+          "superset.sql_lab",
+          "superset.tasks.cache",
+          "superset.tasks.scheduler",
+      )
       result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
       task_annotations = {
-          'sql_lab.get_sql_results': {
-              'rate_limit': '100/s',
-          },
-          'email_reports.send': {
-              'rate_limit': '1/s',
-              'time_limit': 600,
-              'soft_time_limit': 600,
-              'ignore_result': True,
+          "sql_lab.get_sql_results": {
+              "rate_limit": "100/s",
           },
       }
       beat_schedule = {
-          'reports.scheduler': {
-              'task': 'reports.scheduler',
-              'schedule': crontab(minute='*', hour='*'),
+          "reports.scheduler": {
+              "task": "reports.scheduler",
+              "schedule": crontab(minute="*", hour="*"),
           },
-          'reports.prune_log': {
-              'task': 'reports.prune_log',
+          "reports.prune_log": {
+              "task": "reports.prune_log",
               'schedule': crontab(minute=0, hour=0),
           },
           'cache-warmup-hourly': {
-              'task': 'cache-warmup',
-              'schedule': crontab(minute='*/30', hour='*'),
-              'kwargs': {
-                  'strategy_name': 'top_n_dashboards',
-                  'top_n': 10,
-                  'since': '7 days ago',
+              "task": "cache-warmup",
+              "schedule": crontab(minute="*/30", hour="*"),
+              "kwargs": {
+                  "strategy_name": "top_n_dashboards",
+                  "top_n": 10,
+                  "since": "7 days ago",
               },
           }
       }

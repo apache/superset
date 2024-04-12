@@ -1,0 +1,12 @@
+---
+blank_issues_enabled: false
+contact_links:
+  - name: Feature Request
+    url: https://github.com/apache/superset/discussions/new?category=ideas
+    about: Propose a feature request to the Superset community
+  - name: Q&A
+    url: https://github.com/apache/superset/discussions/new?category=q-a-help
+    about: Open a community Q&A thread on GitHub Discussions
+  - name: Slack
+    url:  https://bit.ly/join-superset-slack
+    about: Join the Superset Community on Slack for other discussions and assistance

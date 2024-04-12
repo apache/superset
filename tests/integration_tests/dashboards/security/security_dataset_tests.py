@@ -23,6 +23,7 @@ from flask import escape
 
 from superset import app
 from superset.daos.dashboard import DashboardDAO
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
 from tests.integration_tests.dashboards.consts import *
 from tests.integration_tests.dashboards.dashboard_test_utils import *
@@ -61,8 +62,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
             hidden_dash.slices = [slice]
             hidden_dash.published = False
 
-            db.session.merge(published_dash)
-            db.session.merge(hidden_dash)
+            db.session.add(published_dash)
+            db.session.add(hidden_dash)
             yield db.session.commit()
 
             self.revoke_public_access_to_table(table)
@@ -72,7 +73,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
 
     def test_dashboard_access__admin_can_access_all(self):
         # arrange
-        self.login(username=ADMIN_USERNAME)
+        self.login(ADMIN_USERNAME)
         dashboard_title_by_url = {
             dash.url: dash.dashboard_title for dash in get_all_dashboards()
         }
@@ -183,7 +184,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         title = f"title{random_str()}"
         dashboard = create_dashboard_to_db(title, "slug1", owners=[admin])
 
-        self.login(username="gamma")
+        self.login(GAMMA_USERNAME)
         arguments = {
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": title[0:8]}]
         }
@@ -192,4 +193,4 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(0, data["count"])
-        DashboardDAO.delete(dashboard)
+        DashboardDAO.delete([dashboard])

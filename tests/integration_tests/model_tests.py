@@ -17,7 +17,6 @@
 # isort:skip_file
 import json
 from superset.utils.core import DatasourceType
-import textwrap
 import unittest
 from unittest import mock
 
@@ -298,58 +297,25 @@ class TestDatabaseModel(SupersetTestCase):
         sql = db.select_star(table_name, show_cols=False, latest_partition=False)
         with db.get_sqla_engine_with_context() as engine:
             quote = engine.dialect.identifier_preparer.quote_identifier
-        expected = (
-            textwrap.dedent(
-                f"""\
-        SELECT *
-        FROM {quote(table_name)}
-        LIMIT 100"""
-            )
-            if db.backend in {"presto", "hive"}
-            else textwrap.dedent(
-                f"""\
-        SELECT *
-        FROM {table_name}
-        LIMIT 100"""
-            )
-        )
+
+        source = quote(table_name) if db.backend in {"presto", "hive"} else table_name
+        expected = f"SELECT\n  *\nFROM {source}\nLIMIT 100"
         assert expected in sql
         sql = db.select_star(table_name, show_cols=True, latest_partition=False)
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
-                textwrap.dedent(
-                    """\
-                SELECT "source" AS "source",
-                       "target" AS "target",
-                       "value" AS "value"
-                FROM "energy_usage"
-                LIMIT 100"""
-                )
-                == sql
+                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                in sql
             )
         elif db.backend == "hive":
             assert (
-                textwrap.dedent(
-                    """\
-                SELECT `source`,
-                       `target`,
-                       `value`
-                FROM `energy_usage`
-                LIMIT 100"""
-                )
-                == sql
+                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"
+                in sql
             )
         else:
             assert (
-                textwrap.dedent(
-                    """\
-                SELECT source,
-                       target,
-                       value
-                FROM energy_usage
-                LIMIT 100"""
-                )
+                "SELECT\n  source,\n  target,\n  value\nFROM energy_usage\nLIMIT 100"
                 in sql
             )
 
@@ -367,12 +333,7 @@ class TestDatabaseModel(SupersetTestCase):
         }
         fully_qualified_name = fully_qualified_names.get(db.db_engine_spec.engine)
         if fully_qualified_name:
-            expected = textwrap.dedent(
-                f"""\
-            SELECT *
-            FROM {fully_qualified_name}
-            LIMIT 100"""
-            )
+            expected = f"SELECT\n  *\nFROM {fully_qualified_name}\nLIMIT 100"
             assert sql.startswith(expected)
 
     def test_single_statement(self):

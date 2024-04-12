@@ -66,18 +66,6 @@ export const getControlItems = (
     [],
   ) as CustomControlItem[]) ?? [];
 
-type DatasetSelectValue = {
-  value: number;
-  label: string;
-};
-
-export const datasetToSelectOption = (
-  item: Dataset & { table_name: string },
-): DatasetSelectValue => ({
-  value: item.id,
-  label: item.table_name,
-});
-
 // TODO: add column_types field to Dataset
 // We return true if column_types is undefined or empty as a precaution against backend failing to return column_types
 export const hasTemporalColumns = (
@@ -85,7 +73,7 @@ export const hasTemporalColumns = (
 ) => {
   const columnTypes = ensureIsArray(dataset?.column_types);
   return (
-    columnTypes.length === 0 || columnTypes.includes(GenericDataType.TEMPORAL)
+    columnTypes.length === 0 || columnTypes.includes(GenericDataType.Temporal)
   );
 };
 

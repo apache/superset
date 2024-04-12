@@ -68,7 +68,7 @@ table_names = [
     "slice_email_schedules",
 ]
 models = {
-    table_name: type(table_name, (Base, ImportMixin), {"__tablename__": table_name})
+    table_name: type(table_name, (ImportMixin, Base), {"__tablename__": table_name})
     for table_name in table_names
 }
 
@@ -96,7 +96,6 @@ def update_position_json(dashboard, session, uuid_map):
                 del object_["meta"]["uuid"]
 
     dashboard.position_json = json.dumps(layout, indent=4)
-    session.merge(dashboard)
 
 
 def update_dashboards(session, uuid_map):

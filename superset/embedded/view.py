@@ -17,7 +17,7 @@
 import json
 from typing import Callable
 
-from flask import abort, g, request
+from flask import abort, request
 from flask_appbuilder import expose
 from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
@@ -78,7 +78,7 @@ class EmbeddedView(BaseSupersetView):
         )
 
         bootstrap_data = {
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
             },

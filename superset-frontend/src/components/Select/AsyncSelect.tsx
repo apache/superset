@@ -29,12 +29,15 @@ import React, {
   useImperativeHandle,
   ClipboardEvent,
 } from 'react';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  t,
+  usePrevious,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import debounce from 'lodash/debounce';
-import { isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
 import {
   getValue,
@@ -51,10 +54,12 @@ import {
   mapOptions,
   getOption,
   isObject,
+  isEqual as utilsIsEqual,
 } from './utils';
 import {
   AsyncSelectProps,
   AsyncSelectRef,
+  RawValue,
   SelectOptionsPagePromise,
   SelectOptionsType,
   SelectOptionsTypePage,
@@ -90,8 +95,6 @@ const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
- * The aim of the component was to combine all the instances of select components throughout the
- * project under one and to remove the react-select component entirely.
  * This Select component provides an API that is tested against all the different use cases of Superset.
  * It limits and overrides the existing Antdesign API in order to keep their usage to the minimum
  * and to enforce simplification and standardization.
@@ -223,7 +226,16 @@ const AsyncSelect = forwardRef(
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
+        // on select is fired in single value mode if the same value is selected
+        const valueChanged = !utilsIsEqual(
+          selectedItem,
+          selectValue as RawValue | AntdLabeledValue,
+          'value',
+        );
         setSelectValue(selectedItem);
+        if (valueChanged) {
+          fireOnChange();
+        }
       } else {
         setSelectValue(previousState => {
           const array = ensureIsArray(previousState);
@@ -237,8 +249,8 @@ const AsyncSelect = forwardRef(
           }
           return previousState;
         });
+        fireOnChange();
       }
-      fireOnChange();
       onSelect?.(selectedItem, option);
     };
 
@@ -554,6 +566,7 @@ const AsyncSelect = forwardRef(
           ...values,
         ]);
       }
+      fireOnChange();
     };
 
     const shouldRenderChildrenOptions = useMemo(

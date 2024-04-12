@@ -28,7 +28,7 @@ import {
 import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
 import { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import range from 'lodash/range';
+import { range } from 'lodash';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -48,11 +48,12 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getColtypesMapping } from '../utils/series';
 
-const setIntervalBoundsAndColors = (
+export const getIntervalBoundsAndColors = (
   intervals: string,
   intervalColorIndices: string,
   colorFn: CategoricalColorScale,
-  normalizer: number,
+  min: number,
+  max: number,
 ): Array<[number, string]> => {
   let intervalBoundsNonNormalized;
   let intervalColorIndicesArray;
@@ -65,7 +66,7 @@ const setIntervalBoundsAndColors = (
   }
 
   const intervalBounds = intervalBoundsNonNormalized.map(
-    bound => bound / normalizer,
+    bound => (bound - min) / (max - min),
   );
   const intervalColors = intervalColorIndicesArray.map(
     ind => colorFn.colors[(ind - 1) % colorFn.colors.length],
@@ -221,12 +222,12 @@ export default function transformProps(
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );
-  const normalizer = max;
-  const intervalBoundsAndColors = setIntervalBoundsAndColors(
+  const intervalBoundsAndColors = getIntervalBoundsAndColors(
     intervals,
     intervalColorIndices,
     colorFn,
-    normalizer,
+    min,
+    max,
   );
   const splitLineDistance =
     axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;

@@ -23,13 +23,15 @@ import { css, styled, usePrevious } from '@superset-ui/core';
 
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
+import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutButton';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import type { CursorPosition } from 'src/SqlLab/types';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
 type HotKey = {
-  key: string;
-  descr: string;
+  key: KeyboardShortcut;
+  descr?: string;
   name: string;
   func: (aceEditor: IAceEditor) => void;
 };
@@ -39,6 +41,7 @@ type AceEditorWrapperProps = {
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
   queryEditorId: string;
+  onCursorPositionChange: (position: CursorPosition) => void;
   height: string;
   hotkeys: HotKey[];
 };
@@ -48,7 +51,9 @@ const StyledAceEditor = styled(AceEditor)`
     && {
       // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};
-      font-feature-settings: 'liga' off, 'calt' off;
+      font-feature-settings:
+        'liga' off,
+        'calt' off;
 
       &.ace_autocomplete {
         // Use !important because Ace Editor applies extra CSS at the last second
@@ -68,6 +73,7 @@ const AceEditorWrapper = ({
   onBlur = () => {},
   onChange = () => {},
   queryEditorId,
+  onCursorPositionChange,
   height,
   hotkeys,
 }: AceEditorWrapperProps) => {
@@ -78,10 +84,11 @@ const AceEditorWrapper = ({
     'sql',
     'schema',
     'templateParams',
+    'cursorPosition',
   ]);
 
   const currentSql = queryEditor.sql ?? '';
-
+  const cursorPosition = queryEditor.cursorPosition ?? { row: 0, column: 0 };
   const [sql, setSql] = useState(currentSql);
 
   // The editor changeSelection is called multiple times in a row,
@@ -142,11 +149,22 @@ const AceEditorWrapper = ({
 
       currentSelectionCache.current = selectedText;
     });
+    editor.selection.on('changeCursor', () => {
+      const cursor = editor.getCursorPosition();
+      onCursorPositionChange(cursor);
+    });
+
+    const { row, column } = cursorPosition;
+    editor.moveCursorToPosition({ row, column });
+    editor.focus();
+    editor.scrollToLine(row, true, true);
   };
 
   const onChangeText = (text: string) => {
-    setSql(text);
-    onChange(text);
+    if (text !== sql) {
+      setSql(text);
+      onChange(text);
+    }
   };
 
   const { data: annotations } = useAnnotations({
