@@ -33,3 +33,5 @@ esm/
 lib/
 tmp/
 storybook-static/
+plugins/funnel-chart-plugin/*
+plugins/calendar-picker/*
