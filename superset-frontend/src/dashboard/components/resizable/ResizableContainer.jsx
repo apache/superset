@@ -198,6 +198,7 @@ const ResizableContainer = ({
   const scrollTimer = useRef(null);
   const initialScrollTop = useRef(0);
   const scrollDirection = useRef(null);
+  const prevScrollY = useRef(0);
 
   const handleScroll = mouseY => {
     if (mouseY < THRESHOLD * 2) {
@@ -219,7 +220,12 @@ const ResizableContainer = ({
 
     scrollTimer.current = setInterval(() => {
       if (scrollDirection.current) {
+        prevScrollY.current = window.scrollY;
         window.scrollBy(0, scrollDirection.current === 'down' ? 1 : -1);
+        const scrollDelta = window.scrollY - prevScrollY.current;
+        resizableRef.current.updateSize({
+          height: resizableRef.current.state.height + scrollDelta,
+        });
       }
     }, 1);
   };
@@ -229,10 +235,10 @@ const ResizableContainer = ({
       onResize({ id, direction, ref });
     }
     handleScroll(event.clientY);
-    const scrollDelta = window.scrollY - initialScrollTop.current;
-    resizableRef.current.updateSize({
-      height: resizableRef.current.state.height + scrollDelta,
-    });
+    // const scrollDelta = window.scrollY - initialScrollTop.current;
+    // resizableRef.current.updateSize({
+    //   height: resizableRef.current.state.height + scrollDelta,
+    // });
   };
 
   const handleResizeStop = (event, direction, ref, delta) => {
