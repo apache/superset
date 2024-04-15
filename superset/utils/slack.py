@@ -33,12 +33,6 @@ def get_slack_client() -> WebClient:
 
 def get_user_avatar(email: str, client: WebClient = None) -> str:
     client = client or get_slack_client()
-    print("HEREHREHRHEHRHR")
-    print("HEREHREHRHEHRHR")
-    print("HEREHREHRHEHRHR")
-    print("HEREHREHRHEHRHR")
-    print("HEREHREHRHEHRHR")
-    print("HEREHREHRHEHRHR")
     try:
         response = client.users_lookupByEmail(email=email)
     except Exception as ex:
