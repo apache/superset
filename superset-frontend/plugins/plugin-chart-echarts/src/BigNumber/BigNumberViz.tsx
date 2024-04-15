@@ -140,11 +140,8 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     let numberColor;
     if (hasThresholdColorFormatter) {
       colorThresholdFormatters!.forEach(formatter => {
-        const formatterResult = bigNumber
-          ? formatter.getColorFromValue(bigNumber as number)
-          : false;
-        if (formatterResult) {
-          numberColor = formatterResult;
+        if (typeof bigNumber === 'number' && !isNaN(bigNumber)) {
+          numberColor = formatter.getColorFromValue(bigNumber);
         }
       });
     } else {
