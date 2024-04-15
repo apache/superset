@@ -22,22 +22,23 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Operators } from '../constants';
-interface Dashboard {
+export interface Dashboard {
   title: string;
   new?: boolean;
 }
 
-interface Slice {
+export interface Slice {
   slice_id: number;
   owners: string[];
   form_data: FormData;
 }
 
-interface FormData {
+export interface FormData {
   datasource: string;
   viz_type: string;
   adhoc_filters?: AdhocFilter[];
-  [key: string]: string | number | AdhocFilter[] | undefined;
+  dashboards?: number[];
+  [key: string]: string | number | number[] | AdhocFilter[] | undefined;
 }
 
 interface AdhocFilter {
@@ -88,13 +89,13 @@ export function saveSliceSuccess(data: any) {
 }
 
 function extractAdhocFiltersFromFormData(formDataToHandle: FormData): Partial<FormData> {
-  return Object.entries(formDataToHandle).reduce<Partial<FormData>>((acc, [key, value]) => {
+  const result: Partial<FormData> = {};
+  Object.entries(formDataToHandle).forEach(([key, value]) => {
     if (ADHOC_FILTER_REGEX.test(key) && Array.isArray(value)) {
-      const filteredFilters = value.filter((f: AdhocFilter) => !f.isExtra);
-      return { ...acc, [key]: filteredFilters };
+      result[key] = (value as AdhocFilter[]).filter((f: AdhocFilter) => !f.isExtra);
     }
-    return acc;
-  }, {});
+  });
+  return result;
 }
 
 const hasTemporalRangeFilter = (formData: Partial<FormData>): boolean =>
@@ -167,7 +168,7 @@ export const getSlicePayload = (
 
   return payload;
 }
-const addToasts = (isNewSlice: boolean, sliceName: string, addedToDashboard: Dashboard) => {
+const addToasts = (isNewSlice: boolean, sliceName: string, addedToDashboard?: Dashboard) => {
   const toasts = [];
   if (isNewSlice) {
     toasts.push(addSuccessToast(t('Chart [%s] has been saved', sliceName)));
@@ -188,7 +189,7 @@ const addToasts = (isNewSlice: boolean, sliceName: string, addedToDashboard: Das
   return toasts;
 };
 
-export const updateSlice = (slice: Slice, sliceName: string, dashboards: number[], addedToDashboard: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
+export const updateSlice = (slice: Slice, sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
   const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
   const { explore: { form_data: { url_params: _, ...formData } } } = getState();
   try {
@@ -206,7 +207,7 @@ export const updateSlice = (slice: Slice, sliceName: string, dashboards: number[
   }
 };
 
-export const createSlice = (sliceName: string, dashboards: number[], addedToDashboard: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
+export const createSlice = (sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
   const { explore: { form_data: { url_params: _, ...formData } } } = getState();
   try {
     const response = await SupersetClient.post({
