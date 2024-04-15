@@ -547,6 +547,9 @@ const AsyncSelect = forwardRef(
               data.find(item => item.label === text),
           );
         }
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
         const value: AntdLabeledValue = {
           label: text,
           value: text,
@@ -557,19 +560,22 @@ const AsyncSelect = forwardRef(
         }
         return value;
       },
-      [allValuesLoaded, fullSelectOptions, options, pageSize],
+      [allValuesLoaded, allowNewOptions, fullSelectOptions, options, pageSize],
     );
 
     const onPaste = async (e: ClipboardEvent<HTMLInputElement>) => {
       const pastedText = e.clipboardData.getData('text');
       if (isSingleMode) {
-        setSelectValue(await getPastedTextValue(pastedText));
+        const value = await getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
         const array = token ? uniq(pastedText.split(token)) : [pastedText];
-        const values = await Promise.all(
-          array.map(item => getPastedTextValue(item)),
-        );
+        const values = (
+          await Promise.all(array.map(item => getPastedTextValue(item)))
+        ).filter(item => item !== undefined) as AntdLabeledValue[];
         setSelectValue(previous => [
           ...((previous || []) as AntdLabeledValue[]),
           ...values.filter(value => !hasOption(value.value, previous)),
