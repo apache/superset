@@ -55,10 +55,10 @@ services:
 
   db:
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -70,10 +70,10 @@ services:
 
   superset:
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     build:
       <<: *common-build
     container_name: superset_app
@@ -125,10 +125,10 @@ services:
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
@@ -146,10 +146,10 @@ services:
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -159,10 +159,10 @@ services:
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -181,10 +181,10 @@ services:
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -198,10 +198,10 @@ services:
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
-      # defaults
-      - docker/.env
-      # gitignored overrides
-      - docker/.env-local
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     environment:
       DATABASE_HOST: localhost
       DATABASE_DB: test
