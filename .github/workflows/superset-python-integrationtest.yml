@@ -29,19 +29,21 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 13306:3306
-        # options bellow added to try and address flaky tests
         options: >-
           --health-cmd="mysqladmin ping --silent"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-          --transaction-isolation=READ-COMMITTED
       redis:
         image: redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
     steps:
+      - name: Set MySQL Isolation Level
+        run: |
+          echo "Setting MySQL isolation level..."
+          mysql -uroot -proot -h127.0.0.1 -P13306 -e "SET GLOBAL transaction_isolation='READ-COMMITTED';"
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
