@@ -40,10 +40,6 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Set MySQL Isolation Level
-        run: |
-          echo "Setting MySQL isolation level..."
-          mysql -uroot -proot -h127.0.0.1 -P13306 -e "SET GLOBAL transaction_isolation='READ-COMMITTED';"
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
         with:
