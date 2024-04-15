@@ -928,7 +928,14 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     ],
     totalCount: 3,
   }));
-  render(<AsyncSelect {...defaultProps} options={options} mode="multiple" />);
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
   await open();
   const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
@@ -941,6 +948,25 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     // Only Peter should be added
     expect(await findAllSelectOptions()).toHaveLength(4),
   );
+});
+
+test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions={false}
+      options={async () => ({ data: [], totalCount: 0 })}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-selection-search-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'John',
+    },
+  });
+  await waitFor(() => fireEvent(input, paste));
+  expect(await findAllSelectOptions()).toHaveLength(0);
 });
 
 test('onChange is called with the value property when pasting an option that was not loaded yet', async () => {
