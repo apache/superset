@@ -542,13 +542,15 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
-    const { label, description } = section;
+    const { controls } = props || {};
+    const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
     // should probably add a `id` field to sections in the future.
     const sectionId = String(label);
+
+    const isVisible = visibility ? visibility.call(section, props) : true;
 
     const hasErrors = section.controlSetRows.some(rows =>
       rows.some(item => {
@@ -606,7 +608,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
-    return (
+    return isVisible ? (
       <Collapse.Panel
         css={theme => css`
           margin-bottom: 0;
@@ -668,7 +670,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           );
         })}
       </Collapse.Panel>
-    );
+    ) : null;
   };
 
   const hasControlsTransferred =

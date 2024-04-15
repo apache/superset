@@ -44,6 +44,7 @@ import {
   ColumnMeta,
   defineSavedMetrics,
   getStandardizedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 
 import { PAGE_SIZE_OPTIONS } from './consts';
@@ -530,6 +531,22 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
+    },
+    {
+      ...sections.timeComparisonControls,
+      controlSetRows: [
+        ...sections.timeComparisonControls.controlSetRows,
+        [
+          {
+            name: 'comparison_range_label',
+            config: {
+              type: 'ComparisonRangeLabel',
+              multi: false,
+            },
+          },
+        ],
+      ],
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

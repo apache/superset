@@ -28,6 +28,11 @@ import {
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+import {
+  isTimeComparison,
+  timeCompareOperator,
+} from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 
@@ -69,9 +74,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     };
   }
 
+  const addComparisonPercentMetrics = (metrics: string[], suffixes: string[]) =>
+    metrics.reduce<string[]>((acc, metric) => {
+      const newMetrics = suffixes.map(suffix => `${metric}__${suffix}`);
+      return acc.concat([metric, ...newMetrics]);
+    }, []);
+
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    const timeOffsets = isTimeComparison(formData, baseQueryObject)
+      ? formData.time_compare
+      : [];
+    const timeCompareGrainSqla = formData.time_comparison_grain_sqla;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -85,8 +100,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
+        const percentMetricsLabelsWithTimeComparison = isTimeComparison(
+          formData,
+          baseQueryObject,
+        )
+          ? addComparisonPercentMetrics(
+              percentMetrics.map(getMetricLabel),
+              timeOffsets,
+            )
+          : percentMetrics.map(getMetricLabel);
         const percentMetricLabels = removeDuplicates(
-          percentMetrics.map(getMetricLabel),
+          percentMetricsLabelsWithTimeComparison,
         );
         metrics = removeDuplicates(
           metrics.concat(percentMetrics),
@@ -102,13 +126,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           },
         ];
       }
+      // Add the operator for the time comparison if some is selected
+      if (!isEmpty(timeOffsets)) {
+        postProcessing.push(timeCompareOperator(formData, baseQueryObject));
+      }
 
+      let temporalColumAdded = false;
       columns = columns.map(col => {
         if (
           isPhysicalColumn(col) &&
           time_grain_sqla &&
           formData?.temporal_columns_lookup?.[col]
         ) {
+          temporalColumAdded = true;
           return {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
@@ -119,6 +149,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         }
         return col;
       });
+
+      if (!temporalColumAdded && !isEmpty(timeOffsets)) {
+        columns = [
+          {
+            timeGrain: timeCompareGrainSqla || 'P1Y', // Group by year by default
+            columnType: 'BASE_AXIS',
+            sqlExpression: baseQueryObject.filters?.[0]?.col.toString() || '',
+            label: baseQueryObject.filters?.[0]?.col.toString() || '',
+            expressionType: 'SQL',
+          } as AdhocColumn,
+          ...columns,
+        ];
+      }
     }
 
     const moreProps: Partial<QueryObject> = {};
@@ -136,6 +179,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       orderby,
       metrics,
       post_processing: postProcessing,
+      time_offsets: timeOffsets,
       ...moreProps,
     };
 
