@@ -34,10 +34,7 @@ services:
 
   db:
     env_file:
-      # defaults
       - docker/.env
-      # gitignored overrides
-      - docker/.env-local
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -47,10 +44,7 @@ services:
 
   superset:
     env_file:
-      # defaults
       - docker/.env
-      # gitignored overrides
-      - docker/.env-local
     image: *superset-image
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app-gunicorn"]
@@ -66,10 +60,7 @@ services:
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
-      # defaults
       - docker/.env
-      # gitignored overrides
-      - docker/.env-local
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
@@ -81,10 +72,7 @@ services:
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
-      # defaults
       - docker/.env
-      # gitignored overrides
-      - docker/.env-local
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: "root"
@@ -101,10 +89,7 @@ services:
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
-      # defaults
       - docker/.env
-      # gitignored overrides
-      - docker/.env-local
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: "root"
