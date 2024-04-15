@@ -14,32 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import csv
-from datetime import datetime
-from io import BytesIO, StringIO
-
-import pytest
-
-
-@pytest.fixture
-def dttm() -> datetime:
-    return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-
-
-def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
-    data = (
-        [
-            ["Name", "Age", "City"],
-            ["John", "30", "New York"],
-        ]
-        if not data
-        else data
-    )
-
-    output = StringIO()
-    writer = csv.writer(output)
-    for row in data:
-        writer.writerow(row)
-    output.seek(0)
-    bytes_buffer = BytesIO(output.getvalue().encode("utf-8"))
-    return bytes_buffer

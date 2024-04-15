@@ -1323,6 +1323,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_menu("Upload a CSV", perm_set)
         self.assert_cannot_menu("ReportSchedule", perm_set)
         self.assert_cannot_menu("Alerts & Report", perm_set)
+        self.assertNotIn(("can_csv_upload", "Database"), perm_set)
 
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("Dataset", perm_set)
@@ -1351,8 +1352,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
         self.assert_can_read("Database", perm_set)
-        self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
-        self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)
+        self.assertIn(("can_csv_upload", "Database"), perm_set)
         self.assert_can_menu("Manage", perm_set)
         self.assert_can_menu("Annotation Layers", perm_set)
         self.assert_can_menu("CSS Templates", perm_set)

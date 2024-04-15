@@ -491,9 +491,6 @@ class TestCore(SupersetTestCase):
         add_datasource_page = self.get_resp("/databaseview/list/")
         self.assertIn("Upload a CSV", add_datasource_page)
 
-        form_get = self.get_resp("/csvtodatabaseview/form")
-        self.assertIn("CSV to Database configuration", form_get)
-
     def test_dataframe_timezone(self):
         tz = pytz.FixedOffset(60)
         data = [
