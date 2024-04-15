@@ -24,8 +24,10 @@ import {
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
-const ADMIN_ROLE_NAME = window.adminRole;
+const bootstrapData = getBootstrapData();
+const ADMIN_ROLE_NAME = bootstrapData.common.conf.AUTH_ROLE_ADMIN;
 
 export const isUserAdmin = (
   user?: UserWithPermissionsAndRoles | UndefinedUser,
