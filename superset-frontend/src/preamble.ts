@@ -52,11 +52,6 @@ if (typeof window !== 'undefined') {
 // Configure feature flags
 initFeatureFlags(bootstrapData.common.feature_flags);
 
-// Set admin role
-if (window.adminRole !== bootstrapData.common.conf.AUTH_ROLE_ADMIN) {
-  window.adminRole = bootstrapData.common.conf.AUTH_ROLE_ADMIN;
-}
-
 // Setup SupersetClient
 setupClient();
 
