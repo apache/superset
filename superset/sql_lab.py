@@ -419,7 +419,6 @@ def execute_sql_statements(
     # Breaking down into multiple statements
     parsed_query = ParsedQuery(
         rendered_query,
-        strip_comments=True,
         engine=db_engine_spec.engine,
     )
     if not db_engine_spec.run_multiple_statements_as_one:
@@ -645,7 +644,7 @@ def cancel_query(query: Query) -> bool:
     if cancel_query_id is None:
         return False
 
-    with query.database.get_sqla_engine_with_context(
+    with query.database.get_sqla_engine(
         query.schema, source=QuerySource.SQL_LAB
     ) as engine:
         with closing(engine.raw_connection()) as conn:

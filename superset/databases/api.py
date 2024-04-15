@@ -64,7 +64,7 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.database import DatabaseDAO, DatabaseUserOAuth2TokensDAO
-from superset.databases.decorators import check_datasource_access
+from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     CSVUploadPostSchema,
@@ -698,7 +698,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/table/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -761,7 +761,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -824,7 +824,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
     @expose("/<int:pk>/select_star/<path:table_name>/<schema_name>/", methods=("GET",))
     @protect()
-    @check_datasource_access
+    @check_table_access
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1119,9 +1119,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if database is None:
             return self.response_404()
 
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
+
         token_response = database.db_engine_spec.get_oauth2_token(
+            oauth2_config,
             parameters["code"],
-            state,
         )
 
         # delete old tokens

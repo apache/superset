@@ -35,14 +35,14 @@ from superset.tasks.types import ExecutorType
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverSelenium
+from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
-
-from .base_tests import SupersetTestCase
 
 CHART_URL = "/api/v1/chart/"
 DASHBOARD_URL = "/api/v1/dashboard/"
@@ -214,7 +214,7 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Dashboard thumbnail disabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
@@ -225,7 +225,7 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Chart thumbnail disabled
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
         rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
@@ -236,7 +236,7 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
-        self.login(username="alpha")
+        self.login(ALPHA_USERNAME)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
@@ -261,7 +261,7 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async dashboard screenshot as current user
         """
         username = "alpha"
-        self.login(username=username)
+        self.login(username)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
@@ -286,7 +286,7 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async dashboard not found
         """
         max_id = db.session.query(func.max(Dashboard.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -297,7 +297,7 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get async dashboard not allowed
         """
-        self.login(username="gamma")
+        self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
@@ -308,7 +308,7 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get async chart screenshot as selenium user
         """
-        self.login(username="alpha")
+        self.login(ADMIN_USERNAME)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
@@ -333,7 +333,7 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async chart screenshot as current user
         """
         username = "alpha"
-        self.login(username=username)
+        self.login(username)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
@@ -358,7 +358,7 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get async chart not found
         """
         max_id = db.session.query(func.max(Slice.id)).scalar()
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/chart/{max_id + 1}/thumbnail/1234/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
@@ -372,7 +372,7 @@ class TestThumbnails(SupersetTestCase):
         with patch.object(
             ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(f"api/v1/chart/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)
@@ -387,7 +387,7 @@ class TestThumbnails(SupersetTestCase):
         with patch.object(
             DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 200)
@@ -402,7 +402,7 @@ class TestThumbnails(SupersetTestCase):
         with patch.object(
             ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 200)
@@ -417,7 +417,7 @@ class TestThumbnails(SupersetTestCase):
         with patch.object(
             DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
-            self.login(username="admin")
+            self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(f"api/v1/dashboard/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)

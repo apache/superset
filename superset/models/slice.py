@@ -172,20 +172,17 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @renders("datasource_name")
     def datasource_link(self) -> Markup | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.link if datasource else None
 
     @renders("datasource_url")
     def datasource_url(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             return self.table.explore_url
         datasource = self.datasource
         return datasource.explore_url if datasource else None
 
     def datasource_name_text(self) -> str | None:
-        # pylint: disable=no-member
         if self.table:
             if self.table.schema:
                 return f"{self.table.schema}.{self.table.table_name}"
@@ -198,7 +195,6 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        # pylint: disable=no-member
         datasource = self.datasource
         return datasource.url if datasource else None
 

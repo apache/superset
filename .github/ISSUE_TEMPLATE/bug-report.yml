@@ -45,8 +45,8 @@ body:
       label: Superset version
       options:
         - master / latest-dev
+        - "4.0.0"
         - "3.1.2"
-        - "3.0.4"
     validations:
       required: true
   - type: dropdown
@@ -54,6 +54,7 @@ body:
     attributes:
       label: Python version
       options:
+        - "3.9"
         - "3.10"
         - "3.11"
         - Not applicable

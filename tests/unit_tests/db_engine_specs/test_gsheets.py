@@ -29,6 +29,7 @@ from sqlalchemy.engine.url import make_url
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table
+from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import decode_oauth2_state
 
 if TYPE_CHECKING:
@@ -450,8 +451,8 @@ def test_is_oauth2_enabled_no_config(mocker: MockFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.gsheets.current_app.config",
-        new={"DATABASE_OAUTH2_CREDENTIALS": {}},
+        "superset.db_engine_specs.base.current_app.config",
+        new={"DATABASE_OAUTH2_CLIENTS": {}},
     )
 
     assert GSheetsEngineSpec.is_oauth2_enabled() is False
@@ -464,12 +465,12 @@ def test_is_oauth2_enabled_config(mocker: MockFixture) -> None:
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     mocker.patch(
-        "superset.db_engine_specs.gsheets.current_app.config",
+        "superset.db_engine_specs.base.current_app.config",
         new={
-            "DATABASE_OAUTH2_CREDENTIALS": {
+            "DATABASE_OAUTH2_CLIENTS": {
                 "Google Sheets": {
-                    "CLIENT_ID": "XXX.apps.googleusercontent.com",
-                    "CLIENT_SECRET": "GOCSPX-YYY",
+                    "id": "XXX.apps.googleusercontent.com",
+                    "secret": "GOCSPX-YYY",
                 },
             }
         },
@@ -478,25 +479,35 @@ def test_is_oauth2_enabled_config(mocker: MockFixture) -> None:
     assert GSheetsEngineSpec.is_oauth2_enabled() is True
 
 
-def test_get_oauth2_authorization_uri(mocker: MockFixture) -> None:
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for GSheets OAuth2.
+    """
+    return {
+        "id": "XXX.apps.googleusercontent.com",
+        "secret": "GOCSPX-YYY",
+        "scope": " ".join(
+            [
+                "https://www.googleapis.com/auth/drive.readonly "
+                "https://www.googleapis.com/auth/spreadsheets "
+                "https://spreadsheets.google.com/feeds"
+            ]
+        ),
+        "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token_request_uri": "https://oauth2.googleapis.com/token",
+    }
+
+
+def test_get_oauth2_authorization_uri(
+    mocker: MockFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
     """
     Test `get_oauth2_authorization_uri`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.current_app.config",
-        new={
-            "DATABASE_OAUTH2_CREDENTIALS": {
-                "Google Sheets": {
-                    "CLIENT_ID": "XXX.apps.googleusercontent.com",
-                    "CLIENT_SECRET": "GOCSPX-YYY",
-                },
-            },
-            "SECRET_KEY": "not-a-secret",
-            "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
-        },
-    )
 
     state: OAuth2State = {
         "database_id": 1,
@@ -505,7 +516,7 @@ def test_get_oauth2_authorization_uri(mocker: MockFixture) -> None:
         "tab_id": "1234",
     }
 
-    url = GSheetsEngineSpec.get_oauth2_authorization_uri(state)
+    url = GSheetsEngineSpec.get_oauth2_authorization_uri(oauth2_config, state)
     parsed = urlparse(url)
     assert parsed.netloc == "accounts.google.com"
     assert parsed.path == "/o/oauth2/v2/auth"
@@ -520,109 +531,76 @@ def test_get_oauth2_authorization_uri(mocker: MockFixture) -> None:
     assert decode_oauth2_state(encoded_state) == state
 
 
-def test_get_oauth2_token(mocker: MockFixture) -> None:
+def test_get_oauth2_token(
+    mocker: MockFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
     """
     Test `get_oauth2_token`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    http = mocker.patch("superset.db_engine_specs.gsheets.http")
-    http.request().data.decode.return_value = json.dumps(
-        {
-            "access_token": "access-token",
-            "expires_in": 3600,
-            "scope": "scope",
-            "token_type": "Bearer",
-            "refresh_token": "refresh-token",
-        }
-    )
-
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.current_app.config",
-        new={
-            "DATABASE_OAUTH2_CREDENTIALS": {
-                "Google Sheets": {
-                    "CLIENT_ID": "XXX.apps.googleusercontent.com",
-                    "CLIENT_SECRET": "GOCSPX-YYY",
-                },
-            },
-            "SECRET_KEY": "not-a-secret",
-            "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
-        },
-    )
-
-    state: OAuth2State = {
-        "database_id": 1,
-        "user_id": 1,
-        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
-        "tab_id": "1234",
-    }
-
-    assert GSheetsEngineSpec.get_oauth2_token("code", state) == {
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
         "scope": "scope",
         "token_type": "Bearer",
         "refresh_token": "refresh-token",
     }
-    http.request.assert_called_with(
-        "POST",
+
+    assert GSheetsEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
         "https://oauth2.googleapis.com/token",
-        fields={
+        json={
             "code": "code",
             "client_id": "XXX.apps.googleusercontent.com",
             "client_secret": "GOCSPX-YYY",
             "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
             "grant_type": "authorization_code",
         },
+        timeout=30.0,
     )
 
 
-def test_get_oauth2_fresh_token(mocker: MockFixture) -> None:
+def test_get_oauth2_fresh_token(
+    mocker: MockFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
     """
     Test `get_oauth2_token`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    http = mocker.patch("superset.db_engine_specs.gsheets.http")
-    http.request().data.decode.return_value = json.dumps(
-        {
-            "access_token": "access-token",
-            "expires_in": 3600,
-            "scope": "scope",
-            "token_type": "Bearer",
-            "refresh_token": "refresh-token",
-        }
-    )
-
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.current_app.config",
-        new={
-            "DATABASE_OAUTH2_CREDENTIALS": {
-                "Google Sheets": {
-                    "CLIENT_ID": "XXX.apps.googleusercontent.com",
-                    "CLIENT_SECRET": "GOCSPX-YYY",
-                },
-            },
-            "SECRET_KEY": "not-a-secret",
-            "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
-        },
-    )
-
-    assert GSheetsEngineSpec.get_oauth2_fresh_token("refresh-token") == {
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
         "scope": "scope",
         "token_type": "Bearer",
         "refresh_token": "refresh-token",
     }
-    http.request.assert_called_with(
-        "POST",
+
+    assert GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
         "https://oauth2.googleapis.com/token",
-        fields={
+        json={
             "client_id": "XXX.apps.googleusercontent.com",
             "client_secret": "GOCSPX-YYY",
             "refresh_token": "refresh-token",
             "grant_type": "refresh_token",
         },
+        timeout=30.0,
     )

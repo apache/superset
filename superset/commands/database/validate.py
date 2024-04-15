@@ -102,7 +102,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
         alive = False
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             try:
                 with closing(engine.raw_connection()) as conn:
                     alive = engine.dialect.do_ping(conn)

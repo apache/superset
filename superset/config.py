@@ -43,7 +43,7 @@ from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from flask_caching.backends.base import BaseCache
 from pandas import Series
-from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm.query import Query
 
@@ -435,6 +435,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
+    "ALERT_REPORT_TABS": False,
     "DASHBOARD_RBAC": False,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
@@ -1409,12 +1410,20 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
 # Details needed for databases that allows user to authenticate using personal
 # OAuth2 tokens. See https://github.com/apache/superset/issues/20300 for more
-# information
-DATABASE_OAUTH2_CREDENTIALS: dict[str, dict[str, Any]] = {
+# information. The scope and URIs are optional.
+DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # "Google Sheets": {
-    #    "CLIENT_ID": "XXX.apps.googleusercontent.com",
-    #    "CLIENT_SECRET": "GOCSPX-YYY",
-    #    "BASEURL": "https://accounts.google.com/o/oauth2/v2/auth",
+    #     "id": "XXX.apps.googleusercontent.com",
+    #     "secret": "GOCSPX-YYY",
+    #     "scope": " ".join(
+    #         [
+    #             "https://www.googleapis.com/auth/drive.readonly",
+    #             "https://www.googleapis.com/auth/spreadsheets",
+    #             "https://spreadsheets.google.com/feeds",
+    #         ]
+    #     ),
+    #     "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+    #     "token_request_uri": "https://oauth2.googleapis.com/token",
     # },
 }
 # OAuth2 state is encoded in a JWT using the alogorithm below.
@@ -1425,6 +1434,8 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 # applications. In that case, the proxy can forward the request to the correct instance
 # by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
 # DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+# Timeout when fetching access and refresh tokens.
+DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True

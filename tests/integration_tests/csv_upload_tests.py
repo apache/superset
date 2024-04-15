@@ -71,7 +71,7 @@ def _setup_csv_upload():
     yield
 
     upload_db = get_upload_db()
-    with upload_db.get_sqla_engine_with_context() as engine:
+    with upload_db.get_sqla_engine() as engine:
         engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
@@ -251,7 +251,7 @@ def test_import_excel(mock_event_logger):
         table=EXCEL_UPLOAD_TABLE,
     )
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()
@@ -317,7 +317,7 @@ def test_import_parquet(mock_event_logger):
     )
     assert success_msg_f1 in resp
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()
@@ -330,7 +330,7 @@ def test_import_parquet(mock_event_logger):
     success_msg_f2 = f"Columnar file {escaped_parquet(ZIP_FILENAME)} uploaded to table {escaped_double_quotes(full_table_name)}"
     assert success_msg_f2 in resp
 
-    with test_db.get_sqla_engine_with_context() as engine:
+    with test_db.get_sqla_engine() as engine:
         data = engine.execute(
             f"SELECT * from {PARQUET_UPLOAD_TABLE} ORDER BY b"
         ).fetchall()

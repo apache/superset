@@ -54,7 +54,11 @@ services:
       - redis:/data
 
   db:
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -65,7 +69,11 @@ services:
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     build:
       <<: *common-build
     container_name: superset_app
@@ -116,7 +124,11 @@ services:
       <<: *common-build
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
@@ -130,12 +142,14 @@ services:
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
-      BUILD_SUPERSET_FRONTEND_IN_DOCKER: ${BUILD_SUPERSET_FRONTEND_IN_DOCKER:-true}
       SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
-      PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: ${BUILD_SUPERSET_FRONTEND_IN_DOCKER:-false}
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
@@ -144,7 +158,11 @@ services:
       <<: *common-build
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -162,7 +180,11 @@ services:
       <<: *common-build
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -175,7 +197,11 @@ services:
       <<: *common-build
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: docker/.env
+    env_file:
+      # defaults
+      - docker/.env
+      # gitignored overrides
+      - docker/.env-local
     environment:
       DATABASE_HOST: localhost
       DATABASE_DB: test

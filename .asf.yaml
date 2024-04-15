@@ -67,15 +67,16 @@ github:
           - cypress-matrix (2, chrome)
           - cypress-matrix (3, chrome)
           - frontend-build
-          - pre-commit (3.10)
-          - python-lint (3.10)
-          - test-mysql (3.10)
-          - test-postgres (3.10)
-          - test-postgres (3.11)
-          - test-postgres-hive (3.10)
-          - test-postgres-presto (3.10)
-          - test-sqlite (3.10)
-          - unit-tests (3.10)
+          - pre-commit
+          - python-lint
+          - test-mysql
+          - test-postgres (current)
+          - test-postgres (next)
+          - test-postgres-hive
+          - test-postgres-presto
+          - test-sqlite
+          - unit-tests (current)
+          - unit-tests (next)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

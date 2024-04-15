@@ -113,7 +113,7 @@ def drop_table_if_exists(table_name: str, table_type: CtasMethod) -> None:
     """Drop table if it exists, works on any DB"""
     sql = f"DROP {table_type} IF EXISTS {table_name}"
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         engine.execute(sql)
 
 

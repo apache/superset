@@ -239,3 +239,32 @@ export type Slice = {
   owners: { id: number }[];
   created_by: { id: number };
 };
+
+export enum MenuKeys {
+  DownloadAsImage = 'download_as_image',
+  ExploreChart = 'explore_chart',
+  ExportCsv = 'export_csv',
+  ExportFullCsv = 'export_full_csv',
+  ExportXlsx = 'export_xlsx',
+  ExportFullXlsx = 'export_full_xlsx',
+  ForceRefresh = 'force_refresh',
+  Fullscreen = 'fullscreen',
+  ToggleChartDescription = 'toggle_chart_description',
+  ViewQuery = 'view_query',
+  ViewResults = 'view_results',
+  DrillToDetail = 'drill_to_detail',
+  CrossFilterScoping = 'cross_filter_scoping',
+  Share = 'share',
+  ShareByEmail = 'share_by_email',
+  CopyLink = 'copy_link',
+  Download = 'download',
+  SaveModal = 'save_modal',
+  RefreshDashboard = 'refresh_dashboard',
+  AutorefreshModal = 'autorefresh_modal',
+  SetFilterMapping = 'set_filter_mapping',
+  EditProperties = 'edit_properties',
+  EditCss = 'edit_css',
+  ToggleFullscreen = 'toggle_fullscreen',
+  ManageEmbedded = 'manage_embedded',
+  ManageEmailReports = 'manage_email_reports',
+}

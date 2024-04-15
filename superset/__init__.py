@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Package's main module!"""
+
 from flask import current_app, Flask
 from werkzeug.local import LocalProxy
 
