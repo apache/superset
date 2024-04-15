@@ -136,6 +136,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+  isUsingTimeComparison?: boolean;
 }
 
 export default {};

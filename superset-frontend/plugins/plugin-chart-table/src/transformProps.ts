@@ -468,6 +468,7 @@ const transformProps = (
     allowRearrangeColumns,
     allowRenderHtml,
     onContextMenu,
+    isUsingTimeComparison,
   };
 };
 

@@ -242,6 +242,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     allowRenderHtml = true,
     onContextMenu,
     emitCrossFilters,
+    isUsingTimeComparison,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -363,11 +364,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
     const { isNumeric, config = {} } = column;
-    const textAlign = config.horizontalAlign
-      ? config.horizontalAlign
-      : isNumeric
-        ? 'right'
-        : 'left';
+    const textAlign =
+      config.horizontalAlign ||
+      (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
     return {
       textAlign,
     };
