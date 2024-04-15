@@ -29,6 +29,13 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 13306:3306
+        # options bellow added to try and address flaky tests
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --transaction-isolation=READ-COMMITTED
       redis:
         image: redis:7-alpine
         options: --entrypoint redis-server
