@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+      - test-branch
 
 jobs:
   gitleaks:
@@ -16,6 +17,11 @@ jobs:
         with:
           path: featureBranchFolder
         continue-on-error: true
+
+      - name: check aws identity
+        id: test_branch
+        run: |
+          aws sts get-caller-identity
 
       - name: Get Default Branch Name
         id: default_branch
