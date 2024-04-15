@@ -23,6 +23,7 @@ import { isEmpty, isEqual } from 'lodash';
 import {
   BinaryAdhocFilter,
   css,
+  ensureIsArray,
   fetchTimeRange,
   SimpleAdhocFilter,
   t,
@@ -65,7 +66,7 @@ export const ComparisonRangeLabel = ({
         fetchTimeRange(
           filter.comparator,
           filter.subject,
-          multi ? shifts : shifts.slice(0, 1),
+          multi ? shifts : ensureIsArray(shifts).slice(0, 1),
         ),
       );
       Promise.all(promises).then(res => {

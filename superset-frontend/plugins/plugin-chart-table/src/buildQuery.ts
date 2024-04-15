@@ -83,9 +83,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
-    const timeOffsets = isTimeComparison(formData, baseQueryObject)
-      ? formData.time_compare
-      : [];
+    const timeOffsets = ensureIsArray(
+      isTimeComparison(formData, baseQueryObject) ? formData.time_compare : [],
+    );
     const timeCompareGrainSqla = formData.time_comparison_grain_sqla;
 
     if (queryMode === QueryMode.Aggregate) {
@@ -131,24 +131,35 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         postProcessing.push(timeCompareOperator(formData, baseQueryObject));
       }
 
+      const temporalColumnsLookup = formData?.temporal_columns_lookup;
+      // Filter out the column if needed and prepare the temporal column object
       let temporalColumAdded = false;
-      columns = columns.map(col => {
-        if (
+      let temporalColum = null;
+
+      columns = columns.filter(col => {
+        const shouldBeAdded =
           isPhysicalColumn(col) &&
           time_grain_sqla &&
-          formData?.temporal_columns_lookup?.[col]
-        ) {
-          temporalColumAdded = true;
-          return {
+          temporalColumnsLookup?.[col];
+
+        if (shouldBeAdded && !temporalColumAdded) {
+          temporalColum = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
           } as AdhocColumn;
+          temporalColumAdded = true;
+          return false; // Do not include this in the output; it's added separately
         }
-        return col;
+        return true;
       });
+
+      // So we ensure the temporal column is added first
+      if (temporalColum) {
+        columns = [temporalColum, ...columns];
+      }
 
       if (!temporalColumAdded && !isEmpty(timeOffsets)) {
         columns = [
@@ -209,7 +220,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       extraQueries.push({
         ...queryObject,
-        columns: [],
+        columns: !isEmpty(timeOffsets)
+          ? [
+              {
+                timeGrain: timeCompareGrainSqla || 'P1Y', // Group by year by default
+                columnType: 'BASE_AXIS',
+                sqlExpression:
+                  baseQueryObject.filters?.[0]?.col.toString() || '',
+                label: baseQueryObject.filters?.[0]?.col.toString() || '',
+                expressionType: 'SQL',
+              } as AdhocColumn,
+            ]
+          : [],
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
@@ -230,6 +252,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         { ...queryObject },
         {
           ...queryObject,
+          time_offsets: [],
           row_limit: 0,
           row_offset: 0,
           post_processing: [],

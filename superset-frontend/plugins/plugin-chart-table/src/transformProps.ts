@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import {
   CurrencyFormatter,
   DataRecord,
+  ensureIsArray,
   extractTimegrain,
   GenericDataType,
   getMetricLabel,
@@ -29,6 +30,7 @@ import {
   NumberFormats,
   QueryMode,
   smartDateFormatter,
+  t,
   TimeFormats,
   TimeFormatter,
 } from '@superset-ui/core';
@@ -37,6 +39,7 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
+import { isEmpty } from 'lodash';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
@@ -80,6 +83,103 @@ const processDataRecords = memoizeOne(function processDataRecords(
   }
   return data;
 });
+
+const calculateDifferences = (
+  originalValue: number,
+  comparisonValue: number,
+) => {
+  const valueDifference = originalValue - comparisonValue;
+  let percentDifferenceNum;
+  if (!originalValue && !comparisonValue) {
+    percentDifferenceNum = 0;
+  } else if (!originalValue || !comparisonValue) {
+    percentDifferenceNum = originalValue ? 1 : -1;
+  } else {
+    percentDifferenceNum =
+      (originalValue - comparisonValue) / Math.abs(comparisonValue);
+  }
+  return { valueDifference, percentDifferenceNum };
+};
+
+const processComparisonTotals = (
+  comparisonSuffix: string,
+  totals?: DataRecord[],
+): DataRecord | undefined => {
+  if (!totals) {
+    return totals;
+  }
+  const transformedTotals: DataRecord = {};
+  totals.map((totalRecord: DataRecord) =>
+    Object.keys(totalRecord).forEach(key => {
+      if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
+        transformedTotals[`Main ${key}`] =
+          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
+          parseInt(totalRecord[key]?.toString() || '0', 10);
+        transformedTotals[`# ${key}`] =
+          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
+          parseInt(
+            totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
+            10,
+          );
+        const { valueDifference, percentDifferenceNum } = calculateDifferences(
+          transformedTotals[`Main ${key}`] as number,
+          transformedTotals[`# ${key}`] as number,
+        );
+        transformedTotals[`△ ${key}`] = valueDifference;
+        transformedTotals[`% ${key}`] = percentDifferenceNum;
+      }
+    }),
+  );
+
+  return transformedTotals;
+};
+
+const processComparisonDataRecords = memoizeOne(
+  function processComparisonDataRecords(
+    originalData: DataRecord[] | undefined,
+    originalColumns: DataColumnMeta[],
+    comparisonSuffix: string,
+  ) {
+    // Transform data
+    return originalData?.map(originalItem => {
+      const transformedItem: DataRecord = {};
+      originalColumns.forEach(origCol => {
+        if (
+          (origCol.isMetric || origCol.isPercentMetric) &&
+          !origCol.key.includes(comparisonSuffix) &&
+          origCol.isNumeric
+        ) {
+          const originalValue = originalItem[origCol.key] || 0;
+          const comparisonValue = origCol.isMetric
+            ? originalItem?.[`${origCol.key}__${comparisonSuffix}`] || 0
+            : originalItem[`%${origCol.key.slice(1)}__${comparisonSuffix}`] ||
+              0;
+          const { valueDifference, percentDifferenceNum } =
+            calculateDifferences(
+              originalValue as number,
+              comparisonValue as number,
+            );
+
+          transformedItem[`Main ${origCol.key}`] = originalValue;
+          transformedItem[`# ${origCol.key}`] = comparisonValue;
+          transformedItem[`△ ${origCol.key}`] = valueDifference;
+          transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
+        }
+      });
+
+      Object.keys(originalItem).forEach(key => {
+        const isMetricOrPercentMetric = originalColumns.some(
+          col => col.key === key && (col.isMetric || col.isPercentMetric),
+        );
+        if (!isMetricOrPercentMetric) {
+          transformedItem[key] = originalItem[key];
+        }
+      });
+
+      return transformedItem;
+    });
+  },
+);
 
 const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
@@ -186,6 +286,56 @@ const processColumns = memoizeOne(function processColumns(
   ];
 }, isEqualColumns);
 
+const processComparisonColumns = (
+  columns: DataColumnMeta[],
+  props: TableChartProps,
+  comparisonSuffix: string,
+) =>
+  columns
+    .map(col => {
+      const {
+        datasource: { columnFormats },
+        rawFormData: { column_config: columnConfig = {} },
+      } = props;
+      const config = columnConfig[col.key] || {};
+      const savedFormat = columnFormats?.[col.key];
+      const numberFormat = config.d3NumberFormat || savedFormat;
+      if (col.isNumeric && !col.key.includes(comparisonSuffix)) {
+        return [
+          {
+            ...col,
+            label: t('Main'),
+            key: `${t('Main')} ${col.key}`,
+          },
+          {
+            ...col,
+            label: `#`,
+            key: `# ${col.key}`,
+          },
+          {
+            ...col,
+            label: `△`,
+            key: `△ ${col.key}`,
+          },
+          {
+            ...col,
+            formatter: getNumberFormatter(numberFormat || PERCENT_3_POINT),
+            label: `%`,
+            key: `% ${col.key}`,
+          },
+        ];
+      }
+      if (
+        !col.isMetric &&
+        !col.isPercentMetric &&
+        !col.key.includes(comparisonSuffix)
+      ) {
+        return [col];
+      }
+      return [];
+    })
+    .flat();
+
 /**
  * Automatically set page size based on number of cells.
  */
@@ -239,10 +389,24 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
     allow_render_html: allowRenderHtml,
+    time_compare,
   } = formData;
+  const isUsingTimeComparison =
+    !isEmpty(time_compare) && queryMode === QueryMode.Aggregate;
   const timeGrain = extractTimegrain(formData);
+  const comparisonSuffix = isUsingTimeComparison
+    ? ensureIsArray(time_compare)[0]
+    : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  let comparisonColumns: DataColumnMeta[] = [];
+  if (isUsingTimeComparison) {
+    comparisonColumns = processComparisonColumns(
+      columns,
+      chartProps,
+      comparisonSuffix,
+    );
+  }
 
   let baseQuery;
   let countQuery;
@@ -256,20 +420,30 @@ const transformProps = (
     rowCount = baseQuery?.rowcount ?? 0;
   }
   const data = processDataRecords(baseQuery?.data, columns);
+  const comparisonData = processComparisonDataRecords(
+    baseQuery?.data,
+    columns,
+    comparisonSuffix,
+  );
   const totals =
     showTotals && queryMode === QueryMode.Aggregate
-      ? totalQuery?.data[0]
+      ? isUsingTimeComparison
+        ? processComparisonTotals(comparisonSuffix, totalQuery?.data)
+        : totalQuery?.data[0]
       : undefined;
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, data) ?? defaultColorFormatters;
+
+  const passedData = isUsingTimeComparison ? comparisonData || [] : data;
+  const passedColumns = isUsingTimeComparison ? comparisonColumns : columns;
 
   return {
     height,
     width,
     isRawRecords: queryMode === QueryMode.Raw,
-    data,
+    data: passedData,
     totals,
-    columns,
+    columns: passedColumns,
     serverPagination,
     metrics,
     percentMetrics,

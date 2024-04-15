@@ -47,6 +47,7 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 
+import { isEmpty } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -449,6 +450,8 @@ const config: ControlPanelConfig = {
               description: t(
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
+              visibility: ({ controls }) =>
+                isEmpty(controls?.time_compare?.value),
             },
           },
         ],
@@ -535,7 +538,22 @@ const config: ControlPanelConfig = {
     {
       ...sections.timeComparisonControls,
       controlSetRows: [
-        ...sections.timeComparisonControls.controlSetRows,
+        [
+          {
+            ...(sections.timeComparisonControls.controlSetRows as any).find(
+              (row: any) => row[0].name === 'time_compare',
+            )[0],
+            config: {
+              ...(sections.timeComparisonControls.controlSetRows as any).find(
+                (row: any) => row[0].name === 'time_compare',
+              )[0].config,
+              multi: false,
+            },
+          },
+        ],
+        ...(sections.timeComparisonControls.controlSetRows as any).filter(
+          (row: any) => row[0].name !== 'time_compare',
+        ),
         [
           {
             name: 'comparison_range_label',
