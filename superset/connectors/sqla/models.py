@@ -1495,8 +1495,8 @@ class SqlaTable(
         columns_set = set()
         if query_obj_clone.get("columns"):
             for col in query_obj_clone["columns"]:
-                if isinstance(col, dict) and "sqlExpression" in col:
-                    columns_set.add(col["sqlExpression"])
+                if isinstance(col, dict) and "label" in col:
+                    columns_set.add(col["label"])
                 elif isinstance(col, str):
                     columns_set.add(col)
         join_columns = columns_set
