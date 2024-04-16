@@ -47,7 +47,7 @@ export default function DownloadAsPdf({
 
   return (
     <Menu.Item key="download-pdf" {...rest}>
-      <div role="button" onClick={onDownloadPdf} tabIndex={0}>
+      <div onClick={onDownloadPdf} role="button" tabIndex={0}>
         {text}
       </div>
     </Menu.Item>
