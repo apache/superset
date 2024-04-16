@@ -50,14 +50,7 @@ const Tag = ({
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
-  let whatRole;
-  if (onClick) {
-    if (!id) {
-      whatRole = 'button';
-    } else {
-      whatRole = 'link';
-    }
-  }
+  const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
 
   const tagElem = (
     <>

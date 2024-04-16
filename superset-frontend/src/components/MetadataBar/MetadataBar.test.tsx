@@ -276,16 +276,14 @@ test('renders StyledItem with role="button" when onClick is defined', () => {
 
   const styledItems = screen.getAllByRole('button');
 
-  styledItems.forEach(styledItem => {
-    expect(styledItem).toHaveAttribute('role', 'button');
-  });
+  expect(styledItems.length).toBe(2);
 });
 
 test('renders StyledItem with role=undefined when onClick is not defined', () => {
   const items = [ITEMS[0], ITEMS[1]];
   render(<MetadataBar items={items} />);
-  const styledItem = screen
-    .getByText(DASHBOARD_TITLE)
-    .closest('.metadata-text');
-  expect(styledItem).not.toHaveAttribute('role');
+
+  const styledItems = screen.queryAllByRole('button');
+
+  expect(styledItems.length).toBe(0);
 });
