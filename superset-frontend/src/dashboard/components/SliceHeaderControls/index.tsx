@@ -590,7 +590,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
       case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
         props.logExploreChart?.(props.slice.slice_id);
-        window.open(props.exploreUrl);
+        if (domEvent.metaKey || domEvent.ctrlKey) {
+          domEvent.preventDefault();
+          window.open(props.exploreUrl, '_blank');
+        } else {
+          history.push(props.exploreUrl);
+        }
         break;
       case MenuKeys.ExportCsv:
         // eslint-disable-next-line no-unused-expressions
@@ -672,6 +677,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
     supersetCanShare = false,
     isCached = [],
   } = props;
+  const history = useHistory();
   const isTable = slice.viz_type === 'table';
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     moment.utc(itemCachedDttm).fromNow(),
@@ -907,16 +913,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         placement="bottomRight"
         visible={dropdownIsOpen}
         onVisibleChange={status => toggleDropdown({ close: !status })}
-        onBlur={e => {
-          // close unless the dropdown menu is clicked
-          const relatedTarget = e.relatedTarget as HTMLElement;
-          if (
-            dropdownIsOpen &&
-            menuRef?.current?.props.id !== relatedTarget?.id
-          ) {
-            toggleDropdown({ close: true });
-          }
-        }}
         onKeyDown={e =>
           handleDropdownNavigation(
             e,
