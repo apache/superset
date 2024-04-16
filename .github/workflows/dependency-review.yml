@@ -26,4 +26,4 @@ jobs:
           # adding an exception for an ambigious license on store2, which has been resolved in the latest version. It's MIT: https://github.com/nbubna/store/blob/master/LICENSE-MIT
           # adding exception for eyes-cypress, which has an explicit OSS license approved by ASF
           #    license: https://applitools.com/legal/open-source-terms-of-use/
-          allow-dependencies-licenses: 'pkg:npm/store2@2.14.2, pkg:npm/@applitools/eyes-cypress@^3.41.0'
+          allow-dependencies-licenses: 'pkg:npm/store2@2.14.2, pkg:npm/@applitools/eyes-cypress@%5E3.41.0'
