@@ -267,6 +267,7 @@ usedevelop = true
 allowlist_externals =
     npm
     pkill
+    {toxinidir}/superset-frontend/cypress_build.sh
 
 [testenv:cypress]
 setenv =
