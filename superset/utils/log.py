@@ -51,7 +51,7 @@ def collect_request_payload() -> dict[str, Any]:
     payload.update(**request.form.to_dict())
     payload.update(**request.args.to_dict())
     if request.is_json:
-        json_payload = request.get_json(cache=True, silent=True)
+        json_payload = request.get_json(cache=True, silent=True) or {}
         payload.update(json_payload)
 
     # save URL match pattern in addition to the request path
