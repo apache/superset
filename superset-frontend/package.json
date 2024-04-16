@@ -151,7 +151,7 @@
     "lodash": "^4.17.21",
     "mapbox-gl": "^2.10.0",
     "markdown-to-jsx": "^7.4.1",
-    "match-sorter": "^6.3.3",
+    "match-sorter": "^6.3.4",
     "memoize-one": "^5.1.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.44",
