@@ -75,7 +75,11 @@ export const ComparisonRangeLabel = () => {
   useEffect(() => {
     if (shift !== ComparisonTimeRangeType.Custom) {
       const promises = currentTimeRangeFilters.map(filter =>
-        fetchTimeRange(filter.comparator, filter.subject, shift),
+        fetchTimeRange(
+          filter.comparator,
+          filter.subject,
+          shift || ComparisonTimeRangeType.InheritedRange,
+        ),
       );
       Promise.all(promises).then(res => {
         setLabels(res.map(r => r.value ?? ''));

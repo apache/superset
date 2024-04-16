@@ -334,6 +334,7 @@ const config: ControlPanelConfig = {
                 Boolean(controls?.enable_time_comparison?.value) &&
                 isFeatureEnabled(FeatureFlag.ChartPluginsExperimental) &&
                 isAggMode({ controls }),
+              clearable: false,
             },
           },
         ],
