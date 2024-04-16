@@ -44,7 +44,7 @@ const Tag = (props: any) => {
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
       <StyledTag
-        closeIcon={CustomCloseIcon}
+        closeIcon={props?.closable ? CustomCloseIcon : undefined}
         {...props}
         className="ant-select-selection-item"
       >
