@@ -1,4 +1,4 @@
-# psycopg2
+psycopg2
 mysqlclient
 sqlalchemy-redshift
 newrelic==9.2.0

@@ -217,10 +217,6 @@ class ChartDataRestApi(ChartRestApi):
         except AsyncQueryTokenException:
             return self.response_401()
 
-        # If the user is guest we pass guest token to the celery task
-        if guest := security_manager.get_current_guest_user_if_guest():
-            form_data["guest_token"] = guest.guest_token
-
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
@@ -391,10 +387,6 @@ class ChartDataRestApi(ChartRestApi):
             async_command.validate(request)
         except AsyncQueryTokenException:
             return self.response_401()
-
-        # If the user is guest we pass guest token to the celery task
-        if guest := security_manager.get_current_guest_user_if_guest():
-            form_data["guest_token"] = guest.guest_token
 
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
