@@ -18,6 +18,7 @@
  */
 import { t } from '../translation';
 
+// TODO Check if there's any column alignment different than ['left', 'right', 'right']
 export function tooltipHtml(
   data: string[][],
   columnAlignments: ('left' | 'right' | 'middle')[],
