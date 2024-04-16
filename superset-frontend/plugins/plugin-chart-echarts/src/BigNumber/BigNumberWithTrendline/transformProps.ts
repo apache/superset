@@ -241,7 +241,6 @@ export default function transformProps(
               ],
               ['left', 'right'],
               formatTime(params[0].data[0]),
-              0,
             ),
         },
         aria: {
