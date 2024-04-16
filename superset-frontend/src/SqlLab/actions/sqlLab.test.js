@@ -511,7 +511,7 @@ describe('async actions', () => {
     const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
     fetchMock.get(getTableMetadataEndpoint, {});
     const getExtraTableMetadataEndpoint =
-      'glob:**/api/v1/database/*/table_extra/*/*/';
+      'glob:**/api/v1/database/*/table_metadata/extra/';
     fetchMock.get(getExtraTableMetadataEndpoint, {});
 
     let isFeatureEnabledMock;

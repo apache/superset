@@ -125,9 +125,9 @@ const tableApi = api.injectEndpoints({
       FetchTableMetadataQueryParams
     >({
       query: ({ dbId, schema, table }) => ({
-        endpoint: `/api/v1/database/${dbId}/table_extra/${encodeURIComponent(
-          table,
-        )}/${encodeURIComponent(schema)}/`,
+        endpoint: schema
+          ? `/api/v1/database/${dbId}/table_metadata/extra/?table=${table}&schema=${schema}`
+          : `/api/v1/database/${dbId}/table_metadata/extra/?table=${table}`,
         transformResponse: ({ json }: JsonResponse) => json,
       }),
     }),

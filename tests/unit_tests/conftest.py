@@ -146,6 +146,7 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         "flask_appbuilder.security.decorators.verify_jwt_in_request",
         return_value=True,
     )
+    mocker.patch.object(security_manager, "is_item_public", return_value=True)
     mocker.patch.object(security_manager, "has_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 

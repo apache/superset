@@ -1034,7 +1034,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def extra_table_metadata(  # pylint: disable=unused-argument
+    def get_extra_table_metadata(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        table: Table,
+    ) -> dict[str, Any]:
+        """
+        Returns engine-specific table metadata
+
+        :param database: Database instance
+        :param table: A Table instance
+        :return: Engine-specific table metadata
+        """
+        return cls.extra_table_metadata(database, table.table, table.schema)
+
+    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @classmethod
+    def extra_table_metadata(
         cls,
         database: Database,
         table_name: str,
@@ -1043,12 +1059,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Returns engine-specific table metadata
 
+        Deprecated, since it doesn't support catalogs.
+
         :param database: Database instance
         :param table_name: Table name
         :param schema_name: Schema name
         :return: Engine-specific table metadata
         """
-        # TODO: Fix circular import caused by importing Database
         return {}
 
     @classmethod

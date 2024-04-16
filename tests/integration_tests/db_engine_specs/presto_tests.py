@@ -25,7 +25,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -549,7 +549,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_data, expected_data)
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
-    def test_presto_extra_table_metadata(self):
+    def test_presto_get_extra_table_metadata(self):
         database = mock.Mock()
         database.get_indexes = mock.Mock(
             return_value=[{"column_names": ["ds", "hour"]}]
@@ -558,8 +558,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         df = pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
         database.get_df = mock.Mock(return_value=df)
         PrestoEngineSpec.get_create_view = mock.Mock(return_value=None)
-        result = PrestoEngineSpec.extra_table_metadata(
-            database, "test_table", "test_schema"
+        result = PrestoEngineSpec.get_extra_table_metadata(
+            database,
+            Table("test_table", "test_schema"),
         )
         assert result["partitions"]["cols"] == ["ds", "hour"]
         assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}

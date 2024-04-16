@@ -1507,9 +1507,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_get_table_extra_metadata(self):
+    def test_get_table_extra_metadata_deprecated(self):
         """
-        Database API: Test get table extra metadata info
+        Database API: Test deprecated get table extra metadata info
         """
         example_db = get_example_database()
         self.login(ADMIN_USERNAME)
@@ -1519,9 +1519,9 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response, {})
 
-    def test_get_invalid_database_table_extra_metadata(self):
+    def test_get_invalid_database_table_extra_metadata_deprecated(self):
         """
-        Database API: Test get invalid database from table extra metadata
+        Database API: Test get invalid database from deprecated table extra metadata
         """
         database_id = 1000
         self.login(ADMIN_USERNAME)
@@ -1533,9 +1533,9 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_get_invalid_table_table_extra_metadata(self):
+    def test_get_invalid_table_table_extra_metadata_deprecated(self):
         """
-        Database API: Test get invalid table from table extra metadata
+        Database API: Test get invalid table from deprecated table extra metadata
         """
         example_db = get_example_database()
         uri = f"api/v1/database/{example_db.id}/table_extra/wrong_table/null/"
