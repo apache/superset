@@ -408,7 +408,12 @@ const config: ControlPanelConfig = {
         [
           {
             name: 'comparison_range_label',
-            config: { type: 'ComparisonRangeLabel' },
+            config: {
+              type: 'ComparisonRangeLabel',
+              visibility: ({ controls }) =>
+                Boolean(controls?.enable_time_comparison?.value) &&
+                isAggMode({ controls }),
+            },
           },
         ],
         [
