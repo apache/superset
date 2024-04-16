@@ -32,6 +32,8 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
+export const CustomCloseIcon = <CloseOutlined role="button" />;
+
 const MAX_DISPLAY_CHAR = 20;
 
 const Tag = ({
@@ -56,8 +58,6 @@ const Tag = ({
       whatRole = 'link';
     }
   }
-
-  const CustomCloseIcon = <CloseOutlined role="button" />;
 
   const tagElem = (
     <>

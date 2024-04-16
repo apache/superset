@@ -29,7 +29,7 @@ import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/sel
 import { Tag } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { CloseOutlined } from '@ant-design/icons';
+import { CustomCloseIcon } from 'src/components/Tags/Tag';
 import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
@@ -69,7 +69,6 @@ const CrossFilterTag = (props: {
   const [valueRef, valueIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
   const columnLabel = getColumnLabel(filter.column ?? '');
-  const customCloseIcon = <CloseOutlined role="button" />;
 
   return (
     <StyledTag
@@ -84,7 +83,7 @@ const CrossFilterTag = (props: {
       `}
       closable
       onClose={() => removeCrossFilter(filter.emitterId)}
-      closeIcon={customCloseIcon}
+      closeIcon={CustomCloseIcon}
     >
       <Tooltip title={columnIsTruncated ? columnLabel : null}>
         <StyledCrossFilterColumn ref={columnRef}>
