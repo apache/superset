@@ -1042,6 +1042,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Returns engine-specific table metadata
 
+        Deprecated, since it doesn't support catalogs.
+
         :param database: Database instance
         :param table: A Table instance
         :return: Engine-specific table metadata
