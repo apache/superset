@@ -26,6 +26,7 @@ import {
   Metric,
   getValueFormatter,
   t,
+  tooltipHtml,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -37,7 +38,6 @@ import {
 import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
-import TooltipRenderer, { Data } from '../../utils/TooltipRenderer';
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
@@ -229,27 +229,20 @@ export default function transformProps(
           ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
-          formatter: (params: { data: TimeSeriesDatum }[]) => {
-            const data: Data = {
-              columns: [
-                { type: GenericDataType.String, formatter: String },
-                { type: GenericDataType.Numeric, formatter: headerFormatter },
-              ],
-              rows: [
+          formatter: (params: { data: TimeSeriesDatum }[]) =>
+            tooltipHtml(
+              [
                 [
                   metricName,
-                  params[0].data[1] === null ? t('N/A') : params[0].data[1],
+                  params[0].data[1] === null
+                    ? t('N/A')
+                    : headerFormatter.format(params[0].data[1]),
                 ],
               ],
-            };
-            return new TooltipRenderer(
-              data,
-              false,
-              false,
-              0,
+              ['left', 'right'],
               formatTime(params[0].data[0]),
-            ).renderHtml();
-          },
+              0,
+            ),
         },
         aria: {
           enabled: true,

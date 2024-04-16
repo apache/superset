@@ -100,14 +100,13 @@ export const formatForecastTooltipSeries = ({
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
-}): [string, DataRecordValue] => {
+}): string[] => {
   const name = `${marker}${sanitizeHtml(seriesName)}`;
-  let value: DataRecordValue = isNumber(observation) ? observation : null;
+  let value = isNumber(observation) ? formatter(observation) : '';
   if (forecastTrend || forecastLower || forecastUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
     // and the third part is the lower and upper bounds
-    value = value ? `${formatter(value)}` : '';
     if (forecastTrend) {
       if (value) value += ', ';
       value += `ŷ = ${formatter(forecastTrend)}`;

@@ -24,8 +24,8 @@ import {
   buildCustomFormatters,
   CategoricalColorNamespace,
   CurrencyFormatter,
-  DataRecordValue,
   ensureIsArray,
+  tooltipHtml,
   GenericDataType,
   getCustomFormatter,
   getMetricLabel,
@@ -101,7 +101,6 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
-import TooltipRenderer, { Data } from '../utils/TooltipRenderer';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -540,52 +539,47 @@ export default function transformProps(
           ? percentFormatter
           : getCustomFormatter(customFormatters, metrics) ?? defaultFormatter;
 
-        const rows: [string, DataRecordValue][] = [];
+        const rows: string[][] = [];
+        const total = Object.values(forecastValues).reduce(
+          (acc, value) =>
+            value.observation !== undefined ? acc + value.observation : acc,
+          0,
+        );
+        const showTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
+        const showPercentage = showTotal && !forcePercentFormatter;
         Object.keys(forecastValues).forEach(key => {
           const value = forecastValues[key];
           if (value.observation === 0 && stack) {
             return;
           }
-          rows.push(
-            formatForecastTooltipSeries({
-              ...value,
-              seriesName: key,
-              formatter,
-            }),
-          );
+          const row = formatForecastTooltipSeries({
+            ...value,
+            seriesName: key,
+            formatter,
+          });
+          if (showPercentage && value.observation !== undefined) {
+            row.push(percentFormatter.format(value.observation / (total || 1)));
+          }
+          rows.push(row);
         });
         const keys = Object.keys(forecastValues);
         if (stack) {
           keys.reverse();
           rows.reverse();
         }
-        const data: Data = {
-          columns: [
-            { type: GenericDataType.String, formatter: String },
-            {
-              type: isForecast
-                ? GenericDataType.String
-                : GenericDataType.Numeric,
-              formatter: isForecast ? String : formatter,
-            },
-          ],
+        if (showTotal) {
+          const totalRow = ['Total', formatter.format(total)];
+          if (showPercentage) {
+            totalRow.push(percentFormatter.format(1));
+          }
+          rows.push(totalRow);
+        }
+        return tooltipHtml(
           rows,
-        };
-        const isNumeric = data.columns[1].type === GenericDataType.Numeric;
-        const focusedIndex = keys.findIndex(key => key === focusedSeries);
-        const showPercentage =
-          Boolean(isMultiSeries) &&
-          richTooltip &&
-          isNumeric &&
-          !forcePercentFormatter;
-        const showTotal = Boolean(isMultiSeries) && richTooltip && isNumeric;
-        return new TooltipRenderer(
-          data,
-          showPercentage,
-          showTotal,
-          focusedIndex,
+          ['left', 'right', 'right'],
           tooltipFormatter(xValue),
-        ).renderHtml();
+          keys.findIndex(key => key === focusedSeries),
+        );
       },
     },
     legend: {
