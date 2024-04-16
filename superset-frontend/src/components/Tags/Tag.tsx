@@ -22,6 +22,7 @@ import TagType from 'src/types/TagType';
 import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
+import { CloseOutlined } from '@ant-design/icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -47,6 +48,17 @@ const Tag = ({
 
   const handleClose = () => (index ? onDelete?.(index) : null);
 
+  let whatRole;
+  if (onClick) {
+    if (!id) {
+      whatRole = 'button';
+    } else {
+      whatRole = 'link';
+    }
+  }
+
+  const CustomCloseIcon = <CloseOutlined role="button" />;
+
   const tagElem = (
     <>
       {editable ? (
@@ -56,13 +68,14 @@ const Tag = ({
             closable={editable}
             onClose={handleClose}
             color="blue"
+            closeIcon={editable ? CustomCloseIcon : undefined}
           >
             {tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" role="link" key={id} onClick={onClick}>
+          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
