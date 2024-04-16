@@ -1,4 +1,3 @@
-import { ADD_TOAST } from './../../components/MessageToasts/actions';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,10 +16,11 @@ import { ADD_TOAST } from './../../components/MessageToasts/actions';
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { Dispatch } from 'redux';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+
 import {
   createDashboard,
   createSlice,
@@ -29,8 +29,9 @@ import {
   SAVE_SLICE_SUCCESS,
   updateSlice,
   getSlicePayload,
+  Slice,
+  FormData
 } from './saveModalActions';
-import { Slice, FormData } from './saveModalActions';
 
 // Define test constants and mock data using imported types
 const sliceId = 10;
@@ -39,6 +40,8 @@ const vizType = 'sample_viz_type';
 const datasourceId = 11;
 const datasourceType = 'sample_datasource_type';
 const dashboards = [12, 13];
+const queryContext = { sampleKey: 'sampleValue' };
+
 const formData: FormData = {
   viz_type: vizType,
   datasource: `${datasourceId}__${datasourceType}`,
@@ -57,7 +60,7 @@ const sampleError = new Error('sampleError');
 
 // Mocks
 jest.mock('../exploreUtils', () => ({
-  buildV1ChartDataPayload: jest.fn(() => ({ sampleKey: 'sampleValue' })),
+  buildV1ChartDataPayload: jest.fn(() => queryContext),
 }));
 
 /**
@@ -73,7 +76,7 @@ test('updateSlice handles success', async () => {
   };
   const getState = () => mockExploreState;
 
-  await updateSlice(
+  const slice = await updateSlice(
     { slice_id: sliceId, owners: [], form_data: formData },
     sliceName,
     []
@@ -87,6 +90,8 @@ test('updateSlice handles success', async () => {
   expect(dispatchSpy.getCall(1).args[0].payload.text).toBe(
     'Chart [New chart] has been overwritten',
   );
+  expect(slice).toEqual(sliceResponsePayload);
+
 });
 
 test('updateSlice handles failure', async () => {
