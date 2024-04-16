@@ -37,7 +37,7 @@
     "mousetrap": "^1.6.5",
     "prop-types": "^15.6.0",
     "react-bootstrap-slider": "2.1.5",
-    "underscore": "^1.12.1",
+    "underscore": "^1.13.6",
     "urijs": "^1.19.8",
     "xss": "^1.0.10"
   },
