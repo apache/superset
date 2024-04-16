@@ -171,7 +171,7 @@
     "react-dom": "^16.13.0",
     "react-draggable": "^4.4.6",
     "react-hot-loader": "^4.13.1",
-    "react-intersection-observer": "^9.6.0",
+    "react-intersection-observer": "^9.8.2",
     "react-js-cron": "^2.1.2",
     "react-json-tree": "^0.17.0",
     "react-jsonschema-form": "^1.8.1",
