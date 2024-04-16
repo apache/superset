@@ -288,7 +288,7 @@
     "enzyme": "^3.11.0",
     "enzyme-adapter-react-16": "^1.15.7",
     "esbuild": "^0.20.0",
-    "esbuild-loader": "^4.0.3",
+    "esbuild-loader": "^4.1.0",
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^7.2.0",
