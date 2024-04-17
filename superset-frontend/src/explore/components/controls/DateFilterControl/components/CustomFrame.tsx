@@ -29,6 +29,7 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
+import { MOMENT_FORMAT_UI_DODO } from '../../../../../DodoExtensions/explore/components/controls/DateFilterControl/utils/constants';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -149,6 +150,7 @@ export function CustomFrame(props: FrameComponentProps) {
               <DatePicker
                 showTime
                 defaultValue={dttmToMoment(sinceDatetime)}
+                format={MOMENT_FORMAT_UI_DODO} // DODO added #11681438
                 onChange={(datetime: Moment) =>
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
@@ -202,6 +204,7 @@ export function CustomFrame(props: FrameComponentProps) {
               <DatePicker
                 showTime
                 defaultValue={dttmToMoment(untilDatetime)}
+                format={MOMENT_FORMAT_UI_DODO} // DODO added #11681438
                 onChange={(datetime: Moment) =>
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }

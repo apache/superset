@@ -24,8 +24,10 @@ import {
   COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,
   customTimeRangeDecode,
+  dttmToMoment,
 } from '.';
 import { FrameType } from '../types';
+import { MOMENT_FORMAT_UI_DODO } from '../../../../../DodoExtensions/explore/components/controls/DateFilterControl/utils/constants';
 
 export const SEPARATOR = ' : ';
 
@@ -71,10 +73,16 @@ export const fetchTimeRange = async (
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
+    // DODO added start #11681438
+    const since = dttmToMoment(response?.json?.result?.since).format(
+      MOMENT_FORMAT_UI_DODO,
     );
+    const until = dttmToMoment(response?.json?.result?.until).format(
+      MOMENT_FORMAT_UI_DODO,
+    );
+    // DODO added stop #11681438
+    const timeRangeString = buildTimeRangeString(since, until); // DODO changed #11681438
+
     return {
       value: formatTimeRange(timeRangeString, columnPlaceholder),
     };
