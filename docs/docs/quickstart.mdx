@@ -7,11 +7,11 @@ sidebar_position: 2
 **Ready to give Apache Superset a try?** This quickstart guide will help you
 get up and running on your local machine in **3 simple steps**. Note that
 it assumes that you have [Docker](https://www.docker.com),
-[docker-compose](https://docs.docker.com/compose/), and
-[git](https://git-scm.com/) installed.
+[Docker Compose](https://docs.docker.com/compose/), and
+[Git](https://git-scm.com/) installed.
 
 :::caution
-While we recommend using `docker-compose` for a quick start in a sandbox-type
+While we recommend using `Docker Compose` for a quick start in a sandbox-type
 environment and for other development-type use cases, **we
 do not recommend this setup for production**. For this purpose please
 refer to our
@@ -31,11 +31,11 @@ $ git clone https://github.com/apache/superset
 # Enter the repository you just cloned
 $ cd superset
 
-# Fire up Superset using docker-compose
-$ docker-compose -f docker-compose-image-tag.yml up
+# Fire up Superset using Docker Compose
+$ docker compose -f docker compose-image-tag.yml up
 ```
-This may take a moment as docker-compose will fetch the underlying
-docker images and will load up some examples. Once all containers
+This may take a moment as Docker Compose will fetch the underlying
+container images and will load up some examples. Once all containers
 are downloaded and the output settles, you're ready to log in.
 
 ### 3. Log into Superset
@@ -50,7 +50,7 @@ password: admin
 ### Wrapping Up
 Once you're done with Superset, you can stop and delete just like any other container environment:
 ```bash
-$ docker-compose down
+$ docker compose down
 ```
 :::tip
 You can use the same environment more than once, as Superset will persist data locally. However, make sure to properly stop all
@@ -62,13 +62,8 @@ processes by running Docker Compose `stop` command. By doing so, you can avoid d
 From this point on, you can head on to:
 - [Create your first Dashboard](/docs/creating-charts-dashboards/creating-your-first-dashboard)
 - [Connect to a Database](/docs/databases/installing-database-drivers)
-- [Using Docker Compose](/docs/installation/installing-superset-using-docker-compose): find
-  out more about how to install docker & docker-compose, how to point to different Superset
-  version, or how to set up your development environment.
-- [Configure Superset](/docs/installation/configuring-superset/): Superset is highly configurable.
-  Find out what the options are here.
-- [Installing on Kubernetes](/docs/installation/running-on-kubernetes/): if you'd like to setup
-  Superset in a production environment, we recommend using [Kubernetes](https://kubernetes.io/)
-  and our official [Helm Chart](https://github.com/apache/superset/tree/master/helm/superset).
+- [Using Docker Compose](/docs/installation/installing-superset-using-docker-compose)
+- [Configure Superset](/docs/installation/configuring-superset/)
+- [Installing on Kubernetes](/docs/installation/running-on-kubernetes/)
 
 Or just explore our [Documentation](https://superset.apache.org/docs/intro)!
