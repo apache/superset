@@ -1408,6 +1408,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_prequeries(
         cls,
+        database: Database,  # pylint: disable=unused-argument
         catalog: str | None = None,  # pylint: disable=unused-argument
         schema: str | None = None,  # pylint: disable=unused-argument
     ) -> list[str]:
