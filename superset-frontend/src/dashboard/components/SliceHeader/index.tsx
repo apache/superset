@@ -174,10 +174,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 
   const canExplore = !editMode && supersetCanExplore;
 
+  const userTooltip =
+    formData.chart_description_en || formData.chart_description_ru; // DODO add with task:#32232659
+
   useEffect(() => {
     const headerElement = headerRef.current;
     if (canExplore) {
-      setHeaderTooltip(getSliceHeaderTooltip(sliceName));
+      setHeaderTooltip(userTooltip ?? getSliceHeaderTooltip(sliceName)); // DODO add with task:#32232659
     } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
@@ -187,7 +190,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height, canExplore]);
+  }, [sliceName, width, height, canExplore, userTooltip]); // DODO changed with task:#32232659
 
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 

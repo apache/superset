@@ -14,6 +14,7 @@ import type {
   QueryResponse,
 } from '@superset-ui/core';
 import { sharedControls, sharedControlComponents } from './shared-controls';
+import { ConditionalFormattingConfigDodo } from './DodoExtensions/types';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlComponentProps } from './shared-controls/components/types';
@@ -431,9 +432,7 @@ export type ConditionalFormattingConfig = {
   targetValueRight?: number;
   column?: string;
   colorScheme?: string;
-  // DODO changed
-  isFixedColor?: boolean;
-};
+} & ConditionalFormattingConfigDodo; // DODO added type
 
 export type ColorFormatters = {
   column: string;

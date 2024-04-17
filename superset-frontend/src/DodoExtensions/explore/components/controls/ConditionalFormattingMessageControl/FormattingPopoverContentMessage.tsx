@@ -1,24 +1,26 @@
-// // DODO was here
-
+// DODO was here
+// DODO added #32232659
 import React from 'react';
-import { Col, Row } from 'src/components';
-import { FormItem } from 'src/components/Form';
-import Select from 'src/components/Select/Select';
 import { styled, t } from '@superset-ui/core';
-import Button from 'src/components/Button';
-import ColorPickerControlDodo from '../ColorPickerControlDodo';
+import { Input } from 'antd';
 import { FormattingPopoverContentDodoWrapper } from '../ConditionalFormattingControlDodoWrapper/FormattingPopoverContentDodoWrapper';
 import {
   FormatingPopoverRenderFormContent,
   FormattingPopoverContentProps,
 } from '../ConditionalFormattingControlDodoWrapper/types';
+import { Col, Row } from '../../../../../components';
+import { FormItem } from '../../../../../components/Form';
+import Select from '../../../../../components/Select/Select';
+import ColorPickerControlDodo from '../ColorPickerControlDodo';
+import Button from '../../../../../components/Button';
+import { StyledFlag } from '../../../../../../plugins/plugin-chart-echarts/src/DodoExtensions/common';
 
 const JustifyEnd = styled.div`
   display: flex;
   justify-content: flex-end;
 `;
 
-export const FormattingPopoverContentNoGradient = (
+const FormattingPopoverContentMessage = (
   props: FormattingPopoverContentProps,
 ) => {
   const renderFormContent: FormatingPopoverRenderFormContent = ({
@@ -33,7 +35,7 @@ export const FormattingPopoverContentNoGradient = (
     parseColorValue,
   }) => (
     <>
-      <Row gutter={12}>
+      <Row>
         <Col span={24}>
           <FormItem
             name="column"
@@ -45,6 +47,49 @@ export const FormattingPopoverContentNoGradient = (
           </FormItem>
         </Col>
       </Row>
+
+      <Row>
+        <Col span={24}>
+          <FormItem
+            label={
+              <>
+                <StyledFlag
+                  style={{ display: 'inline', marginRight: '0.5rem' }}
+                  language="ru"
+                  pressToTheBottom={false}
+                />
+                <span>{t('Message')}</span>
+              </>
+            }
+            name="messageRU"
+            rules={[{ required: true, message: 'Message RU is required' }]}
+          >
+            <Input />
+          </FormItem>
+        </Col>
+      </Row>
+
+      <Row>
+        <Col span={24}>
+          <FormItem
+            label={
+              <>
+                <StyledFlag
+                  style={{ display: 'inline', marginRight: '0.5rem' }}
+                  language="gb"
+                  pressToTheBottom={false}
+                />
+                <span>{t('Message')}</span>
+              </>
+            }
+            name="messageEN"
+            rules={[{ required: true, message: 'Message EN is required' }]}
+          >
+            <Input />
+          </FormItem>
+        </Col>
+      </Row>
+
       {/* DODO added */}
       <Row gutter={12}>
         <Col span={12}>
@@ -101,3 +146,5 @@ export const FormattingPopoverContentNoGradient = (
     />
   );
 };
+
+export { FormattingPopoverContentMessage };

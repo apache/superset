@@ -1,6 +1,5 @@
 // // DODO was here
 
-import { ConditionalFormattingConfig } from 'src/explore/components/controls/ConditionalFormattingControl';
 import { styled, t } from '@superset-ui/core';
 import React from 'react';
 import { Col, Row } from 'src/components';
@@ -8,7 +7,10 @@ import { FormItem } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import Button from 'src/components/Button';
 import ColorPickerControlDodo from '../ColorPickerControlDodo';
-import { FormatingPopoverRenderFormContent } from '../ConditionalFormattingControlDodoWrapper/types';
+import {
+  FormatingPopoverRenderFormContent,
+  FormattingPopoverContentProps,
+} from '../ConditionalFormattingControlDodoWrapper/types';
 import { FormattingPopoverContentDodoWrapper } from '../ConditionalFormattingControlDodoWrapper/FormattingPopoverContentDodoWrapper';
 
 const JustifyEnd = styled.div`
@@ -16,14 +18,11 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-export const FormattingPopoverContentDodo = (props: {
-  config?: ConditionalFormattingConfig;
-  onChange: (config: ConditionalFormattingConfig) => void;
-  columns: { label: string; value: string }[];
-}) => {
+export const FormattingPopoverContentDodo = (
+  props: FormattingPopoverContentProps,
+) => {
   const renderFormContent: FormatingPopoverRenderFormContent = ({
     rulesRequired,
-    columns,
     colorScheme,
     colorsValues,
     chosenColor,

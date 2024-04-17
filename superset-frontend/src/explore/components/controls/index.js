@@ -2,6 +2,8 @@
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import ConditionalFormattingControlDodo from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingControlDodo';
 import ConditionalFormattingControlNoGradient from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingControlNoGradient';
+import ConditionalFormattingMessageControl from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingMessageControl';
+import TextAreaControlNoModal from 'src/DodoExtensions/explore/components/controls/TextAreaControlNoModal';
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -64,10 +66,13 @@ const controlMap = {
   AdhocFilterControl,
   FilterBoxItemControl,
   ConditionalFormattingControl,
-  // DODO added
-  ConditionalFormattingControlDodo, // DODO add line
-  ConditionalFormattingControlNoGradient, // DODO add line
   XAxisSortControl,
   ...sharedControlComponents,
+  // DODO added start
+  ConditionalFormattingControlDodo,
+  ConditionalFormattingControlNoGradient,
+  ConditionalFormattingMessageControl,
+  TextAreaControlNoModal,
+  // DODO added stop
 };
 export default controlMap;

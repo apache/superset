@@ -11,7 +11,13 @@ import {
 } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
-import { BigNumberWithTrendlineControlPanelControlSetRowsDodo } from '../../DodoExtensions/BigNumber/BigNumberWithTrendline/controlPanelDodo';
+import { bigNumberWithTrendlineControlPanelConditionalFormatting } from '../../DodoExtensions/BigNumber/BigNumberWithTrendline/controlPanelDodo';
+import {
+  Alignment,
+  conditionalMessageFontSize,
+  ValueToShow,
+} from '../../DodoExtensions/BigNumber/sharedControls';
+import { controlPanelCommonChartDescription } from '../../DodoExtensions/BigNumber/controlPanelCommon';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -31,6 +37,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'data',
       expanded: true,
       controlSetRows: [
+        [ValueToShow], // DODO added #32232659
         [
           {
             name: 'compare_lag',
@@ -112,13 +119,16 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    { ...controlPanelCommonChartDescription }, // DODO added #32232659
     {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [Alignment], // DODO added #32232659
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
+        [conditionalMessageFontSize], // DODO added #32232659
         ['y_axis_format'],
         ['currency_format'],
         [
@@ -149,9 +159,9 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ...BigNumberWithTrendlineControlPanelControlSetRowsDodo, // DODO added
       ],
     },
+    { ...bigNumberWithTrendlineControlPanelConditionalFormatting }, // DODO added
     {
       label: t('Advanced Analytics'),
       expanded: false,

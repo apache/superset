@@ -15,6 +15,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 
+import { getColorFormattersWithConditionalMessage } from '@superset-ui/chart-controls';
 import {
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
@@ -25,6 +26,7 @@ import { getDateFormatter, parseMetricValue } from '../utils';
 import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 import { BigNumberWithTrendLineTransformPropsDodo } from '../../DodoExtensions/BigNumber/BigNumberWithTrendline/transformPropsDodo';
+import { ValueToShowEnum } from '../../DodoExtensions/BigNumber/types';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
@@ -78,6 +80,12 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    // DODO add start #32232659
+    valueToShow,
+    conditionalFormattingMessage,
+    conditionalMessageFontSize,
+    alignment,
+    // DODO add stop #32232659
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -114,6 +122,18 @@ export default function transformProps(
 
     bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];
+
+    // DODO added start #32232659
+    if (valueToShow === ValueToShowEnum.AVERAGE) {
+      bigNumber =
+        sortedData.reduce((acc, item) => acc + (item.at(1) ?? 0), 0) /
+        sortedData.length;
+      timestamp = null;
+    } else if (valueToShow === ValueToShowEnum.OLDEST) {
+      bigNumber = sortedData[sortedData.length - 1][1];
+      timestamp = sortedData[sortedData.length - 1][0];
+    }
+    // DODO added stop #32232659
 
     if (bigNumber === null) {
       bigNumberFallback = sortedData.find(d => d[1] !== null);
@@ -258,6 +278,11 @@ export default function transformProps(
     percentChange,
     formatPercentChange,
   });
+  // DODO added #32232659  start
+  const conditionalMessageColorFormatters =
+    getColorFormattersWithConditionalMessage(conditionalFormattingMessage) ??
+    [];
+  // DODO #32232659  stop
 
   return {
     width,
@@ -287,6 +312,9 @@ export default function transformProps(
     colorThresholdFormatters,
     percentChange: percentChangeNumber,
     percentChangeFormatter,
+    conditionalMessageColorFormatters,
+    conditionalMessageFontSize,
+    alignment,
     // DODO stop fragment
   };
 }

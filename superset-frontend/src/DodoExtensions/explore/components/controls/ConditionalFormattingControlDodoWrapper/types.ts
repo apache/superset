@@ -1,8 +1,11 @@
 // DODO added file with types
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { ConditionalFormattingConfig } from '@superset-ui/chart-controls';
-import { ConditionalFormattingControlProps } from 'src/explore/components/controls/ConditionalFormattingControl';
+import {
+  ConditionalFormattingControlProps,
+  FormattingPopoverProps,
+} from 'src/explore/components/controls/ConditionalFormattingControl';
 import { GetFieldValue } from './FormattingPopoverContentDodoWrapper';
 
 type RenderExistLinParams = {
@@ -44,9 +47,25 @@ type FormatingPopoverRenderFormContent = (params: {
   parseColorValue(value: string | 'custom'): void;
 }) => React.ReactNode;
 
+type FormattingPopoverWrapperProps = FormattingPopoverProps & {
+  renderContent: (params: {
+    onChange: (value: ConditionalFormattingConfig) => void;
+    config?: ConditionalFormattingConfig;
+    columns: Array<{ label: string; value: string }>;
+  }) => ReactNode;
+};
+
+type FormattingPopoverContentProps = {
+  config?: ConditionalFormattingConfig;
+  onChange: (config: ConditionalFormattingConfig) => void;
+  columns: { label: string; value: string }[];
+};
+
 export type {
   ConditionalFormattingControlWrapperDodoProps,
   RenderExistLine,
   RenderAddPopover,
   FormatingPopoverRenderFormContent,
+  FormattingPopoverWrapperProps,
+  FormattingPopoverContentProps,
 };

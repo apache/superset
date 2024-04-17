@@ -294,7 +294,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self,
+                                 id_or_slug: DashboardDAO.get_dashboard_changed_on(
+            # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
@@ -354,7 +356,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self,
+                                 id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(
+            # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
@@ -416,11 +420,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     if columns:
                         for column in columns:
                             if isinstance(column, dict) and column.get(
-                                    "verbose_name_RU"):
+                                "verbose_name_RU"):
                                 column["verbose_name"] = column.get(
                                     "verbose_name_RU")
                                 if isinstance(verbose_map, dict) and \
-                                        verbose_map.get(column.get("column_name")):
+                                    verbose_map.get(column.get("column_name")):
                                     verbose_map[
                                         column.get("column_name")] = column.get(
                                         "verbose_name_RU")
@@ -428,11 +432,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     if metrics:
                         for metric in metrics:
                             if isinstance(metric, dict) and metric.get(
-                                    "verbose_name_RU"):
+                                "verbose_name_RU"):
                                 metric["verbose_name"] = metric.get(
                                     "verbose_name_RU")
                                 if isinstance(verbose_map, dict) and \
-                                        verbose_map.get(metric.get("metric_name")):
+                                    verbose_map.get(metric.get("metric_name")):
                                     verbose_map[
                                         metric.get("metric_name")] = metric.get(
                                         "verbose_name_RU")
@@ -451,7 +455,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()
     @etag_cache(
-        get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
+        get_last_modified=lambda _self,
+                                 id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(
+            # pylint: disable=line-too-long,useless-suppression
             id_or_slug
         ),
         max_age=0,
@@ -528,9 +534,18 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                                 metric["label"] = metric.get("labelRU")
                                 column = metric.get("column")
                                 if isinstance(column, dict) and column.get(
-                                        "verbose_name_RU"):
+                                    "verbose_name_RU"):
                                     column["verbose_name"] = column.get(
                                         "verbose_name_RU")
+
+                    conditional_formatting_message = (
+                        chart.get("form_data", {})
+                        .get("conditional_formatting_message", []))
+                    if conditional_formatting_message:
+                        for cfm in conditional_formatting_message:
+                            if isinstance(cfm, dict) and cfm.get("messageRU"):
+                                cfm["message"] = cfm.get("messageRU")
+
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -1008,7 +1023,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @rison(get_fav_star_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".favorite_status",
+                                             f".favorite_status",
         log_to_statsd=False,
     )
     def favorite_status(self, **kwargs: Any) -> Response:
@@ -1058,7 +1073,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".add_favorite",
+                                             f".add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:
@@ -1102,7 +1117,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".remove_favorite",
+                                             f".remove_favorite",
         log_to_statsd=False,
     )
     def remove_favorite(self, pk: int) -> Response:
@@ -1394,7 +1409,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @permission_name("set_embedded")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_embedded",
+        action=lambda self, *args,
+                      **kwargs: f"{self.__class__.__name__}.delete_embedded",
         log_to_statsd=False,
     )
     @with_dashboard

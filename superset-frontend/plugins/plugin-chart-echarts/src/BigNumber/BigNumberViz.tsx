@@ -12,7 +12,11 @@ import {
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
-import { bigNumberVizGetColorDodo } from '../DodoExtensions/BigNumber/BigNumberViz';
+import {
+  bigNumberVizGetColorDodo,
+  bigNumberVizGetConditionalMessageInfo,
+} from '../DodoExtensions/BigNumber/BigNumberViz';
+import { AlignmentValue } from '../DodoExtensions/BigNumber/types';
 
 const defaultNumberFormatter = getNumberFormatter();
 
@@ -217,6 +221,46 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     return null;
   }
 
+  // DODO add
+  // start fragment
+  renderMessage(maxHeight: number) {
+    const { bigNumber, width } = this.props;
+    let fontSize = 0;
+
+    const { colorConditionalMessage, conditionalMessage } =
+      bigNumberVizGetConditionalMessageInfo(this.props, bigNumber);
+
+    const text = conditionalMessage;
+
+    if (text && colorConditionalMessage) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width,
+        maxHeight,
+        className: 'subheader-line',
+        container,
+      });
+      container.remove();
+
+      return (
+        <div
+          className="subheader-line"
+          style={{
+            fontSize,
+            height: maxHeight,
+            color: colorConditionalMessage,
+          }}
+        >
+          {text}
+        </div>
+      );
+    }
+    return null;
+  }
+  // stop fragment
+
   renderTrendline(maxHeight: number) {
     const { width, trendLineData, echartOptions, refs } = this.props;
 
@@ -270,6 +314,10 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      // DODO added #32232659 start
+      conditionalMessageFontSize = 0.125,
+      alignment = AlignmentValue.LEFT,
+      // DODO added #32232659 stop
     } = this.props;
     const className = this.getClassName();
 
@@ -279,7 +327,13 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
 
       return (
         <div className={className}>
-          <div className="text-container" style={{ height: allTextHeight }}>
+          <div
+            className="text-container"
+            style={{
+              height: allTextHeight,
+              alignItems: alignment,
+            }} /*  DODO changed #32232659 */
+          >
             {this.renderFallbackWarning()}
             {this.renderKicker(
               Math.ceil(
@@ -294,6 +348,11 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
                 subheaderFontSize * (1 - PROPORTION.TRENDLINE) * height,
               ),
             )}
+            {
+              this.renderMessage(
+                Math.ceil(conditionalMessageFontSize * height),
+              ) /* DODO add line #32232659 */
+            }
           </div>
           {this.renderTrendline(chartHeight)}
         </div>
@@ -301,11 +360,19 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
     }
 
     return (
-      <div className={className} style={{ height }}>
+      <div
+        className={className}
+        style={{ height, alignItems: alignment }} /*  DODO changed #32232659 */
+      >
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {
+          this.renderMessage(
+            Math.ceil(conditionalMessageFontSize * height),
+          ) /* DODO add line #32232659 */
+        }
       </div>
     );
   }

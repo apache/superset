@@ -40,4 +40,32 @@ const bigNumberVizGetColorDodo = (
   };
 };
 
-export { bigNumberVizGetColorDodo };
+const bigNumberVizGetConditionalMessageInfo = (
+  props: BigNumberVizProps,
+  bigNumber?: DataRecordValue,
+) => {
+  const { conditionalMessageColorFormatters } = props;
+
+  let colorConditionalMessage: string | undefined;
+  let conditionalMessage: string | undefined;
+  if (
+    Array.isArray(conditionalMessageColorFormatters) &&
+    conditionalMessageColorFormatters.length > 0
+  ) {
+    conditionalMessageColorFormatters!.forEach(formatter => {
+      if (typeof bigNumber === 'number') {
+        colorConditionalMessage = formatter.getColorFromValue(bigNumber);
+        // conditionalMessage = formatter.messageEN ?? formatter.messageRU;
+        conditionalMessage =
+          formatter.message || formatter.messageEN || formatter.messageRU;
+      }
+    });
+  }
+
+  return {
+    colorConditionalMessage,
+    conditionalMessage,
+  };
+};
+
+export { bigNumberVizGetColorDodo, bigNumberVizGetConditionalMessageInfo };

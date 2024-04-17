@@ -3,15 +3,15 @@
 import React, { useCallback } from 'react';
 import { FormattingPopoverProps } from '../../../../../explore/components/controls/ConditionalFormattingControl';
 import { FormattingPopoverWrapper } from '../ConditionalFormattingControlDodoWrapper/FormattingPopoverWrapper';
-import { FormattingPopoverContentDodo } from './FormattingPopoverContentDodo';
+import { FormattingPopoverContentMessage } from './FormattingPopoverContentMessage';
 
-const FormattingPopoverDodo = (props: FormattingPopoverProps) => {
+const FormattingPopoverMessage = (props: FormattingPopoverProps) => {
   const render = useCallback(
-    params => <FormattingPopoverContentDodo {...params} />,
+    params => <FormattingPopoverContentMessage {...params} />,
     [],
   );
 
   return <FormattingPopoverWrapper {...props} renderContent={render} />;
 };
 
-export { FormattingPopoverDodo };
+export { FormattingPopoverMessage };

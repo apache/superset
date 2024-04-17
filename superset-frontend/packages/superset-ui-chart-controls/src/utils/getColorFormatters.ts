@@ -270,3 +270,34 @@ export const getColorFormattersDodoPercentChange = memoizeOne(
       [],
     ) ?? [],
 );
+
+// DODO added
+// Add function that based on getColorFormatters
+// and customized for conditional message
+export const getColorFormattersWithConditionalMessage = memoizeOne(
+  (columnConfig: ConditionalFormattingConfig[] | undefined) =>
+    columnConfig?.reduce(
+      (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        if (
+          config?.column !== undefined &&
+          (config?.operator === COMPARATOR.NONE ||
+            (config?.operator !== undefined &&
+              (MULTIPLE_VALUE_COMPARATORS.includes(config?.operator)
+                ? config?.targetValueLeft !== undefined &&
+                  config?.targetValueRight !== undefined
+                : config?.targetValue !== undefined)))
+        ) {
+          acc.push({
+            column: config?.column,
+            getColorFromValue: getColorFunction(config, [], false),
+            // @ts-ignore
+            message: config?.message,
+            messageRU: config?.messageRU,
+            messageEN: config?.messageEN,
+          });
+        }
+        return acc;
+      },
+      [],
+    ) ?? [],
+);
