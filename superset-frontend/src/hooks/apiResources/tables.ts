@@ -126,8 +126,8 @@ const tableApi = api.injectEndpoints({
     >({
       query: ({ dbId, schema, table }) => ({
         endpoint: schema
-          ? `/api/v1/database/${dbId}/table_metadata/extra/?table=${table}&schema=${schema}`
-          : `/api/v1/database/${dbId}/table_metadata/extra/?table=${table}`,
+          ? `/api/v1/database/${dbId}/table_metadata/extra/?name=${table}&schema=${schema}`
+          : `/api/v1/database/${dbId}/table_metadata/extra/?name=${table}`,
         transformResponse: ({ json }: JsonResponse) => json,
       }),
     }),

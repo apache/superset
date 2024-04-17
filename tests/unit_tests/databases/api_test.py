@@ -1188,27 +1188,27 @@ def test_table_extra_metadata_happy_path(
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
-    response = client.get("/api/v1/database/1/table_metadata/extra/?table=t")
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
     assert response.json == {"hello": "world"}
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
         database,
         Table("t"),
     )
 
-    response = client.get("/api/v1/database/1/table_metadata/extra/?table=t&schema=s")
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t&schema=s")
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
         database,
         Table("t", "s"),
     )
 
-    response = client.get("/api/v1/database/1/table_metadata/extra/?table=t&catalog=c")
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t&catalog=c")
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
         database,
         Table("t", None, "c"),
     )
 
     response = client.get(
-        "/api/v1/database/1/table_metadata/extra/?table=t&schema=s&catalog=c"
+        "/api/v1/database/1/table_metadata/extra/?name=t&schema=s&catalog=c"
     )
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
         database,
@@ -1236,7 +1236,7 @@ def test_table_extra_metadata_no_table(
                 "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
                 "level": "error",
                 "extra": {
-                    "messages": {"table": ["Missing data for required field."]},
+                    "messages": {"name": ["Missing data for required field."]},
                     "issue_codes": [
                         {
                             "code": 1020,
@@ -1262,7 +1262,7 @@ def test_table_extra_metadata_slashes(
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
-    client.get("/api/v1/database/1/table_metadata/extra/?table=foo/bar")
+    client.get("/api/v1/database/1/table_metadata/extra/?name=foo/bar")
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
         database,
         Table("foo/bar"),
@@ -1279,7 +1279,7 @@ def test_table_extra_metadata_invalid_database(
     """
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
 
-    response = client.get("/api/v1/database/1/table_metadata/extra/?table=t")
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
     assert response.status_code == 404
     assert response.json == {
         "errors": [
@@ -1325,7 +1325,7 @@ def test_table_extra_metadata_unauthorized(
         ),
     )
 
-    response = client.get("/api/v1/database/1/table_metadata/extra/?table=t")
+    response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
     assert response.status_code == 404
     assert response.json == {
         "errors": [

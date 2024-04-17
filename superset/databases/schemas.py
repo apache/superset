@@ -1205,7 +1205,7 @@ class QualifiedTableSchema(Schema):
     present.
     """
 
-    table = fields.String(
+    name = fields.String(
         required=True,
         metadata={"description": "The table name"},
     )

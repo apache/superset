@@ -867,7 +867,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           - in: query
             schema:
               type: string
-            name: table
+            name: name
             required: true
             description: Table name
           - in: query
@@ -875,13 +875,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               type: string
             name: schema
             description: >-
-              Optional table schema, if not passed default schema will be used
+              Optional table schema, if not passed the schema configured in the database
+              will be used
           - in: query
             schema:
               type: string
             name: catalog
             description: >-
-              Optional table catalog, if not passed default catalog will be used
+              Optional table catalog, if not passed the catalog configured in the
+              database will be used
           responses:
             200:
               description: Table extra metadata information
@@ -898,8 +900,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         self.incr_stats("init", self.table_extra_metadata.__name__)
 
-        database = DatabaseDAO.find_by_id(pk)
-        if database is None:
+        if not (database := DatabaseDAO.find_by_id(pk)):
             raise DatabaseNotFoundException("No such database")
 
         try:
@@ -907,7 +908,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
 
-        table = Table(**parameters)
+        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
