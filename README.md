@@ -97,7 +97,7 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 
 Here are some of the major database solutions that are supported:
 
-<p align="center">
+<p align="left">
   <img src="superset-frontend/src/assets/images/redshift.png" alt="redshift" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
   <img src="superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
