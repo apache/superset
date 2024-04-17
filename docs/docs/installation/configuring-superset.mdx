@@ -99,6 +99,10 @@ SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
 
 You can generate a strong secure key with `openssl rand -base64 42`.
 
+:::caution Your secret key will be used for securely signing session cookies
+and encrypting sensitive information stored in Superset's application metadata database.
+  Make sure you are changing this key for your deployment with a strong key.
+
 #### Rotating to a newer SECRET_KEY
 
 If you wish to change your existing SECRET_KEY, add the existing SECRET_KEY to your `superset_config.py` file as

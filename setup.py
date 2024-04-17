@@ -23,11 +23,9 @@ from setuptools import find_packages, setup
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
 
+
 with open(PACKAGE_JSON) as package_file:
     version_string = json.load(package_file)["version"]
-
-with open("README.md", encoding="utf-8") as f:
-    long_description = f.read()
 
 
 def get_git_sha() -> str:
@@ -54,10 +52,6 @@ with open(VERSION_INFO_FILE, "w") as version_file:
 version_string = version_string.replace("-dev", ".dev0")
 
 setup(
-    name="apache-superset",
-    description="A modern, enterprise-ready business intelligence web application",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
     version=version_string,
     packages=find_packages(),
     include_package_data=True,
@@ -75,6 +69,5 @@ setup(
             "superset=superset.extensions.metadb:SupersetShillelaghAdapter"
         ],
     },
-    python_requires="~=3.9",
     download_url="https://www.apache.org/dist/superset/" + version_string,
 )

@@ -72,3 +72,56 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
             }
         }
     }
+
+
+def test_build_sqlalchemy_uri() -> None:
+    """Test DuckDBEngineSpec.build_sqlalchemy_uri"""
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec, DuckDBParametersType
+
+    # No database provided, default to :memory:
+    parameters = DuckDBParametersType()
+    uri = DuckDBEngineSpec.build_sqlalchemy_uri(parameters)
+    assert "duckdb:///:memory:" == uri
+
+    # Database provided
+    parameters = DuckDBParametersType(database="/path/to/duck.db")
+    uri = DuckDBEngineSpec.build_sqlalchemy_uri(parameters)
+    assert "duckdb:////path/to/duck.db" == uri
+
+
+def test_md_build_sqlalchemy_uri() -> None:
+    """Test MotherDuckEngineSpec.build_sqlalchemy_uri"""
+    from superset.db_engine_specs.duckdb import (
+        DuckDBParametersType,
+        MotherDuckEngineSpec,
+    )
+
+    # No access token provided, throw ValueError
+    parameters = DuckDBParametersType(database="my_db")
+    with pytest.raises(ValueError):
+        MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
+
+    # No database provided, default to "md:"
+    parameters = DuckDBParametersType(access_token="token")
+    uri = MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
+    assert "duckdb:///md:?motherduck_token=token"
+
+    # Database and access_token provided
+    parameters = DuckDBParametersType(database="my_db", access_token="token")
+    uri = MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
+    assert "duckdb:///md:my_db?motherduck_token=token" == uri
+
+
+def test_get_parameters_from_uri() -> None:
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    uri = "duckdb:////path/to/duck.db"
+    parameters = DuckDBEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["database"] == "/path/to/duck.db"
+
+    uri = "duckdb:///md:my_db?motherduck_token=token"
+    parameters = DuckDBEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["database"] == "md:my_db"
+    assert parameters["access_token"] == "token"

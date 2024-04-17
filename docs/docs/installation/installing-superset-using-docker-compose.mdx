@@ -112,6 +112,7 @@ with docker compose will store that data in a PostgreSQL database contained in a
 [volume](https://docs.docker.com/storage/volumes/), which is not backed up.
 
 Again **DO NOT USE THIS FOR PRODUCTION**
+
 :::
 
 You should see a wall of logging output from the containers being launched on your machine. Once
@@ -136,6 +137,13 @@ container will populate example data and visualizations into the metadata databa
 are helpful for learning and testing out Superset but unnecessary for experienced users and
 production deployments. The loading process can sometimes take a few minutes and a good amount of
 CPU, so you may want to disable it on a resource-constrained device.
+
+For more advanced or dynamic configurations that are typically managed in a `superset_config.py` file
+located in your `PYTHONPATH`, note that it can be done by providing a
+`docker/pythonpath_dev/superset_config_docker.py` that will be ignored by git
+(preventing you to commit/push your local configuration back to the repository).
+The mechanics of this are in `docker/pythonpath_dev/superset_config.py` where you can see
+that the logic runs a `from superset_config_docker import *`
 
 
 :::note
