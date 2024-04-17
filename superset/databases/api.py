@@ -831,7 +831,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_extra_metadata_deprecated.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name = cast(str, parse_js_uri_path_item(table_name))
@@ -896,7 +896,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_extra_metadata.__name__)
 
         database = DatabaseDAO.find_by_id(pk)
         if database is None:
