@@ -1123,7 +1123,7 @@ def test_email_dashboard_report_schedule_force_screenshot(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.reports.notifications.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule(
     screenshot_mock,
@@ -1157,7 +1157,7 @@ def test_slack_chart_report_schedule(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.reports.notifications.slack.WebClient")
+@patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule_with_errors(
     screenshot_mock,
@@ -1211,7 +1211,7 @@ def test_slack_chart_report_schedule_with_errors(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
-@patch("superset.reports.notifications.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.utils.csv.get_chart_csv_data")
@@ -1250,7 +1250,7 @@ def test_slack_chart_report_schedule_with_csv(
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_text"
 )
-@patch("superset.reports.notifications.slack.WebClient.chat_postMessage")
+@patch("superset.utils.slack.WebClient.chat_postMessage")
 @patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
 @patch("superset.utils.csv.get_chart_dataframe")
@@ -1378,7 +1378,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
 
 
 @pytest.mark.usefixtures("create_alert_slack_chart_grace")
-@patch("superset.reports.notifications.slack.WebClient.files_upload")
+@patch("superset.utils.slack.WebClient.files_upload")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_report_schedule_success_grace_end(
     screenshot_mock, file_upload_mock, create_alert_slack_chart_grace
@@ -1547,7 +1547,7 @@ def test_slack_chart_alert_no_attachment(email_mock, create_alert_email_chart):
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
-@patch("superset.reports.notifications.slack.WebClient")
+@patch("superset.utils.slack.WebClient")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_token_callable_chart_report(
     screenshot_mock,

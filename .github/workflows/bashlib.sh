@@ -89,6 +89,8 @@ EOF
 setup-mysql() {
   say "::group::Initialize database"
   mysql -h 127.0.0.1 -P 13306 -u root --password=root <<-EOF
+    SET GLOBAL transaction_isolation='READ-COMMITTED';
+    SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
     DROP DATABASE IF EXISTS superset;
     CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
     DROP DATABASE IF EXISTS sqllab_test_db;

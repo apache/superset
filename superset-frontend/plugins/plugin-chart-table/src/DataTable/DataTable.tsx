@@ -274,7 +274,7 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps}>
+              <tr key={rowKey || row.id} {...rowProps} role="row">
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
@@ -295,7 +295,11 @@ export default typedMemo(function DataTable<D extends object>({
             const { key: footerGroupKey, ...footerGroupProps } =
               footerGroup.getHeaderGroupProps();
             return (
-              <tr key={footerGroupKey || footerGroup.id} {...footerGroupProps}>
+              <tr
+                key={footerGroupKey || footerGroup.id}
+                {...footerGroupProps}
+                role="row"
+              >
                 {footerGroup.headers.map(column =>
                   column.render('Footer', { key: column.id }),
                 )}
