@@ -846,7 +846,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             {"col1": "val1"},
             {"col2": "val2"},
         ]
-        PrestoEngineSpec.select_star(database, table_name, engine, cols=cols)
+        PrestoEngineSpec.select_star(database, Table(table_name), engine, cols=cols)
         mock_select_star.assert_called_once_with(
             database, table_name, engine, None, 100, False, True, True, cols
         )
@@ -869,7 +869,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             {"column_name": ".val2."},
         ]
         PrestoEngineSpec.select_star(
-            database, table_name, engine, show_cols=True, cols=cols
+            database,
+            Table(table_name),
+            engine,
+            show_cols=True,
+            cols=cols,
         )
         mock_select_star.assert_called_once_with(
             database,
@@ -1172,7 +1176,7 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     if database.backend != "presto":
         return
 
-    with database.get_inspector_with_context() as inspector:
+    with database.get_inspector() as inspector:
         assert PrestoEngineSpec.get_catalog_names(database, inspector) == [
             "jmx",
             "memory",

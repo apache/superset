@@ -420,8 +420,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     @classmethod
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals,unused-argument
         cls,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         indexes: list[dict[str, Any]],
         database: Database,
         limit: int = 0,
@@ -434,8 +433,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Note the unused arguments are exposed for sub-classing purposes where custom
         integrations may require the schema, indexes, etc. to build the partition query.
 
-        :param table_name: the name of the table to get partitions from
-        :param schema: the schema name
+        :param table: the table instance
         :param indexes: the indexes associated with the table
         :param database: the database the query will be run against
         :param limit: the number of partitions to be returned
@@ -464,12 +462,16 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         presto_version = database.get_extra().get("version")
 
         if presto_version and Version(presto_version) < Version("0.199"):
-            full_table_name = f"{schema}.{table_name}" if schema else table_name
+            full_table_name = (
+                f"{table.schema}.{table.table}" if table.schema else table.table
+            )
             partition_select_clause = f"SHOW PARTITIONS FROM {full_table_name}"
         else:
-            system_table_name = f'"{table_name}$partitions"'
+            system_table_name = f'"{table.table}$partitions"'
             full_table_name = (
-                f"{schema}.{system_table_name}" if schema else system_table_name
+                f"{table.schema}.{system_table_name}"
+                if table.schema
+                else system_table_name
             )
             partition_select_clause = f"SELECT * FROM {full_table_name}"
 
@@ -484,18 +486,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return sql
 
     @classmethod
-    def where_latest_partition(  # pylint: disable=too-many-arguments
+    def where_latest_partition(
         cls,
-        table_name: str,
-        schema: str | None,
         database: Database,
+        table: Table,
         query: Select,
         columns: list[ResultSetColumnType] | None = None,
     ) -> Select | None:
         try:
-            col_names, values = cls.latest_partition(
-                table_name, schema, database, show_first=True
-            )
+            col_names, values = cls.latest_partition(database, table, show_first=True)
         except Exception:  # pylint: disable=broad-except
             # table is not partitioned
             return None
@@ -527,18 +526,16 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     @classmethod
     @cache_manager.data_cache.memoize(timeout=60)
-    def latest_partition(  # pylint: disable=too-many-arguments
+    def latest_partition(
         cls,
-        table_name: str,
-        schema: str | None,
         database: Database,
+        table: Table,
         show_first: bool = False,
         indexes: list[dict[str, Any]] | None = None,
     ) -> tuple[list[str], list[str] | None]:
         """Returns col name and the latest (max) partition value for a table
 
-        :param table_name: the name of the table
-        :param schema: schema / database / namespace
+        :param table: the table instance
         :param database: database query will be run against
         :type database: models.Database
         :param show_first: displays the value for the first partitioning key
@@ -550,11 +547,11 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         (['ds'], ('2018-01-01',))
         """
         if indexes is None:
-            indexes = database.get_indexes(table_name, schema)
+            indexes = database.get_indexes(table)
 
         if not indexes:
             raise SupersetTemplateException(
-                f"Error getting partition for {schema}.{table_name}. "
+                f"Error getting partition for {table}. "
                 "Verify that this table has a partition."
             )
 
@@ -575,20 +572,23 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return column_names, cls._latest_partition_from_df(
             df=database.get_df(
                 sql=cls._partition_query(
-                    table_name,
-                    schema,
+                    table,
                     indexes,
                     database,
                     limit=1,
                     order_by=[(column_name, True) for column_name in column_names],
                 ),
-                schema=schema,
+                catalog=table.catalog,
+                schema=table.schema,
             )
         )
 
     @classmethod
     def latest_sub_partition(
-        cls, table_name: str, schema: str | None, database: Database, **kwargs: Any
+        cls,
+        database: Database,
+        table: Table,
+        **kwargs: Any,
     ) -> Any:
         """Returns the latest (max) partition value for a table
 
@@ -601,12 +601,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         ``latest_sub_partition('my_table',
             event_category='page', event_type='click')``
 
-        :param table_name: the name of the table, can be just the table
-            name or a fully qualified table name as ``schema_name.table_name``
-        :type table_name: str
-        :param schema: schema / database / namespace
-        :type schema: str
         :param database: database query will be run against
+        :param table: the table instance
+        :type table: Table
         :type database: models.Database
 
         :param kwargs: keyword arguments define the filtering criteria
@@ -615,7 +612,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         >>> latest_sub_partition('sub_partition_table', event_type='click')
         '2018-01-01'
         """
-        indexes = database.get_indexes(table_name, schema)
+        indexes = database.get_indexes(table)
         part_fields = indexes[0]["column_names"]
         for k in kwargs.keys():  # pylint: disable=consider-iterating-dictionary
             if k not in k in part_fields:  # pylint: disable=comparison-with-itself
@@ -633,15 +630,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
                 field_to_return = field
 
         sql = cls._partition_query(
-            table_name,
-            schema,
+            table,
             indexes,
             database,
             limit=1,
             order_by=[(field_to_return, True)],
             filters=kwargs,
         )
-        df = database.get_df(sql, schema)
+        df = database.get_df(sql, table.catalog, table.schema)
         if df.empty:
             return ""
         return df.to_dict()[field_to_return][0]
@@ -966,7 +962,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def _show_columns(
-        cls, inspector: Inspector, table_name: str, schema: str | None
+        cls,
+        inspector: Inspector,
+        table: Table,
     ) -> list[ResultRow]:
         """
         Show presto column names
@@ -976,17 +974,16 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :return: list of column objects
         """
         quote = inspector.engine.dialect.identifier_preparer.quote_identifier
-        full_table = quote(table_name)
-        if schema:
-            full_table = f"{quote(schema)}.{full_table}"
+        full_table = quote(table.table)
+        if table.schema:
+            full_table = f"{quote(table.schema)}.{full_table}"
         return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
 
     @classmethod
     def get_columns(
         cls,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
@@ -999,7 +996,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :return: a list of results that contain column info
                 (i.e. column name and data type)
         """
-        columns = cls._show_columns(inspector, table_name, schema)
+        columns = cls._show_columns(inspector, table)
         result: list[ResultSetColumnType] = []
         for column in columns:
             # parse column if it is a row or array
@@ -1077,9 +1074,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     def select_star(  # pylint: disable=too-many-arguments
         cls,
         database: Database,
-        table_name: str,
+        table: Table,
         engine: Engine,
-        schema: str | None = None,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1102,9 +1098,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ]
         return super().select_star(
             database,
-            table_name,
+            table,
             engine,
-            schema,
             limit,
             show_cols,
             indent,
@@ -1232,11 +1227,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table.table, table.schema):
+        if indexes := database.get_indexes(table):
             col_names, latest_parts = cls.latest_partition(
-                table.table,
-                table.schema,
                 database,
+                table,
                 show_first=True,
                 indexes=indexes,
             )
@@ -1248,8 +1242,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 "cols": sorted(indexes[0].get("column_names", [])),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table.table,
-                    schema=table.schema,
+                    table=table,
                     indexes=indexes,
                     database=database,
                 ),

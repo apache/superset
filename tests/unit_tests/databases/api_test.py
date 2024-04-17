@@ -1415,6 +1415,170 @@ def test_excel_upload_file_extension_invalid(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
+def test_table_metadata_happy_path(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.json == {"hello": "world"}
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s"),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", None, "c"),
+    )
+
+    response = client.get(
+        "/api/v1/database/1/table_metadata/?name=t&schema=s&catalog=c"
+    )
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("t", "s", "c"),
+    )
+
+
+def test_table_metadata_no_table(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when no table name is passed.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+
+    response = client.get("/api/v1/database/1/table_metadata/?schema=s&catalog=c")
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "An error happened when validating the request",
+                "error_type": "INVALID_PAYLOAD_SCHEMA_ERROR",
+                "level": "error",
+                "extra": {
+                    "messages": {"name": ["Missing data for required field."]},
+                    "issue_codes": [
+                        {
+                            "code": 1020,
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                        }
+                    ],
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_slashes(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint with names that have slashes.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
+    database.db_engine_spec.get_table_metadata.assert_called_with(
+        database,
+        Table("foo/bar"),
+    )
+
+
+def test_table_metadata_invalid_database(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the database is invalid.
+    """
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such database",
+                "error_type": "DATABASE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1011,
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                        },
+                        {
+                            "code": 1036,
+                            "message": "Issue 1036 - The database was deleted.",
+                        },
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_table_metadata_unauthorized(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `table_metadata` endpoint when the user is unauthorized.
+    """
+    database = mocker.MagicMock()
+    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.get("/api/v1/database/1/table_metadata/?name=t")
+    assert response.status_code == 404
+    assert response.json == {
+        "errors": [
+            {
+                "message": "No such table",
+                "error_type": "TABLE_NOT_FOUND_ERROR",
+                "level": "error",
+                "extra": None,
+            }
+        ]
+    }
+
+
 def test_table_extra_metadata_happy_path(
     mocker: MockFixture,
     client: Any,

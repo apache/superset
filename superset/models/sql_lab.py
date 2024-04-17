@@ -109,6 +109,7 @@ class Query(
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
+    catalog = Column(String(256), nullable=True, default=None)
     sql = Column(MediumText())
     # Query to retrieve the results,
     # used only in case of select_as_cta_used is true.
@@ -386,6 +387,7 @@ class SavedQuery(
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)
     schema = Column(String(128))
+    catalog = Column(String(256), nullable=True, default=None)
     label = Column(String(256))
     description = Column(Text)
     sql = Column(MediumText())
@@ -474,6 +476,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     database_id = Column(Integer, ForeignKey("dbs.id", ondelete="CASCADE"))
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
+    catalog = Column(String(256), nullable=True, default=None)
 
     # tables that are open in the schema browser and their data previews
     table_schemas = relationship(
@@ -535,6 +538,7 @@ class TableSchema(AuditMixinNullable, ExtraJSONMixin, Model):
     )
     database = relationship("Database", foreign_keys=[database_id])
     schema = Column(String(256))
+    catalog = Column(String(256), nullable=True, default=None)
     table = Column(String(256))
 
     # JSON describing the schema, partitions, latest partition, etc.

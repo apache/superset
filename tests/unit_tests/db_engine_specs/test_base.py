@@ -232,9 +232,8 @@ def test_select_star(mocker: MockFixture) -> None:
 
     sql = BaseEngineSpec.select_star(
         database=database,
-        table_name="my_table",
+        table=Table("my_table"),
         engine=engine,
-        schema=None,
         limit=100,
         show_cols=True,
         indent=True,
@@ -252,9 +251,8 @@ OFFSET ?"""
 
     sql = NoLimitDBEngineSpec.select_star(
         database=database,
-        table_name="my_table",
+        table=Table("my_table"),
         engine=engine,
-        schema=None,
         limit=100,
         show_cols=True,
         indent=True,

@@ -136,6 +136,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "tables",
         "table_metadata",
+        "table_metadata_deprecated",
         "table_extra_metadata",
         "table_extra_metadata_deprecated",
         "select_star",
@@ -722,10 +723,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata",
+        f".table_metadata_deprecated",
         log_to_statsd=False,
     )
-    def table_metadata(
+    def table_metadata_deprecated(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
         """Get database table metadata.
@@ -766,16 +767,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_metadata_deprecated.__name__)
         try:
-            table_info = get_table_metadata(database, table_name, schema_name)
+            table_info = get_table_metadata(database, Table(table_name, schema_name))
         except SQLAlchemyError as ex:
-            self.incr_stats("error", self.table_metadata.__name__)
+            self.incr_stats("error", self.table_metadata_deprecated.__name__)
             return self.response_422(error_msg_from_exception(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-        self.incr_stats("success", self.table_metadata.__name__)
+        self.incr_stats("success", self.table_metadata_deprecated.__name__)
         return self.response(200, **table_info)
 
     @expose("/<int:pk>/table_extra/<path:table_name>/<schema_name>/", methods=("GET",))
@@ -844,7 +845,86 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         payload = database.db_engine_spec.get_extra_table_metadata(database, table)
         return self.response(200, **payload)
 
-    @expose("/<int:pk>/table_metadata/extra/", methods=("GET",))
+    @expose("/<int:pk>/table_metadata/", methods=["GET"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_metadata",
+        log_to_statsd=False,
+    )
+    def table_metadata(self, pk: int) -> FlaskResponse:
+        """
+        Get metadata for a given table.
+
+        Optionally, a schema and a catalog can be passed, if different from the default
+        ones.
+        ---
+        get:
+          summary: Get table metadata
+          description: >-
+            Metadata associated with the table (columns, indexes, etc.)
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            schema:
+              type: string
+            name: table
+            required: true
+            description: Table name
+          - in: query
+            schema:
+              type: string
+            name: schema
+            description: >-
+              Optional table schema, if not passed default schema will be used
+          - in: query
+            schema:
+              type: string
+            name: catalog
+            description: >-
+              Optional table catalog, if not passed default catalog will be used
+          responses:
+            200:
+              description: Table metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_metadata.__name__)
+
+        database = DatabaseDAO.find_by_id(pk)
+        if database is None:
+            raise DatabaseNotFoundException("No such database")
+
+        try:
+            parameters = QualifiedTableSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+
+        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        try:
+            security_manager.raise_for_access(database=database, table=table)
+        except SupersetSecurityException as ex:
+            # instead of raising 403, raise 404 to hide table existence
+            raise TableNotFoundException("No such table") from ex
+
+        payload = database.db_engine_spec.get_table_metadata(database, table)
+
+        return self.response(200, **payload)
+
+    @expose("/<int:pk>/table_metadata/extra/", methods=["GET"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -978,7 +1058,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.select_star.__name__)
         try:
             result = database.select_star(
-                table_name, schema_name, latest_partition=True
+                Table(table_name, schema_name),
+                latest_partition=True,
             )
         except NoSuchTableError:
             self.incr_stats("error", self.select_star.__name__)

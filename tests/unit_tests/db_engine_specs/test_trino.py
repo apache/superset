@@ -442,7 +442,7 @@ def test_get_columns(mocker: MockerFixture):
     mock_inspector = mocker.MagicMock()
     mock_inspector.get_columns.return_value = sqla_columns
 
-    actual = TrinoEngineSpec.get_columns(mock_inspector, "table", "schema")
+    actual = TrinoEngineSpec.get_columns(mock_inspector, Table("table", "schema"))
     expected = [
         ResultSetColumnType(
             name="field1", column_name="field1", type=field1_type, is_dttm=False
@@ -475,7 +475,9 @@ def test_get_columns_expand_rows(mocker: MockerFixture):
     mock_inspector.get_columns.return_value = sqla_columns
 
     actual = TrinoEngineSpec.get_columns(
-        mock_inspector, "table", "schema", {"expand_rows": True}
+        mock_inspector,
+        Table("table", "schema"),
+        {"expand_rows": True},
     )
     expected = [
         ResultSetColumnType(
@@ -538,7 +540,9 @@ def test_get_indexes_no_table():
         side_effect=NoSuchTableError("The specified table does not exist.")
     )
     result = TrinoEngineSpec.get_indexes(
-        db_mock, inspector_mock, "test_table", "test_schema"
+        db_mock,
+        inspector_mock,
+        Table("test_table", "test_schema"),
     )
     assert result == []
 

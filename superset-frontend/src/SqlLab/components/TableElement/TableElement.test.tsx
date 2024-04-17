@@ -47,7 +47,7 @@ jest.mock(
       <div data-test="mock-column-element">{column.name}</div>
     ),
 );
-const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
+const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table_metadata/*';
 const getExtraTableMetadataEndpoint =
   'glob:**/api/v1/database/*/table_metadata/extra/*';
 const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';

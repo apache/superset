@@ -508,10 +508,11 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
-    const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
+    const getTableMetadataEndpoint =
+      'glob:**/api/v1/database/*/table_metadata/*';
     fetchMock.get(getTableMetadataEndpoint, {});
     const getExtraTableMetadataEndpoint =
-      'glob:**/api/v1/database/*/table_metadata/extra/';
+      'glob:**/api/v1/database/*/table_metadata/extra/*';
     fetchMock.get(getExtraTableMetadataEndpoint, {});
 
     let isFeatureEnabledMock;

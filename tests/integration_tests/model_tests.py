@@ -39,6 +39,7 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -294,14 +295,14 @@ class TestDatabaseModel(SupersetTestCase):
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"
-        sql = db.select_star(table_name, show_cols=False, latest_partition=False)
+        sql = db.select_star(Table(table_name), show_cols=False, latest_partition=False)
         with db.get_sqla_engine() as engine:
             quote = engine.dialect.identifier_preparer.quote_identifier
 
         source = quote(table_name) if db.backend in {"presto", "hive"} else table_name
         expected = f"SELECT\n  *\nFROM {source}\nLIMIT 100"
         assert expected in sql
-        sql = db.select_star(table_name, show_cols=True, latest_partition=False)
+        sql = db.select_star(Table(table_name), show_cols=True, latest_partition=False)
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
@@ -324,7 +325,9 @@ class TestDatabaseModel(SupersetTestCase):
         schema = "schema.name"
         table_name = "table/name"
         sql = db.select_star(
-            table_name, schema=schema, show_cols=False, latest_partition=False
+            Table(table_name, schema),
+            show_cols=False,
+            latest_partition=False,
         )
         fully_qualified_names = {
             "sqlite": '"schema.name"."table/name"',

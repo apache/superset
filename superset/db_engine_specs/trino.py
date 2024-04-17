@@ -66,11 +66,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table.table, table.schema):
+        if indexes := database.get_indexes(table):
             col_names, latest_parts = cls.latest_partition(
-                table.table,
-                table.schema,
                 database,
+                table,
                 show_first=True,
                 indexes=indexes,
             )
@@ -91,15 +90,14 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table.table,
-                    schema=table.schema,
+                    table=table,
                     indexes=indexes,
                     database=database,
                 ),
             }
 
         if database.has_view_by_name(table.table, table.schema):
-            with database.get_inspector_with_context() as inspector:
+            with database.get_inspector() as inspector:
                 metadata["view"] = inspector.get_view_definition(
                     table.table,
                     table.schema,
@@ -414,8 +412,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def get_columns(
         cls,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
         options: dict[str, Any] | None = None,
     ) -> list[ResultSetColumnType]:
         """
@@ -423,7 +420,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         "schema_options", expand the schema definition out to show all
         subfields of nested ROWs as their appropriate dotted paths.
         """
-        base_cols = super().get_columns(inspector, table_name, schema, options)
+        base_cols = super().get_columns(inspector, table, options)
         if not (options or {}).get("expand_rows"):
             return base_cols
 
@@ -434,8 +431,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         cls,
         database: Database,
         inspector: Inspector,
-        table_name: str,
-        schema: str | None,
+        table: Table,
     ) -> list[dict[str, Any]]:
         """
         Get the indexes associated with the specified schema/table.
@@ -444,11 +440,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
-        :param table_name: The table to inspect
-        :param schema: The schema to inspect
+        :param table: The table instance to inspect
         :returns: The indexes
         """
         try:
-            return super().get_indexes(database, inspector, table_name, schema)
+            return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []

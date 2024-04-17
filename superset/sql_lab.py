@@ -55,6 +55,7 @@ from superset.sql_parse import (
     insert_rls_as_subquery,
     insert_rls_in_predicate,
     ParsedQuery,
+    Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
@@ -470,7 +471,11 @@ def execute_sql_statements(
             )
         )
 
-    with database.get_raw_connection(query.schema, source=QuerySource.SQL_LAB) as conn:
+    with database.get_raw_connection(
+        catalog=query.catalog,
+        schema=query.schema,
+        source=QuerySource.SQL_LAB,
+    ) as conn:
         # Sharing a single connection and cursor across the
         # execution of all statements (if many)
         cursor = conn.cursor()
@@ -539,8 +544,7 @@ def execute_sql_statements(
     query.set_extra_json_key("columns", result_set.columns)
     if query.select_as_cta:
         query.select_sql = database.select_star(
-            query.tmp_table_name,
-            schema=query.tmp_schema_name,
+            Table(query.tmp_table_name, query.tmp_schema_name),
             limit=query.limit,
             show_cols=False,
             latest_partition=False,
@@ -645,7 +649,9 @@ def cancel_query(query: Query) -> bool:
         return False
 
     with query.database.get_sqla_engine(
-        query.schema, source=QuerySource.SQL_LAB
+        catalog=query.catalog,
+        schema=query.schema,
+        source=QuerySource.SQL_LAB,
     ) as engine:
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:

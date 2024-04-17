@@ -32,7 +32,6 @@ from sqlalchemy import (
     Column,
     ForeignKey,
     Integer,
-    MetaData,
     String,
     Table,
     Text,
@@ -213,13 +212,6 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     @property
     def charts(self) -> list[str]:
         return [slc.chart for slc in self.slices]
-
-    @property
-    def sqla_metadata(self) -> None:
-        # pylint: disable=no-member
-        with self.get_sqla_engine() as engine:
-            meta = MetaData(bind=engine)
-            meta.reflect()
 
     @property
     def status(self) -> utils.DashboardStatus:

@@ -50,6 +50,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
+from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
@@ -1197,14 +1198,11 @@ class TestCore(SupersetTestCase):
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_has_table_by_name(self):
+    def test_has_table(self):
         if backend() in ("sqlite", "mysql"):
             return
         example_db = superset.utils.database.get_example_database()
-        assert (
-            example_db.has_table_by_name(table_name="birth_names", schema="public")
-            is True
-        )
+        assert example_db.has_table(Table("birth_names", "public")) is True
 
     @mock.patch("superset.views.core.request")
     @mock.patch(

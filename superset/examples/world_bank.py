@@ -37,6 +37,7 @@ from superset.examples.helpers import (
 )
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
 from superset.utils import core as utils
 from superset.utils.core import DatasourceType
 
@@ -51,7 +52,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     database = superset.utils.database.get_example_database()
     with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
-        table_exists = database.has_table_by_name(tbl_name)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
         if not only_metadata and (not table_exists or force):
             url = get_example_url("countries.json.gz")
