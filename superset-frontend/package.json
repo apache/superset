@@ -204,7 +204,8 @@
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.9.0",
     "use-query-params": "^1.1.9",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@applitools/eyes-storybook": "^3.30.1",
@@ -253,6 +254,7 @@
     "@types/js-levenshtein": "^1.1.0",
     "@types/json-bigint": "^1.0.1",
     "@types/mousetrap": "^1.6.15",
+    "@types/node": "^20.12.7",
     "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
     "@types/react-gravatar": "^2.6.8",

@@ -43,8 +43,6 @@ logger = logging.getLogger(__name__)
 test_client = app.test_client()
 
 CSV_UPLOAD_DATABASE = "csv_explore_db"
-CSV_FILENAME1 = "testCSV1.csv"
-CSV_FILENAME2 = "testCSV2.csv"
 EXCEL_FILENAME = "testExcel.xlsx"
 PARQUET_FILENAME1 = "testZip/testParquet1.parquet"
 PARQUET_FILENAME2 = "testZip/testParquet2.parquet"
@@ -93,27 +91,6 @@ def setup_csv_upload_with_context():
         yield from _setup_csv_upload()
 
 
-@pytest.fixture(scope="module")
-def create_csv_files():
-    with open(CSV_FILENAME1, "w+") as test_file:
-        for line in ["a,b", "john,1", "paul,2"]:
-            test_file.write(f"{line}\n")
-
-    with open(CSV_FILENAME2, "w+") as test_file:
-        for line in ["b,c,d", "john,1,x", "paul,2,"]:
-            test_file.write(f"{line}\n")
-    yield
-    os.remove(CSV_FILENAME1)
-    os.remove(CSV_FILENAME2)
-
-
-@pytest.fixture()
-def create_excel_files():
-    pd.DataFrame({"a": ["john", "paul"], "b": [1, 2]}).to_excel(EXCEL_FILENAME)
-    yield
-    os.remove(EXCEL_FILENAME)
-
-
 @pytest.fixture()
 def create_columnar_files():
     os.mkdir(ZIP_DIRNAME)
@@ -127,25 +104,6 @@ def create_columnar_files():
 
 def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
-
-
-def upload_excel(
-    filename: str, table_name: str, extra: Optional[dict[str, str]] = None
-):
-    excel_upload_db_id = get_upload_db().id
-    form_data = {
-        "excel_file": open(filename, "rb"),
-        "name": table_name,
-        "database": excel_upload_db_id,
-        "sheet_name": "Sheet1",
-        "if_exists": "fail",
-        "index_label": "test_label",
-    }
-    if schema := utils.get_example_default_schema():
-        form_data["schema"] = schema
-    if extra:
-        form_data.update(extra)
-    return get_resp(test_client, "/exceltodatabaseview/form", data=form_data)
 
 
 def upload_columnar(
@@ -197,65 +155,6 @@ def escaped_double_quotes(text):
 
 def escaped_parquet(text):
     return escaped_double_quotes(f"[&#39;{text}&#39;]")
-
-
-@pytest.mark.usefixtures("setup_csv_upload_with_context")
-@pytest.mark.usefixtures("create_excel_files")
-@mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
-@mock.patch("superset.views.database.views.event_logger.log_with_context")
-def test_import_excel(mock_event_logger):
-    if utils.backend() == "hive":
-        pytest.skip("Hive doesn't excel upload.")
-
-    schema = utils.get_example_default_schema()
-    full_table_name = f"{schema}.{EXCEL_UPLOAD_TABLE}" if schema else EXCEL_UPLOAD_TABLE
-    test_db = get_upload_db()
-
-    success_msg = f"Excel file {escaped_double_quotes(EXCEL_FILENAME)} uploaded to table {escaped_double_quotes(full_table_name)}"
-
-    # initial upload with fail mode
-    resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
-    assert success_msg in resp
-    mock_event_logger.assert_called_with(
-        action="successful_excel_upload",
-        database=test_db.name,
-        schema=schema,
-        table=EXCEL_UPLOAD_TABLE,
-    )
-
-    # ensure user is assigned as an owner
-    table = SupersetTestCase.get_table(name=EXCEL_UPLOAD_TABLE)
-    assert security_manager.find_user("admin") in table.owners
-
-    # upload again with fail mode; should fail
-    fail_msg = f"Unable to upload Excel file {escaped_double_quotes(EXCEL_FILENAME)} to table {escaped_double_quotes(EXCEL_UPLOAD_TABLE)}"
-    resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
-    assert fail_msg in resp
-
-    if utils.backend() != "hive":
-        # upload again with append mode
-        resp = upload_excel(
-            EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "append"}
-        )
-        assert success_msg in resp
-
-    # upload again with replace mode
-    resp = upload_excel(
-        EXCEL_FILENAME, EXCEL_UPLOAD_TABLE, extra={"if_exists": "replace"}
-    )
-    assert success_msg in resp
-    mock_event_logger.assert_called_with(
-        action="successful_excel_upload",
-        database=test_db.name,
-        schema=schema,
-        table=EXCEL_UPLOAD_TABLE,
-    )
-
-    with test_db.get_sqla_engine() as engine:
-        data = engine.execute(
-            f"SELECT * from {EXCEL_UPLOAD_TABLE} ORDER BY b"
-        ).fetchall()
-        assert data == [(0, "john", 1), (1, "paul", 2)]
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")

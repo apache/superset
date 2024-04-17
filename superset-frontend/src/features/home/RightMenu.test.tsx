@@ -63,12 +63,6 @@ const dropdownItems = [
         url: '/columnartodatabaseview/form',
         perm: true,
       },
-      {
-        label: 'Upload Excel file to database',
-        name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
-        perm: true,
-      },
     ],
   },
   {
