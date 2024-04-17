@@ -87,6 +87,7 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
+    app.config["RATELIMIT_ENABLED"] = False
 
     # loop over extra configs passed in by tests
     # and update the app config
