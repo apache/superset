@@ -465,7 +465,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
-    def test_info_security_database(self):
+    def test_info_security_dashboard(self):
         """
         Dashboard API: Test info security
         """
