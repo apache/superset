@@ -30,7 +30,7 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
@@ -238,7 +238,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()
-        sqla_table = example_db.get_table("energy_usage")
+        sqla_table = example_db.get_table(Table("energy_usage"))
         dialect = example_db.get_dialect()
 
         # TODO: fix column type conversion for presto.
@@ -540,8 +540,7 @@ def test_get_indexes():
         BaseEngineSpec.get_indexes(
             database=mock.Mock(),
             inspector=inspector,
-            table_name="bar",
-            schema="foo",
+            table=Table("bar", "foo"),
         )
         == indexes
     )

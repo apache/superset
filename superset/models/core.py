@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# pylint: disable=line-too-long, too-many-lines, too-many-arguments
+# pylint: disable=too-many-lines, too-many-arguments
 
 """A collection of ORM sqlalchemy models for Superset"""
 
@@ -607,7 +607,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
         return sql_
 
-    def get_df(
+    def get_df(  # pylint: disable=too-many-locals
         self,
         sql: str,
         catalog: str | None = None,

@@ -75,8 +75,7 @@ class Db2EngineSpec(BaseEngineSpec):
         Ibm Db2 return comments as tuples, so we need to get the first element
 
         :param inspector: SqlAlchemy Inspector instance
-        :param table_name: Table name
-        :param schema: Schema name. If omitted, uses default schema for database
+        :param table: Table instance
         :return: comment of table
         """
         comment = None

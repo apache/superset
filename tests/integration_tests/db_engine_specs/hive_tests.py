@@ -23,7 +23,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table, ParsedQuery
+from superset.sql_parse import ParsedQuery, Table
 from tests.integration_tests.test_app import app
 
 
@@ -328,7 +328,10 @@ def test_where_latest_partition(mock_method):
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", database, select(), columns
+            database,
+            Table("test_table", "test_schema"),
+            select(),
+            columns,
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
@@ -341,7 +344,10 @@ def test_where_latest_partition_super_method_exception(mock_method):
     columns = [{"name": "ds"}, {"name": "hour"}]
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", database, select(), columns
+            database,
+            Table("test_table", "test_schema"),
+            select(),
+            columns,
         )
     assert result is None
     mock_method.assert_called()
@@ -353,7 +359,9 @@ def test_where_latest_partition_no_columns_no_values(mock_method):
     db = mock.Mock()
     with app.app_context():
         result = HiveEngineSpec.where_latest_partition(
-            "test_table", "test_schema", db, select()
+            db,
+            Table("test_table", "test_schema"),
+            select(),
         )
     assert result is None
 

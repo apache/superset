@@ -329,7 +329,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "edit_url": self.url,
             "id": self.id,
             "uid": self.uid,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "name": self.name,
             "type": self.type,
             "connection": self.connection,
@@ -383,7 +383,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "datasource_name": self.datasource_name,
             "table_name": self.datasource_name,
             "type": self.type,
-            "schema": self.schema,
+            "schema": self.schema or None,
             "offset": self.offset,
             "cache_timeout": self.cache_timeout,
             "params": self.params,
@@ -1263,7 +1263,7 @@ class SqlaTable(
 
     def get_schema_perm(self) -> str | None:
         """Returns schema permission if present, database one otherwise."""
-        return security_manager.get_schema_perm(self.database, self.schema)
+        return security_manager.get_schema_perm(self.database, self.schema or None)
 
     def get_perm(self) -> str:
         """
@@ -1320,7 +1320,7 @@ class SqlaTable(
             return get_virtual_table_metadata(dataset=self)
         return get_physical_table_metadata(
             database=self.database,
-            table=Table(self.table_name, self.schema, self.catalog),
+            table=Table(self.table_name, self.schema or None, self.catalog),
             normalize_columns=self.normalize_columns,
         )
 
@@ -1336,7 +1336,7 @@ class SqlaTable(
         # show_cols and latest_partition set to false to avoid
         # the expensive cost of inspecting the DB
         return self.database.select_star(
-            Table(self.table_name, self.schema, self.catalog),
+            Table(self.table_name, self.schema or None, self.catalog),
             show_cols=False,
             latest_partition=False,
         )
@@ -1528,7 +1528,7 @@ class SqlaTable(
                     col_desc = get_columns_description(
                         self.database,
                         self.catalog,
-                        self.schema,
+                        self.schema or None,
                         sql,
                     )
                     if not col_desc:
@@ -1735,7 +1735,9 @@ class SqlaTable(
             return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
+            df = self.database.get_df(
+                sql, self.schema or None, mutator=assign_column_label
+            )
         except (SupersetErrorException, SupersetErrorsException) as ex:
             # SupersetError(s) exception should not be captured; instead, they should
             # bubble up to the Flask error handler so they are returned as proper SIP-40
@@ -1772,7 +1774,7 @@ class SqlaTable(
         return self.database.get_table(
             Table(
                 self.table_name,
-                self.schema,
+                self.schema or None,
                 self.catalog,
             )
         )
@@ -1790,7 +1792,7 @@ class SqlaTable(
             for metric in self.database.get_metrics(
                 Table(
                     self.table_name,
-                    self.schema,
+                    self.schema or None,
                     self.catalog,
                 )
             )

@@ -75,7 +75,7 @@ const DatasetPanelWrapper = ({
     setLoading(true);
     setHasColumns?.(false);
     const path = schema
-      ? `/api/v1/database/${dbId}/table_metadata/?name=${tableName}&schema=${schema}/`
+      ? `/api/v1/database/${dbId}/table_metadata/?name=${tableName}&schema=${schema}`
       : `/api/v1/database/${dbId}/table_metadata/?name=${tableName}`;
     try {
       const response = await SupersetClient.get({

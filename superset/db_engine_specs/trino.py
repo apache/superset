@@ -40,12 +40,12 @@ from superset.db_engine_specs.exceptions import (
 )
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
-    from superset.sql_parse import Table
 
     with contextlib.suppress(ImportError):  # trino may not be installed
         from trino.dbapi import Cursor
@@ -96,8 +96,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
             }
 
-        if database.has_view_by_name(table.table, table.schema):
-            with database.get_inspector() as inspector:
+        if database.has_view(Table(table.table, table.schema)):
+            with database.get_inspector(
+                catalog=table.catalog,
+                schema=table.schema,
+            ) as inspector:
                 metadata["view"] = inspector.get_view_definition(
                     table.table,
                     table.schema,

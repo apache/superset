@@ -969,8 +969,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         Show presto column names
         :param inspector: object that performs database schema inspection
-        :param table_name: table name
-        :param schema: schema name
+        :param table: table instance
         :return: list of column objects
         """
         quote = inspector.engine.dialect.identifier_preparer.quote_identifier
@@ -990,8 +989,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         Get columns from a Presto data source. This includes handling row and
         array data types
         :param inspector: object that performs database schema inspection
-        :param table_name: table name
-        :param schema: schema name
+        :param table: table instance
         :param options: Extra configuration options, not used by this backend
         :return: a list of results that contain column info
                 (i.e. column name and data type)

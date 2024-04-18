@@ -60,8 +60,9 @@ def test_get_table_comment_empty(mocker: MockerFixture):
     mock_inspector = mocker.MagicMock()
     mock_inspector.get_table_comment.return_value = {}
 
-    assert Db2EngineSpec.get_table_comment(
-        mock_inspector, Table("my_table", "my_schema")
+    assert (
+        Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
+        is None
     )
 
 

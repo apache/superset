@@ -17,7 +17,7 @@
 """Add catalog column
 
 Revision ID: 5f57af97bc3f
-Revises: 5ad7321c2169
+Revises: d60591c5515f
 Create Date: 2024-04-11 15:41:34.663989
 
 """
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "5f57af97bc3f"
-down_revision = "5ad7321c2169"
+down_revision = "d60591c5515f"
 
 
 def upgrade():

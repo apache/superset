@@ -311,15 +311,15 @@ def test_convert_dttm(
     assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
 
 
-def test_get_extra_table_metadata() -> None:
+def test_get_extra_table_metadata(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    db_mock = Mock()
+    db_mock = mocker.MagicMock()
     db_mock.get_indexes = Mock(
         return_value=[{"column_names": ["ds", "hour"], "name": "partition"}]
     )
     db_mock.get_extra = Mock(return_value={})
-    db_mock.has_view_by_name = Mock(return_value=None)
+    db_mock.has_view = Mock(return_value=None)
     db_mock.get_df = Mock(return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]}))
     result = TrinoEngineSpec.get_extra_table_metadata(
         db_mock,
