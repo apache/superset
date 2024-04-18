@@ -57,17 +57,20 @@ These features are **finished** but currently being tested. They are usable, but
 
 ## Stable
 
-These features flags are **safe for production**. They have been tested and will be supported for the foreseeable future.
+These features flags are **safe for production**. They have been tested and will be supported for the at least the current major version cycle.
 
-[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
+[//]: # "PLEASE KEEP THESE LISTS SORTED ALPHABETICALLY"
 
+### Flags on the path to feature launch and flag deprecation/removal
+- DASHBOARD_VIRTUALIZATION
+- DRILL_BY
+- DISABLE_LEGACY_DATASOURCE_EDITOR
+
+### Flags retained for runtime configuration
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
-- DASHBOARD_VIRTUALIZATION
 - DATAPANEL_CLOSED_BY_DEFAULT
-- DISABLE_LEGACY_DATASOURCE_EDITOR
-- DRILL_BY
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET
