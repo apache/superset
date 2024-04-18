@@ -1195,3 +1195,27 @@ class OAuth2ProviderResponseSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         # Ignore unknown fields that might be sent by the OAuth2 provider
         unknown = EXCLUDE
+
+
+class QualifiedTableSchema(Schema):
+    """
+    Schema for a qualified table reference.
+
+    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    present.
+    """
+
+    name = fields.String(
+        required=True,
+        metadata={"description": "The table name"},
+    )
+    schema = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The table catalog"},
+    )

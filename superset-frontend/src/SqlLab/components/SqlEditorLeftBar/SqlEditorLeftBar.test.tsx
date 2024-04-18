@@ -67,7 +67,7 @@ beforeEach(() => {
       columns: table.columns,
     },
   });
-  fetchMock.get('glob:*/api/v1/database/*/table_extra/*/*', {
+  fetchMock.get('glob:*/api/v1/database/*/table_metadata/extra/', {
     status: 200,
     body: {},
   });

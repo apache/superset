@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import warnings
 from datetime import datetime
 from re import Match, Pattern
 from typing import (
@@ -1034,21 +1035,33 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return indexes
 
     @classmethod
-    def extra_table_metadata(  # pylint: disable=unused-argument
+    def get_extra_table_metadata(  # pylint: disable=unused-argument
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
         """
         Returns engine-specific table metadata
 
         :param database: Database instance
-        :param table_name: Table name
-        :param schema_name: Schema name
+        :param table: A Table instance
         :return: Engine-specific table metadata
         """
-        # TODO: Fix circular import caused by importing Database
+        # old method that doesn't work with catalogs
+        if hasattr(cls, "extra_table_metadata"):
+            warnings.warn(
+                "The `extra_table_metadata` method is deprecated, please implement "
+                "the `get_extra_table_metadata` method in the DB engine spec.",
+                DeprecationWarning,
+            )
+
+            # If a catalog is passed, return nothing, since we don't know the exact
+            # table that is being requested.
+            if table.catalog:
+                return {}
+
+            return cls.extra_table_metadata(database, table.table, table.schema)
+
         return {}
 
     @classmethod

@@ -66,6 +66,7 @@ from superset.utils.core import GenericDataType
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+    from superset.sql_parse import Table
 
     with contextlib.suppress(ImportError):  # pyhive may not be installed
         from pyhive.presto import Cursor
@@ -1224,14 +1225,20 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return all_columns, data, expanded_columns
 
     @classmethod
-    def extra_table_metadata(
-        cls, database: Database, table_name: str, schema_name: str | None
+    def get_extra_table_metadata(
+        cls,
+        database: Database,
+        table: Table,
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        if indexes := database.get_indexes(table.table, table.schema):
             col_names, latest_parts = cls.latest_partition(
-                table_name, schema_name, database, show_first=True, indexes=indexes
+                table.table,
+                table.schema,
+                database,
+                show_first=True,
+                indexes=indexes,
             )
 
             if not latest_parts:
@@ -1241,8 +1248,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
                 "cols": sorted(indexes[0].get("column_names", [])),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
-                    schema=schema_name,
+                    table_name=table.table,
+                    schema=table.schema,
                     indexes=indexes,
                     database=database,
                 ),
@@ -1250,7 +1257,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
         # flake8 is not matching `Optional[str]` to `Any` for some reason...
         metadata["view"] = cast(
-            Any, cls.get_create_view(database, schema_name, table_name)
+            Any,
+            cls.get_create_view(database, table.schema, table.table),
         )
 
         return metadata
