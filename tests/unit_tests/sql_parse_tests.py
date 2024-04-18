@@ -1896,6 +1896,7 @@ SELECT * FROM t"""
     [
         "latest_partition('foo.bar')",
         "latest_partition(' foo.bar ')",  # Non-atypical user error which works
+        "latest_partition('foo.%s'|format('bar'))",
         "latest_sub_partition('foo.bar', baz='qux')",
     ],
 )
