@@ -117,6 +117,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",
     "superset.charts.data.api.data",
+    "superset.charts.data.api.refresh_cache",
     "superset.security.api.guest_token"
 ]
 ENABLE_PROXY_FIX = True
