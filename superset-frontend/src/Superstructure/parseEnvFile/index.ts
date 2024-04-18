@@ -14,33 +14,6 @@ console.groupEnd();
 
 /**
  *
- * @param dynamicDashboardRoutes RouteConfig[] | null
- * @returns RouteConfig[]
- */
-const populateWithMainMenu = (
-  dynamicDashboardRoutes: RouteConfig[] | null,
-): RouteConfig[] => {
-  const mainRoute = {
-    idOrSlug: null,
-    name: 'Main Page',
-    nameRU: 'Главная',
-    location: '/',
-    hidden: false,
-    isMainRoute: true,
-  };
-  const returningArray = [mainRoute] as RouteConfig[];
-
-  if (dynamicDashboardRoutes?.length) {
-    for (let i = 0; i < dynamicDashboardRoutes.length; i += 1) {
-      returningArray.push(dynamicDashboardRoutes[i]);
-    }
-  }
-
-  return returningArray;
-};
-
-/**
- *
  * @param dynamicDashboardRoutes RouteConfig[]
  * @returns { navigation: MicrofrontendNavigation }
  */
@@ -51,7 +24,7 @@ const getNavigationConfig = (
 } => ({
   navigation: {
     showNavigationMenu: true,
-    routes: populateWithMainMenu(dynamicDashboardRoutes),
+    routes: dynamicDashboardRoutes,
   },
 });
 

@@ -13,32 +13,34 @@ const LeftNavigation = (props: {
   baseRoute: string;
   stylesConfig: StylesConfig;
   language: string;
+  isVisible: boolean;
 }) => {
   const allAvailableRoutes = props.routesConfig.filter(route => !route.hidden);
+  const { isVisible } = props;
   const { businessId } = props.stylesConfig;
 
   return (
-    <LeftNavigationWrapper>
-      <UlContainer>
-        {allAvailableRoutes.map((route, index) => {
-          const link = route.isMainRoute
-            ? `${props.baseRoute}Main`
-            : `${props.baseRoute}${route.idOrSlug}`;
+    <LeftNavigationWrapper isVisible={isVisible}>
+      {isVisible && (
+        <UlContainer>
+          {allAvailableRoutes.map((route, index) => {
+            const link = `${props.baseRoute}${route.idOrSlug}`;
 
-          return (
-            <ListItem key={`${route}-${index}`}>
-              <StyledLink
-                activeClassName={`active-link active-link-${businessId}`}
-                to={link}
-              >
-                {props.language === 'ru'
-                  ? route.nameRU || route.name
-                  : route.name}
-              </StyledLink>
-            </ListItem>
-          );
-        })}
-      </UlContainer>
+            return (
+              <ListItem key={`${route}-${index}`}>
+                <StyledLink
+                  activeClassName={`active-link active-link-${businessId}`}
+                  to={link}
+                >
+                  {props.language === 'ru'
+                    ? route.nameRU || route.name
+                    : route.name}
+                </StyledLink>
+              </ListItem>
+            );
+          })}
+        </UlContainer>
+      )}
     </LeftNavigationWrapper>
   );
 };

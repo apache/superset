@@ -158,10 +158,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug, userLanguage);
   const isDashboardHydrated = useRef(false);
-  console.log('here dashboard', dashboard);
-  console.log('here charts', charts);
-  console.log('here datasets', datasets);
-  console.log('____');
 
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);

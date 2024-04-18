@@ -2,12 +2,14 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose } from 'redux';
 import moment from 'moment';
 import { configure } from '@superset-ui/core';
+import { bootstrapData } from 'src/preamble';
 import { initFeatureFlags } from './utils/featureFlags';
 import { USER_ROLES, SUPERSET_WEBSERVER_TIMEOUT } from './constants';
 import { initEnhancer } from '../reduxUtils';
 import rootReducer from './reducers/index';
 import { SupersetPluginTranslations } from './translations';
 
+// TODO: DODO: duplicated logic in bootstrapHelpers.ts
 function getPageLanguage(): string | null {
   if (!document) {
     return null;
@@ -25,14 +27,14 @@ const getLocaleForSuperset = () => {
     if (dodoisLanguage === 'ru-RU') return 'ru';
     return 'en';
   }
-  return 'en';
+  return 'ru';
 };
 
-// TODO: get data bootstrap from superset API
 // Because the roles are empty -> export in CSV is not shown
 const locale = getLocaleForSuperset();
 
 console.log('User Language: IN STORE', locale);
+console.log('bootstrapData here', bootstrapData);
 
 const bootstrap = {
   user: { roles: USER_ROLES },

@@ -31,9 +31,6 @@ function mapStateToProps(state: RootState) {
     nativeFilters,
   } = state;
 
-  console.log('here dashboardState', dashboardState);
-  console.log('here dashboardInfo', dashboardInfo);
-
   return {
     initMessages: dashboardInfo.common?.flash_messages,
     timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,

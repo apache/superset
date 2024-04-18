@@ -212,7 +212,6 @@ const defineNavigation = (
       name: dashboard_title,
       nameRU: dashboard_title_RU || dashboard_title,
       location: certification_details,
-      isMainRoute: false,
     };
   });
 

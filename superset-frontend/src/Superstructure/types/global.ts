@@ -4,7 +4,6 @@ export interface RouteConfig {
   name: string;
   nameRU: string;
   hidden: boolean;
-  isMainRoute: boolean;
 }
 
 export interface MicrofrontendNavigation {
@@ -155,7 +154,6 @@ export interface SingleAnnotation {
 }
 
 export interface RouteFromDashboard {
-  isMainRoute: boolean;
   hidden: boolean;
   idOrSlug: number;
   name: string;

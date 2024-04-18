@@ -2,12 +2,14 @@
 import { styled } from '@superset-ui/core';
 import { NavLink } from 'react-router-dom';
 
-const LeftNavigationWrapper = styled.section`
-  width: 15%;
+const LeftNavigationWrapper = styled.section<{ isVisible: boolean }>`
+  width: ${({ isVisible }) => (isVisible ? '15%' : '0%')};
+  padding: ${({ isVisible }) => (isVisible ? '12px 15px 0 0' : '0')};
+  border-right: ${({ isVisible }) =>
+    isVisible ? '1px solid #e0e0e0' : 'none'};
   margin-top: 0;
   min-height: 100vh;
-  padding: 12px 15px 0 0;
-  border-right: 1px solid #e0e0e0;
+  z-index: 0;
 `;
 
 const UlContainer = styled.ul`

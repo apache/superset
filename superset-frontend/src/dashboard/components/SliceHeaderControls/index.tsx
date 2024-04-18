@@ -381,7 +381,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {/* DODO changed */}
+      {process.env.type === undefined && props.supersetCanExplore && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
           {/* DODO changed */}
           <a href={props.exploreUrl} target="_blank" rel="noreferrer">
@@ -392,7 +393,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {canEditCrossFilters && (
+      {/* DODO changed */}
+      {process.env.type === undefined && canEditCrossFilters && (
         <>
           <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
             {t('Cross-filtering scoping')}
@@ -401,7 +403,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {props.supersetCanExplore && (
+      {/* DODO changed */}
+      {process.env.type === undefined && props.supersetCanExplore && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -416,7 +419,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {/* DODO changed */}
+      {process.env.type === undefined && props.supersetCanExplore && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
             exploreUrl={props.exploreUrl}
@@ -445,9 +449,11 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           />
         )}
 
-      {(slice.description || props.supersetCanExplore) && <Menu.Divider />}
+      {/* DODO changed */}
+      {/* {(slice.description || props.supersetCanExplore) && <Menu.Divider />} */}
 
-      {supersetCanShare && (
+      {/* DODO changed */}
+      {process.env.type === undefined && supersetCanShare && (
         <Menu.SubMenu title={t('Share')}>
           <ShareMenuItems
             dashboardId={dashboardId}

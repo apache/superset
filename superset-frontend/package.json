@@ -37,7 +37,7 @@
   ],
   "scripts": {
     "__lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
-    "_lint": "node --max-old-space-size=4096 ./node_modules/.bin/eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
+    "_lint": "node --max-old-space-size=4096 ./node_modules/.bin/eslint --quiet --ignore-path=.eslintignore --ext .js,.jsx,.ts,tsx .",
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --mode=production --color",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",

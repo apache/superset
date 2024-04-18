@@ -17,8 +17,6 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDashboardComponents';
 import { BootstrapUser, User } from './types/bootstrapTypes';
 import getBootstrapData from './utils/getBootstrapData';
-// DODO added
-import { redefineLocale } from './utils/bootstrapHelpers';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -43,10 +41,18 @@ bootstrapData = {
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
+  const dataBootstrap = root
+    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
+    : {};
+
   // DODO changed
-  bootstrapData = redefineLocale(
-    root ? JSON.parse(root.getAttribute('data-bootstrap') || '{}') : {},
-  );
+  bootstrapData = {
+    ...dataBootstrap,
+    common: {
+      ...dataBootstrap?.common,
+      locale: bootstrapData?.common?.locale || 'ru',
+    },
+  };
   // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
@@ -59,7 +65,7 @@ if (typeof window !== 'undefined') {
   configure();
 }
 
-console.log('bootstrapData', bootstrapData);
+console.log('BOOTSTRAP DATA', bootstrapData);
 
 // Configure feature flags
 // TODO: need to find feature flags

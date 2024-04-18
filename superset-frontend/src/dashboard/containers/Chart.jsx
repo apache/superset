@@ -49,11 +49,6 @@ function mapStateToProps(
     : null;
 
   // DODO added
-  const currentSliceName = currentSlice
-    ? `EN: ${currentSlice.slice_name} | RU: ${currentSlice.slice_name_RU}`
-    : null;
-
-  // DODO added
   // ENRTYPOINT DASHBOARD LANGUAGE
   const userLanguage =
     (bootstrapData && bootstrapData.common && bootstrapData.common.locale) ||
@@ -68,9 +63,15 @@ function mapStateToProps(
 
   // DODO added
   if (chart && chart.chartStatus === 'success') {
-    console.groupCollapsed('Altered Chart', '[', currentSliceName, ']');
+    console.groupCollapsed(
+      'Chart Information',
+      '[',
+      currentSlice
+        ? `${currentSlice.slice_name} [${currentSlice.viz_type} | ${currentSlice.slice_id}]`
+        : 'Could not get slice details',
+      ']',
+    );
     console.log('queriesResponse', chart.queriesResponse);
-    console.log('alteredQueriesResponse' /* alteredQueriesResponse */);
     console.log('chart', chart);
     console.groupEnd();
     console.log('');

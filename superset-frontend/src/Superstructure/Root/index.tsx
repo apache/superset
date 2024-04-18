@@ -1,6 +1,9 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { styled } from '@superset-ui/core';
+
+import Icons from 'src/components/Icons';
 
 import {
   GlobalError,
@@ -61,6 +64,7 @@ import {
 setupClient();
 
 export const RootComponent = (incomingParams: MicrofrontendParams) => {
+  // TODO: DODO: duplicated logic in src/Superstructure/store.ts
   function getPageLanguage(): string | null {
     if (!document) {
       return null;
@@ -78,7 +82,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       if (dodoisLanguage === 'ru-RU') return 'ru';
       return 'en';
     }
-    return 'en';
+    return 'ru';
   };
 
   const userLanguage = getLocaleForSuperset();
@@ -446,8 +450,6 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
               }
             }
 
-            console.log('SORTING_IDS', SORTING_IDS);
-
             const navConfigFull = getNavigationConfig(
               sortDashboards(
                 defineNavigation(dashboards.data),
@@ -484,6 +486,7 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
   }, [params]);
 
   logConfigs(FULL_CONFIG, incomingParams, params);
+  const [isVisible, setIsVisible] = useState(true);
 
   if (isError) {
     return (
@@ -497,6 +500,15 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
       </>
     );
   }
+  const StyledCollapseBtn = styled.button<{
+    isVisible: boolean;
+  }>`
+    color: ${({ isVisible }) => (isVisible ? 'initial' : '#ff6900')};
+    background: none;
+    border: none;
+    position: relative;
+    padding-top: 8px;
+  `;
 
   return (
     <div>
@@ -514,10 +526,21 @@ export const RootComponent = (incomingParams: MicrofrontendParams) => {
                 baseRoute={FULL_CONFIG.basename}
                 stylesConfig={stylesConfig}
                 language={userLanguage}
+                isVisible={isVisible}
               />
               <DashboardComponentWrapper
-                withNavigation={FULL_CONFIG.navigation.showNavigationMenu}
+                withNavigation={
+                  FULL_CONFIG.navigation.showNavigationMenu && isVisible
+                }
               >
+                <StyledCollapseBtn
+                  type="button"
+                  onClick={() => setIsVisible(!isVisible)}
+                  isVisible={isVisible}
+                >
+                  {isVisible && <Icons.Expand />}
+                  {!isVisible && <Icons.Collapse />}
+                </StyledCollapseBtn>
                 <Main
                   navigation={FULL_CONFIG.navigation}
                   store={store}

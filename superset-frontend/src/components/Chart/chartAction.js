@@ -300,17 +300,7 @@ const v1ChartDataRequest = async (
     allowDomainSharding,
   }).toString();
 
-  // const querySettings = {
-  //   ...requestParams,
-  //   url,
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  //   parseMethod,
-  // };
-  // return SupersetClient.post(querySettings);
-  const t = API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
-  console.log('hereTXX', t);
-  return t;
+  return API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
 };
 
 export async function getChartDataRequest({

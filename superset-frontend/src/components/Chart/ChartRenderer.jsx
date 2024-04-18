@@ -265,28 +265,12 @@ class ChartRenderer extends React.Component {
       formData,
       latestQueryFormData,
       postTransformProps,
-      // DODO added
-      chartName,
       queriesResponse,
     } = this.props;
 
     const currentFormData =
       chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
     const vizType = currentFormData.viz_type || this.props.vizType;
-
-    console.groupCollapsed('ALL ALTERED', chartName);
-    console.log('datasource', datasource);
-    // console.log('alteredDatasource', alteredDatasource);
-    console.log('+_+_+_+');
-    console.log('currentFormData', currentFormData);
-    // console.log('alteredFormData', alteredFormData);
-    console.log('+_+_+_+');
-    console.log('Queries Response', queriesResponse);
-    console.log('datasource.verbose_map', datasource.verbose_map);
-    // console.log('alteredVerboseMap', alteredVerboseMap);
-    console.log('+_+_+_+');
-    console.groupEnd();
-    console.log('');
 
     // DODO added
     const rowCount = Number(queriesResponse[0].rowcount) || 0;
