@@ -27,7 +27,6 @@ from flask.cli import FlaskGroup, with_appcontext
 from superset import app, appbuilder, cli, security_manager
 from superset.cli.lib import normalize_token
 from superset.extensions import db
-from superset.utils.erd import generate_erd
 
 logger = logging.getLogger(__name__)
 
