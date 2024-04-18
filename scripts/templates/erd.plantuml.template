@@ -1,0 +1,39 @@
+@startuml entity-relationship-diagram
+
+title Apache Superset ERD
+
+!theme blueprint
+
+' avoid problems with angled crows feet
+
+skinparam linetype ortho
+skinparam classBorderColor #grey
+
+skinparam classBorderColor<<new>> #white
+skinparam classBorderThickness<<new>> 1
+skinparam classLineStyle<<new>> Dashed
+skinparam ClassBackgroundColor<<new>> #204143
+
+' Models
+{% for group_name, models in data.items() -%}
+    rectangle "{{ group_name }}" #black {
+        {% for model in models -%}
+        entity "{{ model.class_name }} ({{ model.table_name }})" as {{ model.table_name }} {
+            {%- for field in model.fields %}
+            {{ field.field_name }}: {{ field.type -}}
+            {%- endfor %}
+        }
+        {% endfor -%}
+    }
+{% endfor -%}
+
+' Relationships
+{% for models in data.values() -%}
+{% for model in models -%}
+    {%- for rel in model.relationships %}
+    {{ model.table_name }} {{ rel.squiggle }} {{ rel.related_table }}
+    {%- endfor %}
+{% endfor -%}
+{% endfor -%}
+
+@enduml
