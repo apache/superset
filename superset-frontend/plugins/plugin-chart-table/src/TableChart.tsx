@@ -519,6 +519,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           `;
 
           const cellProps = {
+            'aria-labelledby': `header-${column.key}`,
+            role: 'cell',
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
@@ -547,6 +549,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               value == null ? 'dt-is-null' : '',
               isActiveFilterValue(key, value) ? ' dt-is-active-filter' : '',
             ].join(' '),
+            tabIndex: 0,
           };
           if (html) {
             if (truncateLongCells) {
@@ -576,6 +579,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     value && value < 0 ? 'negative' : 'positive',
                   )}
                   css={cellBarStyles}
+                  role="presentation"
                 />
               )}
               {truncateLongCells ? (
@@ -593,13 +597,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
+            id={`header-${column.key}`}
             title={t('Shift + Click to sort by multiple columns')}
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
               ...style,
             }}
-            tabIndex={0}
             onKeyDown={(e: React.KeyboardEvent<HTMLElement>) => {
               // programatically sort column on keypress
               if (Object.values(ACTION_KEYS).includes(e.key)) {
@@ -615,6 +619,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               onDragEnter: e => e.preventDefault(),
               onDrop,
             })}
+            tabIndex={0}
           >
             {/* can't use `columnWidth &&` because it may also be zero */}
             {config.columnWidth ? (

@@ -49,6 +49,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
+import CSVUploadModal from 'src/features/databases/CSVUploadModal';
 import { DatabaseObject } from 'src/features/databases/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
@@ -135,6 +136,8 @@ function DatabaseList({
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [csvUploadModalOpen, setCsvUploadModalOpen] = useState<boolean>(false);
+
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
   const showUploads = allowUploads || isAdmin;
@@ -233,7 +236,10 @@ function DatabaseList({
         {
           label: t('Upload CSV'),
           name: 'Upload CSV file',
-          url: '/csvtodatabaseview/form',
+          url: '#',
+          onClick: () => {
+            setCsvUploadModalOpen(true);
+          },
           perm: canUploadCSV && showUploads,
           disable: isDisabled,
         },
@@ -556,6 +562,15 @@ function DatabaseList({
         onDatabaseAdd={() => {
           refreshData();
         }}
+      />
+      <CSVUploadModal
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onHide={() => {
+          setCsvUploadModalOpen(false);
+        }}
+        show={csvUploadModalOpen}
+        allowedExtensions={CSV_EXTENSIONS}
       />
       {databaseCurrentlyDeleting && (
         <DeleteModal

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
-import json
 import os
 import tempfile
 import zipfile
@@ -42,7 +41,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import ColumnarToDatabaseForm, CsvToDatabaseForm, ExcelToDatabaseForm
+from .forms import ColumnarToDatabaseForm, ExcelToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
@@ -153,150 +152,6 @@ class CustomFormView(SimpleFormView):
             form=form,
             appbuilder=self.appbuilder,
         )
-
-
-class CsvToDatabaseView(CustomFormView):
-    form = CsvToDatabaseForm
-    form_template = "superset/form_view/csv_to_database_view/edit.html"
-    form_title = _("CSV to Database configuration")
-    add_columns = ["database", "schema", "table_name"]
-
-    def form_get(self, form: CsvToDatabaseForm) -> None:
-        form.delimiter.data = ","
-        form.header.data = 0
-        form.overwrite_duplicate.data = True
-        form.skip_initial_space.data = False
-        form.skip_blank_lines.data = True
-        form.day_first.data = False
-        form.decimal.data = "."
-        form.if_exists.data = "fail"
-
-    def form_post(self, form: CsvToDatabaseForm) -> Response:
-        database = form.database.data
-        csv_table = Table(table=form.table_name.data, schema=form.schema.data)
-        delimiter_input = form.delimiter.data
-
-        if not schema_allows_file_upload(database, csv_table.schema):
-            message = _(
-                'Database "%(database_name)s" schema "%(schema_name)s" '
-                "is not allowed for csv uploads. Please contact your Superset Admin.",
-                database_name=database.database_name,
-                schema_name=csv_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
-
-        if form.delimiter.data == "other":
-            delimiter_input = form.otherInput.data
-
-        try:
-            kwargs = {"dtype": json.loads(form.dtype.data)} if form.dtype.data else {}
-            df = pd.concat(
-                pd.read_csv(
-                    chunksize=1000,
-                    encoding="utf-8",
-                    filepath_or_buffer=form.csv_file.data,
-                    header=form.header.data if form.header.data else 0,
-                    index_col=form.index_col.data,
-                    dayfirst=form.day_first.data,
-                    iterator=True,
-                    keep_default_na=not form.null_values.data,
-                    usecols=form.use_cols.data if form.use_cols.data else None,
-                    na_values=form.null_values.data if form.null_values.data else None,
-                    nrows=form.nrows.data,
-                    parse_dates=form.parse_dates.data,
-                    sep=delimiter_input,
-                    skip_blank_lines=form.skip_blank_lines.data,
-                    skipinitialspace=form.skip_initial_space.data,
-                    skiprows=form.skiprows.data,
-                    **kwargs,
-                )
-            )
-
-            database = (
-                db.session.query(models.Database)
-                .filter_by(id=form.data.get("database").data.get("id"))
-                .one()
-            )
-
-            database.db_engine_spec.df_to_sql(
-                database,
-                csv_table,
-                df,
-                to_sql_kwargs={
-                    "chunksize": 1000,
-                    "if_exists": form.if_exists.data,
-                    "index": form.dataframe_index.data,
-                    "index_label": form.index_label.data,
-                },
-            )
-
-            # Connect table to the database that should be used for exploration.
-            # E.g. if hive was used to upload a csv, presto will be a better option
-            # to explore the table.
-            explore_database = database
-            explore_database_id = database.explore_database_id
-            if explore_database_id:
-                explore_database = (
-                    db.session.query(models.Database)
-                    .filter_by(id=explore_database_id)
-                    .one_or_none()
-                    or database
-                )
-
-            sqla_table = (
-                db.session.query(SqlaTable)
-                .filter_by(
-                    table_name=csv_table.table,
-                    schema=csv_table.schema,
-                    database_id=explore_database.id,
-                )
-                .one_or_none()
-            )
-
-            if sqla_table:
-                sqla_table.fetch_metadata()
-            if not sqla_table:
-                sqla_table = SqlaTable(table_name=csv_table.table)
-                sqla_table.database = explore_database
-                sqla_table.database_id = database.id
-                sqla_table.owners = [g.user]
-                sqla_table.schema = csv_table.schema
-                sqla_table.fetch_metadata()
-                db.session.add(sqla_table)
-            db.session.commit()
-        except Exception as ex:  # pylint: disable=broad-except
-            db.session.rollback()
-            message = _(
-                'Unable to upload CSV file "%(filename)s" to table '
-                '"%(table_name)s" in database "%(db_name)s". '
-                "Error message: %(error_msg)s",
-                filename=form.csv_file.data.filename,
-                table_name=form.table_name.data,
-                db_name=database.database_name,
-                error_msg=str(ex),
-            )
-
-            flash(message, "danger")
-            stats_logger.incr("failed_csv_upload")
-            return redirect("/csvtodatabaseview/form")
-
-        # Go back to welcome page / splash screen
-        message = _(
-            'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
-            'database "%(db_name)s"',
-            csv_filename=form.csv_file.data.filename,
-            table_name=str(csv_table),
-            db_name=sqla_table.database.database_name,
-        )
-        flash(message, "info")
-        event_logger.log_with_context(
-            action="successful_csv_upload",
-            database=form.database.data.name,
-            schema=form.schema.data,
-            table=form.table_name.data,
-        )
-        return redirect("/tablemodelview/list/")
 
 
 class ExcelToDatabaseView(SimpleFormView):

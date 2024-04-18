@@ -172,7 +172,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.database.views import (
             ColumnarToDatabaseView,
-            CsvToDatabaseView,
             DatabaseView,
             ExcelToDatabaseView,
         )
@@ -190,7 +189,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.sqllab import SqllabView
         from superset.views.tags import TagModelView, TagView
-        from superset.views.users.api import CurrentUserRestApi
+        from superset.views.users.api import CurrentUserRestApi, UserRestApi
 
         #
         # Setup API views
@@ -205,6 +204,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ChartDataRestApi)
         appbuilder.add_api(CssTemplateRestApi)
         appbuilder.add_api(CurrentUserRestApi)
+        appbuilder.add_api(UserRestApi)
         appbuilder.add_api(DashboardFilterStateRestApi)
         appbuilder.add_api(DashboardPermalinkRestApi)
         appbuilder.add_api(DashboardRestApi)
@@ -295,7 +295,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
-        appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)
         appbuilder.add_view_no_menu(ColumnarToDatabaseView)
         appbuilder.add_view_no_menu(Dashboard)

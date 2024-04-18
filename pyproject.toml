@@ -23,7 +23,9 @@ build-backend = "setuptools.build_meta"
 name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
-dynamic = ["version", "scripts", "entry-points", "license", "requires-python"]
+dynamic = ["version", "scripts", "entry-points"]
+requires-python = "~=3.9"
+license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
@@ -197,3 +199,196 @@ development = [
 [project.urls]
 homepage = "https://superset.apache.org/"
 documentation = "https://superset.apache.org/docs/intro"
+
+
+[tool.isort]
+combine_as_imports = true
+include_trailing_comma = true
+line_length = 88
+known_first_party = "superset"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, pkg_resources, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, sqlparse, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+multi_line_output = 3
+order_by_type = false
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "superset.migrations.versions.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+
+[tool.tox]
+legacy_tox_ini = """
+# Remember to start celery workers to run celery tests, e.g.
+# celery --app=superset.tasks.celery_app:app worker -Ofair -c 2
+[testenv]
+basepython = python3.10
+ignore_basepython_conflict = true
+commands =
+    superset db upgrade
+    superset init
+    # use -s to be able to use break pointers.
+    # no args or tests/* can be passed as an argument to run all tests
+    pytest -s {posargs}
+deps =
+    -rrequirements/development.txt
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+    mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
+    sqlite:
+        SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+        SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    # docker run -p 8080:8080 --name presto starburstdata/presto
+    mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default
+    # based on https://github.com/big-data-europe/docker-hadoop
+    # clone the repo & run docker compose up -d to test locally
+    mysql-hive: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    mysql-hive: SUPERSET__SQLALCHEMY_EXAMPLES_URI = hive://localhost:10000/default
+    # make sure that directory is accessible by docker
+    hive: UPLOAD_FOLDER = /tmp/.superset/app/static/uploads/
+usedevelop = true
+allowlist_externals =
+    npm
+    pkill
+
+[testenv:cypress]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-dashboard]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh dashboard
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-explore]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh explore
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-sqllab]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh sqllab
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-sqllab-backend-persist]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh sqllab
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:eslint]
+changedir = {toxinidir}/superset-frontend
+commands =
+    npm run lint
+deps =
+
+[testenv:fossa]
+commands =
+    {toxinidir}/scripts/fossa.sh
+deps =
+passenv = *
+
+[testenv:javascript]
+commands =
+    npm install -g npm@'>=6.5.0'
+    {toxinidir}/superset-frontend/js_build.sh
+deps =
+
+[testenv:license-check]
+commands =
+    {toxinidir}/scripts/check_license.sh
+passenv = *
+whitelist_externals =
+    {toxinidir}/scripts/check_license.sh
+deps =
+
+[testenv:pre-commit]
+commands =
+    pre-commit run --all-files
+deps =
+    -rrequirements/development.txt
+skip_install = true
+
+[testenv:pylint]
+commands =
+    pylint superset
+deps =
+    -rrequirements/development.txt
+
+[testenv:thumbnails]
+setenv =
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config_thumbnails
+deps =
+    -rrequirements/development.txt
+
+[tox]
+envlist =
+    cypress-dashboard
+    cypress-explore
+    cypress-sqllab
+    cypress-sqllab-backend-persist
+    eslint
+    fossa
+    javascript
+    license-check
+    pre-commit
+    pylint
+skipsdist = true
+"""
