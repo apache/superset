@@ -255,7 +255,7 @@
     "@types/mousetrap": "^1.6.15",
     "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
-    "@types/react-gravatar": "^2.6.8",
+    "@types/react-gravatar": "^2.6.14",
     "@types/react-json-tree": "^0.6.11",
     "@types/react-jsonschema-form": "^1.7.4",
     "@types/react-loadable": "^5.5.6",
