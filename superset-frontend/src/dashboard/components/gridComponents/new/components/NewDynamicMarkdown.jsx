@@ -30,7 +30,7 @@ export default function DraggableNewDivider() {
       type={IKI_DYNAMIC_MARKDOWN_TYPE}
       label={t('Dynamic Markdown')}
       description="Construct custom layout with powerful features"
-      className="fa fa-table"
+      className="fa fa-mouse-pointer"
     />
   );
 }
