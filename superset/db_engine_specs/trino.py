@@ -45,6 +45,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.sql_parse import Table
 
     with contextlib.suppress(ImportError):  # trino may not be installed
         from trino.dbapi import Cursor
@@ -58,18 +59,17 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     allows_alias_to_source_column = False
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        if indexes := database.get_indexes(table.table, table.schema):
             col_names, latest_parts = cls.latest_partition(
-                table_name,
-                schema_name,
+                table.table,
+                table.schema,
                 database,
                 show_first=True,
                 indexes=indexes,
@@ -91,17 +91,18 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
-                    schema=schema_name,
+                    table_name=table.table,
+                    schema=table.schema,
                     indexes=indexes,
                     database=database,
                 ),
             }
 
-        if database.has_view_by_name(table_name, schema_name):
+        if database.has_view_by_name(table.table, table.schema):
             with database.get_inspector_with_context() as inspector:
                 metadata["view"] = inspector.get_view_definition(
-                    table_name, schema_name
+                    table.table,
+                    table.schema,
                 )
 
         return metadata
