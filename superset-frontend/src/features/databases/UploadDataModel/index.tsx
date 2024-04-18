@@ -370,6 +370,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const onFinish = () => {
     const fields = form.getFieldsValue();
+    delete fields.database;
     fields.schema = currentSchema;
     const mergedValues = { ...defaultUploadInfo, ...fields };
     const formData = new FormData();
@@ -641,6 +642,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               <Col span={12}>
                 <StyledFormItem
                   label={t('%(type)s File', { type })}
+                  name="file"
                   required
                   rules={[{ validator: validateUpload }]}
                 >
@@ -688,6 +690,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                 <StyledFormItem
                   label={t('Database')}
                   required
+                  name="database"
                   rules={[{ validator: validateDatabase }]}
                 >
                   <AsyncSelect
