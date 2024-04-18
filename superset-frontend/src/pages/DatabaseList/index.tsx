@@ -385,7 +385,7 @@ function DatabaseList({
       },
       {
         accessor: 'allow_file_upload',
-        Header: t('CSV upload'),
+        Header: t('File upload'),
         Cell: ({
           row: {
             original: { allow_file_upload: allowFileUpload },

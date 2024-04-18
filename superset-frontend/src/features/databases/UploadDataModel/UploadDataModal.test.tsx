@@ -20,7 +20,6 @@ import React from 'react';
 import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
-  UploadType,
 } from 'src/features/databases/UploadDataModel';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -58,7 +57,7 @@ const csvProps = {
   show: true,
   onHide: () => {},
   allowedExtensions: ['csv', 'tsv'],
-  type: UploadType.CSV,
+  type: 'csv',
 };
 
 test('renders the general information elements correctly', () => {

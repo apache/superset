@@ -43,7 +43,7 @@ const ColumnsPreview: React.FC<ColumnsPreviewProps> = ({
     <StyledDivContainer>
       <Typography.Text type="secondary">Columns:</Typography.Text>
       {columns.length === 0 ? (
-        <p className="help-block">{t('Upload CSV file to preview columns')}</p>
+        <p className="help-block">{t('Upload file to preview columns')}</p>
       ) : (
         <TagsList tags={tags} maxTags={maxColumnsToShow} />
       )}
