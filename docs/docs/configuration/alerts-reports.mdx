@@ -47,7 +47,7 @@ You can either install and configure the headless browser - see "Custom Dockerfi
 
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
 
-1. Connect to your Slack workspace, then head to <https://api.slack.com/apps>.
+1. Connect to your Slack workspace, then head to [https://api.slack.com/apps].
 2. Create a new app.
 3. Go to "OAuth & Permissions" section, and give the following scopes to your app:
    - `incoming-webhook`
@@ -81,7 +81,7 @@ This process also works in a Docker swarm environment, you would just need to ad
 
 The following configurations need to be added to the `superset_config.py` file. This file is loaded when the image runs, and any configurations in it will override the default configurations found in the `config.py`.
 
-You can find documentation about each field in the default `config.py` in the GitHub repository under [superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py).
+You can find documentation about each field in the default `config.py` in the GitHub repository under [superset/config.py](github.com/apache/superset/blob/master/superset/config.py).
 
 You need to replace default values with your custom Redis, Slack and/or SMTP config.
 
