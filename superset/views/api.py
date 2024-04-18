@@ -20,7 +20,7 @@ from typing import Any, TYPE_CHECKING
 
 import simplejson as json
 from flask import request
-from flask_appbuilder import expose
+from flask_appbuilder import expose, protect
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
