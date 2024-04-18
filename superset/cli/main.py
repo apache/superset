@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 @with_appcontext
 def superset() -> None:
     """\033[1;37mThe Apache Superset CLI\033[0m"""
+    # NOTE: codes above are ANSI color codes for bold white in CLI header ^^^
 
     @app.shell_context_processor
     def make_shell_context() -> dict[str, Any]:
