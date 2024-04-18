@@ -550,7 +550,8 @@ export default function transformProps(
         );
         const showTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
         const showPercentage = showTotal && !forcePercentFormatter;
-        Object.keys(forecastValues).forEach(key => {
+        const keys = Object.keys(forecastValues);
+        keys.forEach(key => {
           const value = forecastValues[key];
           if (value.observation === 0 && stack) {
             return;
@@ -565,7 +566,6 @@ export default function transformProps(
           }
           rows.push(row);
         });
-        const keys = Object.keys(forecastValues);
         if (stack) {
           keys.reverse();
           rows.reverse();
