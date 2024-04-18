@@ -137,15 +137,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         return url
 
     @classmethod
-    def extra_table_metadata(
+    def get_extra_table_metadata(
         cls,
         database: Database,
-        table_name: str,
-        schema_name: str | None,
+        table: Table,
     ) -> dict[str, Any]:
-        with database.get_raw_connection(schema=schema_name) as conn:
+        with database.get_raw_connection(schema=table.schema) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)

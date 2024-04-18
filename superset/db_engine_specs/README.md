@@ -603,7 +603,7 @@ For some databases the `df_to_sql` classmethod needs to be implemented. For exam
 
 ### Extra table metadata
 
-DB engine specs can return additional metadata associated with a table. This is done via the `extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
+DB engine specs can return additional metadata associated with a table. This is done via the `get_extra_table_metadata` class method. Trino uses this to return information about the latest partition, for example, and Bigquery returns clustering information. This information is then surfaced in the SQL Lab UI, when browsing tables in the metadata explorer (on the left panel).
 
 ### DB API exception mapping
 

@@ -216,6 +216,7 @@ function StickyWrap({
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
   let bodyTable: ReactElement | undefined;
+
   if (needSizer) {
     const theadWithRef = React.cloneElement(thead, { ref: theadRef });
     const tfootWithRef = tfoot && React.cloneElement(tfoot, { ref: tfootRef });
@@ -228,8 +229,15 @@ function StickyWrap({
           visibility: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        role="presentation"
       >
-        {React.cloneElement(table, {}, theadWithRef, tbody, tfootWithRef)}
+        {React.cloneElement(
+          table,
+          { role: 'presentation' },
+          theadWithRef,
+          tbody,
+          tfootWithRef,
+        )}
       </div>
     );
   }
@@ -255,9 +263,10 @@ function StickyWrap({
           overflow: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        role="presentation"
       >
         {React.cloneElement(
-          table,
+          React.cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           thead,
@@ -274,9 +283,10 @@ function StickyWrap({
           overflow: 'hidden',
           scrollbarGutter: 'stable',
         }}
+        role="presentation"
       >
         {React.cloneElement(
-          table,
+          React.cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           tfoot,
@@ -303,9 +313,10 @@ function StickyWrap({
           scrollbarGutter: 'stable',
         }}
         onScroll={sticky.hasHorizontalScroll ? onScroll : undefined}
+        role="presentation"
       >
         {React.cloneElement(
-          table,
+          React.cloneElement(table, { role: 'presentation' }),
           mergeStyleProp(table, fixedTableLayout),
           colgroup,
           tbody,
@@ -321,6 +332,7 @@ function StickyWrap({
         height: sticky.realHeight || maxHeight,
         overflow: 'hidden',
       }}
+      role="table"
     >
       {headerTable}
       {bodyTable}
