@@ -27,6 +27,7 @@ const mockedProps: {
   filter: CrossFilterIndicator;
   orientation: FilterBarOrientation;
   removeCrossFilter: (filterId: number) => void;
+  onClick?: () => void;
 } = {
   filter: {
     name: 'test',
@@ -77,8 +78,17 @@ test('Column and value should be visible', () => {
 
 test('Tag should be closable', () => {
   setup(mockedProps);
-  const close = screen.getByRole('img', { name: 'close' });
+  const close = screen.getByRole('button', { name: 'close' });
   expect(close).toBeInTheDocument();
   userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
+});
+
+test('Close icon should have role="button"', () => {
+  setup({
+    ...mockedProps,
+    onClick: jest.fn(),
+  });
+  const button = screen.getByRole('button');
+  expect(button).toBeInTheDocument();
 });

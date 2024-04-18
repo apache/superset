@@ -207,6 +207,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
           {...getFilterBarTestId('collapsable')}
           className={cx({ open: !filtersOpen })}
           onClick={openFiltersBar}
+          role="button"
           offset={offset}
         >
           <StyledCollapseIcon
