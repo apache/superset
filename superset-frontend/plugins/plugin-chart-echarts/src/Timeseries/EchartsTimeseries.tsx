@@ -235,7 +235,7 @@ export default function EchartsTimeseries({
   // DODO added
   const getCurrentLabelState = (
     series: Array<{ label: { show: boolean; position: string } }>,
-  ) => series.map(s => s.label.show)[0];
+  ) => series.map(s => s?.label?.show)[0];
 
   const [alteredEchartsOptions, setEchartsOptions] = useState(echartOptions);
   const [isVisibleNow, setIsVisible] = useState(false);
