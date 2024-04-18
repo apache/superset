@@ -52,7 +52,6 @@ import {
 import ColumnsPreview from './ColumnsPreview';
 import StyledFormItemWithTip from './StyledFormItemWithTip';
 
-// add an enum with csv, excel, and columnar
 type UploadType = 'csv' | 'excel' | 'columnar';
 
 interface UploadDataModalProps {
@@ -64,7 +63,7 @@ interface UploadDataModalProps {
   type: UploadType;
 }
 
-const CVSSpecificFields = [
+const CSVSpecificFields = [
   'delimiter',
   'skip_initial_space',
   'skip_blank_lines',
@@ -80,13 +79,13 @@ const ColumnarSpecificFields: string[] = [];
 const NonNullFields = ['rows_to_read', 'index_column'];
 
 const AllSpecificFields = [
-  ...CVSSpecificFields,
+  ...CSVSpecificFields,
   ...ExcelSpecificFields,
   ...ColumnarSpecificFields,
 ];
 
 const UploadTypeToSpecificFields: Record<UploadType, string[]> = {
-  csv: CVSSpecificFields,
+  csv: CSVSpecificFields,
   excel: ExcelSpecificFields,
   columnar: ColumnarSpecificFields,
 };
