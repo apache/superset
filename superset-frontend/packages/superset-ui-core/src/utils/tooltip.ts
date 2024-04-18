@@ -18,6 +18,12 @@
  */
 import { t } from '../translation';
 
+const TRUNCATION_STYLE = `
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 // TODO Check if there's any column alignment different than ['left', 'right', 'right']
 export function tooltipHtml(
   data: string[][],
@@ -27,7 +33,7 @@ export function tooltipHtml(
 ) {
   const colspan = data.length > 0 ? data[0].length : 1;
   const titleRow = title
-    ? `<tr><td colspan="${colspan}" style="font-weight: 700;">${title}</td></tr>`
+    ? `<tr><td colspan="${colspan}" style="font-weight: 700;${TRUNCATION_STYLE}">${title}</td></tr>`
     : '';
   return `
     <table>
@@ -41,7 +47,9 @@ export function tooltipHtml(
             const cells = row.map((cell, j) => {
               const cellStyle = `
                 text-align: ${columnAlignments[j]};
-                padding-left: ${padding}px;`;
+                padding-left: ${padding}px;
+                ${TRUNCATION_STYLE}
+              `;
               padding = 16;
               return `<td style="${cellStyle}">${cell}</td>`;
             });

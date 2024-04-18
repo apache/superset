@@ -18,12 +18,14 @@
  */
 import {
   GenericDataType,
+  NumberFormats,
   QueryFormColumn,
   getColumnLabel,
   getMetricLabel,
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  tooltipHtml,
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
 import { maxBy, minBy } from 'lodash';
@@ -34,6 +36,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
 import { NULL_STRING } from '../constants';
+import { getPercentFormatter } from '../utils/formatters';
 
 // Calculated totals per x and y categories plus total
 const calculateTotals = memoizeOne(
@@ -109,6 +112,7 @@ export default function transformProps(
 
   const xAxisFormatter = getAxisFormatter(coltypes[0]);
   const yAxisFormatter = getAxisFormatter(coltypes[1]);
+  const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const valueFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -175,29 +179,22 @@ export default function transformProps(
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
-            percentage = (value / totals.x[x]) * 100;
+            percentage = value / totals.x[x];
             suffix = formattedX;
           } else if (normalizeAcross === 'y') {
-            percentage = (value / totals.y[y]) * 100;
+            percentage = value / totals.y[y];
             suffix = formattedY;
           } else {
-            percentage = (value / totals.total) * 100;
+            percentage = value / totals.total;
             suffix = 'heatmap';
           }
         }
-        return `
-          <div>
-            <div>${colnames[0]}: <b>${formattedX}</b></div>
-            <div>${colnames[1]}: <b>${formattedY}</b></div>
-            <div>${colnames[2]}: <b>${formattedValue}</b></div>
-            ${
-              showPercentage
-                ? `<div>% (${suffix}): <b>${valueFormatter(
-                    percentage,
-                  )}%</b></div>`
-                : ''
-            }
-          </div>`;
+        const title = `${formattedX} (${formattedY})`;
+        const row = [colnames[2], formattedValue];
+        if (showPercentage) {
+          row.push(`${percentFormatter(percentage)} (${suffix})`);
+        }
+        return tooltipHtml([row], ['left', 'right', 'right'], title);
       },
     },
     visualMap: {

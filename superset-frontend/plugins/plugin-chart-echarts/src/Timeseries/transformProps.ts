@@ -39,6 +39,7 @@ import {
   isTimeseriesAnnotationLayer,
   t,
   TimeseriesChartDataResponseResult,
+  NumberFormats,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -255,7 +256,9 @@ export default function transformProps(
   const series: SeriesOption[] = [];
 
   const forcePercentFormatter = Boolean(contributionMode || isAreaExpand);
-  const percentFormatter = getPercentFormatter(yAxisFormat);
+  const percentFormatter = forcePercentFormatter
+    ? getPercentFormatter(yAxisFormat)
+    : getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
