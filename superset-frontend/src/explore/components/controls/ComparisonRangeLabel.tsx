@@ -63,7 +63,7 @@ export const ComparisonRangeLabel = () => {
 
   useEffect(() => {
     if (shift === ComparisonTimeRangeType.Custom) {
-      const promises = customTimeRangeComparisonFilters.map(filter =>
+      const promises = customTimeRangeComparisonFilters?.map(filter =>
         fetchTimeRange(filter.comparator, filter.subject),
       );
       Promise.all(promises).then(res => {
@@ -74,7 +74,7 @@ export const ComparisonRangeLabel = () => {
 
   useEffect(() => {
     if (shift !== ComparisonTimeRangeType.Custom) {
-      const promises = currentTimeRangeFilters.map(filter =>
+      const promises = currentTimeRangeFilters?.map(filter =>
         fetchTimeRange(
           filter.comparator,
           filter.subject,
