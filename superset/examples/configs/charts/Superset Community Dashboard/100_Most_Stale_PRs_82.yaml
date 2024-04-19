@@ -1,0 +1,81 @@
+slice_name: 100 Most Stale PRs
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 24__table
+  viz_type: table
+  slice_id: 82
+  query_mode: raw
+  groupby: []
+  time_grain_sqla: P1D
+  temporal_columns_lookup:
+    created_at: true
+    updated_at: true
+  all_columns:
+  - title
+  - link
+  - username
+  - created_at
+  - updated_at
+  - days_stale
+  - days_old
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_2qpdpgzc47y_ni3xx1demmq
+    isExtra: false
+    isNew: false
+    operator: TEMPORAL_RANGE
+    sqlExpression: null
+    subject: created_at
+  - clause: WHERE
+    comparator: false
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_dbis9uwbxrm_451s5mj9ruu
+    isExtra: false
+    isNew: false
+    operator: ==
+    operatorId: IS_FALSE
+    sqlExpression: null
+    subject: draft
+  - clause: WHERE
+    comparator: open
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_vt3fipjn1dc_x82ah8mv3m
+    isExtra: false
+    isNew: false
+    operator: ==
+    operatorId: EQUALS
+    sqlExpression: null
+    subject: state
+  order_by_cols: []
+  row_limit: 100
+  server_page_length: 10
+  order_desc: true
+  table_timestamp_format: smart_date
+  show_cell_bars: true
+  color_pn: true
+  column_config:
+    days_old:
+      d3NumberFormat: ',.1f'
+    days_stale:
+      currencyFormat: {}
+      d3NumberFormat: ',.1f'
+  conditional_formatting: []
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":24,"type":"table"},"force":false,"queries":[{"filters":[{"col":"created_at","op":"TEMPORAL_RANGE","val":"No
+  filter"},{"col":"draft","op":"==","val":false},{"col":"state","op":"==","val":"open"}],"extras":{"time_grain_sqla":"P1D","having":"","where":""},"applied_time_extras":{},"columns":["title","link","username","created_at","updated_at","days_stale","days_old"],"orderby":[],"annotation_layers":[],"row_limit":100,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[]}],"form_data":{"datasource":"24__table","viz_type":"table","slice_id":82,"query_mode":"raw","groupby":[],"time_grain_sqla":"P1D","temporal_columns_lookup":{"created_at":true,"updated_at":true},"all_columns":["title","link","username","created_at","updated_at","days_stale","days_old"],"percent_metrics":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_2qpdpgzc47y_ni3xx1demmq","isExtra":false,"isNew":false,"operator":"TEMPORAL_RANGE","sqlExpression":null,"subject":"created_at"},{"clause":"WHERE","comparator":false,"datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_dbis9uwbxrm_451s5mj9ruu","isExtra":false,"isNew":false,"operator":"==","operatorId":"IS_FALSE","sqlExpression":null,"subject":"draft"},{"clause":"WHERE","comparator":"open","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_vt3fipjn1dc_x82ah8mv3m","isExtra":false,"isNew":false,"operator":"==","operatorId":"EQUALS","sqlExpression":null,"subject":"state"}],"order_by_cols":[],"row_limit":100,"server_page_length":10,"order_desc":true,"table_timestamp_format":"smart_date","show_cell_bars":true,"color_pn":true,"column_config":{"days_old":{"d3NumberFormat":",.1f"},"days_stale":{"currencyFormat":{},"d3NumberFormat":",.1f"}},"conditional_formatting":[],"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full","include_time":false},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: ef4e3a16-5550-46b1-9a00-3305cf45cf47
+version: 1.0.0
+dataset_uuid: 0543be35-e3cb-4b8e-89a9-bee3e424d9a1

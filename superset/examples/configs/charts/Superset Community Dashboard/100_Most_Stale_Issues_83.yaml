@@ -1,0 +1,58 @@
+slice_name: 100 Most Stale Issues
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 25__table
+  viz_type: table
+  slice_id: 83
+  query_mode: raw
+  groupby: []
+  time_grain_sqla: P1D
+  temporal_columns_lookup:
+    updated_at: true
+    created_at: true
+  all_columns:
+  - title
+  - link
+  - username
+  - created_at
+  - updated_at
+  - days_stale
+  - days_old
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_92e89ndhg9k_77quhii36wg
+    isExtra: false
+    isNew: false
+    operator: TEMPORAL_RANGE
+    sqlExpression: null
+    subject: created_at
+  order_by_cols: []
+  row_limit: 100
+  server_page_length: 10
+  order_desc: true
+  table_timestamp_format: smart_date
+  show_cell_bars: true
+  color_pn: true
+  column_config:
+    days_old:
+      d3NumberFormat: ',.1f'
+    days_stale:
+      d3NumberFormat: ',.1f'
+  conditional_formatting: []
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":25,"type":"table"},"force":false,"queries":[{"filters":[{"col":"created_at","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P1D","having":"","where":""},"applied_time_extras":{},"columns":["title","link","username","created_at","updated_at","days_stale","days_old"],"orderby":[],"annotation_layers":[],"row_limit":100,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[]}],"form_data":{"datasource":"25__table","viz_type":"table","slice_id":83,"query_mode":"raw","groupby":[],"time_grain_sqla":"P1D","temporal_columns_lookup":{"updated_at":true,"created_at":true},"all_columns":["title","link","username","created_at","updated_at","days_stale","days_old"],"percent_metrics":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_92e89ndhg9k_77quhii36wg","isExtra":false,"isNew":false,"operator":"TEMPORAL_RANGE","sqlExpression":null,"subject":"created_at"}],"order_by_cols":[],"row_limit":100,"server_page_length":10,"order_desc":true,"table_timestamp_format":"smart_date","show_cell_bars":true,"color_pn":true,"column_config":{"days_old":{"d3NumberFormat":",.1f"},"days_stale":{"d3NumberFormat":",.1f"}},"conditional_formatting":[],"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full","include_time":false},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 1e747519-6ad1-4c48-add6-30b77aeca0a5
+version: 1.0.0
+dataset_uuid: 62f869ed-dc5e-4a2d-b5b3-6ae897ecb385

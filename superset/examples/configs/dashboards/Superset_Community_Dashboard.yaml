@@ -1,0 +1,930 @@
+dashboard_title: Superset Community Dashboard
+description: null
+css: ''
+slug: null
+certified_by: ''
+certification_details: ''
+published: true
+uuid: 84cfc008-c88b-4982-8731-90b4aad2824b
+position:
+  CHART-2hoATK8Zsx:
+    children: []
+    id: CHART-2hoATK8Zsx
+    meta:
+      chartId: 77
+      height: 50
+      sliceName: Ten Worst Violations (ESLint)
+      uuid: 785c3bc9-fc76-446f-b725-2905071c5601
+      width: 3
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    - ROW-9m7gUYjSq
+    type: CHART
+  CHART-8DBtgQCnUB:
+    children: []
+    id: CHART-8DBtgQCnUB
+    meta:
+      chartId: 74
+      height: 50
+      sliceName: Debt Timeline (by Rule)
+      uuid: 93f3714b-8401-415e-9d4c-2c8806dfc02f
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - ROW-9MsZ7cYIcO
+    type: CHART
+  CHART-WlJ6qakWX-:
+    children: []
+    id: CHART-WlJ6qakWX-
+    meta:
+      chartId: 78
+      height: 50
+      sliceName: Total Rule Violations
+      uuid: 2a260abd-8ada-49f1-af51-e9b956f1826c
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - ROW-9MsZ7cYIcO
+    type: CHART
+  CHART-explore-79-1:
+    children: []
+    id: CHART-explore-79-1
+    meta:
+      chartId: 79
+      height: 50
+      sliceName: Low Hanging Fruit by Rule
+      uuid: 477b5aa7-6d40-4e52-908e-e899c45935af
+      width: 3
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    - ROW-9m7gUYjSq
+    type: CHART
+  CHART-explore-80-1:
+    children: []
+    id: CHART-explore-80-1
+    meta:
+      chartId: 80
+      height: 50
+      sliceName: Low Hanging Fruit by File
+      uuid: 63a1ac01-9daf-4064-a455-ef9f5b64933f
+      width: 3
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    - ROW-9m7gUYjSq
+    type: CHART
+  CHART-explore-82-1:
+    children: []
+    id: CHART-explore-82-1
+    meta:
+      chartId: 82
+      height: 50
+      sliceName: 100 Most Stale PRs
+      uuid: ef4e3a16-5550-46b1-9a00-3305cf45cf47
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    - ROW-_HD44Ptqc
+    type: CHART
+  CHART-explore-83-1:
+    children: []
+    id: CHART-explore-83-1
+    meta:
+      chartId: 83
+      height: 50
+      sliceName: 100 Most Stale Issues
+      uuid: 1e747519-6ad1-4c48-add6-30b77aeca0a5
+      width: 8
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    - ROW-QBodkPkjd
+    type: CHART
+  CHART-explore-84-1:
+    children: []
+    id: CHART-explore-84-1
+    meta:
+      chartId: 84
+      height: 50
+      sliceName: Staleness distribution
+      uuid: 14b0d6bb-4c34-4c52-8c0f-afecffbc0492
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    - ROW-QBodkPkjd
+    type: CHART
+  CHART-explore-85-1:
+    children: []
+    id: CHART-explore-85-1
+    meta:
+      chartId: 85
+      height: 50
+      sliceName: PR Staleness Distribution
+      uuid: a8088108-6b36-4f27-8119-367be6acb267
+      width: 4
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    - ROW-_HD44Ptqc
+    type: CHART
+  CHART-explore-89-1:
+    children: []
+    id: CHART-explore-89-1
+    meta:
+      chartId: 89
+      height: 32
+      sliceName: Weekly Commits on GitHub
+      uuid: f6e65e97-aac1-4480-9beb-e7caed078e79
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-0iG6IOxPs
+    - ROW-GeI7emy5O
+    type: CHART
+  CHART-explore-90-1:
+    children: []
+    id: CHART-explore-90-1
+    meta:
+      chartId: 90
+      height: 50
+      sliceName: GitHub commits by author (90 days)
+      uuid: 723dadf6-8699-4f31-a869-6f456a341c98
+      width: 7
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-0iG6IOxPs
+    - ROW-8vrQEmqRL
+    type: CHART
+  CHART-explore-91-1:
+    children: []
+    id: CHART-explore-91-1
+    meta:
+      chartId: 91
+      height: 50
+      sliceName: Top 10 Committers (90 days)
+      uuid: ade8f58e-1c8a-4bcb-a802-8b6548ded28d
+      width: 5
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-0iG6IOxPs
+    - ROW-8vrQEmqRL
+    type: CHART
+  CHART-hVo1r3LAvM:
+    children: []
+    id: CHART-hVo1r3LAvM
+    meta:
+      chartId: 75
+      height: 50
+      sliceName: Backlog - ESLint
+      uuid: 68cf3d84-afe6-496e-8960-401fe27d0c58
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    - ROW-ceGPqkcuF0
+    type: CHART
+  CHART-ne2sYhM_IB:
+    children: []
+    id: CHART-ne2sYhM_IB
+    meta:
+      chartId: 76
+      height: 50
+      sliceName: 10 Worst Files
+      uuid: e34a4358-0681-43b1-839e-82f1399b97ce
+      width: 3
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    - ROW-9m7gUYjSq
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children: []
+    id: GRID_ID
+    parents:
+    - ROOT_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: Superset Community Efforts
+    type: HEADER
+  MARKDOWN-e_ue39c8AW:
+    children: []
+    id: MARKDOWN-e_ue39c8AW
+    meta:
+      code: '# Find something to fix!
+
+
+        These charts help catalog "long tail" cleanup and migration projects in the
+        frontend codebase. These stats are derived by ESLint warnings. Feel free to
+        dig in by type or by file, to either help tie up a "loose end" or help drive
+        a larger migration effort forward.'
+      height: 18
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - ROW-eRf1Ck0DTa
+    type: MARKDOWN
+  MARKDOWN-klTzn4w41d:
+    children: []
+    id: MARKDOWN-klTzn4w41d
+    meta:
+      code: '# Help us help others!
+
+
+        The issues and PRs on this page are sorted by "staleness" meaning they''re
+        the ones that haven''t been touched or acted on for the longest time. Please
+        help drive these toward resolution if you''re able, and/or tag a committer
+        to help close them if they''re no longer relevant.
+
+
+        ### Note
+
+
+        The Shillelagh API currently only loads the first page of GH Issues... we''ll
+        fix this soon to have a more comprehensive picture!'
+      height: 25
+      width: 12
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    - ROW-pvEDMOawc
+    type: MARKDOWN
+  ROOT_ID:
+    children:
+    - TABS-25qvyH3IQg
+    id: ROOT_ID
+    type: ROOT
+  ROW-8vrQEmqRL:
+    children:
+    - CHART-explore-90-1
+    - CHART-explore-91-1
+    id: ROW-8vrQEmqRL
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-0iG6IOxPs
+    type: ROW
+  ROW-9MsZ7cYIcO:
+    children:
+    - CHART-WlJ6qakWX-
+    - CHART-8DBtgQCnUB
+    id: ROW-9MsZ7cYIcO
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    type: ROW
+  ROW-9m7gUYjSq:
+    children:
+    - CHART-2hoATK8Zsx
+    - CHART-explore-79-1
+    - CHART-ne2sYhM_IB
+    - CHART-explore-80-1
+    id: ROW-9m7gUYjSq
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    type: ROW
+  ROW-GeI7emy5O:
+    children:
+    - CHART-explore-89-1
+    id: ROW-GeI7emy5O
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-0iG6IOxPs
+    type: ROW
+  ROW-QBodkPkjd:
+    children:
+    - CHART-explore-83-1
+    - CHART-explore-84-1
+    id: ROW-QBodkPkjd
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    type: ROW
+  ROW-_HD44Ptqc:
+    children:
+    - CHART-explore-82-1
+    - CHART-explore-85-1
+    id: ROW-_HD44Ptqc
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    type: ROW
+  ROW-ceGPqkcuF0:
+    children:
+    - CHART-hVo1r3LAvM
+    id: ROW-ceGPqkcuF0
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    - TAB-6MZrK7E3jw
+    type: ROW
+  ROW-eRf1Ck0DTa:
+    children:
+    - MARKDOWN-e_ue39c8AW
+    id: ROW-eRf1Ck0DTa
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    type: ROW
+  ROW-pvEDMOawc:
+    children:
+    - MARKDOWN-klTzn4w41d
+    id: ROW-pvEDMOawc
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-gQNdNGxEm
+    type: ROW
+  TAB-0iG6IOxPs:
+    children:
+    - ROW-GeI7emy5O
+    - ROW-8vrQEmqRL
+    id: TAB-0iG6IOxPs
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: Project Stats
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    type: TAB
+  TAB-6MZrK7E3jw:
+    children:
+    - ROW-9m7gUYjSq
+    - ROW-ceGPqkcuF0
+    id: TAB-6MZrK7E3jw
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: ESLint
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    - TABS-5EgQDONu1A
+    type: TAB
+  TAB-Qe34bcVead:
+    children:
+    - ROW-eRf1Ck0DTa
+    - ROW-9MsZ7cYIcO
+    - TABS-5EgQDONu1A
+    id: TAB-Qe34bcVead
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: Technical Debt (Frontend)
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    type: TAB
+  TAB-gQNdNGxEm:
+    children:
+    - ROW-pvEDMOawc
+    - ROW-_HD44Ptqc
+    - ROW-QBodkPkjd
+    id: TAB-gQNdNGxEm
+    meta:
+      defaultText: Tab title
+      placeholder: Tab title
+      text: GitHub Issues and PRs
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    type: TAB
+  TABS-25qvyH3IQg:
+    children:
+    - TAB-0iG6IOxPs
+    - TAB-gQNdNGxEm
+    - TAB-Qe34bcVead
+    id: TABS-25qvyH3IQg
+    meta: {}
+    parents:
+    - ROOT_ID
+    type: TABS
+  TABS-5EgQDONu1A:
+    children:
+    - TAB-6MZrK7E3jw
+    id: TABS-5EgQDONu1A
+    meta: {}
+    parents:
+    - ROOT_ID
+    - TABS-25qvyH3IQg
+    - TAB-Qe34bcVead
+    type: TABS
+metadata:
+  chart_configuration:
+    '74':
+      id: 74
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '75':
+      id: 75
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '76':
+      id: 76
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '77':
+      id: 77
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '79':
+      id: 79
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '80':
+      id: 80
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '82':
+      id: 82
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '83':
+      id: 83
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 84
+        - 85
+        - 89
+        - 90
+        - 91
+    '89':
+      id: 89
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 90
+        - 91
+    '90':
+      id: 90
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 91
+    '91':
+      id: 91
+      crossFilters:
+        scope: global
+        chartsInScope:
+        - 74
+        - 75
+        - 76
+        - 77
+        - 78
+        - 79
+        - 80
+        - 82
+        - 83
+        - 84
+        - 85
+        - 89
+        - 90
+  global_chart_configuration:
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    chartsInScope:
+    - 74
+    - 75
+    - 76
+    - 77
+    - 78
+    - 79
+    - 80
+    - 82
+    - 83
+    - 84
+    - 85
+    - 89
+    - 90
+    - 91
+  color_scheme: ''
+  refresh_frequency: 0
+  shared_label_colors:
+    EugeneTorap: '#ACE1C4'
+    Always-prog: '#A1A6BD'
+    zhaoyongjie: '#666666'
+    lilykuang: '#D3B3DA'
+    villebro: '#666666'
+    rtexelm: '#A38F79'
+    craig-rueda: '#1FA8C9'
+    eschutho: '#454E7C'
+    Vitor-Avila: '#9EE5E5'
+    fisjac: '#FEC0A1'
+    Antonio-RiveroMartnez: '#B2B2B2'
+    sfirke: '#5AC189'
+    geido: '#EFA1AA'
+    kgabryje: '#E04355'
+    john-bodley: '#8FD3E4'
+    justinpark: '#3CCCCB'
+    betodealmeida: '#FCC700'
+    dpgaspar: '#A868B7'
+    michael-s-molina: '#ACE1C4'
+    mistercrunch: '#A38F79'
+    rusackas: '#A1A6BD'
+    SUM(total): '#454E7C'
+    days_stale: '#1FA8C9'
+    /home/runner/work/superset/superset/superset-frontend/packages/superset-ui-switchboard/src/switchboard.test.ts: '#1FA8C9'
+    /home/runner/work/superset/superset/superset-frontend/src/views/CRUD/hooks.ts: '#454E7C'
+    ? /home/runner/work/superset/superset/superset-frontend/packages/superset-ui-demo/storybook/stories/superset-ui-chart/SuperChart.stories.tsx
+    : '#5AC189'
+    /home/runner/work/superset/superset/superset-frontend/src/explore/components/ExploreViewContainer/index.jsx: '#FF7F44'
+    /home/runner/work/superset/superset/superset-frontend/src/filters/components/TimeGrain/TimeGrainFilterPlugin.tsx: '#666666'
+    /home/runner/work/superset/superset/superset-frontend/src/filters/components/Range/RangeFilterPlugin.tsx: '#E04355'
+    /home/runner/work/superset/superset/superset-frontend/src/explore/exploreUtils/exploreUtils.test.jsx: '#FCC700'
+    /home/runner/work/superset/superset/superset-frontend/src/pages/AllEntities/index.tsx: '#A868B7'
+    /home/runner/work/superset/superset/superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx: '#3CCCCB'
+    /home/runner/work/superset/superset/superset-frontend/src/features/annotations/AnnotationModal.tsx: '#A38F79'
+    react-hooks/exhaustive-deps: '#1FA8C9'
+    react-prefer-function-component/react-prefer-function-component: '#454E7C'
+    storybook/prefer-pascal-case: '#5AC189'
+    no-console: '#FF7F44'
+    '@typescript-eslint/no-unused-vars': '#666666'
+    jest/no-disabled-tests: '#E04355'
+    jest/expect-expect: '#FCC700'
+    '@typescript-eslint/no-use-before-define': '#A868B7'
+    react/no-danger: '#3CCCCB'
+    testing-library/no-debugging-utils: '#A38F79'
+  color_scheme_domain: []
+  expanded_slices: {}
+  label_colors: {}
+  timed_refresh_immune_slices: []
+  cross_filters_enabled: true
+  native_filter_configuration:
+  - id: NATIVE_FILTER_DIVIDER-Uvwpv66lm
+    type: DIVIDER
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    title: Tech Debt Filters
+    description: These filters apply to the tech debt tab.
+    chartsInScope: []
+    tabsInScope: []
+  - id: NATIVE_FILTER-jT104f_o8
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: false
+      inverseSelection: false
+    name: Process (Collection)
+    filterType: filter_select
+    targets:
+    - column:
+        name: Process
+      datasetUuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 74
+    - 75
+    - 76
+    - 77
+    - 78
+    - 79
+    - 80
+    - 82
+    tabsInScope:
+    - TAB-Qe34bcVead
+    - TAB-6MZrK7E3jw
+    - TAB-gQNdNGxEm
+  - id: NATIVE_FILTER-N062W3pFM
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: true
+      inverseSelection: false
+    name: Rule
+    filterType: filter_select
+    targets:
+    - column:
+        name: Rule
+      datasetUuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 74
+    - 75
+    - 76
+    - 77
+    - 78
+    - 79
+    - 80
+    - 82
+    - 83
+    - 84
+    - 85
+    - 86
+    tabsInScope:
+    - TAB-Qe34bcVead
+    - TAB-6MZrK7E3jw
+    - TAB-gQNdNGxEm
+  - id: NATIVE_FILTER-UFZRu-GyK
+    controlValues:
+      enableEmptyFilter: false
+    name: Time Range
+    filterType: filter_time
+    targets:
+    - {}
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded: []
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 74
+    - 78
+    tabsInScope: []
+  - id: NATIVE_FILTER-O1kzYk_ca
+    controlValues:
+      enableEmptyFilter: false
+    name: Violation Count
+    filterType: filter_range
+    targets:
+    - column:
+        name: Count
+      datasetUuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded:
+      - 75
+      - 76
+      - 77
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 74
+    - 78
+    - 79
+    - 80
+    tabsInScope: []
+  - id: NATIVE_FILTER-Hix7r6O6-
+    controlValues:
+      enableEmptyFilter: false
+      defaultToFirstItem: false
+      multiSelect: true
+      searchAllOptions: false
+      inverseSelection: false
+    name: FOO
+    filterType: filter_select
+    targets:
+    - column:
+        name: FOO
+      datasetUuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
+    defaultDataMask:
+      extraFormData: {}
+      filterState: {}
+      ownState: {}
+    cascadeParentIds: []
+    scope:
+      rootPath:
+      - ROOT_ID
+      excluded:
+      - 75
+      - 76
+      - 77
+      - 79
+      - 80
+      - 82
+      - 83
+      - 84
+      - 85
+      - 86
+    type: NATIVE_FILTER
+    description: ''
+    chartsInScope:
+    - 74
+    - 78
+    tabsInScope:
+    - TAB-Qe34bcVead
+  default_filters: '{}'
+version: 1.0.0

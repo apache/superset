@@ -1,0 +1,43 @@
+slice_name: Ten Worst Violations (ESLint)
+description: null
+certified_by: null
+certification_details: null
+viz_type: pie
+params:
+  datasource: 22__table
+  viz_type: pie
+  slice_id: 77
+  groupby:
+  - Rule
+  metric: count
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: Timestamp
+  row_limit: 10
+  sort_by_metric: true
+  color_scheme: supersetColors
+  show_labels_threshold: 5
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  label_type: key
+  number_format: SMART_NUMBER
+  date_format: smart_date
+  show_labels: true
+  labels_outside: true
+  outerRadius: 70
+  donut: true
+  innerRadius: 50
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":22,"type":"table"},"force":false,"queries":[{"filters":[{"col":"Timestamp","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["Rule"],"metrics":["count"],"orderby":[["count",false]],"annotation_layers":[],"row_limit":10,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"form_data":{"datasource":"22__table","viz_type":"pie","slice_id":77,"groupby":["Rule"],"metric":"count","adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"Timestamp"}],"row_limit":10,"sort_by_metric":true,"color_scheme":"supersetColors","show_labels_threshold":5,"show_legend":true,"legendType":"scroll","legendOrientation":"top","label_type":"key","number_format":"SMART_NUMBER","date_format":"smart_date","show_labels":true,"labels_outside":true,"outerRadius":70,"donut":true,"innerRadius":50,"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 785c3bc9-fc76-446f-b725-2905071c5601
+version: 1.0.0
+dataset_uuid: 12fa12ec-9d44-4eb8-8222-9f495849ad82

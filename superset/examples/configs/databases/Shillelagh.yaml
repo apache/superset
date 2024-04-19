@@ -1,0 +1,28 @@
+database_name: Shillelagh
+sqlalchemy_uri: shillelagh+safe://
+cache_timeout: 3600
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_file_upload: false
+extra:
+  allows_virtual_table_explore: true
+  engine_params:
+    connect_args:
+      adapters:
+      - gsheetsapi
+      - datasetteapi
+      - genericjsonapi
+      - genericxmlapi
+      - htmltableapi
+      - githubapi
+      - s3selectapi
+      - socrataapi
+      - weatherapi
+      - systemapi
+  metadata_params: {}
+  schemas_allowed_for_file_upload: []
+uuid: fe1710ff-33b3-4542-82ec-005a84cd2f50
+version: 1.0.0

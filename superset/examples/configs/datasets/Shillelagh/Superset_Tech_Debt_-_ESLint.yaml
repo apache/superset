@@ -1,0 +1,141 @@
+table_name: Superset Tech Debt - ESLint
+main_dttm_col: Timestamp
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: main
+sql: SELECT * FROM "https://docs.google.com/spreadsheets/d/1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo/edit#gid=1042232483"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 12fa12ec-9d44-4eb8-8222-9f495849ad82
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra:
+    warning_markdown: ''
+  warning_text: null
+columns:
+- column_name: Link
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: null
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: '''<a href="'' || ''https://github.com/apache/superset/blob/master''
+    || REPLACE(File, ''/home/runner/work/superset/superset'', '''') || ''#L'' || Line
+    || ''" target="_blank">'' || REPLACE(File, ''/home/runner/work/superset/superset'',
+    '''') || ''</a>'' '
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: cleaned_file_path
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: null
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: REPLACE(File, '/home/runner/work/superset/superset', '')
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: Rule Description
+  verbose_name: ''
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: ESLint Message
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: Timestamp
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: DATETIME
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: Column
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: File
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: Rule
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: Line
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: fe1710ff-33b3-4542-82ec-005a84cd2f50

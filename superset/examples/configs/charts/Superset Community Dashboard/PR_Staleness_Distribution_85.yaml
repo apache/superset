@@ -1,0 +1,59 @@
+slice_name: PR Staleness Distribution
+description: null
+certified_by: null
+certification_details: null
+viz_type: histogram
+params:
+  datasource: 24__table
+  viz_type: histogram
+  slice_id: 82
+  all_columns_x:
+  - days_stale
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_2qpdpgzc47y_ni3xx1demmq
+    isExtra: false
+    isNew: false
+    operator: TEMPORAL_RANGE
+    sqlExpression: null
+    subject: created_at
+  - clause: WHERE
+    comparator: false
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_dbis9uwbxrm_451s5mj9ruu
+    isExtra: false
+    isNew: false
+    operator: ==
+    operatorId: IS_FALSE
+    sqlExpression: null
+    subject: draft
+  - clause: WHERE
+    comparator: open
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_vt3fipjn1dc_x82ah8mv3m
+    isExtra: false
+    isNew: false
+    operator: ==
+    operatorId: EQUALS
+    sqlExpression: null
+    subject: state
+  row_limit: 1000
+  groupby: []
+  color_scheme: supersetColors
+  link_length: 5
+  show_legend: true
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":24,"type":"table"},"force":false,"queries":[{"filters":[{"col":"created_at","op":"TEMPORAL_RANGE","val":"No
+  filter"},{"col":"draft","op":"==","val":false},{"col":"state","op":"==","val":"open"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":1000,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"form_data":{"datasource":"24__table","viz_type":"histogram","slice_id":82,"all_columns_x":["days_stale"],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_2qpdpgzc47y_ni3xx1demmq","isExtra":false,"isNew":false,"operator":"TEMPORAL_RANGE","sqlExpression":null,"subject":"created_at"},{"clause":"WHERE","comparator":false,"datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_dbis9uwbxrm_451s5mj9ruu","isExtra":false,"isNew":false,"operator":"==","operatorId":"IS_FALSE","sqlExpression":null,"subject":"draft"},{"clause":"WHERE","comparator":"open","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_vt3fipjn1dc_x82ah8mv3m","isExtra":false,"isNew":false,"operator":"==","operatorId":"EQUALS","sqlExpression":null,"subject":"state"}],"row_limit":1000,"groupby":[],"color_scheme":"supersetColors","link_length":5,"show_legend":true,"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: a8088108-6b36-4f27-8119-367be6acb267
+version: 1.0.0
+dataset_uuid: 0543be35-e3cb-4b8e-89a9-bee3e424d9a1

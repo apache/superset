@@ -1,0 +1,54 @@
+slice_name: Backlog - ESLint
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 22__table
+  viz_type: table
+  slice_id: 75
+  query_mode: raw
+  groupby: []
+  time_grain_sqla: P1D
+  temporal_columns_lookup:
+    Timestamp: true
+  all_columns:
+  - Rule
+  - Link
+  - Rule Description
+  - cleaned_file_path
+  - Line
+  - Column
+  - ESLint Message
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: Timestamp
+  order_by_cols: []
+  row_limit: 1000
+  server_page_length: 10
+  order_desc: true
+  table_timestamp_format: smart_date
+  show_cell_bars: false
+  color_pn: true
+  allow_rearrange_columns: false
+  column_config:
+    File:
+      columnWidth: 160
+      truncateLongCells: true
+  conditional_formatting: []
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":22,"type":"table"},"force":false,"queries":[{"filters":[{"col":"Timestamp","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P1D","having":"","where":""},"applied_time_extras":{},"columns":["Rule","Link","Rule
+  Description","cleaned_file_path","Line","Column","ESLint Message"],"orderby":[],"annotation_layers":[],"row_limit":1000,"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[]}],"form_data":{"datasource":"22__table","viz_type":"table","slice_id":75,"query_mode":"raw","groupby":[],"time_grain_sqla":"P1D","temporal_columns_lookup":{"Timestamp":true},"all_columns":["Rule","Link","Rule
+  Description","cleaned_file_path","Line","Column","ESLint Message"],"percent_metrics":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"Timestamp"}],"order_by_cols":[],"row_limit":1000,"server_page_length":10,"order_desc":true,"table_timestamp_format":"smart_date","show_cell_bars":false,"color_pn":true,"allow_rearrange_columns":false,"column_config":{"File":{"columnWidth":160,"truncateLongCells":true}},"conditional_formatting":[],"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full","include_time":false},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 68cf3d84-afe6-496e-8960-401fe27d0c58
+version: 1.0.0
+dataset_uuid: 12fa12ec-9d44-4eb8-8222-9f495849ad82

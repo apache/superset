@@ -1,0 +1,69 @@
+slice_name: Low Hanging Fruit by File
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 22__table
+  viz_type: table
+  slice_id: 79
+  query_mode: aggregate
+  groupby:
+  - File
+  temporal_columns_lookup:
+    Timestamp: true
+  metrics:
+  - aggregate: COUNT
+    column:
+      advanced_data_type: null
+      certification_details: null
+      certified_by: null
+      column_name: ESLint Message
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 745
+      is_certified: false
+      is_dttm: false
+      python_date_format: null
+      type: STRING
+      type_generic: 1
+      verbose_name: null
+      warning_markdown: null
+    datasourceWarning: false
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    label: COUNT(ESLint Message)
+    optionName: metric_n27rlniqi4h_23ktjxr2plb
+    sqlExpression: null
+  all_columns: []
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: Timestamp
+  timeseries_limit_metric: count
+  order_by_cols: []
+  row_limit: 50
+  server_page_length: 10
+  order_desc: false
+  table_timestamp_format: smart_date
+  show_cell_bars: true
+  color_pn: true
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":22,"type":"table"},"force":false,"queries":[{"filters":[{"col":"Timestamp","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["File"],"metrics":[{"aggregate":"COUNT","column":{"advanced_data_type":null,"certification_details":null,"certified_by":null,"column_name":"ESLint
+  Message","description":null,"expression":null,"filterable":true,"groupby":true,"id":745,"is_certified":false,"is_dttm":false,"python_date_format":null,"type":"STRING","type_generic":1,"verbose_name":null,"warning_markdown":null},"datasourceWarning":false,"expressionType":"SIMPLE","hasCustomLabel":false,"label":"COUNT(ESLint
+  Message)","optionName":"metric_n27rlniqi4h_23ktjxr2plb","sqlExpression":null}],"orderby":[["count",true]],"annotation_layers":[],"row_limit":50,"series_limit":0,"series_limit_metric":"count","order_desc":false,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[]}],"form_data":{"datasource":"22__table","viz_type":"table","slice_id":79,"query_mode":"aggregate","groupby":["File"],"temporal_columns_lookup":{"Timestamp":true},"metrics":[{"aggregate":"COUNT","column":{"advanced_data_type":null,"certification_details":null,"certified_by":null,"column_name":"ESLint
+  Message","description":null,"expression":null,"filterable":true,"groupby":true,"id":745,"is_certified":false,"is_dttm":false,"python_date_format":null,"type":"STRING","type_generic":1,"verbose_name":null,"warning_markdown":null},"datasourceWarning":false,"expressionType":"SIMPLE","hasCustomLabel":false,"label":"COUNT(ESLint
+  Message)","optionName":"metric_n27rlniqi4h_23ktjxr2plb","sqlExpression":null}],"all_columns":[],"percent_metrics":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"Timestamp"}],"timeseries_limit_metric":"count","order_by_cols":[],"row_limit":50,"server_page_length":10,"order_desc":false,"table_timestamp_format":"smart_date","show_cell_bars":true,"color_pn":true,"extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 63a1ac01-9daf-4064-a455-ef9f5b64933f
+version: 1.0.0
+dataset_uuid: 12fa12ec-9d44-4eb8-8222-9f495849ad82

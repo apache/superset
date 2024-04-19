@@ -1,0 +1,65 @@
+slice_name: Total Rule Violations
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number
+params:
+  datasource: 21__table
+  viz_type: big_number
+  slice_id: 78
+  x_axis: Timestamp
+  metric:
+    expressionType: SIMPLE
+    column:
+      advanced_data_type: null
+      changed_on: '2024-02-28T23:00:08.955865'
+      column_name: Count
+      created_on: '2024-02-28T23:00:08.955862'
+      description: null
+      expression: null
+      extra: '{}'
+      filterable: true
+      groupby: true
+      id: 854
+      is_active: true
+      is_dttm: false
+      python_date_format: null
+      type: INT
+      type_generic: 0
+      uuid: ca0928ca-6fdd-4060-a4d8-081ed78c7c70
+      verbose_name: null
+    aggregate: SUM
+    sqlExpression: null
+    datasourceWarning: false
+    hasCustomLabel: false
+    label: SUM(Count)
+    optionName: metric_jyyoyd30lpb_pivw96rugfa
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: Timestamp
+  show_trend_line: true
+  start_y_axis_at_zero: true
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  header_font_size: 0.4
+  subheader_font_size: 0.15
+  y_axis_format: SMART_NUMBER
+  time_format: smart_date
+  rolling_type: None
+  extra_form_data: {}
+  dashboards:
+  - 8
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"Timestamp","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":[{"columnType":"BASE_AXIS","sqlExpression":"Timestamp","label":"Timestamp","expressionType":"SQL"}],"metrics":[{"expressionType":"SIMPLE","column":{"advanced_data_type":null,"changed_on":"2024-02-28T23:00:08.955865","column_name":"Count","created_on":"2024-02-28T23:00:08.955862","description":null,"expression":null,"extra":"{}","filterable":true,"groupby":true,"id":854,"is_active":true,"is_dttm":false,"python_date_format":null,"type":"INT","type_generic":0,"uuid":"ca0928ca-6fdd-4060-a4d8-081ed78c7c70","verbose_name":null},"aggregate":"SUM","sqlExpression":null,"datasourceWarning":false,"hasCustomLabel":false,"label":"SUM(Count)","optionName":"metric_jyyoyd30lpb_pivw96rugfa"}],"annotation_layers":[],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[{"operation":"pivot","options":{"index":["Timestamp"],"columns":[],"aggregates":{"SUM(Count)":{"operator":"mean"}},"drop_missing_columns":true}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"big_number","slice_id":78,"x_axis":"Timestamp","metric":{"expressionType":"SIMPLE","column":{"advanced_data_type":null,"changed_on":"2024-02-28T23:00:08.955865","column_name":"Count","created_on":"2024-02-28T23:00:08.955862","description":null,"expression":null,"extra":"{}","filterable":true,"groupby":true,"id":854,"is_active":true,"is_dttm":false,"python_date_format":null,"type":"INT","type_generic":0,"uuid":"ca0928ca-6fdd-4060-a4d8-081ed78c7c70","verbose_name":null},"aggregate":"SUM","sqlExpression":null,"datasourceWarning":false,"hasCustomLabel":false,"label":"SUM(Count)","optionName":"metric_jyyoyd30lpb_pivw96rugfa"},"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"Timestamp"}],"show_trend_line":true,"start_y_axis_at_zero":true,"color_picker":{"a":1,"b":135,"g":122,"r":0},"header_font_size":0.4,"subheader_font_size":0.15,"y_axis_format":"SMART_NUMBER","time_format":"smart_date","rolling_type":"None","extra_form_data":{},"dashboards":[8,9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 2a260abd-8ada-49f1-af51-e9b956f1826c
+version: 1.0.0
+dataset_uuid: a3b0a980-a1b4-4463-89fd-91e6d3347313
