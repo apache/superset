@@ -29,7 +29,7 @@ ignore=CVS,migrations
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
-ignore-patterns=ignore-patterns=tests.*,scripts.*
+ignore-patterns=ignore-patterns=.*tests.*,.*scripts.*,.*migrations.*
 
 # Pickle collected data for later comparisons.
 persistent=yes
