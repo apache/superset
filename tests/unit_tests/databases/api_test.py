@@ -34,11 +34,12 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.database.csv_import import CSVImportCommand
+from superset.commands.database.excel_import import ExcelImportCommand
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql_parse import Table
-from tests.unit_tests.fixtures.common import create_csv_file
+from tests.unit_tests.fixtures.common import create_csv_file, create_excel_file
 
 
 def test_filter_by_uuid(
@@ -1173,6 +1174,225 @@ def test_csv_upload_file_extension_valid(
         content_type="multipart/form-data",
     )
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "payload,cmd_called_with",
+    [
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                {
+                    "already_exists": "fail",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table2",
+                "sheet_name": "Sheet1",
+                "already_exists": "replace",
+                "column_dates": "col1,col2",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                {
+                    "already_exists": "replace",
+                    "column_dates": ["col1", "col2"],
+                    "sheet_name": "Sheet1",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table2",
+                "sheet_name": "Sheet1",
+                "already_exists": "replace",
+                "columns_read": "col1,col2",
+                "rows_to_read": "1",
+                "skip_rows": "10",
+                "null_values": "None,N/A,''",
+            },
+            (
+                1,
+                "table2",
+                ANY,
+                {
+                    "already_exists": "replace",
+                    "columns_read": ["col1", "col2"],
+                    "null_values": ["None", "N/A", "''"],
+                    "rows_to_read": 1,
+                    "skip_rows": 10,
+                    "sheet_name": "Sheet1",
+                    "file": ANY,
+                    "table_name": "table2",
+                },
+            ),
+        ),
+    ],
+)
+def test_excel_upload(
+    payload: dict[str, Any],
+    cmd_called_with: tuple[int, str, Any, dict[str, Any]],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload success.
+    """
+    init_mock = mocker.patch.object(ExcelImportCommand, "__init__")
+    init_mock.return_value = None
+    _ = mocker.patch.object(ExcelImportCommand, "run")
+    response = client.post(
+        f"/api/v1/database/1/excel_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert response.json == {"message": "OK"}
+    init_mock.assert_called_with(*cmd_called_with)
+
+
+@pytest.mark.parametrize(
+    "payload,expected_response",
+    [
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "sheet_name": "Sheet1",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Missing data for required field."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "",
+                "sheet_name": "Sheet1",
+                "already_exists": "fail",
+            },
+            {"message": {"table_name": ["Length must be between 1 and 10000."]}},
+        ),
+        (
+            {"table_name": "table1", "already_exists": "fail"},
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": "xpto",
+                "table_name": "table1",
+                "already_exists": "fail",
+            },
+            {"message": {"file": ["Field may not be null."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "xpto",
+            },
+            {"message": {"already_exists": ["Must be one of: fail, replace, append."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "header_row": "test1",
+            },
+            {"message": {"header_row": ["Not a valid integer."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "rows_to_read": 0,
+            },
+            {"message": {"rows_to_read": ["Must be greater than or equal to 1."]}},
+        ),
+        (
+            {
+                "file": (create_excel_file(), "out.xls"),
+                "table_name": "table1",
+                "already_exists": "fail",
+                "skip_rows": "test1",
+            },
+            {"message": {"skip_rows": ["Not a valid integer."]}},
+        ),
+    ],
+)
+def test_excel_upload_validation(
+    payload: Any,
+    expected_response: dict[str, str],
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload validation fails.
+    """
+    _ = mocker.patch.object(ExcelImportCommand, "run")
+
+    response = client.post(
+        f"/api/v1/database/1/excel_upload/",
+        data=payload,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == expected_response
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "out.xpto",
+        "out.exe",
+        "out",
+        "out xls",
+        "",
+        "out.slx.exe",
+        ".xls",
+        "out.",
+        ".",
+        "out xls a.exe",
+    ],
+)
+def test_excel_upload_file_extension_invalid(
+    filename: str,
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test Excel Upload file extension fails.
+    """
+    _ = mocker.patch.object(ExcelImportCommand, "run")
+    response = client.post(
+        f"/api/v1/database/1/excel_upload/",
+        data={
+            "file": (create_excel_file(), filename),
+            "table_name": "table1",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+    assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
 def test_table_extra_metadata_happy_path(
