@@ -21977,4 +21977,3 @@ msgstr ""
 #, python-format
 msgid "We have the following keys: %s"
 msgstr "Nous avons les clés suivantes : %s"
-
