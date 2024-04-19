@@ -1,4 +1,4 @@
-name: Docker Publish Release
+name: Publish a Release
 
 on:
   release:
@@ -99,3 +99,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Label the PRs with the right release-related labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # in the case of a manually-triggered run, read release from input
+            RELEASE="${{ github.event.inputs.release }}"
+          fi
+          supersetbot release-label $RELEASE

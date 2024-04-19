@@ -68,10 +68,13 @@ export const Icon = (props: IconProps) => {
     };
   }, [fileName, ImportedSVG]);
 
+  const whatRole = props?.onClick ? 'button' : 'img';
+
   return (
     <StyledIcon
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
+      role={whatRole}
       {...iconProps}
     />
   );
