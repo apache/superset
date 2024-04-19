@@ -315,7 +315,7 @@ test('returns long keywords with docText', async () => {
   );
 });
 
-test('Add extension to SliceHeader', () => {
+test('Add custom keywords for autocomplete', () => {
   const expected = [
     {
       name: 'Custom keyword 1',
