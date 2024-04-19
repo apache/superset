@@ -20,7 +20,9 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
+from typing import Any
 
+import pandas as pd
 import pytest
 
 
@@ -46,3 +48,12 @@ def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
     output.seek(0)
     bytes_buffer = BytesIO(output.getvalue().encode("utf-8"))
     return bytes_buffer
+
+
+def create_excel_file(data: dict[str, list[Any]] | None = None) -> BytesIO:
+    data = {"Name": ["John"], "Age": [30], "City": ["New York"]} if not data else data
+    excel_buffer = BytesIO()
+    df = pd.DataFrame(data)
+    df.to_excel(excel_buffer, index=False)
+    excel_buffer.seek(0)
+    return excel_buffer

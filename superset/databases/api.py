@@ -36,6 +36,7 @@ from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.excel_import import ExcelImportCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -82,6 +83,7 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
@@ -147,6 +149,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "schemas_access_for_file_upload",
         "get_connection",
         "csv_upload",
+        "excel_upload",
         "oauth2",
     }
 
@@ -266,6 +269,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        ExcelUploadPostSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
@@ -1488,6 +1492,65 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
             CSVImportCommand(
+                pk,
+                parameters["table_name"],
+                parameters["file"],
+                parameters,
+            ).run()
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/excel_upload/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def excel_upload(self, pk: int) -> Response:
+        """Upload an Excel file into a database.
+        ---
+        post:
+          summary: Upload an Excel file to a database table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  $ref: '#/components/schemas/ExcelUploadPostSchema'
+          responses:
+            200:
+              description: Excel upload response
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            request_form = request.form.to_dict()
+            request_form["file"] = request.files.get("file")
+            parameters = ExcelUploadPostSchema().load(request_form)
+            ExcelImportCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],

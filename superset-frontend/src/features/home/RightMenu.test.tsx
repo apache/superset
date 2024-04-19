@@ -63,12 +63,6 @@ const dropdownItems = [
         url: '/columnartodatabaseview/form',
         perm: true,
       },
-      {
-        label: 'Upload Excel file to database',
-        name: 'Upload Excel',
-        url: '/exceltodatabaseview/form',
-        perm: true,
-      },
     ],
   },
   {
@@ -176,6 +170,7 @@ const resetUseSelectorMock = () => {
     roles: {
       Admin: [
         ['can_csv_upload', 'Database'], // So we can upload CSV
+        ['can_excel_upload', 'Database'], // So we can upload CSV
         ['can_write', 'Database'], // So we can write DBs
         ['can_write', 'Dataset'], // So we can write Datasets
         ['can_write', 'Chart'], // So we can write Datasets
@@ -316,7 +311,10 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   userEvent.hover(dataMenu);
   expect(
     (await screen.findByText('Upload CSV to database')).closest('a'),
-  ).toHaveAttribute('href', '/csvtodatabaseview/form');
+  ).toHaveAttribute('href', '#');
+  expect(
+    (await screen.findByText('Upload Excel to database')).closest('a'),
+  ).toHaveAttribute('href', '#');
 });
 
 test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {

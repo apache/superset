@@ -1448,6 +1448,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert set(data["permissions"]) == {
             "can_read",
             "can_csv_upload",
+            "can_excel_upload",
             "can_write",
             "can_export",
         }

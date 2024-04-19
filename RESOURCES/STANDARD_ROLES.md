@@ -67,11 +67,10 @@ under the License.
 | can invalidate on CacheRestApi                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can function names on Database                   |:heavy_check_mark:|O|O|O|
 | can csv upload on Database                       |:heavy_check_mark:|O|O|O|
+| can excel upload on Database                     |:heavy_check_mark:|O|O|O|
 | can query form data on Api                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can query on Api                                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can time range on Api                            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form get on ExcelToDatabaseView         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form post on ExcelToDatabaseView        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can external metadata on Datasource              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can save on Datasource                           |:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can get on Datasource                            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
