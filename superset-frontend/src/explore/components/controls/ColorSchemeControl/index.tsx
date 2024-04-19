@@ -18,6 +18,7 @@
  */
 import React, { useMemo } from 'react';
 import {
+  css,
   ColorScheme,
   ColorSchemeGroup,
   SequentialScheme,
@@ -25,11 +26,12 @@ import {
   t,
 } from '@superset-ui/core';
 import { isFunction, sortBy } from 'lodash';
-import { Select } from 'src/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { OptionData } from 'src/components/Select/types';
+import { StyledSelect } from 'src/components/Select/styles';
+import { renderSelectOptions } from 'src/components/Select/utils';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 export interface ColorSchemes {
@@ -92,7 +94,6 @@ const ColorSchemeControl = ({
   hasCustomLabelColors = false,
   dashboardId,
   label = t('Color scheme'),
-  name,
   onChange = () => {},
   value,
   clearable = false,
@@ -204,28 +205,32 @@ const ColorSchemeControl = ({
   const handleOnChange = (value: string) => onChange(value);
 
   return (
-    <Select
-      header={
-        <ControlHeader
-          {...rest}
-          label={
-            <Label
-              label={label}
-              hasCustomLabelColors={hasCustomLabelColors}
-              dashboardId={dashboardId}
-            />
-          }
-        />
-      }
-      ariaLabel={t('Select color scheme')}
-      allowClear={clearable}
-      disabled={!!dashboardId}
-      name={`select-${name}`}
-      onChange={handleOnChange}
-      options={options}
-      placeholder={t('Select scheme')}
-      value={currentScheme}
-    />
+    <>
+      <ControlHeader
+        {...rest}
+        label={
+          <Label
+            label={label}
+            hasCustomLabelColors={hasCustomLabelColors}
+            dashboardId={dashboardId}
+          />
+        }
+      />
+      <StyledSelect
+        css={css`
+          width: 100%;
+        `}
+        aria-label={t('Select color scheme')}
+        allowClear={clearable}
+        disabled={!!dashboardId}
+        onChange={handleOnChange}
+        placeholder={t('Select scheme')}
+        value={currentScheme}
+        getPopupContainer={triggerNode => triggerNode.parentNode}
+      >
+        {renderSelectOptions(options)}
+      </StyledSelect>
+    </>
   );
 };
 

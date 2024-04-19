@@ -27,7 +27,6 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { AsyncSelect } from 'src/components';
-import { OptionData, OptionGroup } from './types';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -63,31 +62,24 @@ const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
   value: number;
 };
 
-const loadOptions = async (
-  search: string,
-  page: number,
-  pageSize: number,
-  options: OptionData | OptionGroup[] = OPTIONS,
-) => {
-  const totalCount = options.length;
+const loadOptions = async (search: string, page: number, pageSize: number) => {
+  const totalCount = OPTIONS.length;
   const start = page * pageSize;
   const deleteCount =
     start + pageSize < totalCount ? pageSize : totalCount - start;
   const searchValue = search.trim().toLowerCase();
   const optionFilterProps = ['label', 'value', 'gender'];
-  const data = options
-    .filter((option: (typeof OPTIONS)[0]) =>
-      optionFilterProps.some(prop => {
-        const optionProp = option?.[prop]
-          ? String(option[prop]).trim().toLowerCase()
-          : '';
-        return optionProp.includes(searchValue);
-      }),
-    )
-    .splice(start, deleteCount);
+  const data = OPTIONS.filter(option =>
+    optionFilterProps.some(prop => {
+      const optionProp = option?.[prop]
+        ? String(option[prop]).trim().toLowerCase()
+        : '';
+      return optionProp.includes(searchValue);
+    }),
+  ).splice(start, deleteCount);
   return {
     data,
-    totalCount: options.length,
+    totalCount: OPTIONS.length,
   };
 };
 
@@ -1007,44 +999,6 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
-});
-
-test('correctly renders options group', async () => {
-  const groupedOptions = Object.values(
-    OPTIONS.slice(0, 10).reduce((acc, opt) => {
-      if (Array.isArray(acc[opt.gender]?.options)) {
-        acc[opt.gender].options.push(opt);
-      } else {
-        acc[opt.gender] = {
-          options: [opt],
-          title: opt.gender,
-          label: opt.gender,
-        };
-      }
-      return acc;
-    }, {}),
-  ) as OptionGroup[];
-
-  render(
-    <AsyncSelect
-      {...defaultProps}
-      options={(search, page, pageSize) =>
-        loadOptions(search, page, pageSize, groupedOptions)
-      }
-    />,
-  );
-  await open();
-
-  expect(
-    getElementsByClassName('.ant-select-item-option-grouped'),
-  ).toHaveLength(10);
-  expect(getElementsByClassName('.ant-select-item-group')).toHaveLength(2);
-  expect(getElementsByClassName('.ant-select-item-group')[0]).toHaveTextContent(
-    'Female',
-  );
-  expect(getElementsByClassName('.ant-select-item-group')[1]).toHaveTextContent(
-    'Male',
-  );
 });
 
 /*

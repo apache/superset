@@ -74,11 +74,9 @@ export function getOption(
   checkLabel = false,
 ): V | LabeledValue {
   const optionsArray = ensureIsArray(options);
-  return optionsArray.find(opt =>
-    isOptGroup(opt)
-      ? getOption(value, opt.options, checkLabel)
-      : isEqual(opt, value, 'value') ||
-        (checkLabel && isEqual(opt, value, 'label')),
+  return optionsArray.find(
+    x =>
+      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
   );
 }
 
@@ -209,10 +207,8 @@ export const handleFilterOptionHelper = (
   return false;
 };
 
-export const hasCustomLabels = (options: SelectOptionsType): boolean =>
-  options?.some(opt =>
-    isOptGroup(opt) ? hasCustomLabels(opt.options) : !!opt?.customLabel,
-  );
+export const hasCustomLabels = (options: SelectOptionsType) =>
+  options?.some(opt => !!opt?.customLabel);
 
 export const renderSelectOptions = (options: SelectOptionsType) =>
   options.map(opt => {

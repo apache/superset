@@ -28,7 +28,6 @@ import {
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
 import { TagProps } from 'antd/lib/tag';
-import type * as React from 'react';
 
 export type RawValue = string | number;
 
@@ -73,7 +72,7 @@ export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
 export type OptionData = SelectOptionsType[number]['options'][number];
 
 export type OptionGroup = {
-  label?: React.ReactNode;
+  label?: ReactNode;
   title?: string;
   options: OptionData[];
 };

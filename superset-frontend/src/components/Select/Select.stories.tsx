@@ -55,30 +55,6 @@ const options: SelectOptionsType = [
   { label: 'I', value: 'I' },
 ];
 
-const groupedOptions = [
-  {
-    title: 'Group 1',
-    label: <b>Group 1</b>,
-    options: [
-      { label: 'A', value: 'A' },
-      { label: 'B', value: 'B' },
-      { label: 'C', value: 'C' },
-      { label: 'D', value: 'D' },
-    ],
-  },
-  {
-    title: 'Group 2',
-    label: <i>Group 2</i>,
-    options: [
-      { label: 'E', value: 'E' },
-      { label: 'F', value: 'F' },
-      { label: 'G', value: 'G' },
-      { label: 'H', value: 'H' },
-      { label: 'I', value: 'I' },
-    ],
-  },
-];
-
 const selectPositions = [
   {
     id: 'topLeft',
@@ -267,20 +243,6 @@ export const InteractiveSelect: StoryObj = {
     `,
     },
   },
-};
-
-export const InteractiveSelectWithGroups: StoryObj = {
-  render: ({ header, ...args }: SelectProps & { header: string }) => (
-    <div
-      style={{
-        width: DEFAULT_WIDTH,
-      }}
-    >
-      <Select {...args} header={mountHeader(header)} />
-    </div>
-  ),
-  args: { ...InteractiveSelect.args, options: groupedOptions },
-  argTypes: InteractiveSelect.argTypes,
 };
 
 export const AtEveryCorner = () => (

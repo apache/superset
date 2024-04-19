@@ -151,99 +151,37 @@ const USERS = [
   'Claire',
   'Benedetta',
   'Ilenia',
-]
-  .sort()
-  .map(u => ({ label: u, value: u }));
-
-const GROUPED_USERS = [
-  {
-    label: 'Male',
-    title: 'Male',
-    options: [
-      'John',
-      'Liam',
-      'Noah',
-      'Oliver',
-      'Elijah',
-      'Diego',
-      'Evan',
-      'Michael',
-      'Giovanni',
-      'Luca',
-      'Paolo',
-      'Mario',
-      'Marco',
-      'Luigi',
-      'Quarto',
-      'Quinto',
-      'Sesto',
-      'Franco',
-      'Sandro',
-      'Alehandro',
-      'Johnny',
-      'Igor',
-      'Thami',
-      'Munei',
-      'Guilherme',
-      'Umair',
-      'Ashfaq',
-      'Irfan',
-      'George',
-      'Naseer',
-      'Mohammad',
-      'Rick',
-    ],
-  },
-  {
-    label: 'Female',
-    title: 'Female',
-    options: [
-      'Olivia',
-      'Emma',
-      'Ava',
-      'Charlotte',
-      'Francesca',
-      'Chiara',
-      'Sara',
-      'Valentina',
-      'Jessica',
-      'Angelica',
-      'Nikole',
-      'Amna',
-      'Saliya',
-      'Claire',
-      'Benedetta',
-      'Ilenia',
-    ],
-  },
-].map(group => ({
-  ...group,
-  options: group.options.sort().map(u => ({ label: u, value: u })),
-}));
-
-type AsyncSelectStoryProps = AsyncSelectProps & {
-  withError: boolean;
-  withInitialValue: boolean;
-  responseTime: number;
-  data: { label: string; value: string }[];
-};
+].sort();
 
 export const AsynchronousSelect = ({
   fetchOnlyOnSearch,
   withError,
   withInitialValue,
   responseTime,
-  data,
   ...rest
-}: AsyncSelectStoryProps) => {
+}: AsyncSelectProps & {
+  withError: boolean;
+  withInitialValue: boolean;
+  responseTime: number;
+}) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
   const ref = useRef<AsyncSelectRef>(null);
 
   const getResults = (username?: string) => {
-    let results = [...data];
+    let results: { label: string; value: string }[] = [];
 
-    if (username) {
-      results = data.filter(u => u.value.toLowerCase().includes(username));
+    if (!username) {
+      results = USERS.map(u => ({
+        label: u,
+        value: u,
+      }));
+    } else {
+      const foundUsers = USERS.filter(u => u.toLowerCase().includes(username));
+      if (foundUsers) {
+        results = foundUsers.map(u => ({ label: u, value: u }));
+      } else {
+        results = [];
+      }
     }
     return results;
   };
@@ -352,7 +290,6 @@ AsynchronousSelect.args = {
   withError: false,
   withInitialValue: false,
   tokenSeparators: ['\n', '\t', ';'],
-  data: USERS,
 };
 
 AsynchronousSelect.argTypes = {
@@ -387,17 +324,3 @@ AsynchronousSelect.argTypes = {
     },
   },
 };
-
-export const AsyncSelectWithGroups = (props: AsyncSelectStoryProps) => (
-  <AsynchronousSelect {...props} />
-);
-
-AsyncSelectWithGroups.args = {
-  allowClear: true,
-  allowNewOptions: true,
-  mode: 'multiple',
-  pageSize: 5,
-  tokenSeparators: ['\n', '\t', ';'],
-  data: GROUPED_USERS,
-};
-AsyncSelectWithGroups.argTypes = AsynchronousSelect.argTypes;

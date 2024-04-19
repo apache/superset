@@ -54,7 +54,6 @@ import {
   getOption,
   isObject,
   isEqual as utilsIsEqual,
-  isOptGroup,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -81,7 +80,7 @@ import { customTagRender } from './CustomTag';
  * It is divided into two macro categories, Static and Async.
  * The Static type accepts a static array of options.
  * The Async type accepts a promise that will return the options.
- * Each of the categories comes with different abilities. For a comprehensive guide please refer to
+ * Each of the categories come with different abilities. For a comprehensive guide please refer to
  * the storybook in src/components/Select/Select.stories.tsx.
  */
 const Select = forwardRef(
@@ -193,28 +192,17 @@ const Select = forwardRef(
       return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
     }, [selectOptions, selectValue]);
 
-    const flattenedOptions = useMemo(
-      () =>
-        fullSelectOptions.reduce((acc, option) => {
-          if (isOptGroup(option)) {
-            return [...acc, ...option.options];
-          }
-          return [...acc, option];
-        }, []),
-      [fullSelectOptions],
-    );
-
     const enabledOptions = useMemo(
-      () => flattenedOptions.filter(option => !option.disabled),
-      [flattenedOptions],
+      () => fullSelectOptions.filter(option => !option.disabled),
+      [fullSelectOptions],
     );
 
     const selectAllEligible = useMemo(
       () =>
-        flattenedOptions.filter(
+        fullSelectOptions.filter(
           option => hasOption(option.value, selectValue) || !option.disabled,
         ),
-      [flattenedOptions, selectValue],
+      [fullSelectOptions, selectValue],
     );
 
     const selectAllEnabled = useMemo(
@@ -291,7 +279,7 @@ const Select = forwardRef(
         setSelectValue(undefined);
       } else {
         setSelectValue(
-          flattenedOptions
+          fullSelectOptions
             .filter(
               option => option.disabled && hasOption(option.value, selectValue),
             )
@@ -384,7 +372,7 @@ const Select = forwardRef(
         originNode,
         isDropdownVisible,
         isLoading,
-        flattenedOptions.length,
+        fullSelectOptions.length,
         helperText,
       );
 
