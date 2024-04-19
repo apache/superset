@@ -78,7 +78,7 @@ export default function transformProps(
     linearColorScheme,
     leftMargin,
     legendType = 'continuous',
-    metric,
+    metric = '',
     normalizeAcross,
     normalized,
     showLegend,
@@ -123,10 +123,11 @@ export default function transformProps(
 
   let [min, max] = (valueBounds || []).map(parseAxisBound);
   if (min === undefined) {
-    min = minBy(data, row => row[colorColumn])?.[colorColumn] as number;
+    min = (minBy(data, row => row[colorColumn])?.[colorColumn] as number) || 0;
   }
   if (max === undefined) {
-    max = maxBy(data, row => row[colorColumn])?.[colorColumn] as number;
+    max =
+      (maxBy(data, row => row[colorColumn])?.[colorColumn] as number) || 200;
   }
 
   const series: HeatmapSeriesOption[] = [
