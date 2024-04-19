@@ -77,3 +77,18 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          [
+            "-rn", # Only display messages
+            "-sn", # Don't display the score
+            "--rcfile=.pylintrc", # Link to your config file
+            "--load-plugins=pylint.extensions.docparams", # Load an extension
+            "--jobs 0"
+          ]
