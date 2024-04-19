@@ -32,31 +32,32 @@ export function tooltipHtml(
   title?: string,
   focusedRow?: number,
 ) {
-  const colspan = data.length > 0 ? data[0].length : 1;
   const titleRow = title
-    ? `<tr><td colspan="${colspan}" style="font-weight: 700;${TRUNCATION_STYLE}">${title}</td></tr>`
+    ? `<span style="font-weight: 700;${TRUNCATION_STYLE}">${title}</span>`
     : '';
   return `
-    <table>
-        ${titleRow}
-        ${data.length === 0 ? `<tr><td>${t('No data')}</td></tr>` : ''}
-        ${data
-          .map((row, i) => {
-            const rowStyle =
-              i === focusedRow ? 'font-weight: 700;' : 'opacity: 0.7;';
-            let padding = 0;
-            const cells = row.map((cell, j) => {
-              // TODO: Maybe make the font a little darker
-              const cellStyle = `
-                text-align: ${columnAlignments[j]};
-                padding-left: ${padding}px;
-                ${TRUNCATION_STYLE}
-              `;
-              padding = 16;
-              return `<td style="${cellStyle}">${cell}</td>`;
-            });
-            return `<tr style="${rowStyle}">${cells.join('')}</tr>`;
-          })
-          .join('')}
-    </table>`;
+    <div>
+      ${titleRow}
+      <table>
+          ${data.length === 0 ? `<tr><td>${t('No data')}</td></tr>` : ''}
+          ${data
+            .map((row, i) => {
+              const rowStyle =
+                i === focusedRow ? 'font-weight: 700;' : 'opacity: 0.7;';
+              let padding = 0;
+              const cells = row.map((cell, j) => {
+                // TODO: Maybe make the font a little darker
+                const cellStyle = `
+                  text-align: ${columnAlignments[j]};
+                  padding-left: ${padding}px;
+                  ${TRUNCATION_STYLE}
+                `;
+                padding = 16;
+                return `<td style="${cellStyle}">${cell}</td>`;
+              });
+              return `<tr style="${rowStyle}">${cells.join('')}</tr>`;
+            })
+            .join('')}
+      </table>
+    </div>`;
 }
