@@ -19,7 +19,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { IAceEditor } from 'react-ace/lib/types';
 import { useDispatch } from 'react-redux';
-import { css, styled, usePrevious } from '@superset-ui/core';
+import { css, styled, usePrevious, useTheme } from '@superset-ui/core';
+import { Global } from '@emotion/react';
 
 import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
 import { FullSQLEditor as AceEditor } from 'src/components/AsyncAceEditor';
@@ -54,16 +55,6 @@ const StyledAceEditor = styled(AceEditor)`
       font-feature-settings:
         'liga' off,
         'calt' off;
-
-      &.ace_autocomplete {
-        // Use !important because Ace Editor applies extra CSS at the last second
-        // when opening the autocomplete.
-        width: ${theme.gridUnit * 130}px !important;
-      }
-
-      .ace_scroller {
-        background-color: ${theme.colors.grayscale.light4};
-      }
     }
   `}
 `;
@@ -182,20 +173,40 @@ const AceEditorWrapper = ({
     },
     !autocomplete,
   );
+  const theme = useTheme();
 
   return (
-    <StyledAceEditor
-      keywords={keywords}
-      onLoad={onEditorLoad}
-      onBlur={onBlurSql}
-      height={height}
-      onChange={onChangeText}
-      width="100%"
-      editorProps={{ $blockScrolling: true }}
-      enableLiveAutocompletion={autocomplete}
-      value={sql}
-      annotations={annotations}
-    />
+    <>
+      <Global
+        styles={css`
+          .ace_text-layer {
+            width: 100% !important;
+          }
+
+          .ace_autocomplete {
+            // Use !important because Ace Editor applies extra CSS at the last second
+            // when opening the autocomplete.
+            width: ${theme.gridUnit * 130}px !important;
+          }
+
+          .ace_scroller {
+            background-color: ${theme.colors.grayscale.light4};
+          }
+        `}
+      />
+      <StyledAceEditor
+        keywords={keywords}
+        onLoad={onEditorLoad}
+        onBlur={onBlurSql}
+        height={height}
+        onChange={onChangeText}
+        width="100%"
+        editorProps={{ $blockScrolling: true }}
+        enableLiveAutocompletion={autocomplete}
+        value={sql}
+        annotations={annotations}
+      />
+    </>
   );
 };
 
