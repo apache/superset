@@ -1554,16 +1554,19 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             "latest_partition",
             "latest_sub_partition",
         ):
-            # Extract the table referenced in the macro.
-            tables.add(
-                Table(
-                    *[
-                        remove_quotes(part.strip())
-                        for part in node.args[0].as_const().split(".")[::-1]
-                        if len(node.args) == 1
-                    ]
+            # Try to extract the table referenced in the macro.
+            try:
+                tables.add(
+                    Table(
+                        *[
+                            remove_quotes(part.strip())
+                            for part in node.args[0].as_const().split(".")[::-1]
+                            if len(node.args) == 1
+                        ]
+                    )
                 )
-            )
+            except nodes.Impossible:
+                pass
 
             # Replace the potentially problematic Jinja macro with some benign SQL.
             node.__class__ = nodes.TemplateData
