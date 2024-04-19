@@ -88,4 +88,5 @@ repos:
           [
             "-rn", # Only display messages
             "-sn", # Don't display the score
+            "superset", # only the superset folder
           ]
