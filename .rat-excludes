@@ -34,7 +34,6 @@ apache_superset.egg-info
 .*csv
 # Generated doc files
 env/*
-docs/.htaccess*
 .nojekyll
 _build/*
 _static/*
@@ -66,3 +65,9 @@ google-big-query.svg
 google-sheets.svg
 postgresql.svg
 snowflake.svg
+
+# docs-related
+docs/.htaccess*
+docs/docs/contributing/erd.plantuml
+docs/static/img/erd.svg
+docs/static/img/erd.svg
