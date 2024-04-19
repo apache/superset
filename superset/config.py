@@ -20,6 +20,7 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+
 # mypy: ignore-errors
 # pylint: disable=too-many-lines
 from __future__ import annotations
@@ -272,7 +273,7 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # feature is on by default to make Superset secure by default, but you should
 # fine tune the limits to your needs. You can read more about the different
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
-RATELIMIT_ENABLED = True if os.environ.get("SUPERSET_ENV") == "production" else False
+RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
