@@ -311,6 +311,13 @@ const processComparisonColumns = (
           },
           {
             ...col,
+            config: {
+              ...col.config,
+              currencyFormat: {
+                symbol: ``,
+                symbolPosition: ``,
+              },
+            },
             formatter: getNumberFormatter(numberFormat || PERCENT_3_POINT),
             label: `%`,
             key: `% ${col.key}`,
