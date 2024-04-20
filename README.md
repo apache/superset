@@ -139,7 +139,7 @@ Want to add support for your datastore or data engine? Read more [here](https://
 
 ## Installation and Configuration
 
-[Extended documentation for Superset](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)
+[Extended documentation for Superset](https://superset.apache.org/docs/installation/docker-compose)
 
 ## Get Involved
 
@@ -171,10 +171,10 @@ Understanding the Superset Points of View
 
 
 - Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose#installing-superset-locally-using-docker-compose)
+  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
   - [Installing Database Drivers](https://superset.apache.org/docs/databases/docker-add-drivers/)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
-  - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
+  - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
   ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Resources to master Superset by Preset](https://preset.io/resources/)
