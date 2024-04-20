@@ -82,5 +82,4 @@ def test_form_data_to_adhoc_incorrect_clause_type():
     form_data = {"where": "1 = 1", "having": "count(*) > 1"}
 
     with pytest.raises(ValueError):
-        with app.app_context():
-            form_data_to_adhoc(form_data, "foobar")
+        form_data_to_adhoc(form_data, "foobar")

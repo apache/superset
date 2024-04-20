@@ -27,6 +27,7 @@ from unittest import mock
 from zipfile import ZipFile
 
 from flask import Response
+from flask.ctx import AppContext
 from tests.integration_tests.conftest import with_feature_flags
 from superset.charts.data.api import ChartDataRestApi
 from superset.models.sql_lab import Query
@@ -88,10 +89,9 @@ INCOMPATIBLE_ADHOC_COLUMN_FIXTURE: AdhocColumn = {
 
 
 @pytest.fixture(autouse=True)
-def skip_by_backend():
-    with app.app_context():
-        if backend() == "hive":
-            pytest.skip("Skipping tests for Hive backend")
+def skip_by_backend(app_context: AppContext):
+    if backend() == "hive":
+        pytest.skip("Skipping tests for Hive backend")
 
 
 class BaseTestChartDataApi(SupersetTestCase):

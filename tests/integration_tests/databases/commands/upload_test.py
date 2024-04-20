@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from flask.ctx import AppContext
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import (
@@ -84,16 +85,14 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-@pytest.fixture(scope="function")
-def setup_csv_upload_with_context():
-    with app.app_context():
-        yield from _setup_csv_upload()
+@pytest.fixture()
+def setup_csv_upload_with_context(app_context: AppContext):
+    yield from _setup_csv_upload()
 
 
-@pytest.fixture(scope="function")
-def setup_csv_upload_with_context_schema():
-    with app.app_context():
-        yield from _setup_csv_upload(["public"])
+@pytest.fixture()
+def setup_csv_upload_with_context_schema(app_context: AppContext):
+    yield from _setup_csv_upload(["public"])
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")

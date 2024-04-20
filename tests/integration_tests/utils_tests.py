@@ -685,20 +685,19 @@ class TestUtils(SupersetTestCase):
         self.assertIsNotNone(parse_js_uri_path_item("item"))
 
     def test_get_stacktrace(self):
-        with app.app_context():
-            app.config["SHOW_STACKTRACE"] = True
-            try:
-                raise Exception("NONONO!")
-            except Exception:
-                stacktrace = get_stacktrace()
-                self.assertIn("NONONO", stacktrace)
+        app.config["SHOW_STACKTRACE"] = True
+        try:
+            raise Exception("NONONO!")
+        except Exception:
+            stacktrace = get_stacktrace()
+            self.assertIn("NONONO", stacktrace)
 
-            app.config["SHOW_STACKTRACE"] = False
-            try:
-                raise Exception("NONONO!")
-            except Exception:
-                stacktrace = get_stacktrace()
-                assert stacktrace is None
+        app.config["SHOW_STACKTRACE"] = False
+        try:
+            raise Exception("NONONO!")
+        except Exception:
+            stacktrace = get_stacktrace()
+            assert stacktrace is None
 
     def test_split(self):
         self.assertEqual(list(split("a b")), ["a", "b"])
@@ -839,9 +838,8 @@ class TestUtils(SupersetTestCase):
         )
 
     def test_get_form_data_default(self) -> None:
-        with app.test_request_context():
-            form_data, slc = get_form_data()
-            self.assertEqual(slc, None)
+        form_data, slc = get_form_data()
+        self.assertEqual(slc, None)
 
     def test_get_form_data_request_args(self) -> None:
         with app.test_request_context(
