@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, cast
 from zipfile import is_zipfile, ZipFile
 
 from deprecation import deprecated
@@ -33,6 +36,7 @@ from superset import app, event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.excel_import import ExcelImportCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -79,9 +83,11 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
+    QualifiedTableSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
@@ -92,9 +98,18 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, SupersetErrorsException, SupersetException
+from superset.exceptions import (
+    DatabaseNotFoundException,
+    InvalidPayloadSchemaError,
+    OAuth2Error,
+    SupersetErrorsException,
+    SupersetException,
+    SupersetSecurityException,
+    TableNotFoundException,
+)
 from superset.extensions import security_manager
 from superset.models.core import Database
+from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
 from superset.utils.oauth2 import decode_oauth2_state
@@ -121,6 +136,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "tables",
         "table_metadata",
         "table_extra_metadata",
+        "table_extra_metadata_deprecated",
         "select_star",
         "schemas",
         "test_connection",
@@ -133,6 +149,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "schemas_access_for_file_upload",
         "get_connection",
         "csv_upload",
+        "excel_upload",
         "oauth2",
     }
 
@@ -252,6 +269,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        ExcelUploadPostSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
@@ -764,15 +782,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
+    @deprecated(deprecated_in="4.0", removed_in="5.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata",
+        f".table_extra_metadata_deprecated",
         log_to_statsd=False,
     )
-    def table_extra_metadata(
+    def table_extra_metadata_deprecated(
         self, database: Database, table_name: str, schema_name: str
     ) -> FlaskResponse:
         """Get table extra metadata.
+
+        A newer API was introduced between 4.0 and 5.0, with support for catalogs for
+        SIP-95. This method was kept to prevent breaking API integrations, but will be
+        removed in 5.0.
         ---
         get:
           summary: Get table extra metadata
@@ -812,13 +835,92 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        self.incr_stats("init", self.table_metadata.__name__)
+        self.incr_stats("init", self.table_extra_metadata_deprecated.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
         table_name = cast(str, parse_js_uri_path_item(table_name))
-        payload = database.db_engine_spec.extra_table_metadata(
-            database, table_name, parsed_schema
-        )
+        table = Table(table_name, parsed_schema)
+        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+        return self.response(200, **payload)
+
+    @expose("/<int:pk>/table_metadata/extra/", methods=("GET",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".table_extra_metadata",
+        log_to_statsd=False,
+    )
+    def table_extra_metadata(self, pk: int) -> FlaskResponse:
+        """
+        Get extra metadata for a given table.
+
+        Optionally, a schema and a catalog can be passed, if different from the default
+        ones.
+        ---
+        get:
+          summary: Get table extra metadata
+          description: >-
+            Extra metadata associated with the table (partitions, description, etc.)
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            schema:
+              type: string
+            name: name
+            required: true
+            description: Table name
+          - in: query
+            schema:
+              type: string
+            name: schema
+            description: >-
+              Optional table schema, if not passed the schema configured in the database
+              will be used
+          - in: query
+            schema:
+              type: string
+            name: catalog
+            description: >-
+              Optional table catalog, if not passed the catalog configured in the
+              database will be used
+          responses:
+            200:
+              description: Table extra metadata information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/TableExtraMetadataResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        self.incr_stats("init", self.table_extra_metadata.__name__)
+
+        if not (database := DatabaseDAO.find_by_id(pk)):
+            raise DatabaseNotFoundException("No such database")
+
+        try:
+            parameters = QualifiedTableSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+
+        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        try:
+            security_manager.raise_for_access(database=database, table=table)
+        except SupersetSecurityException as ex:
+            # instead of raising 403, raise 404 to hide table existence
+            raise TableNotFoundException("No such table") from ex
+
+        payload = database.db_engine_spec.get_extra_table_metadata(database, table)
+
         return self.response(200, **payload)
 
     @expose("/<int:pk>/select_star/<path:table_name>/", methods=("GET",))
@@ -832,7 +934,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def select_star(
-        self, database: Database, table_name: str, schema_name: Optional[str] = None
+        self, database: Database, table_name: str, schema_name: str | None = None
     ) -> FlaskResponse:
         """Get database select star for table.
         ---
@@ -1390,6 +1492,65 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             request_form["file"] = request.files.get("file")
             parameters = CSVUploadPostSchema().load(request_form)
             CSVImportCommand(
+                pk,
+                parameters["table_name"],
+                parameters["file"],
+                parameters,
+            ).run()
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        return self.response(200, message="OK")
+
+    @expose("/<int:pk>/excel_upload/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
+    @requires_form_data
+    def excel_upload(self, pk: int) -> Response:
+        """Upload an Excel file into a database.
+        ---
+        post:
+          summary: Upload an Excel file to a database table
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  $ref: '#/components/schemas/ExcelUploadPostSchema'
+          responses:
+            200:
+              description: Excel upload response
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            request_form = request.form.to_dict()
+            request_form["file"] = request.files.get("file")
+            parameters = ExcelUploadPostSchema().load(request_form)
+            ExcelImportCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],

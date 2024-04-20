@@ -59,7 +59,7 @@ class CSVImportOptions(TypedDict, total=False):
     rows_to_read: int
     skip_blank_lines: bool
     skip_initial_space: bool
-    skip_rows: bool
+    skip_rows: int
 
 
 class CSVImportCommand(BaseCommand):

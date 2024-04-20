@@ -49,7 +49,7 @@ jest.mock(
 );
 const getTableMetadataEndpoint = 'glob:**/api/v1/database/*/table/*/*/';
 const getExtraTableMetadataEndpoint =
-  'glob:**/api/v1/database/*/table_extra/*/*/';
+  'glob:**/api/v1/database/*/table_metadata/extra/*';
 const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';
 
 beforeEach(() => {

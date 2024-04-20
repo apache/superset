@@ -478,10 +478,14 @@ class Chart extends React.Component {
             ref={this.setDescriptionRef}
             // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+            role="complementary"
           />
         )}
 
-        <ChartWrapper className={cx('dashboard-chart')}>
+        <ChartWrapper
+          className={cx('dashboard-chart')}
+          aria-label={slice.description}
+        >
           {isLoading && (
             <ChartOverlay
               style={{

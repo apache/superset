@@ -106,6 +106,7 @@ const Legend = ({
       <li key={k}>
         <a
           href="#"
+          role="button"
           onClick={() => toggleCategory(k)}
           onDoubleClick={() => showSingleCategory(k)}
         >

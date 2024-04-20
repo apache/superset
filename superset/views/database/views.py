@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
-import os
-import tempfile
 import zipfile
 from typing import Any, TYPE_CHECKING
 
@@ -41,7 +39,7 @@ from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
-from .forms import ColumnarToDatabaseForm, ExcelToDatabaseForm
+from .forms import ColumnarToDatabaseForm
 from .mixins import DatabaseMixin
 from .validators import schema_allows_file_upload, sqlalchemy_uri_validator
 
@@ -152,141 +150,6 @@ class CustomFormView(SimpleFormView):
             form=form,
             appbuilder=self.appbuilder,
         )
-
-
-class ExcelToDatabaseView(SimpleFormView):
-    form = ExcelToDatabaseForm
-    form_template = "superset/form_view/excel_to_database_view/edit.html"
-    form_title = _("Excel to Database configuration")
-    add_columns = ["database", "schema", "table_name"]
-
-    def form_get(self, form: ExcelToDatabaseForm) -> None:
-        form.header.data = 0
-        form.decimal.data = "."
-        form.if_exists.data = "fail"
-        form.sheet_name.data = ""
-
-    def form_post(self, form: ExcelToDatabaseForm) -> Response:
-        database = form.database.data
-        excel_table = Table(table=form.name.data, schema=form.schema.data)
-
-        if not schema_allows_file_upload(database, excel_table.schema):
-            message = _(
-                'Database "%(database_name)s" schema "%(schema_name)s" '
-                "is not allowed for excel uploads. Please contact your Superset Admin.",
-                database_name=database.database_name,
-                schema_name=excel_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
-
-        uploaded_tmp_file_path = (
-            tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
-                dir=app.config["UPLOAD_FOLDER"],
-                suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
-                delete=False,
-            ).name
-        )
-
-        try:
-            utils.ensure_path_exists(config["UPLOAD_FOLDER"])
-            upload_stream_write(form.excel_file.data, uploaded_tmp_file_path)
-
-            df = pd.read_excel(
-                header=form.header.data if form.header.data else 0,
-                index_col=form.index_col.data,
-                io=form.excel_file.data,
-                keep_default_na=not form.null_values.data,
-                na_values=form.null_values.data if form.null_values.data else [],
-                parse_dates=form.parse_dates.data,
-                skiprows=form.skiprows.data,
-                sheet_name=form.sheet_name.data if form.sheet_name.data else 0,
-            )
-
-            database = (
-                db.session.query(models.Database)
-                .filter_by(id=form.data.get("database").data.get("id"))
-                .one()
-            )
-
-            database.db_engine_spec.df_to_sql(
-                database,
-                excel_table,
-                df,
-                to_sql_kwargs={
-                    "chunksize": 1000,
-                    "if_exists": form.if_exists.data,
-                    "index": form.index.data,
-                    "index_label": form.index_label.data,
-                },
-            )
-
-            # Connect table to the database that should be used for exploration.
-            # E.g. if hive was used to upload a excel, presto will be a better option
-            # to explore the table.
-            explore_database = database
-            explore_database_id = database.explore_database_id
-            if explore_database_id:
-                explore_database = (
-                    db.session.query(models.Database)
-                    .filter_by(id=explore_database_id)
-                    .one_or_none()
-                    or database
-                )
-
-            sqla_table = (
-                db.session.query(SqlaTable)
-                .filter_by(
-                    table_name=excel_table.table,
-                    schema=excel_table.schema,
-                    database_id=explore_database.id,
-                )
-                .one_or_none()
-            )
-
-            if sqla_table:
-                sqla_table.fetch_metadata()
-            if not sqla_table:
-                sqla_table = SqlaTable(table_name=excel_table.table)
-                sqla_table.database = explore_database
-                sqla_table.database_id = database.id
-                sqla_table.owners = [g.user]
-                sqla_table.schema = excel_table.schema
-                sqla_table.fetch_metadata()
-                db.session.add(sqla_table)
-            db.session.commit()
-        except Exception as ex:  # pylint: disable=broad-except
-            db.session.rollback()
-            message = _(
-                'Unable to upload Excel file "%(filename)s" to table '
-                '"%(table_name)s" in database "%(db_name)s". '
-                "Error message: %(error_msg)s",
-                filename=form.excel_file.data.filename,
-                table_name=form.name.data,
-                db_name=database.database_name,
-                error_msg=str(ex),
-            )
-
-            flash(message, "danger")
-            stats_logger.incr("failed_excel_upload")
-            return redirect("/exceltodatabaseview/form")
-
-        # Go back to welcome page / splash screen
-        message = _(
-            'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
-            'database "%(db_name)s"',
-            excel_filename=form.excel_file.data.filename,
-            table_name=str(excel_table),
-            db_name=sqla_table.database.database_name,
-        )
-        flash(message, "info")
-        event_logger.log_with_context(
-            action="successful_excel_upload",
-            database=form.database.data.name,
-            schema=form.schema.data,
-            table=form.name.data,
-        )
-        return redirect("/tablemodelview/list/")
 
 
 class ColumnarToDatabaseView(SimpleFormView):
