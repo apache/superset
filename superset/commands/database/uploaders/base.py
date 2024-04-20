@@ -111,7 +111,7 @@ class UploadCommand(BaseCommand):
         file: Any,
         schema: Optional[str],
         reader: BaseDataReader,
-    ) -> None:
+    ) -> None:  # pylint: disable=too-many-arguments
         self._model_id = model_id
         self._model: Optional[Database] = None
         self._table_name = table_name
