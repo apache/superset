@@ -67,7 +67,6 @@ postgresql.svg
 snowflake.svg
 
 # docs-related
-docs/.htaccess*
-docs/docs/contributing/erd.plantuml
-docs/static/img/erd.svg
-docs/static/img/erd.svg
+docs/docs/.htaccess*
+docs/docs/docs/contributing/erd.plantuml
+docs/docs/static/img/erd.svg
