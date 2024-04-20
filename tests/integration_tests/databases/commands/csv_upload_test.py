@@ -272,17 +272,18 @@ def test_csv_upload_database_not_found():
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
 def test_csv_upload_database_not_supported():
     admin_user = security_manager.find_user(username="admin")
-    upload_db: Database = get_upload_db().id
+    upload_db: Database = get_upload_db()
     upload_db.db_engine_spec.supports_file_upload = False
     with override_user(admin_user):
         with pytest.raises(DatabaseUploadNotSupported):
             UploadCommand(
-                1000,
+                upload_db.id,
                 CSV_UPLOAD_TABLE,
                 create_csv_file(CSV_FILE_1),
                 None,
                 CSVReader({}),
             ).run()
+    upload_db.db_engine_spec.supports_file_upload = True
 
 
 @only_postgresql
