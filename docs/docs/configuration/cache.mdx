@@ -77,11 +77,11 @@ Caching for SQL Lab query results is used when async queries are enabled and is 
 Note that this configuration does not use a flask-caching dictionary for its configuration, but
 instead requires a cachelib object.
 
-See [Async Queries via Celery](/docs/installation/async-queries-celery) for details.
+See [Async Queries via Celery](/docs/configuration/async-queries-celery) for details.
 
 ### Caching Thumbnails
 
-This is an optional feature that can be turned on by activating it’s [feature flag](/docs/installation/configuring-superset#feature-flags) on config:
+This is an optional feature that can be turned on by activating it’s [feature flag](/docs/configuration/configuring-superset#feature-flags) on config:
 
 ```
 FEATURE_FLAGS = {
