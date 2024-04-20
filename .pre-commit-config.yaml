@@ -84,6 +84,7 @@ repos:
         entry: pylint
         language: system
         types: [python]
+        exclude: ^(tests/|superset/migrations/)
         args:
           [
             "-rn", # Only display messages
