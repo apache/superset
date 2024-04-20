@@ -20,12 +20,14 @@ from datetime import datetime
 import pytest
 
 from superset import db, security_manager
-from superset.commands.database.excel_import import ExcelImportCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
 )
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.excel_reader import ExcelReader
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
@@ -186,15 +188,38 @@ def test_excel_upload_options(excel_data, options, table_data):
     upload_database = get_upload_db()
 
     with override_user(admin_user):
-        ExcelImportCommand(
+        UploadCommand(
             upload_database.id,
             EXCEL_UPLOAD_TABLE,
             create_excel_file(excel_data),
-            options=options,
+            None,
+            ExcelReader(options),
         ).run()
         with upload_database.get_sqla_engine_with_context() as engine:
             data = engine.execute(f"SELECT * from {EXCEL_UPLOAD_TABLE}").fetchall()
             assert data == table_data
+
+
+@pytest.mark.usefixtures("setup_excel_upload_with_context")
+def test_csv_upload_dataset():
+    admin_user = security_manager.find_user(username="admin")
+    upload_database = get_upload_db()
+
+    with override_user(admin_user):
+        UploadCommand(
+            upload_database.id,
+            EXCEL_UPLOAD_TABLE,
+            create_excel_file(),
+            None,
+            ExcelReader({}),
+        ).run()
+    dataset = (
+        db.session.query(SqlaTable)
+        .filter_by(database_id=upload_database.id, table_name=EXCEL_UPLOAD_TABLE)
+        .one_or_none()
+    )
+    assert dataset is not None
+    assert security_manager.find_user("admin") in dataset.owners
 
 
 @only_postgresql
@@ -204,11 +229,12 @@ def test_excel_upload_database_not_found():
 
     with override_user(admin_user):
         with pytest.raises(DatabaseNotFoundError):
-            ExcelImportCommand(
+            UploadCommand(
                 1000,
                 EXCEL_UPLOAD_TABLE,
                 create_excel_file(EXCEL_FILE_1),
-                options={},
+                None,
+                ExcelReader({}),
             ).run()
 
 
@@ -219,26 +245,27 @@ def test_excel_upload_schema_not_allowed():
     upload_db_id = get_upload_db().id
     with override_user(admin_user):
         with pytest.raises(DatabaseSchemaUploadNotAllowed):
-            ExcelImportCommand(
+            UploadCommand(
                 upload_db_id,
                 EXCEL_UPLOAD_TABLE,
                 create_excel_file(EXCEL_FILE_1),
-                options={},
+                None,
+                ExcelReader({}),
             ).run()
-
         with pytest.raises(DatabaseSchemaUploadNotAllowed):
-            ExcelImportCommand(
+            UploadCommand(
                 upload_db_id,
                 EXCEL_UPLOAD_TABLE,
                 create_excel_file(EXCEL_FILE_1),
-                options={"schema": "schema1"},
+                "schema1",
+                ExcelReader({}),
             ).run()
-
-        ExcelImportCommand(
+        UploadCommand(
             upload_db_id,
-            EXCEL_UPLOAD_TABLE,
+            EXCEL_UPLOAD_TABLE_W_SCHEMA,
             create_excel_file(EXCEL_FILE_1),
-            options={"schema": "public"},
+            "public",
+            ExcelReader({}),
         ).run()
 
 
@@ -249,9 +276,10 @@ def test_excel_upload_broken_file():
 
     with override_user(admin_user):
         with pytest.raises(DatabaseUploadFailed):
-            ExcelImportCommand(
+            UploadCommand(
                 get_upload_db().id,
                 EXCEL_UPLOAD_TABLE,
                 create_excel_file([""]),
-                options={"column_dates": ["Birth"]},
+                None,
+                ExcelReader({"column_dates": ["Birth"]}),
             ).run()

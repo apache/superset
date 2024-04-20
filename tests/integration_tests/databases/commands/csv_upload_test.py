@@ -23,12 +23,15 @@ from datetime import datetime
 import pytest
 
 from superset import db, security_manager
-from superset.commands.database.csv_import import CSVImportCommand
 from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
+    DatabaseUploadNotSupported,
 )
+from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.csv_reader import CSVReader
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.utils.core import override_user
 from superset.utils.database import get_or_create_db
@@ -215,15 +218,38 @@ def test_csv_upload_options(csv_data, options, table_data):
     upload_database = get_upload_db()
 
     with override_user(admin_user):
-        CSVImportCommand(
+        UploadCommand(
             upload_database.id,
             CSV_UPLOAD_TABLE,
             create_csv_file(csv_data),
-            options=options,
+            options.get("schema"),
+            CSVReader(options),
         ).run()
         with upload_database.get_sqla_engine_with_context() as engine:
             data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
             assert data == table_data
+
+
+@pytest.mark.usefixtures("setup_csv_upload_with_context")
+def test_csv_upload_dataset():
+    admin_user = security_manager.find_user(username="admin")
+    upload_database = get_upload_db()
+
+    with override_user(admin_user):
+        UploadCommand(
+            upload_database.id,
+            CSV_UPLOAD_TABLE,
+            create_csv_file(),
+            None,
+            CSVReader({}),
+        ).run()
+    dataset = (
+        db.session.query(SqlaTable)
+        .filter_by(database_id=upload_database.id, table_name=CSV_UPLOAD_TABLE)
+        .one_or_none()
+    )
+    assert dataset is not None
+    assert security_manager.find_user("admin") in dataset.owners
 
 
 @only_postgresql
@@ -233,11 +259,29 @@ def test_csv_upload_database_not_found():
 
     with override_user(admin_user):
         with pytest.raises(DatabaseNotFoundError):
-            CSVImportCommand(
+            UploadCommand(
                 1000,
                 CSV_UPLOAD_TABLE,
                 create_csv_file(CSV_FILE_1),
-                options={},
+                None,
+                CSVReader({}),
+            ).run()
+
+
+@only_postgresql
+@pytest.mark.usefixtures("setup_csv_upload_with_context")
+def test_csv_upload_database_not_supported():
+    admin_user = security_manager.find_user(username="admin")
+    upload_db: Database = get_upload_db().id
+    upload_db.db_engine_spec.supports_file_upload = False
+    with override_user(admin_user):
+        with pytest.raises(DatabaseUploadNotSupported):
+            UploadCommand(
+                1000,
+                CSV_UPLOAD_TABLE,
+                create_csv_file(CSV_FILE_1),
+                None,
+                CSVReader({}),
             ).run()
 
 
@@ -248,26 +292,27 @@ def test_csv_upload_schema_not_allowed():
     upload_db_id = get_upload_db().id
     with override_user(admin_user):
         with pytest.raises(DatabaseSchemaUploadNotAllowed):
-            CSVImportCommand(
+            UploadCommand(
                 upload_db_id,
                 CSV_UPLOAD_TABLE,
                 create_csv_file(CSV_FILE_1),
-                options={},
+                None,
+                CSVReader({}),
             ).run()
-
         with pytest.raises(DatabaseSchemaUploadNotAllowed):
-            CSVImportCommand(
+            UploadCommand(
                 upload_db_id,
                 CSV_UPLOAD_TABLE,
                 create_csv_file(CSV_FILE_1),
-                options={"schema": "schema1"},
+                "schema1",
+                CSVReader({}),
             ).run()
-
-        CSVImportCommand(
+        UploadCommand(
             upload_db_id,
-            CSV_UPLOAD_TABLE,
+            CSV_UPLOAD_TABLE_W_SCHEMA,
             create_csv_file(CSV_FILE_1),
-            options={"schema": "public"},
+            "public",
+            CSVReader({}),
         ).run()
 
 
@@ -278,9 +323,10 @@ def test_csv_upload_broken_file():
 
     with override_user(admin_user):
         with pytest.raises(DatabaseUploadFailed):
-            CSVImportCommand(
+            UploadCommand(
                 get_upload_db().id,
                 CSV_UPLOAD_TABLE,
                 create_csv_file([""]),
-                options={"column_dates": ["Birth"]},
+                None,
+                CSVReader({"column_dates": ["Birth"]}),
             ).run()
