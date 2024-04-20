@@ -35,7 +35,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
-    "prop-types": "^15.6.0",
+    "prop-types": "^15.8.1",
     "react-bootstrap-slider": "2.1.5",
     "underscore": "^1.12.1",
     "urijs": "^1.19.8",
