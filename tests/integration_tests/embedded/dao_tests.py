@@ -46,6 +46,5 @@ class TestEmbeddedDashboardDAO(SupersetTestCase):
     def test_get_by_uuid(self):
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         uuid = str(EmbeddedDashboardDAO.upsert(dash, ["test.example.com"]).uuid)
-        db.session.expire_all()
         embedded = EmbeddedDashboardDAO.find_by_id(uuid)
         self.assertIsNotNone(embedded)
