@@ -22,7 +22,7 @@ import { ColorSchemeGroup } from '../../types';
 
 const schemes = [
   {
-    id: 'presetAndSupersetColors',
+    id: 'supersetAndPresetColors',
     label: 'Preset + Superset',
     group: ColorSchemeGroup.Featured,
     colors: [

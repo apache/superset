@@ -31,7 +31,10 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { OptionData } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
-import { renderSelectOptions } from 'src/components/Select/utils';
+import {
+  handleFilterOptionHelper,
+  renderSelectOptions,
+} from 'src/components/Select/utils';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 export interface ColorSchemes {
@@ -228,6 +231,14 @@ const ColorSchemeControl = ({
         value={currentScheme}
         getPopupContainer={triggerNode => triggerNode.parentNode}
         showSearch
+        filterOption={(search, option) =>
+          handleFilterOptionHelper(
+            search,
+            option as OptionData,
+            ['label', 'value'],
+            true,
+          )
+        }
       >
         {renderSelectOptions(options)}
       </StyledSelect>
