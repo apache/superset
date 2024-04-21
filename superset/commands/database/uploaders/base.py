@@ -104,14 +104,14 @@ class BaseDataReader:
 
 
 class UploadCommand(BaseCommand):
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         model_id: int,
         table_name: str,
         file: Any,
         schema: Optional[str],
         reader: BaseDataReader,
-    ) -> None:  # pylint: disable=too-many-arguments
+    ) -> None:
         self._model_id = model_id
         self._model: Optional[Database] = None
         self._table_name = table_name
