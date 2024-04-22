@@ -196,11 +196,12 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 
 
 It's also possible to specify a minimum interval (in minutes) between each report's execution through the config file:
+
 ``` python
-# Set a minimal interval threshold between executions (for each Alert/Report)
+# Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be the amount of minutes (integer). Min: 1, Max: 60
-ALERT_MINIMAL_INTERVAL_MINUTES = 10 # Change it as desired
-REPORT_MINIMAL_INTERVAL_MINUTES = 10 # Change it as desired
+ALERT_MINIMUM_INTERVAL_MINUTES = 10 # Change it as desired
+REPORT_MINIMUM_INTERVAL_MINUTES = 10 # Change it as desired
 ```
 
 

@@ -49,14 +49,14 @@ TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES
 
 
 def app_custom_config(
-    alert_minimal: int | None = None,
-    report_minimal: int | None = None,
+    alert_minimum_interval: int | None = None,
+    report_minimum_interval: int | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Decorator to mock the current_app.config values dynamically for each test.
 
-    :param alert_minimal: Minimum interval in minutes for alerts. Defaults to None.
-    :param report_minimal: Minimum interval in minutes for reports. Defaults to None.
+    :param alert_minimum_interval: Minimum interval in minutes for alerts. Defaults to None.
+    :param report_minimum_interval: Minimum interval in minutes for reports. Defaults to None.
 
     :returns: A decorator that wraps a function.
     """
@@ -68,8 +68,8 @@ def app_custom_config(
                 "superset.commands.report.base.current_app.config"
             ) as mock_config:
                 mock_config.get.side_effect = lambda key: {
-                    "ALERT_MINIMAL_INTERVAL_MINUTES": alert_minimal,
-                    "REPORT_MINIMAL_INTERVAL_MINUTES": report_minimal,
+                    "ALERT_MINIMUM_INTERVAL_MINUTES": alert_minimum_interval,
+                    "REPORT_MINIMUM_INTERVAL_MINUTES": report_minimum_interval,
                 }.get(key)
                 return func(*args, **kwargs)
 
@@ -82,7 +82,7 @@ def app_custom_config(
 def test_validate_report_frequency() -> None:
     """
     Test the ``validate_report_frequency`` method when there's
-    no minimal frequency configured.
+    no minimum frequency configured.
     """
     for report_type in REPORT_TYPES:
         for schedule in TEST_SCHEDULES:
@@ -92,11 +92,11 @@ def test_validate_report_frequency() -> None:
             )
 
 
-@app_custom_config(alert_minimal=4, report_minimal=5)
-def test_validate_report_frequency_minimal_set() -> None:
+@app_custom_config(alert_minimum_interval=4, report_minimum_interval=5)
+def test_validate_report_frequency_minimum_set() -> None:
     """
     Test the ``validate_report_frequency`` method when there's
-    minimal frequencies configured.
+    minimum frequencies configured.
     """
 
     BaseReportScheduleCommand().validate_report_frequency(
@@ -109,7 +109,7 @@ def test_validate_report_frequency_minimal_set() -> None:
     )
 
 
-@app_custom_config(alert_minimal=2, report_minimal=5)
+@app_custom_config(alert_minimum_interval=2, report_minimum_interval=5)
 def test_validate_report_frequency_invalid_schedule() -> None:
     """
     Test the ``validate_report_frequency`` method when the configured
@@ -128,7 +128,7 @@ def test_validate_report_frequency_invalid_schedule() -> None:
         )
 
 
-@app_custom_config(alert_minimal=10)
+@app_custom_config(alert_minimum_interval=10)
 def test_validate_report_frequency_alert_only() -> None:
     """
     Test the ``validate_report_frequency`` method when there's
@@ -141,7 +141,7 @@ def test_validate_report_frequency_alert_only() -> None:
         )
 
 
-@app_custom_config(report_minimal=10)
+@app_custom_config(report_minimum_interval=10)
 def test_validate_report_frequency_report_only() -> None:
     """
     Test the ``validate_report_frequency`` method when there's
@@ -154,7 +154,7 @@ def test_validate_report_frequency_report_only() -> None:
         )
 
 
-@app_custom_config(alert_minimal=1, report_minimal=1)
+@app_custom_config(alert_minimum_interval=1, report_minimum_interval=1)
 def test_validate_report_frequency_accepts_every_minute_with_one() -> None:
     """
     Test the ``validate_report_frequency`` method when configuration
@@ -168,7 +168,7 @@ def test_validate_report_frequency_accepts_every_minute_with_one() -> None:
             )
 
 
-@app_custom_config(alert_minimal=2, report_minimal=2)
+@app_custom_config(alert_minimum_interval=2, report_minimum_interval=2)
 def test_validate_report_frequency_accepts_every_minute_with_two() -> None:
     """
     Test the ``validate_report_frequency`` method when configuration

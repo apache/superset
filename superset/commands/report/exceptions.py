@@ -103,7 +103,7 @@ class ReportScheduleFrequencyNotAllowed(ValidationError):
         super().__init__(
             _(
                 "%(report_type)s schedule frequency exceeding limit."
-                " Please configure a schedule with a minimal interval of"
+                " Please configure a schedule with a minimum interval of"
                 " %(minimum_interval)s minutes per execution.",
                 report_type=report_type,
                 minimum_interval=minimum_interval,

@@ -85,29 +85,28 @@ class BaseReportScheduleCommand(BaseCommand):
         report_type: str,
     ) -> None:
         """
-        Validates if the report frequency doesn't exceed a configured limit. The minimal
-        interval configuration (via UI or API) when creating/modifying reports is every
-        minute, so logic is only validated in case ``minimal_interval`` (set in config) is > 1.
+        Validates if the report scheduled frequency doesn't exceed a limit
+        configured in `config.py`.
 
         :param cron_schedule: The cron schedule configured.
         :param report_type: The report type (Alert/Report).
         """
         config_key = (
-            "ALERT_MINIMAL_INTERVAL_MINUTES"
+            "ALERT_MINIMUM_INTERVAL_MINUTES"
             if report_type == ReportScheduleType.ALERT
-            else "REPORT_MINIMAL_INTERVAL_MINUTES"
+            else "REPORT_MINIMUM_INTERVAL_MINUTES"
         )
-        minimal_interval = current_app.config.get(config_key)
-        if not minimal_interval or minimal_interval < 2:
+        minimum_interval = current_app.config.get(config_key)
+        if not minimum_interval or minimum_interval < 2:
             return
 
         minutes_interval = cron_schedule.split(" ")[0]
         # Check if cron is set to every minute (*)
         # or if it has an every-minute block (1-5)
         if "-" in minutes_interval or minutes_interval == "*":
-            raise ReportScheduleFrequencyNotAllowed(report_type, minimal_interval)
+            raise ReportScheduleFrequencyNotAllowed(report_type, minimum_interval)
 
-        # Calculate minimal interval (in minutes)
+        # Calculate minimum interval (in minutes)
         minutes_list = minutes_interval.split(",")
         if len(minutes_list) > 1:
             scheduled_minutes = [int(min) for min in minutes_list]
@@ -117,5 +116,5 @@ class BaseReportScheduleCommand(BaseCommand):
                 for i in range(1, len(scheduled_minutes))
             ]
 
-            if min(differences) < minimal_interval:
-                raise ReportScheduleFrequencyNotAllowed(report_type, minimal_interval)
+            if min(differences) < minimum_interval:
+                raise ReportScheduleFrequencyNotAllowed(report_type, minimum_interval)

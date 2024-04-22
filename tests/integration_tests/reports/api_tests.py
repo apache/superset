@@ -1294,8 +1294,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMAL_INTERVAL_MINUTES": 2,
-                "REPORT_MINIMAL_INTERVAL_MINUTES": 5,
+                "ALERT_MINIMUM_INTERVAL_MINUTES": 2,
+                "REPORT_MINIMUM_INTERVAL_MINUTES": 5,
             },
         ):
             uri = "api/v1/report/"
@@ -1341,8 +1341,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMAL_INTERVAL_MINUTES": 6,
-                "REPORT_MINIMAL_INTERVAL_MINUTES": 8,
+                "ALERT_MINIMUM_INTERVAL_MINUTES": 6,
+                "REPORT_MINIMUM_INTERVAL_MINUTES": 8,
             },
         ):
             uri = "api/v1/report/"
@@ -1352,7 +1352,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimal interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
                     )
                 }
             }
@@ -1365,7 +1365,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimal interval of 8 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 8 minutes per execution."
                     )
                 }
             }
@@ -1391,8 +1391,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMAL_INTERVAL_MINUTES": 5,
-                "REPORT_MINIMAL_INTERVAL_MINUTES": 3,
+                "ALERT_MINIMUM_INTERVAL_MINUTES": 5,
+                "REPORT_MINIMUM_INTERVAL_MINUTES": 3,
             },
         ):
             # Test alert minimum interval
@@ -1433,8 +1433,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         with patch.dict(
             "superset.commands.report.base.current_app.config",
             {
-                "ALERT_MINIMAL_INTERVAL_MINUTES": 6,
-                "REPORT_MINIMAL_INTERVAL_MINUTES": 4,
+                "ALERT_MINIMUM_INTERVAL_MINUTES": 6,
+                "REPORT_MINIMUM_INTERVAL_MINUTES": 4,
             },
         ):
             # Exceed alert minimum interval
@@ -1446,7 +1446,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimal interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
                     )
                 }
             }
@@ -1462,7 +1462,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimal interval of 4 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 4 minutes per execution."
                     )
                 }
             }
