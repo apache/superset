@@ -1116,12 +1116,6 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
             "description": "DD/MM format dates, international and European format"
         }
     )
-    overwrite_duplicates = fields.Boolean(
-        metadata={
-            "description": "If duplicate columns are not overridden,"
-            "they will be presented as 'X.1, X.2 ...X.x'."
-        }
-    )
     skip_blank_lines = fields.Boolean(
         metadata={"description": "Skip blank lines in the CSV file."}
     )

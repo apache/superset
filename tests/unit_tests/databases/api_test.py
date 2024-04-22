@@ -888,7 +888,6 @@ def test_oauth2_error(
                 "columns_read": "col1,col2",
                 "day_first": True,
                 "rows_to_read": "1",
-                "overwrite_duplicates": True,
                 "skip_blank_lines": True,
                 "skip_initial_space": True,
                 "skip_rows": "10",
@@ -908,7 +907,6 @@ def test_oauth2_error(
                     "columns_read": ["col1", "col2"],
                     "null_values": ["None", "N/A", "''"],
                     "day_first": True,
-                    "overwrite_duplicates": True,
                     "rows_to_read": 1,
                     "skip_blank_lines": True,
                     "skip_initial_space": True,
@@ -1010,16 +1008,6 @@ def test_csv_upload(
                 "header_row": "test1",
             },
             {"message": {"header_row": ["Not a valid integer."]}},
-        ),
-        (
-            {
-                "file": (create_csv_file(), "out.csv"),
-                "table_name": "table1",
-                "delimiter": ",",
-                "already_exists": "fail",
-                "overwrite_duplicates": "test1",
-            },
-            {"message": {"overwrite_duplicates": ["Not a valid boolean."]}},
         ),
         (
             {

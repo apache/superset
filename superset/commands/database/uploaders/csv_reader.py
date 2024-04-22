@@ -15,34 +15,29 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
-from superset.commands.database.uploaders.base import BaseDataReader
+from superset.commands.database.uploaders.base import BaseDataReader, ReaderOptions
 
 logger = logging.getLogger(__name__)
 
 READ_CSV_CHUNK_SIZE = 1000
 
 
-class CSVReaderOptions(TypedDict, total=False):
-    schema: str
+class CSVReaderOptions(ReaderOptions, total=False):
     delimiter: str
-    already_exists: str
     column_data_types: dict[str, str]
     column_dates: list[str]
-    column_labels: str
     columns_read: list[str]
     dataframe_index: str
     day_first: bool
     decimal_character: str
     header_row: int
-    index_column: str
     null_values: list[str]
-    overwrite_duplicates: bool
     rows_to_read: int
     skip_blank_lines: bool
     skip_initial_space: bool
@@ -72,6 +67,7 @@ class CSVReader(BaseDataReader):
                     encoding="utf-8",
                     filepath_or_buffer=file,
                     header=self._options.get("header_row", 0),
+                    decimal=self._options.get("decimal_character", "."),
                     index_col=self._options.get("index_column"),
                     dayfirst=self._options.get("day_first", False),
                     iterator=True,

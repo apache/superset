@@ -17,7 +17,7 @@
 
 import logging
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
@@ -42,6 +42,12 @@ from superset.views.database.validators import schema_allows_file_upload
 logger = logging.getLogger(__name__)
 
 READ_CHUNK_SIZE = 1000
+
+
+class ReaderOptions(TypedDict, total=False):
+    already_exists: str
+    column_labels: str
+    index_column: str
 
 
 class BaseDataReader:

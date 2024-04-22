@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 
 import pytest
 
@@ -51,24 +50,10 @@ CSV_FILE_1 = [
     ["name3", "28", "city3", "1-1-1982"],
 ]
 
-CSV_FILE_2 = [
-    ["name1", "30", "city1", "1-1-1980"],
-    ["Name", "Age", "City", "Birth"],
-    ["name2", "29", "city2", "1-1-1981"],
-    ["name3", "28", "city3", "1-1-1982"],
-]
-
-CSV_FILE_3 = [
+CSV_FILE_WITH_NULLS = [
     ["Name", "Age", "City", "Birth"],
     ["name1", "N/A", "city1", "1-1-1980"],
     ["name2", "29", "None", "1-1-1981"],
-    ["name3", "28", "city3", "1-1-1982"],
-]
-
-CSV_FILE_BROKEN = [
-    ["Name", "Age", "City", "Birth"],
-    ["name1", "30", "city1", "1-1-1980"],
-    ["name2", "29"],
     ["name3", "28", "city3", "1-1-1982"],
 ]
 
@@ -111,109 +96,8 @@ def setup_csv_upload_with_context_schema():
         yield from _setup_csv_upload(["public"])
 
 
-@only_postgresql
-@pytest.mark.parametrize(
-    "csv_data,options, table_data",
-    [
-        (
-            CSV_FILE_1,
-            {},
-            [
-                ("name1", 30, "city1", "1-1-1980"),
-                ("name2", 29, "city2", "1-1-1981"),
-                ("name3", 28, "city3", "1-1-1982"),
-            ],
-        ),
-        (
-            CSV_FILE_1,
-            {"columns_read": ["Name", "Age"]},
-            [("name1", 30), ("name2", 29), ("name3", 28)],
-        ),
-        (
-            CSV_FILE_1,
-            {"columns_read": []},
-            [
-                ("name1", 30, "city1", "1-1-1980"),
-                ("name2", 29, "city2", "1-1-1981"),
-                ("name3", 28, "city3", "1-1-1982"),
-            ],
-        ),
-        (
-            CSV_FILE_1,
-            {"rows_to_read": 1},
-            [
-                ("name1", 30, "city1", "1-1-1980"),
-            ],
-        ),
-        (
-            CSV_FILE_1,
-            {"rows_to_read": 1, "columns_read": ["Name", "Age"]},
-            [
-                ("name1", 30),
-            ],
-        ),
-        (
-            CSV_FILE_1,
-            {"skip_rows": 1},
-            [("name2", 29, "city2", "1-1-1981"), ("name3", 28, "city3", "1-1-1982")],
-        ),
-        (
-            CSV_FILE_1,
-            {"rows_to_read": 2},
-            [
-                ("name1", 30, "city1", "1-1-1980"),
-                ("name2", 29, "city2", "1-1-1981"),
-            ],
-        ),
-        (
-            CSV_FILE_1,
-            {"column_dates": ["Birth"]},
-            [
-                ("name1", 30, "city1", datetime(1980, 1, 1, 0, 0)),
-                ("name2", 29, "city2", datetime(1981, 1, 1, 0, 0)),
-                ("name3", 28, "city3", datetime(1982, 1, 1, 0, 0)),
-            ],
-        ),
-        (
-            CSV_FILE_2,
-            {"header_row": 1},
-            [("name2", 29, "city2", "1-1-1981"), ("name3", 28, "city3", "1-1-1982")],
-        ),
-        (
-            CSV_FILE_3,
-            {"null_values": ["N/A", "None"]},
-            [
-                ("name1", None, "city1", "1-1-1980"),
-                ("name2", 29, None, "1-1-1981"),
-                ("name3", 28, "city3", "1-1-1982"),
-            ],
-        ),
-        (
-            CSV_FILE_3,
-            {
-                "null_values": ["N/A", "None"],
-                "column_dates": ["Birth"],
-                "columns_read": ["Name", "Age", "Birth"],
-            },
-            [
-                ("name1", None, datetime(1980, 1, 1, 0, 0)),
-                ("name2", 29, datetime(1981, 1, 1, 0, 0)),
-                ("name3", 28, datetime(1982, 1, 1, 0, 0)),
-            ],
-        ),
-        (
-            CSV_FILE_BROKEN,
-            {},
-            [
-                ("name1", 30, "city1", "1-1-1980"),
-                ("name2", 29, None, None),
-                ("name3", 28, "city3", "1-1-1982"),
-            ],
-        ),
-    ],
-)
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
-def test_csv_upload_options(csv_data, options, table_data):
+def test_csv_upload_with_nulls():
     admin_user = security_manager.find_user(username="admin")
     upload_database = get_upload_db()
 
@@ -221,13 +105,17 @@ def test_csv_upload_options(csv_data, options, table_data):
         UploadCommand(
             upload_database.id,
             CSV_UPLOAD_TABLE,
-            create_csv_file(csv_data),
-            options.get("schema"),
-            CSVReader(options),
+            create_csv_file(CSV_FILE_WITH_NULLS),
+            None,
+            CSVReader({"null_values": ["N/A", "None"]}),
         ).run()
-        with upload_database.get_sqla_engine_with_context() as engine:
-            data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
-            assert data == table_data
+    with upload_database.get_sqla_engine_with_context() as engine:
+        data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
+        assert data == [
+            ("name1", None, "city1", "1-1-1980"),
+            ("name2", 29, None, "1-1-1981"),
+            ("name3", 28, "city3", "1-1-1982"),
+        ]
 
 
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
@@ -315,19 +203,3 @@ def test_csv_upload_schema_not_allowed():
             "public",
             CSVReader({}),
         ).run()
-
-
-@only_postgresql
-@pytest.mark.usefixtures("setup_csv_upload_with_context")
-def test_csv_upload_broken_file():
-    admin_user = security_manager.find_user(username="admin")
-
-    with override_user(admin_user):
-        with pytest.raises(DatabaseUploadFailed):
-            UploadCommand(
-                get_upload_db().id,
-                CSV_UPLOAD_TABLE,
-                create_csv_file([""]),
-                None,
-                CSVReader({"column_dates": ["Birth"]}),
-            ).run()

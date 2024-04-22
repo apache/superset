@@ -31,7 +31,7 @@ def dttm() -> datetime:
     return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
 
 
-def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
+def create_csv_file(data: list[list[str]] | None = None, delimiter=",") -> BytesIO:
     data = (
         [
             ["Name", "Age", "City"],
@@ -42,7 +42,7 @@ def create_csv_file(data: list[list[str]] | None = None) -> BytesIO:
     )
 
     output = StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, delimiter=delimiter)
     for row in data:
         writer.writerow(row)
     output.seek(0)

@@ -15,28 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
 import pandas as pd
 from flask_babel import lazy_gettext as _
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
-from superset.commands.database.uploaders.base import BaseDataReader
+from superset.commands.database.uploaders.base import BaseDataReader, ReaderOptions
 
 logger = logging.getLogger(__name__)
 
 
-class ExcelReaderOptions(TypedDict, total=False):
+class ExcelReaderOptions(ReaderOptions, total=False):
     sheet_name: str
-    schema: str
-    already_exists: str
     column_dates: list[str]
-    column_labels: str
     columns_read: list[str]
     dataframe_index: str
     decimal_character: str
     header_row: int
-    index_column: str
     null_values: list[str]
     rows_to_read: int
     skip_rows: int
@@ -64,6 +60,7 @@ class ExcelReader(BaseDataReader):
             "index_col": self._options.get("index_column"),
             "io": file,
             "keep_default_na": not self._options.get("null_values"),
+            "decimal": self._options.get("decimal_character", "."),
             "na_values": self._options.get("null_values")
             if self._options.get("null_values")  # None if an empty list
             else None,
