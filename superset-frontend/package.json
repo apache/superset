@@ -219,7 +219,7 @@
     "superset-plugin-chart-liquid": "^0.1.5",
     "superset-plugin-chart-liquid-progress": "^2.0.3",
     "superset-plugin-chart-radar": "^1.0.0",
-    "superset-plugin-chart-ring-progress": "^2.0.9",
+    "superset-plugin-chart-ring-progress": "^2.1.0",
     "superset-plugin-chart-scatter": "^2.0.2",
     "superset-plugin-chart-timeline": "^1.0.4",
     "superset-plugin-chart-tiny-area": "^2.0.2",
