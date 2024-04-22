@@ -1,9 +1,7 @@
-// DODO was here (added)
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-// const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -13,16 +11,14 @@ const parsedArgs = require('yargs').argv;
 const Dotenv = require('dotenv');
 const rm = require('rimraf');
 const packageConfig = require('./package');
+const BASE_VERSION = require('./src/version/base');
+const CHANGE_VERSION = require('./src/version/change');
 
 const {
   PROD_OUTPUT_FOLDER,
   DEV_OUTPUT_FOLDER,
   getHtmlTemplate,
-  // STATIC_FILES_DIR,
 } = require('./src/webpackUtils/constants');
-
-// const { rulesStyles } = require('./webpackUtils/styles');
-// const { rulesStaticAssets } = require('./webpackUtils/assets');
 
 const {
   mode = 'development',
@@ -53,12 +49,7 @@ const BUILD_DIR = path.resolve(
  ** APP VERSION BASE is a base from which the app inherited the code base
  ** (i.e. 1.3 => was inherited from Superset 1.3)
  */
-const APP_VERSION_BASE = '2.0.1';
-const date = new Date();
-const month = date.getMonth() + 1;
-const day = date.getDate();
-const hours = date.getHours();
-const APP_VERSION = `${APP_VERSION_BASE}.${month}-${day}:${hours}`;
+const APP_VERSION = `${BASE_VERSION}_${CHANGE_VERSION}`;
 
 console.group('Params:');
 console.log('Parsed Args', parsedArgs);

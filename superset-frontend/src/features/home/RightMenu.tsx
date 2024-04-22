@@ -1,4 +1,4 @@
-// DODO was here (TODO)
+// DODO was here
 import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
@@ -29,6 +29,9 @@ import {
 import { RootState } from 'src/dashboard/types';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
+// DODO added
+import { Version } from 'src/Superstructure/components';
+import { APP_VERSION } from 'src/constants';
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -324,6 +327,8 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
+      {/* DODO added */}
+      <Version appVersion={APP_VERSION} />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
@@ -483,6 +488,10 @@ const RightMenu = ({
                   <div css={versionInfoStyles}>
                     {t('Version')}: {navbarRight.version_string}
                   </div>
+                )}
+                {/* DODO added */}
+                {APP_VERSION && (
+                  <div css={versionInfoStyles}>DODO Version: {APP_VERSION}</div>
                 )}
                 {navbarRight.version_sha && (
                   <div css={versionInfoStyles}>

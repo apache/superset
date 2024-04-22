@@ -3,6 +3,14 @@ import { t, DEFAULT_D3_FORMAT } from '@superset-ui/core';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
+import BASE_VERSION from './version/base';
+import CHANGE_VERSION from './version/change';
+/*
+ ** APP VERSION BASE is a base from which the app inherited the code base
+ ** (i.e. 1.3 => was inherited from Superset 1.3)
+ */
+export const APP_VERSION = `${BASE_VERSION}_${CHANGE_VERSION}`;
+
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
