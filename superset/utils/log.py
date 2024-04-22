@@ -47,9 +47,11 @@ def collect_request_payload() -> dict[str, Any]:
 
     payload: dict[str, Any] = {
         "path": request.path,
+        **request.form.to_dict(),
+        # url search params can overwrite POST body
+        **request.args.to_dict(),
     }
-    payload.update(**request.form.to_dict())
-    payload.update(**request.args.to_dict())
+
     if request.is_json:
         json_payload = request.get_json(cache=True, silent=True) or {}
         payload.update(json_payload)
