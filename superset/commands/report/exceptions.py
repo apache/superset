@@ -93,6 +93,25 @@ class ReportScheduleEitherChartOrDashboardError(ValidationError):
         )
 
 
+class ReportScheduleFrequencyNotAllowed(ValidationError):
+    """
+    Marshmallow validation error for report schedule configured to run more
+    frequently than allowed
+    """
+
+    def __init__(self, report_type: str, minimum_interval: str) -> None:
+        super().__init__(
+            _(
+                "%(report_type)s schedule frequency exceeding limit."
+                " Please configure a schedule with a minimal interval of"
+                " %(minimum_interval)s minutes per execution.",
+                report_type=report_type,
+                minimum_interval=minimum_interval,
+            ),
+            field_name="crontab",
+        )
+
+
 class ChartNotSavedValidationError(ValidationError):
     """
     Marshmallow validation error for charts that haven't been saved yet
