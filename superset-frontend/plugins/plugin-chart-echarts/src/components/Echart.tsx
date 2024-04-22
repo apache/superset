@@ -78,7 +78,15 @@ function Echart(
       chartRef.current?.getZr().on(name, handler);
     });
 
-    chartRef.current.setOption(echartOptions, true);
+    chartRef.current.setOption(
+      {
+        aria: {
+          enabled: true,
+        },
+        ...echartOptions,
+      },
+      true,
+    );
   }, [echartOptions, eventHandlers, zrEventHandlers]);
 
   // highlighting
