@@ -765,8 +765,8 @@ class ParsedQuery:
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
                     message=__(
-                        f"You may have an error in your SQL statement. {message}"
-                    ),
+                        "You may have an error in your SQL statement. {message}"
+                    ).format(message=message),
                     level=ErrorLevel.ERROR,
                 )
             ) from ex
