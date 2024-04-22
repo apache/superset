@@ -216,7 +216,7 @@ export default function transformProps(
             ? breakdownName.join()
             : null;
 
-          expectedLegendNames.push(finalBrName);
+          if (finalBrName) expectedLegendNames.push(finalBrName);
 
           // when there is only 1 metric, no need to print it's name
           const dataName =
