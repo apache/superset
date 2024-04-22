@@ -1670,7 +1670,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = ParsedQuery(statement, engine=cls.engine)
         sql = parsed_query.stripped()
 
-        return database.mutate_sql_based_on_config(sql, is_splitted=True)
+        return database.mutate_sql_based_on_config(sql, is_split=True)
 
     @classmethod
     def estimate_query_cost(

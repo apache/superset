@@ -587,7 +587,7 @@ class Database(
     def get_reserved_words(self) -> set[str]:
         return self.get_dialect().preparer.reserved_words
 
-    def mutate_sql_based_on_config(self, sql_: str, is_splitted: bool = False) -> str:
+    def mutate_sql_based_on_config(self, sql_: str, is_split: bool = False) -> str:
         """
         Mutates the SQL query based on the app configuration.
 
@@ -599,7 +599,7 @@ class Database(
           as to whether the SQL is split or already.
         """
         sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (is_splitted == config["MUTATE_AFTER_SPLIT"]):
+        if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
@@ -631,7 +631,7 @@ class Database(
             cursor = conn.cursor()
             df = None
             for i, sql_ in enumerate(sqls):
-                sql_ = self.mutate_sql_based_on_config(sql_, is_splitted=True)
+                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
