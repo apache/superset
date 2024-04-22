@@ -599,10 +599,7 @@ class Database(
           as to whether the SQL is split or already.
         """
         sql_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_mutator and (
-            (is_splitted and config["MUTATE_AFTER_SPLIT"])
-            or (not is_splitted and not config["MUTATE_AFTER_SPLIT"])
-        ):
+        if sql_mutator and (is_splitted == config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
                 sql_,
                 security_manager=security_manager,
