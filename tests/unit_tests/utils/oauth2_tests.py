@@ -33,7 +33,7 @@ def test_get_oauth2_access_token_base_no_token(mocker: MockerFixture) -> None:
     db_engine_spec = mocker.MagicMock()
     db.session.query().filter_by().one_or_none.return_value = None
 
-    assert get_oauth2_access_token(1, 1, db_engine_spec) is None
+    assert get_oauth2_access_token({}, 1, 1, db_engine_spec) is None
 
 
 def test_get_oauth2_access_token_base_token_valid(mocker: MockerFixture) -> None:
@@ -48,7 +48,7 @@ def test_get_oauth2_access_token_base_token_valid(mocker: MockerFixture) -> None
     db.session.query().filter_by().one_or_none.return_value = token
 
     with freeze_time("2024-01-01"):
-        assert get_oauth2_access_token(1, 1, db_engine_spec) == "access-token"
+        assert get_oauth2_access_token({}, 1, 1, db_engine_spec) == "access-token"
 
 
 def test_get_oauth2_access_token_base_refresh(mocker: MockerFixture) -> None:
@@ -68,7 +68,7 @@ def test_get_oauth2_access_token_base_refresh(mocker: MockerFixture) -> None:
     db.session.query().filter_by().one_or_none.return_value = token
 
     with freeze_time("2024-01-02"):
-        assert get_oauth2_access_token(1, 1, db_engine_spec) == "new-token"
+        assert get_oauth2_access_token({}, 1, 1, db_engine_spec) == "new-token"
 
     # check that token was updated
     assert token.access_token == "new-token"
@@ -89,7 +89,7 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
     db.session.query().filter_by().one_or_none.return_value = token
 
     with freeze_time("2024-01-02"):
-        assert get_oauth2_access_token(1, 1, db_engine_spec) is None
+        assert get_oauth2_access_token({}, 1, 1, db_engine_spec) is None
 
     # check that token was deleted
     db.session.delete.assert_called_with(token)

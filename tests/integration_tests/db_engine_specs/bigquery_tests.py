@@ -111,15 +111,16 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             result = BigQueryEngineSpec.fetch_data(None, 0)
         self.assertEqual(result, [1, 2])
 
-    def test_extra_table_metadata(self):
+    def test_get_extra_table_metadata(self):
         """
         DB Eng Specs (bigquery): Test extra table metadata
         """
         database = mock.Mock()
         # Test no indexes
         database.get_indexes = mock.MagicMock(return_value=None)
-        result = BigQueryEngineSpec.extra_table_metadata(
-            database, "some_table", "some_schema"
+        result = BigQueryEngineSpec.get_extra_table_metadata(
+            database,
+            Table("some_table", "some_schema"),
         )
         self.assertEqual(result, {})
 
@@ -138,8 +139,9 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             "clustering": {"cols": [["c_col1", "c_col2", "c_col3"]]},
         }
         database.get_indexes = mock.MagicMock(return_value=index_metadata)
-        result = BigQueryEngineSpec.extra_table_metadata(
-            database, "some_table", "some_schema"
+        result = BigQueryEngineSpec.get_extra_table_metadata(
+            database,
+            Table("some_table", "some_schema"),
         )
         self.assertEqual(result, expected_result)
 

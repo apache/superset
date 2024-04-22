@@ -39,6 +39,8 @@ const mockData = {
   onCollapseMetricsChange: jest.fn(),
   collapseColumns: false,
   onCollapseColumnsChange: jest.fn(),
+  hiddenMetricCount: 0,
+  hiddenColumnCount: 0,
 };
 
 test('renders each item accordingly', () => {
@@ -165,4 +167,33 @@ test('can collapse metrics and columns', () => {
     />,
   );
   expect(queryByText('Columns')).toBeInTheDocument();
+});
+
+test('shows ineligible items count', () => {
+  const hiddenColumnCount = 3;
+  const hiddenMetricCount = 1;
+  const dataWithHiddenItems = {
+    ...mockData,
+    hiddenColumnCount,
+    hiddenMetricCount,
+  };
+  const { getByText, rerender } = render(
+    <DatasourcePanelItem index={1} data={dataWithHiddenItems} style={{}} />,
+    { useDnd: true },
+  );
+  expect(
+    getByText(`${hiddenMetricCount} ineligible item(s) are hidden`),
+  ).toBeInTheDocument();
+
+  const startIndexOfColumnSection = mockData.metricSlice.length + 3;
+  rerender(
+    <DatasourcePanelItem
+      index={startIndexOfColumnSection + 1}
+      data={dataWithHiddenItems}
+      style={{}}
+    />,
+  );
+  expect(
+    getByText(`${hiddenColumnCount} ineligible item(s) are hidden`),
+  ).toBeInTheDocument();
 });

@@ -14,10 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 # pylint: disable=import-outside-toplevel, protected-access
 
+from __future__ import annotations
+
 from textwrap import dedent
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from pytest_mock import MockFixture
@@ -26,6 +29,7 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType, SQLAColumnType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -155,7 +159,7 @@ def test_cte_query_parsing(original: types.TypeEngine, expected: str) -> None:
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: Optional[dict[str, Any]],
+    attrs: dict[str, Any] | None,
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -263,3 +267,39 @@ OFFSET ?"""
   a
 FROM my_table"""
     )
+
+
+def test_extra_table_metadata(mocker: MockFixture) -> None:
+    """
+    Test the deprecated `extra_table_metadata` method.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.core import Database
+
+    class ThirdPartyDBEngineSpec(BaseEngineSpec):
+        @classmethod
+        def extra_table_metadata(
+            cls,
+            database: Database,
+            table_name: str,
+            schema_name: str | None,
+        ) -> dict[str, Any]:
+            return {"table": table_name, "schema": schema_name}
+
+    database = mocker.MagicMock()
+    warnings = mocker.patch("superset.db_engine_specs.base.warnings")
+
+    assert ThirdPartyDBEngineSpec.get_extra_table_metadata(
+        database,
+        Table("table", "schema"),
+    ) == {"table": "table", "schema": "schema"}
+
+    assert (
+        ThirdPartyDBEngineSpec.get_extra_table_metadata(
+            database,
+            Table("table", "schema", "catalog"),
+        )
+        == {}
+    )
+
+    warnings.warn.assert_called()

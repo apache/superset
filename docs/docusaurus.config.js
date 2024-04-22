@@ -150,14 +150,6 @@ const config = {
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
         },
-        googleAnalytics: {
-          trackingID: 'G-133LHD3B3N',
-          anonymizeIP: true,
-        },
-        gtag: {
-          trackingID: 'G-133LHD3B3N',
-          anonymizeIP: true,
-        },
       }),
     ],
   ],
@@ -171,7 +163,7 @@ const config = {
       },
       algolia: {
         appId: 'WR5FASX5ED',
-        apiKey: '299e4601d2fc5d0031bf9a0223c7f0c5',
+        apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
         indexName: 'superset-apache',
       },
       navbar: {
@@ -250,7 +242,8 @@ const config = {
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
-              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>&nbsp;|&nbsp;
+              <a href="https://privacy.apache.org/policies/privacy-policy-public.html" target="_blank" rel="noreferrer">Privacy</a>
             </small>
           </p>
           <!-- telemetry/analytics pixel: -->
@@ -264,10 +257,10 @@ const config = {
     }),
   scripts: [
     '/script/matomo.js',
-    {
-      src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
-      async: true,
-    },
+    // {
+    //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+    //   async: true,
+    // },
   ],
 };
 

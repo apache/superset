@@ -68,7 +68,7 @@ export const TableControls = ({
   );
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} />
+      <FilterInput onChangeHandler={onInputChange} shouldFocus />
       <div
         css={css`
           display: flex;

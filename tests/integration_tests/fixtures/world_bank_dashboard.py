@@ -50,7 +50,7 @@ def load_world_bank_data():
             "country_name": String(255),
             "region": String(255),
         }
-        with database.get_sqla_engine_with_context() as engine:
+        with database.get_sqla_engine() as engine:
             _get_dataframe(database).to_sql(
                 WB_HEALTH_POPULATION,
                 engine,
@@ -64,7 +64,7 @@ def load_world_bank_data():
 
     yield
     with app.app_context():
-        with get_example_database().get_sqla_engine_with_context() as engine:
+        with get_example_database().get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS wb_health_population")
 
 

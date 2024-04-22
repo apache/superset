@@ -54,13 +54,13 @@ def test_values_for_column(mocker: MockerFixture, session: Session) -> None:
     # since we're using an in-memory SQLite database, make sure we always
     # return the same engine where the table was created
     @contextmanager
-    def mock_get_sqla_engine_with_context():
+    def mock_get_sqla_engine():
         yield engine
 
     mocker.patch.object(
         database,
-        "get_sqla_engine_with_context",
-        new=mock_get_sqla_engine_with_context,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
     )
 
     table = SqlaTable(

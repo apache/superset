@@ -39,7 +39,7 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
     """Loading lat/long data from a csv file in the repo"""
     tbl_name = "long_lat"
     database = database_utils.get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 

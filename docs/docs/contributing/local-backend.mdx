@@ -70,7 +70,10 @@ If you have made changes to the FAB-managed templates, which are not built the s
 
 #### Dependencies
 
-If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
+If you add a new requirement or update an existing requirement (per the
+`requirements` section in `pyproject.toml`) you must recompile (freeze) the
+Python dependencies to ensure that for CI, testing, etc. the build is deterministic.
+This can be achieved via,
 
 ```bash
 $ python3 -m venv venv

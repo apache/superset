@@ -30,7 +30,7 @@ const asyncRender = (numberOfItems: number) =>
     }
     render(
       <Menu openKeys={['menu']}>
-        <Menu.SubMenu title="Dashboards added to" key="menu">
+        <Menu.SubMenu title="On dashboards" key="menu">
           <DashboardItems key="menu" dashboards={dashboards} />
         </Menu.SubMenu>
       </Menu>,

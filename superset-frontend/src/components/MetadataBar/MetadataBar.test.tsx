@@ -265,3 +265,25 @@ test('correctly renders the tags tooltip', async () => {
     );
   });
 });
+
+test('renders StyledItem with role="button" when onClick is defined', () => {
+  const onClick = jest.fn();
+  const items = [
+    { ...ITEMS[0], onClick },
+    { ...ITEMS[1], onClick },
+  ];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.getAllByRole('button');
+
+  expect(styledItems.length).toBe(2);
+});
+
+test('renders StyledItem with role=undefined when onClick is not defined', () => {
+  const items = [ITEMS[0], ITEMS[1]];
+  render(<MetadataBar items={items} />);
+
+  const styledItems = screen.queryAllByRole('button');
+
+  expect(styledItems.length).toBe(0);
+});

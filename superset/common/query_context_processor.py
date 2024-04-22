@@ -455,6 +455,13 @@ class QueryContextProcessor:
                 for metric in metric_names
             }
 
+            # When the original query has limit or offset we wont apply those
+            # to the subquery so we prevent data inconsistency due to missing records
+            # in the dataframes when performing the join
+            if query_object.row_limit or query_object.row_offset:
+                query_object_clone_dct["row_limit"] = config["ROW_LIMIT"]
+                query_object_clone_dct["row_offset"] = 0
+
             if isinstance(self._qc_datasource, Query):
                 result = self._qc_datasource.exc_query(query_object_clone_dct)
             else:

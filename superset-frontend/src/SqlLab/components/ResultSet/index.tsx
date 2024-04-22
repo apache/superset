@@ -53,6 +53,7 @@ import FilterableTable from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -579,6 +580,10 @@ const ResultSet = ({
       const expandedColumns = results.expanded_columns
         ? results.expanded_columns.map(col => col.column_name)
         : [];
+      const allowHTML = getItem(
+        LocalStorageKeys.SqllabIsRenderHtmlEnabled,
+        false,
+      );
       return (
         <ResultContainer>
           {renderControls()}
@@ -626,6 +631,7 @@ const ResultSet = ({
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
+            allowHTML={allowHTML}
           />
         </ResultContainer>
       );

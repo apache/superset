@@ -528,6 +528,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
+        access_token: str | None,
     ) -> None:
         """
         Update a configuration dictionary
@@ -553,7 +554,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def execute(  # type: ignore
         cursor,
         query: str,
-        database_id: int,
+        database: Database,
         async_: bool = False,
     ):  # pylint: disable=arguments-differ
         kwargs = {"async": async_}

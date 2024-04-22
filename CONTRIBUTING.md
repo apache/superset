@@ -466,7 +466,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-pypi#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.9, 3.10 or 3.11, then proceed with:
