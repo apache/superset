@@ -67,12 +67,13 @@ describe('plugin-chart-table', () => {
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
 
-    it('does not include currencyFormat for percent columns', () => {
+    it('does not include currencyFormat in percent columns', () => {
       const transformedProps = transformProps(testData.advancedWithCurrency);
       const transformedColumns = transformedProps.columns;
       const percentColumns = transformedColumns.filter(
         col => col.isPercentMetric,
       );
+      expect(percentColumns.length).toBeGreaterThan(0);
       percentColumns.forEach(col => {
         expect(col?.config?.currencyFormat).toBeUndefined();
       });
