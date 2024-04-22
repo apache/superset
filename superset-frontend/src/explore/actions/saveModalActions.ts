@@ -22,6 +22,7 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Operators } from '../constants';
+
 export interface Dashboard {
   title: string;
   new?: boolean;
@@ -73,7 +74,8 @@ export function fetchDashboardsFailed(userId: string) {
   return { type: FETCH_DASHBOARDS_FAILED, userId };
 }
 
-export const SET_SAVE_CHART_MODAL_VISIBILITY = 'SET_SAVE_CHART_MODAL_VISIBILITY';
+export const SET_SAVE_CHART_MODAL_VISIBILITY =
+  'SET_SAVE_CHART_MODAL_VISIBILITY';
 export function setSaveChartModalVisibility(isVisible: boolean) {
   return { type: SET_SAVE_CHART_MODAL_VISIBILITY, isVisible };
 }
@@ -88,11 +90,15 @@ export function saveSliceSuccess(data: any) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
-function extractAdhocFiltersFromFormData(formDataToHandle: FormData): Partial<FormData> {
+function extractAdhocFiltersFromFormData(
+  formDataToHandle: FormData,
+): Partial<FormData> {
   const result: Partial<FormData> = {};
   Object.entries(formDataToHandle).forEach(([key, value]) => {
     if (ADHOC_FILTER_REGEX.test(key) && Array.isArray(value)) {
-      result[key] = (value as AdhocFilter[]).filter((f: AdhocFilter) => !f.isExtra);
+      result[key] = (value as AdhocFilter[]).filter(
+        (f: AdhocFilter) => !f.isExtra,
+      );
     }
   });
   return result;
@@ -110,15 +116,21 @@ export const getSlicePayload = (
   owners: string[],
   formDataFromSlice: FormData = {} as FormData,
 ): SlicePayload => {
-  const adhocFilters: Partial<FormData> = extractAdhocFiltersFromFormData(formDataWithNativeFilters);
+  const adhocFilters: Partial<FormData> = extractAdhocFiltersFromFormData(
+    formDataWithNativeFilters,
+  );
   if (!isEmpty(formDataFromSlice)) {
     Object.keys(adhocFilters).forEach(adhocFilterKey => {
       if (isEmpty(adhocFilters[adhocFilterKey])) {
         if (Array.isArray(formDataFromSlice[adhocFilterKey])) {
           const filters = formDataFromSlice[adhocFilterKey] as AdhocFilter[];
           filters.forEach(filter => {
-            if (filter.operator === Operators.TemporalRange && !filter.isExtra) {
-              const targetArray = adhocFilters[adhocFilterKey] as AdhocFilter[] || [];
+            if (
+              filter.operator === Operators.TemporalRange &&
+              !filter.isExtra
+            ) {
+              const targetArray =
+                (adhocFilters[adhocFilterKey] as AdhocFilter[]) || [];
               targetArray.push({
                 ...filter,
                 comparator: 'No filter',
@@ -167,86 +179,141 @@ export const getSlicePayload = (
   };
 
   return payload;
-}
-const addToasts = (isNewSlice: boolean, sliceName: string, addedToDashboard?: Dashboard) => {
+};
+const addToasts = (
+  isNewSlice: boolean,
+  sliceName: string,
+  addedToDashboard?: Dashboard,
+) => {
   const toasts = [];
   if (isNewSlice) {
     toasts.push(addSuccessToast(t('Chart [%s] has been saved', sliceName)));
   } else {
-    toasts.push(addSuccessToast(t('Chart [%s] has been overwritten', sliceName)));
+    toasts.push(
+      addSuccessToast(t('Chart [%s] has been overwritten', sliceName)),
+    );
   }
 
   if (addedToDashboard) {
     if (addedToDashboard.new) {
       toasts.push(
-        addSuccessToast(t('Dashboard [%s] just got created and chart [%s] was added to it', addedToDashboard.title, sliceName)),
+        addSuccessToast(
+          t(
+            'Dashboard [%s] just got created and chart [%s] was added to it',
+            addedToDashboard.title,
+            sliceName,
+          ),
+        ),
       );
     } else {
-      toasts.push(addSuccessToast(t('Chart [%s] was added to dashboard [%s]', sliceName, addedToDashboard.title)));
+      toasts.push(
+        addSuccessToast(
+          t(
+            'Chart [%s] was added to dashboard [%s]',
+            sliceName,
+            addedToDashboard.title,
+          ),
+        ),
+      );
     }
   }
 
   return toasts;
 };
 
-export const updateSlice = (slice: Slice, sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
-  const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
-  const { explore: { form_data: { url_params: _, ...formData } } } = getState();
-  try {
-    const response = await SupersetClient.put({
-      endpoint: `/api/v1/chart/${sliceId}`,
-      jsonPayload: getSlicePayload(sliceName, formData, dashboards, owners, formDataFromSlice),
-    });
+export const updateSlice =
+  (
+    slice: Slice,
+    sliceName: string,
+    dashboards: number[],
+    addedToDashboard?: Dashboard,
+  ) =>
+  async (dispatch: Dispatch, getState: () => any) => {
+    const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
+    try {
+      const response = await SupersetClient.put({
+        endpoint: `/api/v1/chart/${sliceId}`,
+        jsonPayload: getSlicePayload(
+          sliceName,
+          formData,
+          dashboards,
+          owners,
+          formDataFromSlice,
+        ),
+      });
 
-    dispatch(saveSliceSuccess(response.json));
-    addToasts(false, sliceName, addedToDashboard).map(dispatch);
-    return response.json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
-};
+      dispatch(saveSliceSuccess(response.json));
+      addToasts(false, sliceName, addedToDashboard).map(dispatch);
+      return response.json;
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
+  };
 
-export const createSlice = (sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) => async (dispatch: Dispatch, getState: () => any) => {
-  const { explore: { form_data: { url_params: _, ...formData } } } = getState();
-  try {
-    const response = await SupersetClient.post({
-      endpoint: `/api/v1/chart/`,
-      jsonPayload: getSlicePayload(sliceName, formData, dashboards, [], {} as FormData),
-    });
+export const createSlice =
+  (sliceName: string, dashboards: number[], addedToDashboard?: Dashboard) =>
+  async (dispatch: Dispatch, getState: () => any) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
+    try {
+      const response = await SupersetClient.post({
+        endpoint: `/api/v1/chart/`,
+        jsonPayload: getSlicePayload(
+          sliceName,
+          formData,
+          dashboards,
+          [],
+          {} as FormData,
+        ),
+      });
 
-    dispatch(saveSliceSuccess(response.json));
-    addToasts(true, sliceName, addedToDashboard).map(dispatch);
-    return response.json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
-};
+      dispatch(saveSliceSuccess(response.json));
+      addToasts(true, sliceName, addedToDashboard).map(dispatch);
+      return response.json;
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
+  };
 
-export const createDashboard = (dashboardName: string) => async (dispatch: Dispatch) => {
-  try {
-    const response = await SupersetClient.post({
-      endpoint: `/api/v1/dashboard/`,
-      jsonPayload: { dashboard_title: dashboardName },
-    });
+export const createDashboard =
+  (dashboardName: string) => async (dispatch: Dispatch) => {
+    try {
+      const response = await SupersetClient.post({
+        endpoint: `/api/v1/dashboard/`,
+        jsonPayload: { dashboard_title: dashboardName },
+      });
 
-    return response.json;
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
-};
+      return response.json;
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
+  };
 
-export const getSliceDashboards = (slice: Slice) => async (dispatch: Dispatch) => {
-  try {
-    const response = await SupersetClient.get({
-      endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({ columns: ['dashboards.id'] })}`,
-    });
+export const getSliceDashboards =
+  (slice: Slice) => async (dispatch: Dispatch) => {
+    try {
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+          columns: ['dashboards.id'],
+        })}`,
+      });
 
-    return response.json.result.dashboards.map(({ id }: { id: number }) => id);
-  } catch (error) {
-    dispatch(saveSliceFailed());
-    throw error;
-  }
-};
+      return response.json.result.dashboards.map(
+        ({ id }: { id: number }) => id,
+      );
+    } catch (error) {
+      dispatch(saveSliceFailed());
+      throw error;
+    }
+  };
