@@ -880,18 +880,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqla_col.key = label_expected
         return sqla_col
 
-    def mutate_query_from_config(self, sql: str) -> str:
-        """Apply config's SQL_QUERY_MUTATOR
-
-        Typically adds comments to the query with context"""
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=self.database,
-            )
-        return sql
-
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """
@@ -919,7 +907,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             logger.warning("Unable to parse SQL to format it, passing it as-is")
 
         if mutate:
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,
@@ -1393,7 +1381,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         with self.database.get_sqla_engine() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
             sql = self._apply_cte(sql, cte)
-            sql = self.mutate_query_from_config(sql)
+            sql = self.database.mutate_sql_based_on_config(sql)
 
             df = pd.read_sql_query(sql=sql, con=engine)
             # replace NaN with None to ensure it can be serialized to JSON

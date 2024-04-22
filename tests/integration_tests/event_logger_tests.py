@@ -144,8 +144,9 @@ class TestEventLogger(unittest.TestCase):
         assert logger.records == [
             {
                 "records": [{"path": "/", "engine": "bar"}],
+                "database_id": None,
                 "user_id": 2,
-                "duration": 15000.0,
+                "duration": 15000,
             }
         ]
 
@@ -191,6 +192,7 @@ class TestEventLogger(unittest.TestCase):
                         "payload_override": {"engine": "sqlite"},
                     }
                 ],
+                "database_id": None,
                 "user_id": 2,
                 "duration": 5558756000,
             }

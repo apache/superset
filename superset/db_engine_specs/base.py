@@ -59,7 +59,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select, TextAsFrom, TextClau
 from sqlalchemy.types import TypeEngine
 from sqlparse.tokens import CTE
 
-from superset import security_manager, sql_parse
+from superset import sql_parse
 from superset.constants import TimeGrain as TimeGrainConstants
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1682,16 +1682,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = ParsedQuery(statement, engine=cls.engine)
         sql = parsed_query.stripped()
-        sql_query_mutator = current_app.config["SQL_QUERY_MUTATOR"]
-        mutate_after_split = current_app.config["MUTATE_AFTER_SPLIT"]
-        if sql_query_mutator and not mutate_after_split:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=database,
-            )
 
-        return sql
+        return database.mutate_sql_based_on_config(sql, is_split=True)
 
     @classmethod
     def estimate_query_cost(
