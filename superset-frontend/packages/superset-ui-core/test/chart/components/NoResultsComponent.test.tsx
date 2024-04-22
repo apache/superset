@@ -18,12 +18,10 @@
  */
 
 import React from 'react';
-import { render } from 'spec/helpers/testing-library';
-// import { shallow } from 'enzyme';
-// import { configure,  } from '@superset-ui/core';
+import { render } from '@testing-library/react';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
-it('renders the no results error', () => {
+test('renders the no results error', () => {
   const { getByText } = render(<NoResultsComponent height="400" width="300" />);
 
   expect(getByText(/No Results/)).toBeInTheDocument();
