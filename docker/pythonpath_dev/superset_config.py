@@ -112,7 +112,26 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 
-TALISMAN_ENABLED = False
+# security
+ALLOW_ORIGINS = ["https://development.cloudadmin.io", "http://localhost:8001"]
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "resources": ["*"],
+    "origins": ALLOW_ORIGINS
+}
+TALISMAN_ENABLED = True
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "frame-ancestors": ALLOW_ORIGINS
+    },
+    "force_https": False,
+    "force_https_permanent": False,
+    "frame_options": "ALLOWFROM",
+    "frame_options_allow_from": "*"
+}
+WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.log",
     "superset.views.core.explore_json",

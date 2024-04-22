@@ -109,6 +109,7 @@ flask==2.2.5
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
+flask-cors>=4.0.0
 flask-appbuilder==4.4.1
     # via apache-superset
 flask-babel==1.0.0
