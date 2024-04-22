@@ -66,6 +66,17 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+
+    it('does not include currencyFormat for percent columns', () => {
+      const transformedProps = transformProps(testData.advancedWithCurrency);
+      const transformedColumns = transformedProps.columns;
+      const percentColumns = transformedColumns.filter(
+        col => col.isPercentMetric,
+      );
+      percentColumns.forEach(col => {
+        expect(col?.config?.currencyFormat).toBeUndefined();
+      });
+    });
   });
 
   describe('TableChart', () => {
