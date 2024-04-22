@@ -23,11 +23,12 @@ Create Date: 2024-04-22 11:30:36.829598
 """
 
 # revision identifiers, used by Alembic.
-revision = '50c2e58a2cf7'
-down_revision = 'd60591c5515f'
+revision = "50c2e58a2cf7"
+down_revision = "d60591c5515f"
 
 import sqlalchemy as sa
 from alembic import op
+
 
 def upgrade():
     op.add_column(
