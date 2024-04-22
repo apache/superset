@@ -18,18 +18,18 @@
  */
 
 import React from 'react';
-import { shallow } from 'enzyme';
-import { configure } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
+// import { shallow } from 'enzyme';
+// import { configure,  } from '@superset-ui/core';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
-configure();
+it('renders the no results error', () => {
+  const { getByText } = render(<NoResultsComponent height="400" width="300" />);
 
-describe('NoResultsComponent', () => {
-  it('renders the no results error', () => {
-    const wrapper = shallow(<NoResultsComponent height="400" width="300" />);
-
-    expect(wrapper.text()).toEqual(
-      'No ResultsNo results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.',
-    );
-  });
+  expect(getByText(/No Results/)).toBeInTheDocument();
+  expect(
+    getByText(
+      'No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.',
+    ),
+  ).toBeInTheDocument();
 });
