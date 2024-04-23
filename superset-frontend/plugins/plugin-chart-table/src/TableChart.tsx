@@ -56,6 +56,7 @@ import {
   DownOutlined,
   MinusCircleOutlined,
   PlusCircleOutlined,
+  TableOutlined,
 } from '@ant-design/icons';
 
 import { isEmpty } from 'lodash';
@@ -579,7 +580,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         trigger={['click']}
       >
         <span>
-          {t('Display columns')} <DownOutlined />
+          <TableOutlined /> <DownOutlined />
         </span>
       </Dropdown>
     );
