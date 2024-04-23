@@ -189,7 +189,7 @@ def generate_download_headers(
 
 
 def deprecated(
-    eol_version: str = "4.0.0",
+    eol_version: str = "5.0.0",
     new_target: str | None = None,
 ) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
     """

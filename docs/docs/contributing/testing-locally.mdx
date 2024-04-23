@@ -83,9 +83,20 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
-### Integration Testing
+### e2e Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+We use [Cypress](https://www.cypress.io/) for end-to-end integration
+tests. One easy option to get started quickly is to leverage `tox` to
+run the whole suite in an isolated environment.
+
+```bash
+tox -e cypress
+```
+
+Alternatively, you can go lower level and set things up in your
+development environment by following these steps:
+
+First set up a python/flask backend:
 
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
@@ -98,7 +109,7 @@ superset load-examples --load-test-data
 superset run --port 8081
 ```
 
-Run Cypress tests:
+In another terminal, prepare the frontend and run Cypress tests:
 
 ```bash
 cd superset-frontend

@@ -20,7 +20,7 @@ import time
 from contextlib import closing
 from typing import Any, Optional
 
-from superset import app, security_manager
+from superset import app
 from superset.models.core import Database
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
@@ -54,12 +54,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        if sql_query_mutator := config["SQL_QUERY_MUTATOR"]:
-            sql = sql_query_mutator(
-                sql,
-                security_manager=security_manager,
-                database=database,
-            )
+        sql = database.mutate_sql_based_on_config(sql)
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate

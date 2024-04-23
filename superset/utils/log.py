@@ -32,7 +32,7 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.extensions import stats_logger_manager
-from superset.utils.core import get_user_id, LoggerLevel
+from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
@@ -51,6 +51,10 @@ def collect_request_payload() -> dict[str, Any]:
         # url search params can overwrite POST body
         **request.args.to_dict(),
     }
+
+    if request.is_json:
+        json_payload = request.get_json(cache=True, silent=True) or {}
+        payload.update(json_payload)
 
     # save URL match pattern in addition to the request path
     url_rule = str(request.url_rule)
@@ -130,12 +134,13 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_with_context(  # pylint: disable=too-many-locals
+    def log_with_context(  # pylint: disable=too-many-locals,too-many-arguments
         self,
         action: str,
         duration: timedelta | None = None,
         object_ref: str | None = None,
         log_to_statsd: bool = True,
+        database: Any | None = None,
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
@@ -165,11 +170,15 @@ class AbstractEventLogger(ABC):
         if payload_override:
             payload.update(payload_override)
 
-        dashboard_id: int | None = None
-        try:
-            dashboard_id = int(payload.get("dashboard_id"))  # type: ignore
-        except (TypeError, ValueError):
-            dashboard_id = None
+        dashboard_id = to_int(payload.get("dashboard_id"))
+
+        database_params = {"database_id": payload.get("database_id")}
+        if database and type(database).__name__ == "Database":
+            database_params = {
+                "database_id": database.id,
+                "engine": database.backend,
+                "database_driver": database.driver,
+            }
 
         if "form_data" in payload:
             form_data, _ = get_form_data()
@@ -178,10 +187,7 @@ class AbstractEventLogger(ABC):
         else:
             slice_id = payload.get("slice_id")
 
-        try:
-            slice_id = int(slice_id)  # type: ignore
-        except (TypeError, ValueError):
-            slice_id = 0
+        slice_id = to_int(slice_id)
 
         if log_to_statsd:
             stats_logger_manager.instance.incr(action)
@@ -201,6 +207,7 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=duration_ms,
             referrer=referrer,
+            **database_params,
         )
 
     @contextmanager
@@ -209,6 +216,7 @@ class AbstractEventLogger(ABC):
         action: str,
         object_ref: str | None = None,
         log_to_statsd: bool = True,
+        **kwargs: Any,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
@@ -216,7 +224,7 @@ class AbstractEventLogger(ABC):
         :param object_ref: reference to the Python object that triggered this action
         :param log_to_statsd: whether to update statsd counter for the action
         """
-        payload_override = {}
+        payload_override = kwargs.copy()
         start = datetime.now()
         # yield a helper to add additional payload
         yield lambda **kwargs: payload_override.update(kwargs)
@@ -359,3 +367,29 @@ class DBEventLogger(AbstractEventLogger):
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
+
+
+class StdOutEventLogger(AbstractEventLogger):
+    """Event logger that prints to stdout for debugging purposes"""
+
+    def log(  # pylint: disable=too-many-arguments
+        self,
+        user_id: int | None,
+        action: str,
+        dashboard_id: int | None,
+        duration_ms: int | None,
+        slice_id: int | None,
+        referrer: str | None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        data = dict(  # pylint: disable=use-dict-literal
+            user_id=user_id,
+            action=action,
+            dashboard_id=dashboard_id,
+            duration_ms=duration_ms,
+            slice_id=slice_id,
+            referrer=referrer,
+            **kwargs,
+        )
+        print("StdOutEventLogger: ", data)
