@@ -340,6 +340,17 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'comparison_range_label',
+            config: {
+              type: 'ComparisonRangeLabel',
+              visibility: ({ controls }) =>
+                Boolean(controls?.enable_time_comparison?.value) &&
+                isAggMode({ controls }),
+            },
+          },
+        ],
+        [
+          {
             name: `adhoc_custom`,
             config: {
               ...sharedControls.adhoc_filters,
@@ -403,17 +414,6 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'comparison_range_label',
-            config: {
-              type: 'ComparisonRangeLabel',
-              visibility: ({ controls }) =>
-                Boolean(controls?.enable_time_comparison?.value) &&
-                isAggMode({ controls }),
             },
           },
         ],
